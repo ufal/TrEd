@@ -1,5 +1,8 @@
 package TrEd::TreeView;		# -*- cperl -*-
 
+use strict;
+
+BEGIN {
 use Tk;
 use Tk::Canvas;
 use Tk::Balloon;
@@ -11,14 +14,6 @@ use TrEd::Convert;
 import TrEd::Convert;
 
 use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_get_node_style $on_get_nodes);
-
-our $objectno;
-our ($block, $bblock);
-$block  = qr/\{((?:(?> [^{}]* )|(??{ $block }))*)\}/x;
-$bblock = qr/\{(?:(?>  [^{}]* )|(??{ $bblock }))*\}/x;
-
-
-use strict;
 
 @Options = qw(CanvasBalloon backgroundColor
   stripeColor vertStripe horizStripe baseXPos baseYPos boxColor
@@ -33,7 +28,7 @@ use strict;
   nodeColor hiddenNodeColor nearestNodeColor ymargin currentNodeColor
   textColorShadow textColorHilite textColorXHilite skipHiddenLevels skipHiddenParents
   useAdditionalEdgeLabelSkip reverseNodeOrder balanceTree verticalTree displayMode labelSep
-  columnSep);
+  columnSep lineSpacing);
 
 %DefaultNodeStyle = (
 	      Oval            =>  [],
@@ -49,6 +44,25 @@ use strict;
 	      NodeLabel       =>  [-valign => 'top', -halign => 'left'],
 	      EdgeLabel       =>  [-halign => 'center', -valign => 'top']
 	     );
+}
+
+
+our $objectno;
+our ($block, $bblock);
+$block  = qr/\{((?:(?> [^{}]* )|(??{ $block }))*)\}/x;
+$bblock = qr/\{(?:(?>  [^{}]* )|(??{ $bblock }))*\}/x;
+
+{
+  no strict 'refs';
+  # generate methods
+  for my $opt (@Options, qw(canvasHeight canvasWidth)) {
+    (*{"get_$opt"},*{"set_$opt"}) = do {{
+      my $o = $opt;
+      (sub { $_[0]->{$o} },
+       sub { $_[0]->{$o} = $_[1]; })
+     }};
+  }
+}
 
 sub new {
   my $self = shift;
@@ -61,18 +75,6 @@ sub new {
 
   bless $new, $class;
   return $new;
-}
-
-{
-  no strict 'refs';
-  # generate methods
-  for my $opt (@Options, qw(canvasHeight canvasWidth)) {
-    (*{"get_$opt"},*{"set_$opt"}) = do {{
-      my $o = $opt;
-      (sub { $_[0]->{$o} },
-       sub { $_[0]->{$o} = $_[1]; })
-     }};
-  }
 }
 
 sub AUTOLOAD {
@@ -501,6 +503,7 @@ sub recalculate_positions_vert {
   my ($self,$fsfile,$nodes,$Opts,$grp)=@_;
   return unless ref($self);
 
+  my $lineSpacing=$Opts->{lineSpacing} || $self->get_lineSpacing;
   my $baseXPos=$Opts->{baseXPos} || $self->get_baseXPos;
   my $baseYPos=$Opts->{baseYPos} || $self->get_baseYPos;
   my $level;
@@ -532,7 +535,7 @@ sub recalculate_positions_vert {
     $edge_pattern_count=scalar($self->get_label_patterns($fsfile,"edge"));
   }
 
-  my $fontHeight=$self->getFontHeight();
+  my $fontHeight=$self->getFontHeight() * $lineSpacing;
   my $node_label_height=2*$self->get_ymargin + $fontHeight;
   my $levelHeight=max($nodeHeight,$node_label_height) + $nodeYSkip;
 
@@ -631,6 +634,7 @@ sub recalculate_positions {
 
   my $baseXPos=$Opts->{baseXPos} || $self->get_baseXPos;
   my $baseYPos=$Opts->{baseYPos} || $self->get_baseYPos;
+  my $lineSpacing=$Opts->{lineSpacing} || $self->get_lineSpacing;
   my $xpos=$baseXPos;
   my $level;
 
@@ -667,7 +671,7 @@ sub recalculate_positions {
     $edge_pattern_count=scalar($self->get_label_patterns($fsfile,"edge"));
   }
 
-  my $fontHeight=$self->getFontHeight();
+  my $fontHeight=$self->getFontHeight()*$lineSpacing;
   my $node_label_height=2*$self->get_ymargin + $node_pattern_count*$fontHeight;
   my $edge_label_height=2*$self->get_ymargin + $edge_pattern_count*$fontHeight;
   my $levelHeight=$nodeHeight;
@@ -1318,9 +1322,11 @@ sub redraw {
   $self->store_gen_pinfo('lastX' => 0);
   $self->store_gen_pinfo('lastY' => 0);
 
+  my $lineSpacing=$Opts{lineSpacing} || $self->get_lineSpacing;
+
   # draw sentence info
   if ($fsfile and ($self->get_drawFileInfo or $self->get_drawSentenceInfo)) {
-    my $fontHeight=$self->getFontHeight();
+    my $fontHeight=$self->getFontHeight()*$lineSpacing;
     $self->{canvasHeight}+=$fontHeight; # add some skip
     if ($self->get_drawFileInfo) {
       my $currentfile=filename($fsfile->filename);
@@ -1397,7 +1403,7 @@ sub redraw {
   }
   $canvas->configure(-scrollregion =>['0c', '0c', $self->{canvasWidth}, $self->{canvasHeight}]);
 
-  my $lineHeight=$self->getFontHeight();
+  my $lineHeight=$self->getFontHeight() * $lineSpacing;
   my $edge_label_yskip= (scalar(@node_patterns) ? $self->get_edgeLabelSkipAbove : 0);
   my $can_dash=($Tk::VERSION=~/\.([0-9]+)$/ and $1>=22);
   $objectno=0;

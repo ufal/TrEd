@@ -3467,6 +3467,20 @@ Tk: 804.027
 	      </entry>
 	    </row>
 	    <row>
+	    <entry><literal moreinfo="none">lineSpacing</literal></entry>
+	    <entry>
+		<para>
+		  Coeficient for line spacing in text labels.
+		  The value can be float.
+		  Default coeficient is 1 (single line spacing).
+		  This style has the same effect as the
+		  <link xref="basexpos">LineSpacing</link>
+		  configuration option.
+		  Usage: <literal>#{lineSpacing:<replaceable>value</replaceable>}</literal>.
+		</para>
+	      </entry>
+	    </row>
+	    <row>
 	    <entry><literal moreinfo="none">skipHiddenParents</literal></entry>
 	    <entry>
 		<para>
@@ -5021,6 +5035,16 @@ sub CreateImages {
 	    <para>
 	      The vertical distance of the tree root (zero's node)
 	      from the top of the tree view.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="linespacing">
+	  <term><literal moreinfo="none">LineSpacing</literal></term>
+	  <listitem>
+	    <para>
+	      Coeficient for line spacing in text labels.
+	      The value can be float.
+	      Default coeficient is 1 (single line spacing).
 	    </para>
 	  </listitem>
 	</varlistentry>
