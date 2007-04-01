@@ -97,7 +97,10 @@ sub RemoveThisFromARf {
     delete $PML::arf->{a}{'lex.rf'};
   }
   @{$PML::arf->{a}{'aux.rf'}}
-    =uniq(ListSubtract($PML::arf->{a}{'aux.rf'},List($refid.'#'.$this->{id})));
+    =uniq(ListSubtract
+          ($PML::arf->{a}{'aux.rf'},
+           List($refid.'#'.$this->{id})
+          )) if ListV($PML::arf->attr('a/aux.rf'));
   $tr_fs->notSaved(1);
 }#RemoveThisFromARf
 

@@ -3788,7 +3788,7 @@ sub new {
 =item Fslib::List->new_from_ref (array_ref, reuse)
 
 Create a new list consisting of values in a given array reference.
-Use this constructor instead of new() for large lists by reference. If
+Use this constructor instead of new() to pass large lists by reference. If
 reuse is true, then the same array_ref scalar is reused within the
 Fslib::List object (i.e. blessed). Otherwise, a copy is created within
 the constructor.
