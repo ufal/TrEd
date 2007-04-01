@@ -1264,6 +1264,7 @@ EOL
         $status = nextFile($grp, -hook_can_stop => 1);
         $skip_next = ($status < 0) ? 1 : 0;
       }} while ($status != 0);
+      closeFile($grp);
     } else {
       _msg "No files to process!\n" unless $Quiet;
     }
