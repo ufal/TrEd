@@ -360,6 +360,7 @@ sub ANodeToALexRf {
   %specialEntity=qw!. Period
                     , Comma
                     &amp; Amp
+                    & Amp
                     - Dash
                     / Slash
                     ( Bracket
@@ -367,8 +368,11 @@ sub ANodeToALexRf {
                     ; Semicolon
                     : Colon
                     &ast; Ast
+                    * Ast
                     &verbar; Verbar
+                    | Verbar
                     &percnt; Percnt
+                    % Percnt
                     !;
   if($lemma=~/^.*`([^0-9_-]+)/){
     $lemma=$1;
