@@ -216,7 +216,6 @@ sub AddNode {
 sub AddAnalyticNode {
   my $autotype=shift;
   $this=NewNode($this);
-  ChangingFile(1);
   $this->{t_lemma}='#NewNode';
   $this->{functor}='---';
   $this->{nodetype}='complex';
@@ -226,6 +225,7 @@ sub AddAnalyticNode {
     EditNodetype()|| (DeleteNode() && return );
   }
 #  EditAttribute($this,'is_generated')|| (DeleteNode() && return );
+  ChangingFile(1);
   $PML::desiredcontext='PML_A_Edit';
   MarkForARf();
 }#AddAnalyticNode
@@ -270,6 +270,7 @@ sub AddEntityNode {
   unless ($autotype){
     EditNodetype()|| (DeleteNode() && return );
   }
+  ChangingFile(1);
 }#AddEntityNode
 
 sub _AddNode {
@@ -283,6 +284,7 @@ sub _AddNode {
   }else{
     AddEntityNode($autotype);
   }
+  ChangingFile(1);
 } #_AddNode
 
 sub MoveNodeLeft {
