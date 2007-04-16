@@ -21,6 +21,7 @@
 #menu-binding-adopt Coref TFA Tectogrammatic
 #include "tr_opravy.mak"
 
+package TR_Correction;
 #binding-context TR_FrameValidation
 #key-binding-adopt TR_Correction
 #include "tr_frame_validation.mak"
