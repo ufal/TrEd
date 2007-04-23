@@ -187,7 +187,7 @@ sub loadListOfUsers {
     if ($list) {
       foreach my $user ($list->getChildElementsByTagName("user")) {
 	my $is_annotator = ($user->getAttribute("annotator") eq "YES");
-	my $is_reviewer = ($user->getAttribute("is_reviewer") eq "YES");
+	my $is_reviewer = ($user->getAttribute("reviewer") eq "YES");
 	my $can_edit =  (($is_annotator or $is_reviewer) and 
 			 ($user->getAttribute("can_edit") ne "NO"));
 	$users->{$user->getAttribute("id")} =
