@@ -14,7 +14,7 @@ sub test {
   my ($f)=@_;
   if (ref($f)) {
     return ($f->getline()=~/\s*\<\?xml / &&
-	    $f->getline()=~/\<!DOCTYPE trees[ >]|\<trees[ >]/i);
+	    $f->getline()=~/\<!DOCTYPE trees[ >]|\<trees\s*>/i);
   } else {
     my $fh = IOBackend::open_backend($f,"r");
     my $test = $fh && test($fh);
@@ -177,8 +177,6 @@ sub new {
 
 sub start_document {
   my ($self,$hash) = @_;
-  print "$hash, ",keys(%$hash),"\n";
-  print map {"$_ => $hash->{$_}\n"} keys %$hash;
   $self->{FSFile} ||= FSFile->new();
   $self->{FSAttrs} ||= [];
 }
@@ -249,6 +247,10 @@ sub start_element {
       $new->{$self->decode($attr->{$_}->{Name})} = $self->decode($attr->{$_}->{Value});
     }
     Fslib::Paste($new,$parent,'ORD') if ($parent);
+  } elsif ($elem eq 'trees' or $elem eq 'info') {
+    # do nothing
+  } else {
+    die "TrXMLBackend: unknown element $elem\n";
   }
   $self->{attributes}=$attr;
 }
