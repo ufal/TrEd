@@ -354,7 +354,6 @@ sub create_widget {
 								 $self]);
       $modifyframe_button->pack(qw/-padx 5 -side left/);
     }
-
     my $moveup_button=$fbutton_frame2->Button(-text => 'Move Up',
 					      -underline => 5,
 					      -command => [\&move_button_pressed,
