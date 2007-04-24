@@ -2660,18 +2660,18 @@ sub get_format { return $_[0]->{format} }
 
   sub _check_time {
     my $value = shift;
+    my $no_hour24 = shift;
     return 
       ((length($value) and 
       $value =~ m(^
 	 (\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?  # hour:min:sec
 	 (?:Z|[-+]\d{2}:\d{2})?      # zone
       $)x and
-       ($1 == 24 and $2 == 0 and $3 == 0 and $4 == 0 or
-	1 <= $1 and $1 <= 23 and
+       ((!$no_hour24 and $1 == 24 and $2 == 0 and $3 == 0 and $4 == 0) or
+	0 <= $1 and $1 <= 23 and
         0 <= $2 and $2 <= 59 and 
         0 <= $3 and $3 <= 59)
-      ) ? 1 : 0)
-       
+      ) ? 1 : 0);
   }
   sub _check_date {
     my $value = shift;
@@ -2697,7 +2697,7 @@ sub get_format { return $_[0]->{format} }
     return 0 unless length $value;
     return 0 unless $value =~ /^(.*)T(.*)$/;
     my ($date,$time)=($1,$2);
-    return _check_date($date) && _check_time($time) ? 1 : 0;
+    return _check_date($date) && _check_time($time,1) ? 1 : 0;
   };
   $format_re{gYearMonth} = sub {
     my $value = shift;
