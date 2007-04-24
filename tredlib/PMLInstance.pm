@@ -1718,6 +1718,11 @@ sub write_object {
     }
   } elsif (exists $type->{sequence}) {
     my $sequence = $type->{sequence};
+    my $data_mode;
+    if ($sequence->{text}) {
+      $data_mode = $xml->getDataMode();
+      $xml->setDataMode(0);
+    }
     $ctxt->write_start_tag($sequence,$tag,%$attribs) if defined($tag);
     if ($sequence->{role} eq '#TREES') {
       $object = $ctxt->get_write_trees($object,$type);
@@ -1732,7 +1737,7 @@ sub write_object {
 	my $name = $element->[0];
 	my $value = $element->[1];
 	if ($name eq '#TEXT') {
-	  unless ($type->{sequence}{text}) {
+	  unless ($sequence->{text}) {
 	    my $what = $tag || $type->{name} || $type->{'-name'};
 	    _warn("Text not allowed in the sequence '$what', writing it anyway\n");
 	  }
@@ -1756,6 +1761,7 @@ sub write_object {
       _die("Unexpected content of the sequence '$what': $object\n");
     }
     $xml->endTag($tag) if defined($tag);
+    $xml->setDataMode($data_mode) if defined $data_mode;
   } elsif (exists $type->{container}) {
     my $what = $tag || $type->{name} || $type->{'-name'};    
     unless (UNIVERSAL::isa($object,'HASH')) {
