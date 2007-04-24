@@ -1247,7 +1247,7 @@ sub GetNodesExceptSubtree ($) {
   return \@all;
 }
 
-=item C<MoveNode>
+=item C<MoveNode(source-node,target-node)>
 
 Move the node specified by the first parameter after the node specified by
 the second parameter in the ordering on nodes.
@@ -1264,7 +1264,7 @@ sub MoveNode ($$) {
   NormalizeOrds($all);  # the ordering attribute is modified accordingly
 }
 
-=item C<MoveSubtree>
+=item C<MoveSubtree(source-node,target-node)>
 
 Move the subtree of the node specified by the first parameter after
 the node specified by the second parameter in the ordering on
