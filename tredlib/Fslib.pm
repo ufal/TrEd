@@ -2828,7 +2828,7 @@ sub isHidden {
   my ($self,$node)=@_;
   return unless ref($self) and ref($node);
   my $hid=$self->specials->{H};
-
+  return unless defined $hid;
   while (ref($node) && ($node->{$hid} != 1 and
 			$node->{$hid} ne 'hide')) {
     $node=$node->parent;
