@@ -1057,6 +1057,7 @@ sub NormalizeOrds {
   my ($nodesref)=@_;
 
   my $ord=_node_ord($nodesref->[0]);
+  return unless defined($ord);
   for (my $i=0;$i<=$#$nodesref;$i++) {
     $nodesref->[$i]->{$ord}=$i;
   }
