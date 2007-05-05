@@ -46,21 +46,44 @@ my $fsfile = PMLInstance->load({
   filename => $filename,
 })->convert_to_fsfile();
 
+my $schema = $fsfile->metaData('schema');
+
 # create 10 sample trees
 my ($root,$node);
 foreach my $i (1..10) {
-  $root=$fsfile->new_tree($i-1);	# create a new root
+  # create a new tree
+  $root = $fsfile->new_tree($i-1);
+
+  # associate root-node with a PML type
+  $root->set_type_by_name($schema,'t-root.type');
+
+  # fill-in required attributes
   $root->{id}="tree.$i";
   $root->{nodetype}="root";
   $root->{deepord}=0;
+
   foreach my $j (1..4) {
-    $node=FSNode->new();	# create a new node
+    # create a new node
+    $node=FSNode->new();
+
+    # associate node with a PML type
+    $node->set_type_by_name($schema,'t-node.type');
+
+    # fill-in required attributes
     $node->{id}="node-$i.$j";
     $node->{nodetype}="complex";
     $node->{t_lemma}="$j";
     $node->{functor}="RSTR";
     $node->{deepord}=$j;
-    Fslib::Paste($node,$root,$fsfile->FS); # paste the node on root
+
+    # paste the node on root
+    Fslib::Paste($node,$root,$fsfile->FS);
+  }
+  {
+    # validate the tree against PML Schema
+    my @log;
+    $root->validate_subtree(\@log);
+    warn join("\n",@log) if @log;
   }
 }
 
