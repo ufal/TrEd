@@ -766,6 +766,9 @@ object with the FSNode.
 =cut
 
 sub set_type_by_name ($$$) {
+  if (@_!=3) {
+    croak('Usage: $node->set_type_by_name($schema, $type_name)');
+  }
   my ($node,$schema,$name) = @_;
   my $type = $schema->get_type_by_name($name);
   if (ref($type)) {
