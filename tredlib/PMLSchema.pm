@@ -1620,10 +1620,10 @@ sub validate_object {
 	  my $mtype_is = $mtype->get_decl_type;
 	  if ($mtype_is == PML_SEQUENCE_DECL) {
 	    $content = Fslib::Seq->new([map { Fslib::Seq::Element->new($_->{'#name'},$_) } $object->children]);
-	  } elsif ($mtype == PML_LIST_DECL) {
+	  } elsif ($mtype_is == PML_LIST_DECL) {
 	    $content = Fslib::List->new_from_ref([$object->children],1);
 	  } else {
-	    push @$log, "$path: #CHILDNODES should be either a list or sequence";
+	    push @$log, "$path: #CHILDNODES should be either a list or sequence type";
 	  }
 	  $mtype->validate_object($content,
 				  { path => $path, 
