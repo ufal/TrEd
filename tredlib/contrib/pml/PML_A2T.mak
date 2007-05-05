@@ -39,8 +39,9 @@ sub CreateTFile {
   require File::Basename;
   my $basename = File::Basename::basename($filename);
   my $storable = 0;
-  unless ($filename=~s/\.a(\.pls)?(\.gz)?$/.t$1$2/) {
+  if ($filename=~s/\.a(\.pls)?(\.gz)?$/.t$1$2/) {
     $storable = 1 if defined $1 and length $1;
+  } else {
     $filename .= '.t';
   }
 
