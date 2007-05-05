@@ -1,37 +1,41 @@
 #!/usr/bin/perl
-use Fslib;
+BEGIN {
+  use File::Basename;
+  use lib dirname($0).'/../tredlib';
+  use Fslib;
+};
 
 my @format=(
-'@P form',
+'@P form',               # simple FS format header with 4 attributes
 '@P lemma',
 '@P tag',
 '@P afun',
-'@N ord');		       # jednoduchy FS format se 4-mi
-                               # atributy, ord urcuje poradi uzlu ve
-                               # vete i ve stromu
+'@N ord');		 # @N - ordering of nodes in the tree
+
 
 my $fs=
-  FSFile->create(		# vytvori novy FSFile objekt
-    FS => FSFormat->create(@format), # v nasem formatu
-    hint => '${tag}',	        # co se ma zobrazovat, kdyz je mys nad uzlem
-    patterns => ['${form}','${afun}'],  # jak se zobrazuji atributy
-    trees => [],		# zatim zadne stromy
-    backend => 'FSBackend',     # ukladat budeme jako FS (default)
-    encoding => 'iso-8859-2'    # kodovani pro I/O v perlu 5.8
+  FSFile->create(		# create a new FSFile object
+    FS => FSFormat->create(@format), # with our header
+    hint => '${tag}',	        # tooltip when mouse hoovers over a node
+    patterns => ['node:${form}','node:${afun}'], # default display stylesheet
+    trees => [],		# no trees so far
+    backend => 'FSBackend',     # will save as FS (default)
+    encoding => 'iso-8859-2'    # file encoding
   );
 
-# vytvorime 10 cvicnych stromu
+# create 10 sample trees
 my ($root,$node);
 foreach (1..10) {
-  $root=$fs->new_tree($_-1);	# vytvori novy koren
+  $root=$fs->new_tree($_-1);	# create a new root
   $root->{form}="#$_";
   $root->{ord}=0;
   foreach (1..4) {
-    $node=FSNode->new();	# novy uzel
-    $node->{form}="uzel-$_";
+    $node=FSNode->new();	# create a new node
+    $node->{form}="node-$_";
     $node->{ord}=$_;
-    Fslib::Paste($node,$root,$fs->FS); # vrazime ho pod koren
+    Fslib::Paste($node,$root,$fs->FS); # paste the node on root
   }
 }
 
-$fs->writeFile('test.fs');
+print STDERR "Saving test.fs\n";
+$fs->writeFile('test.fs');     # save the file
