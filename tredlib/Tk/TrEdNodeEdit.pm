@@ -768,10 +768,11 @@ sub add_member {
     my $role = $member->get_role;
     return if $role  =~ m/^\#(?:CHILDNODES|TREES)$/;
     my $member_type = $member->get_decl_type;
-    $required ||= $member->is_required if
+    $required ||= ($member->is_required ? 1 : 0) if
       ($member_type == PML_MEMBER_DECL ||
        $member_type == PML_ATTRIBUTE_DECL);
-    $mdecl = $role eq '#KNIT' ? $member->get_type_ref_decl : $member->get_content_decl;
+    $mdecl = ($role eq '#KNIT')
+	? $member->get_type_ref_decl : $member->get_content_decl;
     $mdecl ||= $member;
     $mdecl_type = $mdecl->get_decl_type;
   } else {
@@ -782,6 +783,9 @@ sub add_member {
 	      member => $member,
 	      attr_name => $attr_name,
 	      name => $label,
+	      # required is 0|1 for struct members
+	      # and 1 for all other slots
+	      required => defined($required) ? $required : 1,
 	     };
   $hlist->add($path,-data => $data, $entry_opts ? @$entry_opts : ());
   $hlist->itemCreate($path,0,-itemtype => 'text',
@@ -932,7 +936,7 @@ sub add_member {
 		       -text => 'Structure',
 		       -style => $hlist->{my_itemstyles}{struct});
     if (ref($attr_val)) {
-      $hlist->add_members($path."/",$mdecl,$attr_val);
+      $hlist->add_members($path."/",$mdecl,$attr_val,1);
     }
   } elsif ($mdecl_type == PML_CONTAINER_DECL) {
     $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{struct});
@@ -940,7 +944,7 @@ sub add_member {
 		       -text => 'Container',
 		       -style => $hlist->{my_itemstyles}{struct});
     if (ref($attr_val)) {
-      $hlist->add_members($path."/",$mdecl,$attr_val);
+      $hlist->add_members($path."/",$mdecl,$attr_val,1);
     }
   } elsif ($mdecl_type == PML_LIST_DECL) {
     if ($mdecl->get_role =~ m/^\#(CHILDNODES|TREES)$/ ) {
@@ -1045,6 +1049,10 @@ sub add_members {
   } else {
     croak "Can't call add_members on a ".$type->get_decl_type_str;
   }
+  if (!UNIVERSAL::isa($node,'HASH')) {
+    croak "$base_path: $node not a HASH";
+    return;
+  }
   if ($node->{'#name'} ne '') {
     # FIXME - we should know by other means that there is a #name
     $hlist->add_member($base_path,'#name',$node->{'#name'}, '#name');
@@ -1059,7 +1067,7 @@ sub add_members {
 	  or $mdecl and $mdecl->get_decl_type() == PML_LIST_DECL
 	    and $mdecl->get_role eq '#KNIT') {
 	if (exists($node->{$member_name})) {
-	  $member=$mdecl;
+	  # $member=$mdecl;
 	} else {
 	  $member_name=$member->get_knit_name();
 	}
@@ -1162,7 +1170,6 @@ sub dump_child {
 	unless @$new_ref<2;
       $new_ref = $new_ref->[0];
     } else {
-
       for my $child ($hlist->info(children => $path)) {
 	$hlist->dump_child($child,$new_ref,$preserve_empty);
       }

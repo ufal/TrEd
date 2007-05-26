@@ -1248,7 +1248,17 @@ sub convert_from_hash {
     $decl_type = 'choice';
     # convert from an ARRAY to a hash
     if (ref($sub) eq 'ARRAY') {
-      $sub = $decl->{choice} = bless { values => $sub }, 'PMLSchema::Choice';
+      $sub = $decl->{choice} = bless { values => [
+	                                 map { 
+					   ref($_) eq 'HASH' ? $_->{content} : $_
+                                         } @$sub
+				       ],
+				       data => {
+	                                 map { 
+					   ref($_) eq 'HASH' ? ($_->{content} => $_) : ($_ => {content=>$_})
+                                         } @$sub
+				       },
+				     }, 'PMLSchema::Choice';
     } else {
       bless $sub, 'PMLSchema::Choice';
     }
@@ -1599,10 +1609,8 @@ sub validate_object {
     my @members = $self->get_members;
     foreach my $member (grep { $_->is_attribute } @members) {
       my $name = $member->get_name;
-      if ($member->is_required or $object->{$name} ne q{}) {
-	if (ref($object->{$name})) {
-	  push @$log,"$path/$name: invalid content for member declared as attribute: ".ref($object->{$name});
-	}
+      if (ref $object->{$name}) {
+	push @$log,"$path/$name: invalid content for member declared as attribute: ".ref($object->{$name});
       }
     }
     foreach my $member (@members) {
@@ -1640,11 +1648,13 @@ sub validate_object {
 	  $knit_val = $val;
 	}
 	if (my $knit_mtype = $member->get_knit_content_decl) {
-	  $knit_mtype->validate_object($knit_val,
+	  if ($knit_val ne q{} or $member->is_required) {
+	    $knit_mtype->validate_object($knit_val,
 				       { path => $path,
 					 tag => $knit_name,
 					 log => $log
 					});
+	  }
 	} else {
 	  push @$log, "$path/$knit_name: can't determine data type of the #KNIT member";
 	}

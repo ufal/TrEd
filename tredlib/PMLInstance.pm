@@ -970,7 +970,13 @@ sub _read_List {
     return @$node_list ? @$node_list : $node;
   } else {
     my @List = $node->getChildrenByTagNameNS(PML_NS,LM);
-    return @List ? @List : $node;
+    return @List if @List;
+    if ($node->hasChildNodes or 
+	  $node->hasAttributes) {
+      return $node; # singleton
+    } else {
+      return (); # emtpy list
+    }
   }
 }
 
