@@ -2013,9 +2013,10 @@ sub _present_attribute {
 	$val = $val->[$1-1];
       } else {
 	$append="*" if @$val > 1;
-	$val = $val->[0]{$step};
+	$val = $val->[0];
+	redo;
       }
-    } elsif (ref($val)) {
+    } elsif (UNIVERSAL::isa($val,'HASH')) {
       $val = $val->{$step};
     } elsif (defined($val)) {
       #warn "Can't follow attribute path '$path' (step '$step')\n";
