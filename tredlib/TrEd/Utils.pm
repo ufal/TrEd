@@ -163,22 +163,6 @@ sub getStylesheetPatterns {
 	 join("\n",@$patterns));
 }
 
-sub deleteStylesheet {
-  my ($grp,$stylesheet)=@_;
-  delete $grp->{stylesheets}->{$stylesheet};
-  updateStylesheetMenu($grp);
-  foreach my $win (stylesheetUsingWindows($grp,$stylesheet)) {
-    if ($grp->{focusedWindow} == $win) {
-      $grp->{selectedStylesheet} = STYLESHEET_FROM_FILE();
-    }
-    applyWindowStylesheet($win,STYLESHEET_FROM_FILE());
-    if ($win->{FSFile}) {
-      get_nodes_win($win);
-      redraw_win($win);
-    }
-  }
-}
-
 sub setStylesheetPatterns {
   my ($win,$text,$stylesheet,$create)=@_;
   my $grp = $win->{framegroup};

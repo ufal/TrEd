@@ -1180,15 +1180,6 @@ sub fsfileDisplayingWindows {
     } @{$grp->{treeWindows}};
 }
 
-sub stylesheetUsingWindows {
-  my ($grp,$stylesheet)=@_;
-  return 
-    grep {
-      $_->{stylesheet} eq $stylesheet
-    } @{$grp->{treeWindows}};
-}
-
-
 sub isFocused {
   my ($win)=@_;
   return $win eq $win->{framegroup}->{focusedWindow} ? 1 : 0;
@@ -7345,6 +7336,31 @@ sub selectStylesheet {
   if (@$selection) {
     $grp->{selectedStylesheet} = $selection->[0];
     switchStylesheet($grp,$selection->[0]);
+  }
+}
+
+sub stylesheetUsingWindows {
+  my ($grp,$stylesheet)=@_;
+  return 
+    grep {
+      $_->{stylesheet} eq $stylesheet
+    } @{$grp->{treeWindows}};
+}
+
+
+sub deleteStylesheet {
+  my ($grp,$stylesheet)=@_;
+  delete $grp->{stylesheets}->{$stylesheet};
+  updateStylesheetMenu($grp);
+  foreach my $win (stylesheetUsingWindows($grp,$stylesheet)) {
+    if ($grp->{focusedWindow} == $win) {
+      $grp->{selectedStylesheet} = STYLESHEET_FROM_FILE();
+    }
+    applyWindowStylesheet($win,STYLESHEET_FROM_FILE());
+    if ($win->{FSFile}) {
+      get_nodes_win($win);
+      redraw_win($win);
+    }
   }
 }
 
