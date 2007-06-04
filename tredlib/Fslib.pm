@@ -1722,6 +1722,7 @@ sub readFile {
   croak("readFile is not a class method") unless ref($self);
   $url =~ s/^\s*|\s*$//g;
   my ($file,$remove_file) = eval { IOBackend::fetch_file($url) };
+  print STDERR "Actual file: $file\n" if $Fslib::Debug;
   return -1 if $@;
   foreach my $backend (@backends) {
     print STDERR "Trying backend $backend: " if $Fslib::Debug;
@@ -3376,7 +3377,7 @@ sub read {
       push @patterns,$1;
     } elsif (/^\/\/Tred:Custom-AttributeCont:(.*\S)\s*$/) {
       $patterns[$#patterns].="\n".$1;
-    } elsif (/^\/\/FS-REQUIRE:\s*(\S+)\s+(\S+)="([^"]+)"\s*$/) {
+    } elsif (/^\/\/FS-REQUIRE:\s*(\S+)\s+(\S+)=\"([^\"]+)\"\s*$/) {
       my $requires = $fsfile->metaData('fs-require') || $fsfile->changeMetaData('fs-require',[]);
       push @$requires,[$2,$3];
       my $refnames = $fsfile->metaData('refnames') || $fsfile->changeMetaData('refnames',{});
@@ -4710,6 +4711,8 @@ sub type_decl {
 ############################################################
 
 __END__
+
+=pod
 
 =head1 PACKAGE FUNCTIONS
 
