@@ -1604,7 +1604,7 @@ sub validate_object {
 
   my $members = $self->get_members;
   if (!UNIVERSAL::isa($object,'HASH')) {
-    push @$log, "$path: Unexpected content of a structure $self->{name}: '$object'";
+    push @$log, "$path: Unexpected content of the structure '$self->{name}': '$object'";
   } else {
     my @members = $self->get_members;
     foreach my $member (grep { $_->is_attribute } @members) {

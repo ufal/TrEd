@@ -188,7 +188,7 @@ sub open_file {
   return $fh;
 }
 
-sub fetch_file {
+sub _fetch_file {
   my ($uri) = @_;
   my $proto = get_protocol($uri);
   if ($proto eq 'file') {
@@ -207,6 +207,32 @@ sub fetch_file {
     }
   }
 }
+
+sub fetch_file {
+  my ($uri) = @_;
+  my ($file,$unlink) = &_fetch_file;
+  if (_is_gzip($uri)) {
+    my ($fh,$ungzfile) = File::Temp::tempfile("tredgzioXXXXXX",
+					      DIR => File::Spec->tmpdir(),
+					      UNLINK => 0,
+					     );
+    die "Cannot create temporary file: $!" unless $fh;
+    my $tmp;
+    eval {
+      require IO::Zlib;
+      $tmp = new IO::Zlib();
+    } && $tmp || die "Cannot load IO::Zlib";
+    $tmp->open($file,"rb") || die "Cannot read $uri ($file)";
+    local $/; $fh->print(<$tmp>);
+    $tmp->close();
+    $fh->close;
+    unlink $file if $unlink;
+    return ($ungzfile,1);
+  } else {
+    return ($file,$unlink);
+  }
+}
+
 
 sub fetch_cmd {
   my ($cmd, $filename)=@_;
