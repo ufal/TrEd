@@ -4314,7 +4314,7 @@ Return the content value of the container.
 =cut
 
 sub value {
-  return $_[0]->{'#container'};
+  return $_[0]->{'#content'};
 }
 
 =item $container->content
