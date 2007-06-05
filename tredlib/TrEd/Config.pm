@@ -364,26 +364,33 @@ sub set_config {
   $libDir=tilde_expand($confs->{libdir}) if (exists $confs->{libdir});
   unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
 
-  if (exists $confs->{resourcepath}) {
-    $Fslib::resourcePath=
-      join $resourcePathSplit,
-      map { tilde_expand($_) } split /\Q$resourcePathSplit\E/, $confs->{resourcepath};
-  }
-
-  unless (defined $Fslib::resourcePath) {
-    $Fslib::resourcePath=$libDir;
+  {
+    $def_res_path=$libDir;
     if ($^O eq 'Win32') {
-      $Fslib::resourcePath=~s/[\\\/](?:lib[\\\/]tred|tredlib)$//;
-      $Fslib::resourcePath.="\\resources";
+      $def_res_path=~s/[\\\/](?:lib[\\\/]tred|tredlib)$//;
+      $def_res_path.="\\resources";
     } else {
-      unless ($Fslib::resourcePath=~s{/lib/tred$}{/share/tred}) {
-	$Fslib::resourcePath=~s/\/(?:tredlib)$//;
-	$Fslib::resourcePath.="/resources";
+      unless ($def_res_path=~s{/lib/tred$}{/share/tred}) {
+	$def_res_path=~s/\/(?:tredlib)$//;
+	$def_res_path.="/resources";
       }
     }
-    $Fslib::resourcePath = tilde_expand(q(~/.tred.d)) . $resourcePathSplit . $Fslib::resourcePath ;
-  }
+    $def_res_path= tilde_expand(q(~/.tred.d)) . $resourcePathSplit . $def_res_path ;
 
+    if (exists $confs->{resourcepath}) {
+      my $path = 
+	join $resourcePathSplit,
+	  map { tilde_expand($_) } split /\Q$resourcePathSplit\E/, $confs->{resourcepath};
+      if ($path=~/^\Q$resourcePathSplit\E/) {
+	$path=$def_res_path.$path;
+      } elsif ($path=~/\Q$resourcePathSplit\E$/) {
+	$path.=$def_res_path;
+      }
+      $Fslib::resourcePath = $path;
+    } else {
+      $Fslib::resourcePath = $def_res_path;
+    }
+  }
   if (exists $confs->{psfontfile}) {
     $psFontFile=tilde_expand($confs->{psfontfile});
     $psFontFile="$libDir/".$psFontFile if (not -f $psFontFile and -f 
