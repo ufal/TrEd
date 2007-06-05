@@ -221,7 +221,7 @@ sub fetch_file {
     eval {
       require IO::Zlib;
       $tmp = new IO::Zlib();
-    } && $tmp || die "Cannot load IO::Zlib";
+    } && $tmp || die "Cannot load IO::Zlib: $@";
     $tmp->open($file,"rb") || die "Cannot read $uri ($file)";
     local $/; $fh->print(<$tmp>);
     $tmp->close();
