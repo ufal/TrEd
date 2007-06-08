@@ -4365,15 +4365,21 @@ validate() method below).
 		 ],$class;
   }
 
-=item $seq->elements ()
+=item $seq->elements ($name?)
 
 Return a list of [ name, value ] pairs representing the sequence
-elements.
+elements. If the optional $name argument is given, select
+only elements whose name is $name.
 
 =cut
 
   sub elements {
-    return @{$_[0]->[0]};
+    my ($self,$name)=@_;
+    if (defined $name and $name ne '*') {
+      return grep { $_->[0] eq $name } @{$_[0]->[0]};
+    } else {
+      return @{$_[0]->[0]};
+    }
   }
 
 =item $seq->elements_list ()
