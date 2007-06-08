@@ -107,6 +107,8 @@ use fields qw(
     _ref
     _ref-index
     _pml_trees_type
+    _no_read_trees
+    _no_references
     _trees
     _pml_prolog
     _pml_epilog
@@ -244,6 +246,8 @@ sub load {
   if (!ref($ctxt)) {
     $ctxt = PMLInstance->new;
   }
+  $ctxt->{'_no_read_trees'} ||= $opts->{no_trees};
+  $ctxt->{'_no_references'} ||= $opts->{no_references};
   local $VALIDATE_CDATA=$opts->{validate_cdata} if
     exists $opts->{validate_cdata};
   my $parser = $ctxt->{'_parser'} ||= $opts->{parser} || PMLBackend::xml_parser();
@@ -423,7 +427,9 @@ sub read_data {
 
   $ctxt->{'_status'} = 0;
   foreach my $ref ($ctxt->get_reffiles()) {
-    if ($ref->{readas} eq 'dom') {
+    if ($ctxt->{'_no_references'}) {
+      # do not read any reffiles
+    } elsif ($ref->{readas} eq 'dom') {
       $ctxt->readas_dom($ref->{id},$ref->{href});
     } elsif($ref->{readas} eq 'trees') {
       #  when translating to FSFile, 
@@ -712,7 +718,7 @@ sub read_node {
 
     my $hash;
     my $childnodes_taker = $opts->{childnodes_taker};
-    if ($type->{role} eq '#NODE' or $struct->{role} eq '#NODE') {
+    if (!$ctxt->{_no_read_trees} and ($type->{role} eq '#NODE' or $struct->{role} eq '#NODE')) {
       $hash=FSNode->new();
       $childnodes_taker = $hash;
       $hash->set_type($type->{structure});
@@ -849,8 +855,16 @@ sub read_node {
       if (!exists($hash->{$_})) {
 	my $member = $members->{$_};
 	if ($member->{required}) {
-	  _warn("Missing required member '$_' of ".
-	    _element_address($node));
+	  if ($member->{role} eq '#KNIT') {
+	    my $name = $_; $name=~s/\.rf$//;
+	    if (!exists($hash->{$name})) {
+	      _warn("Missing required member '$_' or '$name' of ".
+		      _element_address($node));
+	    }
+	  } else {
+	    _warn("Missing required member '$_' of ".
+		    _element_address($node));
+	  }
 	} else {
 	  my $mtype = $ctxt->resolve_type($member);
 	  if (ref($mtype) and exists($mtype->{constant})) {
@@ -867,7 +881,7 @@ sub read_node {
     my $container = $type->{container};
     my $attributes = $container->{attribute};
     my $hash;
-    if ($type->{role} eq '#NODE' or $container->{role} eq '#NODE') {
+    if (!$ctxt->{_no_read_trees} and ($type->{role} eq '#NODE' or $container->{role} eq '#NODE')) {
       $hash=FSNode->new();
       $opts->{childnodes_taker} = $hash;
       $hash->set_type($container); #$ctxt->{'_schema'}->type($container));
@@ -1041,6 +1055,7 @@ sub _element_address {
 # $ctxt, $data, $type, $node
 sub _set_trees {
   my ($ctxt,$data,$type,$node)=@_;
+  return $data if $ctxt->{'_no_read_trees'};
   _debug("Found #TREES in "._element_address($node));
   unless (defined $ctxt->{'_pml_trees_type'}) {
     $ctxt->{'_pml_trees_type'}= $type;
@@ -2038,9 +2053,107 @@ sub _element2writer {
   }
 }
 
+##########################################
+# Validation
+#########################################
+
 sub validate_object {
   my ($ctxt, $object, $type, $opts)=@_;
   $type->validate_object($object,$opts);
+}
+
+##########################################
+# Data pulling
+#########################################
+
+sub get_data {
+  my ($node,$path, $strict) = @_;
+  if (UNIVERSAL::isa($node,__PACKAGE__)) {
+    $node = $node->get_root;
+  }
+  my $val = $node;
+  for my $step (split /\//, $path) {
+    if (ref($val) eq 'Fslib::List' or ref($val) eq 'Fslib::Alt') {
+      if ($step =~ /^\[(\d+)\]/) {
+	$val = $val->[$1-1];
+      } elsif ($strict) {
+	return; # ERROR
+      } else {
+	$val = $val->[0]{$step};
+      }
+    } elsif (UNIVERSAL::isa($val, 'Fslib::Seq')) {
+      if ($step =~ /^\[(\d+)\]/) {
+	$val = $val->[$1-1][1]; # value
+      } elsif ($step =~ /^([^\[]+)(?:\[(\d+)\])?/) {
+	my $i = $2;
+	$val = $val->values($1);
+	if ($i ne q{}) {
+	  $val = $val->[ $i ];
+	}
+      } else {
+	return; # ERROR
+      }
+    } elsif (ref($val)) {
+      $val = $val->{$step};
+    } elsif (defined($val)) {
+      return; # ERROR
+    } else {
+      return '';
+    }
+  }
+  return $val;
+}
+
+sub set_data {
+  my ($node,$path, $value, $strict) = @_;
+  if (UNIVERSAL::isa($node,__PACKAGE__)) {
+    $node = $node->get_root;
+  }
+  my $val = $node;
+  my @steps = split /\//, $path;
+  while (@steps) {
+    my $step = shift @steps;
+    if (ref($val) eq 'Fslib::List' or ref($val) eq 'Fslib::Alt') {
+      if ($step =~ /^\[(\d+)\]/) {
+	if (@steps) {
+	  $val = $val->[$1-1];
+	} else {
+	  $val->[$1-1] = $value;
+	  return $value;
+	}
+      } elsif ($strict) {
+	my $msg = "Can't follow attribute path '$path' (step '$step')";
+	croak $msg if ($strict==2);
+	warn $msg."\n";
+	return; # ERROR
+      } else {
+	if (@steps) {
+	  $val = $val->[0]{$step};
+	} else {
+	  $val->[0]{$step} = $value;
+	  return $value;
+	}
+      }
+    } elsif (ref($val)) {
+      if (@steps) {
+	if (!defined($val->{$step}) and $steps[0]!~/^\[/) {
+	  $val->{$step}=Fslib::Struct->new;
+	}
+	$val = $val->{$step};
+      } else {
+	$val->{$step} = $value;
+	return $value;
+      }
+    } elsif (defined($val)) {
+      my $msg = "Can't follow attribute path '$path' (step '$step')";
+      croak $msg if ($strict==2);
+      warn $msg."\n";
+      return; # ERROR
+    } else {
+      return '';
+    }
+  }
+  return;
 }
 
 ##########################################
@@ -2385,14 +2498,19 @@ options are:
     dom => $document,       # (XML::LibXML::Document)
     parser => $xml_parser,  # (XML::LibXML)
     config => $cfg_pml,     # (PMLInstance)
+    no_trees => $bool,
+    no_references => $bool,
   }
 
 where C<filename> may be used either by itself or in combination with
 any of C<fh> , C<string>, or C<dom>, which are otherwise mutually
 exclusive. The C<parser> option may be used to substitute a customized
 XML::LibXML parser object. The C<config> option may be used to pass a
-PMLInstance representing a PMLBackend configuration file.
-
+PMLInstance representing a PMLBackend configuration file. If
+C<no_trees> is true, then the roles #TREES and #NODES are ignored.  If
+C<no_references> is true, then the 'readas' attribute of a reffile
+header is ignored, i.e. load does not attempt to load any reffered
+file (or knit to it).
 
 =item $pml->get_status ()
 
