@@ -216,13 +216,17 @@ sub _die {
 sub _debug {
   return unless $DEBUG;
   my $level = 1;
+  my $node = undef;
   if (ref($_[0])) {
     $level=$_[0]->{level};
+    $node=$_[0]->{node};
     shift;
   }
+  return unless abs($DEBUG)>=$level;
   my $msg=join EMPTY,@_;
   chomp $msg;
-  print STDERR "PMLBackend: $msg\n" if abs($DEBUG)>=$level;
+  $msg =~ s/\%N/_element_address($node)/e;
+  print STDERR "PMLBackend: $msg\n" 
 }
 
 sub _warn {
@@ -629,7 +633,7 @@ sub read_node {
   #$childnodes_taker,$attrs,$first_child
 
   my $first_child = $opts->{first_child} || $node->firstChild;
-  _debug({level => 6},"Reading node "._element_address($node)."\n");
+  _debug({level => 6, node=> $node},"Reading node %N\n");
   unless (ref($type)) {
     _die("Schema implies unknown node type: '$type' for node "._element_address($node));
   }
@@ -1056,7 +1060,7 @@ sub _element_address {
 sub _set_trees {
   my ($ctxt,$data,$type,$node)=@_;
   return $data if $ctxt->{'_no_read_trees'};
-  _debug("Found #TREES in "._element_address($node));
+  _debug({node=>$node},"Found #TREES in %N");
   unless (defined $ctxt->{'_pml_trees_type'}) {
     $ctxt->{'_pml_trees_type'}= $type;
     if (UNIVERSAL::isa($data,'Fslib::List')) {
@@ -1133,6 +1137,7 @@ sub _set_node_children {
 sub read_node_knit {
   my ($ctxt,$node,$type)=@_;
   my $ref = $node->textContent();
+  return [0,$ref] if $ctxt->{'_no_references'};
   if ($ref =~ /^(?:(.*?)\#)?(.+)/) {
     my ($reffile,$idref)=($1,$2);
     $ctxt->{'_ref'} ||= {};

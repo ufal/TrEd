@@ -3377,7 +3377,7 @@ sub read {
       push @patterns,$1;
     } elsif (/^\/\/Tred:Custom-AttributeCont:(.*\S)\s*$/) {
       $patterns[$#patterns].="\n".$1;
-    } elsif (/^\/\/FS-REQUIRE:\s*(\S+)\s+(\S+)=\"([^\"]+)\"\s*$/) {
+    } elsif (/^\/\/FS-REQUIRE:\s*(\S+)\s+(\S+)="([^"]+)"\s*$/) {
       my $requires = $fsfile->metaData('fs-require') || $fsfile->changeMetaData('fs-require',[]);
       push @$requires,[$2,$3];
       my $refnames = $fsfile->metaData('refnames') || $fsfile->changeMetaData('refnames',{});
