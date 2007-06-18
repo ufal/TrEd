@@ -10,6 +10,9 @@
 #binding-context PML_A_Edit
 #include "PML_A_Edit.mak"
 
+#binding-context PML_CAC_A_Edit
+#include "PML_CAC_A_Edit.mak"
+
 #binding-context PML_T_View
 #include "PML_T_View.mak"
 
