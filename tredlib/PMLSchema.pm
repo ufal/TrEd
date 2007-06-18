@@ -1990,7 +1990,7 @@ sub get_elements {
   return $members ? map { $_->[0] } sort { $a->[1]<=> $b->[1] } map { [ $_, $_->{'-#'} ] } values %$members : (); 
 }
 
-=item $decl->get_elements ()
+=item $decl->get_element_names ()
 
 Return a list of names of elements declared for the sequence.
 
