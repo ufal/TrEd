@@ -1467,7 +1467,7 @@ sub errorDialog {
   my ($grp_or_win,$title,$msg1,$msg2,%opts)=@_;
   my ($grp,$win)=grp_win($grp_or_win);
   my $d= $grp->{top}->DialogBox(-title=> $title,
-				($opts->{-buttons} ? (-buttons=> ['OK']) : ()),
+				($opts{-buttons} ? (-buttons=> ['OK']) : ()),
 				%opts
 			       );
   $d->Label(-text => "ERROR",
@@ -8195,27 +8195,14 @@ sub editAttrsDialog_schema {
   DIALOG: while ($redo) {
     $result = ShowDialog($d,$edit,$win->toplevel);
     if ($result=~ /OK/) {
-      $win->{FSFile}->notSaved(1);
-      save_undo($win,prepare_undo($win,$dlg_title));
-      lastActionBookmark($win->{framegroup});
-
       # validate first
       my $val = undef;
       {
 	$val = ($attr_path eq EMPTY) ? FSNode->new : {};
 	$edit->dump_to_node($val);
 	#__debug("Validating node $val\n");
-	my $type;
 	my @log;
 	if ($attr_path eq EMPTY) {
-	  # This is a hack. The validation procedure
-	  # requires the wrapper type, but as we only have the inner declaration
-	  # we fake:
-#	  if (ref($node_type) and $node_type->{member}) {
-#	    $type = { structure => $node_type };
-#	  } else {
-#	    $type = { container => $node_type };
-#	  }
 	  $node_type->validate_object( $val, { log => \@log, no_childnodes => 1 } );
 	} else {
 	  __debug("Validating: attribute '$attr_path' / name '$attr_name' (required $is_required)\n");
@@ -8248,6 +8235,9 @@ sub editAttrsDialog_schema {
 	  redo DIALOG;
 	}
       }
+      $win->{FSFile}->notSaved(1);
+      save_undo($win,prepare_undo($win,$dlg_title));
+      lastActionBookmark($win->{framegroup});
       if ($attr_path eq EMPTY) {
 	$edit->dump_to_node($node);
 	doEvalHook($win,"after_edit_node_hook",$node,1);
