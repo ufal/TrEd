@@ -3,7 +3,7 @@
 #ifndef PML_CAC_A_Edit
 #define PML_CAC_A_Edit
 
-#include "PML_A.mak"
+#include <contrib/pml/PML_A.mak>
 
 package PML_CAC_A_Edit;
 
