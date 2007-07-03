@@ -7991,10 +7991,7 @@ sub editAttrsDialog_schema {
   #     return;
   #   }
   #############
-
-
   $win->toplevel->Busy(-recurse=>1);
-
   if ($attr_path ne EMPTY) {
     $node_type = $base_type->find($attr_path,1);
     die "Unknown attribute $attr_path\n" unless $node_type;
@@ -8203,7 +8200,9 @@ sub editAttrsDialog_schema {
 	#__debug("Validating node $val\n");
 	my @log;
 	if ($attr_path eq EMPTY) {
-	  $node_type->validate_object( $val, { log => \@log, no_childnodes => 1 } );
+	  $node_type->validate_object( $val, { log => \@log,
+					       flags => PML_VALIDATE_NO_CHILDNODES()
+					      } );
 	} else {
 	  __debug("Validating: attribute '$attr_path' / name '$attr_name' (required $is_required)\n");
 	  if ($val->{$attr_name} ne EMPTY or $is_required) {
@@ -8211,7 +8210,7 @@ sub editAttrsDialog_schema {
 	    $node_type->validate_object($val->{$attr_name},
 					{ path => $attr_path,
 					  log => \@log,
-					  no_childnodes => 1,
+					  flags => PML_VALIDATE_NO_CHILDNODES()
 					});
 	  }
 	}
