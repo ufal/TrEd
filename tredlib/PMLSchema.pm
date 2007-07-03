@@ -97,17 +97,20 @@ BEGIN {
 	       PML_STRUCTURE_DECL
 	       PML_CONTAINER_DECL
 	       PML_SEQUENCE_DECL
-	       PML_LIST_DECL    
-	       PML_ALT_DECL     
-	       PML_CDATA_DECL   
-	       PML_CHOICE_DECL  
+	       PML_LIST_DECL
+	       PML_ALT_DECL
+	       PML_CDATA_DECL
+	       PML_CHOICE_DECL
 	       PML_CONSTANT_DECL
 	       PML_ATTRIBUTE_DECL
-	       PML_MEMBER_DECL   
+	       PML_MEMBER_DECL
 	       PML_ELEMENT_DECL
+
+	       PML_VALIDATE_NO_TREES
+	       PML_VALIDATE_NO_CHILDNODES
   );
 
-  our %EXPORT_TAGS = ( 
+  our %EXPORT_TAGS = (
     'constants' => [ @EXPORT ],
   );
 }
@@ -126,6 +129,10 @@ use constant   PML_ATTRIBUTE_DECL   => 11;
 use constant   PML_MEMBER_DECL      => 12;
 use constant   PML_ELEMENT_DECL     => 13;
 
+# validation flags
+use constant   PML_VALIDATE_NO_TREES        => 1;
+use constant   PML_VALIDATE_NO_CHILDNODES   => 2;
+#                                              4, 8, 16, etc.
 
 =head1 METHODS
 
@@ -665,7 +672,7 @@ sub find_type_by_path {
   if ($path ne '') {
     if ($path=~s{^!([^/]+)/?}{}) {
       $decl = $schema->get_type_by_name($1);
-      if ($decl) {
+      if (defined $decl) {
 	$decl = $decl->get_content_decl;
       } else {
 	return;
@@ -910,7 +917,7 @@ sub validate_object { # (path, base_type)
   if (!ref($type)) {
     croak "PMLSchema::validate_object: Cannot determine data type";
   }
-  return $type->validate_object($object,{log=>$log});
+  return $type->validate_object($object,{log => $log});
 }
 
 
@@ -947,8 +954,8 @@ sub validate_field {
   $type = $type->find($path);
   croak "PMLSchema::validate_field: Cannot determine data type for attribute-path '$path'" unless $type;
   return 
-    $type->validate_object(FSNode::attr($object,$path),{ path => $path, 
-							 log=>$log 
+    $type->validate_object(FSNode::attr($object,$path),{ path => $path,
+							 log => $log
 							});
 }
 
@@ -1594,9 +1601,10 @@ sub find_members_by_role {
 sub validate_object {
   my ($self,$object,$opts) = @_;
 
-  my ($path,$tag);
+  my ($path,$tag,$flags);
   my $log = [];
   if (ref($opts)) {
+    $flags = $opts->{flags};
     $path = $opts->{path};
     $tag = $opts->{tag};
     $path.="/".$tag if $tag ne q{};
@@ -1619,11 +1627,11 @@ sub validate_object {
       my $mtype = $member->get_content_decl;
       my $val = $object->{$name};
       my $knit_name = $member->get_knit_name;
-      if ($role eq '#CHILDNODES') {
+      if ($role eq '#CHILDNODES' and !($flags & PML_VALIDATE_NO_TREES)) {
 	if (!UNIVERSAL::isa($object,'FSNode')) {
 	  push @$log, "$path/$name: #CHILDNODES member on a non-node object:\n".Dumper($object);
 	}
-	unless ($opts->{no_childnodes}) {
+	unless ($flags & PML_VALIDATE_NO_CHILDNODES) {
 	  my $content;
 	  my $mtype_is = $mtype->get_decl_type;
 	  if ($mtype_is == PML_SEQUENCE_DECL) {
@@ -1634,23 +1642,29 @@ sub validate_object {
 	    push @$log, "$path: #CHILDNODES should be either a list or sequence type";
 	  }
 	  $mtype->validate_object($content,
-				  { path => $path, 
+				  { flags => $flags,
+				    path => $path,
 				    tag => $name,
 				    log => $log,
 				  } );
 	}
       } elsif ($name ne $knit_name) {
 	my $knit_val = $object->{$knit_name};
+	my $mtype;
 	if ($knit_val ne q{} and $val ne q{}) {
 	  push @$log, "$path/$knit_name: both '$name' and '$knit_name' are present for a #KNIT member";
 	} elsif ($val ne q{}) {
 	  $knit_name = $name;
 	  $knit_val = $val;
+	  $mtype = $member->get_content_decl;
+	} else {
+	  $mtype = $member->get_knit_content_decl;
 	}
-	if (my $knit_mtype = $member->get_knit_content_decl) {
+	if (defined $mtype) {
 	  if ($knit_val ne q{} or $member->is_required) {
-	    $knit_mtype->validate_object($knit_val,
-				       { path => $path,
+	    $mtype->validate_object($knit_val,
+				       { flags => $flags,
+					 path => $path,
 					 tag => $knit_name,
 					 log => $log
 					});
@@ -1660,7 +1674,8 @@ sub validate_object {
 	}
       } elsif ($val ne q{} or $member->is_required) {
 	$mtype->validate_object($val,
-				{ path => $path, 
+				{ flags => $flags,
+				  path => $path,
 				  tag => $name,
 				  log => $log,
 				} );
@@ -1792,9 +1807,10 @@ sub find_attributes_by_role {
 sub validate_object {
   my ($self, $object, $opts) = @_;
 
-  my ($path,$tag);
+  my ($path,$tag,$flags);
   my $log = [];
   if (ref($opts)) {
+    $flags = $opts->{flags};
     $path = $opts->{path};
     $tag = $opts->{tag};
     $path.="/".$tag if $tag ne q{};
@@ -1812,9 +1828,11 @@ sub validate_object {
 	if (ref($val)) {
 	  push @$log, "$path/$name: invalid content for attribute: ".ref($val);
 	} elsif ($adecl) {
-	  $adecl->validate_object($val, { path => $path, 
-					  tag=>$name, 
-					  log=>$log });
+	  $adecl->validate_object($val, {
+	    flags => $flags,
+	    path => $path,
+	    tag => $name, 
+	    log => $log });
 	}
       }
     }
@@ -1822,7 +1840,7 @@ sub validate_object {
     if ($cdecl) {
       my $content = $object->{'#content'};
       my $skip_content = 0;
-      if ($self->get_role eq '#NODE') {
+      if ($self->get_role eq '#NODE' and !($flags & PML_VALIDATE_NO_TREES)) {
 	if (!UNIVERSAL::isa($object,'FSNode')) {
 	  push @$log,"$path: container declared as #NODE should be a FSNode object: $object";
 	} else {
@@ -1831,7 +1849,7 @@ sub validate_object {
 	    if ($content ne q{}) {
 	      push @$log, "$path: #NODE container containing a #CHILDNODES should have empty #content: $content";
 	    }
-	    if ($opts->{no_childnodes}) {
+	    if ($flags & PML_VALIDATE_NO_CHILDNODES) {
 	      $skip_content = 1;
 	    } elsif ($cdecl_is == PML_SEQUENCE_DECL) {
 	      $content = Fslib::Seq->new([map { Fslib::Seq::Element->new($_->{'#name'},$_) } $object->children]);
@@ -1844,10 +1862,12 @@ sub validate_object {
 	}
       }
       unless ($skip_content) {
-	$cdecl->validate_object($content,{ path => $path,
-					   tag => '#content', 
-					   log=>$log 
-					  });
+	$cdecl->validate_object($content,{ 
+	  flags => $flags,
+	  path => $path,
+	  tag => '#content',
+	  log =>$log
+	 });
       }
     }
   }
@@ -1990,7 +2010,7 @@ sub get_elements {
   return $members ? map { $_->[0] } sort { $a->[1]<=> $b->[1] } map { [ $_, $_->{'-#'} ] } values %$members : (); 
 }
 
-=item $decl->get_element_names ()
+=item $decl->get_elements ()
 
 Return a list of names of elements declared for the sequence.
 
@@ -2058,9 +2078,10 @@ sub validate_content_pattern {
 sub validate_object {
   my ($self, $object, $opts) = @_;
 
-  my ($path,$tag);
+  my ($path,$tag,$flags);
   my $log = [];
   if (ref($opts)) {
+    $flags = $opts->{flags};
     $path = $opts->{path};
     $tag = $opts->{tag};
     $path.="/".$tag if $tag ne q{};
@@ -2085,10 +2106,12 @@ sub validate_object {
 	my $edecl = $self->get_element_by_name($ename);
 	# KNIT on elements not supported yet
 	if ($edecl) {
-	  $edecl->validate_object($element->[1],{ path => $path,
-						  tag => "[$i]",
-						  log => $log,
-						});
+	  $edecl->validate_object($element->[1],{
+	    flags => $flags,
+	    path => $path,
+	    tag => "[$i]",
+	    log => $log,
+	  });
 	} else {
 	  push @$log, "$path: undefined element '$ename'";
 	}
@@ -2160,9 +2183,10 @@ sub is_ordered { return $_[0]->{ordered} }
 sub validate_object {
   my ($self, $object, $opts) = @_;
 
-  my ($path,$tag);
+  my ($path,$tag,$flags);
   my $log = [];
   if (ref($opts)) {
+    $flags = $opts->{flags};
     $path = $opts->{path};
     $tag = $opts->{tag};
     $path.="/".$tag if $tag ne q{};
@@ -2170,11 +2194,12 @@ sub validate_object {
   if (ref($object) eq 'Fslib::List') {
     my $lm_decl = $self->get_knit_content_decl;
     for (my $i=0; $i<@$object; $i++) {
-      $lm_decl->validate_object($object->[$i],
-				{ path=> $path,
-				  tag => "[".($i+1)."]",
-				  log => $log,
-				});
+      $lm_decl->validate_object($object->[$i], {
+	flags => $flags,
+	path=> $path,
+	tag => "[".($i+1)."]",
+	log => $log,
+      });
     }
   } else {
     push @$log, "$path: unexpected content of a list: $object";
@@ -2235,9 +2260,10 @@ sub is_flat { return $_[0]->{-flat} }
 sub validate_object {
   my ($self, $object, $opts) = @_;
 
-  my ($path,$tag);
+  my ($path,$tag,$flags);
   my $log = [];
   if (ref($opts)) {
+    $flags = $opts->{flags};
     $path = $opts->{path};
     $tag = $opts->{tag};
     $path.="/".$tag if $tag ne q{};
@@ -2246,29 +2272,33 @@ sub validate_object {
   if ($self->is_flat) {
     # flat alternative:
     if (ref($object)) {
-      push @$log, "$path: flat alternative is supposed to be a string: $object";      
+      push @$log, "$path: flat alternative is supposed to be a string: $object";
     } else {
       my $i = 1;
       foreach my $val (split /\|/,$object) {
-	$am_decl->validate_object($val,
-				  { path=> $path,
-				    tag => "[".($i++)."]",
-				    log => $log,
-				  });
+	$am_decl->validate_object($val, {
+	  flags => $flags,
+	  path=> $path,
+	  tag => "[".($i++)."]",
+	  log => $log,
+	});
       }
     }
   } elsif ($object ne q{} and ref($object) eq 'Fslib::Alt') {
     for (my $i=0; $i<@$object; $i++) {
-      $am_decl->validate_object($object->[$i],
-				{ path=> $path,
-				  tag => "[".($i+1)."]",
-				  log => $log,
-				});
+      $am_decl->validate_object($object->[$i], {
+	flags => $flags,
+	path=> $path,
+	tag => "[".($i+1)."]",
+	log => $log,
+      });
     }
   } else {
-    $am_decl->validate_object($object,{path=>$path,
-				       # tag => "[1]", # TrEdNodeEdit would very much like [1] here
-				       log=>$log});
+    $am_decl->validate_object($object,{
+      flags => $flags,
+      path=>$path,
+      # tag => "[1]", # TrEdNodeEdit would very much like [1] here
+      log => $log});
   }
   if ($opts and ref($opts->{log})) {
     push @{$opts->{log}}, @$log;
