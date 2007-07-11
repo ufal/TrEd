@@ -211,7 +211,7 @@ sub _fetch_file {
 sub fetch_file {
   my ($uri) = @_;
   my ($file,$unlink) = &_fetch_file;
-  if (_is_gzip($uri)) {
+  if (get_protocol($file) eq 'file' and _is_gzip($uri)) {
     my ($fh,$ungzfile) = File::Temp::tempfile("tredgzioXXXXXX",
 					      DIR => File::Spec->tmpdir(),
 					      UNLINK => 0,
