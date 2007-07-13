@@ -2066,7 +2066,17 @@ Tk: 804.027
 	  </inlinemediaobject>
 	</term>
 	<listitem>
-	  <para>Reload current file from disk.</para>
+	  <para>Reload the current file from disk.</para>
+	  <note>
+	    <para>	    
+	      Note for macro developers: during this action,
+	      neither <link linkend="file_opened_hook">file_opened_hook</link>
+	      nor <link linkend="file_resumed_hook">file_resumed_hook</link> are
+	      called, but <link linkend="file_reloaded_hook">file_reloaded_hook</link>
+	      is called instead (in case of success).
+	    </para>
+	  </note>
+	  
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -7795,6 +7805,19 @@ sub MakeSentence {
 	      <entry>no</entry>
 	      <entry><para>Executed after a file is opened but before the first
 		tree is displayed.
+	      </para></entry>
+	    </row>
+	    <row id="file_reloaded_hook">
+	      <entry><literal moreinfo="none">file_opened_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry><para>Executed after a file has been successfully
+		  reloaded during the <guibutton>Reload file</guibutton>
+		  action accessible from TrEd's main
+		  <link linkend="toolbar">tollbar</link>.
+		  (Note that this is the only hook called during this 
+		  action, since
+		  neither <link linkend="file_opened_hook">file_opened_hook</link>
+		  nor <link linkend="file_resumed_hook">file_resumed_hook</link> are called!)
 	      </para></entry>
 	    </row>
 	    <row id="preload_hook">
