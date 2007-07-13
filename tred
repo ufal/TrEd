@@ -1860,9 +1860,12 @@ sub reloadFile {
     closeFile($win,-all_windows => 1);
     openFile($win, $f, -noredraw => 1, -nohook=>1);
     $fsfile = $win->{FSFile};
-    if ($fsfile and $reloadKeepsPatterns) {
-      $fsfile->changePatterns(@patterns);
-      $fsfile->changeHint($hint);
+    if ($fsfile) {
+      if ($reloadKeepsPatterns) {
+	$fsfile->changePatterns(@patterns);
+	$fsfile->changeHint($hint);
+      }
+      doEvalHook($win,"file_reloaded_hook");
     }
     get_nodes_win($win);
     redraw_win($win);
