@@ -16,4 +16,7 @@
 #binding-context PML_T_Edit
 #include "PML_T_Edit.mak"
 
+#binding-context PML_T_Diff
+#include "PML_T_Diff.mak"
+
 #endif pml
