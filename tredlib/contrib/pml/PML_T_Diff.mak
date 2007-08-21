@@ -8,6 +8,7 @@
 package PML_T_Diff;
 
 import PML_T;
+sub first (&@);
 
 #binding-context PML_T_Diff
 
@@ -341,11 +342,24 @@ sub diff_trees {
       foreach my $attr (@standard_check_list) {
 	undef %valhash;
 	foreach my $f (@grps) {
-	  my $key=$Gr->{$f}->attr($attr);
+          if($attr eq 'annot_comment') {
+            $key = join '|',sort map {
+              $_->{type}
+            } ListV($Gr->{$f}->attr('annot_comment'));
+          } elsif($attr eq 'compl.rf') {
+            $key = join '|',
+              sort (
+                    map { my $id = $_;
+                          my $cornode =
+                            (first {$_->{id} eq $id} $T{$f}->descendants);
+                          $cornode ? $cornode->{_group_} : '*$f*$id*';
+                        } ListV($Gr->{$f}->attr('compl.rf'))
+                   );
+          } else {
+            my $key = $Gr->{$f}->attr($attr);
+          }
           if (IsList($key)){
-            writeln('BEFORE',ListV($key));
             $key = join '|',sort(ListV($key));
-            writeln('AFTER',$key);
           }
 	  $valhash{$key}.=" $f";
 	}
@@ -368,19 +382,19 @@ sub diff_trees {
   return unless $summary;
   my @summary=();
   push @summary, "Comparison of @names\n\nFile statistics:\n" if ($summary);
-  
-  foreach $f (@names) {            
-    push @summary, 
+
+  foreach $f (@names) {
+    push @summary,
     "$f:\n\tTotal:\t$T{$f}->{acount} nodes\n",
     "\tNew:\t$T{$f}->{newcount} nodes\n\n";
   }
-  
+
   foreach (keys %total) {
     $total_values+=$total{$_};
   }
-  
+
   delete $total{''};
-  
+
   push @summary,
   "Diferences statistics:\n",
   "\tTotal:\t$total differences\n",
@@ -389,9 +403,9 @@ sub diff_trees {
   "\tAttributes:\t$total_values\n",
   map ({ "\t  -- $_:\t$total{$_}\n" } keys(%total)),
   "\n";
-  
+
   if ($total_restoration) {
-    push @summary, 
+    push @summary,
     "Restoration - detailed statiscics:\n",
     "\tOf $total_restoration differences, there were\n",
     map ({ "\t      ".pack("A4",$restoration{$_})." agreements of $_\n" }
@@ -399,7 +413,7 @@ sub diff_trees {
       "\n";
   }
   if ($total_dependency) {
-    push @summary, 
+    push @summary,
     "Dependency - detailed statiscics:\n",
     "\tOf $total_dependency differences, there were\n",
     map ({ "\t      ".pack("A4",$dependency{$_})." agreements of $_\n" }
@@ -407,7 +421,7 @@ sub diff_trees {
       "\n";
   }
   if ($total_values) {
-    push @summary, 
+    push @summary,
     "Values of attributes - detailed statiscics:\n",
     "\tOf $total_values differences, there were\n",
     map ({ "\t      ".pack("A4",$value{$_})." agreements of $_\n" }
@@ -439,8 +453,8 @@ sub DiffTRFiles_with_summary {
 			'-width'   => '8c',
 			'-buttons' => ["OK"]);
   print "created dialog\n";
-  $d->bind('all','<Escape>'=> [sub { shift; 
-				     shift->{selected_button}='OK'; 
+  $d->bind('all','<Escape>'=> [sub { shift;
+				     shift->{selected_button}='OK';
 				   },$d ]);
 
   my $t= $d->Scrolled(qw/ROText
