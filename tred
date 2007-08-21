@@ -4444,7 +4444,8 @@ sub printThis {
 			     $maximizePrintSize,
 			     $psMedia,
 			     $treeViewOpts,
-			     $ss
+			     $ss,
+			     $grp->{focusedWindow},
 			    );
   }
   errorMessage($win, $@) if $@;

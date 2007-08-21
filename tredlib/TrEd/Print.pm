@@ -225,7 +225,8 @@ sub print_trees {
       $maximizePrintSize,
       $Media,
       $canvas_opts,		# color hash reference
-      $stylesheet
+      $stylesheet,
+      $grp_ctx,
      )=@_;
 
   return if (not defined($printRange));
@@ -349,7 +350,7 @@ sub print_trees {
 	  } else {
 	    $valtext = $treeView->value_line($fsfile,$printList[$t]-1,1,0);
 	  }
-	  $treeView->redraw($fsfile,undef,$nodes,$valtext);
+	  $treeView->redraw($fsfile,undef,$nodes,$valtext,undef,$grp_ctx);
 	};
 	my $width=$c->fpixels($treeView->get_canvasWidth);
 	my $height=$c->fpixels($treeView->get_canvasHeight)+10;
@@ -466,7 +467,7 @@ sub print_trees {
 	  } else {
 	    $valtext = $treeView->value_line($fsfile,$printList[$t]-1,1,0);
 	  }
-	  $treeView->redraw($fsfile,undef,$nodes,$valtext);
+	  $treeView->redraw($fsfile,undef,$nodes,$valtext,undef,$grp_ctx);
 	};
 
 	my $rotate = !$toEPS && !$noRotate

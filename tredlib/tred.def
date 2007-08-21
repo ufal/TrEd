@@ -3216,7 +3216,8 @@ sub Print {
 	 exists($opts{-maximize}) ? $opts{-maximize} : $main::maximizePrintSize,
 	 exists($opts{-psMedia}) ? $opts{-psMedia} : $main::psMedia,
 	 $main::treeViewOpts,
-	 $ss
+	 $ss,
+	 $grp,
 	);
 
     $TrEd::TreeView::on_get_root_style = undef;
