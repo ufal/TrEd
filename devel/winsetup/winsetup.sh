@@ -270,8 +270,9 @@ function install_perl {
   echo "$MSG013" "$DIR/$REQPERLINSTDIR"/perl*.tgz
   (cd "$PERLINSTALLDIR" &&\
   tar -xzf "$DIR/$REQPERLINSTDIR/"perl*.tgz &&\
+  sed "s,c:\\Perl,$PERLINSTALLDIR," < "$PERLINSTALLDIR/install.bat" > "$PERLINSTALLDIR/install2.bat" &&\
   echo "$MSG014"
-  "$PERLINSTALLDIR/install.bat") || \
+  "$PERLINSTALLDIR/install2.bat") || \
   (echo; echo "$MSG015"; exit 1)
 }
 
