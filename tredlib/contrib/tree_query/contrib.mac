@@ -1,0 +1,7 @@
+#ifndef tree_query
+#define tree_query
+
+#binding-context Tree_Query
+#include "tree_query.mak"
+
+#endif tree_query
