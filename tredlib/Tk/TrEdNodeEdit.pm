@@ -737,7 +737,8 @@ sub add_list_member {
 
 sub add_sequence_member {
   my ($hlist,$path,$mtype,$val,$list_no,$allow_empty,$entry_opts)=@_;
-  return $hlist->add_member($path."/",$mtype->get_element_by_name($val->name),$val->value,'['.$list_no.']',$allow_empty,$entry_opts,1,$val->name);
+  my $name = $val->name;
+  return $hlist->add_member($path."/",$mtype->get_element_by_name($name),$val->value,'['.$list_no.']'.$name,$allow_empty,$entry_opts,1,$val->name);
 }
 
 
