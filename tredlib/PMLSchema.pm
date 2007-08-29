@@ -718,6 +718,7 @@ sub find_type_by_path {
 	  my $attr = $decl->get_attribute_by_name($step);
 	  $decl =  $attr;
 	} elsif ($decl_is == PML_SEQUENCE_DECL) {
+	  $step =~ s/^\[\d*\]//; # name must follow
 	  $decl = $decl->get_element_by_name($step);
 	} elsif ($decl_is == PML_ROOT_DECL) {
 	  if ($step eq $decl->get_name or $step eq q{}) {
