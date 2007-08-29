@@ -1016,13 +1016,79 @@ Return value of the given attribute.
 
 =item $node->attr (path)
 
-Return value of an attribute specified as a path of the form
-attr/subattr/[n]/subsubattr/[m], where [n] can be used to pick n-th
-element of a list or alternative.  If alternative or list is
-encountered but no index is given, then 1st element of the list or
-alternative is used (except for the case when list or alternative
-is found in the last path step, in which case the corresponding object
-- list or alternative - is returned as is).
+Retrieve a possibly nested value from the attribute data structure of
+$node.  The path argument uses an XPath-like expression of the form
+
+   step1/step2/...
+
+where each step (depending on the value retrieved by the preceding
+part of the expression) can be one of:
+
+=over 8
+
+=item name of a member of a structure 
+
+to retrieve that member
+
+=item name of an attribute of a container 
+
+to retrieve that attribute
+
+=item name of an element of a sequence 
+
+to retrieve the first element of that name
+
+=item index of the form [n] 
+
+to retrieve n-th element /counting from 1/ from a list, sequence, or an alternative
+
+=item combination of name and index of the form name[n]
+
+to retrieve n-th element named 'name' from a sequence
+
+=item combination of index and name of the form [n]name
+
+to retrieve the n-th element of a sequence provided the n-th element's
+name is 'name'
+
+=back
+
+If a step of the form [n] is not given for a list or alternative value
+then [1] is assumed and the next step is processed.
+
+If the value retrieved by some step is undefined or the step does not
+match the data type of the value retrieved by the preceding steps, the
+evaluation is stopped and undef is returned.
+
+For example,
+
+  my $value = $node->attr('foo/bar[2]/[4]/baz/[5]bam');
+
+is roughly equivalent to
+
+  my $el = $node->{foo}->values('bar')->[1]->[3]->{baz}->[4];
+  my $value = $el->name eq 'bam' ? $el->value : undef;
+
+but without the side effect of creating array or hash structures where
+there is none. To be more specific, if, say $node->{x} is not defined,
+then the Perl expression
+
+   if ($node->{x}[3]{y}) {...}
+
+automatically causes a side-effect of creating an ARRAY reference in
+$node->{x} and a HASH reference in the fourth element of this
+ARRAY. An analogous construct
+
+   $node->attr('foo/[4]/baz');
+
+simply returns undef without either of these side-effects.
+
+The following behave the same (provided that the path /foo/bar[2]
+retrieves a list, sequence or an alternative and /foo/bar[2]/[1]/baz
+retrieves a sequence):
+
+  my $value = $node->attr('foo/bar[2]/[1]/baz/[1]bam');
+  my $value = $node->attr('foo/bar[2]/baz/bam');
 
 =cut
 
@@ -1040,13 +1106,17 @@ sub attr {
 	$val = $val->[0]{$step};
       }
     } elsif (ref($val) eq 'Fslib::Seq') {
-      if ($step =~ /^\[(\d+)\]/) {
-	$val = $val->[$1-1][1]; # value
+      if ($step =~ /^\[(\d+)\](.*)/) {
+	$val = $val->elements_list->[$1-1]; # element
+	if (defined $2 and length $2) { # optional name test
+	  return if $val->[0] ne $2; # ERROR
+	}
+	$val = $val->[1]; # value
       } elsif ($step =~ /^([^\[]+)(?:\[(\d+)\])?/) {
 	my $i = $2;
 	$val = $val->values($1);
 	if ($i ne q{}) {
-	  $val = $val->[ $i ];
+	  $val = $val->[ $i-1 ];
 	}
       } else {
 	return; # ERROR
@@ -1081,17 +1151,17 @@ sub flat_attr {
 
 =item $node->set_attr (path,value,strict?)
 
-Set value of an attribute specified by a path of the form
-attr/subattr/[n]/subsubattr/[m], where [n] can be used to pick n-th
-element of a list or alternative.  If strict==0 and an alternative or
-list is encountered but no index is given, then 1st element of the
-list or alternative is used (except for the case when list or
-alternative is found in the last path step, in which case the entire
-list or alternative is overwritten by the given value). If strict==1
-and a list or an alternative is encountered in the value tree but no
-step of the form [n] is given, a warning is issued and undef is
-returned. If strict==2, the same approach as with strict==1 is taken,
-only errors are reported via a croak.
+Store a given value to a possibly nested attribute of $node specified
+by path. The path argument uses the XPath-like syntax described above
+for the method L<attr>. If strict==0 and a non-index step is to be
+processed on an alternative or list, then step [1] is assumed and the
+1st element of the list or alternative is used for further processing
+of the path expression (except when this occurs in the last step, in
+which case the entire list or alternative is overwritten by the given
+value). If strict==1 and a non-index step is to be processed on an
+alternative or list, a warning is issued and undef is returned. If
+strict==2, the same approach as with strict==1 is taken, but croak is
+used instead of warn.
 
 =cut
 
@@ -1121,6 +1191,56 @@ sub set_attr {
 	  $val->[0]{$step} = $value;
 	  return $value;
 	}
+      }
+    } elsif (ref($val) eq 'Fslib::Seq') {
+      if ($step =~ /^\[(\d+)\](.*)/) {
+	my $el = $val->elements_list->[$1-1];
+	if (defined $2 and length $2 and $el->[0] ne $2) { # optional name test
+	  my $msg = "Can't follow attribute path '$path' (step '$step')";
+	  croak $msg if ($strict==2);
+	  warn $msg."\n";
+	  return; # ERROR
+	}
+	if (@steps) {
+	  $val = $el->[1];
+	} else {
+	  if (ref($value) eq 'Fslib::Seq::Element') {
+	    $val->elements_list->[$1-1]=$value;
+	    return $value;
+	  } elsif (ref $val->[$1-1]) {
+	    $el->[1]=$value;
+	    return $value;
+	  } else {
+	    my $msg = "Can't follow attribute path '$path' (no sequence element found at step '$step')";
+	    croak $msg if ($strict==2);
+	    warn $msg."\n";
+	    return; # ERROR
+	  }
+	}
+      } elsif ($step =~ /^([^\[]+)(?:\[(\d+)\])?/) {
+	my $i = $2;
+	if (@steps) {
+	  $val = $val->values($1);
+	} else {
+	  $val = $val->values($1)->[$1-1];
+	  if (defined $val) {
+	    if (ref($value) eq 'Fslib::Seq::Element') {
+	      $val->[0]=$value->[0];
+	      $val->[1]=$value->[1];
+	      return $val;
+	    } else {
+	      $val->[1]=$value;
+	      return $value;
+	    }
+	  } else {
+	    my $msg = "Can't follow attribute path '$path' (no sequence element found at step '$step')";
+	    croak $msg if ($strict==2);
+	    warn $msg."\n";
+	    return; # ERROR
+	  }
+	}
+      } else {
+	return; # ERROR
       }
     } elsif (ref($val)) {
       if (@steps) {
@@ -3713,12 +3833,19 @@ subtypes with role C<#CHILDNODES>.
 sub attributes {
   my ($self,@types) = @_;
   # find node type
-
   unless (@types) {
     @types = $self->node_types;
   }
+  return $self->_attributes(\@types,{});
+}
+
+sub _attributes {
+  my ($self,$types,$seen)=@_;
+
   my @result;
-  foreach my $type (@types) {
+
+  foreach my $type (@$types) {
+    next if $seen->{$type};
     my $decl_is = $type->get_decl_type;
     next if $type->get_role eq '#CHILDNODES';
     if ($decl_is == PML_TYPE_DECL ||
@@ -3747,7 +3874,9 @@ sub attributes {
     if (@members) {
       for my $m (@members) {
 	my ($mdecl,$name) = @$m;
-	push @result, map { $_ eq q{} ? $name : $name."/".$_ } $self->attributes($mdecl);
+	local $seen->{$type}=1;
+	push @result, map { $_ eq q{} ? $name : $name."/".$_ }
+	  $self->_attributes([$mdecl],$seen);
       }
     }
   }
