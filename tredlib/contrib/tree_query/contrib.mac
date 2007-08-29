@@ -1,6 +1,8 @@
 #ifndef tree_query
 #define tree_query
 
+#include <contrib/pml/PML.mak>
+
 #binding-context Tree_Query
 #include "tree_query.mak"
 
