@@ -149,7 +149,7 @@ sub getStylesheetPatterns {
       $hint = $s->{hint};
       $context = $s->{context};
       $context = '.*' unless (wantarray or $context =~ /\S/);
-      @$patterns = @{$s->{patterns}};
+      @$patterns = defined($s->{patterns}) ? @{$s->{patterns}} : ();
     } else {
       return ();
     }
