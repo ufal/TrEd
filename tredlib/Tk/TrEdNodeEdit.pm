@@ -435,7 +435,7 @@ sub add_to_sequence {
 				      $data->{compressed_type} ||
 				      $data->{type},
 				       Fslib::Seq::Element->new($name,undef),
-				       $data->{list_no},0,[-at => 0]));
+				       $data->{list_no},1,[-at => 0]));
   $hlist->configure(-height => 0);
 }
 
@@ -510,7 +510,7 @@ sub new_sequence_member {
     $hlist->add_sequence_member($parent,
 			   ($pdata->{compresed_type} || $pdata->{type}),
 				Fslib::Seq::Element->new($name,undef),
-				$pdata->{list_no},0,
+				$pdata->{list_no},1,
 				[-after => $path]);
   $hlist->select_entry($new);
   $hlist->configure(-height => 0);
@@ -779,6 +779,7 @@ sub add_member {
   } else {
     croak("Unknown type object for $attr_name: $member");
   }
+
   my $path = $base_path.$attr_name;
   my $data = {type => $mdecl,
 	      member => $member,
@@ -938,6 +939,8 @@ sub add_member {
 		       -style => $hlist->{my_itemstyles}{struct});
     if (ref($attr_val)) {
       $hlist->add_members($path."/",$mdecl,$attr_val,1);
+    } elsif ($allow_empty) {
+      $hlist->add_members($path."/",$mdecl,Fslib::Struct->new(),1);
     }
   } elsif ($mdecl_type == PML_CONTAINER_DECL) {
     $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{struct});
@@ -946,6 +949,8 @@ sub add_member {
 		       -style => $hlist->{my_itemstyles}{struct});
     if (ref($attr_val)) {
       $hlist->add_members($path."/",$mdecl,$attr_val,1);
+    } elsif ($allow_empty) {
+      $hlist->add_members($path."/",$mdecl,Fslib::Container->new(),1);
     }
   } elsif ($mdecl_type == PML_LIST_DECL) {
     if ($mdecl->get_role =~ m/^\#(CHILDNODES|TREES)$/ ) {
