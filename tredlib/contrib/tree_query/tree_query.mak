@@ -27,6 +27,7 @@ sub CreateStylesheets{
     SetStylesheetPatterns(<<'EOF','Tree_Query',1);
 context:   Tree_Query
 rootstyle: #{vertical:0}
+node: #{darkblue}${name}
 node: <? Tree_Query::serialize_conditions_as_stylesheet($this) ?>
 node: #{brown}${description}
 EOF
@@ -45,11 +46,11 @@ sub get_dbi {
     <schema><pml_schema 
       xmlns="http://ufal.mff.cuni.cz/pdt/pml/schema/" version="1.1">
      <root name="dbi"><structure>
-       <member name="driver"><cdata format="nmtoken"/></member>
+       <member name="driver"><cdata format="NMTOKEN"/></member>
        <member name="host"><cdata format="url"/></member>
        <member name="port"><cdata format="integer"/></member>
-       <member name="database"><cdata format="nmtoken"/></member>
-       <member name="username"><cdata format="nmtoken"/></member>
+       <member name="database"><cdata format="NMTOKEN"/></member>
+       <member name="username"><cdata format="NMTOKEN"/></member>
        <member name="password"><cdata format="any"/></member>
      </structure></root>
     </pml_schema></schema>
@@ -70,7 +71,9 @@ EOF
 			"host=".$cfg->{host}.';'.
 			"port=".$cfg->{port},
 			$cfg->{username},
-			$cfg->{password});
+			$cfg->{password},
+			{ RaiseError => 1 }
+		       );
   }
   return $dbi;
 }
@@ -79,9 +82,17 @@ sub query_sql {
   get_dbi() unless $dbi;
   my $sql = serialize_conditions($root);
   my $max=100;
+  #  my @text_opt = eval { require Tk::CodeText; } ? (qw(CodeText -syntax SQL)) : qw(Text);
+  $sql = EditBoxQuery(
+    "SQL Query",
+    $sql,
+    'Confirm or Edit the generated SQL Query',
+    #    { -widget => \@text_opt },
+  );
+
   if (defined $sql and length $sql) {
     print "Sending query:\n$sql\n...\n";
-    my $results = $dbi->selectall_arrayref($sql,{MaxRows=>100});
+    my $results = $dbi->selectall_arrayref($sql,{MaxRows=>100, RaiseError=>1});
     print "Displaying results.\n";
     ListQuery("Results",
 	      'browse',
@@ -117,13 +128,14 @@ sub make_sql {
   my @join;
   my @where;
   my $table = 'a';
-  my %id = map { ($_ => $_->{id}) } @nodes;
+  my %id = map { ($_ => $_->{name}) } @nodes;
   my $id = 'n0';
   my %occup; @occup{values %id}=();
   for my $n (@nodes) {
-    unless (defined $id{$n}) {
+    unless (defined $id{$n} and length $id{$n}) {
       $id++ while exists $occup{$id}; # just for sure
       $id{$n}=$id; # generate id;
+      $occup{$id}=1;
     }
   };
   for (my $i=0; $i<@nodes; $i++) {

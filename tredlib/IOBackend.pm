@@ -54,6 +54,9 @@ sub set_encoding {
   if (defined($fh) and defined($encoding) and ($]>=5.008)) {
     eval {
       print STDERR "USING PERL IO ENCODING: $encoding\n" if $Debug;
+      binmode($fh); # important: without it any further
+                    # binmode+binmode:encoding (e.g. @E implementation in FSBackend) gets out of position
+                    # for files with unix line-ends on win32
       binmode($fh,":encoding($encoding)");
     };
     warn $@ if $@;
