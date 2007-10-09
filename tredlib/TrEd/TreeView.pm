@@ -881,23 +881,29 @@ sub which_text_color {
 
 sub node_box_options {
   my ($self,$node,$fs,$currentNode,$edge)=@_;
+  my $fill;
   if ($edge) {
-    return (-fill =>
-	    ($currentNode eq $node) ?
+    $fill = ($currentNode == $node) ?
 	    $self->get_currentEdgeBoxColor :
 	    ($fs->isHidden($node) ?
 	     $self->get_hiddenEdgeBoxColor :
-	     $self->get_edgeBoxColor)
-	   );
+	     $self->get_edgeBoxColor);
+	   ;
   } else {
-    return (-fill =>
-	    ($currentNode eq $node) ?
+    $fill = ($currentNode == $node) ?
 	    $self->get_currentBoxColor :
 	    ($fs->isHidden($node) ?
 	     $self->get_hiddenBoxColor :
-	     $self->get_boxColor)
-	   );
+	     $self->get_boxColor);
   }
+  return (
+      -width => 1,
+      -activewidth => 1,
+      -outline => 'black',
+      -activeoutline => 'black',
+      -fill => $fill,
+      -activefill => $fill,
+     );
 }
 
 
@@ -1041,10 +1047,10 @@ sub apply_style_opts {
 sub apply_stored_style_opts {
   my ($self, $item, $node)=@_;
   my $Opts=$self->get_gen_pinfo("Opts");
-  
+  my $what = $item; $what=~s/^Current//;
   eval { $self->canvas->
-	   itemconfigure($self->get_node_pinfo($node,"Oval"),
-			 @{$Opts->{$item}},
+	   itemconfigure($self->get_node_pinfo($node,$what),
+			 @{$Opts->{$item}||[]},
 			 $self->get_node_style($node,$item)); };
   print STDERR $@ if $@ ne "";
   return $@;
@@ -1228,7 +1234,7 @@ sub redraw {
     # only for root node if any
     foreach $style ($self->get_label_patterns($fsfile,"rootstyle")) {
       foreach ($self->interpolate_text_field($node,$style,$grp)=~/\#${block}/g) {
-  	if (/^(Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-.+?):'?(.+)'?$/) {
+  	if (/^(Oval|CurrentOval|TextBox|EdgeTextBox|CurrentTextBox|CurrentEdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-.+?):'?(.+)'?$/) {
 	  if (exists $Opts{"$1$2"}) {
 	    push @{$Opts{"$1$2"}},$3=>$4;
 	  } else {
@@ -1253,7 +1259,7 @@ sub redraw {
     my %nopts=();
     foreach $style (@style_patterns) {
       foreach ($self->interpolate_text_field($node,$style,$grp)=~/\#${block}/g) {
-	if (/^((CurrentOval|Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-[^:]+?)):(.+)$/) {
+	if (/^((CurrentOval|Oval|CurrentTextBox|TextBox|EdgeTextBox|CurrentEdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-[^:]+?)):(.+)$/) {
 	  if (exists $nopts{"$2$3"}) {
 	    push @{$nopts{"$2$3"}},$4=>$5;
 	  } else {
@@ -1607,11 +1613,15 @@ sub redraw {
 	  -tags => ['textbox',$box]
 		       );
       $self->store_id_pinfo($bid,$box);
-      $self->apply_style_opts($box,
-			      $self->node_box_options($node,$fsfile->FS,
-						      $currentNode,0),
-			      @{$Opts{TextBox}},
-			      $self->get_node_style($node,"TextBox"));
+      $self->apply_style_opts(
+	$box,
+	$self->node_box_options($node,$fsfile->FS,
+				$currentNode,0),
+	@{$Opts{TextBox}},
+	$self->get_node_style($node,
+			      ($node==$currentNode ?
+				 "CurrentTextBox" : "TextBox")
+			     ));
       $self->store_node_pinfo($node,"TextBox",$box);
       $self->store_obj_pinfo($box,$node);
     }
@@ -1638,12 +1648,17 @@ sub redraw {
 			-tags => ['edgebox',$box]
 		       );
       $self->store_id_pinfo($bid,$box);
-      $self->apply_style_opts($box,
-			      $self->node_box_options($node,
-						      $fsfile->FS,
-						      $currentNode,1),
-			      @{$Opts{EdgeTextBox}},
-			      $self->get_node_style($node,"EdgeTextBox"));
+      $self->apply_style_opts(
+	$box,
+	$self->node_box_options($node,
+				$fsfile->FS,
+				$currentNode,1),
+	@{$Opts{EdgeTextBox}},
+	$self->get_node_style($node,
+			      $node==$currentNode ?
+				"CurrentEdgeTextBox" :
+				"EdgeTextBox"
+			     ));
 
       $self->store_node_pinfo($node,"EdgeTextBox",$box);
       $self->store_obj_pinfo($box,$node);
