@@ -97,7 +97,7 @@ sub create_toplevel {
   $chooser->subwidget('frame')->pack(qw/-fill both -expand 1/);
   $d->bind($d,'<Escape>'=> [$destroy_callback,$d]);
 
-  TrEd::ValLex::Widget::_bind_buttons($d);
+  $d->BindButtons;
   $chooser->prepare($show_obsolete_ref, $field, $select_frame, $start_editor);
   $chooser->widget->focus;
 #  $d->resizable(0,0);
