@@ -102,7 +102,7 @@ sub new_dialog_window {
 	      )->pack(qw(-padx 10 -expand 1));
     $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Close'; },$d ]);
   }
-  TrEd::ValLex::Widget::_bind_buttons($button_frame);
+  $button_frame->BindButtons;
   if ($can_edit) {
     $d->protocol('WM_DELETE_WINDOW' =>
 		   [sub {
@@ -207,7 +207,7 @@ sub show_dialog {
 		     $f->reload_data($d);
 		   },$d,$vallex],
                  -underline => 11);
-	TrEd::ValLex::Widget::_bind_buttons($d);
+    $d->BindButtons;
   } else {
     $d->Subwidget("B_Close")->
       configure(-command =>
@@ -541,8 +541,7 @@ sub create_widget {
   $info_line->pack(qw/-side bottom -fill x/);
 
   # Bind buttons
-  TrEd::ValLex::Widget::_bind_buttons($frame);
-
+  $frame->BindButtons;
 
   return $lexlist->widget(),{
 	     frame        => $frame,

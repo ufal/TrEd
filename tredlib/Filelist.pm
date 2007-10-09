@@ -5,7 +5,7 @@ package Filelist;
 # E-mail: pajas@ufal.mff.cuni.cz
 #
 # Description:
-# (TrEd's) filelist handling routines
+# filelist handling routines
 
 =pod
 
@@ -28,8 +28,6 @@ $VERSION = "0.1";
 
 use Carp;
 use vars qw( $VERSION @EXPORT @EXPORT_OK );
-
-use Fslib;
 
 =pod
 
@@ -482,9 +480,5 @@ __END__
 =head1 AUTHOR
 
 Petr Pajas
-
-=head1 SEE ALSO
-
-L<tred(1)|tred>, L<Fslib(1)|Fslib>.
 
 =cut

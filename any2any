@@ -73,13 +73,17 @@ if (exists $ENV{TREDHOME}) {
 print STDERR "Trying $libDir\n" if ($opt_D and $libDir);
 unshift @INC,"$libDir";
 
-do {
+{
   my $ld=$libDir;
   require TrEd::Config;
   import TrEd::Config;
   import TrEd::Config qw(&read_config &set_default_config_file_search_list $defaultMacroFile);
   $libDir=$ld;
-};
+  my $libs = File::Spec->catfile($libDir,'libs');
+  if (-d $libs) {
+    push @INC, glob(File::Spec->catfile($libs,'*',''));
+  }
+}
 
 $TrEd::Config::quiet=1;
 
