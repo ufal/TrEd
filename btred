@@ -189,7 +189,9 @@ $macroFile=undef;
 
 
 # We *must* at least find TrEd::Config module to learn the correct libDir!!.
-unshift @INC,$libDir if (-d $libDir);
+if (-d $libDir) {
+  unshift @INC,$libDir;
+}
 
 {
   # in Windows, if HOME not defined, use user's AppData folder instaed
@@ -230,12 +232,15 @@ my $configFile=read_config();
 EOL
     die "Error: Could not find lib-directory.";
   }
-  
-  unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
-  
   if ($lib) {
     print $libDir,"\n";
     exit;
+  }
+
+  unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
+  my $libs = File::Spec->catfile($libDir,'libs');
+  if (-d $libs) {
+    push @INC, glob(File::Spec->catfile($libs,'*',''));
   }
 }
 

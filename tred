@@ -66,24 +66,36 @@ if (defined $Tk::encodeFallback and $Tk::encodeFallback == Encode::FB_PERLQQ() a
 use Tk::Config ();
 use Tk::Wm;
 use IO;
+use Cwd;
+use File::Spec;
 use constant EMPTY => q{};
+use Tk::LabFrame;
+use Tk::Listbox;
+use Tk::HList;
+use Tk::ItemStyle;
+use Tk::DialogBox;
+use Tk::Tiler;
+use Tk::BrowseEntry;
+use Tk::Pane;
+use Tk::Dialog;
+use Tk::Font;
 
-package Tk::Wm;
-# overwriting the original Tk::Wm::Post:
-sub Post
 {
- my ($w,$X,$Y)= @_;
- $X= int($X);
- $Y= int($Y);
- $w->positionfrom('user');
-# $w->geometry("+$X+$Y");
- $w->MoveToplevelWindow($X,$Y);
- $w->deiconify;
-## This causes the "slowness":
-# $w->raise;
+  package Tk::Wm;
+  # overwriting the original Tk::Wm::Post:
+  sub Post {
+    my ($w,$X,$Y)= @_;
+    $X= int($X);
+    $Y= int($Y);
+    $w->positionfrom('user');
+    # $w->geometry("+$X+$Y");
+    $w->MoveToplevelWindow($X,$Y);
+    $w->deiconify;
+    ## This causes the "slowness":
+    # $w->raise;
+  }
+  package main;
 }
-
-package main;
 
 #use Tk::Xrm;
 # process the standard arguments for X resources
@@ -201,7 +213,10 @@ _set_encoding(\*STDOUT,':utf8',"STDOUT");
 @openfiles=();
 
 # We *must* at least find TrEd::Config module to learn the correct libDir!!.
-unshift @INC,$libDir if (-d $libDir);
+if (-d $libDir) {
+  unshift @INC,$libDir;
+}
+
 
 {
   require TrEd::Utils;
@@ -248,19 +263,12 @@ EOL
 }
 
 unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
-
-use Cwd;
-
-use Tk::LabFrame;
-use Tk::Listbox;
-use Tk::HList;
-use Tk::ItemStyle;
-use Tk::DialogBox;
-use Tk::Tiler;
-use Tk::BrowseEntry;
-use Tk::Pane;
-use Tk::Dialog;
-use Tk::Font;
+{
+  my $libs = File::Spec->catfile($libDir,'libs');
+  if (-d $libs) {
+    unshift @INC, glob(File::Spec->catfile($libs,'*',''));
+  }
+}
 
 require Fslib;
 import Fslib;
@@ -352,10 +360,16 @@ require Filelist;
 
 require Tk::MyFileSelect;
 require Tk::ImgButton;
+require Tk::BindButtons;
 require Tk::BindMouseWheel;
+require Tk::DialogReturn;
+require Tk::ErrorReport;
 require Tk::Balloon;
 require Tk::JComboBox_0_02;
 require Tk::TrEdNodeEdit;
+
+require Data::Snapshot;
+import Data::Snapshot;
 
 *which = eval {
   require File::Which;
@@ -1072,13 +1086,12 @@ sub nextOrPrevFile {
     my $trees = $win->{FSFile} ? $win->{FSFile}->lastTreeNo+1 : 0;
     unless ($quiet) {
       $response=
-	errorDialog($win,
-		    "Error: open failed",
-		    "File is unreadable, empty, corrupted, or does not exist ($trees trees read)!"
-		      ."\nPossible problem was:",
-		    $grp->{lastOpenError},
-		    -buttons => ["Try next","Skip broken files","Remove from filelist","Cancel"]
-		   );
+	$win->toplevel->ErrorReport(
+	  -title => "Error: open failed",
+	  -message => "File is unreadable, empty, corrupted, or does not exist ($trees trees read)!"."\nPossible problem was:",
+	  -body => $grp->{lastOpenError},
+	  -buttons => ["Try next","Skip broken files","Remove from filelist","Cancel"]
+	 );
       last if ($response eq "Cancel");
       $quiet=1 if ($response eq "Skip broken files");
     }
@@ -1463,88 +1476,9 @@ sub textDialog {
   $d->Show;
 }
 
-sub errorDialog {
-  my ($grp_or_win,$title,$msg1,$msg2,%opts)=@_;
-  my ($grp,$win)=grp_win($grp_or_win);
-  my $d= $grp->{top}->DialogBox(-title=> $title,
-				($opts{-buttons} ? (-buttons=> ['OK']) : ()),
-				%opts
-			       );
-  $d->Label(-text => "ERROR",
-	    -justify => 'left',
-	    -foreground => 'red'
-	   )
-    ->pack(-pady => 5,-side => 'top', -fill => 'x');
-  $d->Label(-text => $msg1,
-	    -justify => 'left'
-	   )->pack(-pady => 10,-side => 'top', -fill => 'x');
-  my $t= $d->
-    Scrolled(qw/Text -relief sunken -borderwidth 2
-		-scrollbars oe/);
-  $t->Subwidget('scrolled')->menu->delete('File');
-  $t->pack(qw/-side top -expand yes -fill both/);
-#  disable_scrollbar_focus($t);
-  $t->BindMouseWheelVert();
-  _bind_buttons($d,$d);
-  $t->insert('0.0',$msg2);
-  $d->Show;
-}
-
-sub dlgReturn {
-  my ($w,$no_default)=@_;
-  my $f=$w->focusCurrent;
-  my $button;
-  if ($f and $f->isa('Tk::Button')) {
-    $button = $f;
-  } elsif (!$no_default) {
-    $button = $w->toplevel->{default_button};
-  }
-  if ($button) {
-    $button->flash;
-    $button->invoke;
-  }
-  Tk->break;
-}
 
 sub _descendant_widgets {
   return ($_[0],map {_descendant_widgets($_)} $_[0]->children);
-}
-
-sub _bind_buttons {
-  my ($w,$top)=@_;
-  $top||=$w->toplevel;
-  my %bind;
-  foreach my $button (grep { ref($_) and ($_->isa('Tk::Button') or $_->isa('Tk::Label')) } _descendant_widgets($w)) {
-    my $ul=$button->cget('-underline');
-    if (defined($ul) and $ul>=0) {
-      my $text=$button->cget('-text');
-      my $key=lc(substr($text,$ul,1));
-      $bind{$key}=$button;
-    }
-  }
-  if ($w->isa('Tk::Dialog') or $w->isa('Tk::DialogBox')) {
-    my $bottom = $w->Subwidget('bottom');
-    foreach my $button (grep { ref($_) and $_->isa('Tk::Button') }
-			_descendant_widgets($bottom)) {
-      my $text=$button->cget('-text');
-      next if $button->cget('-underline')>=0;
-      for my $i (0..length($text)) {
-	my $key=lc(substr($text,$i,1));
-	unless (exists $bind{$key}) {
-	  $button->configure(-underline=>$i);
-	  $bind{$key}=$button;
-	  last;
-	}
-      }
-    }
-  }
-  for my $key (keys(%bind)) {
-    my $button = $bind{$key};
-    next unless $button->isa('Tk::Button');
-    next if $key !~ /^[a-zA-Z.]$/i;
-    $key=~s/^\.$/period/;
-    $top->bind("<Alt-$key>", [sub { $_[1]->flash; $_[1]->invoke; },$button]);
-  }
 }
 
 sub userQuery {
@@ -1554,14 +1488,14 @@ sub userQuery {
 				);
   $d->add('Label', -text => $message,
 	  -wraplength => 300)->pack();
-  $d->bind('<Return>', \&dlgReturn);
+  $d->BindReturn('all',1);
   if (exists($opts{-buttons}) and 
       grep { $_ eq 'Cancel' } @{$opts{-buttons}}) {
-    escapeButton($d,'Cancel',1);
+    $d->BindEscape();
 
   }
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
-  _bind_buttons($d,$d);
+  $d->BindButtons;
   return $d->Show;
 }
 
@@ -2057,12 +1991,12 @@ sub openFile {
       # Recovery failed
       my $trees=$fsfile ? $fsfile->lastTreeNo+1 : 0;
       my $answer =
-	errorDialog($win,
-		    "Error: recovery failed",
-		    "Recovery file is corrupted ($trees trees read)!".
-		    "\nPossible problem was:",
-		    $status->{report},
-		    -buttons => ['Open the original file', 'Ignore', 'Cancel']);
+	$win->toplevel->ErrorReport(
+	  -title => "Error: recovery failed",
+	  -message => "Recovery file is corrupted ($trees trees read)!"."\nPossible problem was:",
+	  -body => $status->{report},
+	  -buttons => ['Open the original file', 'Ignore', 'Cancel'],
+       );
       if ($answer eq 'Open the original file') {
 	closeFile($win,-no_update => 1) unless $opts{-preload};
 
@@ -2124,12 +2058,11 @@ sub openFile {
   if ($status->{ok}==0) {
     unless ($no_err) {
       my $trees=$fsfile ? $fsfile->lastTreeNo+1 : 0;
-      errorDialog($win,
-		  "Error: open failed",
-		  "File '$f' is unreadable, empty, corrupted, or does not exist ($trees trees read)!".
-		  "\nPossible problem was:",
-		  $status->{report});
-
+      $win->toplevel->ErrorReport(
+	-title => "Error: open failed",
+	-message => "File '$f' is unreadable, empty, corrupted, or does not exist ($trees trees read)!"."\nPossible problem was:",
+	-body => $status->{report},
+       );
     }
     closeFile($win,-no_update => 1) unless $opts{-preload};
     removeLock(undef, $f) if $lockinfo and $lockinfo !~ /^locked/;
@@ -2788,8 +2721,8 @@ sub createFilelistBrowseEntry {
 		    -bitmap=> 'question',
 		    -title=> 'Create/Rename?',
 		    -buttons=> ['Create', 'Rename', 'Cancel']);
-	   $d->bind('<Return>', \&dlgReturn);
-	   _bind_buttons($d,$d);
+	   $d->BindReturn('all',1);
+	   $d->BindButtons;
 	   my $answer=$d->Show();
 	   if ($answer eq 'Create') {
 	     addFilelist(Filelist->new($text));
@@ -2846,7 +2779,6 @@ sub insertToFilelist {
     if (-d $_) {
       $grp->{'hist-fileListPattern'}=[] unless $grp->{'hist-fileListPattern'};
       $tmp=Query($toplevel,"Selection Pattern","Insert pattern for directory $_","*.*",1,$grp->{'hist-fileListPattern'});
-      use File::Spec;
       $_= defined($tmp) ? File::Spec->catfile($_,$tmp) : undef;
     }
     $_;
@@ -3353,7 +3285,7 @@ sub filelistDialog {
     }
   }
   $t->focus;
-  _bind_buttons($d,$d);
+  $d->BindButtons;
   $grp->{top}->Unbusy();
   if ($modal) {
     ShowDialog($d);
@@ -3610,7 +3542,7 @@ sub macrolistDialog {
   $botframe->pack(qw/-side bottom -fill both/);
   $topframe->pack(qw/-side top -fill both -ipady 3 -ipadx 3 -expand 1/);
 
-  _bind_buttons($d,$d);
+  $d->BindButtons;
   $t->focus;
   $d->Popup;
 }
@@ -3625,10 +3557,10 @@ sub copyTreesDialog {
   my $destination=$grp->{focusedWindow}->{FSFile};
   my $d= $grp->{top}->DialogBox(-title=> 'Copy Trees',
 				-buttons=> ['OK', 'Cancel']);
-  $d->bind('<Return>',\&dlgReturn);
+  $d->BindReturn('all',1);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
-  escapeButton($d,'Cancel',1);
+  $d->BindEscape();
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
   $d->bind('all','<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
@@ -3679,7 +3611,7 @@ sub copyTreesDialog {
 			  },$grp,$d,\$range,$source])->pack(qw/-padx 10 -side left/);
   $sf->pack(qw/-pady 10 -padx 10 -side bottom -expand yes -fill x/);
 
-  _bind_buttons($d,$d);
+  $d->BindButtons;
   my $result= ShowDialog($d,$re,$grp->{top});
   get_grp_history($grp, $re, 'treeRange') if ($result=~ /OK/);
   $d->destroy();
@@ -3730,7 +3662,7 @@ sub initTTFonts {
     my $label=sprintf($format,0,0,0);
     $f->Label(-textvariable => \$label,-width=>12)->pack(-side=>'right');
     #$grp->{top}->Unbusy();
-    _bind_buttons($d,$d);
+    $d->BindButtons;
     $d->Popup;
     $d->update();
     $opts = { callback => sub {
@@ -3974,13 +3906,13 @@ sub printDialog {
 				-buttons=> ["OK", "Help", "Cancel"]);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
-  escapeButton($d,'Cancel',1);
+  $d->BindEscape();
   $d->Subwidget('B_Help')->configure(-command =>
 				      [sub{
 					 help_topic(shift,'printing');
 					 Tk->break;
 				       },$d]);
-  $d->bind('<Return>',sub { print "DLG return $_[0]\n"; &dlgReturn; });
+  $d->BindReturn('all',1);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
@@ -4322,7 +4254,7 @@ sub printDialog {
 
   updatePrintDialogState($grp,\%w,\%s, $grp->{printFileExtension},$d);
 #  $toFile ? $fe->focus : $ce->focus;
-  _bind_buttons($d,$d);
+  $d->BindButtons;
   my $result= ShowDialog($d,$s{printTo} eq "command" ? $w{command} : $w{file},$grp->{top});
   $grp->{printRange}=$s{printRange};
   $grp->{printOnePerFile}=$s{printOnePerFile};
@@ -7032,8 +6964,7 @@ sub editConfig {
 			  -width=> "10c");
   my $d=$grp->{configDialog};
   $d->withdraw;
-  $d->bind('<Return>'=> [\&dlgReturn,1]);
-
+  $d->BindReturn('all',1);
   my @text_opt = eval { require Tk::CodeText; 
 			require Tk::CodeText::TrEdConfig; 
 		      } ? (qw(CodeText -syntax TrEdConfig -commentchar ;))
@@ -7109,7 +7040,7 @@ sub editConfig {
 		  -underline => 2,
 		  -command=> [sub { shift->destroy; },$d])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
-  _bind_buttons($d,$d);
+  $d->BindButtons;
   $d->bind('<Destroy>'=> [sub { shift; shift->{configDialog}=undef; },$grp ]);
   $d->bind($d,'<Escape>'=> [sub { shift; shift->destroy(); },$d]);
   if (open(F,"<$configFile")) {
@@ -7129,8 +7060,8 @@ sub QueryString {
   my $newvalue=encode($default_text);
   my $d=$top->DialogBox(-title=> $title,
 				 -buttons=> ["OK", "Cancel"]);
-  escapeButton($d,'Cancel',1);
-  $d->bind('<Return>',\&dlgReturn);
+  $d->BindEscape();
+  $d->BindReturn('all',1);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
 
@@ -7162,7 +7093,7 @@ sub QueryString {
   $e->pack(-side=>'right');
   $d->resizable(0,0);
 #  $e->focus;
-  _bind_buttons($d,$d);
+  $d->BindButtons;
   my $result= ShowDialog($d,$e,$top);
   if ($result=~ /OK/) {
     if (ref($hist) and $e->can('historyAdd')) {
@@ -7182,8 +7113,8 @@ sub Query {
   my $newvalue=encode($default_text);
   my $d=$w->DialogBox(-title=> $title,
 				 -buttons=> ["OK", "Cancel"]);
-  $d->bind('<Return>', \&dlgReturn );
-  escapeButton($d,'Cancel');
+  $d->BindReturn('all',1);
+  $d->BindEscape;
   addBindTags($d,'dialog');
   my ($Entry,@Eopts) = get_entry_type();
   my $e=$d->add($Entry,-relief=> 'sunken',
@@ -7202,7 +7133,7 @@ sub Query {
   $e->pack(-side=>'left');
   $d->resizable(0,0);
 #  $e->focus;
-  _bind_buttons($d,$d);
+  $d->BindButtons;
   my $result= ShowDialog($d,$e,$w);
   if ($result=~/OK/) {
     if (ref($hist) and $e->can('historyAdd')) {
@@ -7219,32 +7150,14 @@ sub Query {
   }
 }
 
-sub _escapeButton {
-  my ($w,$d,$button)=@_;
-  if ($w->toplevel == $d) {
-    $d->Subwidget('B_'.$button)->focus();
-    $d->{selected_button}=$button;
-  }
-  Tk->break;
-}
-sub _wmdeleteButton { 
-  $_[0]->Subwidget('B_'.$_[1])->focus();
-  $_[0]->{selected_button}=$_[1] 
-}
-sub escapeButton {
-  my ($d,$button,$bind_wm)=@_;
-  $d->bind('all','<Escape>'=> [\&_escapeButton,$d,$button]);
-  $d->protocol('WM_DELETE_WINDOW' => [\&_wmdeleteButton,$d]) if $bind_wm;
-}
-
 sub listQuery {
   my ($w,$title,$select_mode,$vals,$selected,%opts)=@_;
   my $top=$w->toplevel;
   my $d=$w->DialogBox(-title	  => $title,
 		      -width	  => '8c',
 		      -buttons  => ["OK", "Cancel"]);
-  $d->bind('<Return>', \&dlgReturn );
-  escapeButton($d,'Cancel',1);
+  $d->BindReturn('all',1);
+  $d->BindEscape();
   if (ref($opts{label})) {
     $d->Label(%{$opts{label}})->pack(qw/-side top/);
   }
@@ -7292,7 +7205,7 @@ sub listQuery {
     }
   }
 
-  _bind_buttons($d,$d);
+  $d->BindButtons;
   my $act=0;
   my %selected = map { $_ => 1 } @$selected;
   for ($a=0;$a<@$vals;$a++)  {
@@ -7385,8 +7298,8 @@ sub selectValuesDialog {
  my $d=$top->DialogBox(-title=> ($enabled ? "$attr: select values" : "$attr: values"),
 		       -width=> '8c',
 		       -buttons=> ($enabled ? ["OK", "Cancel"] : ["Cancel"]));
- $d->bind('<Return>', \&dlgReturn );
- escapeButton($d,'Cancel',1);
+ $d->BindReturn('all',1);
+ $d->BindEscape();
  $d->resizable(0,0);
  my $l=$d->Scrolled(qw/Listbox -relief sunken -takefocus 1 -scrollbars oe/,
 		    -height=> min($maxDisplayedValues,scalar(@$vals)),
@@ -7443,7 +7356,7 @@ sub selectValuesDialog {
  }
  $top->Unbusy();
  $l->focus;
- _bind_buttons($d,$d);
+ $d->BindButtons;
  my $result= ShowDialog($d,$l,$lastFocus);
  if ($result=~ /OK/) {
    # Hajic wanted this (I wash my hands):
@@ -7567,7 +7480,7 @@ sub viewSentences {
 			  $grp->{focusedWindow}->{FSFile}->filename(),
 			  -width=> "10c");
   $d->withdraw;
-  $d->bind('<Return>'=> [\&dlgReturn,1]);
+  $d->bind('<Return>'=> [\&Tk::Widget::_DialogReturn,1]);
   $d->bind('all','<Escape>'=> [sub { $_[1]->destroy(); },$d]);
   $d->bind('<Destroy>'=> [sub { $_[1]->{sentDialog}=undef; },$grp ]);
   populateSentencesDialog($grp,$grp->{sentDialog},
@@ -7585,8 +7498,8 @@ sub viewSentencesDialog {
     $top->DialogBox(-title=> "List of sentences for ".
 		    $fsfile->filename(),
 		    -width=> "10c");
-  $d->bind('<Return>', \&dlgReturn );
-  escapeButton($d,'Cancel',1);
+  $d->BindReturn('all',1);
+  $d->BindEscape();
   $selref||=[];
   populateSentencesDialog($grp,$d,$fsfile,$selref,0);
   ShowDialog($d,$top);
@@ -7784,7 +7697,7 @@ sub populateSentencesDialog {
 		  -command=>[ \&dumpSentView,$grp,$fsfile,$t,1,$selref])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
 
-  _bind_buttons($d,$d);
+  $d->BindButtons;
   reloadSentenceView($grp,$t,$selref);
 }
 
@@ -7851,15 +7764,15 @@ sub focusxFind {
 
 #######
 # EXPERIMENT WITH PERSISTENT ATTR DIALOG
-sub updateAttrDialog {
-  my ($grp) = @_;
-  if ($grp->{updateAttrDialog} and $grp->{attrsEditor}) {
-    $grp->{attrsEditor}->delete('all');
-    $grp->{attrsEditor}->add_members(@{$grp->{updateAttrDialog}});
-    $grp->{attrsEditor}->update();
-    delete $grp->{updateAttrDialog};
-  }
-}
+# sub updateAttrDialog {
+#   my ($grp) = @_;
+#   if ($grp->{updateAttrDialog} and $grp->{attrsEditor}) {
+#     $grp->{attrsEditor}->delete('all');
+#     $grp->{attrsEditor}->add_members(@{$grp->{updateAttrDialog}});
+#     $grp->{attrsEditor}->update();
+#     delete $grp->{updateAttrDialog};
+#   }
+# }
 ######
 
 sub determineNodeType {
@@ -7966,317 +7879,67 @@ sub determineNodeType {
 sub editAttrsDialog_schema {
   my ($win,$node,$attr_path,$as_type)=@_;
   my $grp = $win->{framegroup};
-
-  my $reusable = 0; # 1 for reusable dialog (which leaks even more)
-  
-  use Data::Dumper;
-  #__debug("PATH: '$attr_path'\n");
-
   my $base_type = ref($as_type) ? $as_type : determineNodeType($win,$node);
   return unless $base_type;
   my $schema;
   my $enabled = 1;
   my $node_type;
-  $schema = $base_type->schema;
 
-
-  #############
-  # EXPERIMENT WITH A PERSISTENT NODE EDITOR
-  # if ($grp->{attrsDialog}) {
-  #     my $d=$grp->{attrsDialog};
-  #     my $edit = $grp->{attrsEditor};
-  #     $d->afterIdle([\&updateAttrDialog,$grp]) unless $grp->{updateAttrDialog};
-  
-  #     if ($attr_path) {
-  #       $grp->{updateAttrDialog} = [ EMPTY,$node_type,FSNode::attr($node,$attr_path), $attr_name, 0, undef ];
-  #     } else {
-  #       $grp->{updateAttrDialog} = [ EMPTY,$node_type,$node ];
-  #     }
-  #     return;
-  #   }
-  #############
   $win->toplevel->Busy(-recurse=>1);
   if ($attr_path ne EMPTY) {
     $node_type = $base_type->find($attr_path,1);
     die "Unknown attribute $attr_path\n" unless $node_type;
-    #__debug("NODETYPE: '$attr_path'\n",Dumper($base_type));
-    #__debug(Dumper($node_type),"\n");
     $enabled = 0 if doEvalHook($win,'enable_attr_hook',$attr_path,"normal") eq 'stop';
   } else {
     $enabled= 0 if (doEvalHook($win,'enable_edit_node_hook',$node) eq 'stop');
     $node_type = $base_type;
   }
-  my $dlg_title = ($attr_path ne EMPTY ? "Edit Attribute '$attr_path'" : "Edit Node");
-  my @buttons = $enabled ? ($attr_path ? qw(OK Cancel) : qw(OK Help Cancel)) : ('Cancel');
 
-  ##########
-  # EXPERIMENT WITH A PERSISTENT NODE EDITOR
-  ## non-persistent
-  my $d;
-  my $editor_type = ($attr_path ? 'attrs' : 'node').'Editor'.join("_",@buttons);
-  my $edit = $reusable ? $grp->{$editor_type} : undef;
-  my $h=0;
-  my $create = 0;
-
-  if ($edit) {
-    $d = $edit->toplevel;
-    $d->configure(-title => $dlg_title);
-    $h = $edit->height;
-    $edit->delete('all');
-  } else {
-    $create = 1;
-    $d = $win->toplevel->DialogBox(-title=> $dlg_title,
-			       -buttons=> \@buttons
-			      );
-    $d->Subwidget('B_Help')->configure(
-      -command => 
-	[sub {
-	   help_topic(shift,'new_editnode_interface');
-	   Tk->break;
-	 }]) if first { $_ eq 'Help' } @buttons;
-    _bind_buttons($d,$d);
-    $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);    
-    $d->maxsize(0,int(0.9*$d->screenheight));
-    $edit = # $grp->{attrsEditor} =
-      $d->Scrolled('TrEdNodeEdit',
-		   -width=> 70,
-		   -height => 0,
-		   -indicator => 1,
-		   -scrollbars => 'oe'
-		  );
-    ## un-comment for reusable dialog window
-    ## (leaks even more!!)
-    if ($reusable) {
-      $grp->{$editor_type} = $edit;
-    }
-    $edit->Tk::bind('Freeze','<Map>',undef);
-    $edit->bindtags([grep { $_ ne 'Freeze'} $edit->bindtags]);
-  }
-
-  ##########
-  # EXPERIMENT WITH A PERSISTENT NODE EDITOR
-  ## persistent
-  #   my $d=$grp->{attrsDialog}=
-  #     $grp->{top}->Toplevel(-title=> "Node attributes",-background => 'white');
-  #   $d->withdraw;
-  #   $d->bind('<Destroy>' => [ sub {delete $_[1]->{attrsDialog};
-  # 				 delete $_[1]->{attrsEditor}; },$grp ]);
-  #########
-
-  $edit->set_schema($schema);
-  my $attr_name = $attr_path;
-  
-  my $base_path = ($attr_name =~ s{(.*/)}{}) ? $1 : EMPTY;
-
-  $edit->set_enable_callback([
-    sub {
-      my ($win,$base_path,$path)=@_;
-      # __debug("enable_attr_hook: $base_path, $path\n");
-      $path = $base_path.$path if $base_path ne EMPTY;
-      doEvalHook($win,'enable_attr_hook',$path,"normal") eq 'stop' ? 0 : 1
-    }, $win,$base_path
-   ]);
-  #__debug("ATTR-PATH: '$attr_path' ",$node->attr($attr_path),"$attr_name\n", Dumper($node_type),"\n");
-  my $is_required = 1;
-  if ($attr_path ne EMPTY) {
-    my $decl_type = $node_type->get_decl_type;
-
-    if (($decl_type == PML_MEMBER_DECL() or
-	 $decl_type == PML_ATTRIBUTE_DECL()) and
-	!$node_type->is_required) {
-      __debug("not required\n");
-      $is_required = 0;
-    }
-    $edit->add_member(EMPTY,$node_type,
-		      FSNode::attr($node,$attr_path),
-		      $attr_name, 0, undef, $is_required);
-  } else {
-    #    # 1=allow empty (don't create empty structures)
-    $edit->add_members(EMPTY,$node_type,$node,1);
-  }
-
-  my $bind_edit = $edit;
-  if ($create and $attr_path eq EMPTY) {
-    my $sf = $d->Frame->pack(qw(-fill x -side bottom));
-    $sf->Label(-underline => 0,
-	       -text => 'Search name:')->pack(qw(-side left));
-    my $qs = $sf->Entry(
-      -validate => 'key',
-      -validatecommand => 
-	[sub {
-	   my ($tree,$value)=@_;
-	   if ($tree->info(exists => $value)) {
-	     $tree->select_entry($value);
-	     return $value;
-	   } elsif ($value =~ /^(.*)\/([^\/]*)/) {
-	     my ($p,$v)=($1,$2);
-	     if ($tree->info(exists => $p)) {
-	       foreach ($tree->info('children'=>$p)) {
-		 if (/^\Q$p\E\/\Q$v\E/) {
-		   $tree->select_entry($_);
-		   return $_;
-		 }
-	       }
-	     }
-	   } else {
-	     foreach ($tree->info('children')) {
-	       if (/^\Q$value\E/) {
-		 $tree->select_entry($_);
-		 return $_;
-	       }
-	     }
-	   }
-	   return undef;
-	 },$bind_edit]
-       )->pack(qw(-side right -expand 1 -fill x));
-    $d->bind('all','<Alt-s>', [$qs,'focus']);
-    $qs->bind('<Return>',[$bind_edit,'focus_entry']);
-    $qs->bind('<Escape>',[sub { $_[1]->focus; Tk->break; },$bind_edit]);
-    $edit->configure(-browsecmd =>
-		       [sub { $_[0]->delete(0,'end');
-			      $_[0]->insert(0,$_[1]);
-			    },$qs]
-		      );
-  }
-
-  $edit->autosetmode();
-
-  $edit->columnWidth(0,EMPTY);
-  $edit->columnWidth(1,EMPTY);
-  $edit->columnWidth(2,'1c');
-
-#  $edit->configure( -height => 0);
-
-  $edit->update;
-
-  if ($create) {
-    $edit->pack(qw(-expand 1 -fill both));
-    $edit->BindResize;
-  } else {
-    my $new_h = $edit->reqheight;
-    if ($neq_h < $h) {
-      my $g = $d->geometry;
-      $g =~ s{(\d+)x(\d+)}{$1.'x'.($2-$h+$new_h)}e;
-      $d->geometry($g);
-    }
-    $d->update;
-    $edit->update;
-#    my $g = $d->geometry;
-#    $g =~ s{(\d+)x(\d+)}{$1.'x'.($2-$h)}e;
-#    $edit->packForget;
-#    $d->geometry($g);
-    $edit->adjust_size;
-  }
-
-  $edit->focus;
-  if ($attr_path ne EMPTY) {
-    $edit->select_entry($attr_name);
-  }
-  $d->bind('all','<Tab>','focusNext');
-  $d->bind('all','<<LeftTab>>','focusPrev');
-
-  for (@buttons) {
-    my $b = $d->Subwidget("B_$_");
-    $b->configure(-underline => 0) if $b;
-    $d->bind('all','<Alt-'.lc(substr($_,0,1)).'>'
-	     => [sub { $_[1]->{selected_button}=$_[2] },$d,$_ ]);
-  }
-  $edit->bind('<Escape>'=> [sub { $_[1]->{selected_button}='Cancel'; },$d ]);
-  $d->bind('<Escape>'=> [sub { $_[1]->{selected_button}='Cancel'; },$d ]);
-  $d->bind('all','<Control-Return>',\&dlgReturn);
-  $edit->bind('<Control-Return>',\&dlgReturn);
-
-  $win->toplevel->Unbusy();
-
-  ########
-  ## EXPERIMENT WITH PERSISTENT NODE EDITOR
-  # nonpersistent:
-  my $redo=1;
-  my $result;
-  DIALOG: while ($redo) {
-    $result = ShowDialog($d,$edit,$win->toplevel);
-    if ($result=~ /OK/) {
-      # validate first
-      my $val = undef;
-      {
-	$val = ($attr_path eq EMPTY) ? FSNode->new : {};
-	$edit->dump_to_node($val);
-	#__debug("Validating node $val\n");
-	my @log;
-	if ($attr_path eq EMPTY) {
-	  $node_type->validate_object( $val, { log => \@log,
-					       flags => PML_VALIDATE_NO_CHILDNODES()
-					      } );
-	} else {
-	  __debug("Validating: attribute '$attr_path' / name '$attr_name' (required $is_required)\n");
-	  if ($val->{$attr_name} ne EMPTY or $is_required) {
-	    # go low-level
-	    $node_type->validate_object($val->{$attr_name},
-					{ path => $attr_path,
-					  log => \@log,
-					  flags => PML_VALIDATE_NO_CHILDNODES()
-					});
-	  }
-	}
-	if (@log and
-	      errorDialog($win,
-			  "Invalid attribute values",
-			"Validation of the following attributes failed.\n".
-			  "Do not save your file in this state, you may not be able to open it again.",
-			  join("\n",@log),
-			  -buttons => ["Edit attributes","Ignore these errors"]
-			 ) !~ /Ignore/) {
-	  my ($path) = split /:/,$log[0];
-	  $path =~ s{^\Q$base_path\E/?}{};
-	  if ($path ne EMPTY) {
-	    eval { 
-	      $edit->select_entry($path);
-	      $edit->focus;
-	    };
-	    print STDERR $@ if $@;
-	  }
-	  redo DIALOG;
-	}
-      }
+  my $result = $win->toplevel->TrEdNodeEditDlg({
+    title => ($attr_path ne EMPTY ? "Edit Attribute '$attr_path'" : "Edit Node"),
+    type => $base_type,
+    object => $node,
+    path => $attr_path,
+    buttons => [$enabled ? ($attr_path ? qw(OK Cancel) : qw(OK Help Cancel)) : ('Cancel')],
+    buttons_configure => {
+      Help => [ -command =>
+		  [sub {
+		     help_topic(shift,'new_editnode_interface');
+		     Tk->break;
+		   }]
+	      ]},
+    enable_callback => [ sub {
+			   my ($win,$base_path,$path)=@_;
+			   # __debug("enable_attr_hook: $base_path, $path\n");
+			   $path = $base_path.$path if $base_path ne EMPTY;
+			   doEvalHook($win,'enable_attr_hook',$path,"normal") eq 'stop' ? 0 : 1
+			 }, $win,$base_path ],
+    search_field => length $attr_path ? 0 : 1,
+    validate_flags => PML_VALIDATE_NO_CHILDNODES(),
+    set_command => sub {
+      my ($callback)=@_;
       $win->{FSFile}->notSaved(1);
       save_undo($win,prepare_undo($win,$dlg_title));
       lastActionBookmark($win->{framegroup});
-      if ($attr_path eq EMPTY) {
-	$edit->dump_to_node($node);
-	doEvalHook($win,"after_edit_node_hook",$node,1);
-      } else {
-	unless (defined($val)) { # otherwise we use val from validation above
-	  $val = {};
-	  $edit->dump_to_node($val);
-	}
-	FSNode::set_attr($node,$attr_path,$val->{$attr_name});
+      &$callback();
+      if (length $attr_path) {
 	doEvalHook($win,"after_edit_attr_hook",$node,$attr_path,1);
-      }
-
-      get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
-      redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
-    } else {
-      if ($attr_path eq EMPTY) {
-	doEvalHook($win,"after_edit_node_hook",$node,0);
       } else {
-	doEvalHook($win,"after_edit_attr_hook",$node,$attr_path,0);
+	doEvalHook($win,"after_edit_node_hook",$node,1);
       }
     }
-    $redo = 0;
+   });
+  if ($result) {
+    get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
+    redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
+  } else {
+    if ($attr_path eq EMPTY) {
+      doEvalHook($win,"after_edit_node_hook",$node,0);
+    } else {
+      doEvalHook($win,"after_edit_attr_hook",$node,$attr_path,0);
+    }
   }
-  unless ($reusable) {
-    $edit->clear;
-    $d->destroy;
-  }
-  #undef $d;
-
-
-
-  ## EXPERIMENT WITH PERSISTENT NODE EDITOR
-  # persistent:
-  # $d->Popup;
-  #####
-  return ($result=~ /OK/) ? 1 : 0;
+  return $result;
 }
 
 sub editAttrsDialog {
@@ -8309,10 +7972,9 @@ sub editAttrsDialog {
 	 help_topic(shift,'old_editnode_interface');
 	 Tk->break;
        }]) if $enabled;
-  _bind_buttons($d,$d);
-  $d->bind('<Return>',\&dlgReturn);
-  $d->bind('all','<Control-Return>',\&dlgReturn);
-  escapeButton($d,'Cancel',1);
+  $d->BindButtons;
+  $d->BindReturn('all',1);
+  $d->BindEscape();
   my $ff=$d->Frame(-relief=> 'groove',
 		   -bd => 1);
   my $f= $ff->Scrolled('Pane',
@@ -8361,7 +8023,7 @@ sub editAttrsDialog {
 		     )->pack(qw/-side right/);
 	$e{$_}->bind($e{$_},'<space>',[sub { shift; shift->invoke; Tk->break; },$b]);
 	$e{$_}->bind($e{$_},'<Return>',[sub { shift; shift->invoke; Tk->break; },$b]);
-	$e{$_}->bind($e{$_},'<Control-Return>',\&dlgReturn);
+        $d->BindReturn($e{$_});
 	$e{$_}->bind($e{$_},'<Double-ButtonPress-1>',[sub { shift; shift->invoke; Tk->break; },$b]);
       $e{$_}->insert(0,encode($node->get_member($_)));
       $e{$_}->configure(-state=> 'disabled');
@@ -8632,7 +8294,7 @@ sub editStylesheetDialog {
 
   $grp->{top}->Busy(-recurse=>1);
   my @buttons = ("OK", ($win->{FSFile} ? "Preview" : ()),
-		 (($win->{FSFile} and $win->{stylesheet} ne STYLESHEET_FROM_FILE()) ? "Store to current file" : ()),
+	    (($win->{FSFile} and $win->{stylesheet} ne STYLESHEET_FROM_FILE()) ? "Store to current file" : ()),
 		 "Cancel");
   my $d=$grp->{top}->
     DialogBox(-title=> "Stylesheet editor",
@@ -8938,26 +8600,26 @@ EOF
   $f->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
 
   $d->bind('all','<Tab>',['focusNext']);
-  $e->bindtags([$e,ref($e),$e->toplevel,'all']);
-  $e->bind('<Control-l>',sub {$_[0]->delete('0.0','end'); Tk->break; });
-  $e->bind('<Tab>',sub { shift->focusNext; Tk->break });
+  $edit->bindtags([$edit,ref($edit),$edit->toplevel,'all']);
+  $edit->bind('<Control-l>',sub {$_[0]->delete('0.0','end'); Tk->break; });
+  $edit->bind('<Tab>',sub { shift->focusNext; Tk->break });
   $d->bind('all','<Shift-Tab>',sub { shift->focusPrev; Tk->break });
   $d->bind('all','<Shift-ISO_Left_Tab>',sub { shift->focusPrev; Tk->break });
-  $e->bind('<Control-Return>',\&dlgReturn);
-  $e->bind('<Return>',sub{ shift->Insert("\n"); Tk->break; });
+  $edit->bind('<Return>',sub{ shift->Insert("\n"); Tk->break; });
+  $edit->bind(ref($edit),'<Control-Return>','NoOp');
+  $d->bind($edit,'<Control-Return>','NoOp');
   $d->bind('all','<Escape>'=> [sub{ 
 				 my ($w,$dlg,$hlp)=@_;
 				 if ($hlp->isActive) {
 				   $hlp->Deactivate();
 				 } else {
-				   _escapeButton($w,$dlg,'Cancel');
+				   $dlg->BindEscape($w);
 				 }
 			       },$d,$help]);
-  $d->protocol('WM_DELETE_WINDOW' => [\&_wmdeleteButton,$d]);
-  #  escapeButton($d,'Cancel',1);
-
+  $d->BindReturn();
+  $d->protocol('WM_DELETE_WINDOW' => [sub { $_[0]->{selected_button} = 'Cancel' }, $d]);
+  $d->BindButtons;
   $e->focus();
-  _bind_buttons($d,$d);
   $grp->{top}->Unbusy();
   my $result= ShowDialog($d,$e,$grp->{top});
   if ($result eq 'Store to current file') {
@@ -9039,8 +8701,8 @@ sub findNodeDialog {
     $_->configure(-width=> 10, -pady=> 0) if ($Tk::platform eq 'MSWin32');
     $_->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
   }
-  $d->bind('<Return>', \&dlgReturn );
-  escapeButton($d,'Cancel',1);
+  $d->BindReturn('all',1);
+  $d->BindEscape();
   my $ff=$d->Frame(-relief=> 'groove',
 		   -bd => 1);
   my $f= $ff->Scrolled('Pane',
@@ -9125,7 +8787,7 @@ sub findNodeDialog {
   $oe->pack(qw/-side left/);
   $ot->pack(qw/-side left/);
   $grp->{top}->Unbusy();
-  _bind_buttons($d,$d);
+  $d->BindButtons;
   my $result= ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
   if ($result=~ /Find/) {
     %$template = (); # cleanup template
@@ -9565,8 +9227,8 @@ sub doEditAttr {
   $newvalue=encode($node->get_member($attr));
   my $d= $grp->{top}->DialogBox(-title=> ($enabled ? "Edit Node Attribute" : "Disabled Node Attribute"),
 			     -buttons=> [($enabled ? ("OK", "Cancel") : "Cancel")]);
-  $d->bind('<Return>', \&dlgReturn );
-  escapeButton($d,'Cancel',1);
+  $d->BindReturn('all',1);
+  $d->BindEscape();
   $d->resizable(0,0);
   addBindTags($d,'dialog');
   my $l= $d->Label(-text=> $attr,
@@ -10111,7 +9773,7 @@ sub examineBindingsDialog {
   $d->Label(-text=> $attr,
 		    -anchor=> 'e',
 		    -justify=> 'right')->pack(-side=>'left');
-  escapeButton($d,'Cancel');
+  $d->BindEscape;
   $d->Label(qw/-wraplength 6i -justify left -text/,
 	    "Press any key to see it's binding in the current context.")->
 	      pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
@@ -10598,66 +10260,6 @@ sub node_release_modif {
   } else { redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo}); }
 }
 
-#######################################################
-##
-##   a repacement for Dumper/Storable::Freeze
-##   which preserves all object references
-##
-#######################################################
-use Scalar::Util qw(blessed readonly);
-sub make_data_snapshot {
-  my ($data,$dump) = @_;
-  $dump ||= {};
-  
-  unless (ref($data)) {
-    die "non-reference: $data\n";
-  }
-  return $dump if exists $dump->{$data};
-  if (UNIVERSAL::isa($data,'SCALAR')) {
-    $dump->{$data} = [$data, readonly($$data) ? 'READONLY' : 'SCALAR', blessed($data), $$data ]
-  } elsif (UNIVERSAL::isa($data,'HASH')) {
-    $dump->{$data} = [$data, 'HASH', blessed($data), [ %$data ] ];
-    foreach my $val (values %$data) {
-      if (ref($val) and !exists($dump->{$val})) {
-	make_data_snapshot( $val, $dump );
-      }
-    }
-
-  } elsif (UNIVERSAL::isa($data,'ARRAY')) {
-    $dump->{$data} = [$data, 'ARRAY', blessed($data), [ @$data ] ];
-    foreach my $val (@$data) {
-      if (ref($val) and !exists($dump->{$val})) {
-	make_data_snapshot( $val, $dump );
-      }
-    }
-  } else {
-    $dump->{$data} = [ $data, 'OTHER', blessed($data) ];
-  }
-  return [ $data, $dump ];
-}
-
-sub restore_data_from_snapshot {
-  my $snapshot = shift;
-  my $dump = $snapshot->[1];
-  foreach my $s (values %$dump) {
-    my ($data,$type,$class,$content) = @$s;
-    if ($type eq 'SCALAR') {
-      $$data = $content
-    } elsif ($type eq 'READONLY') {
-      warn "Readonly-value changed" if $$data ne $content;
-    } elsif ($type eq 'HASH') {
-      %$data = @$content;
-    } elsif ($type eq 'ARRAY') {
-      @$data = @$content;
-    }
-    if (blessed($data) ne $class) {
-      bless $data, $class;
-    }
-  }
-  return $snapshot->[0];
-}
-###################################################
-
 sub prepare_undo {
   my ($win,$message,$phase_only)=@_;
   return unless $maxUndo;
@@ -10673,10 +10275,6 @@ sub prepare_undo {
     my $tree = make_data_snapshot( $win->{root} );
     return [$fsfile,['Snapshot',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$message,$phase_only]];
   }
-#  } else {
-#    $tree = Storable::freeze($win->{root});
-#    return ['Storable',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$message,$phase_only];
-#  }
 }
 
 sub save_undo {

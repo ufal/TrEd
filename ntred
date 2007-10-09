@@ -241,7 +241,14 @@ if (exists $ENV{TREDHOME}) {
   $libDir="$FindBin::RealBin/../lib/tred";
 }
 msg "Trying $libDir\n" if ($libDir);
-unshift @INC,$libDir if (-d $libDir);
+{
+  unshift @INC,$libDir if (-d $libDir);
+  my $libs = File::Spec->catfile($libDir,'libs');
+  if (-d $libs) {
+    push @INC, glob(File::Spec->catfile($libs,'*',''));
+  }
+}
+
 
 my $control = '@-NTRED-@-PROTOCOL-@';
 require TrEd::Cipher;

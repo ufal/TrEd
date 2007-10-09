@@ -3,6 +3,7 @@ package TrEd::Basics;
 BEGIN {
   use Fslib;
   require TrEd::MinMax;
+  require Tk::ErrorReport;
   import TrEd::MinMax;
 
   use Exporter  ();
@@ -162,33 +163,16 @@ sub setCurrent {
 
 sub _messageBox {
   my ($top,$title,$msg,$nobug)=@_;
-  my $d= $top->DialogBox(-title=> $title,
-		      -buttons=> ['OK']);
-
-  my $head =
-    $nobug eq 'warn' ? "Operation produced warnings - full message follows.\n" 
-      : $nobug       ? "Operation failed - full error message follows.\n" 
+  $top->ErrorReport(
+    -title   => $title,
+    -msgtype => ($nobug eq 'warn' ? "WARNING" : "ERROR"),
+    -message => ($nobug eq 'warn' ? "Operation produced warnings - full message follows.\n" 
+      : $nobug ? "Operation failed - full error message follows.\n"
       : "An error occured during a protected transaction.\n".
 	"If you believe that it was caused by a bug in TrEd, you may wish to\n".
-	"copy the error message displayed below and report it to the author.";
-
-  $d->Label(-text => $nobug eq 'warn' ? "WARNING" : "ERROR",
-	    -justify => 'left',
-	    -foreground => 'red'
-	   )
-    ->pack(-pady => 5,-side => 'top', -fill => 'x');
-  $d->Label(-text => $head,
-	    -justify => 'left'
-	   )->pack(-pady => 10,-side => 'top', -fill => 'x');
-  my $t= $d->
-    Scrolled(qw/Text -relief sunken -borderwidth 2
-		-scrollbars oe/);
-  $t->Subwidget('scrolled')->menu->delete('File');
-  $t->pack(qw/-side top -expand yes -fill both/);
-#  disable_scrollbar_focus($t);
-  $t->BindMouseWheelVert();
-  $t->insert('0.0',$msg);
-  $d->Show;
+	"copy the error message displayed below and report it to the author."),
+    -body => $msg,
+  );
 }
 
 sub errorMessage {
@@ -207,9 +191,6 @@ sub errorMessage {
     }
     if ($top) {
       _messageBox($top,'Error',$msg,$nobug);
-      #       $top->messageBox(-icon=> 'error',
-      # 		       -message=> $msg,
-      # 		       -title=> 'Error', -type=> 'ok');
     } else {
       print STDERR "$msg\n";
     }
