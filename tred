@@ -4597,8 +4597,13 @@ sub onCurrentChange {
     $tv->canvas->coords($tv->get_node_pinfo($n,"Oval"),
 			$tv->node_coords($n,$win->{currentNode}));
     $tv->apply_stored_style_opts("Oval",$n);
+    $tv->apply_stored_style_opts("TextBox",$n);
+    $tv->apply_stored_style_opts("EdgeTextBox",$n);
   }
   $tv->apply_stored_style_opts("CurrentOval",$node);
+  $tv->apply_stored_style_opts("CurrentTextBox",$node);
+  $tv->apply_stored_style_opts("CurrentEdgeTextBox",$node);
+
   unless ($prev eq $node) {
     eval {
       my $stripe = $tv->get_node_pinfo($node,"Stripe");
@@ -4616,8 +4621,6 @@ sub onCurrentChange {
 	  if $tv->get_verticalTree;
       }
     };
-    $tv->apply_stored_style_opts("TextBox",$prev);
-    $tv->apply_stored_style_opts("EdgeTextBox",$prev);
     doEvalHook($win,"current_node_change_hook",$node,$prev) unless $insideEval;
     update_status_line($win);
     ## EXPERIMENT WITH PERSISTENT NODE EDITOR
@@ -8459,6 +8462,8 @@ U<Boxes around labels>
   C<                    >  C<activeoutline>, <width>, C<activewidth>
   C<                    >  (see the L<documentation#TextBox> for details)
   C<EdgeTextBox-...     >- similar, see the L<documentation#EdgeTextBox>
+  C<CurrentTextBox-...  >- options specific for Text Box of the current node
+  C<CurrentEdgeTextBox..>- options specific for Edge Box of the current node
   C<Text[...]-..        >- see the L<documentation#Textposition-fill>
   C<TextBg[...]-..      >- see the L<documentation#TextBg>
 EOF
