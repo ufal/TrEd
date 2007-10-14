@@ -29,6 +29,7 @@ BEGIN {
     %menuBindings
     @macros
     $macrosEvaluated
+    &getContexts
   );
   $useEncoding = ($]>=5.008);
 }
@@ -49,6 +50,147 @@ sub undefine_symbol {
 sub is_defined {
   my ($name) = @_;
   return exists $defines{$name};
+}
+
+sub getContexts {
+  return
+    uniq sort (keys(%menuBindings),
+	       keys(%keyBindings))
+}
+
+sub _normalize_key {
+  my ($key)=@_;
+  $key=~s/\-/+/g;	# convert ctrl-x to ctrl+x
+  $key=~s/([^+]+[+-])/uc($1)/eg; # uppercase modifiers
+  return $key;
+}
+
+sub bind_key {
+  my ($context,$key,$macro)=@_;
+  if (defined($macro) and length($macro)) {
+    $keyBindings{$context}={} unless exists($keyBindings{$context});
+    $keyBindings{$context}->{_normalize_key($key)} = (ref($macro) or $macro=~/^\w+-\>/) ? $macro : $context.'->'.$macro,
+  }
+}
+sub unbind_key {
+  my ($context,$key,$delete)=@_;
+  my $h = $keyBindings{$context};
+  if (ref($h)) {
+    if ($delete) {
+      return delete $h->{_normalize_key($key)};
+    } else {
+      $h->{_normalize_key($key)}=undef;  # we do not delete so that we may override TrEdMacro
+    }
+  }
+  return;
+}
+sub unbind_macro {
+  my ($context,$macro, $delete)=@_;
+  my $h = $keyBindings{$context};
+  if (ref($h)) {
+    while (my($k,$v)=each %$h) {
+      next unless $v eq $macro;
+      if ($delete) {
+	delete $h->{$k};
+      } else {
+	$h->{$k} = undef; # we do not delete so that we may override TrEdMacro
+      }
+    }
+  }
+}
+sub get_bindings_for_macro {
+  my ($context,$macro)=@_;
+  my $h = $keyBindings{$context};
+  my @ret;
+  if (ref($h)) {
+    while (my($k,$v)=each %$h) {
+      next unless $v eq $macro;
+      wantarray || return $k;
+      push @ret, $k;
+    }
+  }
+  return @ret;
+}
+sub get_binding_for_key {
+  my ($context,$key)=@_;
+  my $h = $keyBindings{$context};
+  return ref($h) ? $h->{_normalize_key($key)} : undef;
+}
+sub add_to_menu {
+  my ($context,$label,$macro)=@_;
+  if (defined($label) and length($label)) {
+    $menuBindings{$context}={} unless exists($menuBindings{$context});
+    $menuBindings{$context}->{$label}=[
+      (ref($macro) or $macro=~/^\w+-\>/) ? $macro : $context.'->'.$macro,
+      undef
+     ];
+  }
+}
+sub remove_from_menu {
+  my ($context,$label)=@_;
+  if (exists($menuBindings{$context})) {
+    return delete $menuBindings{$context}{$label}
+  }
+  return;
+}
+sub remove_from_menu_macro {
+  my ($context,$macro)=@_;
+  my $h = $menuBindings{$context};
+  if (ref($h)) {
+    while (my($k,$v)=each %$h) {
+      next unless $v eq $macro;
+      delete $h->{$k};
+    }
+  }
+}
+sub get_menus_for_macro {
+  my ($context,$macro)=@_;
+  my $h = $menuBindings{$context};
+  my @ret;
+  if (ref($h)) {
+    while (my($k,$v)=each %$h) {
+      next unless $v eq $macro;
+      wantarray || return $k;
+      push @ret, $k;
+    }
+  }
+  return @ret;
+}
+sub get_macro_for_menu {
+  my ($context,$label)=@_;
+  my $h = $menuBindings{$context};
+  return ref($h) ? $h->{$label} : undef;
+
+}
+sub get_menuitems {
+  my ($context)=@_;
+  my $h = $menuBindings{$context};
+  return ref($h) ? %$h : undef;
+}
+sub get_keybindings {
+  my ($context)=@_;
+  my $h = $keyBindings{$context};
+  return ref($h) ? %$h : undef;
+}
+sub copy_key_bindings {
+  my ($source_context, $destination_context)=@_;
+  my $s = $keyBindings{$source_context};
+  return unless ref($s);
+  my $d = ($keyBindings{$destination_context}||={});
+  while (my ($k,$v)=each %$s) {
+    $d->{$k} = $v;
+  }
+  return $d;
+}
+sub copy_menu_bindings {
+  my ($source_context, $destination_context)=@_;
+  my $s = $menuBindings{$source_context};
+  return unless ref($s);
+  my $d = ($menuBindings{$destination_context}||={});
+  while (my ($k,$v)=each %$s) {
+    $d->{$k} = $v;
+  }
+  return $d;
 }
 
 sub read_macros {
@@ -165,75 +307,33 @@ sub read_macros {
 	  @contexts=(split /\s+/,$1) if $ifok;
 	} elsif (/^\#\s*key-binding-adopt\s+(.*)/) {
 	  my @toadopt=(split /\s+/,$1);
-	  my $context;
-	  my $toadopt;
-	  foreach $context (@contexts) {
-	    $keyBindings{$context}={} unless exists($keyBindings{$context});
-	    foreach $toadopt (@toadopt) {
-	      foreach (keys %{$keyBindings{$toadopt}}) {
-		$keyBindings{$context}->{$_}=$keyBindings{$toadopt}->{$_};
-	      }
+	  foreach my $context (@contexts) {
+	    foreach my $toadopt (@toadopt) {
+	      copy_key_bindings($context,$toadopt);
 	    }
 	  }
 	} elsif (/^\#\s*menu-binding-adopt\s+(.*)/) {
 	  my @toadopt=(split /\s+/,$1);
-	  my $context;
-	  my $toadopt;
-	  foreach $context (@contexts) {
-	    $menuBindings{$context}={} unless exists($menuBindings{$context});
-	    foreach $toadopt (@toadopt) {
-	      foreach (keys %{$menuBindings{$toadopt}}) {
-		$menuBindings{$context}->{$_}=$menuBindings{$toadopt}->{$_};
-	      }
+	  foreach my $context (@contexts) {
+	    foreach my $toadopt (@toadopt) {
+	      copy_menu_bindings($context,$toadopt);
 	    }
 	  }
 	} elsif (/^\#[ \t]*unbind-key[ \t]+([^ \t\r\n]+)/) {
 	  my $key=$1;
-	  $key=~s/\-/+/g;	# convert ctrl-x to ctrl+x
-	  $key=~s/([^+]+[+-])/uc($1)/eg; # uppercase modifiers
-	  foreach my $ctxt (@contexts) {
-	    $keyBindings{$ctxt}{$key} = undef; # don't delete (so that we can overrule TredMacro macros)
-	  }
+	  unbind_key($_,$key) for @contexts;
 	} elsif (/^\#[ \t]*bind[ \t]+(\w+(?:-\>\w+)?)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+([^\r\n]+))?/) {
-	  my $macro=$1;
-	  my $key=$2;
-	  my $menu = TrEd::Convert::encode($3);
-	  $key=~s/\-/+/g;	# convert ctrl-x to ctrl+x
-	  $key=~s/([^+]+[+-])/uc($1)/eg; # uppercase modifiers
-	  #print "binding $key [$menu] => $macro\n";
-	  if ($macro =~ s/^(\w+)-\>//) {
-	    my $package = $1;
-	    foreach (@contexts) {
-	      $keyBindings{$_}={} unless exists($keyBindings{$_});
-	      $keyBindings{$_}->{$key}="$package"."->"."$macro";
-	      if ($menu) {
-		$menuBindings{$_}={} unless exists($menuBindings{$_});
-		$menuBindings{$_}->{$menu}=["$package"."->"."$macro",$key] if ($menu);
-	      }
-	    }
-	  } else {
-	    foreach (@contexts) {
-	      $keyBindings{$_}={} unless exists($keyBindings{$_});
-	      $keyBindings{$_}->{$key}="$_"."->"."$macro";
-	      if ($menu) {
-		$menuBindings{$_}={} unless exists($menuBindings{$_});
-		$menuBindings{$_}->{$menu}=["$_"."->"."$macro",$key] if ($menu);
-	      }
-	    }
-	  }
+	  my ($macro,$key,$menu)=($1,$2,$3);
+	  $menu = TrEd::Convert::encode($menu);
+	  if ($menu) { add_to_menu($_, $menu => $macro) for @contexts; }
+	  bind_key($_, $key => $macro) for @contexts;
 	} elsif (/^\#\s*insert[ \t]+(\w*)[ \t]+(?:as[ \t]+)?(?:menu[ \t]+)?([^\r\n]+)/) {
 	  my $macro=$1;
 	  my $menu=TrEd::Convert::encode($2);
-	  foreach (@contexts) {
-	    $menuBindings{$_}={} unless exists($menuBindings{$_});
-	    $menuBindings{$_}->{$menu}=["$_"."->"."$macro",undef] if ($menu);
-	  }
+	  add_to_menu($_, $menu, $macro) for @contexts;
 	} elsif (/^\#\s*remove-menu[ \t]+([^\r\n]+)/) {
 	  my $menu=TrEd::Convert::encode($1);
-	  foreach (@contexts) {
-	    next unless exists($menuBindings{$_});
-	    delete $menuBindings{$_}{$menu};
-	  }
+	  remove_from_menu($_, $menu) for @contexts;
 	} elsif (/^\#\s*(if)?include\s+\<([^\r\n]+\S)\>\s*(?:encoding\s+(\S+)\s*)?$/) {
 	  my $enc = $3;
 	  my $mf="$libDir/$2";
@@ -424,12 +524,11 @@ sub do_eval_macro {
 				# which should in this way be made visible
 				# to macros
   return 0,0,$TredMacro::this unless $macro;
-  my $utf = ($useEncoding) ? "use utf8;\n" : "";
   my $result;
   undef $@;
   initialize_macros($win);
   return undef if $@;
-  if ($macro=~/^\s*([_[:alpha:]][_[:alnum:]]*)-[>]([_[:alpha:]][_[:alnum:]]*)$/) {
+  if (!ref($macro) and $macro=~/^\s*([_[:alpha:]][_[:alnum:]]*)-[>]([_[:alpha:]][_[:alnum:]]*)$/) {
     my ($context,$call)=($1,$2);
     if (context_isa($context,'TrEd::Context')) {
       # experimental new-style calling convention
@@ -440,10 +539,20 @@ sub do_eval_macro {
   if (defined($safeCompartment)) {
     no strict;
     set_macro_variable('grp',$win);
+    my $utf = ($useEncoding) ? "use utf8;\n" : "";
     $result = $safeCompartment->reval($utf.$macro);
+  } elsif (ref($macro) eq 'CODE') {
+    $result = eval {
+      use utf8;
+      &$macro();
+    };
   } else {
     no strict;
-    $result = eval($utf.$macro);
+    if ($useEncoding) {
+      $result = eval("use utf8;\n".$macro);
+    } else {
+      $result = eval($macro);
+    }
   }
   TrEd::Basics::errorMessage($win,$@) if ($@);
   print STDERR "Had run: ",$macro,"\n" if $macroDebug;
