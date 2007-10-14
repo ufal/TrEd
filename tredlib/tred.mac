@@ -18,10 +18,12 @@
 #bind NextFile to Shift+L2
 
 #bind Find_nochange to F3 menu Find
+#test Bind \&Find => { key => 'F3', menu => 'Find', changing_file => 0 };
 sub Find_nochange { Find(@_); ChangingFile(0) }
 
 #bind FindNext_nochange to F4 menu Find Next
 sub FindNext_nochange { FindNext(@_); ChangingFile(0); }
+
 #bind NewRBrother to F7 menu New Node (r-brother)
 #bind NewSon to Shift+F7 menu New Node (son)
 #bind DeleteThisNode to F8 menu Delete Node

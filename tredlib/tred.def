@@ -3,32 +3,63 @@
 ## $Id$
 
 package TredMacro;
-use Exporter;
-use Fslib;
-use TrEd::MinMax qw(first max maxstr min minstr reduce sum);
-use base qw(main Exporter);
-use Carp;
 
-*isa = \&UNIVERSAL::isa; # this is a work-around needed for a bug in Class::Std
-
-
-use vars qw(@FORCE_EXPORT);
 BEGIN {
-@FORCE_EXPORT = qw($libDir $grp $root $this $_NoSuchTree $Redraw $stderr $stdout
-                   $forceFileSaved $FileChanged $FileNotSaved $NodeClipboard);
+  use Exporter;
+  use Fslib;
+  use TrEd::MinMax qw(first max maxstr min minstr reduce sum);
+  use base qw(main Exporter);
+  use Carp;
+  *isa = \&UNIVERSAL::isa; # this is a work-around needed for a bug in Class::Std
+  use vars qw(@FORCE_EXPORT);
+  BEGIN {
+    @FORCE_EXPORT = qw($libDir $grp $root $this $_NoSuchTree $Redraw $stderr $stdout
+		       $forceFileSaved $FileChanged $FileNotSaved $NodeClipboard);
+  }
+  use vars (@FORCE_EXPORT);
+  *FileChanged=*FileNotSaved;	# alias
+  import Fslib;
+  import Fslib qw(&Index &CloneValue &FindInResources &FindDirInResources &ResolvePath);
+  import main;
 }
-use vars (@FORCE_EXPORT);
-
-*FileChanged=*FileNotSaved;	# alias
-
-import Fslib;
-import Fslib qw(&Index &CloneValue &FindInResources &FindDirInResources &ResolvePath);
-import main;
 
 sub _croak {
   my ($pkg, $file, $line) = caller(1);
   die join('',@_).' at '.$file.' line '.$line."\n";
 }
+
+sub Bind {
+  while (@_) {
+    my $macro = shift;
+    my $bind=shift;
+    croak("undefined binding for macro $macro") unless defined $bind;
+    my ($caller)=caller;
+    if (ref($bind) eq 'HASH') {
+      my $context  =$bind->{context}||$caller;
+      if (exists $bind->{changing_file}) {
+	my $changes_file = $bind->{changing_file};
+	my $old_macro=$macro;
+	$macro = sub {
+	  $context->$old_macro();
+	  ChangingFile($changes_file);
+	}
+      }
+      if ($bind->{key}) {
+	TrEd::Macros::bind_key($context,$bind->{key},$macro);
+      }
+      if ($bind->{menu}) {
+	TrEd::Macros::add_to_menu($context,$bind->{menu},$macro);
+      }
+    } else {
+      TrEd::Macros::bind_key($caller,$bind,$macro);
+    }
+  }
+}
+# sub AddMenu {
+#   my ($label,$macro)=@_;
+#   my ($caller)=caller;
+#   TrEd::Macros::add_to_menu($caller,$label,$macro);
+# }
 
 =pod
 
