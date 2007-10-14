@@ -3298,12 +3298,6 @@ sub filelistDialog {
 
 }
 
-sub getContexts {
-  return
-    uniq sort (keys(%menuBindings),
-	       keys(%keyBindings))
-}
-
 sub generateSortedMacroTable {
   my ($grp,$context,$include_anonymous) = @_;
 
@@ -5184,7 +5178,7 @@ sub startMain {
   $canvas->configure(@focused_win_opts);
 
   print "Starting in context $group{focusedWindow}->{macroContext}\n" if $tredDebug;
-
+  doEvalHook($grp->{focusedWindow},"initialize_bindings_hook");
   $group{templateMatchMethod}=$defaultTemplateMatchMethod;
   $group{macroListOrder}=$defaultMacroListOrder;
   print STDERR "Main window created.\n" if $tredDebug;
