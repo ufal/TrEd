@@ -7874,7 +7874,7 @@ sub determineNodeType {
 
 
 sub editAttrsDialog_schema {
-  my ($win,$node,$attr_path,$as_type)=@_;
+  my ($win,$node,$attr_path,$as_type,$focus)=@_;
   my $grp = $win->{framegroup};
   my $base_type = ref($as_type) ? $as_type : determineNodeType($win,$node);
   return unless $base_type;
@@ -7897,6 +7897,7 @@ sub editAttrsDialog_schema {
     type => $base_type,
     object => $node,
     path => $attr_path,
+    focus => (defined $focus ? $focus : $attr_path),
     buttons => [$enabled ? ($attr_path ? qw(OK Cancel) : qw(OK Help Cancel)) : ('Cancel')],
     buttons_configure => {
       Help => [ -command =>
@@ -9174,12 +9175,12 @@ sub editAttr {
 
 
 sub doEditAttr {
-  my ($win,$node,$attr,$as_type)=@_;
+  my ($win,$node,$attr,$as_type,$focus)=@_;
   my $grp=$win->{framegroup};
   my $result= doEvalHook($win,'do_edit_attr_hook',$attr,$node);
   return 0 if $result eq 'stop';
 
-  return editAttrsDialog_schema($win,$node,$attr,$as_type)
+  return editAttrsDialog_schema($win,$node,$attr,$as_type,$focus)
     if (ref($as_type) or ref($node->type) or
 	fileSchema($win->{FSFile}) );
 
