@@ -65,7 +65,7 @@ sub get_dbi {
 EOF
   my $cfg = $dbi_config->get_root;
   my $cfg_type = $dbi_config->get_schema->get_root_type;
-  if (EditAttribute($cfg,'',$cfg_type)) {
+  if (EditAttribute($cfg,'',$cfg_type,'password')) {
     $dbi = DBI->connect('dbi:'.$cfg->{driver}.':'.
 			"database=".$cfg->{database}.';'.
 			"host=".$cfg->{host}.';'.
@@ -128,7 +128,7 @@ sub make_sql {
   my @join;
   my @where;
   my $table = 'a';
-  my %id = map { ($_ => $_->{name}) } @nodes;
+  my %id = map { ($_ => lc($_->{name})) } @nodes;
   my $id = 'n0';
   my %occup; @occup{values %id}=();
   for my $n (@nodes) {
@@ -141,14 +141,22 @@ sub make_sql {
   for (my $i=0; $i<@nodes; $i++) {
     my $n = $nodes[$i];
     my $id = $id{$n};
-    push @select, $id.".id";
+    push @select, $id.".idx";
+    my $parent = $n->parent;
+    my $parent_id = $id{$parent};
     push @join,
       ($i==0 ? " FROM $table AS $id " :
 	 " JOIN $table AS $id ON ".
-	   ($n->parent->parent ? "$id.parent=".$id{$n->parent}.".id" :
-	      "$id.root=n0.root"));
+	   ($parent->parent ? 
+	      ($n->{'edge-transitive'} ? 
+	       "$id.root_idx=$parent_id.root_idx AND ".
+	       "$id.idx BETWEEN $parent_id.l AND $parent_id.r" :
+	       "$id.parent_idx=".$id{$n->parent}.".idx" )
+		:
+	      "$id.root_idx=n0.root_idx"));
     push @where, Tree_Query::serialize_conditions($n,$id);
   }
+  my $i=0;
   my @sql = (['SELECT '],
       (map {
 	(($_==0 ? () : [' ,',"space"]),
@@ -161,13 +169,14 @@ sub make_sql {
       join('',@where)!~/\S/ ? () :
       ([ "\nWHERE\n     "],
        map {
-	 (($_==0 ? () : ["\n AND ","space"]),
-	  [$where[$_],$nodes[$_]])
+	 (($i++ == 0 ? () : ["\n AND ","space"]),
+	  [$where[$_],$nodes[$_]]
+	 )
       } grep {
 	my $w = $where[$_];
 	defined($w) and length($w)
       } 0..$#nodes),
-      [";\n","space"]
+      ["\nLIMIT 100;\n","space"]
     );
   if ($format) {
     return \@sql;
@@ -182,9 +191,9 @@ sub serialize_element {
     my $left = $value->{a};
     my $right = $value->{b};
     for ($left,$right) {
-      s/\"(.*?)\"/$as_id.$1/g;
+      s/(?<![.])(\"[^"]*\")/$as_id.$1/g;
     }
-    return ($value->{negate} ? 'NOT ' : '').
+    return ($value->{negate}==1 ? 'NOT ' : '').
            ($left.' '.uc($value->{operator}).' '.$right);
   } elsif ($name =~ /^(?:and|or)$/) {
    my $seq = $value->{'#content'};
@@ -192,15 +201,17 @@ sub serialize_element {
      UNIVERSAL::isa( $seq, 'Fslib::Seq') and
      @$seq
    );
-   return ($value->{negate} ? 'NOT (' : '(').
-       	  join(' '.uc($name).' ',map {
-	    my $n = $_->name;
-	    serialize_element(
-	      $n,
-	      $_->value,
-	      $as_id
-	     )
-	  } $seq->elements).')';
+   my $condition = join(' '.uc($name).' ',
+			grep { defined and length }
+			map {
+			  my $n = $_->name;
+			  serialize_element(
+			    $n,
+			    $_->value,
+			    $as_id
+			   ) } $seq->elements);
+   return () unless length $condition;
+   return ($value->{negate} ? 'NOT (' : '(').$condition.')';
   } else {
     warn "Unknown element $name ";
   }

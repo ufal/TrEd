@@ -1125,24 +1125,34 @@ sub restrict_case_acc {
     restrict_hide('--------4-');
 }
 
-#bind restrict_definiteness_i i menu Restrict to Indefinite
-sub restrict_definiteness_i {
+#bind restrict_state_i i menu Restrict State Indefinite
+sub restrict_state_i {
     restrict_hide('---------I');
 }
 
-#bind restrict_definiteness_d d menu Restrict to Definite
-sub restrict_definiteness_d {
+#bind restrict_state_d d menu Restrict State Definite
+sub restrict_state_d {
     restrict_hide('---------D');
 }
 
-#bind restrict_definiteness_r r menu Restrict to Reduced
-sub restrict_definiteness_r {
+#bind restrict_state_a A menu Restrict State Absolute
+sub restrict_state_a {
+    restrict_hide('---------A');
+}
+
+#bind restrict_state_r r menu Restrict State Reduced
+sub restrict_state_r {
     restrict_hide('---------R');
 }
 
-#bind restrict_definiteness_c C menu Restrict to Complex
-sub restrict_definiteness_c {
+#bind restrict_state_c C menu Restrict State Complex
+sub restrict_state_c {
     restrict_hide('---------C');
+}
+
+#bind restrict_state_l L menu Restrict State Lifted
+sub restrict_state_l {
+    restrict_hide('---------L');
 }
 
 #bind restrict_noun n menu Restrict Noun

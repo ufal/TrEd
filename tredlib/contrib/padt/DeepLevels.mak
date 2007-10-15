@@ -989,7 +989,7 @@ sub theClauseHead ($;&) {
             }
         }
 
-        last if isPredicate($head) or $effect eq 'Pred';
+        last if isPredicate($head) or $effect =~ /^(?:Pred|Pnom)$/;
 
         if ($return = $code->($head)) {
 
