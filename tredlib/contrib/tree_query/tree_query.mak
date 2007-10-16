@@ -1,8 +1,20 @@
 # -*- cperl -*-
+
+#include <contrib/pml/PML.mak>
+
 package Tree_Query;
-use vars qw($this $root);
-import TredMacro;
-import PML qw(SchemaName);
+BEGIN {
+  use vars qw($this $root);
+  import TredMacro;
+}
+
+import PML qw(&SchemaName);
+
+Bind 'query_sql' => {
+  key => 'space',
+  menu => 'Query SQL server',
+  changing_file => 0,
+};
 
 #include <contrib/support/extra_edit.inc>
 
@@ -10,8 +22,10 @@ import PML qw(SchemaName);
 use strict;
 
 # Setup context
-push @TredMacro::AUTO_CONTEXT_GUESSING,
-sub { SchemaName() eq 'tree_query' ? __PACKAGE__ : undef };
+unshift @TredMacro::AUTO_CONTEXT_GUESSING,
+sub { 
+  print "HALLO\n";
+SchemaName() eq 'tree_query' ? __PACKAGE__ : undef };
 sub allow_switch_context_hook {
   return 'stop' if SchemaName() ne 'tree_query';
 }
@@ -34,7 +48,6 @@ EOF
   }
 }
 
-#bind query_sql key space menu Query SQL server
 my $dbi_config;
 my $dbi;
 sub get_dbi {
@@ -79,7 +92,6 @@ EOF
 }
 sub query_sql {
   require DBI;
-  get_dbi() unless $dbi;
   my $sql = serialize_conditions($root);
   my $max=100;
   #  my @text_opt = eval { require Tk::CodeText; } ? (qw(CodeText -syntax SQL)) : qw(Text);
@@ -91,6 +103,7 @@ sub query_sql {
   );
 
   if (defined $sql and length $sql) {
+    get_dbi() unless $dbi;
     print "Sending query:\n$sql\n...\n";
     my $results = $dbi->selectall_arrayref($sql,{MaxRows=>100, RaiseError=>1});
     print "Displaying results.\n";
@@ -101,14 +114,27 @@ sub query_sql {
 	      {buttons=>[qw(Ok)]});
   }
   print "Done.\n";
-  ChangingFile(0);
 }
+
+use constant {
+  SUB_QUERY => 1,
+  GROUP    => 2,
+};
+
+my $occurrences_strategy = SUB_QUERY;
 
 # serialize to SQL (or SQL fragment)
 sub serialize_conditions {
   my ($node,$as_id)=@_;
   if ($node->parent) {
     my $sql =  serialize_element( 'and', $node->{conditions}, $as_id );
+    if ($occurrences_strategy == SUB_QUERY) {
+      my @occ_child = grep { defined $_->{occurrences} } $node->children;
+      for my $child (@occ_child) {
+	my $occ = $child->{occurrences};
+	$sql .= " AND $occ=(".make_sql($child,0,1,$as_id).")";
+      }
+    }
     return $sql;
   } else {
     my $sql = make_sql($root,0);
@@ -121,9 +147,28 @@ sub get_value_line_hook {
   return unless $tree;
   return make_sql($tree,1);
 }
+
+
 sub make_sql {
-  my ($tree,$format)=@_;
-  my @nodes = $tree->descendants; # we rely on depth first order!
+  my ($tree,$format,$count,$tree_parent_id)=@_;
+  # we rely on depth first order!
+  my @nodes;
+  if ($occurrences_strategy == SUB_QUERY) {
+    my $n = $tree;
+    while ($n) {
+      if ($n->parent) {
+	if (defined $n->{occurrences} and $n!=$tree) {
+	  $n = $n->following_right_or_up;
+	  next;
+	} else {
+	  push @nodes, $n;
+	}
+      }
+      $n = $n->following;
+    }
+  } else {
+    @nodes =  grep { $_->parent }  ($tree, $tree->descendants);
+  }
   my @select;
   my @join;
   my @where;
@@ -141,42 +186,47 @@ sub make_sql {
   for (my $i=0; $i<@nodes; $i++) {
     my $n = $nodes[$i];
     my $id = $id{$n};
-    push @select, $id.".idx";
+    push @select, $id;
     my $parent = $n->parent;
     my $parent_id = $id{$parent};
     push @join,
-      ($i==0 ? " FROM $table AS $id " :
-	 " JOIN $table AS $id ON ".
+      ($i==0 ? " FROM $table $id " :
+	 " JOIN $table $id ON ".
 	   ($parent->parent ? 
 	      ($n->{'edge-transitive'} ? 
 	       "$id.root_idx=$parent_id.root_idx AND ".
 	       "$id.idx BETWEEN $parent_id.l AND $parent_id.r" :
 	       "$id.parent_idx=".$id{$n->parent}.".idx" )
 		:
-	      "$id.root_idx=n0.root_idx"));
+	      "$id.root_idx=n0.root_idx").
+		join('', (map { ' AND '.$id{$nodes[$_]}.".idx != ${id}.idx" } 0..($i-1)))
+	  );
     push @where, Tree_Query::serialize_conditions($n,$id);
   }
   my $i=0;
   my @sql = (['SELECT '],
+      ($count ? ['count(1)','space'] : (map {
+	(($_==0 ? () : [', ','space']),
+	 [$select[$_].'."idx"',$nodes[$_]],
+	 [' AS "'.$select[$_].'.idx"','space']
+	)
+      } 0..$#nodes)),
       (map {
-	(($_==0 ? () : [' ,',"space"]),
-	 [$select[$_],$nodes[$_]])
-      } 0..$#nodes),
-      (map {
-	(($_==0 ? () : ["\n ","space"]),
+	(($_==0 ? () : ["\n ",'space']),
 	 [$join[$_],$nodes[$_]])
       } 0..$#nodes),
-      join('',@where)!~/\S/ ? () :
-      ([ "\nWHERE\n     "],
+      (
+       ((defined($tree_parent_id) and defined($id{$tree}) and ++$i) ?
+	  ["\nWHERE\n     ".$id{$tree}.'."parent_idx"='.$tree_parent_id.'."idx"','space'] : ()),
        map {
-	 (($i++ == 0 ? () : ["\n AND ","space"]),
+	 (($i++ == 0 ? ([ "\nWHERE\n     ",'space']) : ["\n AND ",'space']),
 	  [$where[$_],$nodes[$_]]
 	 )
-      } grep {
-	my $w = $where[$_];
-	defined($w) and length($w)
-      } 0..$#nodes),
-      ["\nLIMIT 100;\n","space"]
+      } (grep {
+	  my $w = $where[$_];
+	  defined($w) and length($w)
+	} 0..$#nodes)),
+      ((defined($tree_parent_id) and defined($id{$tree})) ? () : ["\nLIMIT 100;\n",'space'])
     );
   if ($format) {
     return \@sql;
@@ -191,6 +241,8 @@ sub serialize_element {
     my $left = $value->{a};
     my $right = $value->{b};
     for ($left,$right) {
+      s/"_[#]descendants"/"r"-"l"/g;
+      s/"_depth"/"lvl"/g;
       s/(?<![.])(\"[^"]*\")/$as_id.$1/g;
     }
     return ($value->{negate}==1 ? 'NOT ' : '').
