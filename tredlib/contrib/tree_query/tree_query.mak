@@ -24,7 +24,6 @@ use strict;
 # Setup context
 unshift @TredMacro::AUTO_CONTEXT_GUESSING,
 sub { 
-  print "HALLO\n";
 SchemaName() eq 'tree_query' ? __PACKAGE__ : undef };
 sub allow_switch_context_hook {
   return 'stop' if SchemaName() ne 'tree_query';
