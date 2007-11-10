@@ -13,6 +13,9 @@
 #define transf
 #define voice_control
 
+
+#define PDT10
+
 #ifdef SDT
 #undefine sdt
 #define PDT10

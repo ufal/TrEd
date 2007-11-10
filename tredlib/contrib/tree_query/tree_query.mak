@@ -2,6 +2,22 @@
 
 #include <contrib/pml/PML.mak>
 
+#TODO
+#
+# - _optional
+# - only brothers need to be distinct distinct
+# - _transitive=exclusive
+# - _#lbrothers
+# - _#rbrothers
+# - modify type of the default relation: parent/descendant/e-parent/...)
+# - additional relations to existing nodes (of any type except parent and possibly descendant) with possibility to negate them or maybe even using them in propositional formulae
+# non-projective edge search
+
+# some helpful predicates:
+#  - is_leaf
+#
+
+
 package Tree_Query;
 BEGIN {
   use vars qw($this $root);
@@ -136,7 +152,8 @@ sub serialize_conditions {
     }
     return $sql;
   } else {
-    my $sql = make_sql($root,0);
+    init_id_map($root);
+    return make_sql($root,0);
   }
 }
 sub get_value_line_hook {
@@ -144,9 +161,25 @@ sub get_value_line_hook {
   return unless $fsfile;
   my $tree = $fsfile->tree($treeNo);
   return unless $tree;
+  init_id_map($tree);
   return make_sql($tree,1);
 }
 
+my %id;
+sub init_id_map {
+  my ($tree)=@_;
+  my @nodes = $tree->descendants;
+  %id = map { ($_ => lc($_->{name})) } @nodes;
+  my $id = 'n0';
+  my %occup; @occup{values %id}=();
+  for my $n (@nodes) {
+    unless (defined $id{$n} and length $id{$n}) {
+      $id++ while exists $occup{$id}; # just for sure
+      $id{$n}=$id; # generate id;
+      $occup{$id}=1;
+    }
+  };
+}
 
 sub make_sql {
   my ($tree,$format,$count,$tree_parent_id)=@_;
@@ -172,35 +205,47 @@ sub make_sql {
   my @join;
   my @where;
   my $table = 'a';
-  my %id = map { ($_ => lc($_->{name})) } @nodes;
-  my $id = 'n0';
-  my %occup; @occup{values %id}=();
-  for my $n (@nodes) {
-    unless (defined $id{$n} and length $id{$n}) {
-      $id++ while exists $occup{$id}; # just for sure
-      $id{$n}=$id; # generate id;
-      $occup{$id}=1;
-    }
-  };
+
+
   for (my $i=0; $i<@nodes; $i++) {
     my $n = $nodes[$i];
     my $id = $id{$n};
     push @select, $id;
     my $parent = $n->parent;
     my $parent_id = $id{$parent};
-    push @join,
-      ($i==0 ? " FROM $table $id " :
-	 " JOIN $table $id ON ".
-	   ($parent->parent ? 
-	      ($n->{'edge-transitive'} ? 
-	       "$id.root_idx=$parent_id.root_idx AND ".
-	       "$id.idx BETWEEN $parent_id.l AND $parent_id.r" :
-	       "$id.parent_idx=".$id{$n->parent}.".idx" )
-		:
-	      "$id.root_idx=n0.root_idx").
-		join('', (map { ' AND '.$id{$nodes[$_]}.".idx != ${id}.idx" } 0..($i-1)))
-	  );
-    push @where, Tree_Query::serialize_conditions($n,$id);
+    if ($i==0) {
+      push @join," FROM $table $id ";
+    } else {
+      my $join;
+      if ($parent->parent) {
+	if ($n->{'edge-transitive'}) {
+	  $join.=qq{$id."root_idx"=$parent_id."root_idx" AND }.
+	    qq{$id."idx" BETWEEN $parent_id."l" AND $parent_id."r"};
+	} else {
+	  $join.=qq{$id."parent_idx"=$id{$n->parent}."idx"};
+	}
+	if ($n->{optional}) {
+	  # identify with parent
+	  $join = qq{(($join) OR $id."idx"=$parent_id."idx")};
+	}
+      } else {
+	# what do we with _optional here?
+	$join .= "$id.root_idx=n0.root_idx";
+      }
+      push @join, 
+	" JOIN $table $id ON ".$join.
+	  join('', (map { qq{ AND $id{$_}."idx" != ${id}."idx"} }
+		      # FIXME: grep only brothers/e-brothers/descendants
+		      grep { $_->parent == $n->parent }
+		      map { $nodes[$_] } 0..($i-1)));
+    }
+    my $where = Tree_Query::serialize_conditions($n,$id);
+    if ($n->{optional}) {
+      if (length $where) {
+	$where = qq{(($where) OR $id."idx"=$parent_id."idx")};
+      }
+    }
+    push @where, $where;
   }
   my $i=0;
   my @sql = (['SELECT '],
@@ -241,6 +286,7 @@ sub serialize_element {
     my $right = $value->{b};
     for ($left,$right) {
       s/"_[#]descendants"/"r"-"l"/g;
+      s/"_[#]sons"/"chld"/g;
       s/"_depth"/"lvl"/g;
       s/(?<![.])(\"[^"]*\")/$as_id.$1/g;
     }
@@ -262,7 +308,8 @@ sub serialize_element {
 			    $as_id
 			   ) } $seq->elements);
    return () unless length $condition;
-   return ($value->{negate} ? 'NOT (' : '(').$condition.')';
+   return ($value->{negate} ? "NOT ($condition)" :
+	   @$seq > 1 ? "($condition)" : $condition);
   } else {
     warn "Unknown element $name ";
   }
