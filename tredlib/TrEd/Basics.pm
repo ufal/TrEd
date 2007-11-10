@@ -27,9 +27,13 @@ BEGIN {
     &errorMessage
     &absolutize
     &absolutize_path
+    &uniq
   );
   use strict;
 }
+
+sub uniq { my %a; grep { !($a{$_}++) } @_ }
+
 
 # different namespace only to load local rather than system files
 # (rel2abs is not supported in all instalations)
