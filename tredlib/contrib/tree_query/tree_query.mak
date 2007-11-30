@@ -4,19 +4,50 @@
 
 #TODO
 #
-# - _optional
-# - only brothers need to be distinct distinct
-# - _transitive=exclusive
+# - new netgraph _optional semantics?
+
+# - _transitive=exclusive (in NG by default, a query node can lay on
+# the transitive edge of other query node; if =exclusive, than no query
+# node can lay on the transitive edge and also, the transitive edge
+# cannot share nodes with any other exclusive transitive edge (but can
+# share nodes with some non-exclusive transitive edge)). Thus,
+# exclusivity in NG seems equivalent to creating an optional node
+# between the transitive query node and its query parent.
+
+# allow the user to mark the nodes with colours and recognize the
+# colored nodes in the result tree
+
 # - _#lbrothers
 # - _#rbrothers
-# - modify type of the default relation: parent/descendant/e-parent/...)
-# - additional relations to existing nodes (of any type except parent and possibly descendant) with possibility to negate them or maybe even using them in propositional formulae
+# - modify type of the default relation: parent/ancestor/effective_parent/...)
+#   (parent and ancestor implemented, TODO: effective_parent)
+# - additional relations to existing nodes (of any type except parent and possibly descendant)
+#   with possibility to negate them or maybe even using them in propositional formulae
 # non-projective edge search
+
+# relations/attributes from external tables:
+# tables:
+# - T            (tree structure)
+# - T_FILEINFO   (currently T_POS)
+# - T_ATTRS      (attribute structure, not yet used)
+# - T_QUOT       (quot (list))
+# - T_GRAM       (grammatemes)
+# - T_COREF_GRAM (attribute structure (list))
+# - T_COMPL      (attribute structure (list))
+# - T_A_AUX      (relation to A_ (list))
+# - T_EPARENTS   (relation to T_ (list))
+
 
 # some helpful predicates:
 #  - is_leaf
 #
 
+#
+# relations and their representation by colors:
+# - parent-child: grey
+# - ancestor-descendant: light-blue
+# - e_parent-e_child: green
+# - preceding-following: yellow
 
 package Tree_Query;
 BEGIN {
@@ -218,10 +249,14 @@ sub make_sql {
     } else {
       my $join;
       if ($parent->parent) {
-	if ($n->{'edge-transitive'}) {
+	if ($n->{'relation'} eq 'ancestor') {
 	  $join.=qq{$id."root_idx"=$parent_id."root_idx" AND }.
 	    qq{$id."idx" BETWEEN $parent_id."l" AND $parent_id."r"};
-	} else {
+	} elsif ($n->{'relation'} eq 'effective_parent') {
+	  # TODO
+	  # $join.=qq{$id."parent_idx"=$id{$n->parent}."idx"};
+	} elsif ($n->{'relation'} eq 'parent' or
+		 $n->{'relation'} eq '') {
 	  $join.=qq{$id."parent_idx"=$id{$n->parent}."idx"};
 	}
 	if ($n->{optional}) {
@@ -235,7 +270,6 @@ sub make_sql {
       push @join, 
 	" JOIN $table $id ON ".$join.
 	  join('', (map { qq{ AND $id{$_}."idx" != ${id}."idx"} }
-		      # FIXME: grep only brothers/e-brothers/descendants
 		      grep { $_->parent == $n->parent }
 		      map { $nodes[$_] } 0..($i-1)));
     }
