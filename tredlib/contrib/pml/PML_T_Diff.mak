@@ -356,7 +356,7 @@ sub diff_trees {
                         } ListV($Gr->{$f}->attr('compl.rf'))
                    );
           } else {
-            my $key = $Gr->{$f}->attr($attr);
+            $key = $Gr->{$f}->attr($attr);
           }
           if (IsList($key)){
             $key = join '|',sort(ListV($key));
