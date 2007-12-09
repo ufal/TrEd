@@ -18,7 +18,9 @@ pod_dir="${2:-$target_dir/pod}"
 #[ -d "$html_dir" ] || mkdir $html_dir || exit 1
 
 for f in $dir/../[bn]tred \
-         $dir/../tredlib/{Fslib.pm,PMLSchema.pm,PMLInstance.pm,tred.def}; do
+         $dir/../tredlib/libs/fslib/Fslib.pm \
+         $dir/../tredlib/libs/pml-base/{PMLSchema.pm,PMLInstance.pm} \
+         $dir/../tredlib/tred.def ; do
     n="basename ${f%.pm}"
     n=$(basename "$n")
     pod="$pod_dir/${n//./_}.pod"
