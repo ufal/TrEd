@@ -951,8 +951,9 @@ sub switch_context_hook {
   CreateStylesheets();
   my $cur_stylesheet = GetCurrentStylesheet();
   SetCurrentStylesheet('PML_T_Compact'),Redraw() 
-    if $cur_stylesheet eq STYLESHEET_FROM_FILE() or
-       $cur_stylesheet =~ /^PML_(?:\w+_)?[^T](?:_|\b)/;
+    if ($cur_stylesheet eq STYLESHEET_FROM_FILE() or
+        $cur_stylesheet =~ /^PML_(?:\w+_)?[^T](?:_|\b)/)
+      and GUI();
   undef$PML::arf;
 }
 
