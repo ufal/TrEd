@@ -2289,16 +2289,8 @@ sub saveFile {
 sub isShown { # test if node is shown (always 1 if $showHidden)
   my ($win,$node,$show)=@_;
   $show=$win->{treeView}->get_showHidden() unless defined $show;
-
   return 0 unless ($node and $win->{FSFile});
-  my $hide = $win->{FSFile}->FS->hide();
-  return 1 if $show or not defined($hide);
-
-  # traverse up until we find a hidden ancestor or reach void
-  while ($node and ($node->get_member($hide) ne 'hide')) {
-    $node=$node->parent;
-  }
-  return ($node ? 0 : 1)
+  return $win->{FSFile}->FS->isHidden($node) ? 0 : 1;
 }
 
 sub HNext { # same as Next but obey $showHidden
