@@ -7905,6 +7905,7 @@ sub editAttrsDialog_schema {
 			   doEvalHook($win,'enable_attr_hook',$path,"normal") eq 'stop' ? 0 : 1
 			 }, $win,$base_path ],
     search_field => length $attr_path ? 0 : 1,
+    knit_support => 1,
     validate_flags => PML_VALIDATE_NO_CHILDNODES(),
     set_command => sub {
       my ($callback)=@_;
