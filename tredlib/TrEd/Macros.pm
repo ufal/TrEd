@@ -309,14 +309,14 @@ sub read_macros {
 	  my @toadopt=(split /\s+/,$1);
 	  foreach my $context (@contexts) {
 	    foreach my $toadopt (@toadopt) {
-	      copy_key_bindings($context,$toadopt);
+	      copy_key_bindings($toadopt,$context);
 	    }
 	  }
 	} elsif (/^\#\s*menu-binding-adopt\s+(.*)/) {
 	  my @toadopt=(split /\s+/,$1);
 	  foreach my $context (@contexts) {
 	    foreach my $toadopt (@toadopt) {
-	      copy_menu_bindings($context,$toadopt);
+	      copy_menu_bindings($toadopt,$context);
 	    }
 	  }
 	} elsif (/^\#[ \t]*unbind-key[ \t]+([^ \t\r\n]+)/) {
