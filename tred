@@ -6961,7 +6961,7 @@ sub editConfig {
 	     }
 	   });
   $t->pack(qw/-side top -expand yes -fill both/);
-  $t->TextSearchLine(-parent => $d)->pack(qw(-fill x));
+  $t->TextSearchLine(-parent => $d, -label=>'S~earch')->pack(qw(-fill x));
 
   disable_scrollbar_focus($t);
   $t->BindMouseWheelVert();
@@ -8553,7 +8553,7 @@ EOF
     $e->insert('0.0',$patterns."\n");
   }
   $e->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
-  $e->TextSearchLine(-parent => $cf)->pack(qw(-fill x -side bottom));
+  $e->TextSearchLine(-parent => $cf,-label=>'S~earch')->pack(qw(-fill x -side bottom));
 
   $cf->pack(qw/-padx 5 -side left -expand yes -fill both/);
 
