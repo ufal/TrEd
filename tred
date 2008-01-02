@@ -367,6 +367,7 @@ require Tk::ErrorReport;
 require Tk::Balloon;
 require Tk::JComboBox_0_02;
 require Tk::TrEdNodeEdit;
+require Tk::TextSearchLine;
 
 require Data::Snapshot;
 import Data::Snapshot;
@@ -6906,39 +6907,6 @@ sub reconfigure {
   ApplyGlobalConfig($grp);
 }
 
-sub addTextSearchLine {
-  my ($parent,$text)=@_;
-  my $sf = $parent->Frame;
-  $sf->Label(-underline => 1,
-	     -text => 'Search:')->pack(qw(-side left));
-  my $qs = $sf->Entry(
-    -validate => 'key',
-    -validatecommand =>
-      [sub {
-	 my ($text,$value)=@_;
-	 return 1 if $value eq EMPTY;
-	 $text->tagRemove('sel','0.0','end');
-	 my $new = $text->search(qw(-forward -exact -nocase), $value, 'insert');
-	 if ($new) {
-	   $text->SetCursor($new);
-	   $text->tagAdd('sel',$new, $new.' + '.length($value).' chars');
-	   return 1;
-	 } else {
-	   return undef;
-	 }
-       },$text]
-     )->pack(qw(-side right -expand 1 -fill x));
-  $parent->toplevel->bind('all','<Alt-e>', [$qs,'focus']);
-  $parent->toplevel->bind('all','<F3>',
-			  [sub {
-			     my ($w,$text,$qs)=@_;
-			     $qs->focus;
-			     $text->FindNext(qw(-forward -exact -nocase), $qs->get());
-			  },$text,$qs]);
-  $qs->bind('<Return>',[$text,'focus']);
-  return $sf;
-}
-
 sub editConfig {
   my ($grp)=@_;
   return unless $grp;
@@ -6993,7 +6961,7 @@ sub editConfig {
 	     }
 	   });
   $t->pack(qw/-side top -expand yes -fill both/);
-  addTextSearchLine($d,$t)->pack(qw(-fill x));
+  $t->TextSearchLine(-parent => $d)->pack(qw(-fill x));
 
   disable_scrollbar_focus($t);
   $t->BindMouseWheelVert();
@@ -8585,7 +8553,7 @@ EOF
     $e->insert('0.0',$patterns."\n");
   }
   $e->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
-  addTextSearchLine($cf,$e)->pack(qw(-fill x -side bottom));
+  $e->TextSearchLine(-parent => $cf)->pack(qw(-fill x -side bottom));
 
   $cf->pack(qw/-padx 5 -side left -expand yes -fill both/);
 
