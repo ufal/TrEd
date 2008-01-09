@@ -5,7 +5,6 @@
 
 package ValLex::NonGUI;
 
-use base qw(TredMacro);
 import TredMacro;
 
 sub new {
