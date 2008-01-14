@@ -277,7 +277,11 @@ import PMLSchema qw(:constants); # too late (we'll need () after PML_.._DECL)
 
 $stylesheetFile = $opt_S ne EMPTY ? $opt_S : $ENV{HOME}."/.tred-stylesheets";
 
-$Fslib::resourcePath=$opt_Z if $opt_Z;
+$Fslib::resourcePath=
+  join($Fslib::resourcePathSplit,
+       map { length($_) ? $_ : $Fslib::resourcePath }
+       split($Fslib::resourcePathSplit, $opt_Z,-1))
+  if $opt_Z;
 
 $tredDebug=1 if $opt_D;
 

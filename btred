@@ -259,7 +259,10 @@ require Fslib;
 import Fslib;
 import Fslib qw(&Index &ImportBackends);
 $Fslib::Debug=1 if $debug;
-$Fslib::resourcePath=join($Fslib::resourcePathSplit,@resource_paths) if @resource_paths;
+$Fslib::resourcePath=join($Fslib::resourcePathSplit,
+			  map { length($_) ? $_ : $Fslib::resourcePath }
+			  map { split($Fslib::resourcePathSplit,$_,-1) }
+			    @resource_paths) if @resource_paths;
 
 _msg("Resource path: $Fslib::resourcePath\n") unless $quiet;
 
