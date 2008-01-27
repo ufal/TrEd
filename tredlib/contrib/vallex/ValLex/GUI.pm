@@ -127,6 +127,7 @@ sub init_ValencyLexicon {
       print STDERR "$err\n";
       $top->Unbusy(-recurse=>1);
       ErrorMessage("Valency lexicon not found or corrupted.\nPlease, make sure that the following file is installed correctly: ${vallex_file}!\n\n$err\n");
+      undef $vallex_file;
       return;
     } else {
       return $ValencyLexicon;
