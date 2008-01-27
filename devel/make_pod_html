@@ -19,13 +19,22 @@ pod_dir="${2:-$target_dir/pod}"
 
 for f in $dir/../[bn]tred \
          $dir/../tredlib/libs/fslib/Fslib.pm \
-         $dir/../tredlib/libs/pml-base/{PMLSchema.pm,PMLInstance.pm} \
+         $dir/../tredlib/libs/pml-base/PMLSchema.pm \
+         $dir/../tredlib/libs/pml-base/PMLInstance.pm \
          $dir/../tredlib/tred.def ; do
     n="basename ${f%.pm}"
     n=$(basename "$n")
     pod="$pod_dir/${n//./_}.pod"
+    podchecker "$f"
     podselect "$f" > "$pod"
-    podchecker "$pod"
+done
+
+for f in $dir/../tredlib/libs/pml-base/PMLSchema/*.pm; do
+    n="basename ${f%.pm}"
+    n=$(basename "$n")
+    pod="$pod_dir/PMLSchema::${n}.pod"
+    podchecker "$f"
+    podselect "$f" > "$pod"
 done
 
 {
@@ -44,10 +53,9 @@ done
     popd >/dev/null
 }
 
-for t in btred ntred Fslib.pm PMLSchema.pm PMLInstance.pm PML.mak; do
-    n="${t%.pm}"
-    pod="$pod_dir/${n//./_}.pod"
-    html="$html_dir/${n//./_}.html"
-    "$pod2xhtml" --css blue.css --infile "$pod" --outfile "$html" --title "$t manual"
+for pod in $pod_dir/*.pod ; do
+    n=$(basename "${pod%.pod}")
+    html="$html_dir/$n.html"
+    "$pod2xhtml" --css blue.css --infile "$pod" --outfile "$html" --title "$n documentation"
 done
 
