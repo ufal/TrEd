@@ -5,45 +5,6 @@
 
 # define pdt10 if you wish to include PDT1.0-specific macros
 
-#define sdt
-#define cac
-#define pdt10_a
-#define pdt10_t
-#define tfa
-#define transf
-#define voice_control
-
-
-#define PDT10
-
-#ifdef SDT
-#undefine sdt
-#define PDT10
-#endif
-
-#ifdef CAC
-#undefine cac
-#define PDT10
-#endif
-
-#ifdef PDT10
-#undefine pdt10_a
-#undefine pdt10_t
-#undefine tfa
-#endif
-
-#ifdef TFA
-#undefine tfa
-#endif
-
-#ifdef TRANSF
-#undefine transf
-#endif
-
-#ifdef VOICE_CONTROL
-#undefine voice_control
-#endif
-
 
 #include "<*/contrib.mac>"
 
