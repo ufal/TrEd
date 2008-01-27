@@ -523,6 +523,7 @@ sub RotateParenthesisRoot{
 #bind TectogrammaticalTree to Ctrl+R menu Display tectogrammatical tree
 #bind GotoTree to Alt+g menu Goto Tree
 
+#bind OpenValFrameList to Ctrl+Return menu Browse valency lexicon
 
 1;
 
