@@ -1,8 +1,9 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 # -*- cperl -*-
 
 use strict;
 use Pod::Xhtml;
+ use Pod::Hyperlink::BounceURL;
 use Pod::Usage;
 use Getopt::Long;
 use XML::XSH2 qw(xsh_init open_doc);
@@ -16,10 +17,15 @@ pod2usage(-verbose => 2) if $opt{help};
 my $toplink = $opt{toplink} ?
     sprintf '<p><a href="#TOP" class="toplink">%s</a></p>', $opt{toplink} : '';
 
+
+my $linkparser = new Pod::Hyperlink::BounceURL;
+$linkparser->configure( URL => '%s.html' );
+
 my $parser = new Pod::Xhtml(
     MakeIndex  => $opt{index},
     TopLinks   => $toplink,
     StringMode => 1,
+    LinkParser => $linkparser,
 );
 if ($opt{css}) {
     $parser->addHeadText(qq[<link rel="stylesheet" href="$opt{css}"/>]);
