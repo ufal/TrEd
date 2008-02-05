@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <pml_schema xmlns="http://ufal.mff.cuni.cz/pdt/pml/schema/" version="1.1">
   <revision>1.0.1</revision>
-  <description>TrEd PMLBackend configuration</description>
+  <description>PMLInstance I/O configuration</description>
   <root name="pmlbackend" type="pmlbackend.type"/>
   <type name="pmlbackend.type">
     <structure>
