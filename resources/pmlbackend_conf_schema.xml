@@ -5,8 +5,30 @@
   <root name="pmlbackend" type="pmlbackend.type"/>
   <type name="pmlbackend.type">
     <structure>
-      <member name="transform_map"
-	      type="transform_map.type"/>
+      <member name="options" type="options.type"/>
+      <member name="transform_map" type="transform_map.type"/>
+    </structure>
+  </type>
+  <type name="options.type">
+    <structure>
+      <member name="load" type="options.load.type"/>
+      <member name="save" type="options.save.type"/>
+    </structure>
+  </type>
+  <type name="options.load.type">
+    <structure>
+      <member name="validate_cdata" type="bool.type"/>
+      <member name="no_knit" type="bool.type"/>
+      <member name="no_references" type="bool.type"/>
+      <member name="use_resources" type="bool.type"/>
+    </structure>
+  </type>
+  <type name="options.save.type">
+    <structure>
+      <member name="keep_knit" type="bool.type"/>
+      <member name="write_single_LM" type="bool.type"/>
+      <member name="decorate" type="bool.type"/>
+      <member name="validate_cdata" type="bool.type"/>
     </structure>
   </type>
   <type name="transform_map.type">
@@ -50,5 +72,11 @@
       </attribute>
       <cdata format="string"/>
     </container>
+  </type>
+  <type name="bool.type">
+    <choice>
+      <value>0</value>
+      <value>1</value>
+    </choice>
   </type>
 </pml_schema>
