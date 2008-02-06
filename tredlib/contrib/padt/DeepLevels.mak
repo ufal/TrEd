@@ -33,7 +33,7 @@ our ($hooks_request_mode, $fill) = (0, ' ' x 4);
 sub FuncAssign {
 
     my $fullfunc = $_[0];
-    my ($func, $parallel, $paren) = ($fullfunc =~ /^([^_]*)(?:_(Ap|Co|no-parallel))?(?:_(Pa|no-paren))?/);
+    my ($func, $parallel, $paren) = ($fullfunc =~ /^([^_]*)(?:_(Ap|Co))?(?:_(Pa))?/);
 
     if ($this->{'func'} eq 'SENT' or $this->{'func'} eq $func) {
 
@@ -928,8 +928,8 @@ sub isPredicate {
 
     my $this = defined $_[0] ? $_[0] : $this;
 
-    return $this->{arabclause} !~ /^no-|^$/ || $this->{tag} =~ /^V/ && $this->{afun} !~ /^Aux/
-                                            || $this->{afun} =~ /^Pred[CEP]?$/;
+    return $this->{arabclause} ne "" || $this->{tag} =~ /^V/ && $this->{afun} !~ /^Aux/
+                                     || $this->{afun} =~ /^Pred[ECMP]?$/;
 }
 
 sub theClauseHead ($;&) {
@@ -1549,7 +1549,7 @@ sub synchronize_file {
 
     move $file[2], $file[0];
 
-    system 'btred -Qm ' . ( escape $libDir . '/contrib/padt/exec/migrate_annotation_deeper.btred' ) .
+    system 'btred -QI ' . ( escape $libDir . '/contrib/padt/exec/migrate_annotation_deeper.btred' ) .
                     ' ' . ( espace $file[0] );
 
     print "... succeeded.\n";

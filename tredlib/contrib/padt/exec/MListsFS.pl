@@ -17,17 +17,15 @@ BEGIN {
 
     chomp $libDir;
 
-    eval "use lib '$libDir'";
+    eval "use lib '$libDir', '$libDir/libs/fslib', '$libDir/libs/pml-base'";
 }
 
 use Fslib 1.6;
 
 use MorphoMap 1.9;
 
-use lib 'D:/DevPerl/AraMorph';
 use AraMorph 2.1;
 
-use lib 'D:/DevPerl/XMorph';
 use XMorph;
 
 use Encode::Arabic;
@@ -79,12 +77,13 @@ until (eof()) {
             'twig_roots'    => {
 
                             'DOC/DOCNO' => 1,
+
                             'HEADLINE'  => 1,
-                            'P'         => 1,
-
-                          # 'FOOTER'    => 1,
-
                             'hl'        => 1,
+
+                            'DATELINE'  => 1,
+
+                            'P'         => 1,
                             'p'         => 1,
 
                                },
@@ -96,13 +95,13 @@ until (eof()) {
                             'HEADLINE'  =>  \&parse_headline,
                             'hl'        =>  \&parse_headline,
 
+                            'DATELINE'  =>  \&parse_dateline,
+                            
                             'P/seg'     =>  \&parse_seg,
                             'p/seg'     =>  \&parse_seg,
 
                             'P'         =>  \&parse_p,
                             'p'         =>  \&parse_p,
-
-                          # 'FOOTER'    =>  \&parse_footer,
 
                                },
 
@@ -123,9 +122,13 @@ until (eof()) {
 
         $data .= <> until eof;
 
-        $data =~ s/\n &HT;[^\n]*(?=\n<\/HEADLINE>)//g;
+        $data =~ s/\n &HT;[^\n]*(?=\n &HT;|\n<\/HEADLINE>)//g;
 
-        $data =~ s/<seg id=([0-9]+)>/<seg id="$1">/g;
+        $data =~ s/&[A-Z][A-Za-z0-9]+;//g;
+
+        $data =~ s/ & //g;
+        
+        $data =~ s/<seg id=([0-9]+)>/<seg id="$1">/g;        
     }
 
     $source->parse($data);
@@ -178,6 +181,18 @@ sub parse_headline {
 }
 
 
+sub parse_dateline {
+
+    my ($twig, $elem) = @_;
+
+    my $text = $elem->text();
+
+    $twig->purge();
+
+    process_text('DATELINE', $text);
+}
+
+
 sub parse_seg {
 
     my ($twig, $elem) = @_;
@@ -201,19 +216,6 @@ sub parse_p {
     $twig->purge();
 
     process_text('TEXT', $text) unless $text =~ /^\s*$/;
-
-}
-
-
-sub parse_footer {
-
-    my ($twig, $elem) = @_;
-
-    my $text = $elem->text();
-
-    $twig->purge();
-
-    process_text('FOOTER', $text);
 }
 
 
@@ -232,13 +234,13 @@ sub process_text {
 
     $data = decode $decode, $data if defined $decode;
 
-    while ($data =~ /(?: \G [\ \t\r\n]* ( (?: \p{Arabic} | [\x{064B}-\x{0652}\x{0670}\x{0657}\x{0656}\x{0640}] |
-                                            # \p{InArabic} |   # too general
-                                           \p{InArabicPresentationFormsA} | \p{InArabicPresentationFormsB} )+ |
-                                           \p{Latin}+ |
-                                           $regexQ |
-                                           $regexG |
-                                           [^\ \t\r\n] ) )/gx) {
+    while ($data =~ /(?: \G \P{IsGraph}* ( (?: \p{Arabic} | [\x{064B}-\x{0652}\x{0670}\x{0657}\x{0656}\x{0640}] |
+                                             # \p{InArabic} |   # too general
+                                            \p{InArabicPresentationFormsA} | \p{InArabicPresentationFormsB} )+ |
+                                            \p{Latin}+ |
+                                            $regexQ |
+                                            $regexG |
+                                            \p{IsGraph} ) )/gx) {
 
         $node = {};
 
@@ -316,7 +318,7 @@ sub process_text {
 
     $root->{'ord'} = $ord = 0;
 
-    $root->{'comment'} = "$DOCid $FStime [MorphoFS.pl $VERSION]";
+    $root->{'comment'} = "$DOCid $FStime [MListsFS.pl $VERSION]";
 
     foreach $node (@nodes) {
 
@@ -517,7 +519,6 @@ sub process_node_morpho {
 
             push @{$node->{'token_info'}}, [@token_info];
         }
-
     }
     else {
 
@@ -544,6 +545,11 @@ sub process_morpheme_buffer {
 
     $morph =~ tr[{][A];
 
+    $morph =~ s/uwo/uw/g;
+    $morph =~ s/iyo/iy/g;
+
+    $morph =~ s/\+awo$/\+aw/;
+
     $morph =~ s/^\~a$/ya/;
     $morph =~ s/^\~A$/nA/;
     $morph =~ s/^\~iy$/iy/;
@@ -556,16 +562,42 @@ sub process_morpheme_buffer {
 
     $lemma =~ tr[{][A];
 
+    $lemma =~ s/uwo/uw/g;
+    $lemma =~ s/iyo/iy/g;
+
+    $lemma =~ s/([\|A])a/$1/g;
+
     $lemma =~ s/\/RC_PART$/\/EMPH_PART/;
 
     $lemma = identify_pronoun($lemma, $tag);
 
     $token =~ s/([tknhy])\+\1/$1\~/g;
 
-    $token =~ s/\+at((?:\+[aiuFKN])?)$/\+ap$1/ unless $tag =~ /^V/;
+    if ($tag =~ /^V/) {
+    
+        $token =~ s/\+aw$/\+awoA/;
+        $token =~ s/\+uw$/\+uwA/;
+    }
+    else {
+    
+        $token =~ s/\+at((?:\+[aiuFKN])?)$/\+ap$1/;
+    }
 
-    $token =~ s/A\+a/A/g;
+    $token =~ s/([\|Awyo])[\>\&\<\}OWI]((?:\+[aiu])?)$/$1\'$2/;
 
+    $token =~ s/([\|A])\+a/$1/g;
+
+    $token =~ s/([\|AY])\+[aui]$/$1/;
+    $token =~ s/([\|AY])\+[FNK]$/$1\+F/;
+    
+    unless ($tag eq '----------') {
+
+        $token =~ s/aY(?=\+F$)/Y/;
+        $token =~ s/(?<!a)Y(?!\+F$)/aY/;
+    }
+
+    $token =~ s/(?<=a)Y(?=\+a)/y/;
+    
     if ($token =~ /\+/ and $token ne '+') {
 
         $token =~ s/\+//g;
@@ -577,9 +609,11 @@ sub process_morpheme_buffer {
         $token =~ s/\-//g;
     }
 
-    $token = detransliterate($token);
+    $token =~ s/\(null\)//g;
 
-    return [$token, $morph, $tag, $gloss, $lemma, 'f'];
+    $token = decode 'buckwalter', $token unless $token =~ /^(?:$regexQ|$regexG)$/;
+
+    return [$token, $morph, $tag, $gloss, $lemma];
 }
 
 
@@ -615,22 +649,6 @@ sub remove_diacritics_buckwalter {
     my $text = shift;
 
     $text =~ tr[aiuoFKN\~\`\_][]d;
-
-    return $text;
-}
-
-
-sub detransliterate {
-
-    return $_[0] if $_[0] =~ /^(?:$regexQ|$regexG)$/;
-
-    my $text = shift;
-
-    $text =~ s/\(null\)//g;
-
-    $text = decode 'buckwalter', $text;
-
-    $text =~ tr[\x{0671}][\x{0627}];
 
     return $text;
 }
@@ -728,15 +746,16 @@ sub define_target_format {
 
                 'style:' . q {<?
 
-                        $this->{apply_m} > 0 ? '#{Line-fill:red}' : defined $this->{apply_m} ? '#{Line-fill:black}' : ''
+                        $this->{apply_m} > 0 ? '#{Line-fill:red}' : 
+                                               $this->{apply_t} > 0 ? '#{Line-fill:orange}' :
+                                                                      defined $this->{apply_m} ? '#{Line-fill:black}' : ''
 
                     ?>},
 
-                q {<?   '#{magenta}${comment} << ' if $this->{type} !~ /^(?:token_node|paragraph)$/
-                                                                                    and $this->{comment} ne '' ?>} .
+                q {<?   '#{magenta}${comment} << ' if $this->{type} !~ /^(?:token_node|paragraph)$/ and $this->{comment} ne ''  ?>} .
 
                 q {<?
-                        $this->{type} eq 'token_node'
+                        $this->{type} =~ /^(?:token_node|token_form|partition)$/
 
                             ? ( '${form}' )
 
@@ -744,22 +763,21 @@ sub define_target_format {
 
                             $this->{type} eq 'lemma_id'
 
-                                ? ( '#{purple}' . ( length $this->{gloss} > 18
-                                                        ? ( substr $this->{gloss}, 0, 15 ) . '...'
-                                                        : '${gloss}' ) . ' #{gray}${id} #{darkmagenta}${form}' )
+                                ? ( '#{purple}${gloss} #{gray}${id} #{darkmagenta}${form}' )
                                 : (
 
-                                $this->{type} =~ /^(?:entity|word_node|paragraph)$/
+                                $this->{type} =~ /^(?:entity|paragraph)$/
 
-                                    ? (
-
-                                    $this->{apply_m} > 0
+                                    ? ( $this->{apply_m} > 0
 
                                         ? '#{black}${id} #{gray}${lookup} #{red}${input}'
                                         : '#{black}${id} #{gray}${lookup} #{black}${input}'
-
                                     )
-                                    : ( '${form}' )
+                                    : ( $this->{apply_m} > 0
+
+                                        ? '  #{red}${input}'
+                                        : '  #{black}${input}'
+                                    )
                                 )
                             )
                     ?>},
@@ -811,7 +829,7 @@ Perl is also designed to make the easy jobs not that easy ;)
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2004-2007 by Otakar Smrz
+Copyright 2004-2008 by Otakar Smrz
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

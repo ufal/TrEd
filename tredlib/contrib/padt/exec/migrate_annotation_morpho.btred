@@ -7,7 +7,6 @@
 our $VERSION = do { q $Revision$ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
 
-#include <tred.mac>
 #include <contrib/padt/MorphoTrees.mak>
 
 package TredMacro;

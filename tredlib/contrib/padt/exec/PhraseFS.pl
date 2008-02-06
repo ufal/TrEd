@@ -17,7 +17,7 @@ BEGIN {
 
     chomp $libDir;
 
-    eval "use lib '$libDir'";
+    eval "use lib '$libDir', '$libDir/libs/fslib', '$libDir/libs/pml-base'";
 }
 
 use Fslib 1.6;
@@ -40,7 +40,9 @@ our $regexQ = qr/[0-9]+(?:[\.\,\x{060C}\x{066B}\x{066C}][0-9]+)? |
 our $regexG = qr/[\.\,\;\:\!\?\`\"\'\(\)\[\]\{\}\<\>\\\|\/\~\@\#\$\%\^\&\*\_\=\+\-\x{00AB}\x{00BB}\x{060C}\x{061B}\x{061F}]/;
 
 
-our ($target, $file, $twig, $this, $tree_lim, $node_lim, $term_lim);
+our ($target, $file, $FStime);
+
+our ($twig, $this, $tree_lim, $node_lim, $term_lim);
 
 
 # ##################################################################################################
@@ -53,66 +55,9 @@ our ($target, $file, $twig, $this, $tree_lim, $node_lim, $term_lim);
 
 until (eof()) {
 
-    $target = FSFile->create(
+    $FStime = gmtime;
 
-                'FS'        => FSFormat->create(
-
-                    '@P morph',
-                    '@P label',
-                    '@P tag_1',
-                    '@P tag_2',
-                    '@P tag_3',
-                    '@P comment',
-                    '@P form',
-                    '@P origf',
-                    '@P ref',
-                    '@N ord',
-                    '@P ord_just',
-                    '@P ord_term',
-                    '@H hide',
-
-                                ),
-
-                'hint'      =>  ( join "\n",
-
-                        'morph: ${morph}',
-                        'label: ${label}',
-                        'tag_1: ${tag_1}',
-                        'tag_2: ${tag_2}',
-                        'tag_3: ${tag_3}',
-                        'comment: ${comment}',
-
-                                ),
-                'patterns'  => [
-
-                        'cvs: $' . 'Revision' . ': $ $' . 'Date' . ': $',
-
-                        'mode:' . 'PhraseTrees',
-
-                        'rootstyle:' . q {<?
-
-                                '#{vertical}#{Node-textalign:left}'
-
-                            ?>},
-
-                        'style:' . q {<?
-
-                                '#{Line-coords:n,n,p,n,p,p}'
-
-                            ?>},
-
-                        q {<? $this->{morph} eq '' ? '#{custom1}${label}' : '#{custom6}${form}' ?>},
-
-                        '#{custom4}${tag_2}',
-                        '#{custom5}${tag_3}',
-                        '#{custom2}${morph}',
-                        '#{custom3}${tag_1}',
-
-                                ],
-                'trees'     => [],
-                'backend'   => 'FSBackend',
-                'encoding'  => $encode,
-        );
+    $target = FSFile->create(define_target_format());
 
     $file = $ARGV;
 
@@ -175,17 +120,26 @@ sub parse_twig {
                 $node_lim = $term_lim = 0;
 
                 $this->{'ord'} = ++$node_lim;
+
+                $this->{'comment'} = "$FStime [PhraseFS.pl $VERSION]";
             }
         }
         elsif ($tokens[0] eq ")") {
 
-            if ($this->parent()) {
+            if (defined $this) {
+        
+                if ($this->parent()) {
 
-                $this = $this->parent();
+                    $this = $this->parent();
+                }
+                else {
+
+                    $this = undef;
+                }
             }
             else {
-
-                $this = undef;
+            
+                warn "!!! Non-matching right parenthesis !!!";
             }
         }
         elsif ($tokens[1] eq "(") {
@@ -207,6 +161,10 @@ sub parse_twig {
                     $this->{'tag_2'} = MorphoMap::AraMorph_POSVector($1);
 
                     substr $this->{'tag_2'}, 4, 1, 'F';
+                }
+                elsif ($tokens[0] eq 'NO_FUNC') {
+
+                    $this->{'tag_2'} = MorphoMap::AraMorph_POSVector('');
                 }
                 else {
 
@@ -249,9 +207,14 @@ sub process_morph {
 
     $morph =~ tr[{][A];
 
-    $morph =~ s/^\~a$/ya/;
-    $morph =~ s/^\~A$/nA/;
-    $morph =~ s/^\~iy$/iy/;
+    $morph =~ s/uwo/uw/g;
+    $morph =~ s/iyo/iy/g;
+
+    $morph =~ s/\+awo(\-?)$/\+aw$1/;
+
+    $morph =~ s/^(\-?)\~a(\-?)$/$1ya$2/;
+    $morph =~ s/^(\-?)\~A(\-?)$/$1nA$2/;
+    $morph =~ s/^(\-?)\~iy(\-?)$/$1iy$2/;
 
     return $morph;
 }
@@ -269,10 +232,31 @@ sub process_form {
 
     $token =~ s/([tknhy])\+\1/$1\~/g;
 
-    $token =~ s/\+at((?:\+[aiuFKN])?)$/\+ap$1/ unless $this->{'tag_2'} =~ /^V/;
+    if ($this->{'tag_2'} =~ /^V/) {
+    
+        $token =~ s/\+aw(\-?)$/\+awoA$1/;
+        $token =~ s/\+uw(\-?)$/\+uwA$1/;
+    }
+    else {
+    
+        $token =~ s/\+at((?:\+[aiuFKN])?\-?)$/\+ap$1/;
+    }
+    
+    $token =~ s/([\|Awyo])[\>\&\<\}OWI]((?:\+[aiu])?\-?)$/$1\'$2/;
 
-    $token =~ s/A\+a/A/g;
+    $token =~ s/([\|A])\+a/$1/g;
+ 
+    $token =~ s/([\|AY])\+[aui]$/$1/;
+    $token =~ s/([\|AY])\+[FNK]$/$1\+F/;
+    
+    unless ($this->{'tag_2'} eq '----------') {
 
+        $token =~ s/aY(?=\+F$)/Y/;
+        $token =~ s/(?<!a)Y(?!\+F$)/aY/;
+    }
+        
+    $token =~ s/(?<=a)Y(?=\+a)/y/;
+    
     if ($token =~ /\+/ and $token ne '+') {
 
         $token =~ s/\+//g;
@@ -317,6 +301,15 @@ sub justify_order {
 
     my $this = $root->rightmost_descendant();
 
+    if ($this == $root) {
+    
+        warn "!!! No node except the root !!!";
+        
+        $root->{'ord_just'} = 0;
+        
+        return;
+    }
+    
     do {
 
         $this->{'ord_just'} = $this->{'ord'} unless $this->firstson();
@@ -355,6 +348,72 @@ sub identify_language {
 }
 
 
+sub define_target_format {
+
+    return (
+
+        'FS'        => FSFormat->create(
+
+            '@P morph',
+            '@P label',
+            '@P tag_1',
+            '@P tag_2',
+            '@P tag_3',
+            '@P comment',
+            '@P form',
+            '@P origf',
+            '@P ref',
+            '@N ord',
+            '@P ord_just',
+            '@P ord_term',
+            '@H hide',
+
+                        ),
+
+        'hint'      =>  ( join "\n",
+
+                'morph: ${morph}',
+                'label: ${label}',
+                'tag_1: ${tag_1}',
+                'tag_2: ${tag_2}',
+                'tag_3: ${tag_3}',
+                'comment: ${comment}',
+
+                        ),
+        'patterns'  => [
+
+                'svn: $' . 'Revision' . ': $ $' . 'Date' . ': $',
+
+                'mode:' . 'PhraseTrees',
+
+                'rootstyle:' . q {<?
+
+                        '#{vertical}#{Node-textalign:left}'
+
+                    ?>},
+
+                'style:' . q {<?
+
+                        '#{Line-coords:n,n,p,n,p,p}'
+
+                    ?>},
+
+                q {<? $this->{morph} eq '' ? '#{custom1}${label}' : '#{custom6}${form}' ?>},
+
+                '#{custom4}${tag_2}',
+                '#{custom5}${tag_3}',
+                '#{custom2}${morph}',
+                '#{custom3}${tag_1}',
+
+                        ],
+        'trees'     => [],
+        'backend'   => 'FSBackend',
+        'encoding'  => $encode,
+
+    );
+}
+
+
 __END__
 
 
@@ -385,7 +444,7 @@ Perl is also designed to make the easy jobs not that easy ;)
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2005-2007 by Otakar Smrz
+Copyright 2005-2008 by Otakar Smrz
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
