@@ -17,7 +17,7 @@ BEGIN {
 
     chomp $libDir;
 
-    eval "use lib '$libDir'";
+    eval "use lib '$libDir', '$libDir/libs/fslib', '$libDir/libs/pml-base'";
 }
 
 use Fslib 1.6;
@@ -118,7 +118,7 @@ sub define_target_format {
             '@P form',
             '@P afun',
             '@O afun',
-            '@L afun|Pred|Pnom|PredE|PredC|PredP|Sb|Obj|Adv|Atr|Atv|ExD|Coord|Apos|Ante|AuxS' .
+            '@L afun|Pred|Pnom|PredE|PredC|PredM|PredP|Sb|Obj|Adv|Atr|Atv|ExD|Coord|Apos|Ante|AuxS' .
                    '|AuxC|AuxP|AuxE|AuxM|AuxY|AuxG|AuxK|ObjAtr|AtrObj|AdvAtr|AtrAdv|AtrAtr|???',
             '@P lemma',
             '@P tag',
@@ -129,15 +129,15 @@ sub define_target_format {
             '@P tagauto',
             '@P lemauto',
             '@P parallel',
-            '@L parallel|Co|Ap|no-parallel',
+            '@L parallel|Co|Ap',
             '@P paren',
-            '@L paren|Pa|no-paren',
+            '@L paren|Pa',
             '@P arabfa',
-            '@L arabfa|Ca|Exp|Fi|no-fa',
+            '@L arabfa|Ca|Exp|Fi',
             '@P arabspec',
-            '@L arabspec|Ref|Msd|no-spec',
+            '@L arabspec|Ref|Msd',
             '@P arabclause',
-            '@L arabclause|Pred|PredC|PredE|PredP|Pnom|no-claus',
+            '@L arabclause|Pred|Pnom|PredE|PredC|PredM|PredP',
             '@P comment',
             '@P docid',
             '@P1 warning',
@@ -239,14 +239,14 @@ sub define_target_format {
 
                     ?>},
 
-                q {<? $this->{form} =~ /^./ ? $this->{lemma} =~ /^([^\_]+)/ ?
+                q {<? $this->{form} ne '' ? $this->{lemma} =~ /^([^\_]+)/ ?
                                             $1 : '${form}' : '#{custom6}${origf}' ?>},
 
                 q {<?
 
                         join '#{custom5}_', ( $this->{func} eq '???' && $this->{afun} ne '' ?
                         '#{custom3}${afun}' : '#{custom5}${func}' ), ( ( join '_', map {
-                        '${' . $_ . '}' } grep { $this->{$_} =~ /^./ && $this->{$_} !~ /^no-/ }
+                        '${' . $_ . '}' } grep { $this->{$_} ne '' }
                         qw 'parallel paren arabfa arabspec arabclause' ) || () )
 
                     ?>},
@@ -294,7 +294,7 @@ Perl is also designed to make the easy jobs not that easy ;)
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2004-2007 by Otakar Smrz
+Copyright 2004-2008 by Otakar Smrz
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

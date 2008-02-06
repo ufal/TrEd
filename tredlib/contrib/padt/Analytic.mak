@@ -33,7 +33,7 @@ our ($hooks_request_mode, $fill) = (0, ' ' x 4);
 sub AfunAssign {
 
     my $fullafun = $_[0];
-    my ($afun, $parallel, $paren) = ($fullafun =~ /^([^_]*)(?:_(Ap|Co|no-parallel))?(?:_(Pa|no-paren))?/);
+    my ($afun, $parallel, $paren) = ($fullafun =~ /^([^_]*)(?:_(Ap|Co))?(?:_(Pa))?/);
 
     if ($this->{'afun'} eq 'AuxS' or
         $this->{'afun'} eq $afun and $this->{'parallel'} eq $parallel and $this->{'paren'} eq $paren) {
@@ -646,8 +646,8 @@ sub isPredicate {
 
     my $this = defined $_[0] ? $_[0] : $this;
 
-    return $this->{arabclause} !~ /^no-|^$/ || $this->{tag} =~ /^V/ && $this->{afun} !~ /^Aux/
-                                            || $this->{afun} =~ /^Pred[CEP]?$/;
+    return $this->{arabclause} ne "" || $this->{tag} =~ /^V/ && $this->{afun} !~ /^Aux/
+                                     || $this->{afun} =~ /^Pred[ECMP]?$/;
 }
 
 sub theClauseHead ($;&) {
@@ -1303,7 +1303,7 @@ sub synchronize_file {
 
     move $file[2], $file[0];
 
-    system 'btred -Qm ' . ( escape $libDir . '/contrib/padt/exec/migrate_annotation_syntax.btred' ) .
+    system 'btred -QI ' . ( escape $libDir . '/contrib/padt/exec/migrate_annotation_syntax.btred' ) .
                     ' ' . ( espace $file[0] );
 
     print "... succeeded.\n";

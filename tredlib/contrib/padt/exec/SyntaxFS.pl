@@ -5,11 +5,11 @@ eval 'exec /usr/bin/perl -w ####################################################
 #
 # SyntaxFS.pl ########################################################################## Otakar Smrz
 
-# $Id: SyntaxFS.pl 201 2007-02-08 02:31:43Z smrz $
+# $Id: SyntaxFS.pl 480 2008-01-24 16:26:56Z smrz $
 
 use strict;
 
-our $VERSION = do { q $Revision: 201 $ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
+our $VERSION = do { q $Revision: 480 $ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
 BEGIN {
 
@@ -17,7 +17,7 @@ BEGIN {
 
     chomp $libDir;
 
-    eval "use lib '$libDir'";
+    eval "use lib '$libDir', '$libDir/libs/fslib', '$libDir/libs/pml-base'";
 }
 
 use Fslib 1.6;
@@ -169,7 +169,7 @@ sub define_target_format {
             '@P form',
             '@P afun',
             '@O afun',
-            '@L afun|Pred|Pnom|PredE|PredC|PredP|Sb|Obj|Adv|Atr|Atv|ExD|Coord|Apos|Ante|AuxS' .
+            '@L afun|Pred|Pnom|PredE|PredC|PredM|PredP|Sb|Obj|Adv|Atr|Atv|ExD|Coord|Apos|Ante|AuxS' .
                    '|AuxC|AuxP|AuxE|AuxM|AuxY|AuxG|AuxK|ObjAtr|AtrObj|AdvAtr|AtrAdv|AtrAtr|???',
             '@P lemma',
             '@P tag',
@@ -180,15 +180,15 @@ sub define_target_format {
             '@P tagauto',
             '@P lemauto',
             '@P parallel',
-            '@L parallel|Co|Ap|no-parallel',
+            '@L parallel|Co|Ap',
             '@P paren',
-            '@L paren|Pa|no-paren',
+            '@L paren|Pa',
             '@P arabfa',
-            '@L arabfa|Ca|Exp|Fi|no-fa',
+            '@L arabfa|Ca|Exp|Fi',
             '@P arabspec',
-            '@L arabspec|Ref|Msd|no-spec',
+            '@L arabspec|Ref|Msd',
             '@P arabclause',
-            '@L arabclause|Pred|PredC|PredE|PredP|Pnom|no-claus',
+            '@L arabclause|Pred|Pnom|PredE|PredC|PredM|PredP',
             '@P comment',
             '@P docid',
             '@P1 warning',
@@ -224,13 +224,13 @@ sub define_target_format {
 
                     ?>},
 
-                q {<? $this->{form} =~ /^./ ? '${form}' : '#{custom6}${origf}' ?>},
+                q {<? $this->{form} ne '' ? '${form}' : '#{custom6}${origf}' ?>},
 
                 q {<?
 
                         join '#{custom1}_', ( $this->{afun} eq '???' && $this->{afunaux} ne '' ?
                         '#{custom3}${afunaux}' : '#{custom1}${afun}' ), ( ( join '_', map {
-                        '${' . $_ . '}' } grep { $this->{$_} =~ /^./ && $this->{$_} !~ /^no-/ }
+                        '${' . $_ . '}' } grep { $this->{$_} ne '' }
                         qw 'parallel paren arabfa arabspec arabclause' ) || () )
 
                     ?>},
@@ -258,7 +258,7 @@ SyntaxFS - Generating Analytic given a list of input MorphoTrees documents
 
 =head1 REVISION
 
-    $Revision: 201 $       $Date: 2007-02-08 03:31:43 +0100 (Thu, 08 Feb 2007) $
+    $Revision: 480 $       $Date: 2008-01-24 17:26:56 +0100 (Thu, 24 Jan 2008) $
 
 
 =head1 DESCRIPTION
@@ -278,7 +278,7 @@ Perl is also designed to make the easy jobs not that easy ;)
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2004-2007 by Otakar Smrz
+Copyright 2004-2008 by Otakar Smrz
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
