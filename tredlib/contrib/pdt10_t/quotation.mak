@@ -87,7 +87,7 @@ sub getback { # umozni vratit se k ouvozovkovanemu stromu a neco dalsiho k nemu 
   if ($this->{quot_member}) {
     $last_color=$this->{quot_color};
     my $quot_root=$this;
-    $quot_root=$quot_root->parent while ($parent and not $quot_root->{quot_start});
+    $quot_root=$quot_root->parent while ($quot_root and not $quot_root->{quot_start});
     if ($quot_root->{quot_start} eq "first") {
       $quot_laststart=$this->{TID} || $this->{AID};
     }

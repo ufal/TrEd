@@ -1,32 +1,76 @@
 # Automatically converted from Graph macros by graph2tred to Perl.         -*-cperl-*-.
 
 #encoding iso-8859-2
-{
-my $iPrevAfunAssigned;		# used as type "string"
-my $pPar1;			# used as type "pointer"
-my $pPar2;			# used as type "pointer"
-my $pPar3;			# used as type "pointer"
-my $pReturn;			# used as type "pointer"
-my $pDummy;			# used as type "pointer"
-my $sPar1;			# used as type "string"
-my $sPar2;			# used as type "string"
-my $sPar3;			# used as type "string"
-my $sReturn;			# used as type "string"
-my $iPar1;			# used as type "string"
-my $iPar2;			# used as type "string"
-my $iPar3;			# used as type "string"
-my $iReturn;			# used as type "string"
-my $sPasteNow;			# used as type "string"
-my $lPar1;			# used as type "list"
-my $lPar2;			# used as type "list"
-my $lPar3;			# used as type "list"
-my $lReturn;			# used as type "list"
-
+use vars qw(
+$cList
+$fObj
+$fObject
+$fReturn
+$fSubject
+$i
+$iLast
+$iPar1
+$iPar2
+$iPar3
+$iPrevAfunAssigned
+$iReturn
+$lafun
+$lForm
+$lLemma
+$lPar
+$lParTag
+$lPar1
+$lPar2
+$lPar3
+$lReturn
+$lT
+$lTag
+$pAct
+$pDummy
+$_pDummy
+$pNext
+$pParAct
+$pParent
+$pParParAct
+$pPar1
+$pPar2
+$pPar3
+$pPasted
+$pReturn
+$pT
+$pThis
+$pTmp
+$Return
+$sAfun
+$sAp
+$sCo
+$sLemma
+$sLemmaFull
+$sPar
+$sParAfun
+$sParLemma
+$sParParAfun
+$sParParLemma
+$sParParPOS
+$sParParTag
+$sParPOS
+$sParTag
+$sPar1
+$sPar2
+$sPar3
+$sPasteNow
+$sPOS
+$sReturn
+$sSuffAct
+$sT
+$sTag
+$sT1
+);
 
 sub comments {
 
 }
-my $_pDummy;			# used as type "pointer"
+
 
 
 sub ThisRoot {
@@ -138,48 +182,6 @@ sub GetAfunSuffix {
 
 
 sub SubtreeAfunAssign {
-  my $pAct;			# used as type "pointer"
-  my $pParAct;			# used as type "pointer"
-  my $pParParAct;		# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pParent;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pThis;			# used as type "pointer"
-  my $fSubject;			# used as type "string"
-  my $fObject;			# used as type "string"
-  my $sT;			# used as type "string"
-  my $sT1;			# used as type "string"
-  my $sLemmaFull;		# used as type "string"
-  my $sLemma;			# used as type "string"
-  my $sParTag;			# used as type "string"
-  my $sParParTag;		# used as type "string"
-  my $sParLemma;		# used as type "string"
-  my $sParParLemma;		# used as type "string"
-  my $sPOS;			# used as type "string"
-  my $sParPOS;			# used as type "string"
-  my $sParParPOS;		# used as type "string"
-  my $lT;			# used as type "list"
-  my $lafun;			# used as type "list"
-  my $lTag;			# used as type "list"
-  my $lLemma;			# used as type "list"
-  my $lForm;			# used as type "list"
-  my $lParTag;			# used as type "list"
-  my $sTag;			# used as type "string"
-  my $fObj;			# used as type "string"
-  my $i;			# used as type "string"
-  my $iLast;			# used as type "string"
-  my $sCo;			# used as type "string"
-  my $sAp;			# used as type "string"
-  my $sSuffAct;			# used as type "string"
-  my $sParAfun;			# used as type "string"
-  my $sParParAfun;		# used as type "string"
-  my $sAfun;			# used as type "string"
-  my $pTmp;			# used as type "pointer"
-  my $cList;			# used as type "string"
-  my $lPar;			# used as type "list"
-  my $sPar;			# used as type "string"
-  my $Return;			# used as type "string"
-  my $fReturn;			# used as type "string"
 
   $pThis = $pPar1;
 
@@ -3332,24 +3334,6 @@ sub tfa_focus {
 }
 
 
-#bind shift_node_left to Q menu posun uzel doleva
-sub shift_node_left {
-
-  $sPar1 = 'L';
-
-  MoveNode();
-
-}
-
-
-#bind shift_node_right to U menu posun uzel doprava
-sub shift_node_right {
-
-  $sPar1 = 'R';
-
-  MoveNode();
-
-}
 
 
 #bind sign_ZU to Ctrl+Z menu Podpis Zdena Uresova
@@ -3645,7 +3629,7 @@ sub Init {
 
   $pAct = $pNext;
 
-  $sForm = ValNo(0,$pAct->{'lemma'});
+  my $sForm = ValNo(0,$pAct->{'lemma'});
 
   $sPar1 = $sForm;
 
@@ -7864,7 +7848,7 @@ sub trtolemma {
     return;
   }
 
-  $pAct->{'trlemma'} = $pAct->{'lemma'};
+  $this->{'trlemma'} = $this->{'lemma'};
 
 }
 
@@ -8086,7 +8070,7 @@ sub ShiftFirst {
 }
 
 
-sub MoveNode {
+sub xMoveNode {
   my $pAct;			# used as type "pointer"
   my $pParent;			# used as type "pointer"
   my $sOrdNum;			# used as type "string"
@@ -9062,4 +9046,4 @@ sub FPaste {
   $sPasteNow = '';
 
 }
-}
+

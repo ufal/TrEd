@@ -4,7 +4,7 @@
 
 package Transfer;
 
-import TredMacro;
+BEGIN { import TredMacro; }
 
 #bind default_tr_attrs to F8 menu Display default attributes
 sub default_tr_attrs {
@@ -22,9 +22,9 @@ sub default_tr_attrs {
   return 1;
 }
 
-@colors=qw(blue darkgreen darkred turquoise violet gray purple lightblue plum green pink
-           orange2 maroon khaki gold firebrick2 cyan3 chartreuse
-           burltywood);
+my @colors=qw(blue darkgreen darkred turquoise violet gray purple
+           lightblue plum green pink orange2 maroon khaki gold
+           firebrick2 cyan3 chartreuse burltywood);
 
 sub switch_context_hook {
   my ($prevcontext)=@_;
@@ -52,7 +52,7 @@ sub add_style {
 # invoked by TrEd to allow custom styling of the tree ($node is the
 # root)
 sub root_style_hook {
-  my ($node)=@_;
+  my ($node,$styles)=@_;
 
   my $color=-1;
   while ($node) {

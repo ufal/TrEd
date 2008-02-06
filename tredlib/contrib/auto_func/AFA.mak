@@ -1,6 +1,6 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2005-10-05 10:49:05 pajas>
+## Time-stamp: <2008-02-06 14:18:52 pajas>
 
 #encoding iso-8859-2
 
@@ -40,7 +40,7 @@ sub init_AFA {
   $init_AFA=1;
   my $f;
   open $f,"<:encoding(iso-8859-2)","$AFA_dir/adverb2functor.lex" or warn "cannot open $AFA_dir/adverb2functor.lex: $!";
-  my ($key,$func,$num,$of);
+  my ($lemma,$func,$num,$of);
   while (<$f>) {
     s/[\r\n]//g;
     ($lemma,$func,$num,$of)=split "\t",$_;
@@ -124,9 +124,9 @@ sub assign_func_auto {
   $pa=~s/_.*//g;
   my $prec;
   $node->{funcauto}="???";
-
+  my $af;
   if ($node->{tag}=~/^D/ and exists($advfunc{$node->{trlemma}})) {
-    my $af=$advfunc{$node->{trlemma}};
+    $af=$advfunc{$node->{trlemma}};
     $node->{funcauto}=$af->[0];
     $prec=$af->[2]."/".($af->[2]-$af->[1]);
     $node->{reserve2}='ADVFUNC';

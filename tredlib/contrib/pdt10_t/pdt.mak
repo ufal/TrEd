@@ -7,7 +7,7 @@
 
 package PDT;
 
-import TredMacro;
+BEGIN { import TredMacro; }
 
 =pod
 

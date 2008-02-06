@@ -1,6 +1,6 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2006-07-26 11:08:34 pajas>
+## Time-stamp: <2008-02-06 14:53:57 pajas>
 
 use lib "$main::libDir/contrib/auto_afun/AutoAfun";
 
@@ -49,7 +49,7 @@ sub assign_afun_auto {
 		     );
 
   my ($lc_afun, $is_member, $is_parenthesis_root) = $afun_old=~/(^[^_]+)(_co|_ap)?(_pa)?$/i;
-  $afun = $LcAfuns{ lc($lc_afun) };
+  my $afun = $LcAfuns{ lc($lc_afun) };
   if ($afun eq q{}) {
     my ($lemma,$tag) = afun_info($node);
     if ($node->parent->{afun} eq 'AuxS') {

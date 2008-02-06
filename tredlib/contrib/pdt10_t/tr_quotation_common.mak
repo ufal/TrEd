@@ -1,10 +1,10 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-05-27 15:57:41 pajas>
+## Time-stamp: <2008-02-06 14:01:30 pajas>
 
 package Quotation;
 
-import TredMacro;
+BEGIN { import TredMacro; }
 
 sub do_edit_attr_hook {
   Tectogrammatic::do_edit_attr_hook(@_);

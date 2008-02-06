@@ -8,7 +8,9 @@
 
 use lib "$main::libDir/contrib/auto_coref";
 require ACAP;
-
+use vars qw($drawAutoCoref $cortypes %cortype_colors $referent_color
+	    $inf_lemmas_addr $inf_lemmas_pat
+	  );
 $drawAutoCoref = 1;
 
 $cortypes='textual|grammatical';              # types of coreference
@@ -39,7 +41,7 @@ $inf_lemmas_addr=
 # IMPLEMENTATION:
 #
 
-$referent=""; # stores ID of the marked node (Cut-and-Paste style)
+my $referent=""; # stores ID of the marked node (Cut-and-Paste style)
 
 ########################## Update file header ###########################
 

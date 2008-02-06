@@ -1,10 +1,10 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-04-01 18:21:48 pajas>
+## Time-stamp: <2008-02-06 14:00:42 pajas>
 
 package Tectogrammatic;
 
-import TredMacro;
+BEGIN { import TredMacro; }
 
 
 sub patterns_forced {

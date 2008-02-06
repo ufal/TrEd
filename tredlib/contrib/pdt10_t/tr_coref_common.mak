@@ -1,13 +1,13 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-04-07 09:22:36 pajas>
+## Time-stamp: <2008-02-06 14:00:47 pajas>
 
 #ifndef tr_coref_common
 #define tr_coref_common
 
 package Coref;
 
-import TredMacro;
+BEGIN { import TredMacro; }
 
 ########################## Default patterns ##########################
 

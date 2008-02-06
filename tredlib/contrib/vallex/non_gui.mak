@@ -5,7 +5,7 @@
 
 package ValLex::NonGUI;
 
-import TredMacro;
+BEGIN { import TredMacro; }
 
 sub new {
   my ($self,$file)=@_;

@@ -1,7 +1,7 @@
 # -*- cperl -*-
 package TFA; # package for the annotation of topic-focus articulation
-use base qw(TredMacro);
-import TredMacro;
+
+BEGIN { import TredMacro; }
 
 
 #bind ShiftLeft to Ctrl+Left menu Move node to the left

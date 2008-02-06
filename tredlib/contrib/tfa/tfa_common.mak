@@ -181,7 +181,7 @@ sub AskCzEn ($$$$) {
   my $d = ToplevelFrame()->DialogBox(-title => $title,
 				       -buttons => [$yes, $no]
 				      );
-  $d->add(Label, -text => $message, -font => StandardTredFont(), -wraplength => 200)->pack;
+  $d->add('Label', -text => $message, -font => StandardTredFont(), -wraplength => 200)->pack;
   $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
 			     $f->Invoke if ($f and $f->isa('Tk::Button')) } );
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
@@ -208,7 +208,7 @@ sub MessageCzEn ($$) {
   my $d = ToplevelFrame()->DialogBox(-title => $title,
 				       -buttons => ["OK"]
 				      );
-  $d->add(Label, -text => $message, -font => StandardTredFont(), -wraplength => 200)->pack;
+  $d->add('Label', -text => $message, -font => StandardTredFont(), -wraplength => 200)->pack;
   $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
 			     $f->Invoke if ($f and $f->isa('Tk::Button')) } );
   $d->Show;

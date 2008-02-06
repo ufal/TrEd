@@ -53,9 +53,8 @@ package Tree_Query;
 BEGIN {
   use vars qw($this $root);
   import TredMacro;
+  import PML qw(&SchemaName);
 }
-
-import PML qw(&SchemaName);
 
 Bind 'query_sql' => {
   key => 'space',
