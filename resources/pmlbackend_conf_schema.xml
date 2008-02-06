@@ -11,6 +11,9 @@
   </type>
   <type name="options.type">
     <structure>
+      <member name="debug">
+	<cdata format="integer"/>
+      </member>
       <member name="load" type="options.load.type"/>
       <member name="save" type="options.save.type"/>
     </structure>
