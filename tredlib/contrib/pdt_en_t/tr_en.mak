@@ -4,7 +4,6 @@
 
 package EN_Tectogrammatic;
 
-use base qw(Tectogrammatic Coref TredMacro);
 import TredMacro;
 import Tectogrammatic;
 import Coref;

@@ -1,7 +1,7 @@
 # Automatically converted from Graph macros by graph2tred to Perl.         -*-cperl-*-.
 
 #encoding iso-8859-2
-
+{
 my $iPrevAfunAssigned;		# used as type "string"
 my $pPar1;			# used as type "pointer"
 my $pPar2;			# used as type "pointer"
@@ -66,7 +66,7 @@ sub TagPrune {
 
   $lTRet = Interjection('q','a');
 
-  $iLast = scalar(split /\|/,$lT);
+  $iLast = do{{ my @split = split /\|/,$lT; 0+@split }};
  TagPruneCont:
   if ($i>=$iLast) {
 
@@ -499,7 +499,7 @@ sub SubtreeAfunAssign {
   if (Interjection($lForm,'V') eq 'V' &&
       Interjection($pAct->{'ord'},"1") eq "1") {
 
-    if (scalar(split /\|/,$lTag) ne "1") {
+    if (do{{ my @split = split /\|/,$lTag; @split!=1}}) {
 
       $pAct->{'tag'} = Union('R4','R6');
     }
@@ -511,7 +511,7 @@ sub SubtreeAfunAssign {
 
   if (Interjection($lForm,'Od') eq 'Od') {
 
-    if (scalar(split /\|/,$lTag) ne "1") {
+    if (do{{ my @split = split /\|/,$lTag; @split!=1}}) {
 
       $pAct->{'tag'} = 'R2';
     }
@@ -9061,4 +9061,5 @@ sub FPaste {
 
   $sPasteNow = '';
 
+}
 }

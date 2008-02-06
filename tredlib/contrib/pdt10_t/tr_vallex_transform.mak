@@ -3,7 +3,7 @@
 #encoding iso-8859-2
 
 package TRValLexTransform;
-use base qw(TredMacro);
+
 import TredMacro;
 
 # Terminology: valency lexicon consists of headwords (which have their POS) and
@@ -238,8 +238,8 @@ sub Unify(@)
 # Determines and returns morphemic realization of the given node, i.e. 
 # information which can be searched for in the valency lexicon.
 
-sub GetMR($)
-{
+sub GetMR($);
+sub GetMR($) {
 	my ($node) = @_;
 	my $mr = "";
 	

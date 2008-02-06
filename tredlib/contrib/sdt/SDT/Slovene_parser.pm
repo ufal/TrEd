@@ -337,8 +337,8 @@ sub parse_sentence ($) {
   print "  shallow rules finished\n";
 
   # try to apply all recursive rules
-  do {
-    my $parentless=[grep {not $_->{attached}} @$parentless];
+  do {{
+    $parentless=[grep {not $_->{attached}} @$parentless];
     $success=0;
     foreach my $rulename (split /\s/,$recursive_rules) {
       if (scan_with_rule($rulename,$parentless)) {
@@ -346,12 +346,12 @@ sub parse_sentence ($) {
 	last
       }
     }
-  } while ($success);
+  }} while ($success);
 
   print "  recursive rules finished\n";
 
   # if nothing else is applicable, consider the remaining node list as a single clause
-  my $parentless=[grep {not $_->{attached}} @$parentless];
+  $parentless=[grep {not $_->{attached}} @$parentless];
   my $sentence_head;
   if (@$parentless>1) { $sentence_head = parse_clause($parentless) }
   else { ($sentence_head) = @$parentless }

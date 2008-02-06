@@ -45,7 +45,6 @@ sub PasteFromClipboard {}
 
 package Tectogrammatic;
 
-use base qw(TredMacro);
 import TredMacro;
 
 #include "tr_common.mak"

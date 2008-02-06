@@ -61,10 +61,10 @@ sub ntred_query_box {
   require Tk::Adjuster;
   my $bottom=$d->Frame()->pack(qw/-side top -fill x -expand no/);
   my $topframe=$d->Frame()->pack(qw/-side top -fill x/);
-  my $Nb=$topframe->Checkbutton(-text    => 'All trees',
+  $topframe->Checkbutton(-text    => 'All trees',
 			 -variable=> \$NTredQueryDialogAllTrees,
 			 -relief  => 'flat')->pack(qw(-fill y -anchor nw -side left));
-  my $Nb=$topframe->Checkbutton(-text    => 'All nodes',
+  $topframe->Checkbutton(-text    => 'All nodes',
 			 -variable=> \$NTredQueryDialogAllNodes,
 			 -relief  => 'flat')->pack(qw(-fill y -anchor nw -side left));
   my @normalTextWidget = qw(Text);
