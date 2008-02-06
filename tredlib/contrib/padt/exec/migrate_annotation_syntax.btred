@@ -2,12 +2,10 @@
 #
 # migrate_annotation_syntax.btred ####################################################### 2004/09/19
 
-# $Id: migrate_annotation_syntax.btred 168 2007-01-04 01:34:39Z smrz $
+# $Id: migrate_annotation_syntax.btred 469 2008-01-18 00:16:02Z smrz $
 
-our $VERSION = do { q $Revision: 168 $ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
+our $VERSION = do { q $Revision: 469 $ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
-
-#include <tred.mac>
 
 package TredMacro;
 
