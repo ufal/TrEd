@@ -75,7 +75,7 @@ sub assign_all_afun_auto {
 
 sub assign_afun_auto_tree {
   my ($class,$top)=@_;
-  my $top||=$root;
+  $top||=$root;
   my $node=$top;
   while ($node) {
     assign_afun_auto($class,$node);

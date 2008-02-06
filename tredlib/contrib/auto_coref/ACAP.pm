@@ -72,7 +72,7 @@ sub autoAssignCorefs ($) {
        $path_to_root{$n}=1;
        $n=$n->parent
      };
-     my $n=$lgrandpa;
+     $n=$lgrandpa;
      while ($n->parent) {
        if ($path_to_root{$n}) {$antec=$n;last}
        $n=$n->parent;
@@ -95,7 +95,7 @@ sub autoAssignCorefs ($) {
 	 $path_to_root{$n}=1;
 	 $n=$n->parent
        };
-       my $n=$lggrandpa;
+       $n=$lggrandpa;
        while ($n->parent) {
 	 if ($path_to_root{$n}) {$antec=$n;last}
 	 $n=$n->parent;

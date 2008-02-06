@@ -4,7 +4,6 @@
 
 package Quotation;
 
-use base qw(TredMacro);
 import TredMacro;
 
 sub do_edit_attr_hook {

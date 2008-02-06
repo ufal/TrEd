@@ -11,6 +11,7 @@ BEGIN {
   use base qw(main Exporter);
   use Carp;
   *isa = \&UNIVERSAL::isa; # this is a work-around needed for a bug in Class::Std
+  *can = \&UNIVERSAL::can; # this is a work-around needed for a bug in Class::Std
   use vars qw(@FORCE_EXPORT);
   BEGIN {
     @FORCE_EXPORT = qw($libDir $grp $root $this $_NoSuchTree $Redraw $stderr $stdout
@@ -29,6 +30,7 @@ sub _croak {
 }
 
 sub Bind {
+  require TrEd::Macros;
   while (@_) {
     my $macro = shift;
     my $bind=shift;
@@ -3517,6 +3519,7 @@ sub _import {
   # If parameters are given, exports only names specified by the parameters
   # and few variables that every TredMacro *must* share.
 
+  no strict qw(refs);
   my $pkg=shift;
   my $caller=shift;
   my %stash=%{"${pkg}::"};
@@ -3549,7 +3552,7 @@ sub import {
   # names already defined in caller package
   # If parameters are given, exports only names specified by the parameters
   # and few variables that every TredMacro *must* share.
-
+  no strict qw(refs);
   my $pkg=shift;
   my %stash=%{"${pkg}::"};
   _import($pkg,scalar(caller),($#_>=0 ? @_ : keys %stash),@FORCE_EXPORT)

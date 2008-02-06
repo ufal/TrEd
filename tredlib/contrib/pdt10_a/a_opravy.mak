@@ -116,7 +116,7 @@ sub gotoNextFound {
       # print STDERR $$node{"form"},"\n";
     }
     $this=$node,return if ($node);
-  } while (NextTree and $node=$root);
+  } while (NextTree() and $node=$root);
 }
 
 #bind skipNextAuxK to Alt+k
@@ -156,7 +156,7 @@ sub gotoPrevFound {
       # print STDERR $$node{"form"},"\n";
     }
       $this=$node,return if ($node);
-  } while (PrevTree and ($node=LastNode));
+  } while (PrevTree() and ($node=LastNode()));
   $FileNotSaved=0;
 }
 
@@ -263,7 +263,7 @@ sub ReorderStructure {
 sub ReorderChildren {
   my $top=shift;
   my @childs=();
-  my $node,$i;
+  my ($node,$i);
 
   return unless $top;
   $node=$top->firstson;
@@ -1980,7 +1980,7 @@ sub MarkAtv {
 
     $tags = $pPar1->parent->{'tag'};
 
-    $tagnum = scalar(split /\|/,$tags);
+    $tagnum = do{{ my @split = split /\|/,$tags; 0+@split }};
 
     $i = "0";
   forallATVtags:
@@ -2003,7 +2003,7 @@ sub MarkAtv {
 
       $tags = $pPar1->parent->{'tag'};
 
-      $tagnum = scalar(split /\|/,$tags);
+      $tagnum = do{{ my @split=split /\|/,$tags; 0+@split }};
 
       $i = "0";
     forallATVVtags:
@@ -2100,7 +2100,7 @@ sub MarkPnomObj {
 
     $lemmas = $pPar1->parent->{'lemma'};
 
-    $lemnum = scalar(split /\|/,$lemmas);
+    $lemnum = do {{ my @split = split /\|/,$lemmas; 0+@split }};
 
     $i = "0";
   forallLemmas:
@@ -2123,7 +2123,7 @@ sub MarkPnomObj {
 
       $lemmas = $pPar1->parent->{'lemma'};
 
-      $lemnum = scalar(split /\|/,$lemmas);
+      $lemnum = do{{ my @split = split /\|/,$lemmas; 0+@split }};
 
       $i = "0";
     everyLemma:
@@ -2350,7 +2350,7 @@ sub MarkWrongAfunPosition {
 sub MarkWrongSbCase {
   my $tags;			# used as type "list"
   my $tagnum;			# used as type "string"
-  my $i, $j;			# used as type "string"
+  my ($i, $j);			# used as type "string"
 
   $pPar1->{'err2'} = '';
 
@@ -2358,7 +2358,7 @@ sub MarkWrongSbCase {
 
     $tags = $pPar1->{'tag'};
 
-    $tagnum = scalar(split /\|/,$tags);
+    $tagnum = do{{ my @split = split /\|/,$tags; 0+@split }};
 
     $i = "0";
 
@@ -2497,7 +2497,7 @@ sub VerbsWithSe {
 
     $afuns = $pPar1->{'afun'};
 
-    $afunnum = scalar(split /\|/,$afuns);
+    $afunnum = do{{ my @split = split /\|/,$afuns; 0+@split }};
 
     $i = "0";
 
@@ -2746,7 +2746,7 @@ sub IsVerb {
 
   $tags = $pPar1->{'tag'};
 
-  $tagnum = scalar(split /\|/,$tags);
+  $tagnum = do{{ my @split = split /\|/,$tags; 0+@split }};
 
   $i = "0";
  loopTags:
@@ -3132,7 +3132,7 @@ sub HasSubItem {
 
   $tags = $lPar1;
 
-  $tagnum = scalar(split /\|/,$tags);
+  $tagnum = do{{ my @split = split /\|/,$tags; 0+@split }};
 
   $i = "0";
  loopTags:
@@ -3454,7 +3454,7 @@ sub HasSubItemX {
 
   $tags = $lPar1;
 
-  $tagnum = scalar(split /\|/,$tags);
+  $tagnum = do{{ my @split = split /\|/,$tags; 0+@split }};
 
   $i = "0";
  loopTags:

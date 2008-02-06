@@ -7,7 +7,6 @@
 #encoding iso-8859-2
 
 package Analytic;
-use base qw(TredMacro);
 import TredMacro;
 
 sub status_line_doubleclick_hook { 
@@ -67,7 +66,7 @@ sub get_status_line_hook {
 }
 
 
-
+{
 # converted from Graph macros with graph2tred to Perl.
 # =======================================================
 my $iPrevAfunAssigned;		# used as type "string"
@@ -232,7 +231,7 @@ sub comments {
 
 
 sub ThisRoot {
-  my $pT, $pPrev;		# used as type "pointer"
+  my ($pT, $pPrev);		# used as type "pointer"
 
   $pPrev = undef;
 
@@ -268,7 +267,7 @@ sub TagPrune {
 
   $lTRet = Interjection('q','a');
 
-  $iLast = scalar(split /\|/,$lT);
+  $iLast = do{{ my @s = split(/\|/,$lT); 0+@s }};
  TagPruneCont:
   if ($i>=$iLast) {
 
@@ -613,7 +612,7 @@ sub SubtreeAfunAssign {
   if (Interjection($lForm,'V') eq 'V' &&
       Interjection($pAct->{'ord'},"1") eq "1") {
 
-    if (scalar(split /\|/,$lTag) ne "1") {
+    if (do{{ my @s = split(/\|/,$lT); @s != 1 }}) {
 
       $pAct->{'tag'} = Union('R4','R6');
     }
@@ -2946,3 +2945,4 @@ sub _key_Ctrl_Shift_F5 {
 
 }
 
+}

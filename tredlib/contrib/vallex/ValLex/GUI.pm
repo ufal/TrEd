@@ -1,7 +1,7 @@
 # -*- cperl -*-
 
 package ValLex::GUI;
-use base qw(TredMacro);
+
 import TredMacro;
 use lib "$main::libDir/contrib/vallex";
 use utf8;
@@ -18,7 +18,7 @@ $chooserDialog=undef;
 
 $vallex_validate = 0;
 $vallex_file = $ENV{VALLEX};
-if ($vallex_file eq "") {
+if (defined($vallex_file) and length($vallex_file)) {
   # try to find vallex in libDir (old-way) or in resources (new-way)
   $vallex_file = ResolvePath("$libDir/contrib/ValLex/vallex.xml",'vallex.xml',1);
 }

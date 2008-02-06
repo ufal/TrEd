@@ -246,7 +246,7 @@ sub node_style_hook {
   my %my_line;
 
   # make sure we only alter the very first line
-  my $lines = scalar(split /&/,$line{coords});
+  my $lines = do{{ my @split = split /&/,$line{coords}; 0+@split }};
   if ($lines>1) {
     for (keys %my_line) {
       my @l = split /&/,$line{$_};
