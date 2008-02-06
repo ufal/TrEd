@@ -957,13 +957,16 @@ sub node_options {
 
 sub line_options {
   my ($self,$node,$fs,$can_dash)=@_;
+  my $dash = $self->get_lineDash;
   if ($fs->isHidden($node)) {
     return (-fill => $self->get_hiddenLineColor,
 	    ($can_dash ? 
-	    ($self->get_dashHiddenLines ? ('-dash' => '-') : (-dash => $self->get_lineDash)) : ())
+	    ($self->get_dashHiddenLines ? ('-dash' => '-') : 
+	       (defined $dash ? (-dash => $dash) : ())) : ())
 	   );
   } else {
-    return (-fill => $self->get_lineColor, -dash => $self->get_lineDash);
+    return (-fill => $self->get_lineColor,
+	    defined($dash) ? (-dash => $self->get_lineDash) : ());
   }
 }
 
@@ -1451,20 +1454,24 @@ sub redraw {
       my $line="line_$objectno";
       my $l;
       my $arrow_shape = $arrowshape[$lin] || $self->get_lineArrowShape;
-      eval {
-	$l=$canvas->
-	  createLine(@c,
-		     $self->line_options($node,$fsfile->FS,$can_dash),
+      my @opts = ($self->line_options($node,$fsfile->FS,$can_dash),
 		     -tags => [$line,'line'],
 		     -arrow =>  $arrow[$lin] || $self->get_lineArrow,
                      (defined($arrow_shape) ? (-arrowshape => $arrow_shape) : ()),
 		     -width =>  $width[$lin] || $self->get_lineWidth,
 		     ($fill[$lin] ? ('-fill'  => $fill[$lin]) : ()),
 		     (($dash[$lin] && $can_dash) ? ('-dash'  => $dash[$lin]) : ()),
-		     '-smooth'  =>  $smooth[$lin] || 0
-		    );
+		     '-smooth'  =>  ($smooth[$lin] || 0));
+      eval {
+	$l=$canvas->
+	  createLine(@c, @opts);
       };
-      print STDERR $@ if $@ ne "";
+      if (defined $@ and length $@) {
+	use Data::Dumper;
+	print STDERR "createLine: ",
+	  Data::Dumper->new([\@opts],['opts'])->Dump;
+	print STDERR $@;
+      }
       $self->store_id_pinfo($l,$line);
       $self->store_node_pinfo($node,"Line$lin",$line);
       $self->store_obj_pinfo($line,$node);
