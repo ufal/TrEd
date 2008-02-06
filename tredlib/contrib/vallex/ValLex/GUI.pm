@@ -2,9 +2,16 @@
 
 package ValLex::GUI;
 
-import TredMacro;
+BEGIN { import TredMacro; }
 use lib "$main::libDir/contrib/vallex";
 use utf8;
+
+use vars qw($ValencyLexicon $ChooserHideObsolete $frameid_attr
+	    $framere_attr $lemma_attr $sempos_attr
+            $vallexEditor $chooserDialog
+	    $vallex_validate
+	    $vallex_file
+	  );
 
 $ValencyLexicon=undef;
 $ChooserHideObsolete=1;

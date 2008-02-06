@@ -357,24 +357,23 @@ sub ANodeToALexRf {
     uniq(ListV($t_node->attr('a/aux.rf')))));
   my$lemma=$a_node->attr('m/lemma');
   my%specialEntity;
-  no warnings 'qw';
-  %specialEntity=qw!. Period
-                    , Comma
-                    &amp; Amp
-                    & Amp
-                    - Dash
-                    / Slash
-                    ( Bracket
-                    ) Bracket
-                    ; Semicolon
-                    : Colon
-                    &ast; Ast
-                    * Ast
-                    &verbar; Verbar
-                    | Verbar
-                    &percnt; Percnt
-                    % Percnt
-                    !;
+  %specialEntity=('.' => 'Period',
+                  ',' => 'Comma',
+                  '&amp;' => 'Amp',
+		  '&' => 'Amp',
+		  '-' => 'Dash',
+		  '/' => 'Slash',
+		  '(' => 'Bracket',
+		  ')' => 'Bracket',
+		  ';' => 'Semicolon',
+		  ':' => 'Colon',
+		  '&ast;' => 'Ast',
+		  '*' => 'Ast',
+		  '&verbar;' => 'Verbar',
+		  '|' => 'Verbar',
+		  '&percnt;' => 'Percnt',
+		  '%' => 'Percnt',
+		 );
   if($lemma=~/^.*`([^0-9_-]+)/){
     $lemma=$1;
   }else{

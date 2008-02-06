@@ -25,7 +25,6 @@ Prague Dependency Treebank (PDT) 2.0.
 =over 4
 
 =cut
-
 sub get_status_line_hook {
   my $statusline=&PML_A::get_status_line_hook;
   push @{$statusline->[0]},

@@ -5,7 +5,7 @@
 
 #encoding iso-8859-2
 
-import PML;
+BEGIN { import PML; }
 sub first (&@);
 
 =pod

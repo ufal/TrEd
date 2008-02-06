@@ -25,14 +25,14 @@ sub trim_subtree {
 
 sub copy_to_clipboad {
   return unless ($this);
-  $nodeClipboard=CloneSubtree($this);
+  $TredMacro::nodeClipboard=CloneSubtree($this);
 }
 
 sub cut_to_clipboad {
   return unless ($this and $this->parent);
-  $nodeClipboard=$this;
+  $TredMacro::nodeClipboard=$this;
   $this=$this->rbrother ? $this->rbrother : $this->parent;
-  CutNode($nodeClipboard);
+  CutNode($TredMacro::nodeClipboard);
 
   my $nodesref=GetNodes();
   SortByOrd($nodesref);
@@ -40,9 +40,9 @@ sub cut_to_clipboad {
 }
 
 sub paste_from_clipboad {
-  return unless ($this and $nodeClipboard);
+  return unless ($this and $TredMacro::nodeClipboard);
 
-  my $clipnodes=GetNodes($nodeClipboard);
+  my $clipnodes=GetNodes($TredMacro::nodeClipboard);
   SortByOrd($clipnodes);
   NormalizeOrds($clipnodes);
   my $nodes=GetNodes($root);
@@ -57,20 +57,20 @@ sub paste_from_clipboad {
     $node->{$ord}+=$#$clipnodes+1 if $node->{$ord}>$shift;
   }
 
-  PasteNode($nodeClipboard,$this);
-  $this=$nodeClipboard;
-  $nodeClipboard=undef;
+  PasteNode($TredMacro::nodeClipboard,$this);
+  $this=$TredMacro::nodeClipboard;
+  $TredMacro::nodeClipboard=undef;
 }
 
 sub paste_as_new_tree {
-  return unless ($grp->{FSFile} and $nodeClipboard);
+  return unless ($grp->{FSFile} and $TredMacro::nodeClipboard);
 
-  my $clipnodes=GetNodes($nodeClipboard);
+  my $clipnodes=GetNodes($TredMacro::nodeClipboard);
   SortByOrd($clipnodes);
   NormalizeOrds($clipnodes);
   my $pos=$grp->{FSFile}->lastTreeNo()+1;
-  $grp->{FSFile}->insert_tree($nodeClipboard,$pos);
+  $grp->{FSFile}->insert_tree($TredMacro::nodeClipboard,$pos);
   GotoTree($pos+1);
-  $nodeClipboard=undef;
+  $TredMacro::nodeClipboard=undef;
 }
 

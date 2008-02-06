@@ -3,7 +3,9 @@
 
 package AcademicTreebank;
 
-import TredMacro;
+BEGIN { import TredMacro; }
+use vars qw(%ORIGA_INFO %ORIGT_INFO %ORIGS_INFO @ORIGT_INFO);
+
 
 #ifinclude <contrib/pdt10_a/pdt_tags.mak>
 #bind show_tag to Alt+t menu Describe PDT tag
@@ -30,7 +32,8 @@ sub swap_afun_from_dep_type {
 
 #bind accept_afun_as_it_is to Alt+x menu Accept afun as it is
 sub accept_afun_as_it_is {
-    my $first = $last = "";
+  my ($first, $last);
+  $first = $last = "";
     if($this->{dep_type} =~ /-a/) {
         ($first, $last) = $this->{dep_type} =~ /^(.*)-a(.*)$/;
         $this->{dep_type} = $first."-A".$last;
@@ -40,7 +43,8 @@ sub accept_afun_as_it_is {
 
 #bind accept_dep_as_it_is to Alt+c menu Accept dep as it is
 sub accept_dep_as_it_is {
-    my $first = $last = "";
+  my ($first,$last);
+  $first = $last = "";
     if($this->{dep_type} =~ /-d/) {
         ($first, $last) = $this->{dep_type} =~ /^(.*)-d(.*)$/;
         $this->{dep_type} = $first."-D".$last;

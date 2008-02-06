@@ -5,7 +5,7 @@
 #define PML_A2T
 
 package PML_A2T;
-import PML;
+BEGIN { import PML; }
 sub first (&@);
 
 =pod

@@ -4,11 +4,10 @@
 #include <contrib/vallex/contrib.mac>
 
 package TR_FrameValidation;
-use vars qw($V_backend $V_module $V_verbose $V);
-@ISA=qw(TR_Correction);
+use vars qw($V_backend $V_module $V_verbose $V $ExD_tolerant);
 sub first (&@);
 sub with_AR (&);
-import TR_Correction;
+BEGIN { import TR_Correction; }
 sub uniq { my %a; @a{@_}=@_; values %a }
 
 #bind only_parent_aidrefs to Ctrl+p menu Make only parent have the current node among its AIDREFS
@@ -66,7 +65,7 @@ sub reload_macros_hook {
   if ($V) {
     $V->doc_free();
     $V = undef;
-    $ValencyLexicon = undef;
+    $ValLex::GUI::ValencyLexicon = undef;
   }
 }
 
@@ -106,6 +105,7 @@ sub choose_frame_or_advfunc_validate {
 
 #bind assign_dispmod to Ctrl+asterisk menu Assign dispmod=DISPMOD to this node
 sub assign_dispmod {
+  my $defs = FSFormat->defs;
   unless (exists($defs->{dispmod})) {
     AppendFSHeader('@P dispmod',
 		   '@L dispmod|---|NA|NIL|DISP|???');
@@ -115,6 +115,7 @@ sub assign_dispmod {
 
 #bind assign_state to Ctrl+equal menu Assign state=ST
 sub assign_state {
+  my $defs = FSFormat->defs;
   unless (exists($defs->{state})) {
     AppendFSHeader('@P state',
 		   '@L state|---|NA|NIL|ST|???');
@@ -262,7 +263,7 @@ sub get_status_line_hook {
 sub get_value_line_hook {
    my ($fsfile,$treeNo)=@_;
    my @vl = $fsfile->value_line_list($treeNo,1,1);
-   %colors = ( ACT => 'red',
+   my %colors = ( ACT => 'red',
 	       PAT => 'blue',
 	       EFF => 'green',
 	       PRED => 'gray' );

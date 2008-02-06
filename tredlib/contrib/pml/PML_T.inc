@@ -7,7 +7,7 @@
 #encoding iso-8859-2
 
 use Carp;
-import PML;
+BEGIN { import PML; }
 sub first (&@);
 
 =pod
@@ -283,6 +283,7 @@ C<arrow_exoph>.
 
 =cut
 
+my %coreflemmas;
 sub DrawCorefArrows {
   my ($node,$styles,$line,$corefs,$cortypes)=@_;
   delete $coreflemmas{$node->{id}};
@@ -1101,8 +1102,7 @@ sub NewID {
   shift unless ref($_[0]);
   my $top = ref($_[0]) ? $_[0]->root : $root;
   my $id = $top->{id}.'a'.
-    ((sort {$b<=>$a} map{$_->{id}=~/a([0-9]+)$/;$1}$top->descendants)[0]+1)
-      if $id eq "";
+    ((sort {$b<=>$a} map{$_->{id}=~/a([0-9]+)$/;$1}$top->descendants)[0]+1);
   $id;
 }#NewNode
 

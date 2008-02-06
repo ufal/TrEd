@@ -1,5 +1,6 @@
 # -*- cperl -*-
 
+use vars qw($AdvLexiconData $AdvLexiconDialog $AdvFile);
 $AdvLexiconData=undef;
 $AdvLexiconDialog=undef;
 
@@ -223,7 +224,7 @@ sub show_adverbs_dialog {
   }
   print "search $trlemma start\n";
   $hlist->selectionClear();
-  foreach $e ($hlist->infoChildren("")) {
+  foreach my $e ($hlist->infoChildren("")) {
     if ($hlist->infoData($e) eq $trlemma) {
       $hlist->see($e);
       $hlist->open($e);

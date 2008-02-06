@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2007-03-01 11:13:30 pajas>
+## Time-stamp: <2008-02-06 14:00:46 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -45,7 +45,7 @@ sub PasteFromClipboard {}
 
 package Tectogrammatic;
 
-import TredMacro;
+BEGIN { import TredMacro; }
 
 #include "tr_common.mak"
 

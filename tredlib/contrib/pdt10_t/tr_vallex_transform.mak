@@ -3,8 +3,12 @@
 #encoding iso-8859-2
 
 package TRValLexTransform;
+use vars qw($vallex
+	    $MD__src
+	    $VallexFileName
+	    $PrepFileName);
 
-import TredMacro;
+BEGIN { import TredMacro; }
 
 # Terminology: valency lexicon consists of headwords (which have their POS) and
 # their framesets. Each frameset consists of one or more frames. Each frames
@@ -342,7 +346,8 @@ sub MatchFrame ($$)
 #		if (defined $deter{$slot->[0]}) { print "DETERMINED $slot->[0]\n"; next; } #!
 
 		# if there are no MR required, use the "standard" ones
-		for my $mr (scalar(grep { $_ } @$slot[1..@$slot-1])? grep { $_ } @$slot[1..@$slot-1] : @{$func2prep->{$slot->[0]}})
+	  for my $mr (scalar(grep { $_ } @$slot[1..@$slot-1])? grep { $_ } @$slot[1..@$slot-1] : @{$TRValLexTransform::func2prep->{$slot->[0]}}
+			   )
 #		for my $mr (grep { $_ } @$slot[1..@$slot-1])
 		{
 			$morph2func{$mr} = $slot->[0];
@@ -350,7 +355,7 @@ sub MatchFrame ($$)
 	}
 
 	# determine pairs -- fill @res
-	for $rnp (@$rnps)
+	for my $rnp (@$rnps)
 	{
 		push @res, [ $morph2func{ $rnp->[0] }, $rnp->[1] ] if defined $morph2func{ $rnp->[0] };
 	}
@@ -368,7 +373,7 @@ sub MatchFrame ($$)
 #	}
 
 	# there cannot be more than one same inner participant 
-	for $inner ('ACT', 'PAT', 'ADDR', 'EFF', 'ORIG')
+	for my $inner ('ACT', 'PAT', 'ADDR', 'EFF', 'ORIG')
 	{
 		if ((grep {$_->[0] eq $inner} @res) > 1)
 		{
@@ -431,10 +436,10 @@ sub TransformNode ()
 	my $default_V_frameset = [ [ [ [ 'ACT', '1' ] ] ] ]; # default frameset for verbs not found in lexicon
 
 	###	prepare lemma and POS
-	$lemma = $this->{'trlemma'};
+	my $lemma = $this->{'trlemma'};
 	$lemma =~ s/_/ /;
 #	$lemma ne 'být' or return; #!
-	$pos   = substr($this->{'tag'}, 0, 1);
+	my $pos   = substr($this->{'tag'}, 0, 1);
 	$pos eq 'V' && $this->{'afun'} ne 'AuxV' or return;
 
 	&Verb_Modality($this);
@@ -531,7 +536,7 @@ sub TransformNode ()
 		}
 	}
 	# retain just these funcs which occur in all the frames
-	for $func (keys %ob)
+	for my $func (keys %ob)
 	{
 		$ob{$func} == @frameset or delete $ob{$func};
 	}
@@ -556,7 +561,7 @@ sub TransformNode ()
 			my $i = 0;
 			while ($i<@nodes && $nodes[$i] != $fnp->[1]) { $i++; }
 			if ($i == @nodes) { $nodes[$i] = $fnp->[1]; }
-			$temp = \$order2func{$i};
+			my $temp = \$order2func{$i};
 			# when two best frames determine the func belonging to a realization
 			# differently, none is assigned
 			# e.g. verb "pripravit" -- "prepare"/"steal, dispel":
@@ -632,7 +637,7 @@ sub TransformNode ()
 
 	for (my $el_cnt = @elids, my $i = 0; $i < $el_cnt; $i++)
 	{
-		$el = shift @elids;
+		my $el = shift @elids;
 		my $cnt_bef = keys %ob;
 		map { delete $ob{$_} } grep { $_ eq $el->{'func'} } keys %ob;
 		my $cnt_aft = keys %ob;
@@ -640,7 +645,7 @@ sub TransformNode ()
 	}
 
 	### create new nodes for funcs remaining in %ob
-	foreach $func (keys %ob)
+	foreach my $func (keys %ob)
 	{
 		# multiply assigned func *is* already there (we just don't know which node it is assigned to)
 		!defined $multi{$func} or next;

@@ -4,7 +4,7 @@
 #define pdt_vallex
 
 use lib "$main::libDir/contrib/vallex";
-require ValLex::GUI;
+BEGIN { require ValLex::GUI; }
 
 #include "non_gui.mak"
 

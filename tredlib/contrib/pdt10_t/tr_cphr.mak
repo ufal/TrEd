@@ -3,10 +3,13 @@
 
 package TR_CPHR;
 
-import TredMacro;
-import Tectogrammatic;
-import Coref;
-import TR_FrameValidation;
+BEGIN {
+  import TredMacro; 
+  import Tectogrammatic;
+  import Coref;
+  import TR_FrameValidation;
+  import TR_FrameValidation qw(@fv_trans_rules_V);
+}
 
 sub first (&@);
 sub with_AR (&);
@@ -104,7 +107,7 @@ sub filter_possible_cphr_frames {
       } $V->valid_frames($word);
     my @result;
     foreach my $frame (@frames) {
-      my @transformed = do_transform_frame($V,\@fv_trans_rules_V,$node,$frame,$aids,$quiet);
+      my @transformed = do_transform_frame($V,\@fv_trans_rules_V,$node,$frame,$aids,0);
       foreach my $tframe (@transformed) {
 	foreach my $e (grep { $V->func($_) eq 'CPHR' } $V->all_elements($tframe)) {
 	  my @forms = $V->forms($e);
@@ -123,6 +126,7 @@ sub filter_possible_cphr_frames {
 
 
 
+my %cache;
 sub discover_cphr_dphr {
   my $node = shift || $this;
   return unless $node;
