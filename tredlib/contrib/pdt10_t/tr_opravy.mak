@@ -1,22 +1,23 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-04-22 13:39:19 pajas>
+## Time-stamp: <2008-02-06 14:46:20 pajas>
 
 package TR_Correction;
-@ISA=qw(Tectogrammatic);
-import Tectogrammatic;
+
+BEGIN { import Tectogrammatic; }
 
 #bind FCopy to Ctrl+c menu copy node
 #bind FPaste to Ctrl+C menu paste node
 
 sub first (&@);
-
+use vars qw(%arrow_colors $aid_referent $contextBeforeSwitch);
 ######################### Hooks ######################
 
 %arrow_colors = (                           # colors of coreference arrows
   %Coref::cortype_colors,
   AID => 'cyan'
  );
+
 
 #bind remember_this_node_AID to space menu AIDREFS: Remeber current node's AID
 sub remember_this_node_AID {
@@ -599,8 +600,7 @@ sub AssignTrLemma {
 
 #bind goto_father to Ctrl+F menu Go to real father
 sub goto_father {
-  print STDERR map {$_->{trlemma},"\n"} PDT::GetFather_TR($this);
-  ($this) = @father;
+  ($this) = PDT::GetFather_TR($this);
   ChangingFile(0);
   $Redraw='none';
 }
@@ -1479,6 +1479,7 @@ sub DiffTRFiles_with_summary {
   TR_Diff->DiffTRFiles_with_summary;
 }
 
+my $TRXPath;
 ############# XPath #############
 sub TRXPath {
   return if $TRXPath;

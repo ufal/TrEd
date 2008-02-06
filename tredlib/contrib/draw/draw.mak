@@ -2,7 +2,7 @@
 
 #binding-context Draw
 package Draw; # simple drawing package
-import TredMacro;
+BEGIN{ import TredMacro; }
 
 #bind F11 to node_release_hook menu "Node Release"
 sub node_release_hook {

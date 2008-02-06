@@ -4,10 +4,12 @@
 ## Should be included at the very beginning of a macro file.
 
 #encoding iso-8859-2
+
 BEGIN {
   import TredMacro;
   use Carp;
 }
+
 
 =pod
 
@@ -171,24 +173,23 @@ Ask user for sentence identificator (number or id) and go to the
 sentence.
 
 =cut
-{
-no warnings qw(redefine);
-sub GotoTree {
-  my$to=QueryString("Give a Tree Number or ID","Tree Identificator");
-  my @trees = GetTrees();
-  if($to =~ /^[0-9]+$/){ # number
-    TredMacro::GotoTree($to) if $to <= @trees and $to != 0;
-  }else{ # id
-    for(my$i=0;$i<@trees;$i++){
-      if($trees[$i]->{id} =~ /\Q$to\E$/){
-        TredMacro::GotoTree($i+1);
-        last;
+
+  sub GotoTree {
+    my$to=QueryString("Give a Tree Number or ID","Tree Identificator");
+    my @trees = GetTrees();
+    if($to =~ /^[0-9]+$/){ # number
+      TredMacro::GotoTree($to) if $to <= @trees and $to != 0;
+    } else{ # id
+      for(my$i=0;$i<@trees;$i++){
+	if($trees[$i]->{id} =~ /\Q$to\E$/){
+	  TredMacro::GotoTree($i+1);
+	  last;
+	}
       }
     }
-  }
-  ChangingFile(0);
-}#GotoTree
-}
+    ChangingFile(0);
+  }#GotoTree
+
 =item NonProjEdges($node,$ord?,$filterNode?,$returnParents?,$subord?,$filterGap?)
 
 Returns hash-ref containing all non-projective edges in the subtree

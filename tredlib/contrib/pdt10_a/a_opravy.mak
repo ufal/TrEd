@@ -6,8 +6,10 @@
 #encoding iso-8859-2
 
 package Analytic_Correction;
-use base qw(Analytic);
-import Analytic;
+
+BEGIN { import Analytic; }
+
+
 
 #bind TR_Correction->analytical_tree to Ctrl+A menu Display analytical tree (in a TR file)
 #bind TR_Correction->tectogrammatical_tree to Ctrl+R menu Display tectogrammatical tree (in a TR file)
@@ -21,6 +23,7 @@ import Analytic;
 
 *file_close_hook = \&TR_Correction::file_close_hook;
 *file_save_hook = \&TR_Correction::file_save_hook;
+
 
 
 #bind edit_lemma_tag to Ctrl+T menu oprava lemmatu a tagu
@@ -83,7 +86,7 @@ sub insert_node_to_pos {
   # ask for ordinal number
   # splice given node to that position
   # reorder nodes
-  my $value=main::QueryString($grp->{framegroup},"Enter new ord","ord",$value);
+  my $value=main::QueryString($grp->{framegroup},"Enter new ord","ord","");
   return unless defined $value;
   my @nodes=GetNodes();
   splice @nodes,Index(\@nodes,$this),1;
@@ -190,7 +193,7 @@ sub SwapNodesValues {
   return unless ($this);
   my $parent=$this->parent;
   return unless ($parent);
-
+  my @atord = @{ FSFormat->list() };
   my @parentAttrs=@{$parent}{@atord};
   @{$parent}{@atord}=@{$this}{@atord};
   @{$this}{@atord}=@parentAttrs;  
@@ -207,6 +210,7 @@ sub SwapNodesValuesButAfun {
   return unless ($parent);
 
   my $oldparentAfun=$parent->{'afun'};
+  my @atord = @{ FSFormat->list() };
   my @parentAttrs=@{$parent}{@atord};
   @{$parent}{@atord}=@{$this}{@atord};
   @{$this}{@atord}=@parentAttrs;
@@ -279,32 +283,6 @@ sub ReorderChildren {
 }
 
 
-sub MaxDord {
-  my $pAct; # used as type "pointer"
-
-  $sReturn = "0";
-
-  $pAct = $pPar1;
-
-  $pPar2 = $pPar1;
-loop:
-  if ($sReturn<ValNo(0,$pAct->{'dord'})) {
-
-  $sReturn = ValNo(0,$pAct->{'dord'});
-  }
-
-  $pPar1 = $pAct;
-
-  GoNext();
-
-  $pAct = $pReturn;
-
-  if ($pAct) {
-
-  goto loop;
-  }
-
-}
 
 #bind thisToParent to Alt+u menu Hang current node up one level
 sub thisToParent {
@@ -369,8 +347,24 @@ sub SetNumP {
 ###################
 
 
-
-# Automatically converted from Graph macros by graph2tred to Perl.         -*-cperl-*-
+{
+# Automatically converted from Graph macros by graph2tred to Perl.
+# =======================================================
+my $iPrevAfunAssigned;		# used as type "string"
+my $pPar1;			# used as type "pointer"
+my $pPar2;			# used as type "pointer"
+my $pPar3;			# used as type "pointer"
+my $pReturn;			# used as type "pointer"
+my $sPar1;			# used as type "string"
+my $sPar2;			# used as type "string"
+my $sPar3;			# used as type "string"
+my $sReturn;			# used as type "string"
+my $lPar1;			# used as type "list"
+my $lPar2;			# used as type "list"
+my $lPar3;			# used as type "list"
+my $lReturn;			# used as type "list"
+my $_pDummy;			# used as type "pointer"
+# =======================================================
 
 #bind _key_Shift_F6 to Shift+F6
 sub _key_Shift_F6 {
@@ -3850,3 +3844,31 @@ sub TestAuxZList {
 
 }
 
+sub MaxDord {
+  my $pAct; # used as type "pointer"
+
+  $sReturn = "0";
+
+  $pAct = $pPar1;
+
+  $pPar2 = $pPar1;
+loop:
+  if ($sReturn<ValNo(0,$pAct->{'dord'})) {
+
+  $sReturn = ValNo(0,$pAct->{'dord'});
+  }
+
+  $pPar1 = $pAct;
+
+  GoNext();
+
+  $pAct = $pReturn;
+
+  if ($pAct) {
+
+  goto loop;
+  }
+
+}
+
+}

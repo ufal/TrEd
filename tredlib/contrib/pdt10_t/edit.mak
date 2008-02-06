@@ -6,9 +6,10 @@
 
 package TREdit;
 
-use base qw(Tectogrammatic);
-import Tectogrammatic;
-import Coref qw(switch_context_hook node_style_hook);
+BEGIN {
+  import Tectogrammatic;
+  import Coref qw(switch_context_hook node_style_hook);
+}
 
 my %menu_prevstate;
 
@@ -18,7 +19,7 @@ sub node_release_hook {
 }
 
 sub FuncAssign {
-  $this->{'func'} = $sPar1;
+  $this->{'func'} = $Tectogrammatic::sPar1;
   clear_funcaux($this);
   $this=NextVisibleNode($this);
 }
@@ -126,15 +127,15 @@ sub trim_subtree {
 #bind copy_to_clipboad to Ctrl+Insert menu Copy subtree
 sub copy_to_clipboad {
   return unless ($this);
-  $nodeClipboard=CloneSubtree($this);
+  $TredMacro::nodeClipboard=CloneSubtree($this);
 }
 
 #bind cut_to_clipboad to Shift+Delete menu Cut subtree
 sub cut_to_clipboad {
   return unless ($this and $this->parent);
-  $nodeClipboard=$this;
+  $TredMacro::nodeClipboard=$this;
   $this=$this->rbrother ? $this->rbrother : $this->parent;
-  CutNode($nodeClipboard);
+  CutNode($TredMacro::nodeClipboard);
 
   my $nodesref=GetNodes();
   SortByOrd($nodesref);
@@ -145,9 +146,9 @@ sub cut_to_clipboad {
 
 #bind paste_from_clipboad to Shift+Insert menu Paste subtree
 sub paste_from_clipboad {
-  return unless ($this and $nodeClipboard);
+  return unless ($this and $TredMacro::nodeClipboard);
 
-  my $clipnodes=GetNodes($nodeClipboard);
+  my $clipnodes=GetNodes($TredMacro::nodeClipboard);
   SortByOrd($clipnodes);
   NormalizeOrds($clipnodes);
   my $nodes=GetNodes($root);
@@ -162,22 +163,22 @@ sub paste_from_clipboad {
     $node->{$ord}+=$#$clipnodes+1 if $node->{$ord}>$shift;
   }
 
-  PasteNode($nodeClipboard,$this);
-  $this=$nodeClipboard;
-  $nodeClipboard=undef;
+  PasteNode($TredMacro::nodeClipboard,$this);
+  $this=$TredMacro::nodeClipboard;
+  $TredMacro::nodeClipboard=undef;
 }
 
 #bind paste_as_new_tree to Ctrl+Shift+Insert menu Paste as new tree
 sub paste_as_new_tree {
-  return unless ($grp->{FSFile} and $nodeClipboard);
+  return unless ($grp->{FSFile} and $TredMacro::nodeClipboard);
 
-  my $clipnodes=GetNodes($nodeClipboard);
+  my $clipnodes=GetNodes($TredMacro::nodeClipboard);
   SortByOrd($clipnodes);
   NormalizeOrds($clipnodes);
   my $pos=$grp->{FSFile}->lastTreeNo()+1;
-  $grp->{FSFile}->insert_tree($nodeClipboard,$pos);
+  $grp->{FSFile}->insert_tree($TredMacro::nodeClipboard,$pos);
   GotoTree($pos+1);
-  $nodeClipboard=undef;
+  $TredMacro::nodeClipboard=undef;
 }
 
 

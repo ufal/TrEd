@@ -1,13 +1,15 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2005-04-01 18:20:59 pajas>
+## Time-stamp: <2008-02-06 14:10:18 pajas>
 ## $Id$
 
 #encoding iso-8859-2
 
 package Analytic;
-import TredMacro;
+BEGIN { import TredMacro; }
+
+my $_CatchError;
 
 sub status_line_doubleclick_hook { 
   # status-line field double clicked
@@ -189,9 +191,8 @@ sub thisRoot {
 
 sub thisChildrensAfun {
   my $suff=shift;
-  my $chid;
   my $t=$this;
-  $child=$t->firstson;
+  my $child=$t->firstson;
   while ($child) {
     $$child{'afun'}=~s/_Co|_Ap/$suff/;
     $child=$child->rbrother;

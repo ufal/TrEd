@@ -7,7 +7,7 @@
 
 package PML_T_Diff;
 
-import PML_T;
+BEGIN { import PML_T; }
 sub first (&@);
 
 #binding-context PML_T_Diff
@@ -18,7 +18,9 @@ sub first (&@);
 use vars qw($usenames $onlylemma $onlyfunc $onlydep $onlymissing
             $excludelemma $summary @standard_check_list
             $summary
-            $check_dependency $check_presence $check_attributes $id);
+            $check_dependency $check_presence $check_attributes $id
+            $compare_all
+	  );
 
 {
 use integer;
@@ -328,6 +330,7 @@ sub diff_trees {
     if ($check_attributes) {
       foreach my $attr (@standard_check_list) {
 	undef %valhash;
+	my $key;
 	foreach my $f (@grps) {
           if($attr eq 'annot_comment') {
             $key = join '|',sort map {
@@ -370,7 +373,7 @@ sub diff_trees {
   my @summary=();
   push @summary, "Comparison of @names\n\nFile statistics:\n" if ($summary);
 
-  foreach $f (@names) {
+  foreach my  $f (@names) {
     push @summary,
     "$f:\n\tTotal:\t$T{$f}->{acount} nodes\n",
     "\tNew:\t$T{$f}->{newcount} nodes\n\n";

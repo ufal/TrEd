@@ -1,6 +1,8 @@
 # -*- cperl -*-
 #encoding iso-8859-2
 
+use vars qw(%PDT_TAGINFO);
+
 sub describe_tag {
   my ($tag) = @_;
   my @sel;

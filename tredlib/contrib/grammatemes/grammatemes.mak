@@ -6,7 +6,7 @@
 # written by Zdenek Zabokrtsky, March 2003
 
 package TR_Grammatemes;
-import TredMacro;
+BEGIN { import TredMacro; }
 
 #binding-context TR_Grammatemes
 

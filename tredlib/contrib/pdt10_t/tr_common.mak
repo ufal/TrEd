@@ -14,7 +14,9 @@
 #encoding iso-8859-2
 
 #include <contrib/vallex/contrib.mac>
-import ValLex::GUI;
+BEGIN {
+  import ValLex::GUI;
+}
 
 #include <contrib/auto_func/AFA.mak>
 #include <contrib/vallex/ValLex/adverb.mak>
@@ -35,7 +37,7 @@ sub first (&@);
 
 no warnings qw(redefine);
 
-@special_trlemmas=
+my @special_trlemmas=
     #disp  trlemma gender number
     #
     # Predelat na entity: &Comma; &Colon; atd.
@@ -76,7 +78,7 @@ no warnings qw(redefine);
      [ 'takový',       'takový',    '???',  '???', 'PAT'    ],
     );
 
-@special_where=
+my @special_where=
     (
      ['tady', 'tady', 'LOC'],
      ['odsud', 'tady', 'DIR1'],
@@ -88,7 +90,7 @@ no warnings qw(redefine);
      ['tam (kam?)', 'tam', 'DIR3']
     );
 
-@special_when=
+my @special_when=
     (
      ['kdy', 'kdy', 'TWHEN'],
      ['odkdy', 'kdy', 'TSIN'],
@@ -170,8 +172,8 @@ sub choose_frame_or_advfunc {
 sub prev_file_choose_frame {
   PrevFile();
   if ($this->{rframeid} ne "") {
-    local $frameid_attr="rframeid";
-    local $framere_attr="rframere";
+    local $ValLex::GUI::frameid_attr="rframeid";
+    local $ValLex::GUI::framere_attr="rframere";
     choose_frame() if ($this->{tag}=~/^[VAN]/);
   } else {
     choose_frame() if ($this->{tag}=~/^[VAN]/);
@@ -181,8 +183,8 @@ sub prev_file_choose_frame {
 sub next_file_choose_frame {
   NextFile();
   if ($this->{rframeid} ne "") {
-    local $frameid_attr="rframeid";
-    local $framere_attr="rframere";
+    local $ValLex::GUI::frameid_attr="rframeid";
+    local $ValLex::GUI::framere_attr="rframere";
     choose_frame() if ($this->{tag}=~/^[VAN]/);
   } else {
     choose_frame() if ($this->{tag}=~/^[VAN]/);
@@ -285,7 +287,7 @@ sub QuerySemtam {
   else {
     @selected=($node->{trlemma});
   }
-  if (main::selectValuesDialog($grp->{framegroup},$atr,
+  if (main::selectValuesDialog($grp->{framegroup},'',
 			   [ map { $_->[0] } @special_where ],
 			       \@selected,0,undef,1)) {
 
@@ -312,7 +314,7 @@ sub QueryKdy {
   else {
     @selected=($node->{trlemma});
   }
-  if (main::selectValuesDialog($grp->{framegroup},$atr,
+  if (main::selectValuesDialog($grp->{framegroup},'',
 			   [ map { $_->[0] } @special_when ],
 			       \@selected,0,undef,1)) {
 
@@ -344,7 +346,7 @@ sub QueryTrlemma {
   else {
     @selected=($node->{trlemma});
   }
-  if (main::selectValuesDialog($grp->{framegroup},$atr,
+  if (main::selectValuesDialog($grp->{framegroup},'',
 			   [ map { &main::encode($_->[0]) } @special_trlemmas ],
 			       \@selected,0,undef,1)) {
 
@@ -450,6 +452,7 @@ sub toggle_hide_subtree {
 }
 
 
+my $sPasteNow = '';
 sub DeleteCurrentNode {
   shift unless ref($_[0]);
   my $node = ref($_[0]) ? $_[0] : $this;
@@ -920,8 +923,8 @@ sub JoinSubtree {
 
   my $modal = ($sPar1 eq '0'); # 0 means modal
 
-  $plemma = $parent->{'trlemma'};
-  $nlemma = $node->{'trlemma'};
+  my $plemma = $parent->{'trlemma'};
+  my $nlemma = $node->{'trlemma'};
 
   # allows appending 'se' even if there was no node for it on ATS
   if ($nlemma eq '&Gen;') {
@@ -1037,6 +1040,7 @@ sub check_and_repair_ids {
 sub repair_added_nodes {
   my ($verbose)=@_;
   my $treeno=0;
+  my $node;
   foreach my $tree (GetTrees()) {
     $treeno++;
     $node=$tree;
@@ -1277,19 +1281,20 @@ sub tr_diff_all_windows {
   TR_Diff->DiffTRFiles(0);
 }
 
-#bind tr_vallex_transform to Alt+F10 menu Create missing nodes (based on ValLex)
-sub tr_vallex_transform {
-  unless ($simple_vallex_loaded) {
-    stderr("Loading simple_vallex $libDir/contrib/ValLex/simple_vallex.txt\n");
-    local $vallex;
-    do "$libDir/contrib/ValLex/simple_vallex.txt";
-    die "$@" if ($@);
-    $TRValLexTransform::vallex=$vallex;
-    stderr("Loaded ",scalar(keys %$vallex)," items\n");
-    $simple_vallex_loaded=1;
-  }
-  TRValLexTransform::DoTransformTree();
-}
+# my $simple_vallex_loaded;
+# #bind tr_vallex_transform to Alt+F10 menu Create missing nodes (based on ValLex)
+# sub tr_vallex_transform {
+#   unless ($simple_vallex_loaded) {
+#     stderr("Loading simple_vallex $libDir/contrib/ValLex/simple_vallex.txt\n");
+#     local $vallex;
+#     do "$libDir/contrib/ValLex/simple_vallex.txt";
+#     die "$@" if ($@);
+#     $TRValLexTransform::vallex=$vallex;
+#     stderr("Loaded ",scalar(keys %$vallex)," items\n");
+#     $simple_vallex_loaded=1;
+#   }
+#   TRValLexTransform::DoTransformTree();
+# }
 
 sub status_line_doubleclick_hook { 
   # status-line field double clicked
@@ -1365,7 +1370,7 @@ sub get_status_line_hook {
 sub __get_value_line_hook {
    my ($fsfile,$treeNo)=@_;
    my @vl = $fsfile->value_line_list($treeNo,1,1);
-   %colors = ( ACT => 'red',
+   my %colors = ( ACT => 'red',
 	       PAT => 'blue',
 	       EFF => 'green',
 	       PRED => 'gray' );

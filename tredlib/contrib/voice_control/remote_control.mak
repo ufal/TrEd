@@ -12,6 +12,11 @@
 ## (\015\012) is expected (i.e. each line of input is chopped twice).
 ###
 
+use vars qw($default_remote_addr
+	    $default_remote_port
+	    $remote_control_socket
+	    $remote_control_notify);
+
 $default_remote_addr='localhost';
 $default_remote_port='2345';
 $remote_control_socket=undef;
@@ -80,6 +85,7 @@ sub onRemoteCommand {
   }
 }
 
+my $remote_control_socket_sel;
 # periodically check for socket events (used on Win32)
 sub periodicSocketCanReadCheck {
   my $grp=shift;

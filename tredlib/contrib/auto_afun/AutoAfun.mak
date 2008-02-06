@@ -1,10 +1,10 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2002-07-23 09:19:18 pajas>
+## Time-stamp: <2008-02-06 14:09:02 pajas>
 
 use lib "$main::libDir/contrib/auto_afun/AutoAfun";
 
-%LcAfuns = map { lc($_)=>$_ }
+my %LcAfuns = map { lc($_)=>$_ }
   qw(--- Pred Pnom AuxV Sb Obj Atr Adv AtrAdv AdvAtr Coord AtrObj
      ObjAtr AtrAtr AuxT AuxR AuxP Apos ExD AuxC Atv AtvV AuxO AuxZ
      AuxY AuxG AuxK AuxX AuxS Pred_Co Pnom_Co AuxV_Co Sb_Co Obj_Co
@@ -19,7 +19,7 @@ use lib "$main::libDir/contrib/auto_afun/AutoAfun";
      AtrAtr_Pa AuxT_Pa AuxR_Pa AuxP_Pa Apos_Pa ExD_Pa AuxC_Pa Atv_Pa
      AtvV_Pa AuxO_Pa AuxZ_Pa AuxY_Pa AuxG_Pa AuxK_Pa AuxX_Pa
      NA ???);
-$AutoAfunAtr='afun';
+my $AutoAfunAtr='afun';
 
 sub afun_info {
   my ($node)=@_;

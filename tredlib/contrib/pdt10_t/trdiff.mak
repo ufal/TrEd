@@ -1,8 +1,7 @@
 # -*- cperl -*-
 package TR_Diff;
 
-use base qw(Tectogrammatic);
-import Tectogrammatic;
+BEGIN { import Tectogrammatic; }
 
 #key-binding-adopt Tectogrammatic
 
@@ -13,7 +12,9 @@ use vars qw($usenames $onlylemma $onlyfunc $onlydep $onlymissing
 
 {
 use integer;
-
+use vars qw($compare_all $check_presence $check_dependency
+	    $check_attributes $questionmarks_as_empty $dash_as_threedashes
+	    @standard_check_list $id);
 $compare_all=1;
 $check_presence=1;
 $check_dependency=1;
@@ -371,7 +372,7 @@ sub diff_trees {
   my @summary=();
   push @summary, "Comparison of @names\n\nFile statistics:\n" if ($summary);
   
-  foreach $f (@names) {            
+  foreach my $f (@names) {            
     push @summary, 
     "$f:\n\tTotal:\t$T{$f}->{acount} nodes\n",
     "\tOn TR:\t$T{$f}->{trcount} nodes\n",
