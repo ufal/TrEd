@@ -13,6 +13,7 @@ use vars qw($ValencyLexicon $ChooserHideObsolete $frameid_attr
 	    $vallex_file
 	  );
 
+BEGIN {
 $ValencyLexicon=undef;
 $ChooserHideObsolete=1;
 $frameid_attr="frameid";
@@ -29,7 +30,7 @@ if (defined($vallex_file) and length($vallex_file)) {
   # try to find vallex in libDir (old-way) or in resources (new-way)
   $vallex_file = ResolvePath("$libDir/contrib/ValLex/vallex.xml",'vallex.xml',1);
 }
-
+}
 
 #$XMLDataClass="TrEd::ValLex::JHXMLData";
 #$XMLDataClass="TrEd::ValLex::LibXMLData";
