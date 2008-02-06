@@ -4,6 +4,11 @@
 
 sub Position { print ThisAddressNTRED(@_),"\n"; }
 
+my $NTredQueryDialog;
+my $NTredQueryDialogAllTrees;
+my $NTredQueryDialogAllNodes;
+
+
 my $perl_syntax_highlighting =
   [
    ['Comment_Normal', -foreground => 'red'],
@@ -28,7 +33,7 @@ sub ntred_query {
   $query=~s/\\/\\/g;
   $query=~s/'/'"'"'/g;
 
-  $cmd="ntred ".
+  my $cmd="ntred ".
     ($T ? '-T ' : '').
     ($N ? '-N ' : '').
       "-e '$query' $args";
@@ -79,10 +84,10 @@ sub ntred_query_box {
 		      -font => StandardTredFont()
 		     );
   $t->insert('end',"# insert your query here\n\n");
-  my $tm=$d->Adjuster(-widget => $m ,-side => 'bottom');
   my $m= $d->Scrolled(@textWidget,qw/-relief sunken -borderwidth 2 -height 10 -scrollbars oe/,
 		      -font => StandardTredFont()
 		     );
+  my $tm=$d->Adjuster(-widget => $m ,-side => 'bottom');
   $m->insert('end','# insert macros here'."\n\n");
   my $mr=$d->Adjuster(-widget=>$m, -side => 'top');
   my $r= $d->Scrolled(@normalTextWidget,qw/-relief sunken -borderwidth 2 -height 20 -scrollbars oe/,
@@ -135,13 +140,15 @@ sub ntred_query_box_do_query {
   my $macro = $m->get("0.0","end");
   require Fcntl;
   require POSIX;
-  do {
+  my $tmp_name;
+
+  do {{
     local *FH;
     do { $tmp_name = tmpFileName(); } until
       sysopen(FH,$tmp_name, Fcntl::O_RDWR|Fcntl::O_CREAT|Fcntl::O_EXCL);
     print FH $macro;
     close FH;
-  };
+  }};
   my $result=ntred_query($t->get("0.0","end"),
 			 $NTredQueryDialogAllTrees,
 			 $NTredQueryDialogAllNodes,

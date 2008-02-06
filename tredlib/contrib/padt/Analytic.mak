@@ -18,7 +18,7 @@ our $VERSION = do { q $Revision$ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
 #binding-context Analytic
 
-import TredMacro;
+BEGIN { import TredMacro; }
 
 our ($this, $root, $grp);
 
