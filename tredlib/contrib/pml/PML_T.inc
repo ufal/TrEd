@@ -302,7 +302,7 @@ sub DrawCorefArrows {
       my $Y="(y$T-yn)";
       my $D="sqrt($X**2+$Y**2)";
       push @colors,CustomColor('arrow_'.$cortype);
-      push @dash,GetPatternsByPrefix('full')?($cortype eq'compl'?'2,3,5,3':$cortype eq'grammatical'?'5,3':1):1;
+      push @dash,GetPatternsByPrefix('full')?($cortype eq'compl'?'2,3,5,3':$cortype eq'grammatical'?'5,3':1):'';
       my $c = <<COORDS;
 
 &n,n,
@@ -323,14 +323,14 @@ COORDS
 	if($orientation eq'left'){
 	  print STDERR "ref-arrows: Preceding sentence\n"if $main::macroDebug;
 	  push @colors,CustomColor('arrow_'.$cortype);
-	  push @dash,1;
+	  push @dash,'';
 	  push @coords,"\&n,n,n-30,n+$rotate_prv_snt";
 	  push @tags,$cortype;
 	  $rotate_prv_snt+=10;
 	}else{ #right
 	  print STDERR "ref-arrows: Following sentence\n" if $main::macroDebug;
 	  push @colors,CustomColor('arrow_'.$cortype);
-	  push @dash,1;
+	  push @dash,'';
 	  push @coords,"\&n,n,n+30,n+$rotate_nxt_snt";
 	  push @tags,$cortype;
 	  $rotate_nxt_snt+=10;
@@ -338,7 +338,7 @@ COORDS
       }else{
 	print STDERR "ref-arrows: Not found!\n" if $main::macroDebug;
 	push @colors,CustomColor('error');
-	push @dash,1;
+	push @dash,'';
 	push @coords,"&n,n,n+$rotate_dfr_doc,n-25";
 	push @tags,$cortype;
 	$rotate_dfr_doc+=10;
@@ -348,7 +348,7 @@ COORDS
   if($node->{coref_special}eq'segm') { # pointer to an unspecified segment of preceeding sentences
     print STDERR "ref-arrows: Segment - unaimed arrow\n" if $main::macroDebug;
     push @colors,CustomColor('arrow_segment');
-    push @dash,1;
+    push @dash,'';
     push @coords,"&n,n,n-25,n+$rotate_prv_snt";
     push @tags,'segm';
     $rotate_prv_snt+=10;
@@ -356,7 +356,7 @@ COORDS
   if($node->{coref_special}eq'exoph') {
     print STDERR "ref-arrows: Exophora\n" if $main::macroDebug;
     push @colors,CustomColor('arrow_exoph');
-    push @dash,1;
+    push @dash,'';
     push @coords,"&n,n,n+$rotate_dfr_doc,n-25";
     push @tags,'exoph';
     $rotate_dfr_doc+=10;
