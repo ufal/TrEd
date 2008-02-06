@@ -11,7 +11,7 @@
 #
 
 package main;
-
+use Carp;
 use Getopt::Long;
 use Pod::Usage;
 use IO;
@@ -26,7 +26,7 @@ if ($^V lt v5.6.0) {
 }
 
 use strict;
-use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
+use vars qw($quiet $Quiet $debug $carp $csts_xargs $strip_prefix $add_prefix
 	    $strip_suffix $append_suffix $output_format $config_file
 	    $initial_code $macro $code $start_context $all_trees
 	    $all_nodes $no_all_trees $no_all_nodes $glob
@@ -58,6 +58,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "quiet|q" => \$quiet,
 	    "very-quiet|Q" => \$Quiet,
 	    "debugging|D" => \$debug,
+	    "carp" => \$carp,
 	    "fs2csts-attributes|x=s" => \$csts_xargs,
 	    "filelist|l=s" => \$file_list,
 	    "glob|g" => \$glob,
@@ -111,6 +112,8 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	   );
 
 $optparser->getoptions(%optmap) or $usage=1;
+
+$SIG{__DIE__} = sub { confess(@_) } if $carp;
 
 use constant {
   ERROR_MACRO          =>  1,
@@ -2251,6 +2254,15 @@ Do not print anything to stderr at all (except for fatal errors).
 =item B<--debugging|-D>
 
 Print a lot of debugging information on the stderr.
+
+=item B<--carp>
+
+Replace 'die' with 'Carp::confess', so that a complete stack trace is
+printed upon error. Useful for debugging.
+
+=item B<--dump-macros>
+
+Dump all macros currently being loaded to STDOUT and exit. Useful for debugging.
 
 =item B<--server-port|-L> port
 
