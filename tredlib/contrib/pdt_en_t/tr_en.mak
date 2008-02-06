@@ -1,12 +1,14 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-04-01 18:25:49 pajas>
+## Time-stamp: <2008-02-06 14:01:44 pajas>
 
 package EN_Tectogrammatic;
 
-import TredMacro;
-import Tectogrammatic;
-import Coref;
+BEGIN {
+  import TredMacro;
+  import Tectogrammatic;
+  import Coref;
+}
 
 sub patterns_forced {
   return (grep { $_ eq 'force' } GetPatternsByPrefix('patterns',STYLESHEET_FROM_FILE()) ? 1 : 0)
