@@ -103,7 +103,7 @@ Tk::CmdLine::SetArguments();
 
 # Once we got rid of them we call getopt to read all the other options
 use Getopt::Std;
-getopts('qm:c:l:t:n:p:vhuW:GI:HDYB:RX:s:S:Z:');
+getopts('qm:c:l:t:n:p:vhuW:GI:HDYB:RX:s:S:Z:y:');
 
 if ($opt_u || $opt_h) {
   print <<'EOH';
@@ -166,6 +166,7 @@ Other options:
 -W <window_id>  Embed main window into the given window
 -Y              Do not load secondary files
 -B <backends>   Comma separated list of additional backends to import
+-y name[=v],... Like '#define name' or '#define name v' in macros
 
 Options specific to CSTS backend:
 
@@ -322,7 +323,15 @@ if ($TrEd::Convert::support_unicode) {
 require TrEd::Macros;
 import TrEd::Macros;
 
-$TrEd::Macros::defines{TRED}=1;
+TrEd::Macros::define_symbol('TRED');
+for my $sym (split /,/, $opt_y) {
+  if ($sym=~/=/) {
+    TrEd::Macros::define_symbol(split(/=/,$sym,2));
+  } else {
+    TrEd::Macros::define_symbol($sym);
+  }
+}
+
 
 # tree drawing module
 require TrEd::TreeView;
