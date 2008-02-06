@@ -458,7 +458,7 @@ sub initialize_macros {
   unless ($macrosEvaluated) {
     my $macros = "";
     $macros .= "use strict;"   if $strict;
-    $macros .= "use warnings;" if $warnings;
+    $macros .= "use warnings; no warnings 'redefine';" if $warnings;
     $macros.="{\n".$utf.join("",@macros)."\n}; 1;\n";
     print STDERR "FirstEvaluation of macros\n" if $macroDebug;
     if (defined($safeCompartment)) {
