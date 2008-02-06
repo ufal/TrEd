@@ -4,7 +4,6 @@
 
 package Tectogrammatic;
 
-use base qw(TredMacro);
 import TredMacro;
 
 

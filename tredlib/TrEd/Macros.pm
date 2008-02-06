@@ -11,7 +11,7 @@ BEGIN {
   use TrEd::Convert;
   use Exporter  ();
   use vars qw($VERSION @ISA @EXPORT @EXPORT_OK $exec_code @macros $useEncoding
-              $macrosEvaluated $safeCompartment %defines
+              $macrosEvaluated $safeCompartment %defines $warnings $strict
 	      %keyBindings
 	      %menuBindings
 	     );
@@ -54,8 +54,8 @@ sub is_defined {
 
 sub getContexts {
   return
-    uniq sort (keys(%menuBindings),
-	       keys(%keyBindings))
+    uniq sort {$a cmp $b} (keys(%menuBindings),
+			   keys(%keyBindings))
 }
 
 sub _normalize_key {
@@ -456,7 +456,10 @@ sub initialize_macros {
   my $result = 2;
   my $utf = ($useEncoding) ? "use utf8;\n" : "";
   unless ($macrosEvaluated) {
-    my $macros="{\n".$utf.join("",@macros)."\n}; 1;\n";
+    my $macros = "";
+    $macros .= "use strict;"   if $strict;
+    $macros .= "use warnings;" if $warnings;
+    $macros.="{\n".$utf.join("",@macros)."\n}; 1;\n";
     print STDERR "FirstEvaluation of macros\n" if $macroDebug;
     if (defined($safeCompartment)) {
       set_macro_variable('grp',$win);
@@ -472,7 +475,7 @@ sub initialize_macros {
       TrEd::Basics::errorMessage($win,$@) if $@;
     } else {
       no strict;
-      ${TredMacro::grp}=$win;
+      ${"TredMacro::grp"}=$win;
       $macrosEvaluated=1;
       $result=eval { my $res=eval ($macros); die $@ if $@; $res; };
     }

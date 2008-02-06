@@ -5,7 +5,7 @@
 
 #encoding iso-8859-2
 
-import PML;
+BEGIN { import PML; }
 sub first (&@);
 
 =pod
@@ -357,6 +357,7 @@ sub ANodeToALexRf {
     uniq(ListV($t_node->attr('a/aux.rf')))));
   my$lemma=$a_node->attr('m/lemma');
   my%specialEntity;
+  no warnings 'qw';
   %specialEntity=qw!. Period
                     , Comma
                     &amp; Amp

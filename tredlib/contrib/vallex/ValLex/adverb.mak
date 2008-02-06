@@ -122,7 +122,7 @@ sub adverb_quick_search {
 sub show_adverbs_dialog {
   my ($top,$data,$conv,$trlemma,$func)=@_;
   require TrEd::CPConvert;
-  my $d,$hlist,$entry;
+  my ($d,$hlist,$entry);
   if ($AdvLexiconDialog) {
     ($d,$hlist,$entry)=@$AdvLexiconDialog;
   } else {

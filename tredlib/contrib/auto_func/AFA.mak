@@ -151,7 +151,7 @@ sub assign_func_auto {
   $node->{funcprec}=$prec;
   $prec=~m!([0-9.]+)/([0-9.]+)!;
   eval { $prec=100*($1-$2)/$1; };
-  $prec=~s/(\.[0-9][0-9]).*$/\1/;
+  $prec=~s/(\.[0-9][0-9]).*$/$1/;
   $node->{funcaux} = $prec>90 ? "#{custom4}" : ( $prec<50 ? "#{custom6}" : "#{custom5}");
   $node->{func}=$node->{funcauto} if ($node->{funcauto});
 }

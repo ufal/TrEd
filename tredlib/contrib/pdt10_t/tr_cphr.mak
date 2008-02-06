@@ -2,7 +2,7 @@
 #encoding iso-8859-2
 
 package TR_CPHR;
-use base qw(Coref Tectogrammatic TredMacro TR_FrameValidation);
+
 import TredMacro;
 import Tectogrammatic;
 import Coref;

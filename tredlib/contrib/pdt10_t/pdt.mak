@@ -6,7 +6,7 @@
 #encoding iso-8859-2
 
 package PDT;
-use base qw(TredMacro);
+
 import TredMacro;
 
 =pod
@@ -1207,6 +1207,7 @@ sub GetNewTrlemma {
   my$node=$_[0]||$this;
   return$node->{trlemma}if($node->{TID}and$node->{tag}eq'-')or($node==$root);
   my%specialEntity;
+  no warnings 'qw';
   %specialEntity=qw!. Period , Comma &amp; Amp - Hyphen / Slash ( Lpar ) Rpar
               ; Semicolon : Colon &ast; Ast &verbar; Verbar &percnt; Percnt
               !;

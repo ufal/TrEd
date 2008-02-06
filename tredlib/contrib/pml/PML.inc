@@ -138,7 +138,7 @@ sub GetNodeHash {
   unless (ref($fsfile->appData('id-hash'))) {
     my %ids;
     my $trees = $fsfile->treeList;
-    for ($i=0;$i<=$#$trees;$i++) {
+    for (my $i=0;$i<=$#$trees;$i++) {
       my $node = $trees->[$i];
       while ($node) {
 	$ids{ $node->{id} } = $node;
@@ -171,7 +171,8 @@ Ask user for sentence identificator (number or id) and go to the
 sentence.
 
 =cut
-
+{
+no warnings qw(redefine);
 sub GotoTree {
   my$to=QueryString("Give a Tree Number or ID","Tree Identificator");
   my @trees = GetTrees();
@@ -187,7 +188,7 @@ sub GotoTree {
   }
   ChangingFile(0);
 }#GotoTree
-
+}
 =item NonProjEdges($node,$ord?,$filterNode?,$returnParents?,$subord?,$filterGap?)
 
 Returns hash-ref containing all non-projective edges in the subtree

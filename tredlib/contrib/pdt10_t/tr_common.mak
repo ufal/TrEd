@@ -29,7 +29,11 @@ import ValLex::GUI;
 #bind next_file_choose_frame to Ctrl+KP_Add
 #bind next_file_choose_frame to Ctrl+plus Prejdi na dalsi soubor a obnov vyber ramce
 
+{
+
 sub first (&@);
+
+no warnings qw(redefine);
 
 @special_trlemmas=
     #disp  trlemma gender number
@@ -531,7 +535,7 @@ sub GetNewOrd {
 
 
 sub AfunAssign {
-  my $t, $n;
+  my ($t, $n);
 
   $t = $this;
 
@@ -1371,4 +1375,6 @@ sub __get_value_line_hook {
      }
    }
    return \@vl;
+}
+
 }

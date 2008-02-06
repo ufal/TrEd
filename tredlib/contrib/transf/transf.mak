@@ -3,7 +3,7 @@
 #key-binding-adopt Tectogrammatic
 
 package Transfer;
-use base qw(TredMacro);
+
 import TredMacro;
 
 #bind default_tr_attrs to F8 menu Display default attributes

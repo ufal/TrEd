@@ -41,7 +41,8 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $version $lib $extra_backends $file_list $list_options
 	    $_ERR %optmap $no_secondary $include_macro $ioBackends
 	    $locale_charset $host $allow_switch_context
-	    @resource_paths @define_symbols
+	    @resource_paths @define_symbols $dump_macros
+	    $strict $warnings
 	   );
 
 $version='$Revision$ ';
@@ -103,6 +104,9 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "define-symbol|y=s" => \@define_symbols,
 	    "allow-no-trees|0" => \$allow_no_trees,
 	    "allow-switch-context" => \$allow_switch_context,
+	    "dump-macros" => \$dump_macros,
+	    "strict" => \$strict,
+	    "warnings" => \$warnings,
 	    "version|v"        => \$print_version,
 	   );
 
@@ -278,6 +282,9 @@ import TrEd::Convert;
 require TrEd::Macros;
 import TrEd::Macros;
 
+$TrEd::Macros::strict = $strict;
+$TrEd::Macros::warnings = $warnings;
+
 # basic tree operations
 require TrEd::Basics;
 import TrEd::Basics;
@@ -369,6 +376,15 @@ if ($include_macro) {
   _msg("Reading additional macros from $include_macro...\n") unless $quiet;
   push @TrEd::Macros::macros,"\n","package TredMacro;\n";
   read_macros($include_macro,$libDir,1);
+}
+if ($dump_macros) {
+  binmode STDOUT,":utf8";
+  use Data::Dumper;
+  print "BEGIN {\n";
+  print Data::Dumper->new([$libDir],['main::libDir'])->Dump;
+  print "}\n";
+  print @TrEd::Macros::macros;
+  exit;
 }
 
 _msg("done.\n") unless $quiet;

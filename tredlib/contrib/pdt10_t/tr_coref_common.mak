@@ -7,7 +7,6 @@
 
 package Coref;
 
-use base qw(TredMacro);
 import TredMacro;
 
 ########################## Default patterns ##########################
