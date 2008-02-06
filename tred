@@ -5587,21 +5587,24 @@ sub startMain {
 # 			sort(keys(%{$menuBindings{TredMacro}}))))};
 
   foreach my $context ("TredMacro",grep { $_ ne "TredMacro" } sort(keys(%menuBindings))) {
+    my %macro_to_key = reverse %{ $keyBindings{$context} };
 #   if ($context eq "TredMacro") { 
 #   } else {
         push @$cM,
   	[Cascade=> $context,
   	 -menuitems=>
-  	 cascadeMenus(map ([Button=> "$_",
-  			    -command=> [sub {
-					  doEvalMacro($_[0]->{focusedWindow},
-						      $_[1]);
-					 },
-					\%group,
-					$menuBindings{$context}->{$_}->[0]],
-  			    ($menuBindings{$context}->{$_}->[1]) ?
-  			    (-accelerator=> "(".$menuBindings{$context}->{$_}->[1].")") : ()],
-  			   sort(keys(%{$menuBindings{$context}}))))];
+  	 cascadeMenus(map {
+	   my $v = $menuBindings{$context}->{$_};
+	   my $key = defined($v->[1]) ? $v->[1] : $macro_to_key{$v->[0]};
+	   [Button=> "$_",
+	    -command=> [sub {
+			  doEvalMacro($_[0]->{focusedWindow},
+				      $_[1]);
+			},
+			\%group,
+			$v->[0]],
+	    $key ? (-accelerator=> "(".$key.")") : ()]}
+			sort(keys(%{$menuBindings{$context}})))];
 #      }
   }
   $group{UserMenu}=MenubarItem($group{Menubar},qw/-label ~User-defined -menuitems/=> $cM);
