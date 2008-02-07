@@ -3,7 +3,6 @@ package TrEd::Basics;
 BEGIN {
   use Fslib;
   require TrEd::MinMax;
-  require Tk::ErrorReport;
   import TrEd::MinMax;
 
   use Exporter  ();
@@ -167,6 +166,7 @@ sub setCurrent {
 
 sub _messageBox {
   my ($top,$title,$msg,$nobug)=@_;
+  require Tk::ErrorReport;
   $top->ErrorReport(
     -title   => $title,
     -msgtype => ($nobug eq 'warn' ? "WARNING" : "ERROR"),
