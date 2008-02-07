@@ -1,4 +1,4 @@
-#!btred -e TredMacro::trees2pdf --no-save --allow-switch-context
+#!btred -e TredMacro::trees2pdf() --no-save --allow-switch-context
 # -*- cperl -*-
 
 #define TRED
