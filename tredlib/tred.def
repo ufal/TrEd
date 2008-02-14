@@ -728,7 +728,7 @@ attach it to some node again.
 sub CutNode {
   my $node=shift;
   my $parent=$node->parent;
-  $result=Fslib::Cut($node);
+  my $result=Fslib::Cut($node);
   $this=$parent if ($result and $this==$node);
   return $result;
 }
