@@ -8287,11 +8287,12 @@ sub editStylesheetDialog {
   my $elabff=$d->Frame->pack(-in => $eff, qw/-padx 3 -pady 3 -side top -fill x/);
 
   # will be used later
-  my @text_opt = eval { require Tk::CodeText; 
-			require Tk::CodeText::TrEdStylesheet; 
-		      } ? (qw(CodeText -syntax TrEdStylesheet), -indentchar => '  ')
-			: qw(Text);
-
+  my @text_opt = 
+   eval { require Tk::CodeText; require Tk::CodeText::TrEdStylesheet }
+     ? (qw(CodeText -syntax TrEdStylesheet), -indentchar => '  ')
+ : eval { require Tk::TextUndo }
+   ? qw(TextUndo)
+ : qw(Text);
 
   $elabff->Label(-text => "Here you can edit the current display stylesheet (press ^I to insert tab, ^L to clear"
 		   .($text_opt[0] eq 'CodeText' ? ", ^Z to undo" : EMPTY).")     ",
