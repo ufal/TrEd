@@ -189,7 +189,7 @@ sub askRemoteControlInfo {
   print "resizable 0,0\n";
   $d->resizable(0,0);
   print "Showing dialog\n";
-  $result = main::ShowDialog($d,$he,ToplevelFrame());
+  my $result = main::ShowDialog($d,$he,ToplevelFrame());
   print "done\n";
   $d->destroy();
   undef $d;
