@@ -79,6 +79,8 @@ use Tk::BrowseEntry;
 use Tk::Pane;
 use Tk::Dialog;
 use Tk::Font;
+use Tk::Scale;
+
 
 {
   package Tk::Wm;
@@ -1673,6 +1675,13 @@ sub updatePostponed {
       $i++;
     }
   }
+}
+
+sub updateScaleFactor {
+  my ($grp)=@_;
+  my $factor = $grp->{focusedWindow}->treeView->scale_factor();
+  $grp->{canvasScaleLabel}->configure(-text=>'Scale: '.int(100*$factor).'%');
+  $grp->{canvasScale}=$grp->{focusedWindow}->treeView->get_scale;
 }
 
 sub updateTitle {
@@ -4594,8 +4603,8 @@ sub onCurrentChange {
       $tv->canvas->itemconfigure($tv->get_node_pinfo($n,"EdgeTextBox"),
 				 nodeBoxOptions($win,$n,1));
     }
-    $tv->canvas->coords($tv->get_node_pinfo($n,"Oval"),
-			$tv->node_coords($n,$win->{currentNode}));
+    my $item = $tv->get_node_pinfo($n,"Oval");
+    $tv->canvas->coords($item, $tv->node_coords($n,$win->{currentNode}));
     $tv->apply_stored_style_opts("Oval",$n);
     $tv->apply_stored_style_opts("TextBox",$n);
     $tv->apply_stored_style_opts("EdgeTextBox",$n);
@@ -4664,6 +4673,7 @@ sub prepareFonts {
   $treeViewOpts->{font}=$font;
   prepareFont($grp,\$vLineFont,'C_vline');
   eval { # eval, in case fonts already exist
+    $grp->{top}->fontCreate(qw/C_small -family sans -size 7/);
     $grp->{top}->fontCreate(qw/C_heading -family sans -weight bold -size 11/);
     $grp->{top}->fontCreate(qw/C_fixed   -family courier   -size 9/);
     $grp->{top}->fontCreate(qw/C_default -family sans -size 9/);
@@ -4840,6 +4850,7 @@ sub focusCanvas {
     update_status_line($grp->{focusedWindow});
     update_value_line_current($newfocus,$newfocus->{currentNode});
     updateTitle($grp);
+    updateScaleFactor($grp);
     resetUndoStatus($newfocus);
     resetTreePosStatus($grp);
   } else {
@@ -5692,10 +5703,11 @@ sub startMain {
 	          ($valueLineReverseLines ? () : (-wrap => $valueLineWrap))
 	      );
   $group{valueLine}->Subwidget('scrolled')->menu->delete('File');
+  my $bf = $group{bottomFrame}=$top->Frame;
   if ($displayStatusLine) {
 #c		  -background white
-    $group{statusLine}=
-      $top->
+    my $sl= $group{statusLine}=
+      $bf->
 	ROText(qw(-takefocus 0
 		  -state disabled
 		  -borderwidth 2
@@ -5703,8 +5715,8 @@ sub startMain {
 		 ),
 	       -relief => 'sunken',
 	       -font => $vLineFont);
-    $group{statusLine}->menu->delete('File');
-    $group{statusLine}->bind('<1>',
+    $sl->menu->delete('File');
+    $sl->bind('<1>',
 			    [sub {
 				my ($w,$grp)=@_;
 				my $Ev=$w->XEvent;
@@ -5714,7 +5726,7 @@ sub startMain {
 				Tk->break;
 			      },\%group]
 			   );
-    $group{statusLine}->bind('<Double-1>',
+    $sl->bind('<Double-1>',
 			    [sub {
 				my ($w,$grp)=@_;
 				my $Ev=$w->XEvent;
@@ -5724,7 +5736,27 @@ sub startMain {
 				Tk->break;
 			      },\%group]
 			   );
-
+    $sl->pack(qw/-side left -fill x -expand yes/);
+  }
+  {
+    $group{canvasScale}=0;
+    $group{canvasScaleLabel} = $bf->Label(-text=>'Scale: 100%')->pack(-side => 'left');
+    my $slider = $group{canvasScaleWidget} = $bf->Scale(
+      -from => -2,
+      -to=>2,
+      -font => 'C_small',
+      -length => 150,
+      -sliderlength => 20,
+      -width => 10,
+      -showvalue => 0,
+      -resolution => 0.1,
+      -variable => \$group{canvasScale},
+      -command => [sub {
+		     my ($grp,$step) = @_;
+		     $grp->{focusedWindow}->treeView->scale($step);
+		     updateScaleFactor($grp);
+		   },\%group],
+      -orient => 'horizontal' )->pack(-side => 'left');
   }
   $group{valueLine}->tagConfigure('current',
 				  -background => $valueLineFocusBackground,
@@ -6049,7 +6081,8 @@ sub startMain {
 
   $group{vLineSeparator}->packAfter($group{vLineFrame},-side => 'top');
 
-  $group{statusLine}->pack(qw/-pady 2 -side bottom -fill x -expand no/) if $group{statusLine};
+  $group{bottomFrame}->pack(qw/-pady 2 -side bottom -fill x -expand no/);
+
 
   # frame canvas here
   $group{focusedWindow}->frame_widget($canvas,[],

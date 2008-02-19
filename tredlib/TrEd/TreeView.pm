@@ -55,7 +55,7 @@ $bblock = qr/\{(?:(?>  [^{}]* )|(??{ $bblock }))*\}/x;
 {
   no strict 'refs';
   # generate methods
-  for my $opt (@Options, qw(canvasHeight canvasWidth)) {
+  for my $opt (@Options, qw(canvasHeight canvasWidth scale)) {
     (*{"get_$opt"},*{"set_$opt"}) = do {{
       my $o = $opt;
       (sub { $_[0]->{$o} },
@@ -126,10 +126,64 @@ sub canvas {
 sub realcanvas {
   my $self = shift;
   return undef unless ref($self);
-  return $self->{canvas}->isa("Tk::Canvas") 
+  return $self->{canvas}->isa("Tk::Canvas")
     ? $self->{canvas} : $self->{canvas}->Subwidget("scrolled");
 }
 
+sub scale_factor {
+  my ($self)=@_;
+  my $s = $self->{scale};
+  if ($s < 0) {
+    return 1/(-$s+1);
+  } else {
+    return ($s+1);
+  }
+}
+
+sub scale {
+  my ($self,$new_scale)=@_;
+  my $c=$self->realcanvas;
+  my $factor = 1;
+  for my $s (-$self->{scale},$new_scale) {
+    if ($s < 0) {
+      $factor /= (-$s+1);
+    } else {
+      $factor *= ($s+1);
+    }
+  }
+  $self->{scale} = $new_scale;
+  $c->scale('all', 0, 0, $factor, $factor);
+  # scale font
+  $self->scale_font($factor);
+  $c->itemconfigure('text_item', -font => $self->{scaled_font});
+  $self->{$_}*=$factor for qw(canvasWidth canvasHeight);
+  $c->configure(-scrollregion =>['0c', '0c',
+				 $self->{canvasWidth},
+				 $self->{canvasHeight}]);
+}
+
+sub scale_font {
+  my ($self,$factor)=@_;
+  my $font = $self->{scaled_font} || $self->get_font;
+  my $c = $self->realcanvas;
+  if (!ref $font) {
+    $font = $c->fontCreate($c->fontActual($font))
+  }
+  if (!defined $self->{font_size}) {
+    $self->{font_size}=$font->actual('-size');
+  }
+  $self->{font_size} *= $factor;
+  my $new_size = int($self->{font_size})||1;
+  $font = $font->Clone(-size => $new_size);
+  $self->{scaled_font}= $font;
+}
+
+sub reset_scale {
+  my $self=shift;
+  $self->{scale}=0;
+  $self->{font_size}=undef;
+  $self->{scaled_font}=undef;
+}
 
 sub pinfo {
   my $self = shift;
@@ -182,7 +236,12 @@ sub get_gen_pinfo {
 sub get_node_pinfo {
   my ($self,$node,$key) = @_;
   return undef unless ref($self);
-  return $self->{pinfo}->{"node:${node};${key}"};
+  my $val = $self->{pinfo}->{"node:${node};${key}"};
+  if ($key=~/[XY]/) {
+    return $self->scale_factor * $val;
+  } else {
+    return $val;
+  }
 }
 
 sub get_obj_pinfo {
@@ -909,10 +968,12 @@ sub node_box_options {
 
 sub node_coords {
   my ($self,$node,$currentNode)=@_;
+  my $factor=$self->scale_factor;
+  my $x=$self->get_node_pinfo($node,'XPOS')/$factor;
+  my $y=$self->get_node_pinfo($node,'YPOS')/$factor;
 
-  my $x=$self->get_node_pinfo($node,'XPOS');
-  my $y=$self->get_node_pinfo($node,'YPOS');
   my $Opts=$self->get_gen_pinfo('Opts');
+  my @ret;
   if ($self->get_style_opt($node,'Node','-shape',$Opts) ne 'polygon') {
 
     my ($nw,$nh);
@@ -931,15 +992,16 @@ sub node_coords {
     }
     $nw+=$self->get_style_opt($node,'Node','-addwidth',$Opts);
     $nh+=$self->get_style_opt($node,'Node','-addheight',$Opts);
-    return ($x-$nw/2,
+    @ret = ($x-$nw/2,
 	    $y-$nh/2,
 	    $x+$nw/2,
 	    $y+$nh/2);
   } else {
     my $horiz=0;
-    return map { $horiz=!$horiz; $_+($horiz ? $x : $y) } 
+    @ret = map { $horiz=!$horiz; $_+($horiz ? $x : $y) } 
       split(',',$self->get_style_opt($node,'Node','-polygon',$Opts))
   }
+  return $factor!=1 ? (map{ $factor * $_ } @ret) : @ret;
 }
 
 sub node_options {
@@ -1204,7 +1266,8 @@ sub redraw {
       $valign_edge
      );
 
-
+  my $scale = $self->{scale};
+  $self->reset_scale;
   my (@node_patterns,@edge_patterns,@style_patterns,@patterns);
 
   my %Opts=();
@@ -1352,7 +1415,7 @@ sub redraw {
 	$canvas->
 	  createText(0,
 		     $self->{canvasHeight},
-		     -tags => 'vline',
+		     -tags => ['vline','text_item'],
 		     -font => $self->get_font,
 		     -text => $ftext,
 		     -justify => 'left', -anchor => 'nw'),
@@ -1384,7 +1447,7 @@ sub redraw {
 	      createText($self->{canvasWidth},
 					   $self->{canvasHeight},
 			 -font => $self->get_font,
-			 -tags => 'vline',
+			 -tags => ['vline','text_item'],
 			 -text => $_,
 			 -justify => 'right',
 			 -anchor => 'ne'),
@@ -1394,7 +1457,7 @@ sub redraw {
 	    $canvas->
 	      createText(0,$self->{canvasHeight},
 			 -font => $self->get_font,
-			 -tags => 'vline',
+			 -tags => ['vline','text_item'],
 			 -text => $_,
 					   -justify => 'left',
 			 -anchor => 'nw'),
@@ -1780,6 +1843,7 @@ sub redraw {
 			     -tags => 'stipple',
 			     -state => $stipple);
   }
+  $self->scale($scale) if defined $scale;
 }
 
 
@@ -1793,25 +1857,26 @@ sub draw_text_line {
   my $align= $self->get_style_opt($node,$what,"-textalign[$i]",$Opts);
   $align = $self->get_style_opt($node,$what,"-textalign",$Opts) unless defined $align;
   my $textdelta;
+  my $X=$self->get_node_pinfo($node,"X[$i]");
   if ($align eq 'left') {
     $textdelta=0;
   } elsif ($align eq 'right') {
     my $lw = $self->get_gen_pinfo($what."LabelWidth[$i]");
     $lw = $self->get_node_pinfo($node,$what."LabelWidth") unless defined $lw;
-    $textdelta= ($lw - $self->get_node_pinfo($node,"X[$i]"));
+    $textdelta= ($lw - $X);
   } elsif ($align eq 'center') {
     my $lw = $self->get_gen_pinfo($what."LabelWidth[$i]");
     $lw = $self->get_node_pinfo($node,$what."LabelWidth") unless defined $lw;
-    $textdelta= ($lw - $self->get_node_pinfo($node,"X[$i]"))/2;
+    $textdelta= ($lw - $X)/2;
   }
   ## Clear background
   if ($self->get_clearTextBackground and
-      $clear and $self->get_node_pinfo($node,"X[$i]")>0) {
+      $clear and $X>0) {
     $objectno++;
     my $bg="textbg_$objectno";
     my $bid=$self->canvas->
       createRectangle($x+$textdelta,$y,
-		      $x+$textdelta+$self->get_node_pinfo($node,"X[$i]")+1,
+		      $x+$textdelta+$X+1,
 		      $y+$lineHeight,
 		      -fill => $self->realcanvas->cget('-background'),
 		      -outline => undef,
@@ -1870,7 +1935,7 @@ sub draw_text_line {
 		   defined($color) ? $color :
 		   $self->which_text_color($fsfile,$c),
 		   -font => $self->get_font,
-		   -tags => [$txt,'text']
+		   -tags => [$txt,'text','text_item']
 		  );
       $self->store_id_pinfo($bid,$txt);
       $self->apply_style_opts($txt,
@@ -1922,7 +1987,7 @@ sub draw_text_line {
 		     $y,
 		     -text => encode($_),
 		     -font => $self->get_font,
-		     -tags => [$txt,'plaintext']
+		     -tags => [$txt,'plaintext','text_item']
 		    );
 	$self->store_id_pinfo($bid,$txt);
 	$self->apply_style_opts($txt,

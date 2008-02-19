@@ -4,6 +4,7 @@ use Tk;
 use TrEd::TreeView;
 use Tk::Separator;
 use strict;
+use Carp;
 use vars qw($AUTOLOAD);
 
 # options
@@ -23,6 +24,8 @@ sub AUTOLOAD {
   $sub =~ s/.*:://;
   if ($sub=~/^(?:treeView|FSFile|treeNo|currentNode)$/) {
     return $self->{$sub};
+  } else {
+    croak "Undefined method $sub called on class ".ref($self);
   }
 }
 
