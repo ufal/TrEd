@@ -250,7 +250,7 @@ sub diff_trees {
 	      $son=$G{$parent_grp}->{$names[$j]}->firstson;
 	    SON: while ($son) {
 		if ((!exists($son->{_group_}) or $son->{_group_} eq "")
-		    and ($son->{func} eq $node->{func})) {
+		    and ($son->{functor} eq $node->{functor})) {
 		  $son->{"_group_"}=$g;
 		  $G{$g}->{$names[$j]}=$son;
 		  last SON;
