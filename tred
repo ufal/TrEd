@@ -5757,6 +5757,8 @@ sub startMain {
 		     updateScaleFactor($grp);
 		   },\%group],
       -orient => 'horizontal' )->pack(-side => 'left');
+    $slider->bindtags([$slider,ref($slider),$slider->toplevel,'all']);
+    $slider->bind($slider,'<3>', sub{ $slider->set(0); Tk->break; } );
   }
   $group{valueLine}->tagConfigure('current',
 				  -background => $valueLineFocusBackground,
