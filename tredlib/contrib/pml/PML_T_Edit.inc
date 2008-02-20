@@ -86,7 +86,8 @@ sub ChooseValFrame {
 	$n->{'val_frame.rf'} = undef;
 	AddToAlt($n,'val_frame.rf',map { $refid."#".$_} split /\|/,$ids);
       } else {
-	$chooser->widget->toplevel->
+	my $top = $chooser ? $chooser->widget->toplevel : TopLevelFrame();
+	$top->
 	  messageBox(-icon=> 'error',
 		     -message=> "Use Ctrl+Return to assign frame!",
 		     -title=> 'Error', -type=> 'ok');
