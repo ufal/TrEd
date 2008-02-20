@@ -6,6 +6,7 @@ BEGIN {
 use Tk;
 use Tk::Canvas;
 use Tk::Balloon;
+use Tk::Font;
 use Fslib;
 use TrEd::MinMax;
 import TrEd::MinMax;
