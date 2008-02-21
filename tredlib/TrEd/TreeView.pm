@@ -153,22 +153,48 @@ sub scale {
       $factor *= ($s+1);
     }
   }
-  $self->{scale} = $new_scale;
-  my ($x,$y)=@_;
-  if ($current_node) {
-    ($x,$y)= map $self->get_node_pinfo($current_node,$_), "XPOS","YPOS";
-    #($x,$y) = ($c->canvasx($c->pointerx-$c->rootx),$c->canvasy($c->pointery-$c->rooty));
-    $c->move('all',-$x,-$y);
+  my ($x,$y);
+  if (defined $current_node) {
+    if (ref($current_node)) {
+      ($x,$y)= map $self->get_node_pinfo($current_node,$_), "XPOS","YPOS";
+    } else {
+      ($x,$y) = ($c->canvasx($c->pointerx-$c->rootx),$c->canvasy($c->pointery-$c->rooty));
+    }
+  } else {
+    ($x,$y)=(0,0);
   }
-  $c->scale('all', $x,$y, $factor, $factor);
-#  $c->scale('all', 0,0, $factor, $factor);
-  $c->move('all',-$x*$factor,-$y*$factor) if $current_node;
+  my $nx = $x*$factor;
+  my $ny = $y*$factor;
+  my @corners = (
+    $c->canvasx(0),
+    $c->canvasy(0),
+    $c->canvasx($c->width),
+    $c->canvasy($c->height),
+   );
+  my @scrollregion=@{$c->cget('-scrollregion')};
+  $c->configure(-scrollregion =>
+		  [
+		    min($corners[0]-$x+$nx,$scrollregion[0],$corners[0]),
+		    min($corners[1]-$y+$ny,$scrollregion[1],$corners[1]),
+		    max($corners[2]-$x+$nx,$scrollregion[2],$corners[2]),
+		    max($corners[3]-$y+$ny,$scrollregion[3],$corners[3])
+		   ]);
+  my $xview= $c->xviewCoord($x);
+  my $yview= $c->yviewCoord($y);
+
+  $self->{scale} = $new_scale;
+  $c->scale('all', 0,0, $factor, $factor);
   # scale font
   $self->scale_font($factor);
   $c->itemconfigure('text_item', -font => $self->{scaled_font});
-
   $self->{$_}*=$factor for qw(canvasWidth canvasHeight);
-  $c->configure(-scrollregion =>[0,0,$self->{canvasWidth},$self->{canvasHeight}]);
+
+  $c->xviewCoord($x*$factor,$xview);
+  $c->yviewCoord($y*$factor,$yview);
+  $c->configure(-scrollregion => [min2(0,$c->canvasx(0)),
+				  min2(0,$c->canvasy(0)),
+				  max2($c->canvasx($c->width),$self->{canvasWidth}),
+				  max2($c->canvasx($c->height),$self->{canvasHeight})]);
 }
 
 sub scale_font {
@@ -1482,7 +1508,9 @@ sub redraw {
 #				   -tags => 'vline'
 #			     );
   }
-  $canvas->configure(-scrollregion =>['0c', '0c', $self->{canvasWidth}, $self->{canvasHeight}]);
+  $canvas->configure(-scrollregion =>[0,0,
+				      $self->{canvasWidth},
+				      $self->{canvasHeight}]);
 
   my $lineHeight=$self->getFontHeight() * $lineSpacing;
   my $edge_label_yskip= (scalar(@node_patterns) ? $self->get_edgeLabelSkipAbove : 0);
@@ -1818,11 +1846,13 @@ sub redraw {
       $canvas->itemconfigure("textbg_$currentNode", -fill => undef )
     }
   };
+  eval { $canvas->lower('stripe','all') };
   eval { $canvas->raise('textbg','textbox') };
   eval { $canvas->raise('textbg','edgetextbox') };
-  eval { $canvas->raise('text','textbg') };
-  eval { $canvas->raise('plaintext','textbg') };
-  eval { $canvas->lower('stripe','all') };
+  eval { $canvas->raise('line','textbg') };
+  eval { $canvas->raise('point','line') };
+  eval { $canvas->raise('text','point') };
+  eval { $canvas->raise('plaintext','point') };
   if (defined $self->get_backgroundImage) {
     unless ($canvas->find('withtag','bgimage')) {
       my $img=$self->get_backgroundImage;
