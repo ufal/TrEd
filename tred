@@ -4779,6 +4779,7 @@ sub newTreeView {
 		  );
   canvasBindMouseWheelVert($canvas);
   canvasBindMouseWheelHoriz($canvas,"Shift");
+  canvasBindMouseScale($grp,$canvas,"Control");
   createCanvasBindings($grp,$canvas);
   addBindTags($canvas,'my');
   addBindTags($canvas->Subwidget('scrolled'),'canvas');
@@ -4891,6 +4892,20 @@ sub removeWindow {
     undef $win;
   }
 }
+
+sub canvasBindMouseScale {
+  my($grp,$w,$modifier)= @_;
+  $modifier.="-" if ($modifier);
+  my $sub = sub {
+    my ($w,$grp,$amount)=@_;
+    $grp->{canvasScaleWidget}->set($scale=max(-2,min(2,$grp->{canvasScale}+$amount)));
+    Tk->break;
+  };
+  $w->CanvasBind("<$modifier"."MouseWheel>", [ $sub, $grp, Tk::Ev("D")]);
+  $w->CanvasBind("<$modifier"."4>", [ $sub, $grp, -0.1]);
+  $w->CanvasBind("<$modifier"."5>", [ $sub, $grp, 0.1]);
+}
+
 
 sub canvasBindMouseWheelVert {
     my($w,$modifier)= @_;
@@ -5753,7 +5768,7 @@ sub startMain {
       -variable => \$group{canvasScale},
       -command => [sub {
 		     my ($grp,$step) = @_;
-		     $grp->{focusedWindow}->treeView->scale($step);
+		     $grp->{focusedWindow}->treeView->scale($step,$grp->{focusedWindow}->{currentNode});
 		     updateScaleFactor($grp);
 		   },\%group],
       -orient => 'horizontal' )->pack(-side => 'left');
@@ -9328,6 +9343,7 @@ sub redraw_win {
 		: undef),
 	   $win
 	  );
+  doEvalHook($win,"after_redraw_hook");
   if ($win->{FSFile}) {
     setCurrent($win,$win->{currentNode});
     ensureCurrentIsDisplayed($win);
