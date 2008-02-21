@@ -4897,8 +4897,12 @@ sub canvasBindMouseScale {
   my($grp,$w,$modifier)= @_;
   $modifier.="-" if ($modifier);
   my $sub = sub {
-    my ($w,$grp,$amount)=@_;
-    $grp->{canvasScaleWidget}->set($scale=max(-2,min(2,$grp->{canvasScale}+$amount)));
+    my ($c,$grp,$amount)=@_;
+    my $win=findCanvasWindow($grp,$c);
+    my $tv=$win->treeView;
+    my $scale =max2(-2,min2(2,$tv->{scale}+$amount));
+    $tv->scale($scale,0);
+    updateScaleFactor($grp);
     Tk->break;
   };
   $w->CanvasBind("<$modifier"."MouseWheel>", [ $sub, $grp, Tk::Ev("D")]);
@@ -4914,9 +4918,13 @@ sub canvasBindMouseWheelVert {
               [ sub { $_[0]->yview('scroll',-($_[1]/120)*3,'units') }, Tk::Ev("D")]);
 #    if ($Tk::platform eq 'unix') {
     $w->CanvasBind("<$modifier"."4>", sub { $_[0]->yview('scroll', -3, 'units')
-					      unless $Tk::strictMotif; });
+					      unless $Tk::strictMotif; 
+					    Tk->break;
+					  });
     $w->CanvasBind("<$modifier"."5>", sub { $_[0]->yview('scroll', 3, 'units')
-					      unless $Tk::strictMotif; });
+					      unless $Tk::strictMotif;
+					    Tk->break;
+					  });
     if ($modifier eq EMPTY) {
       $w->CanvasBind("<6>", sub { $_[0]->xview('scroll', -3, 'units')
 				    unless $Tk::strictMotif; });
@@ -4950,6 +4958,39 @@ sub keyBind {
 sub createCanvasBindings {
   my ($grp,$canvas) = @_;
 
+  $canvas->CanvasBind('<Control-1>',
+		      [sub {
+			  my ($c,$grp)=@_;
+			  my $win=findCanvasWindow($grp,$c);
+			  my $tv=$win->{treeView};
+			  my $t = $tv->get_node_pinfo($win->{currentNode},'Oval');
+			  my ($x,$y) = ($c->canvasx($c->pointerx-$c->rootx),$c->canvasy($c->pointery-$c->rooty));
+			  if ($t) {
+			    my @c = $c->coords($t);
+			    my @corners = (
+			      $c->canvasx(0)-10,
+			      $c->canvasy(0)-10,
+			      $c->canvasx($c->width)+10,
+			      $c->canvasy($c->height)+10,
+			     );
+			    my $nx = ($c[2]+$c[0])/2;
+			    my $ny = ($c[3]+$c[1])/2;
+			    my @scrollregion=@{$c->cget('-scrollregion')};
+			    $c->configure(-scrollregion =>
+					    [
+					      min($corners[0]-$x+$nx,$scrollregion[0]),
+					      min($corners[1]-$y+$ny,$scrollregion[1]),
+					      max($corners[2]-$x+$nx,$scrollregion[2]),
+					      max($corners[3]-$y+$ny,$scrollregion[3])
+					    ]
+					   );
+			    my $xview= $c->xviewCoord($x);
+			    my $yview= $c->yviewCoord($y);
+			    $c->xviewCoord($nx,$xview);
+			    $c->yviewCoord($ny,$yview);
+			    Tk->break;
+			  }
+		      },$grp]);
   ## Canvas bindings 
   $canvas->CanvasBind('<ButtonPress>',[\&focusCanvas,$grp]);
   foreach my $tag (qw(text line)) {
@@ -9350,6 +9391,7 @@ sub redraw_win {
   }
   $TrEd::TreeView::on_get_root_style= undef; #forget the reference on $win
   $TrEd::TreeView::on_get_node_style= undef;
+  doEvalHook($win,"after_redraw_hook");
 
   #------------------------------------------------------------
   #}
