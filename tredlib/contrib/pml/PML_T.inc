@@ -8,6 +8,7 @@
 
 use Carp;
 BEGIN { import PML; }
+use Scalar::Util qw(weaken);
 sub first (&@);
 
 =pod
@@ -1067,6 +1068,7 @@ sub NewNode{
   $node ||= $this;
   my $new = InitNode(NewSon($node),$node);
   $new->{id} = defined($id) ? $id : NewID($new);
+  weaken( GetNodeHash()->{$id} = $new );
   $new;
 }#NewNode
 
