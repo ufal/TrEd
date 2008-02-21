@@ -5,6 +5,7 @@ use strict;
 BEGIN {
 use Tk;
 use Tk::Canvas;
+use Tk::CanvasSee;
 use Tk::Balloon;
 use Tk::Font;
 use Fslib;
@@ -142,7 +143,7 @@ sub scale_factor {
 }
 
 sub scale {
-  my ($self,$new_scale)=@_;
+  my ($self,$new_scale,$current_node)=@_;
   my $c=$self->realcanvas;
   my $factor = 1;
   for my $s (-$self->{scale},$new_scale) {
@@ -153,14 +154,21 @@ sub scale {
     }
   }
   $self->{scale} = $new_scale;
-  $c->scale('all', 0, 0, $factor, $factor);
+  my ($x,$y)=@_;
+  if ($current_node) {
+    ($x,$y)= map $self->get_node_pinfo($current_node,$_), "XPOS","YPOS";
+    #($x,$y) = ($c->canvasx($c->pointerx-$c->rootx),$c->canvasy($c->pointery-$c->rooty));
+    $c->move('all',-$x,-$y);
+  }
+  $c->scale('all', $x,$y, $factor, $factor);
+#  $c->scale('all', 0,0, $factor, $factor);
+  $c->move('all',-$x*$factor,-$y*$factor) if $current_node;
   # scale font
   $self->scale_font($factor);
   $c->itemconfigure('text_item', -font => $self->{scaled_font});
+
   $self->{$_}*=$factor for qw(canvasWidth canvasHeight);
-  $c->configure(-scrollregion =>['0c', '0c',
-				 $self->{canvasWidth},
-				 $self->{canvasHeight}]);
+  $c->configure(-scrollregion =>[0,0,$self->{canvasWidth},$self->{canvasHeight}]);
 }
 
 sub scale_font {
