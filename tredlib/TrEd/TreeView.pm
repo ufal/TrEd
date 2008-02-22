@@ -1508,9 +1508,11 @@ sub redraw {
 #				   -tags => 'vline'
 #			     );
   }
-  $canvas->configure(-scrollregion =>[0,0,
-				      $self->{canvasWidth},
-				      $self->{canvasHeight}]);
+#   $canvas->configure(-scrollregion =>[0,0,
+# 				      $self->{canvasWidth},
+# 				      $self->{canvasHeight}]);
+#   $canvas->xviewMoveto(0);
+#   $canvas->yviewMoveto(0);
 
   my $lineHeight=$self->getFontHeight() * $lineSpacing;
   my $edge_label_yskip= (scalar(@node_patterns) ? $self->get_edgeLabelSkipAbove : 0);
@@ -1882,7 +1884,19 @@ sub redraw {
 			     -tags => 'stipple',
 			     -state => $stipple);
   }
-  $self->scale($scale) if defined $scale;
+  if (defined $scale) {
+    $self->scale($scale);
+  } else {
+    $self->reset_scroll_region;
+  }
+}
+
+sub reset_scroll_region {
+  my ($self)=@_;
+  my $canvas = $self->canvas;
+  $canvas->configure(-scrollregion =>[0,0, $self->{canvasWidth}, $self->{canvasHeight}]);
+  $canvas->xviewMoveto(0);
+  $canvas->yviewMoveto(0);
 }
 
 
