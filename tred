@@ -4548,6 +4548,7 @@ sub onTreeChange {
   get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo},1);
   update_value_line($grp);
   redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
+  $win->treeView->reset_scroll_region;
   centerTo($win,$win->{currentNode});
 }
 
@@ -4906,8 +4907,8 @@ sub canvasBindMouseScale {
     Tk->break;
   };
   $w->CanvasBind("<$modifier"."MouseWheel>", [ $sub, $grp, Tk::Ev("D")]);
-  $w->CanvasBind("<$modifier"."4>", [ $sub, $grp, -0.1]);
-  $w->CanvasBind("<$modifier"."5>", [ $sub, $grp, 0.1]);
+  $w->CanvasBind("<$modifier"."4>", [ $sub, $grp, 0.1]);
+  $w->CanvasBind("<$modifier"."5>", [ $sub, $grp, -0.1]);
 }
 
 
@@ -4957,40 +4958,6 @@ sub keyBind {
 
 sub createCanvasBindings {
   my ($grp,$canvas) = @_;
-
-  $canvas->CanvasBind('<Control-1>',
-		      [sub {
-			  my ($c,$grp)=@_;
-			  my $win=findCanvasWindow($grp,$c);
-			  my $tv=$win->{treeView};
-			  my $t = $tv->get_node_pinfo($win->{currentNode},'Oval');
-			  my ($x,$y) = ($c->canvasx($c->pointerx-$c->rootx),$c->canvasy($c->pointery-$c->rooty));
-			  if ($t) {
-			    my @c = $c->coords($t);
-			    my @corners = (
-			      $c->canvasx(0)-10,
-			      $c->canvasy(0)-10,
-			      $c->canvasx($c->width)+10,
-			      $c->canvasy($c->height)+10,
-			     );
-			    my $nx = ($c[2]+$c[0])/2;
-			    my $ny = ($c[3]+$c[1])/2;
-			    my @scrollregion=@{$c->cget('-scrollregion')};
-			    $c->configure(-scrollregion =>
-					    [
-					      min($corners[0]-$x+$nx,$scrollregion[0]),
-					      min($corners[1]-$y+$ny,$scrollregion[1]),
-					      max($corners[2]-$x+$nx,$scrollregion[2]),
-					      max($corners[3]-$y+$ny,$scrollregion[3])
-					    ]
-					   );
-			    my $xview= $c->xviewCoord($x);
-			    my $yview= $c->yviewCoord($y);
-			    $c->xviewCoord($nx,$xview);
-			    $c->yviewCoord($ny,$yview);
-			    Tk->break;
-			  }
-		      },$grp]);
   ## Canvas bindings 
   $canvas->CanvasBind('<ButtonPress>',[\&focusCanvas,$grp]);
   foreach my $tag (qw(text line)) {
@@ -5021,6 +4988,41 @@ sub createCanvasBindings {
 			}, $grp]);
   }
   # Button-1
+  my ($dx,$dy);
+  $canvas->CanvasBind('<Control-1>', [sub {
+					my ($c)=@_;
+					return if $c->find(withtag=>'current');
+					($dx,$dy) = ($c->canvasx($c->pointerx-$c->rootx),$c->canvasy($c->pointery-$c->rooty));
+					Tk->break;
+				      }]);
+  $canvas->CanvasBind('<ButtonRelease-1>',sub {
+			if (defined $dx) {
+			  undef $dx; undef $dy;
+			  Tk->break;
+			}
+		      });
+  $canvas->CanvasBind('<B1-Motion>',
+		      [sub {
+			  return unless defined $dx;
+			  my ($c,$grp)=@_;
+			  my $win = findCanvasWindow($grp,$c);
+			  my $tv=$win->{treeView};
+			  my $t = $tv->get_node_pinfo($win->{currentNode},'Oval');
+			  my ($x,$y) = ($c->canvasx($c->pointerx-$c->rootx),$c->canvasy($c->pointery-$c->rooty));
+			  if ($t) {
+			    my @corners = ( $c->canvasx(0)-10, $c->canvasy(0)-10,
+					    $c->canvasx($c->width)+10, $c->canvasy($c->height)+10 );
+			    my @scrollregion=@{$c->cget('-scrollregion')};
+			    $c->configure(-scrollregion =>
+					    [ min($corners[0]-$x+$dx,$scrollregion[0]),
+					      min($corners[1]-$y+$dy,$scrollregion[1]),
+					      max($corners[2]-$x+$dx,$scrollregion[2]),
+					      max($corners[3]-$y+$dy,$scrollregion[3]) ] );
+			    $c->xviewCoord($dx,$c->xviewCoord($x));
+			    $c->yviewCoord($dy,$c->yviewCoord($y));
+			    Tk->break;
+			  }
+		      },$grp]);
   $canvas->bind('point', '<1>'=> [sub {node_down(@_) },$grp,0]);
   foreach (qw(Shift Control Alt Meta)) {
     $canvas->bind('point', "<$_-Button-1>"=> [sub {node_click_modif(@_)},$grp,$_]);
@@ -5768,6 +5770,7 @@ sub startMain {
 		  -state disabled
 		  -borderwidth 2
 		  -height 1
+		  -width 10
 		 ),
 	       -relief => 'sunken',
 	       -font => $vLineFont);
@@ -5796,12 +5799,12 @@ sub startMain {
   }
   {
     $group{canvasScale}=0;
-    $group{canvasScaleLabel} = $bf->Label(-text=>'Scale: 100%')->pack(-side => 'left');
+    $group{canvasScaleLabel} = $bf->Label(-text=>'Scale: 100%')->pack(-side => 'left',-expand => 'no');
     my $slider = $group{canvasScaleWidget} = $bf->Scale(
       -from => -2,
       -to=>2,
       -font => 'C_small',
-      -length => 150,
+      -length => 100,
       -sliderlength => 20,
       -width => 10,
       -showvalue => 0,
@@ -5812,7 +5815,7 @@ sub startMain {
 		     $grp->{focusedWindow}->treeView->scale($step,$grp->{focusedWindow}->{currentNode});
 		     updateScaleFactor($grp);
 		   },\%group],
-      -orient => 'horizontal' )->pack(-side => 'left');
+      -orient => 'horizontal' )->pack(-side => 'left',-expand => 'no');
     $slider->bindtags([$slider,ref($slider),$slider->toplevel,'all']);
     $slider->bind($slider,'<3>', sub{ $slider->set(0); Tk->break; } );
   }
