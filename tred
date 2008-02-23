@@ -4899,16 +4899,28 @@ sub canvasBindMouseScale {
   $modifier.="-" if ($modifier);
   my $sub = sub {
     my ($c,$grp,$amount)=@_;
-    my $win=findCanvasWindow($grp,$c);
+    $amount/=600; # Tk::Ev('D') gives at least 120 on Win32
+    my $win;
+    if ($c->isa('Tk::Toplevel')) {
+      $win=$grp->{focusedWindow};
+    } else {
+      $win=findCanvasWindow($grp,$c);
+    }
     my $tv=$win->treeView;
     my $scale =max2(-2,min2(2,$tv->{scale}+$amount));
     $tv->scale($scale,0);
     updateScaleFactor($grp);
     Tk->break;
   };
-  $w->CanvasBind("<$modifier"."MouseWheel>", [ $sub, $grp, Tk::Ev("D")]);
-  $w->CanvasBind("<$modifier"."4>", [ $sub, $grp, 0.1]);
-  $w->CanvasBind("<$modifier"."5>", [ $sub, $grp, -0.1]);
+  if ($Tk::platform eq 'MSWin32') {
+    $grp->{top}->bind("<${modifier}MouseWheel>", [ $sub, $grp, Tk::Ev("D")]);
+    # just for case:
+    $w->CanvasBind("<${modifier}MouseWheel>", [ $sub, $grp, Tk::Ev("D")]);
+  } else {
+    $w->CanvasBind("<${modifier}MouseWheel>", [ $sub, $grp, Tk::Ev("D")]);
+    $w->CanvasBind("<${modifier}4>", [ $sub, $grp, 60]);
+    $w->CanvasBind("<${modifier}5>", [ $sub, $grp, -60]);
+  }
 }
 
 
@@ -4916,7 +4928,9 @@ sub canvasBindMouseWheelVert {
     my($w,$modifier)= @_;
     $modifier.="-" if ($modifier);
     $w->CanvasBind("<$modifier"."MouseWheel>",
-              [ sub { $_[0]->yview('scroll',-($_[1]/120)*3,'units') }, Tk::Ev("D")]);
+              [ sub { 
+		  print "hallp\n";
+		  $_[0]->yview('scroll',-($_[1]/120)*3,'units') }, Tk::Ev("D")]);
 #    if ($Tk::platform eq 'unix') {
     $w->CanvasBind("<$modifier"."4>", sub { $_[0]->yview('scroll', -3, 'units')
 					      unless $Tk::strictMotif; 
