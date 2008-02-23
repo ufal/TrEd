@@ -272,6 +272,18 @@ unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
     unshift @INC, glob(File::Spec->catfile($libs,'*',''));
   }
 }
+# require Tk::ErrorReport;
+# sub Tk::Error {
+#   my ($w,$error,@log)=@_;
+#   my $full_msg = $error."\n\nStack trace:\n\n".join("\n",@log)."\n\n";
+#   $w->toplevel->Unbusy;
+#   $w->ErrorReport(-title => 'Tk Error',
+# 		  -message => "The following Tk::error occurred",
+# 		  -body => $full_msg,
+# 		  -buttons => ['OK'],
+# 		 );
+#   warn $full_msg;
+# }
 
 require Fslib;
 import Fslib;
@@ -2157,7 +2169,7 @@ sub applyFileSuffix {
     if ($root) {
       $win->{currentNode}=$root;
       unless (isShown($win,$root)) {
-	$win->{treeView}->set_showHidden(1);
+	$win->treeView->set_showHidden(1);
       }
 
     }
@@ -2311,7 +2323,7 @@ sub saveFile {
 
 sub isShown { # test if node is shown (always 1 if $showHidden)
   my ($win,$node,$show)=@_;
-  $show=$win->{treeView}->get_showHidden() unless defined $show;
+  $show=$win->treeView->get_showHidden() unless defined $show;
   return 0 unless ($node and $win->{FSFile});
   return $win->{FSFile}->FS->isHidden($node) ? 0 : 1;
 }
@@ -2385,7 +2397,7 @@ sub get_value_line {
 	$vl=encode($vl);
       }
     } else {
-      $vl=$win->{treeView}->value_line($fsfile,$no,$no_numbers,$tags,$win);
+      $vl=$win->treeView->value_line($fsfile,$no,$no_numbers,$tags,$win);
     }
   } else {
     $vl=EMPTY;
@@ -2542,7 +2554,7 @@ sub get_nodes_win {
     $TrEd::TreeView::on_get_nodes = [\&onGetNodes,$win];
     $win->{treeNo}=0 if ($win->{treeNo}<0 and $win->{FSFile}->lastTreeNo>=0);
     $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
-    ($win->{Nodes},$win->{currentNode})= $win->{treeView}->nodes($win->{FSFile},
+    ($win->{Nodes},$win->{currentNode})= $win->treeView->nodes($win->{FSFile},
 								 $win->{treeNo},
 								 $win->{currentNode});
   } else {
@@ -4548,8 +4560,13 @@ sub onTreeChange {
   get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo},1);
   update_value_line($grp);
   redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
-  $win->treeView->reset_scroll_region;
-  centerTo($win,$win->{currentNode});
+  my $tv = $win->treeView;
+  $tv->reset_scroll_region;
+  my $node = $win->{currentNode};
+  $tv->canvas->see(-item =>
+		     $tv->get_node_pinfo($node,"Oval"));
+
+#  centerTo($win,$win->{currentNode});
 }
 
 sub onNodeChange {
@@ -4590,7 +4607,7 @@ sub update_value_line_current {
 sub onCurrentChange {
   my ($win,$node,$prev)=@_;
   my $n;
-  my $tv=$win->{treeView};
+  my $tv=$win->treeView;
   update_value_line_current($win,$node);
   foreach $n ($node,$prev) {
     $tv->canvas->itemconfigure($tv->get_node_pinfo($n,"Oval"),
@@ -4889,7 +4906,7 @@ sub removeWindow {
       delete $grp->{focusedWindow};
       focusCanvas($brother,$grp);
     }
-    $win->{treeView}=undef;
+    $win->treeView=undef;
     undef $win;
   }
 }
@@ -4980,7 +4997,7 @@ sub createCanvasBindings {
 		    => [sub{
 			  my ($c,$grp)=@_;
 			  my $win=findCanvasWindow($grp,$c);
-			  my $tv=$win->{treeView};
+			  my $tv=$win->treeView;
 			  my ($t)=$tv->find_item('withtag','current');
 			  my $node=$tv->get_obj_pinfo($t);
 			  $tv->store_node_pinfo($node,"SaveColor",
@@ -4993,7 +5010,7 @@ sub createCanvasBindings {
 		    => [sub{
 			  my ($c,$grp)=@_;
 			  my $win=findCanvasWindow($grp,$c);
-			  my $tv=$win->{treeView};
+			  my $tv=$win->treeView;
 			  my ($t)=$tv->find_item('withtag','current');
 			  my $node=$tv->get_obj_pinfo($t);
 			  $c->itemconfigure('current',
@@ -5020,7 +5037,7 @@ sub createCanvasBindings {
 			  return unless defined $dx;
 			  my ($c,$grp)=@_;
 			  my $win = findCanvasWindow($grp,$c);
-			  my $tv=$win->{treeView};
+			  my $tv=$win->treeView;
 			  my $t = $tv->get_node_pinfo($win->{currentNode},'Oval');
 			  my ($x,$y) = ($c->canvasx($c->pointerx-$c->rootx),$c->canvasy($c->pointery-$c->rooty));
 			  if ($t) {
@@ -5057,11 +5074,11 @@ sub createCanvasBindings {
   }
   $canvas->bind('point', '<ButtonRelease-3>'=> [sub {node_release(@_)},$grp,3]);
   foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('point', "<$_-ButtonRelease-3>"=> [sub {node_release_modif(@_)},$grp."-3"]);
+    $canvas->bind('point', "<$_-ButtonRelease-3>"=> [sub {node_release_modif(@_)},$grp,"-3"]);
   }
   $canvas->bind('point','<B3-Motion>'=> [sub {node_move(@_)},$grp,1]);
   foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('point', "<$_-B3-Motion>"=> [sub {node_motion_modif(@_)},$grp."-3"]);
+    $canvas->bind('point', "<$_-B3-Motion>"=> [sub {node_motion_modif(@_)},$grp,"-3"]);
   }
 
   # Button-2
@@ -5070,13 +5087,13 @@ sub createCanvasBindings {
 
   # Button-2
   foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('point', "<$_-Button-2>"=> [sub {node_click_modif(@_)},$grp,$_."-2"]);
+    $canvas->bind('point', "<$_-Button-2>"=> [sub {node_click_modif(@_)},$grp,$_,"-2"]);
   }
   foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('point', "<$_-ButtonRelease-2>"=> [sub {node_release_modif(@_)},$grp."-2"]);
+    $canvas->bind('point', "<$_-ButtonRelease-2>"=> [sub {node_release_modif(@_)},$grp,"-2"]);
   }
   foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('point', "<$_-B2-Motion>"=> [sub {node_motion_modif(@_)},$grp."-2"]);
+    $canvas->bind('point', "<$_-B2-Motion>"=> [sub {node_motion_modif(@_)},$grp,"-2"]);
   }
 
 
@@ -5180,7 +5197,7 @@ sub MenubarItem {
 sub _change_orientation {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow};
-  $win->{treeView}->set_displayMode($treeViewOpts->{displayMode});
+  $win->treeView->set_displayMode($treeViewOpts->{displayMode});
   redraw_win($win);
   ensureCurrentIsDisplayed($win);
 }
@@ -5496,7 +5513,7 @@ sub startMain {
 	  -variable=> \$treeViewOpts->{showHidden},
 	  -command => [sub {
 			 my $win=$_[0]->{focusedWindow};
-			 $win->{treeView}->set_showHidden($treeViewOpts->{showHidden});
+			 $win->treeView->set_showHidden($treeViewOpts->{showHidden});
 			 get_nodes_win($win);
 			 redraw_win($win);
 			 ensureCurrentIsDisplayed($win);
@@ -9164,7 +9181,7 @@ sub findPrevTemplated {
 sub node_doubleclick_modif {
   my ($w,$grp,$mod)=@_;
   my $win=findCanvasWindow($grp,$w);
-  my $tv=$win->{treeView};
+  my $tv=$win->treeView;
   my $node=$tv->get_obj_pinfo($tv->find_item('withtag','current'));
   doEvalHookWithUndo($win,"node_doubleclick_hook",$node,$mod, $w->XEvent);
 }
@@ -9172,7 +9189,7 @@ sub node_doubleclick_modif {
 sub node_click_modif {
   my ($w,$grp,$mod)=@_;
   my $win=findCanvasWindow($grp,$w);
-  my $tv=$win->{treeView};
+  my $tv=$win->treeView;
   my $node=$tv->get_obj_pinfo($tv->find_item('withtag','current'));
   doEvalHookWithUndo($win,"node_click_hook",$node,$mod, $w->XEvent);
 }
@@ -9180,7 +9197,7 @@ sub node_click_modif {
 sub node_motion_modif {
   my ($w,$grp,$mod)=@_;
   my $win=findCanvasWindow($grp,$w);
-  my $tv=$win->{treeView};
+  my $tv=$win->treeView;
   my $node=$tv->get_obj_pinfo($tv->find_item('withtag','current'));
   doEvalHookWithUndo($win,"node_motion_hook",$node,$mod, $w->XEvent);
 }
@@ -9191,7 +9208,7 @@ sub text_doubleclick_modif {
   return unless($win and $win->{FSFile});
   my $attr;
 
-  my $tv=$win->{treeView};
+  my $tv=$win->treeView;
   my ($t)=$tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($t);
   setCurrent($win,$node);
@@ -9206,7 +9223,7 @@ sub text_click_modif {
   return unless($win and $win->{FSFile});
   my $attr;
 
-  my $tv=$win->{treeView};
+  my $tv=$win->treeView;
   my ($t)=$tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($t);
   setCurrent($win,$node);
@@ -9221,7 +9238,7 @@ sub line_click {
   my $win=findCanvasWindow($grp,$w);
   return unless($win and $win->{FSFile});
 
-  my $tv=$win->{treeView};
+  my $tv=$win->treeView;
   my ($t)=$tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($t);
   setCurrent($win,$node);
@@ -9237,7 +9254,7 @@ sub editAttrs {
   return if $grp->{inEditAttrs};
   local $grp->{inEditAttrs} = 1;
   my $win=findCanvasWindow($grp,$w);
-  my $tv=$win->{treeView};
+  my $tv=$win->treeView;
   my $node=$tv->get_obj_pinfo($tv->find_item('withtag','current'));
   editAttrsDialog($win,$node);
   ensureCurrentIsDisplayed($win);
@@ -9249,7 +9266,7 @@ sub editAttr {
   local $grp->{inEditAttrs} = 1;
   my $win=findCanvasWindow($grp,$w);
   return unless($win and $win->{FSFile});
-  my $tv=$win->{treeView};
+  my $tv=$win->treeView;
   my ($t)=$tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($t);
   setCurrent($win,$node);
@@ -9354,14 +9371,14 @@ sub doEditAttr {
 
 sub nodeOptions {
   my ($win,$node)=@_;
-  return $win->{treeView}->node_options($node,
+  return $win->treeView->node_options($node,
 					$win->{FSFile}->FS,
 					$win->{currentNode});
 }
 
 sub nodeBoxOptions {
   my ($win,$node,$edge)=@_;
-  return $win->{treeView}->node_box_options($node,
+  return $win->treeView->node_box_options($node,
 					 $win->{FSFile}->FS,
 					 $win->{currentNode},$edge);
 }
@@ -9384,13 +9401,13 @@ sub redraw_win {
   $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
   $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
   my $vl;
-#  $vl=$win->{treeView}->value_line($win->{FSFile},$win->{treeNo},1,0,$win);
-#  $vl=$win->{treeView}->value_line($win->{FSFile},$win->{treeNo},1,1,$win);
-  if ($win->{FSFile} and $win->{treeView}->get_drawSentenceInfo) {
+#  $vl=$win->treeView->value_line($win->{FSFile},$win->{treeNo},1,0,$win);
+#  $vl=$win->treeView->value_line($win->{FSFile},$win->{treeNo},1,1,$win);
+  if ($win->{FSFile} and $win->treeView->get_drawSentenceInfo) {
     $vl=get_value_line($win,$win->{FSFile},$win->{treeNo},1,0);
   }
 
-  $win->{treeView}->
+  $win->treeView->
     redraw($win->{FSFile},
 	   $win->{currentNode},
 	   $win->{Nodes},
@@ -9462,97 +9479,80 @@ sub follow_mouse {
   my ($w, $grp)= @_;
   my $e= $w->XEvent;
   my $win=findCanvasWindow($grp,$w);
-  my($x, $y)= ($w->fpixels($e->x), $w->fpixels($e->y));
+  my($x, $y)= ($e->x,$e->y);
   scrollCanvasToXY($w, $win, $x, $y);
 }
 
 sub follow_mouse_press {
   my ($w, $grp)= @_;
-  my $win=findCanvasWindow($grp,$w);
-  my $tv=$win->{treeView};
-  my $e= $w->XEvent;
-  my($x, $y)= ($w->fpixels($e->x), $w->fpixels($e->y));
-
-  $tv->store_gen_pinfo("lastX",$x);
-  $tv->store_gen_pinfo("lastY",$y);
-  $tv->store_gen_pinfo("lastCanvasX",$w->canvasx($x));
-  $tv->store_gen_pinfo("lastCanvasY",$w->canvasy($y));
+  if ($scroll) {
+    my $win=findCanvasWindow($grp,$w);
+    my $e = $w->XEvent;
+    initScrollOrigin($w,$win,$e->x,$e->y);
+  }
 }
-
+sub initScrollOrigin {
+  my ($w, $win, $X, $Y)=@_;
+  $win->treeView->store_gen_pinfo('scroll_origin',
+				  [$X,$Y,$w->canvasx($X),$w->canvasy($Y)]);
+}
+#
+# How this works:
+# - initScrollOrigin registeres the initial window position of the mouse
+# pointer and the corresponding canvas position
+# - when the mouse moves towards an edge of the window,
+# the view moves so that when it reaches the edge,
+# the corresponding edge of the canvas drawing area
+# (0,0,canvasWidth,canvasHeight) is reached.
+# - If the mouse returns to the initial window position,
+# the initial canvas point is also under the mouse pointer.
+# - If the corresponding canvas edge is already visible, we do
+# not move towards it.
+#
+# known bugs: if initially a negative canvas coord is seen
+#
 
 
 sub scrollCanvasToXY {
   my ($w, $win, $X, $Y)=@_;
-  my ($ax,$bx)=$w->xview;
-  my ($ay,$by)=$w->yview;
-  my $canvasX;
-  my $tv=$win->{treeView};
   no integer;
-  my $sizeX=$w->fpixels($tv->{canvasWidth})*($bx-$ax);
-  my $x=min($X,$sizeX);
-  my $shiftX=($x-$tv->get_gen_pinfo("lastX"));
-  if ($shiftX>0) {
-    if ($tv->get_gen_pinfo("lastX")== $sizeX) {
-      $shiftX=0;
-    } else {
-      $shiftX/=$sizeX-$tv->get_gen_pinfo("lastX");
-      # a fraction of our right move in window
-    }
-    $canvasX=$shiftX*
-      ($w->fpixels($tv->{canvasWidth})-
-       $tv->get_gen_pinfo("lastCanvasX"));
-    # this is where we should get on the canvas
-  } else {
-    if ($tv->get_gen_pinfo("lastX")== 0) {
-      $shiftX=0;
-    } else {
-      $shiftX/=$tv->get_gen_pinfo("lastX");
-    }
-    $canvasX=$shiftX*
-      $tv->get_gen_pinfo("lastCanvasX");
-    # this is where we should get on the canvas
+  my $tv=$win->treeView;
+  my @s = $w->cget('-scrollregion');
+  if ($w->isa('Scrolled')) {
+    $w=$w->Subwidget('scrolled');
   }
-  $canvasX+=$tv->get_gen_pinfo("lastCanvasX");
-  $w->xview(moveto=>
-	    max2(0,min2(1,($canvasX-$x+1+$w->fpixels($w->cget('-borderwidth')))
-		      /$tv->{canvasWidth})));
-
-  # the same for Y
-  my $sizeY=$w->fpixels($tv->{canvasHeight})*($by-$ay);
-  my $y=min($Y,$sizeY);
-  my $shiftY=($y-$tv->get_gen_pinfo("lastY"));
-  my $canvasY;
-  if ($shiftY>0) {
-    if ($tv->get_gen_pinfo("lastY")== $sizeY) {
-      $shiftY=0;
-    } else {
-      $shiftY/=$sizeY-$tv->get_gen_pinfo("lastY");
-      # a fraction of our right move in window
+  my ($Ht,$ht,$Wd,$wd);
+  my $origin = $tv->get_gen_pinfo('scroll_origin');
+  return unless defined $origin;
+  my ($cx,$cy);
+  if ($X<$origin->[0]) {
+    unless ($w->canvasx(0)<$s[0]) {
+      ($wd,$Wd)=($origin->[0],$origin->[2]-$s[0]);
+      $cx=$s[0]+($X/$wd) * $Wd;
     }
-    $canvasY=$shiftY*
-      ($w->fpixels($tv->{canvasHeight})-
-       $tv->get_gen_pinfo("lastCanvasY"));
-    # this is where we should get on the canvas
   } else {
-    if ($tv->get_gen_pinfo("lastY")==0) {
-      $shiftY=0;
-    } else {
-      $shiftY/=$tv->get_gen_pinfo("lastY");
+    my $width = $w->width;
+    unless ($w->canvasx($width)>$s[2]) {
+      ($wd,$Wd)=($width-$origin->[0],$s[2]-$origin->[2]);
+      $cx=$origin->[2]+(($X-$origin->[0])/$wd) * $Wd;
     }
-    $canvasY=$shiftY*
-      $tv->get_gen_pinfo("lastCanvasY");
-    # this is where we should get on the canvas
   }
-  $canvasY+=$tv->get_gen_pinfo("lastCanvasY");
-  $w->yview(moveto=>
-	    max2(0,min2(1,($canvasY-$y+1+$w->fpixels($w->cget('-borderwidth')))
-		      /$tv->{canvasHeight})));
-
-
-  $tv->store_gen_pinfo("lastX",$x);
-  $tv->store_gen_pinfo("lastY",$y);
-  $tv->store_gen_pinfo("lastCanvasX",$w->canvasx($x));
-  $tv->store_gen_pinfo("lastCanvasY",$w->canvasy($y));
+  if ($Y<$origin->[1]) {
+    unless ($w->canvasy(0)<$s[1]) {
+      ($ht,$Ht)=($origin->[1],$origin->[3]-$s[1]);
+      $cy=$s[1]+($Y/$ht) * $Ht;
+    }
+  } else {
+    my $height = $w->height;
+    unless ($w->canvasy($height)>$s[3]) {
+      ($ht,$Ht)=($height-$origin->[1],$s[3]-$origin->[3]);
+      $cy=$origin->[3]+(($Y-$origin->[1])/$ht) * $Ht;
+    }
+  }
+  $w->createRectangle(@s);
+  $w->xviewCoord($cx, $X) if defined $cx and $cx>=$s[0] and $cx<=$s[2];
+  $w->yviewCoord($cy, $Y) if defined $cy and $cy>=$s[1] and $cy<=$s[3];
+  return;
 }
 
 sub ensureCurrentIsDisplayed {
@@ -9711,23 +9711,27 @@ sub currentUp {
 
 sub centerToXY {
   my ($win, $x, $y)= @_;
-  my ($ax,$bx)=$win->{treeView}->canvas->xview;
-  my ($ay,$by)=$win->{treeView}->canvas->yview;
+  my $c = $win->treeView->canvas;
+  $c->xviewCenter(coord => $x);
+  $c->yviewCenter(coord => $y);
+#   my ($ax,$bx)=$win->treeView->canvas->xview;
+#   my ($ay,$by)=$win->treeView->canvas->yview;
 
-  my $shiftx=($bx-$ax)/2;
-  my $shifty=($by-$ay)/2;
-  eval {
-    $win->{treeView}->canvas->xview(moveto=> min2(max2(0,$x/$win->{treeView}->{canvasWidth}-$shiftx),1))
-      if ($win->{treeView}->{canvasWidth}-$shiftx);
-    $win->{treeView}->canvas->yview(moveto=> min2(max2(0,$y/$win->{treeView}->{canvasHeight}-$shifty),1))
-      if ($y/$win->{treeView}->{canvasHeight}-$shifty);
-  }
+#   my $shiftx=($bx-$ax)/2;
+#   my $shifty=($by-$ay)/2;
+#   eval {
+#     $win->treeView->canvas->xview(moveto=> min2(max2(0,$x/$win->treeView->{canvasWidth}-$shiftx),1))
+#       if ($win->treeView->{canvasWidth}-$shiftx);
+#     $win->treeView->canvas->yview(moveto=> min2(max2(0,$y/$win->treeView->{canvasHeight}-$shifty),1))
+#       if ($y/$win->treeView->{canvasHeight}-$shifty);
+#   }
 }
 
 sub centerTo {
   my ($win, $node)= @_;
   return unless $node;
-  my $tv=$win->{treeView};
+  my $tv=$win->treeView;
+  $tv->reset_scroll_region;
   centerToXY($win,
 	     $tv->get_node_pinfo($node,"XPOS"),
 	     $tv->get_node_pinfo($node,"YPOS"));
@@ -10172,7 +10176,7 @@ sub currentPrev {
 sub node_select {
   my($w,$grp)= @_;
   my $win=findCanvasWindow($grp,$w);
-  my $tv=$win->{treeView};
+  my $tv=$win->treeView;
   my $e= $w->XEvent;
   my($x, $y)= ($e->x, $e->y);
   my ($canvas_obj) = $tv->find_item('withtag','current');
@@ -10180,12 +10184,17 @@ sub node_select {
   setCurrent($win,$node);
 }
 
+{
+  my ($nx,$ny);
 sub node_down {
-  my($w,$grp)= @_;
+  my($w,$grp,$scroll)= @_;
   my $win=findCanvasWindow($grp,$w);
-  my $tv=$win->{treeView};
+  my $tv=$win->treeView;
   my $e= $w->XEvent;
-  my($x, $y)= ($e->x, $e->y);
+  ($nx, $ny)= ($e->x, $e->y);
+  if ($scroll) {
+    initScrollOrigin($w,$win,$nx,$ny);
+  }
   my ($canvas_obj) = $tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($canvas_obj);
 
@@ -10193,44 +10202,24 @@ sub node_down {
   $w->dtag('selected');
   $w->addtag('selected', 'withtag', $canvas_obj);
   $w->raise('current');
-  $tv->store_gen_pinfo("lastX",$x);
-  $tv->store_gen_pinfo("lastY",$y);
-  $tv->store_gen_pinfo("lastCanvasX",$w->canvasx($x));
-  $tv->store_gen_pinfo("lastCanvasY",$w->canvasy($y));
 }				# end plot_down
 
 sub node_move {
   my($w,$grp,$scroll)= @_;
   my $win=findCanvasWindow($grp,$w);
-  my $tv=$win->{treeView};
+  my $tv=$win->treeView;
   my $e= $w->XEvent;
-  my($x, $y)= ($e->x, $e->y);
-  my $node=$tv->get_obj_pinfo($tv->find_item('withtag','selected'));
-
-  my $lcx=$tv->get_gen_pinfo('lastCanvasX');
-  my $lcy=$tv->get_gen_pinfo('lastCanvasY');
-  my ($ncolor,$ocolor);
-
+  my ($deltax,$deltay) = (-$nx,-$ny);
+  ($nx,$ny)= ($e->x, $e->y);
+  $deltax+=$nx; $deltay+=$ny;
+  my ($cx, $cy)= ($w->canvasx($nx),$w->canvasy($ny));
   if ($scroll) {
-    $ncolor=$w->itemcget('selected','-fill');
-    $ocolor=$w->itemcget('selected','-outline');
-    $w->itemconfigure('selected',
-		      -fill=> $tv->canvas->cget('-background'),
-		      -outline=> $tv->canvas->cget('-background')
-		     );
-    scrollCanvasToXY($w, $win, $x, $y);
-  } else {
-    $tv->store_gen_pinfo('lastCanvasX',$w->canvasx($x));
-    $tv->store_gen_pinfo('lastCanvasY',$w->canvasy($y));
+    $deltax-=$cx; $deltay-=$cy;
+    scrollCanvasToXY($w, $win, $nx, $ny);
+    ($cx, $cy)= ($w->canvasx($nx),$w->canvasy($ny));
+    $deltax+=$cx; $deltay+=$cy;
   }
-  my ($cx, $cy)= ($w->canvasx($x),$w->canvasy($y));
-  my $flop;
-  my ($nx,$ny) = $w->coords('selected');
-  my ($deltax,$deltay) = ($cx-$nx, $cy-$ny);
-  $w->coords('selected', map { ($flop++%2) ? $deltay+$_ : $deltax+$_ }
-	     $w->coords('selected'));
-#  $w->move('selected',  $cx-$lcx, $cy-$lcy);
-  $w->itemconfigure('selected', -fill=> $ncolor, -outline=> $ocolor ) if $scroll;
+  $w->move('selected',$deltax,$deltay);
   my $nearest=$tv->get_obj_pinfo($tv->find_item('withtag','nearest'));
   if ($nearest) {
     $w->itemconfigure('nearest',nodeOptions($win,$nearest));
@@ -10242,6 +10231,7 @@ sub node_move {
   my $nearestNode=0;
   my $bestDist=10000;
   my $dist;
+  my $node=$tv->get_obj_pinfo($tv->find_item('withtag','selected'));
   foreach my $p (@dots) {
     my $n=$tv->get_obj_pinfo($p);
     if ($n and $n!=$node) {
@@ -10262,11 +10252,11 @@ sub node_move {
 		      -fill=> $tv->get_nearestNodeColor);
   }
 }				# end plot_move
-
+}
 sub node_release {
   my($w,$grp,$button)= @_;
   my $win=findCanvasWindow($grp,$w);
-  my $tv=$win->{treeView};
+  my $tv=$win->treeView;
   return unless $win->{FSFile};
   my $e= $w->XEvent;
   my($x, $y)= ($e->x, $e->y);
@@ -10321,7 +10311,7 @@ sub node_release {
 sub node_release_modif {
   my($w,$grp,$mod)= @_;
   my $win=findCanvasWindow($grp,$w);
-  my $tv=$win->{treeView};
+  my $tv=$win->treeView;
   return unless $win->{FSFile};
   my $e= $w->XEvent;
   my($x, $y)= ($e->x, $e->y);
