@@ -9549,7 +9549,6 @@ sub scrollCanvasToXY {
       $cy=$origin->[3]+(($Y-$origin->[1])/$ht) * $Ht;
     }
   }
-  $w->createRectangle(@s);
   $w->xviewCoord($cx, $X) if defined $cx and $cx>=$s[0] and $cx<=$s[2];
   $w->yviewCoord($cy, $Y) if defined $cy and $cy>=$s[1] and $cy<=$s[3];
   return;
