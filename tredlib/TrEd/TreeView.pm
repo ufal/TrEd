@@ -1849,12 +1849,13 @@ sub redraw {
     }
   };
   eval { $canvas->lower('stripe','all') };
-  eval { $canvas->raise('textbg','textbox') };
-  eval { $canvas->raise('textbg','edgetextbox') };
-  eval { $canvas->raise('line','textbg') };
-  eval { $canvas->raise('point','line') };
-  eval { $canvas->raise('text','point') };
-  eval { $canvas->raise('plaintext','point') };
+  $self->raise_order(qw(textbox
+			edgetextbox
+			textbg
+			line
+			text
+			plaintext
+			point));
   if (defined $self->get_backgroundImage) {
     unless ($canvas->find('withtag','bgimage')) {
       my $img=$self->get_backgroundImage;
@@ -1890,6 +1891,26 @@ sub redraw {
     $self->reset_scroll_region;
   }
 }
+
+sub raise_order {
+  my ($self,@tags)=@_;
+  my $last_ok;
+  my $canvas=$self->realcanvas;
+  while (@tags) {
+    my ($above,$raise)=@tags;
+    eval { $canvas->raise($raise,$above) };
+    if ($@) {
+      if (defined $last_ok) {
+	eval { $canvas->raise($raise,$last_ok) };
+	print STDERR $@ if $@;
+      }
+    } else {
+      $last_ok = $above;
+    }
+    shift @tags;
+  }
+}
+
 
 sub reset_scroll_region {
   my ($self)=@_;
