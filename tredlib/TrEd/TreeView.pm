@@ -1561,7 +1561,7 @@ sub redraw {
       my $l;
       my $arrow_shape = $arrowshape[$lin] || $self->get_lineArrowShape;
       my @opts = ($self->line_options($node,$fsfile->FS,$can_dash),
-		     -tags => [$line,'line'],
+		     -tags => [$line,'line','scale_width'],
 		     -arrow =>  $arrow[$lin] || $self->get_lineArrow,
                      (defined($arrow_shape) ? (-arrowshape => $arrow_shape) : ()),
 		     -width =>  $width[$lin] || $self->get_lineWidth,
@@ -1855,8 +1855,8 @@ sub redraw {
   eval { $canvas->lower('stripe','all') };
   $self->raise_order(qw(textbox
 			edgetextbox
-			textbg
 			line
+			textbg
 			text
 			plaintext
 			point));
