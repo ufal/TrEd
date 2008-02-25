@@ -549,6 +549,11 @@ sub do_eval_macro {
       use utf8;
       &$macro();
     };
+  } elsif (ref($macro) eq 'ARRAY') {
+    $result = eval {
+      use utf8;
+      $macro->[0]->(@{$macro}[1..$#$macro]);
+    };
   } else {
     no strict;
     if ($useEncoding) {
