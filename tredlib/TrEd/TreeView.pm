@@ -188,6 +188,10 @@ sub scale {
   $self->scale_font($factor);
   $c->itemconfigure('text_item', -font => $self->{scaled_font});
   $self->{$_}*=$factor for qw(canvasWidth canvasHeight);
+  for my $item ($c->find(withtag=>'scale_width')) {
+    $c->itemconfigure($item, -width => $factor*$c->itemcget($item,'-width'));
+  }
+
 
   $c->xviewCoord($x*$factor,$xview);
   $c->yviewCoord($y*$factor,$yview);
