@@ -373,17 +373,26 @@ sub configure_node_menu_items {
   }
 }
 
+sub critical_node_menu_items {
+  return ["New Node",
+	  "Remove Active Node",
+	  "Insert New Tree",
+	  "Insert New Tree After",
+	  "Remove Whole Current Tree",
+	  "Copy Trees ...",
+	  "Move Current Tree Backward",
+	  "Move Current Tree Foreward",
+	  "Make Current Node the Root",
+	 ];
+}
+
 sub enable_node_menu_items {
-  my $items = ref($_[0]) ? $_[0] : 
-    ["New Node","Remove Active Node","Insert New Tree",
-     "Insert New Tree After", "Remove Whole Current Tree"];
+  my $items = ref($_[0]) ? $_[0] : critical_node_menu_items();
   configure_node_menu_items($items,
 			    [-state => 'normal']);
 }
 sub disable_node_menu_items {
-  my $items = ref($_[0]) ? $_[0] : 
-    ["New Node","Remove Active Node","Insert New Tree",
-     "Insert New Tree After", "Remove Whole Current Tree"];
+  my $items = ref($_[0]) ? $_[0] : critical_node_menu_items();
   configure_node_menu_items($items,
 			    [-state => 'disabled']);
 }

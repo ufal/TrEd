@@ -1773,6 +1773,8 @@ sub parse_suffix {
   my ($filename)=@_;
   if ($filename=~s/(##?[0-9A-Z]+(?:-?\.[0-9]+)?)$// ) {
     return ($filename,$1);
+  } elsif ($filename=~/^(.*)#([^#]+)$/ and PMLSchema::CDATA->check_string_format($2,'ID')) {
+    return ($1,'#'.$2);
   } else {
     return ($filename,undef);
   }
@@ -2152,15 +2154,34 @@ sub getNodeByNo {
 
 sub applyFileSuffix {
   my ($win,$goto)= @_;
-  return unless $win->{FSFile} and defined($goto) and $goto ne EMPTY;
+  return unless $win;
+  my $fsfile = $win->{FSFile};
+  return unless $fsfile and defined($goto) and $goto ne EMPTY;
   # -- smells like PDT-specific code, at least the second case
   # but we want it, dont we:)
 
   if ($goto=~/^##([0-9]+)/) {
-    $win->{treeNo}=min(max2(0,$1-1),$win->{FSFile}->lastTreeNo);
+    $win->{treeNo}=min(max2(0,$1-1),$fsfile->lastTreeNo);
   } elsif ($goto=~/^#([0-9]+)/) {
-    for (my $i=0;$i<=$win->{FSFile}->lastTreeNo;$i++) {
-      $win->{treeNo}=$i,last if ($win->{FSFile}->treeList->[$i]->{form} eq "#$1");
+    for (my $i=0;$i<=$fsfile->lastTreeNo;$i++) {
+      $win->{treeNo}=$i,last if ($fsfile->treeList->[$i]->{form} eq "#$1");
+    }
+  } elsif ($goto=~/^#([^#]+)$/) {
+    my $id = $1;
+    if (PMLSchema::CDATA->check_string_format($id,'ID')) {
+      my $id_hash = $fsfile->appData('id-hash');
+      if (UNIVERSAL::isa($id_hash,'HASH') and exists($id_hash->{$id})) {
+	my $node = $id_hash->{$id};
+	my $n = Index($fsfile->treeList,$node->root);
+	if ($n>=0) {
+	  $win->{treeNo}=$n;
+	  $win->{currentNode}=$node;
+	  unless (isShown($win,$node)) {
+	    $win->treeView->set_showHidden(1);
+	  }
+	  return;
+	}
+      }
     }
   }
   # new: we're the dot in .[0-9]+ (TM)
@@ -2171,7 +2192,6 @@ sub applyFileSuffix {
       unless (isShown($win,$root)) {
 	$win->treeView->set_showHidden(1);
       }
-
     }
   }
   # hey, caller, you should redraw after this!
@@ -4562,11 +4582,11 @@ sub onTreeChange {
   redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
   my $tv = $win->treeView;
   $tv->reset_scroll_region;
-  my $node = $win->{currentNode};
-  $tv->canvas->see(-item =>
-		     $tv->get_node_pinfo($node,"Oval"));
+#  my $node = $win->{currentNode};
+#  $tv->canvas->see(-item =>
+#		     $tv->get_node_pinfo($node,"Oval"));
 
-#  centerTo($win,$win->{currentNode});
+  centerTo($win,$win->{currentNode});
 }
 
 sub onNodeChange {
@@ -5604,6 +5624,51 @@ sub startMain {
 						      my ($grp)=@_;
 						      pruneTree($grp->{focusedWindow});
 						    },\%group]],
+	 [Button=> 'Move Current Tree Backward',-command=> [sub {
+							      my ($grp)=@_;
+							      moveTree($grp->{focusedWindow},-1);
+							    },\%group]],
+	 [Button=> 'Move Current Tree Foreward',-command=> [sub {
+							      my ($grp)=@_;
+							      moveTree($grp->{focusedWindow},1);
+							    },\%group]],
+	 [Button=> 'Make Current Node the Root',-command=> [sub {
+							      my ($grp)=@_;
+							      my $win=$grp->{focusedWindow};
+							      my $node = $win->{currentNode};
+							      my $fsfile = $win->{FSFile};
+							      return unless $fsfile and $node;
+							      return unless ($fsfile->test_tree_type($node) or
+								    userQuery($win,"WARNING:\n\n".
+									    "The type of the current node is not a permitted root type.\n\n".
+									    "The options are:\n\n".
+									      "[Proceed anyway] - ignore the type constraints (the tree will be invalid, but may be fixed later)\n".
+									      "[Cancel] - cancel the operation\n",
+									      -bitmap=> 'question',
+									      -title => 'Incompatible node type',
+									      -buttons => ['Proceed anyway','Cancel']) eq 'Proceed anyway');
+							      my $discard=0;
+							      my $root = $node->root;
+							      return if $root==$node;
+							      unless ($node->test_child_type($root)) {
+								my $res = userQuery($win,"WARNING:\n\n".
+									    "Normally, this operation cuts the subtree of the current node,\n".
+                                                                             "makes the current node a new root of the tree and\n".
+                                                                             "pastes the old root on the current node.\n\n".
+									    "However, the type constraints of the current node do not permit the current root ".
+									     "as its a child.\nThe resulting tree would be invalid.\n\nThe options are:\n\n".
+									       "[Paste anyway] - ignore the type constraints (the tree will be invalid, but may be fixed later)\n".
+									       "[Discard root] - discards every node between the current root and the current node\n".
+									       "[Cancel] - cancel the operation\n",
+									  -bitmap=> 'question',
+									  -title => 'Incompatible node type',
+									  -buttons => ['Paste anyway','Discard root','Cancel']);
+								return if $res eq 'Cancel';
+								$discard=1 if $res=~/Discard/;
+							      }
+							      save_undo($win,prepare_undo($win,'Make Current Node the Root'));
+							      makeRoot($win, $node, $discard );
+							    },\%group]],
 	 [Separator=> EMPTY],
 	 [Button=> 'Copy Trees ...', -underline=> 1,
 	  -command=> [\&copyTreesDialog,\%group]],
@@ -10273,7 +10338,6 @@ sub node_release {
       $w->itemconfigure($tv->get_node_pinfo($parent,"Oval"),
 			  nodeOptions($win,$parent));
       if (doEvalHook($win,"node_release_hook",$node,$parent,"$button") ne 'stop') {
-	
 	if ($parent->test_child_type($node) or
 	    userQuery($win,"WARNING:\n\n".
 			"The target node does not permit the dragged node ".
