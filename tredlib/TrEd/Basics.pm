@@ -20,6 +20,8 @@ BEGIN {
     &newTree
     &newTreeAfter
     &pruneTree
+    &moveTree
+    &makeRoot
     &newNode
     &pruneNode
     &setCurrent
@@ -119,6 +121,36 @@ sub pruneTree {
   $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
   $win->{FSFile}->notSaved(1);
   &$on_tree_change($win,'pruneTree',$win->{treeNo}) if $on_tree_change;
+  return 1;
+}
+
+sub moveTree {
+  my ($win,$delta)= @_;
+  my $fsfile = $win->{FSFile};
+  return unless $fsfile;
+  my $no = $win->{treeNo};
+  $fsfile->move_tree_to($no,$no+$delta) || return;
+  $win->{treeNo}=$no+$delta;
+  $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
+  $win->{FSFile}->notSaved(1);
+  &$on_tree_change($win,'moveTree',$win->{treeNo}) if $on_tree_change;
+  return 1;
+}
+
+sub makeRoot {
+  my ($win,$node,$discard)= @_;
+  my $fsfile = $win->{FSFile};
+  return unless $fsfile and $node;
+  my $no = $win->{treeNo};
+  my $root = $fsfile->treeList->[$no];
+  if ($root!=$node->root) {
+    return;
+  }
+  $node->cut;
+  $fsfile->treeList->[$no]=$node;
+  $root->paste_on($node,$fsfile->FS->order) unless $discard;
+  $win->{FSFile}->notSaved(1);
+  &$on_node_change($win,'makeRoot',$node) if $on_tree_change;
   return 1;
 }
 

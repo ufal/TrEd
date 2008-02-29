@@ -1,7 +1,7 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
 ## $Id$
-## Time-stamp: <2007-03-01 11:14:40 pajas>
+## Time-stamp: <2008-02-26 12:28:45 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -46,9 +46,7 @@ sub file_opened_hook {
     EN_Tectogrammatic->default_tr_attrs();
   }
 
-  disable_node_menu_items(["New Node","Remove Active Node","Insert New Tree",
-			   "Insert New Tree After", "Remove Whole Current Tree",
-			   "Copy Trees ..."]);
+  disable_node_menu_items();
   my $o=$grp->{framegroup}->{ContextsMenu};
   $o->options(['EN_Tectogrammatic','TR_Diff']);
   SwitchContext('EN_Tectogrammatic');

@@ -1,2 +1,37 @@
+- undo for tree-related Node-menu items 
+
 - add a command-line flag to turn off backup file creation
   (non-trivial: backups are used for recovery from I/O errors; should we just unlink the backup aftre a successfull write?)
+
+- make use of Tk::QueryDialog
+
+- a dynamic keyboard/menu binder 
+
+- add macro: ChangeFilename() (take its guts from saveFileAs).
+
+- allow patterns use something like ${@V} to get direct access to the
+  value attribute, ${@N} for the numbering attribute, etc.
+
+Make an on-line help for:
+  - default bindigs
+  - stylesheet patterns
+
+- add a register_context_guesser function
+
+TreeView:
+---------
+introduce stylesheet labels:
+
+tree-order: (aka ord/dord)
+line-order: (aka sentord)
+
+This 1) eliminates the need to have these in dedicated attributes,
+2) allows for better coustomization.
+
+PMLSchema
+---------
+
+- document PMLSchema's for_each_decl
+
+- setters in PMLSchema objects
+

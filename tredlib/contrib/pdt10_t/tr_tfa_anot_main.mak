@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2007-03-01 11:14:01 pajas>
+## Time-stamp: <2008-02-26 12:28:25 pajas>
 
 #include "tred_mac_common.mak"
 
@@ -20,9 +20,7 @@ sub file_opened_hook {
     TFA->default_tfa_attrs();
   }
 
-  disable_node_menu_items(["New Node","Remove Active Node","Insert New Tree",
-			   "Insert New Tree After", "Remove Whole Current Tree",
-			   "Copy Trees ..."]) if GUI();
+  disable_node_menu_items() if GUI();
   my $o=$grp->{framegroup}->{ContextsMenu};
   $o->options(['Tectogrammatic','TFA','TR_Diff']);
   SwitchContext('TFA');

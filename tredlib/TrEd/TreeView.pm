@@ -1288,6 +1288,19 @@ sub callback {
   }
 }
 
+use Benchmark qw(:all);
+my $COMPILE=1;
+# sub redraw {
+#   my @args = @_;
+#   cmpthese(10,
+# 	   {
+# 	     'compile' => sub { $COMPILE=1; do_redraw(@args); } ,
+# 	     'interpolate' => sub { $COMPILE=0; do_redraw(@args); }
+# 	   }
+# 	  );
+# #  &do_redraw;
+# }
+
 sub redraw {
   my ($self,$fsfile,$currentNode,$nodes,$valtext,$stipple,$grp)=@_;
   my $node;
@@ -2136,6 +2149,14 @@ text.
 
 =cut
 
+my $code_match = qr/(\<\?(?:[^?]|\?[^>])+\?\>)/;
+my $code_match_in = qr/^\<\?((?:[^?]|\?[^>])+)\?\>$/;
+
+sub _compile_code {
+  my ($text)=@_;
+  $text=~s/\$\${([^}]+)}/ TrEd::TreeView::_present_attribute(\$this,'$1')/g;
+  return eval "package TredMacro; sub{ eval { $text } }";
+}
 sub interpolate_text_field {
   my ($self,$node,$text,$grp_ctxt)=@_;
   # make $this, $root, and $grp available for the evaluated expression
@@ -2144,16 +2165,26 @@ sub interpolate_text_field {
   my @save = (${'TredMacro::this'},${'TredMacro::root'},${'TredMacro::grp'});
   (${'TredMacro::this'},${'TredMacro::root'},${'TredMacro::grp'})=
     ($node,($node ? $node->root : undef),$grp_ctxt);
-  eval {
-    $text=~s{\<\?((?:[^?]|\?[^>])+)\?\>}
-      {
-	my $result = eval "package TredMacro;\n".
-	  $self->interpolate_refs($node,$1);
-	print STDERR $@ if $@ and $Debug;
-	$result;
-      }eg;
-  };
-  (${'TredMacro::this'},${'TredMacro::root'},${'TredMacro::grp'})=@save;
+  if ($COMPILE) {
+    my $cached = $self->{compiled_sub}{$text};
+    unless (defined $cached) {
+      $cached = $self->{compiled_sub}{$text} = [map {
+	$_=~$code_match_in ? _compile_code($1) : $_
+      } split $code_match, $text]
+    }
+    $text = join '', map { ref($_) ? $_->() : $_ } @$cached; # maybe we should reset this,root,grp, etc. every time!
+  } else {
+    eval {
+      $text=~s{\<\?((?:[^?]|\?[^>])+)\?\>}
+	      {
+		my $result = eval "package TredMacro;\n".
+		  $self->interpolate_refs($node,$1);
+		print STDERR $@ if $@ and $Debug;
+		$result;
+	      }eg;
+    };
+  }
+  (${'TredMacro::this'},${'TredMacro::root'},${'TredMacro::grp'})=@save; # 
   return $text;
 }
 

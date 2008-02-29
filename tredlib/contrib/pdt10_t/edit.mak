@@ -24,17 +24,11 @@ sub FuncAssign {
   $this=NextVisibleNode($this);
 }
 
-sub _node_menu_items {
-  ["New Node","Remove Active Node","Insert New Tree",
-   "Insert New Tree After", "Remove Whole Current Tree",
-   "Copy Trees ..."]
-}
-
 sub switch_context_hook {
   my ($precontext,$context)=@_;
   return unless ($precontext ne $context);
   if (GUI()) {
-    my $items = _node_menu_items();
+    my $items = critical_node_menu_items();
     for my $item (@$items) {
       $menu_prevstate{$item}=node_menu_item_cget($item,'-state');
     }
@@ -45,7 +39,7 @@ sub switch_context_hook {
 sub pre_switch_context_hook {
   my ($precontext,$context)=@_;
   if (GUI()) {
-    for my $item (@{_node_menu_items()}) {
+    for my $item (@{critical_node_menu_items()}) {
       configure_node_menu_items([$item],
 				[-state => $menu_prevstate{$item}])
 	if defined $menu_prevstate{$_};
