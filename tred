@@ -21,7 +21,7 @@ if ($^V lt v5.8.3) {
 
 use vars qw($svn_version $version $about $opt_u $opt_h $opt_c
 	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_p
-	    $opt_n $opt_D $opt_v $opt_H $opt_I $opt_Z
+	    $opt_n $opt_D $opt_v $opt_H $opt_I $opt_Z $opt_e
             $libDir $docDir
 	    $macroFile @filelists @openfiles $treeViewOpts $opt_m
             @backends @ISA @EXPORT @open_types @save_types $opt_l $opt_s
@@ -105,7 +105,7 @@ Tk::CmdLine::SetArguments();
 
 # Once we got rid of them we call getopt to read all the other options
 use Getopt::Std;
-getopts('qm:c:l:t:n:p:vhuW:GI:HDYB:RX:s:S:Z:y:');
+getopts('qm:c:l:t:n:p:vhuW:GI:HDYB:RX:s:S:Z:y:e:');
 
 if ($opt_u || $opt_h) {
   print <<'EOH';
@@ -157,6 +157,8 @@ Each filename may be followed by suffixes of the following forms:
 -p      split window to given number of subwindows (horizontally if
         positive, vertically if negative) and open n'th file
         in n'th subwindow.
+
+-e      code to evaluate just before the main loop is started
 
 -Z dir  provide ResourcePath (overrides current setting in ~/.tredrc).      
 
@@ -5798,6 +5800,7 @@ sub startMain {
 	  -command => [sub {
 			 my ($grp)=@_;
 			 doEvalHook($grp->{focusedWindow},"reload_macros_hook");
+			 TrEd::TreeView->clear_code_caches;
 			 cleanup_tredmacro($grp);
 			 read_macros($macroFile,$libDir);
 			 if ($opt_I) {
@@ -6461,6 +6464,11 @@ sub startMain {
   # Starting ------------------------------------------
   $top->Unbusy;
   $top->focus if ($^O eq 'MSWin32');
+  if (defined $opt_e and length $opt_e) {
+    my $macro = eval "package $group{selectedContext}; sub{ $opt_e }";
+    die $@ if $@;
+    doEvalMacro($group{focusedWindow},$macro);
+  }
   MainLoop;
   unless ($group{top}) {
     saveRuntimeConfig(\%group);
