@@ -1,8 +1,9 @@
 package TrEd::TreeView;		# -*- cperl -*-
 
 use strict;
-
+#use warnings;
 BEGIN {
+use Carp;
 use Tk;
 use Tk::Canvas;
 use Tk::CanvasSee;
@@ -15,7 +16,9 @@ import TrEd::MinMax;
 use TrEd::Convert;
 import TrEd::Convert;
 
-use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_get_node_style $on_get_nodes);
+use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_get_node_style $on_get_nodes $COMPILE $TEST %PATTERN_CODE_CACHE %COORD_CODE_CACHE %COORD_SPEC_CACHE);
+
+$COMPILE=1&2&4;
 
 @Options = qw(CanvasBalloon backgroundColor
   stripeColor vertStripe horizStripe baseXPos baseYPos boxColor
@@ -49,6 +52,7 @@ use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_g
 }
 
 
+
 our $objectno;
 our ($block, $bblock);
 $block  = qr/\{((?:(?> [^{}]* )|(??{ $block }))*)\}/x;
@@ -66,6 +70,11 @@ $bblock = qr/\{(?:(?>  [^{}]* )|(??{ $bblock }))*\}/x;
   }
 }
 
+sub clear_code_caches {
+  %PATTERN_CODE_CACHE=();
+  %COORD_CODE_CACHE=();
+}
+
 sub new {
   my $self = shift;
   my $class = ref($self) || $self;
@@ -81,7 +90,7 @@ sub new {
 
 sub AUTOLOAD {
   my $self=shift;
-  return undef unless ref($self);
+  croak "Unknown function $AUTOLOAD" unless ref($self);
   my $sub = $AUTOLOAD;
   $sub =~ s/.*:://;
   warn "Warning: $sub is not a method of TreeView\n\t";
@@ -240,42 +249,59 @@ sub clear_pinfo {
   my $self = shift;
   return undef unless ref($self);
   %{$self->{pinfo}}=();
+  if ($TEST) {
+    %{$self->{node_info}}=();
+    %{$self->{style_info}}=();
+    %{$self->{style_hash_info}}=();
+    %{$self->{gen_info}}=();
+    %{$self->{oinfo}}=();
+    %{$self->{iinfo}}=();
+  }
 }
 
 sub store_gen_pinfo {
   my ($self,$key,$value) = @_;
   return undef unless ref($self);
-  $self->{pinfo}->{"gen:$key"}=$value;
+  $self->{gen_info}->{$key}=$value;
 }
+sub get_gen_pinfo {
+  my ($self,$key) = @_;
+  return undef unless ref($self);
+  return $self->{gen_info}->{$key};
+}
+
 
 sub store_node_pinfo {
   my ($self,$node,$key,$value) = @_;
   return undef unless ref($self);
-  $self->{pinfo}->{"node:${node};${key}"}=$value;
+  $self->{node_info}{$node}{$key}=$value;
 }
 
 sub store_obj_pinfo {
   my ($self,$obj,$value) = @_;
   return undef unless ref($self);
-  $self->{pinfo}->{"obj:${obj}"}=$value;
+  if ($TEST) {
+    $self->{oinfo}->{$obj}=$value;
+  } else {
+    $self->{pinfo}->{"obj:${obj}"}=$value;
+  }
 }
 
 sub store_id_pinfo {
   my ($self,$obj,$value) = @_;
   return undef unless ref($self);
-  $self->{pinfo}->{"id:${obj}"}=$value;
-}
-
-sub get_gen_pinfo {
-  my ($self,$key) = @_;
-  return undef unless ref($self);
-  return $self->{pinfo}->{"gen:$key"};
+  if ($TEST) {
+    $self->{iinfo}->{$obj}=$value;
+  } else {
+    $self->{pinfo}->{"id:${obj}"}=$value;
+  }
 }
 
 sub get_node_pinfo {
   my ($self,$node,$key) = @_;
   return undef unless ref($self);
-  my $val = $self->{pinfo}->{"node:${node};${key}"};
+  my $val;
+  $val = $self->{node_info}{$node}{$key};
   if ($key=~/[XY]/) {
     return $self->scale_factor * $val;
   } else {
@@ -286,19 +312,26 @@ sub get_node_pinfo {
 sub get_obj_pinfo {
   my ($self,$obj) = @_;
   return undef unless ref($self);
-  return $self->{pinfo}->{"obj:${obj}"};
+  if ($TEST) {
+    return $self->{oinfo}->{$obj};
+  } else {
+    return $self->{pinfo}->{"obj:${obj}"};
+  }
 }
 
 sub get_id_pinfo {
   my ($self,$obj) = @_;
   return undef unless ref($self);
-  return $self->{pinfo}->{"id:${obj}"};
+  if ($TEST) {
+    return $self->{iinfo}->{$obj};
+  } else {
+    return $self->{pinfo}->{"id:${obj}"};
+  }
 }
 
 sub node_is_displayed {
   my ($self,$node)=@_;
-  my $pinfo = $self->{pinfo};
-  return $pinfo->{"node:${node};E"} ? 1 : 0;
+  return $self->{node_info}{$node}{E} ? 1 : 0;
 }
 
 sub find_item {
@@ -468,15 +501,14 @@ sub getTextWidth {
 
 sub balance_xfix_node {
   my ($self, $xfix, $node) = @_;
-  my @c = grep { $self->get_node_pinfo($_,"E") } $node->children;
-  $xfix += $self->get_node_pinfo($node,"XFIX");
+  my $node_info = $self->{node_info};
+  my @c = grep { $node_info->{$_}{"E"} } $node->children;
+  $xfix += $node_info->{$node}{"XFIX"};
   foreach my $c (@c) {
-    $self->store_node_pinfo($c,"XPOS",
-			    $self->get_node_pinfo($c,"XPOS")+
-			    $xfix);
-    $self->store_node_pinfo($c,"NodeLabel_XPOS",
-			    $self->get_node_pinfo($c,"NodeLabel_XPOS")+
-			    $xfix);
+    $node_info->{$c}{"XPOS"}=$node_info->{$c}{"XPOS"}+$xfix;
+    $node_info->{$c}{"NodeLabel_XPOS"}=
+			    $node_info->{$c}{"NodeLabel_XPOS"}+
+			    $xfix;
     balance_xfix_node($self,$xfix,$c);
   }
 }
@@ -486,11 +518,11 @@ sub balance_node {
   my ($self, $baseX, $node, $balanceOpts) = @_;
   my $last_baseX = $baseX;
   my $xskip = $balanceOpts->[2];
-
+  my $node_info = $self->{node_info};
   my $i=0;
-  my $before = $self->get_node_pinfo($node,"Before");
-#  $last_baseX+=$self->get_node_pinfo($node,"Before");
-  my @c = grep { $self->get_node_pinfo($_,"E") } $node->children;
+  my $before = $node_info->{$node}{"Before"};
+#  $last_baseX+=$node_info->{$node}{"Before"};
+  my @c = grep { $node_info->{$_}{"E"} } $node->children;
   foreach my $c (@c) {
     $last_baseX = $self->balance_node($last_baseX,$c,$balanceOpts);
     $last_baseX += $xskip;
@@ -498,23 +530,23 @@ sub balance_node {
   $last_baseX -= $xskip if @c;
   my $xpos;
   if (!@c) {
-    $xpos = $last_baseX+$self->get_node_pinfo($node,"XPOS");
+    $xpos = $last_baseX+$node_info->{$node}{"XPOS"};
   } else {
     if (scalar(@c) % 2 == 1) { # odd number of nodes
       if ($balanceOpts->[0]) { # balance on middle node
-	$xpos =$self->get_node_pinfo($c[$#c/2],"XPOS");
+	$xpos =$node_info->{$c[$#c/2]}{"XPOS"};
       } else {
-	$xpos =($self->get_node_pinfo($c[$#c],"XPOS")
-		+ $self->get_node_pinfo($c[0],"XPOS"))/2;
+	$xpos =($node_info->{$c[$#c]}{"XPOS"}
+		+ $node_info->{$c[0]}{"XPOS"})/2;
       }
     } else { # even number of nodes
       if ($balanceOpts->[1]) {
 	$xpos =
-	  ($self->get_node_pinfo($c[1+$#c/2],"XPOS") +
-	   $self->get_node_pinfo($c[$#c/2],"XPOS"))/2;
+	  ($node_info->{$c[1+$#c/2]}{"XPOS"} +
+	   $node_info->{$c[$#c/2]}{"XPOS"})/2;
       } else {
-	$xpos =($self->get_node_pinfo($c[$#c],"XPOS")
-		+ $self->get_node_pinfo($c[0],"XPOS"))/2;
+	$xpos =($node_info->{$c[$#c]}{"XPOS"}
+		+ $node_info->{$c[0]}{"XPOS"})/2;
       }
     }
   }
@@ -525,15 +557,15 @@ sub balance_node {
   } else {
     $xfix = 0;
   }
-  $self->store_node_pinfo($node,"XFIX", $xfix);
-  my $add = $xpos-$self->get_node_pinfo($node,"XPOS");
-  $self->store_node_pinfo($node,"XPOS", $xpos);
+  $node_info->{$node}{"XFIX"}= $xfix;
+  my $add = $xpos-$node_info->{$node}{"XPOS"};
+  $node_info->{$node}{"XPOS"}= $xpos;
 
-  $self->store_node_pinfo($node,"NodeLabel_XPOS",
-			  $self->get_node_pinfo($node,"NodeLabel_XPOS") +
-			  $add);
+  $node_info->{$node}{"NodeLabel_XPOS"} =
+			  $node_info->{$node}{"NodeLabel_XPOS"} +
+			  $add;
   return max($last_baseX,$xpos+
-	     $self->get_node_pinfo($node,"After"));
+	     $node_info->{$node}{"After"});
 }
 
 
@@ -561,17 +593,19 @@ sub balance_node_order {
   my %childs;
   my @level0;
   my $i=0;
+  my $node_info = $self->{node_info};
   foreach my $node (@$nodes) {
-    my $parent = $self->get_node_pinfo($node,"P");
+    my $parent = $node_info->{$node}{"P"};
     push @{ $childs{ $parent } }, $node;
-    push @level0, $node if $self->get_node_pinfo($node,"Level")==0;
+    push @level0, $node if $node_info->{$node}{"Level"}==0;
   }
   return _bno(\@level0,0,$#level0,\%childs);
 }
 
 sub compute_level {
   my ($self, $node, $Opts, $skipHiddenLevels) = @_;
-  my $level = $self->get_node_pinfo($node,"Level");
+  my $node_info = $self->{node_info};
+  my $level = $node_info->{$node}{"Level"};
   if (defined $level) {
     return $level;
   }
@@ -581,26 +615,27 @@ sub compute_level {
     my $plevel = $self->compute_level($parent, $Opts, $skipHiddenLevels);
     if ($skipHiddenLevels) {
       $level = $plevel;
-      if ($self->get_node_pinfo($parent,"E")) {
-	$self->store_node_pinfo($node,"P",$parent);
+      if ($node_info->{$parent}{"E"}) {
+	$node_info->{$node}{"P"}=$parent;
 	$level++;
       } else {
-	$self->store_node_pinfo($node,"P",$self->get_node_pinfo($parent,"P"));
+	$node_info->{$node}{"P"} = $node_info->{$parent}{"P"};
       }
-      $level += $self->get_style_opt($node,"Node","-rellevel",$Opts) if $self->get_node_pinfo($node,"E");
+      $level += $self->get_style_opt($node,"Node","-rellevel",$Opts) if $node_info->{$node}{"E"};
     } else {
-      $self->store_node_pinfo($node,"P",$parent);
+      $node_info->{$node}{"P"}=$parent;
       $level = $plevel + 1 + $self->get_style_opt($node,"Node","-rellevel",$Opts);
     }
   }
-  $self->store_node_pinfo($node,"Level", $level);
+  $node_info->{$node}{"Level"}= $level;
   return $level;
 }
 
 sub recalculate_positions_vert {
   my ($self,$fsfile,$nodes,$Opts,$grp)=@_;
   return unless ref($self);
-
+  my $node_info = $self->{node_info};
+  my $gen_info = $self->{gen_info};
   my $lineSpacing=$Opts->{lineSpacing} || $self->get_lineSpacing;
   my $baseXPos=$Opts->{baseXPos} || $self->get_baseXPos;
   my $baseYPos=$Opts->{baseYPos} || $self->get_baseYPos;
@@ -656,7 +691,7 @@ sub recalculate_positions_vert {
 		    ];
 
   foreach $node (@{$nodes}) {
-    $self->store_node_pinfo($node,"E",1);
+    $node_info->{$node}{"E"}=1;
   }
   foreach $node (@{$nodes}) {
     $self->compute_level($node,$Opts,$skipHiddenLevels);
@@ -666,13 +701,13 @@ sub recalculate_positions_vert {
   }
   # we reverse back to normal order in vertical mode
   foreach $node ($self->get_reverseNodeOrder ? reverse @{$nodes} : @{$nodes}) {
-    $level=$self->get_node_pinfo($node,'Level')+$self->get_style_opt($node,"Node","-level",$Opts);
+    $level=$node_info->{$node}{'Level'}+$self->get_style_opt($node,"Node","-level",$Opts);
 
     $xpos = $baseXPos + $level * (15+$nodeXSkip);
-    $self->store_node_pinfo($node,"XPOS", $xpos);
-    $self->store_node_pinfo($node,"YPOS", $ypos);
-    $self->store_node_pinfo($node,"NodeLabel_YPOS", $ypos-$nodeHeight);
-    $self->store_node_pinfo($node,"EdgeLabel_YPOS", $ypos-$nodeHeight);
+    $node_info->{$node}{"XPOS"}= $xpos;
+    $node_info->{$node}{"YPOS"}= $ypos;
+    $node_info->{$node}{"NodeLabel_YPOS"}= $ypos-$nodeHeight;
+    $node_info->{$node}{"EdgeLabel_YPOS"}= $ypos-$nodeHeight;
     my $label_xpos = $xpos + $nodeWidth + $labelsep;
     $ypos += $levelHeight;
     $self->{canvasHeight} += $levelHeight;
@@ -680,23 +715,23 @@ sub recalculate_positions_vert {
       ($pat_style,$pat)=@{$patterns[0]};
       $m=$self->getTextWidth($self->prepare_text($node,$pat,$grp));
       if ($pat_style eq 'node') {
-	$self->store_node_pinfo($node,"NodeLabelWidth",$m);
-	#$self->store_gen_pinfo("NodeLabelWidth[0]",0);
-	$self->store_gen_pinfo("NodeLabel_XPOS[0]", $label_xpos);
-	$self->store_node_pinfo($node,"NodeLabel_XPOS", $label_xpos); # compat
+	$node_info->{$node}{"NodeLabelWidth"}=$m;
+	#$gen_info->{"NodeLabelWidth[0]"}=0;
+	$gen_info->{"NodeLabel_XPOS[0]"}= $label_xpos;
+	$node_info->{$node}{"NodeLabel_XPOS"}= $label_xpos; # compat
       } else {
-	$self->store_node_pinfo($node,"EdgeLabelWidth",$m);
-	#$self->store_gen_pinfo("NodeLabelWidth[0]",0);
-	$self->store_gen_pinfo("EdgeLabel_XPOS[0]", $label_xpos);
-	$self->store_node_pinfo($node,"EdgeLabel_XPOS", $label_xpos); #compat
+	$node_info->{$node}{"EdgeLabelWidth"}=$m;
+	#$gen_info->{"NodeLabelWidth[0]"}=0;
+	$gen_info->{"EdgeLabel_XPOS[0]"}= $label_xpos;
+	$node_info->{$node}{"EdgeLabel_XPOS"}= $label_xpos; #compat
       }
-      $self->store_node_pinfo($node,"X[0]",$m);
+      $node_info->{$node}{"X[0]"}=$m;
       $canvasWidth = max($canvasWidth, $label_xpos + $m);
-      $self->store_node_pinfo($node,"After",0);
-      $self->store_node_pinfo($node,"Before",0);
+      $node_info->{$node}{"After"}=0;
+      $node_info->{$node}{"Before"}=0;
     }
   }
-  $self->store_gen_pinfo("NodeLabel_XMIN",$canvasWidth);
+  $gen_info->{"NodeLabel_XMIN"}=$canvasWidth;
   my ($n_i, $e_i)=(-1,-1);
   for (my $i=0; $i<@patterns; $i++) {
     my $max = 0;
@@ -709,19 +744,19 @@ sub recalculate_positions_vert {
     
     foreach $node (@{$nodes}) {
       $m=$self->getTextWidth( $self->prepare_text($node,$pat,$grp) );
-      $self->store_node_pinfo($node,"X[$i]",$m);
+      $node_info->{$node}{"X[$i]"}=$m;
       $max = max($max,$m);
     }
     if ($pat_style eq 'node') {
-      $self->store_gen_pinfo("NodeLabel_XPOS[$n_i]",$canvasWidth);
-      $self->store_gen_pinfo("NodeLabelWidth[$n_i]",$max);
+      $gen_info->{"NodeLabel_XPOS[$n_i]"}=$canvasWidth;
+      $gen_info->{"NodeLabelWidth[$n_i]"}=$max;
     } else {
-      $self->store_gen_pinfo("EdgeLabel_XPOS[$e_i]",$canvasWidth);
-      $self->store_gen_pinfo("EdgeLabelWidth[$e_i]",$max);
+      $gen_info->{"EdgeLabel_XPOS[$e_i]"}=$canvasWidth;
+      $gen_info->{"EdgeLabelWidth[$e_i]"}=$max;
     }
     $canvasWidth+=$max;
   }
-  $self->store_gen_pinfo("NodeLabel_XMAX",$canvasWidth);
+  $gen_info->{"NodeLabel_XMAX"}=$canvasWidth;
   $self->{canvasWidth} = $canvasWidth+$self->get_xmargin;
   $self->{canvasHeight} += $self->get_ymargin;
 }
@@ -729,7 +764,8 @@ sub recalculate_positions_vert {
 sub recalculate_positions {
   my ($self,$fsfile,$nodes,$Opts,$grp)=@_;
   return unless ref($self);
-
+  my $node_info = $self->{node_info};
+  my $gen_info = $self->{gen_info};
   my $baseXPos=$Opts->{baseXPos} || $self->get_baseXPos;
   my $baseYPos=$Opts->{baseYPos} || $self->get_baseYPos;
   my $lineSpacing=$Opts->{lineSpacing} || $self->get_lineSpacing;
@@ -824,12 +860,12 @@ sub recalculate_positions {
 		    ];
 
   foreach $node (@{$nodes}) {
-    $self->store_node_pinfo($node,"E",1);
+    $node_info->{$node}{"E"}=1;
   }
   foreach $node (@{$nodes}) {
     $level=$self->compute_level($node,$Opts,$skipHiddenLevels);
     $level+=$self->get_style_opt($node,"Node","-level",$Opts);
-    $self->store_node_pinfo($node,"EdgeLabelHeight", $edge_label_height);
+    $node_info->{$node}{"EdgeLabelHeight"}= $edge_label_height;
 
     $maxlevel=max($maxlevel,$level);
     $ypos = $baseYPos + $level*$levelHeight;
@@ -847,12 +883,12 @@ sub recalculate_positions {
 
 
 
-    $self->store_node_pinfo($node,"YPOS", $ypos);
+    $node_info->{$node}{"YPOS"}= $ypos;
 
-    $self->store_node_pinfo($node,"NodeLabel_YPOS",
+    $node_info->{$node}{"NodeLabel_YPOS"}=
 			    $ypos
 			    +$self->get_style_opt($node,"NodeLabel","-yadj",$Opts)
-			    +$valign_shift);
+			    +$valign_shift;
     if ($valign eq 'bottom') {
       $edge_ypos=$ypos
 	+ $valign_shift
@@ -866,7 +902,7 @@ sub recalculate_positions {
 	     - $levelHeight;
     }
     $edge_ypos+=$self->get_style_opt($node,"EdgeLabel","-yadj",$Opts);
-    $self->store_node_pinfo($node,"EdgeLabel_YPOS",$edge_ypos);
+    $node_info->{$node}{"EdgeLabel_YPOS"}=$edge_ypos;
 
     $halign_edge=$self->get_style_opt($node,"EdgeLabel","-halign",$Opts);
 
@@ -879,11 +915,11 @@ sub recalculate_positions {
 	# this does not actually make
 	# the edge label not to overwrap, but helps a little
 	$m=$self->getTextWidth($self->prepare_text($node,$pat,$grp));
-	$self->store_node_pinfo($node,"X[$i]",$m);
+	$node_info->{$node}{"X[$i]"}=$m;
 	$edgeLabelWidth=$m if $m>$edgeLabelWidth;
       } elsif ($pat_style eq "node") {
 	$m=$self->getTextWidth($self->prepare_text($node,$pat,$grp));
-	$self->store_node_pinfo($node,"X[$i]",$m);
+	$node_info->{$node}{"X[$i]"}=$m;
 	$nodeLabelWidth=$m if $m>$nodeLabelWidth;
       }
     }
@@ -919,10 +955,10 @@ sub recalculate_positions {
     $xSkipBefore+=$self->get_style_opt($node,"Node","-addbeforeskip",$Opts);
     $xSkipAfter+=$self->get_style_opt($node,"Node","-addafterskip",$Opts);
 
-    $self->store_node_pinfo($node,"NodeLabelWidth",$nodeLabelWidth);
-    $self->store_node_pinfo($node,"EdgeLabelWidth",$edgeLabelWidth);
-    $self->store_node_pinfo($node,"After",$xSkipAfter);
-    $self->store_node_pinfo($node,"Before",$xSkipBefore);
+    $node_info->{$node}{"NodeLabelWidth"}=$nodeLabelWidth;
+    $node_info->{$node}{"EdgeLabelWidth"}=$edgeLabelWidth;
+    $node_info->{$node}{"After"}=$xSkipAfter;
+    $node_info->{$node}{"Before"}=$xSkipBefore;
     if ($balance) {
       #$xSkipBefore+
       $xpos = $self->get_style_opt($node,"Node","-extrabeforeskip",$Opts);
@@ -930,16 +966,16 @@ sub recalculate_positions {
       $minxpos=0;
       if ($prevnode[$level]) {
 	$minxpos=
-	  $self->get_node_pinfo($prevnode[$level],"XPOS")+
-	    $self->get_node_pinfo($prevnode[$level],"After")+$xSkipBefore;
+	  $node_info->{$prevnode[$level]}{"XPOS"}+
+	    $node_info->{$prevnode[$level]}{"After"}+$xSkipBefore;
       } else {
 	$minxpos=$baseXPos+$xSkipBefore;
       }
       $xpos=max($xpos,$minxpos)+$nodeXSkip+$self->get_style_opt($node,"Node","-extrabeforeskip",$Opts);
       $prevnode[$level]=$node
     }
-    $self->store_node_pinfo($node,"XPOS",$xpos);
-    $self->store_node_pinfo($node,"NodeLabel_XPOS",$xpos+$nodeLabelXShift);
+    $node_info->{$node}{"XPOS"}=$xpos;
+    $node_info->{$node}{"NodeLabel_XPOS"}=$xpos+$nodeLabelXShift;
 
     $canvasWidth = max($canvasWidth,
 		       $xpos+$xSkipAfter+$nodeWidth+2*$self->get_xmargin+$baseXPos);
@@ -1008,8 +1044,9 @@ sub node_box_options {
 sub node_coords {
   my ($self,$node,$currentNode)=@_;
   my $factor=$self->scale_factor;
-  my $x=$self->get_node_pinfo($node,'XPOS')/$factor;
-  my $y=$self->get_node_pinfo($node,'YPOS')/$factor;
+  my $node_info = $self->{node_info};
+  my $x=$node_info->{$node}{'XPOS'}/$factor;
+  my $y=$node_info->{$node}{'YPOS'}/$factor;
 
   my $Opts=$self->get_gen_pinfo('Opts');
   my @ret;
@@ -1133,12 +1170,21 @@ sub wrapLines {
 
 sub get_style_opt {
   my ($self,$node,$style,$opt,$opts)=@_;
-  my $s=$self->get_node_pinfo($node,"style-$style");
-  my %h=(
-	 (ref($opts->{$style}) ? @{$opts->{$style}} : ()),
-	 (ref($s) ? @$s : ())
-	);
-  return $h{$opt};
+  if ($TEST) {
+    my $hash_info = $self->{style_hash_info};
+    my $S = ($hash_info->{$node}{$style}||={ @{ $self->{style_info}->{$node}{$style}|| [] } });
+    return $S->{$opt} if exists $S->{$opt};
+    $S = ($hash_info->{$style}||={ @{ $opts->{$style} || [] } });
+    return $S->{$opt};
+  } else {
+    my $style_info = $self->{style_info};
+    my $s=$style_info->{$node}{$style};
+    my %h=(
+      (ref($opts->{$style}) ? @{$opts->{$style}} : ()),
+      (ref($s) ? @$s : ())
+     );
+    return $h{$opt};
+  }
 }
 
 sub apply_style_opts {
@@ -1153,7 +1199,7 @@ sub apply_stored_style_opts {
   my $Opts=$self->get_gen_pinfo("Opts");
   my $what = $item; $what=~s/^Current//;
   eval { $self->canvas->
-	   itemconfigure($self->get_node_pinfo($node,$what),
+	   itemconfigure($self->{node_info}{$node}{$what},
 			 @{$Opts->{$item}||[]},
 			 $self->get_node_style($node,$item)); };
   print STDERR $@ if $@ ne "";
@@ -1162,13 +1208,15 @@ sub apply_stored_style_opts {
 
 sub get_node_style {
   my ($self,$node,$style)=@_;
-  my $s=$self->get_node_pinfo($node,"style-$style");
+  my $s=$self->{style_info}{$node}{$style};
   return $s ? @{$s} : ();
 }
 
 sub parse_coords_spec {
   my ($self,$node,$coords,$nodes,$nodehash)=@_;
   # perl inline search
+  no strict 'refs';
+  my $node_info = $self->{node_info};
   $coords =~
     s{([xy])\[\?((?:.|\n)*?)\?\]}{
       my $i=0;
@@ -1178,18 +1226,35 @@ sub parse_coords_spec {
       if (exists($nodehash->{"$xy$key"})) {
 	int($nodehash->{"$xy$key"})
       } else {
-	while ($i<@$nodes) {
-	  my $c=$code;
-	  my $this=$node;	 # $this is the context node
-	  my $node=$nodes->[$i]; # $node is the search node
-	  $c=~s[\$\{([-_A-Za-z0-9]+)\}]["'$nodes->[$i]->{$1}'"]ge;
-	  last if eval $c;	 # NOT SECURE, NOT SAFE!
-	  print STDERR $@ if $@ ne "";
-	  $i++;
+	if ($COMPILE&2) {
+	  my $cached = $COORD_CODE_CACHE{$key};
+	  unless (defined $cached) {
+	    $code =~s[\$\{([-_A-Za-z0-9/]+)\}][ \$node->attr('$1') ]g;
+	    $cached = $COORD_CODE_CACHE{$key}=
+	      eval "package TredMacro; sub{ my \$node=\$_[0]; eval { $code } }";
+	  }
+	  my $save_this = ${'TredMacro::this'};
+	  ${'TredMacro::this'}=$node;
+	  while ($i<@$nodes) {
+	    last if ($cached->($nodes->[$i]));
+	    print STDERR $@ if $@ ne "";
+	    $i++;
+	  }
+	  ${'TredMacro::this'}=$save_this;
+	} else {
+	  while ($i<@$nodes) {
+	    my $c=$code;
+	    my $this=$node;	 # $this is the context node
+	    my $node=$nodes->[$i]; # $node is the search node
+	    $c=~s[\$\{([-_A-Za-z0-9]+)\}]['$node->{$1}']g;
+	    last if eval $c;	 # NOT SECURE, NOT SAFE!
+	    print STDERR $@ if $@ ne "";
+	    $i++;
+	  }
 	}
 	if ($i<@$nodes) {
-	  $nodehash->{"x$key"} = $self->get_node_pinfo($nodes->[$i], "XPOS");
-	  $nodehash->{"y$key"} = $self->get_node_pinfo($nodes->[$i], "YPOS");
+	  $nodehash->{"x$key"} = $node_info->{$nodes->[$i]}{ "XPOS"};
+	  $nodehash->{"y$key"} = $node_info->{$nodes->[$i]}{ "YPOS"};
 	  int($nodehash->{"$xy$key"})
 	} else {
 	  #	    print STDERR "NOT-FOUND $code\n";
@@ -1207,16 +1272,30 @@ sub parse_coords_spec {
 	int($nodehash->{"$xy$key"})
       } else {
 	my $c=$code;
-	my $this=$node;		# $this is the context node
-
-	$c=~s[\$\{([-_A-Za-z0-9]+)\}]["'$this->{$1}'"]ge;
-	my $that=eval $c;	# NOT SECURE, NOT SAFE!
-	print STDERR $@ if $@ ne "";
+	my $that;
+	if ($COMPILE&2) {
+	  my $cached = $COORD_CODE_CACHE{$key};
+	  unless (defined $cached) {
+	    $code =~s[\$\{([-_A-Za-z0-9/]+)\}][ \$node->attr('$1') ]g;
+	    $cached = $COORD_CODE_CACHE{$key}=
+	      eval "package TredMacro; sub{ my \$node=\$_[0]; eval { $code } }";
+	  }
+	  my $save_this = ${'TredMacro::this'};
+	  ${'TredMacro::this'}=$node;
+	  $that = $cached->($node);
+	  print STDERR $@ if $@ ne "";
+	  ${'TredMacro::this'}=$save_this;
+	} else {
+	  my $this=$node; # $this is the context node
+	  $c=~s[\$\{([-_A-Za-z0-9]+)\}]["'$this->{$1}'"]ge;
+	  $that=eval $c;	# NOT SECURE, NOT SAFE!
+	  print STDERR $@ if $@ ne "";
+	}
 	if (ref($that)) {
 	  $nodehash->{"x$key"}=
-	    $self->get_node_pinfo($that, "XPOS");
+	    $node_info->{$that}{ "XPOS"};
 	  $nodehash->{"y$key"}=
-	    $self->get_node_pinfo($that, "YPOS");
+	    $node_info->{$that}{ "YPOS"};
 	  int($nodehash->{"$xy$key"})
 	} else {
 	  #	    print STDERR "NOT-FOUND $code\n";
@@ -1237,7 +1316,7 @@ sub parse_coords_spec {
 	$nodehash->{$1}=$i;
       }
       if ($i<@$nodes) { 
-	int($self->get_node_pinfo($nodes->[$i],($2 eq 'x') ? "XPOS" : "YPOS"))
+	int($node_info->{$nodes->[$i]}{($2 eq 'x' ? "XPOS" : "YPOS")})
       } else {
 	"ERR"
       }
@@ -1245,36 +1324,81 @@ sub parse_coords_spec {
   return $coords;
 }
 
+{
+  my ($xp,$yp,$xn,$yn);
 sub eval_coords_spec {
   my ($self,$node,$parent,$C,$coords) = @_;
   my $x=1;
+  my $node_info=$self->{node_info};
+  if ($COMPILE&4) {
+  $xp = int($node_info->{$parent}{"XPOS"});
+  $yp = int($node_info->{$parent}{"YPOS"});
+  $xn = int($node_info->{$node}{"XPOS"});
+  $yn = int($node_info->{$node}{"YPOS"});
+  foreach (@$C) {
+    my $key=$_;
+    my $cached=$COORD_SPEC_CACHE{$key}[$x];
+    if (defined $cached) {
+      $_ = $cached->();
+      print STDERR $@ if length($@);
+    } else {
+      my $orig = $_;
+      s{([xy]?)p}{
+	if ($parent) {
+	  (($x and ($1 ne 'y')) or $1 eq 'x') ? ' $xp ' : ' $yp '
+	} else {
+	  'NE'
+	}
+      }ge;
+      s{([xy]?)n}{
+      	(($x and ($1 ne 'y')) or $1 eq 'x') ? ' $xn ' : ' $yn '
+      }ge;
+      if (/^( \$[xy][np] |[-\s+\?:.\/*%\(\)0-9]|&&|\|\||!|\>|\<(?!>)|==|\>=|\<=|sqrt\(|abs\()*$/) {
+	$cached = $COORD_SPEC_CACHE{$key}[$x] = eval "sub{ $_ }";
+	if (length($@)) {
+	  print STDERR $@;
+	  return;
+	}
+	$_= $cached->();
+      } else { # catches ERR too
+	if ($Debug and (/ERR/ or !/ return() /)) {
+	  print STDERR "COORD: $coords\n";
+	  print STDERR "BAD: $_\n";
+	}
+	return;
+      }
+    }
+    $x=!$x;
+  }
+} else {
   foreach (@$C) {
     s{([xy]?)p}{
       if ($parent) {
-	int($self->get_node_pinfo($parent,(($x and ($1 ne 'y')) or $1 eq 'x') ?
-				    "XPOS" : "YPOS"))
+        int($node_info->{$parent}{(($x and ($1 ne 'y') or $1 eq 'x') ?
+                                    "XPOS" : "YPOS")})
       } else {
-	"NE"
+        "NE"
       }
     }ge;
     s{([xy]?)n}{
-      int($self->get_node_pinfo($node,
-				(($x and ($1 ne 'y')) or $1 eq 'x') ?
-				  "XPOS" : "YPOS"))
+      int($node_info->{$node}{(($x and ($1 ne 'y') or $1 eq 'x') ?
+                                  "XPOS" : "YPOS")})
     }ge;
     if (/^([-\s+\?:.\/*%\(\)0-9]|&&|\|\||!|\>|\<(?!>)|==|\>=|\<=|sqrt\(|abs\()*$/) {
       $_=eval $_;
       print STDERR $@ if $@ ne "";
     } else { # catches ERR too
       if ($Debug and (/ERR/ or !/NE/)) {
-	print STDERR "COORD: $coords\n";
-	print STDERR "BAD: $_\n";
-	  }
+        print STDERR "COORD: $coords\n";
+        print STDERR "BAD: $_\n";
+          }
       return undef;
     }
     $x=!$x;
   }
+}
   return $C;
+}
 }
 
 sub callback {
@@ -1289,19 +1413,22 @@ sub callback {
 }
 
 use Benchmark qw(:all);
-my $COMPILE=1;
+sub redraw {
+  my @args = @_;
+  print cmpthese(30, {
+    'normal' => sub { $TEST=0; do_redraw(@args); },
+    'test'     => sub { $TEST=1; do_redraw(@args); } ,
+   });
+#  &do_redraw;
+}
+#*redraw = \&do_redraw;
+
 # sub redraw {
-#   my @args = @_;
-#   cmpthese(10,
-# 	   {
-# 	     'compile' => sub { $COMPILE=1; do_redraw(@args); } ,
-# 	     'interpolate' => sub { $COMPILE=0; do_redraw(@args); }
-# 	   }
-# 	  );
-# #  &do_redraw;
+#  &do_redraw for 1..10;
 # }
 
-sub redraw {
+
+sub do_redraw {
   my ($self,$fsfile,$currentNode,$nodes,$valtext,$stipple,$grp)=@_;
   my $node;
   my $style;
@@ -1337,7 +1464,9 @@ sub redraw {
   my $canvas = $self->realcanvas;
 
   $self->clear_pinfo();
-  $self->store_gen_pinfo("Opts",\%Opts);
+  my $node_info = $self->{node_info};
+  my $gen_info = $self->{gen_info};
+  $gen_info->{"Opts"}=\%Opts;
 
   #------------------------------------------------------------
   #{
@@ -1348,7 +1477,7 @@ sub redraw {
   my $pstyle;
   $node=$nodes->[0];
   if ($node) {
-    $node=$node->parent() while ($node->parent());
+    $node=$node->root;
     # only for root node if any
     foreach $style ($self->get_label_patterns($fsfile,"rootstyle")) {
       foreach ($self->interpolate_text_field($node,$style,$grp)=~/\#${block}/g) {
@@ -1373,6 +1502,7 @@ sub redraw {
   # the results stored within node_pinfo
   my $filter_nodes = 0;
   my %skip_nodes;
+  my $style_info = $self->{style_info};
   foreach $node (@{$nodes}) {
     my %nopts=();
     foreach $style (@style_patterns) {
@@ -1393,7 +1523,7 @@ sub redraw {
     # external styling hook
     callback($on_get_node_style,$self,$node,\%nopts);
     foreach (keys %nopts) {
-      $self->store_node_pinfo($node,"style-$_",$nopts{$_});
+      $style_info->{$node}{$_}=$nopts{$_};
     }
   }
   if ($filter_nodes and !$self->get_showHidden()) {
@@ -1443,8 +1573,8 @@ sub redraw {
   }
   $canvas->delete('delete');
 
-  $self->store_gen_pinfo('lastX' => 0);
-  $self->store_gen_pinfo('lastY' => 0);
+  $gen_info->{'lastX'}= 0;
+  $gen_info->{'lastY'}= 0;
 
   my $lineSpacing=$Opts{lineSpacing} || $self->get_lineSpacing;
 
@@ -1540,10 +1670,10 @@ sub redraw {
   my $skipHiddenParents = $skipHiddenLevels || $Opts{skipHiddenParents} || $self->get_skipHiddenParents;
 
   foreach $node (@{$nodes}) {
-    $parent = $self->get_node_pinfo($node,"P");
+    $parent = $node_info->{$node}{"P"};
 #     if ($skipHiddenParents) {
 #       $parent = $node->parent;
-#       $parent=$parent->parent while ($parent and !$self->get_node_pinfo($parent,"E"));
+#       $parent=$parent->parent while ($parent and !$node_info->{$parent}{"E"});
 #     } else {
 #       $parent=$node->parent;
 #     }
@@ -1592,9 +1722,9 @@ sub redraw {
 	print STDERR $@;
       }
       $self->store_id_pinfo($l,$line);
-      $self->store_node_pinfo($node,"Line$lin",$line);
+      $node_info->{$node}{"Line$lin"}=$line;
       $self->store_obj_pinfo($line,$node);
-      $self->store_gen_pinfo('tag:'.$line,$tag[$lin]);
+      $gen_info->{'tag:'.$line}=$tag[$lin];
       $canvas->lower($line,'all');
       $canvas->raise($line,'line');
 
@@ -1626,7 +1756,7 @@ sub redraw {
 			    $self->get_node_style($node,"Oval"),
 			    ($node eq $currentNode ? $self->get_node_style($node,"CurrentOval") : ())
 			   );
-    $self->store_node_pinfo($node,"Oval",$oval);
+    $node_info->{$node}{"Oval"}=$oval;
     $self->store_obj_pinfo($oval,$node);
 
     # EdgeLabel
@@ -1634,8 +1764,8 @@ sub redraw {
       my $coords = $self->get_style_opt($node,"EdgeLabel","-coords",\%Opts);
       $halign_edge=$self->get_style_opt($node,"EdgeLabel","-halign",\%Opts);
       $valign_edge=$self->get_style_opt($node,"EdgeLabel","-valign",\%Opts);
-      $edgeLabelWidth=$self->get_node_pinfo($node,"EdgeLabelWidth");
-      $edgeLabelHeight=$self->get_node_pinfo($node,"EdgeLabelHeight");
+      $edgeLabelWidth=$node_info->{$node}{"EdgeLabelWidth"};
+      $edgeLabelHeight=$node_info->{$node}{"EdgeLabelHeight"};
 
       if ($coords) {
 	# edge label with explicit coords
@@ -1652,22 +1782,22 @@ sub redraw {
 	  } elsif ($valign_edge eq "center") {
 	    $c[1]-=$edgeLabelHeight/2;
 	  }
-	  $self->store_node_pinfo($node,"EdgeLabel_XPOS", $c[0]);
-	  $self->store_node_pinfo($node,"EdgeLabel_YPOS", $c[1]);
+	  $node_info->{$node}{"EdgeLabel_XPOS"}= $c[0];
+	  $node_info->{$node}{"EdgeLabel_YPOS"}= $c[1];
 	}
       } else {
 	$y_edge_length=
-	  ($self->get_node_pinfo($parent, "YPOS")-
-	     $self->get_node_pinfo($node,"YPOS"));
+	  ($node_info->{$parent}{ "YPOS"}-
+	     $node_info->{$node}{"YPOS"});
 	$x_edge_length=
-	  ($self->get_node_pinfo($parent, "XPOS")-
-	     $self->get_node_pinfo($node,"XPOS"));
-	$x_edge_delta=(($self->get_node_pinfo($node, "EdgeLabel_YPOS")
-			  -$self->get_node_pinfo($node, "YPOS"))*$x_edge_length)/$y_edge_length;
+	  ($node_info->{$parent}{ "XPOS"}-
+	     $node_info->{$node}{"XPOS"});
+	$x_edge_delta=(($node_info->{$node}{ "EdgeLabel_YPOS"}
+			  -$node_info->{$node}{ "YPOS"})*$x_edge_length)/$y_edge_length;
 	
 	# the reference point for edge label is now
-	# X: $self->get_node_pinfo($node,"XPOS")+$x_edge_delta
-	#	Y: $self->get_node_pinfo($node,"EdgeLabel_YPOS")
+	# X: $node_info->{$node}{"XPOS"}+$x_edge_delta
+	#	Y: $node_info->{$node}{"EdgeLabel_YPOS"}
 	
 	if ($halign_edge eq "left") {
 	  $x_edge_delta-=$edgeLabelWidth;
@@ -1680,8 +1810,8 @@ sub redraw {
 	  $x_edge_delta+=(($edgeLabelHeight*$x_edge_length)/$y_edge_length)/2;
 	}
 	$x_edge_delta+=$self->get_style_opt($node,"EdgeLabel","-xadj",\%Opts);
-	$self->store_node_pinfo($node,"EdgeLabel_XPOS",
-				$self->get_node_pinfo($node,"XPOS")+$x_edge_delta);
+	$node_info->{$node}{"EdgeLabel_XPOS"}=
+				$node_info->{$node}{"XPOS"}+$x_edge_delta;
       }
     }
 
@@ -1690,7 +1820,7 @@ sub redraw {
       && ($valign_edge=$self->get_style_opt($node,"NodeLabel","-nodrawbox",\%Opts) ne "yes")
       || !$self->get_drawBoxes
       && ($valign_edge=$self->get_style_opt($node,"NodeLabel","-dodrawbox",\%Opts) eq "yes");
-    $self->store_node_pinfo($node,"NodeHasBox",$node_has_box);
+    $node_info->{$node}{"NodeHasBox"}=$node_has_box;
     ## Boxes around attributes
     if ($vertical_tree && $self->get_horizStripe || !$vertical_tree && $self->get_vertStripe) {
       $objectno++;
@@ -1699,14 +1829,14 @@ sub redraw {
 	createRectangle(
 	  $vertical_tree ?
 	    (-200,
-	     0+$self->get_node_pinfo($node,"NodeLabel_YPOS")-$self->get_ymargin,
+	     0+$node_info->{$node}{"NodeLabel_YPOS"}-$self->get_ymargin,
 	     0+$self->{canvasWidth}+200,
-	     $self->get_node_pinfo($node,"NodeLabel_YPOS")+$self->get_ymargin+$lineHeight,
+	     $node_info->{$node}{"NodeLabel_YPOS"}+$self->get_ymargin+$lineHeight,
 	    ) :
 	    (
-	     0+$self->get_node_pinfo($node,"XPOS")-$self->get_nodeWidth,
+	     0+$node_info->{$node}{"XPOS"}-$self->get_nodeWidth,
 	     -200,
-	     0+$self->get_node_pinfo($node,"XPOS")+$self->get_nodeWidth,
+	     0+$node_info->{$node}{"XPOS"}+$self->get_nodeWidth,
 	     0+$self->{canvasHeight}+200,
 	    ),
 	   -fill => $currentNode==$node ? $self->get_stripeColor  :
@@ -1716,7 +1846,7 @@ sub redraw {
 	);
       $self->store_id_pinfo($stripe_id,$stripe);
       $self->store_obj_pinfo($stripe,$node);
-      $self->store_node_pinfo($node,"Stripe",$stripe)
+      $node_info->{$node}{"Stripe"}=$stripe;
     }
     if ($node_has_box) {
       ## get maximum width stored here by recalculate_positions
@@ -1725,15 +1855,15 @@ sub redraw {
       my $bid=$canvas->
 	createRectangle(
 	  $vertical_tree ? (
-	    0+$self->get_gen_pinfo("NodeLabel_XMIN")-$self->get_xmargin,
-	    0+$self->get_node_pinfo($node,"NodeLabel_YPOS")-$self->get_ymargin,
-	    0+$self->get_gen_pinfo("NodeLabel_XMAX")+$self->get_xmargin,
-	    $self->get_node_pinfo($node,"NodeLabel_YPOS")+$self->get_ymargin+$lineHeight) : (
-	      0+$self->get_node_pinfo($node,"NodeLabel_XPOS")-$self->get_xmargin,
-              0+$self->get_node_pinfo($node,"NodeLabel_YPOS")-$self->get_ymargin,
-	      0+$self->get_node_pinfo($node,"NodeLabel_XPOS")+
-		$self->get_node_pinfo($node,"NodeLabelWidth")+$self->get_xmargin,
-	      0+$self->get_node_pinfo($node,"NodeLabel_YPOS")+ $self->get_ymargin+
+	    0+$gen_info->{"NodeLabel_XMIN"}-$self->get_xmargin,
+	    0+$node_info->{$node}{"NodeLabel_YPOS"}-$self->get_ymargin,
+	    0+$gen_info->{"NodeLabel_XMAX"}+$self->get_xmargin,
+	    $node_info->{$node}{"NodeLabel_YPOS"}+$self->get_ymargin+$lineHeight) : (
+	      0+$node_info->{$node}{"NodeLabel_XPOS"}-$self->get_xmargin,
+              0+$node_info->{$node}{"NodeLabel_YPOS"}-$self->get_ymargin,
+	      0+$node_info->{$node}{"NodeLabel_XPOS"}+
+		$node_info->{$node}{"NodeLabelWidth"}+$self->get_xmargin,
+	      0+$node_info->{$node}{"NodeLabel_YPOS"}+ $self->get_ymargin+
 		scalar(@node_patterns)*$lineHeight
 	    ),
 	  -tags => ['textbox',$box]
@@ -1748,7 +1878,7 @@ sub redraw {
 			      ($node==$currentNode ?
 				 "CurrentTextBox" : "TextBox")
 			     ));
-      $self->store_node_pinfo($node,"TextBox",$box);
+      $node_info->{$node}{"TextBox"}=$box;
       $self->store_obj_pinfo($box,$node);
     }
     $edge_has_box=!$vertical_tree &&
@@ -1757,18 +1887,18 @@ sub redraw {
 	 ($valign_edge=$self->get_style_opt($node,"EdgeLabel","-nodrawbox",\%Opts) ne "yes") ||
 	 !$self->get_drawEdgeBoxes &&
 	 ($valign_edge=$self->get_style_opt($node,"EdgeLabel","-dodrawbox",\%Opts) eq "yes"));
-    $self->store_node_pinfo($node,"EdgeHasBox",$edge_has_box);
+    $node_info->{$node}{"EdgeHasBox"}=$edge_has_box;
     if ($edge_has_box) {
       $objectno++;
       my $box="edgebox_$objectno";
       my $bid=$canvas->
-	createRectangle($self->get_node_pinfo($node,"EdgeLabel_XPOS")-
+	createRectangle($node_info->{$node}{"EdgeLabel_XPOS"}-
 			$self->get_xmargin,
-			$self->get_node_pinfo($node,"EdgeLabel_YPOS")
+			$node_info->{$node}{"EdgeLabel_YPOS"}
 			-$self->get_ymargin,
-			$self->get_node_pinfo($node,"EdgeLabel_XPOS")+
+			$node_info->{$node}{"EdgeLabel_XPOS"}+
 			$self->get_xmargin+$edgeLabelWidth,
-			$self->get_node_pinfo($node,"EdgeLabel_YPOS")
+			$node_info->{$node}{"EdgeLabel_YPOS"}
 			+$self->get_ymargin
 			+scalar(@edge_patterns)*$lineHeight,
 			-tags => ['edgebox',$box]
@@ -1786,7 +1916,7 @@ sub redraw {
 				"EdgeTextBox"
 			     ));
 
-      $self->store_node_pinfo($node,"EdgeTextBox",$box);
+      $node_info->{$node}{"EdgeTextBox"}=$box;
       $self->store_obj_pinfo($box,$node);
     }
 
@@ -1802,12 +1932,12 @@ sub redraw {
 	  $msg =~ s!/!!g;		# should be done in interpolate_text_field
 	  if ($vertical_tree) {
 	    $x= $i==0
-	      ? 0+$self->get_node_pinfo($node,"EdgeLabel_XPOS")
-	      : 0+$self->get_gen_pinfo("EdgeLabel_XPOS[$e_i]");
-	    $y=0+$self->get_node_pinfo($node,"EdgeLabel_YPOS");
+	      ? 0+$node_info->{$node}{"EdgeLabel_XPOS"}
+	      : 0+$gen_info->{"EdgeLabel_XPOS[$e_i]"};
+	    $y=0+$node_info->{$node}{"EdgeLabel_YPOS"};
 	  } else {
-	    $x=$self->get_node_pinfo($node,"EdgeLabel_XPOS");
-	    $y=$self->get_node_pinfo($node,"EdgeLabel_YPOS")+$e_i*$lineHeight;
+	    $x=$node_info->{$node}{"EdgeLabel_XPOS"};
+	    $y=$node_info->{$node}{"EdgeLabel_YPOS"}+$e_i*$lineHeight;
 	  }
 	  $e_i++;
 	  $self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$x,$y,
@@ -1817,12 +1947,12 @@ sub redraw {
       } else { # node
 	if ($vertical_tree) {
 	  $x= $i==0
-	      ? 0+$self->get_node_pinfo($node,"NodeLabel_XPOS")
-	      : 0+$self->get_gen_pinfo("NodeLabel_XPOS[$n_i]");
-	  $y=0+$self->get_node_pinfo($node,"NodeLabel_YPOS");
+	      ? 0+$node_info->{$node}{"NodeLabel_XPOS"}
+	      : 0+$gen_info->{"NodeLabel_XPOS[$n_i]"};
+	  $y=0+$node_info->{$node}{"NodeLabel_YPOS"};
 	} else {
-	  $x=$self->get_node_pinfo($node,"NodeLabel_XPOS");
-	  $y=$self->get_node_pinfo($node,"NodeLabel_YPOS")+$n_i*$lineHeight;
+	  $x=$node_info->{$node}{"NodeLabel_XPOS"};
+	  $y=$node_info->{$node}{"NodeLabel_YPOS"}+$n_i*$lineHeight;
 	}
 	$n_i++;
 	$self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$x,$y,
@@ -1838,30 +1968,32 @@ sub redraw {
 #DEBUG
 
 #=pod
-
       $self->get_CanvasBalloon()->
 	attach($canvas,
 	       -balloonposition => 'mouse',
 	       -msg =>
 	       {
-		map { 
+		map {
 		  if (defined($_)) {
 		    my $node=$self->get_obj_pinfo($_);
 		    my $msg=
 		      $self->interpolate_text_field($node,
 						    $hint,$grp);
-		    $msg=~s/\${([^}]+)}/_present_attribute($node,$1)/eg;
-		    $_ => encode($msg);
+		    if (defined $msg) {
+		      $msg=~s/\${([^}]+)}/_present_attribute($node,$1)/eg;
+		      ($_ => encode($msg));
+		    } else {
+		      ()
+		    }
 		  }
 		} $self->find_item('withtag','point')
 	       });
-
 #=cut
 
     }
   }
   eval {
-    if ($vertical_tree && defined $self->get_node_pinfo($currentNode,'Stripe')) {
+    if ($vertical_tree && defined $node_info->{$currentNode}{'Stripe'}) {
       $canvas->itemconfigure("textbg_$currentNode", -fill => undef )
     }
   };
@@ -1943,21 +2075,23 @@ sub reset_scroll_region {
 sub draw_text_line {
   my ($self,$fsfile,$node,$i,$msg,
       $lineHeight,$x,$y,$clear,$Opts,$grp,$edge)=@_;
+  my $node_info = $self->{node_info};
+  my $gen_info = $self->{gen_info};
   my $what = $edge ? "Edge" : "Node";
 #  $msg=~s/([\$\#]{[^}]+})/\#\#\#$1\#\#\#/g;
   my $align= $self->get_style_opt($node,$what,"-textalign[$i]",$Opts);
   $align = $self->get_style_opt($node,$what,"-textalign",$Opts) unless defined $align;
-  my $textdelta;
-  my $X=$self->get_node_pinfo($node,"X[$i]");
-  if ($align eq 'left') {
+  my $textdelta=0;
+  my $X=$node_info->{$node}{"X[$i]"};
+  if (!defined($align) or $align eq 'left') {
     $textdelta=0;
   } elsif ($align eq 'right') {
-    my $lw = $self->get_gen_pinfo($what."LabelWidth[$i]");
-    $lw = $self->get_node_pinfo($node,$what."LabelWidth") unless defined $lw;
+    my $lw = $gen_info->{$what."LabelWidth[$i]"};
+    $lw = $node_info->{$node}{$what."LabelWidth"} unless defined $lw;
     $textdelta= ($lw - $X);
   } elsif ($align eq 'center') {
-    my $lw = $self->get_gen_pinfo($what."LabelWidth[$i]");
-    $lw = $self->get_node_pinfo($node,$what."LabelWidth") unless defined $lw;
+    my $lw = $gen_info->{$what."LabelWidth[$i]"};
+    $lw = $node_info->{$node}{$what."LabelWidth"} unless defined $lw;
     $textdelta= ($lw - $X)/2;
   }
   ## Clear background
@@ -1980,7 +2114,7 @@ sub draw_text_line {
 			    $self->get_node_style($node,"TextBg"),
 			    $self->get_node_style($node,"TextBg[$i]")
 			   );
-    $self->store_node_pinfo($node,"TextBg[$i]",$bg);
+    $node_info->{$node}{"TextBg[$i]"}=$bg;
     $self->store_obj_pinfo($bg,$node);
   }
 
@@ -2040,8 +2174,8 @@ sub draw_text_line {
 		   $self->get_node_style($node,"Text[$c][$i][$j]"));
       $xskip+=$self->getTextWidth($at_text);
       $self->store_obj_pinfo($txt,$node);
-      $self->store_node_pinfo($node,"Text[$c][$i][$j]",$txt);
-      $self->store_gen_pinfo("attr:$txt",$c);
+      $node_info->{$node}{"Text[$c][$i][$j]"}=$txt;
+      $gen_info->{"attr:$txt"}=$c;
     } elsif (/^\#${block}$/) {
       unless ($self->get_noColor) {
 	my $c=$1;
@@ -2049,7 +2183,7 @@ sub draw_text_line {
 	  # Depreciated ! Use style pattern!
 	  eval {
 	    $self->canvas->
-	      itemconfigure($self->get_node_pinfo($node,$1),$2 => $3);
+	      itemconfigure($node_info->{$node}{$1},$2 => $3);
 	  };
 	  print STDERR $@ if $@ ne "";
 	} else {
@@ -2134,6 +2268,7 @@ sub prepare_text {
   my ($self,$node,$pattern,$grp)=@_;
   return "" unless ref($node);
   my $msg=$self->interpolate_text_field($node,$pattern,$grp);
+  return "" unless length $msg;
   $msg=~s/\#${block}//g;
   $msg=~s/\$${block}/$self->prepare_raw_text_field($node,$1)/eg;
   return encode($msg);
@@ -2159,16 +2294,17 @@ sub _compile_code {
 }
 sub interpolate_text_field {
   my ($self,$node,$text,$grp_ctxt)=@_;
+  return unless defined $text and length $text;
   # make $this, $root, and $grp available for the evaluated expression
   # as in TrEd::Macros
   no strict 'refs';
   my @save = (${'TredMacro::this'},${'TredMacro::root'},${'TredMacro::grp'});
   (${'TredMacro::this'},${'TredMacro::root'},${'TredMacro::grp'})=
     ($node,($node ? $node->root : undef),$grp_ctxt);
-  if ($COMPILE) {
-    my $cached = $self->{compiled_sub}{$text};
+  if ($COMPILE&1) {
+    my $cached = $PATTERN_CODE_CACHE{$text};
     unless (defined $cached) {
-      $cached = $self->{compiled_sub}{$text} = [map {
+      $cached = $PATTERN_CODE_CACHE{$text} = [map {
 	$_=~$code_match_in ? _compile_code($1) : $_
       } split $code_match, $text]
     }
