@@ -13,7 +13,7 @@ use strict;
 BEGIN {
   use Exporter  ();
   use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %encodings $inputenc
-              $outputenc $lefttoright $Ds $support_unicode $FORCE_REMIX);
+              $outputenc $lefttoright $Ds $support_unicode $FORCE_REMIX $FORCE_NO_REMIX $needs_arabic_remix_re);
   use TrEd::MinMax;
   @ISA=qw(Exporter);
   $VERSION = "0.1";
@@ -41,40 +41,46 @@ BEGIN {
     $outputenc="iso-8859-2" unless defined($outputenc);
   }
   $support_unicode = ($Tk::VERSION ge 804.00);
+  if ($support_unicode) {
+    require TrEd::ConvertArab;
+    require TrEd::ArabicRemix;
+    *remix = \&TrEd::ArabicRemix::remix;
+    *arabjoin = \&TrEd::ConvertArab::arabjoin;
+    eval q(
+      $needs_arabic_remix_re=qr{\p{Arabic}|[\x{064B}-\x{0652}\x{0670}\x{0657}\x{0656}\x{0640}]|\p{InArabicPresentationFormsA}|\p{InArabicPresentationFormsB}};
+    );
+    die $@ if $@;
+  }
 }
+
+no integer;
 
 sub encode {
   my $str = join '', @_;
-  no integer;
-
   if ($support_unicode) { # we've got support for UNICODE in perl5.8/Tk8004
     if (($FORCE_REMIX or $^O ne 'MSWin32')
-	  and (
-            $inputenc =~ /^utf-?8$/i or
-            $inputenc eq 'iso-8859-6' or
-            $inputenc eq 'windows-1256' )) {
-      require TrEd::ConvertArab;
-      require TrEd::ArabicRemix;
-      $str = TrEd::ArabicRemix::remix(TrEd::ConvertArab::arabjoin($str));
+	  and
+	!$FORCE_NO_REMIX
+	  and
+	( $inputenc =~ /^utf-?8$/i or
+          $inputenc eq 'iso-8859-6' or
+          $inputenc eq 'windows-1256' )) {
+      if ($str=~$needs_arabic_remix_re) {
+	$str = remix(arabjoin($str));
+      }
     }
   } elsif ($]>=5.008) {
     eval "use Encode (); \$str=Encode::encode(\$outputenc,\$str);";
   } else {
     eval "tr/$encodings{$inputenc}/$encodings{$outputenc}/" unless ($inputenc eq $outputenc);
   }
-
-  $lefttoright or (s{([^[:ascii:]]+)}{reverse $1}eg);
-
+  $lefttoright or ($str=~s{([^[:ascii:]]+)}{reverse $1}eg);
   return $str;
 }
 
 sub decode {
-    my $str = join '', @_;
-
-  $lefttoright or (s{([^[:ascii:]]+)}{reverse $1}eg);
-
-  no integer;
-
+  my $str = join '', @_;
+  $lefttoright or ($str=~s{([^[:ascii:]]+)}{reverse $1}eg);
   if ($support_unicode) {
     return $str;
   } elsif ($]>=5.008) {
