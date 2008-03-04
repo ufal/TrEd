@@ -1759,11 +1759,12 @@ sub newFileFromCurrent {
   $win->{currentFileNo}= max2(0,$win->{currentFileNo});
   updateTitle($grp);
   get_nodes_win($win);
+  $win->{redrawn}=0; # if redraw is called during the hook, we will know it
   doEvalHook($win,"file_opened_hook");
   switchContext($win,$opt_t,1)
     if ($opt_t ne EMPTY and
 	$win->{macroContext} ne $opt_t);
-  redraw_win($win);
+  redraw_win($win) unless $win->{redrawn};
   centerTo($win,$win->{currentNode});
   $win->toplevel->Unbusy() unless $insideEval;
 
@@ -2126,6 +2127,7 @@ sub openFile {
   updateTitle($grp) unless $opts{-preload};
 
   applyFileSuffix($win,$goto) unless $opts{-preload};
+  $win->{redrawn}=0; # if redraw is called during the hook, we will know it
   doEvalHook($win,"file_opened_hook") if ($fsfile and !$opts{-nohook});
   unless ($opts{-preload}) {
     switchContext($win,$opt_t,1)
@@ -2133,7 +2135,7 @@ sub openFile {
 	    $win->{macroContext} ne $opt_t);
     get_nodes_win($win,$opts{-noredraw});
     unless ($opts{-noredraw}) {
-      redraw_win($win);
+      redraw_win($win) unless $win->{redrawn};
       centerTo($win,$win->{currentNode});
     }
   }
@@ -9479,7 +9481,8 @@ sub redraw_win {
   if ($win->{FSFile} and $win->treeView->get_drawSentenceInfo) {
     $vl=get_value_line($win,$win->{FSFile},$win->{treeNo},1,0);
   }
-
+  $win->{redrawn}=1; # may be used to check that this function was called (e.g. during a hook)
+                     # do not forget to reset the value first
   $win->treeView->
     redraw($win->{FSFile},
 	   $win->{currentNode},
