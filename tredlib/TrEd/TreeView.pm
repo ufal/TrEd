@@ -49,17 +49,18 @@ use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_g
 	     );
 }
 
-# # this is a stub
-#    use Benchmark qw(:all);
-#    *old_redraw = \&redraw;
+# # #this is a stub
+# our $TEST;
+#   use Benchmark qw(:all);
+#   *old_redraw = \&redraw;
 #   *redraw = sub {
 #     my @args = @_;
 # #     print timethese(10, {
 # #       'c7t1' => sub { old_redraw(@args); },
 # #     });
 #      print cmpthese(10, {	# 
-#        'c0t0' => sub { old_redraw(@args); },
-#        'c7t1' => sub { old_redraw(@args); } ,
+#        'c0t0' => sub { $TEST=0; old_redraw(@args); },
+#        'c7t1' => sub { $TEST=1; old_redraw(@args); } ,
 #       });
 #   };
 
@@ -1049,8 +1050,8 @@ sub node_coords {
   my ($self,$node,$currentNode)=@_;
   my $factor=$self->scale_factor;
   my $node_info = $self->{node_info};
-  my $x=$node_info->{$node}{'XPOS'}/$factor;
-  my $y=$node_info->{$node}{'YPOS'}/$factor;
+  my $x=$node_info->{$node}{'XPOS'};
+  my $y=$node_info->{$node}{'YPOS'};
 
   my $Opts=$self->get_gen_pinfo('Opts');
   my @ret;
@@ -1184,7 +1185,7 @@ sub get_style_opt {
 sub apply_style_opts {
   my ($self, $item)=(shift,shift);
   eval { $self->realcanvas->itemconfigure($item,@_); };
-  print STDERR $@ if $@ ne "";
+  print STDERR $@ if $@;
   return $@;
 }
 
@@ -1519,15 +1520,17 @@ sub redraw {
       } else {
 	$ftext='';
       }
-      $self->apply_style_opts(
-	$canvas->
-	  createText(0,
-		     $self->{canvasHeight},
-		     -tags => ['vline','text_item'],
-		     -font => $self->get_font,
-		     -text => $ftext,
-		     -justify => 'left', -anchor => 'nw'),
-	@{$Opts{SentenceText}});
+      eval { #apply_style_opts
+	$canvas->itemconfigure(
+	  $canvas->
+	    createText(0,
+		       $self->{canvasHeight},
+		       -tags => ['vline','text_item'],
+		       -font => $self->get_font,
+		       -text => $ftext,
+		       -justify => 'left', -anchor => 'nw'),
+	  @{$Opts{SentenceText}});
+      }; print STDERR $@ if $@;
       $self->{canvasHeight}+=$fontHeight;
       my $ftw = $self->getTextWidth($ftext,1);
       $self->{canvasWidth}=max($self->{canvasWidth},$ftw);
@@ -1550,7 +1553,8 @@ sub redraw {
       my $lines=$self->wrapLines($valtext,$self->{canvasWidth},$self->{reverseNodeOrder});
       foreach (@$lines) {
 	if ($self->{reverseNodeOrder}) {
-	  $self->apply_style_opts(
+	  eval { #apply_style_opts
+	    $canvas->itemconfigure(
 	    $canvas->
 	      createText($self->{canvasWidth},
 					   $self->{canvasHeight},
@@ -1559,9 +1563,11 @@ sub redraw {
 			 -text => $_,
 			 -justify => 'right',
 			 -anchor => 'ne'),
-	    @{$Opts{SentenceLine}});
+	    @{$Opts{SentenceLine}})
+	  }; print STDERR $@ if $@;
 	} else {
-	  $self->apply_style_opts(
+	  eval { #apply_style_opts
+	    $canvas->itemconfigure(
 	    $canvas->
 	      createText(0,$self->{canvasHeight},
 			 -font => $self->get_font,
@@ -1570,6 +1576,7 @@ sub redraw {
 					   -justify => 'left',
 			 -anchor => 'nw'),
 	    @{$Opts{SentenceLine}});
+	  }; print STDERR $@ if $@;
 	}
 	$self->{canvasHeight}+=$fontHeight;
       }
@@ -1679,10 +1686,12 @@ sub redraw {
 					      $currentNode)
 			 );
     # $self->store_id_pinfo($o,$oval);
-    $self->apply_style_opts($o,@{$Opts{Oval}},
+    eval { #apply_style_opts
+      $canvas->itemconfigure($o,@{$Opts{Oval}},
 			    $self->get_node_style($node,"Oval"),
 			    ($node eq $currentNode ? $self->get_node_style($node,"CurrentOval") : ())
 			   );
+    }; print STDERR $@ if $@;
     $node_info->{$node}{"Oval"}=$o;
     $self->store_obj_pinfo($o,$node);
 
@@ -1796,7 +1805,8 @@ sub redraw {
 	  -tags => ['textbox']
 		       );
       # $self->store_id_pinfo($bid,$box);
-      $self->apply_style_opts(
+      eval { #apply_style_opts
+	$canvas->itemconfigure(
 	$bid,
 	$self->node_box_options($node,$fsfile->FS,
 				$currentNode,0),
@@ -1805,6 +1815,7 @@ sub redraw {
 			      ($node==$currentNode ?
 				 "CurrentTextBox" : "TextBox")
 			     ));
+      }; print STDERR $@ if $@;
       $node_info->{$node}{"TextBox"}=$bid;
       $self->store_obj_pinfo($bid,$node);
     }
@@ -1831,7 +1842,8 @@ sub redraw {
 			-tags => ['edgebox']
 		       );
       # $self->store_id_pinfo($bid,$box);
-      $self->apply_style_opts(
+      eval { #apply_style_opts
+	$canvas->itemconfigure(
 	$bid,
 	$self->node_box_options($node,
 				$fsfile->FS,
@@ -1842,7 +1854,7 @@ sub redraw {
 				"CurrentEdgeTextBox" :
 				"EdgeTextBox"
 			     ));
-
+      }; print STDERR $@ if $@;
       $node_info->{$node}{"EdgeTextBox"}=$bid;
       $self->store_obj_pinfo($bid,$node);
     }
@@ -2004,6 +2016,7 @@ sub draw_text_line {
       $lineHeight,$x,$y,$clear,$Opts,$grp,$edge)=@_;
   my $node_info = $self->{node_info};
   my $gen_info = $self->{gen_info};
+  my $style_info = $self->{style_info};
   my $what = $edge ? "Edge" : "Node";
 #  $msg=~s/([\$\#]{[^}]+})/\#\#\#$1\#\#\#/g;
   my $align= $self->get_style_opt($node,$what,"-textalign[$i]",$Opts);
@@ -2036,12 +2049,14 @@ sub draw_text_line {
 		      -tags => ['textbg',"textbg_$node"]
 		     );
     # $self->store_id_pinfo($bid,$bg);
-    $self->apply_style_opts($bid,
+    eval { #apply_style_opts
+      $canvas->itemconfigure($bid,
 			    @{$Opts->{TextBg}},
 			    @{$Opts->{"TextBg[$i]"}},
-			    $self->get_node_style($node,"TextBg"),
-			    $self->get_node_style($node,"TextBg[$i]")
+			    @{$style_info->{$node}{TextBg}},
+			    @{$style_info->{$node}{"TextBg[$i]"}},
 			   );
+    }; print STDERR $@ if $@;
     $node_info->{$node}{"TextBg[$i]"}=$bid;
     $self->store_obj_pinfo($bid,$node);
   }
@@ -2091,15 +2106,17 @@ sub draw_text_line {
 		   -tags => ['text','text_item']
 		  );
       # $self->store_id_pinfo($bid,$txt);
-      $self->apply_style_opts($bid,
+      eval { #apply_style_opts
+	$canvas->itemconfigure($bid,
 		   @{$Opts->{Text}},
 		   @{$Opts->{"Text[$c]"}},
 		   @{$Opts->{"Text[$c][$i]"}},
 		   @{$Opts->{"Text[$c][$i][$j]"}},
-		   $self->get_node_style($node,"Text"),
-		   $self->get_node_style($node,"Text[$c]"),
-		   $self->get_node_style($node,"Text[$c][$i]"),
-		   $self->get_node_style($node,"Text[$c][$i][$j]"));
+		   @{$style_info->{$node}{"Text"}},
+		   @{$style_info->{$node}{"Text[$c]"}},
+		   @{$style_info->{$node}{"Text[$c][$i]"}},
+		   @{$style_info->{$node}{"Text[$c][$i][$j]"}});
+      }; print STDERR $@ if $@;
       $xskip+=$self->getTextWidth($at_text);
       $self->store_obj_pinfo($bid,$node);
       $node_info->{$node}{"Text[$c][$i][$j]"}=$bid;
@@ -2143,12 +2160,14 @@ sub draw_text_line {
 		     -tags => ['plaintext','text_item']
 		    );
 	#$self->store_id_pinfo($bid,$txt);
-	$self->apply_style_opts($bid,
+	eval { #apply_style_opts
+	  $canvas->itemconfigure($bid,
 				-anchor => 'nw',
 				-fill =>
 				defined($color) ? $color : $self->get_textColor,
 				@{$Opts->{Text}},
-				$self->get_node_style($node,"Text"));
+				@{$style_info->{$node}{Text}});
+	}; print STDERR $@ if $@;
 	$xskip+=$self->getTextWidth($_);
       }
     }
@@ -2220,6 +2239,7 @@ sub _compile_code {
   $text=~s/\$\${([^}]+)}/ TrEd::TreeView::_present_attribute(\$this,'$1')/g;
   return eval "package TredMacro; sub{ eval { $text } }";
 }
+
 sub interpolate_text_field {
   my ($self,$node,$text,$grp_ctxt)=@_;
   return unless defined $text and length $text;
@@ -2227,8 +2247,9 @@ sub interpolate_text_field {
   # as in TrEd::Macros
   no strict 'refs';
   my @save = (${'TredMacro::this'},${'TredMacro::root'},${'TredMacro::grp'});
+  my $root; $root=$node && $node->root;
   (${'TredMacro::this'},${'TredMacro::root'},${'TredMacro::grp'})=
-    ($node,($node ? $node->root : undef),$grp_ctxt);
+    ($node,$root,$grp_ctxt);
   my $cached = $PATTERN_CODE_CACHE{$text};
   unless (defined $cached) {
     $cached = $PATTERN_CODE_CACHE{$text} = [map {

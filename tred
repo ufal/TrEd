@@ -5325,16 +5325,7 @@ sub startMain {
   print STDERR "Asking wm for exit-hook.\n" if $tredDebug;
 
   $top->
-    protocol('WM_DELETE_WINDOW'=> 
-	     [sub { my $grp=shift;
-		    doEvalHook($grp->{focusedWindow},"exit_hook");
-		    # run user's exit_hook
-		    return if askSaveFiles($grp,1) == -1;
-		    #closeFile($grp->{focusedWindow}, -all_windows => 1);
-		    saveRuntimeConfig($grp);
-		    $grp->{top}->destroy;
-		    $grp->{top}=undef;
-		  },\%group]);
+    protocol('WM_DELETE_WINDOW'=> [\&quit,\%group]);
 
 
   print STDERR "Exit hook created.\n" if $tredDebug;
@@ -5491,14 +5482,7 @@ sub startMain {
   $group{FileMenu}->separator();
   $group{FileMenu}->command(-label=>'Quit',
 			    -underline=> 0,
-			    -command=> [sub {
-					  my $grp=shift;
-					  return 
-					    if askSaveFiles($grp,1) == -1;
-					  saveRuntimeConfig($grp);
-					  $grp->{top}->destroy;
-					  $grp->{top}=undef;
-					},\%group]);
+			    -command=> [\&quit,\%group]);
 	
   $group{ViewMenu}= MenubarItem($group{Menubar},qw/-label ~View -menuitems/=>
 	[
@@ -6480,6 +6464,16 @@ sub startMain {
   $top=undef;
   $group{top} = undef;
   print STDERR "Done.\n" if $tredDebug;
+}
+
+sub quit {
+  my ($grp,$win)=grp_win(shift);
+  # run user's exit_hook
+  doEvalHook($win,"exit_hook");
+  return if askSaveFiles($grp,1) == -1;
+  saveRuntimeConfig($grp);
+  $grp->{top}->destroy;
+  $grp->{top}=undef;
 }
 
 sub saveRuntimeConfig {
