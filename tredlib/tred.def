@@ -1572,6 +1572,24 @@ sub ListRegroupElements {
 
 =over 4
 
+=item C<CloseGUI()>
+
+This macro is only available in TrEd. It closes TrEd's main window and
+exits.
+
+=cut
+
+
+sub CloseGUI {
+  my $win = GUI();
+  if ($win) {
+    ToplevelFrame()->afterIdle([\&main::quit,$win]);
+    $Redraw='none';
+    ChangingFile(0);
+  }
+}
+
+
 =item C<GUI()>
 
 Return a reference if running from TrEd, i.e., GUI is available;
