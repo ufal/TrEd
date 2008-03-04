@@ -253,7 +253,7 @@ function fail_install_perl {
       echo "Due to licensing issues we cannot distribute ActivePerl 5.8 together with"
       echo "this setup. Please download and install ActivePerl 5.8 for Windows from:"
       echo
-      echo "http://www.activestate.com/Products/Download/Download.plex?id=ActivePerl"
+      echo "http://www.activestate.com/store/activeperl/download/"
       echo "It is free of charge."
       echo
       echo "When finished, run setup.bat again."
