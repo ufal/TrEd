@@ -16,9 +16,7 @@ import TrEd::MinMax;
 use TrEd::Convert;
 import TrEd::Convert;
 
-use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_get_node_style $on_get_nodes $COMPILE $TEST %PATTERN_CODE_CACHE %COORD_CODE_CACHE %COORD_SPEC_CACHE);
-
-$COMPILE=1&2&4;
+use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_get_node_style $on_get_nodes %PATTERN_CODE_CACHE %COORD_CODE_CACHE %COORD_SPEC_CACHE);
 
 @Options = qw(CanvasBalloon backgroundColor
   stripeColor vertStripe horizStripe baseXPos baseYPos boxColor
@@ -29,7 +27,7 @@ $COMPILE=1&2&4;
   hiddenBoxColor edgeLabelYSkip highlightAttributes showHidden
   lineArrow lineArrowShape lineColor lineDash hiddenLineColor dashHiddenLines lineWidth
   noColor nodeHeight nodeWidth nodeXSkip nodeYSkip edgeLabelSkipAbove
-  edgeLabelSkipBelow pinfo textColor xmargin nodeOutlineColor
+  edgeLabelSkipBelow textColor xmargin nodeOutlineColor
   nodeColor hiddenNodeColor nearestNodeColor ymargin currentNodeColor
   textColorShadow textColorHilite textColorXHilite skipHiddenLevels skipHiddenParents
   useAdditionalEdgeLabelSkip reverseNodeOrder balanceTree verticalTree displayMode labelSep
@@ -51,7 +49,19 @@ $COMPILE=1&2&4;
 	     );
 }
 
-
+# this is a stub
+#   use Benchmark qw(:all);
+#   *old_redraw = \&redraw;
+#   *redraw = sub {
+#     my @args = @_;
+# #     print timethese(10, {
+# #       'c7t1' => sub { old_redraw(@args); },
+# #     });
+#      print cmpthese(10, {	# 
+#        'c0t0' => sub { old_redraw(@args); },
+#        'c7t1' => sub { old_redraw(@args); } ,
+#       });
+#   };
 
 our $objectno;
 our ($block, $bblock);
@@ -78,10 +88,15 @@ sub clear_code_caches {
 sub new {
   my $self = shift;
   my $class = ref($self) || $self;
-  my $new = { pinfo     => {},	# maps canvas objects to nodes
-	      canvas    => shift,
+  my $new = { canvas    => shift,
 	      patterns  => undef,
 	      hint      => undef,
+	      node_info => {},  # contains per-node information
+	      style_info => {}, # contains information about styles
+	      style_hash_info => {}, # -"- cached as hashes
+	      gen_info => {},   # contains general information about the canvas
+	      oinfo_info => {}, # maps canvas objects to nodes
+	      iinfo_info => {}, # maps canvas object numbers to ID tags
 	      @_ };
 
   bless $new, $class;
@@ -109,6 +124,29 @@ sub set_patterns {
   my ($self,$patterns) = @_;
   die "Patterns are not array-ref" if (defined($patterns) and !ref($patterns) eq 'ARRAY');
   $self->{patterns}=$patterns;
+  $self->{pattern_lists}=undef; # clear cached value so that the following call knows it should regenerate it
+  $self->{pattern_lists} = $self->get_pattern_lists();
+}
+
+sub get_pattern_lists {
+  my ($self,$fsfile)=@_;
+  my $patterns = $self->patterns;
+  if ($patterns && $self->{pattern_lists}) {
+    return $self->{pattern_lists};
+  }
+  my (@node_patterns,@edge_patterns,@style_patterns,@patterns);
+  my @patterns = map { [ $self->parse_pattern($_) ] } 
+    $patterns ? @{$patterns} :
+    $fsfile         ? $fsfile->patterns() : ();
+  @style_patterns = map { $_->[1] } grep { $_->[0] eq 'style' } @patterns;
+  @patterns = grep { $_->[0] eq 'node' or $_->[0] eq 'edge' } @patterns;
+  @node_patterns = map { $_->[1] } grep { $_->[0] eq 'node' } @patterns;
+  @edge_patterns = map { $_->[1] } grep { $_->[0] eq 'edge' } @patterns;
+  my $pl = [\@node_patterns,\@edge_patterns,\@style_patterns,\@patterns];
+  if ($patterns) {
+    $self->{pattern_lists}=$pl;
+  }
+  return $pl;
 }
 
 sub patterns {
@@ -130,15 +168,15 @@ sub hint {
 
 sub canvas {
   my $self = shift;
-  return undef unless ref($self);
+  return unless ref($self);
   return $self->{canvas};
 }
 
 sub realcanvas {
   my $self = shift;
-  return undef unless ref($self);
-  return $self->{canvas}->isa("Tk::Canvas")
-    ? $self->{canvas} : $self->{canvas}->Subwidget("scrolled");
+  return unless ref($self);
+  return ($self->{realcanvas}||= ($self->{canvas}->isa("Tk::Canvas")
+				    ? $self->{canvas} : $self->{canvas}->Subwidget("scrolled")));
 }
 
 sub scale_factor {
@@ -194,8 +232,10 @@ sub scale {
   $self->{scale} = $new_scale;
   $c->scale('all', 0,0, $factor, $factor);
   # scale font
-  $self->scale_font($factor);
-  $c->itemconfigure('text_item', -font => $self->{scaled_font});
+  if ($factor!=1) {
+    $self->scale_font($factor);
+    $c->itemconfigure('text_item', -font => $self->{scaled_font});
+  }
   $self->{$_}*=$factor for qw(canvasWidth canvasHeight);
   for my $item ($c->find(withtag=>'scale_width')) {
     $c->itemconfigure($item, -width => $factor*$c->itemcget($item,'-width'));
@@ -233,30 +273,16 @@ sub reset_scale {
   $self->{scaled_font}=undef;
 }
 
-sub pinfo {
-  my $self = shift;
-  return undef unless ref($self);
-  return $self->{pinfo};
-}
-
-sub set_pinfo {
-  my $self = shift;
-  return undef unless ref($self);
-  $self->{pinfo}=shift;
-}
 
 sub clear_pinfo {
   my $self = shift;
   return undef unless ref($self);
-  %{$self->{pinfo}}=();
-  if ($TEST) {
-    %{$self->{node_info}}=();
-    %{$self->{style_info}}=();
-    %{$self->{style_hash_info}}=();
-    %{$self->{gen_info}}=();
-    %{$self->{oinfo}}=();
-    %{$self->{iinfo}}=();
-  }
+  %{$self->{node_info}}=();
+  %{$self->{style_info}}=();
+  %{$self->{style_hash_info}}=();
+  %{$self->{gen_info}}=();
+  %{$self->{oinfo}}=();
+  %{$self->{iinfo}}=();
 }
 
 sub store_gen_pinfo {
@@ -280,21 +306,13 @@ sub store_node_pinfo {
 sub store_obj_pinfo {
   my ($self,$obj,$value) = @_;
   return undef unless ref($self);
-  if ($TEST) {
-    $self->{oinfo}->{$obj}=$value;
-  } else {
-    $self->{pinfo}->{"obj:${obj}"}=$value;
-  }
+  $self->{oinfo}->{$obj}=$value;
 }
 
 sub store_id_pinfo {
   my ($self,$obj,$value) = @_;
   return undef unless ref($self);
-  if ($TEST) {
-    $self->{iinfo}->{$obj}=$value;
-  } else {
-    $self->{pinfo}->{"id:${obj}"}=$value;
-  }
+  $self->{iinfo}->{$obj}=$value;
 }
 
 sub get_node_pinfo {
@@ -312,21 +330,13 @@ sub get_node_pinfo {
 sub get_obj_pinfo {
   my ($self,$obj) = @_;
   return undef unless ref($self);
-  if ($TEST) {
-    return $self->{oinfo}->{$obj};
-  } else {
-    return $self->{pinfo}->{"obj:${obj}"};
-  }
+  return $self->{oinfo}->{$obj};
 }
 
 sub get_id_pinfo {
   my ($self,$obj) = @_;
   return undef unless ref($self);
-  if ($TEST) {
-    return $self->{iinfo}->{$obj};
-  } else {
-    return $self->{pinfo}->{"id:${obj}"};
-  }
+  return $self->{iinfo}->{$obj};
 }
 
 sub node_is_displayed {
@@ -490,7 +500,13 @@ sub nodes {
 
 sub getFontHeight {
   my ($self)=@_;
-  return $self->canvas->fontMetrics($self->get_font, -linespace);
+  my $font = $self->get_font;
+  if ($self->{cached_font} eq $font) {
+    return $self->{cached_size};
+  } else {
+    $self->{cached_font}=$font;
+    return ($self->{cached_size} = $self->canvas->fontMetrics($font, -linespace));
+  }
 }
 
 sub getTextWidth {
@@ -652,21 +668,15 @@ sub recalculate_positions_vert {
   my $nodeXSkip = exists($Opts->{nodeXSkip}) ? $Opts->{nodeXSkip} : $self->get_nodeXSkip;
   my $nodeYSkip = exists($Opts->{nodeYSkip}) ? $Opts->{nodeYSkip} : $self->get_nodeYSkip;
   my $m;
-  my ($pattern_count,$node_pattern_count,$edge_pattern_count)=(0,0,0);
-				# May change with line attached labels
-  my @patterns;
-  if ($self->patterns) {
-    @patterns= @{$self->patterns};
-  } elsif (ref($fsfile)) {
-    @patterns=$fsfile->patterns();
+  my ($patterns,$pattern_count,$node_pattern_count,$edge_pattern_count);
+  {
+    my $pl = $self->get_pattern_lists($fsfile);
+    $patterns = $pl->[3];
+    $pattern_count = scalar(@{$patterns});
+    $node_pattern_count = scalar(@{$pl->[0]});
+    $edge_pattern_count = scalar(@{$pl->[1]});
   }
-  @patterns = grep { $_->[0] eq 'node' or
-		     $_->[0] eq 'edge' } map { [ $self->parse_pattern($_) ] } @patterns;
-  if (ref($fsfile)) {
-    $pattern_count=@patterns;
-    $node_pattern_count=scalar($self->get_label_patterns($fsfile,"node"));
-    $edge_pattern_count=scalar($self->get_label_patterns($fsfile,"edge"));
-  }
+  # May change with line attached labels
 
   my $fontHeight=$self->getFontHeight() * $lineSpacing;
   my $node_label_height=2*$self->get_ymargin + $fontHeight;
@@ -711,8 +721,8 @@ sub recalculate_positions_vert {
     my $label_xpos = $xpos + $nodeWidth + $labelsep;
     $ypos += $levelHeight;
     $self->{canvasHeight} += $levelHeight;
-    if (@patterns) {
-      ($pat_style,$pat)=@{$patterns[0]};
+    if ($pattern_count) {
+      ($pat_style,$pat)=@{$patterns->[0]};
       $m=$self->getTextWidth($self->prepare_text($node,$pat,$grp));
       if ($pat_style eq 'node') {
 	$node_info->{$node}{"NodeLabelWidth"}=$m;
@@ -733,9 +743,9 @@ sub recalculate_positions_vert {
   }
   $gen_info->{"NodeLabel_XMIN"}=$canvasWidth;
   my ($n_i, $e_i)=(-1,-1);
-  for (my $i=0; $i<@patterns; $i++) {
+  for (my $i=0; $i<$pattern_count; $i++) {
     my $max = 0;
-    ($pat_style,$pat)=@{$patterns[$i]};
+    ($pat_style,$pat)=@{$patterns->[$i]};
     if ($pat_style eq 'node') { $n_i++ } else { $e_i++ }
     next if $i==0;
     my $sep = $Opts->{'columnsep['.$i.']'};
@@ -789,20 +799,13 @@ sub recalculate_positions {
   my $nodeYSkip = exists($Opts->{nodeYSkip}) ? $Opts->{nodeYSkip} : $self->get_nodeYSkip;
   my $m;
 
-  my ($pattern_count,$node_pattern_count,$edge_pattern_count)=(0,0,0);
-				# May change with line attached labels
-  my @patterns;
-  if ($self->patterns) {
-    @patterns=@{$self->patterns};
-  } elsif (ref($fsfile)) {
-    @patterns=$fsfile->patterns();
-  }
-  @patterns = grep { $_->[0] eq 'node' or
-		     $_->[0] eq 'edge' } map { [ $self->parse_pattern($_) ] } @patterns;
-  if (ref($fsfile)) {
-    $pattern_count=@patterns;
-    $node_pattern_count=scalar($self->get_label_patterns($fsfile,"node"));
-    $edge_pattern_count=scalar($self->get_label_patterns($fsfile,"edge"));
+  my ($patterns,$pattern_count,$node_pattern_count,$edge_pattern_count);
+  {
+    my $pl = $self->get_pattern_lists($fsfile);
+    $patterns = $pl->[3];
+    $pattern_count = scalar(@{$patterns});
+    $node_pattern_count = scalar(@{$pl->[0]});
+    $edge_pattern_count = scalar(@{$pl->[1]});
   }
 
   my $fontHeight=$self->getFontHeight()*$lineSpacing;
@@ -910,7 +913,7 @@ sub recalculate_positions {
     $halign_node=$self->get_style_opt($node,"NodeLabel","-halign",$Opts);
 
     for (my $i=0;$i<$pattern_count;$i++) {
-      ($pat_style,$pat)=@{$patterns[$i]};
+      ($pat_style,$pat)=@{$patterns->[$i]};
       if ($pat_style eq "edge") {
 	# this does not actually make
 	# the edge label not to overwrap, but helps a little
@@ -1170,26 +1173,16 @@ sub wrapLines {
 
 sub get_style_opt {
   my ($self,$node,$style,$opt,$opts)=@_;
-  if ($TEST) {
-    my $hash_info = $self->{style_hash_info};
-    my $S = ($hash_info->{$node}{$style}||={ @{ $self->{style_info}->{$node}{$style}|| [] } });
-    return $S->{$opt} if exists $S->{$opt};
-    $S = ($hash_info->{$style}||={ @{ $opts->{$style} || [] } });
-    return $S->{$opt};
-  } else {
-    my $style_info = $self->{style_info};
-    my $s=$style_info->{$node}{$style};
-    my %h=(
-      (ref($opts->{$style}) ? @{$opts->{$style}} : ()),
-      (ref($s) ? @$s : ())
-     );
-    return $h{$opt};
-  }
+  my $hash_info = $self->{style_hash_info};
+  my $S = ($hash_info->{$node}{$style}||={ @{ $self->{style_info}->{$node}{$style}|| [] } });
+  return $S->{$opt} if exists $S->{$opt};
+  $S = ($hash_info->{$style}||={ @{ $opts->{$style} || [] } });
+  return $S->{$opt};
 }
 
 sub apply_style_opts {
   my ($self, $item)=(shift,shift);
-  eval { $self->canvas->itemconfigure($item,@_); };
+  eval { $self->realcanvas->itemconfigure($item,@_); };
   print STDERR $@ if $@ ne "";
   return $@;
 }
@@ -1198,7 +1191,7 @@ sub apply_stored_style_opts {
   my ($self, $item, $node)=@_;
   my $Opts=$self->get_gen_pinfo("Opts");
   my $what = $item; $what=~s/^Current//;
-  eval { $self->canvas->
+  eval { $self->realcanvas->
 	   itemconfigure($self->{node_info}{$node}{$what},
 			 @{$Opts->{$item}||[]},
 			 $self->get_node_style($node,$item)); };
@@ -1226,32 +1219,20 @@ sub parse_coords_spec {
       if (exists($nodehash->{"$xy$key"})) {
 	int($nodehash->{"$xy$key"})
       } else {
-	if ($COMPILE&2) {
-	  my $cached = $COORD_CODE_CACHE{$key};
-	  unless (defined $cached) {
-	    $code =~s[\$\{([-_A-Za-z0-9/]+)\}][ \$node->attr('$1') ]g;
-	    $cached = $COORD_CODE_CACHE{$key}=
-	      eval "package TredMacro; sub{ my \$node=\$_[0]; eval { $code } }";
-	  }
-	  my $save_this = ${'TredMacro::this'};
-	  ${'TredMacro::this'}=$node;
-	  while ($i<@$nodes) {
-	    last if ($cached->($nodes->[$i]));
-	    print STDERR $@ if $@ ne "";
-	    $i++;
-	  }
-	  ${'TredMacro::this'}=$save_this;
-	} else {
-	  while ($i<@$nodes) {
-	    my $c=$code;
-	    my $this=$node;	 # $this is the context node
-	    my $node=$nodes->[$i]; # $node is the search node
-	    $c=~s[\$\{([-_A-Za-z0-9]+)\}]['$node->{$1}']g;
-	    last if eval $c;	 # NOT SECURE, NOT SAFE!
-	    print STDERR $@ if $@ ne "";
-	    $i++;
-	  }
+	my $cached = $COORD_CODE_CACHE{$key};
+	unless (defined $cached) {
+	  $code =~s[\$\{([-_A-Za-z0-9/]+)\}][ \$node->attr('$1') ]g;
+	  $cached = $COORD_CODE_CACHE{$key}=
+	    eval "package TredMacro; sub{ my \$node=\$_[0]; eval { $code } }";
 	}
+	my $save_this = ${'TredMacro::this'};
+	${'TredMacro::this'}=$node;
+	while ($i<@$nodes) {
+	  last if ($cached->($nodes->[$i]));
+	  print STDERR $@ if $@ ne "";
+	  $i++;
+	}
+	${'TredMacro::this'}=$save_this;
 	if ($i<@$nodes) {
 	  $nodehash->{"x$key"} = $node_info->{$nodes->[$i]}{ "XPOS"};
 	  $nodehash->{"y$key"} = $node_info->{$nodes->[$i]}{ "YPOS"};
@@ -1273,24 +1254,17 @@ sub parse_coords_spec {
       } else {
 	my $c=$code;
 	my $that;
-	if ($COMPILE&2) {
-	  my $cached = $COORD_CODE_CACHE{$key};
-	  unless (defined $cached) {
-	    $code =~s[\$\{([-_A-Za-z0-9/]+)\}][ \$node->attr('$1') ]g;
-	    $cached = $COORD_CODE_CACHE{$key}=
-	      eval "package TredMacro; sub{ my \$node=\$_[0]; eval { $code } }";
-	  }
-	  my $save_this = ${'TredMacro::this'};
-	  ${'TredMacro::this'}=$node;
-	  $that = $cached->($node);
-	  print STDERR $@ if $@ ne "";
-	  ${'TredMacro::this'}=$save_this;
-	} else {
-	  my $this=$node; # $this is the context node
-	  $c=~s[\$\{([-_A-Za-z0-9]+)\}]["'$this->{$1}'"]ge;
-	  $that=eval $c;	# NOT SECURE, NOT SAFE!
-	  print STDERR $@ if $@ ne "";
+	my $cached = $COORD_CODE_CACHE{$key};
+	unless (defined $cached) {
+	  $code =~s[\$\{([-_A-Za-z0-9/]+)\}][ \$node->attr('$1') ]g;
+	  $cached = $COORD_CODE_CACHE{$key}=
+	    eval "package TredMacro; sub{ my \$node=\$_[0]; eval { $code } }";
 	}
+	my $save_this = ${'TredMacro::this'};
+	${'TredMacro::this'}=$node;
+	$that = $cached->($node);
+	print STDERR $@ if $@ ne "";
+	${'TredMacro::this'}=$save_this;
 	if (ref($that)) {
 	  $nodehash->{"x$key"}=
 	    $node_info->{$that}{ "XPOS"};
@@ -1325,79 +1299,52 @@ sub parse_coords_spec {
 }
 
 {
-  my ($xp,$yp,$xn,$yn);
+  my ($HAVE_PARENT,$XP,$YP,$XN,$YN); # persistent variables for precompiled subs
 sub eval_coords_spec {
-  my ($self,$node,$parent,$C,$coords) = @_;
-  my $x=1;
+  my ($self,$node,$parent,$c,$coords) = @_;
   my $node_info=$self->{node_info};
-  if ($COMPILE&4) {
-  $xp = int($node_info->{$parent}{"XPOS"});
-  $yp = int($node_info->{$parent}{"YPOS"});
-  $xn = int($node_info->{$node}{"XPOS"});
-  $yn = int($node_info->{$node}{"YPOS"});
-  foreach (@$C) {
-    my $key=$_;
-    my $cached=$COORD_SPEC_CACHE{$key}[$x];
-    if (defined $cached) {
-      $_ = $cached->();
-      print STDERR $@ if length($@);
-    } else {
-      my $orig = $_;
-      s{([xy]?)p}{
-	if ($parent) {
-	  (($x and ($1 ne 'y')) or $1 eq 'x') ? ' $xp ' : ' $yp '
-	} else {
-	  'NE'
-	}
-      }ge;
-      s{([xy]?)n}{
-      	(($x and ($1 ne 'y')) or $1 eq 'x') ? ' $xn ' : ' $yn '
-      }ge;
-      if (/^( \$[xy][np] |[-\s+\?:.\/*%\(\)0-9]|&&|\|\||!|\>|\<(?!>)|==|\>=|\<=|sqrt\(|abs\()*$/) {
-	$cached = $COORD_SPEC_CACHE{$key}[$x] = eval "sub{ $_ }";
-	if (length($@)) {
-	  print STDERR $@;
-	  return;
-	}
-	$_= $cached->();
-      } else { # catches ERR too
-	if ($Debug and (/ERR/ or !/ return() /)) {
-	  print STDERR "COORD: $coords\n";
-	  print STDERR "BAD: $_\n";
-	}
-	return;
-      }
+  $HAVE_PARENT = $parent ? 1 : 0;
+  $XP = $HAVE_PARENT ? int($node_info->{$parent}{"XPOS"}) : undef;
+  $YP = $HAVE_PARENT ? int($node_info->{$parent}{"YPOS"}) : undef;
+  $XN = int($node_info->{$node}{"XPOS"});
+  $YN = int($node_info->{$node}{"YPOS"});
+  my $key=$c;
+  my $cached=$COORD_SPEC_CACHE{$key};
+  if (defined $cached) {
+    return($cached->());
+  } else {
+    $c=~s{([xy][np])}{ \U\$$1 }g;
+    if ($c=~/[np]/) {
+      my $x=0;
+      my $cc;
+      $c=join ',',
+	map {
+	  $x=!$x;
+	  $cc = $_;
+	  if ($x) {
+	    $cc=~s{([np])}{ \$X\U$1 }g;
+	  } else {
+	      $cc=~s{([np])}{ \$Y\U$1 }g;
+	    }
+	  $cc
+	} split/,/,$c;
     }
-    $x=!$x;
-  }
-} else {
-  foreach (@$C) {
-    s{([xy]?)p}{
-      if ($parent) {
-        int($node_info->{$parent}{(($x and ($1 ne 'y') or $1 eq 'x') ?
-                                    "XPOS" : "YPOS")})
+    if ($c=~/^(?:,| \$[XY]N | \$[XY](P) |[-\s+\?:.\/*%\(\)0-9]|&&|\|\||!|\>|\<(?!>)|==|\>=|\<=|sqrt\(|abs\()*$/) {
+      if ($1) {
+	$cached = $COORD_SPEC_CACHE{$key} = eval "sub{ \$HAVE_PARENT ? ( $c ) : () }";
       } else {
-        "NE"
+	$cached = $COORD_SPEC_CACHE{$key} = eval "sub{ ( $c ) }";
       }
-    }ge;
-    s{([xy]?)n}{
-      int($node_info->{$node}{(($x and ($1 ne 'y') or $1 eq 'x') ?
-                                  "XPOS" : "YPOS")})
-    }ge;
-    if (/^([-\s+\?:.\/*%\(\)0-9]|&&|\|\||!|\>|\<(?!>)|==|\>=|\<=|sqrt\(|abs\()*$/) {
-      $_=eval $_;
-      print STDERR $@ if $@ ne "";
+      if (length($@)) {
+	print STDERR $@;
+	return;
+	}
+      return($cached->());
     } else { # catches ERR too
-      if ($Debug and (/ERR/ or !/NE/)) {
-        print STDERR "COORD: $coords\n";
-        print STDERR "BAD: $_\n";
-          }
-      return undef;
+      print STDERR "TreeView: ERROR IN COORD SPEC: $coords\n";
+      return;
     }
-    $x=!$x;
   }
-}
-  return $C;
 }
 }
 
@@ -1412,24 +1359,9 @@ sub callback {
   }
 }
 
-use Benchmark qw(:all);
 sub redraw {
-  my @args = @_;
-  print cmpthese(30, {
-    'normal' => sub { $TEST=0; do_redraw(@args); },
-    'test'     => sub { $TEST=1; do_redraw(@args); } ,
-   });
-#  &do_redraw;
-}
-#*redraw = \&do_redraw;
-
-# sub redraw {
-#  &do_redraw for 1..10;
-# }
-
-
-sub do_redraw {
   my ($self,$fsfile,$currentNode,$nodes,$valtext,$stipple,$grp)=@_;
+  #  local $SIG{__DIE__} = sub { Carp::confess(@_) };
   my $node;
   my $style;
   my $parent;
@@ -1447,18 +1379,11 @@ sub do_redraw {
 
   my $scale = $self->{scale};
   $self->reset_scale;
-  my (@node_patterns,@edge_patterns,@style_patterns,@patterns);
+  my ($node_patterns,$edge_patterns,$style_patterns,$patterns) = @{$self->get_pattern_lists($fsfile)};
 
   my %Opts=();
-  foreach (keys %DefaultNodeStyle) {
-    $Opts{$_}=[@{$DefaultNodeStyle{$_}}];
-  }
-  if (ref($fsfile)) {
-    @patterns = map { [ $self->parse_pattern($_) ] } ($self->patterns) ? @{$self->patterns} : $fsfile->patterns();
-    @node_patterns = map { $_->[1] } grep { $_->[0] eq 'node' } @patterns;
-    @edge_patterns = map { $_->[1] } grep { $_->[0] eq 'edge' } @patterns;
-    @style_patterns = map { $_->[1] } grep { $_->[0] eq 'style' } @patterns;
-    @patterns = grep { $_->[0] eq 'node' or $_->[0] eq 'edge' } @patterns;
+  while ( my($k,$v)= each %DefaultNodeStyle ) {
+    $Opts{$k}=[@$v];
   }
 
   my $canvas = $self->realcanvas;
@@ -1505,7 +1430,7 @@ sub do_redraw {
   my $style_info = $self->{style_info};
   foreach $node (@{$nodes}) {
     my %nopts=();
-    foreach $style (@style_patterns) {
+    foreach $style (@$style_patterns) {
       foreach ($self->interpolate_text_field($node,$style,$grp)=~/\#${block}/g) {
 	if (/^((CurrentOval|Oval|CurrentTextBox|TextBox|EdgeTextBox|CurrentEdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-[^:]+?)):(.+)$/) {
 	  if (exists $nopts{"$2$3"}) {
@@ -1662,7 +1587,7 @@ sub do_redraw {
 #   $canvas->yviewMoveto(0);
 
   my $lineHeight=$self->getFontHeight() * $lineSpacing;
-  my $edge_label_yskip= (scalar(@node_patterns) ? $self->get_edgeLabelSkipAbove : 0);
+  my $edge_label_yskip= (scalar(@$node_patterns) ? $self->get_edgeLabelSkipAbove : 0);
   my $can_dash=($Tk::VERSION=~/\.([0-9]+)$/ and $1>=22);
   $objectno=0;
 
@@ -1697,8 +1622,9 @@ sub do_redraw {
 
     my @coords=split '&',$coords;
     COORD: foreach my $c (@coords) {
-      my @c=split ',',$c;
-      next unless $self->eval_coords_spec($node,$parent,\@c,$coords);
+      #my @c=split ',',$c;
+      my @c = $self->eval_coords_spec($node,$parent,$c,$coords);
+      next unless @c;
       $objectno++;
       my $line="line_$objectno";
       my $l;
@@ -1715,19 +1641,19 @@ sub do_redraw {
 	$l=$canvas->
 	  createLine(@c, @opts);
       };
-      if (defined $@ and length $@) {
+      if ($@) {
 	use Data::Dumper;
 	print STDERR "createLine: ",
-	  Data::Dumper->new([\@opts],['opts'])->Dump;
-	print STDERR $@;
+	  Data::Dumper->new([\@c,\@opts],['coords','opts'])->Dump;
+	print STDERR $@."\n";
+      } else {
+	$self->store_id_pinfo($l,$line);
+	$node_info->{$node}{"Line$lin"}=$line;
+	$self->store_obj_pinfo($line,$node);
+	$gen_info->{'tag:'.$line}=$tag[$lin];
+	$canvas->lower($line,'all');
+	$canvas->raise($line,'line');
       }
-      $self->store_id_pinfo($l,$line);
-      $node_info->{$node}{"Line$lin"}=$line;
-      $self->store_obj_pinfo($line,$node);
-      $gen_info->{'tag:'.$line}=$tag[$lin];
-      $canvas->lower($line,'all');
-      $canvas->raise($line,'line');
-
       $lin++;
    }
 
@@ -1760,7 +1686,7 @@ sub do_redraw {
     $self->store_obj_pinfo($oval,$node);
 
     # EdgeLabel
-    if (not $vertical_tree and scalar(@edge_patterns) and $parent) {
+    if (not $vertical_tree and scalar(@$edge_patterns) and $parent) {
       my $coords = $self->get_style_opt($node,"EdgeLabel","-coords",\%Opts);
       $halign_edge=$self->get_style_opt($node,"EdgeLabel","-halign",\%Opts);
       $valign_edge=$self->get_style_opt($node,"EdgeLabel","-valign",\%Opts);
@@ -1770,8 +1696,8 @@ sub do_redraw {
       if ($coords) {
 	# edge label with explicit coords
 	$coords = $self->parse_coords_spec($node,$coords,$nodes,\%nodehash);
-	my @c=split ',',$coords;
-	if ($self->eval_coords_spec($node,$parent,\@c,$coords)) {
+	#my @c=split ',',$coords;
+	if (my @c = $self->eval_coords_spec($node,$parent,$coords)) {
 	  if ($halign_edge eq "left") {
 	    $c[0]-=$edgeLabelWidth;
 	  } elsif ($halign_edge eq "center") {
@@ -1864,7 +1790,7 @@ sub do_redraw {
 	      0+$node_info->{$node}{"NodeLabel_XPOS"}+
 		$node_info->{$node}{"NodeLabelWidth"}+$self->get_xmargin,
 	      0+$node_info->{$node}{"NodeLabel_YPOS"}+ $self->get_ymargin+
-		scalar(@node_patterns)*$lineHeight
+		scalar(@$node_patterns)*$lineHeight
 	    ),
 	  -tags => ['textbox',$box]
 		       );
@@ -1882,7 +1808,7 @@ sub do_redraw {
       $self->store_obj_pinfo($box,$node);
     }
     $edge_has_box=!$vertical_tree &&
-      scalar(@edge_patterns) && $parent &&
+      scalar(@$edge_patterns) && $parent &&
 	($self->get_drawEdgeBoxes &&
 	 ($valign_edge=$self->get_style_opt($node,"EdgeLabel","-nodrawbox",\%Opts) ne "yes") ||
 	 !$self->get_drawEdgeBoxes &&
@@ -1900,7 +1826,7 @@ sub do_redraw {
 			$self->get_xmargin+$edgeLabelWidth,
 			$node_info->{$node}{"EdgeLabel_YPOS"}
 			+$self->get_ymargin
-			+scalar(@edge_patterns)*$lineHeight,
+			+scalar(@$edge_patterns)*$lineHeight,
 			-tags => ['edgebox',$box]
 		       );
       $self->store_id_pinfo($bid,$box);
@@ -1924,8 +1850,8 @@ sub do_redraw {
     my ($msg,$x,$y);
     my ($e_i,$n_i)=(0,0);
     my ($pat_class,$pat);
-    for (my $i=0;$i<=$#patterns;$i++) {
-      ($pat_class,$pat)=@{$patterns[$i]};
+    for (my $i=0;$i<=$#$patterns;$i++) {
+      ($pat_class,$pat)=@{$patterns->[$i]};
       $msg=$self->interpolate_text_field($node,$pat,$grp);
       if ($pat_class eq "edge") {
 	if ($parent||$vertical_tree) {
@@ -2095,15 +2021,16 @@ sub draw_text_line {
     $textdelta= ($lw - $X)/2;
   }
   ## Clear background
+  my $canvas = $self->realcanvas;
   if ($self->get_clearTextBackground and
       $clear and $X>0) {
     $objectno++;
     my $bg="textbg_$objectno";
-    my $bid=$self->canvas->
+    my $bid=$canvas->
       createRectangle($x+$textdelta,$y,
 		      $x+$textdelta+$X+1,
 		      $y+$lineHeight,
-		      -fill => $self->realcanvas->cget('-background'),
+		      -fill => $canvas->cget('-background'),
 		      -outline => undef,
 		      -tags => [$bg,'textbg',"textbg_$node"]
 		     );
@@ -2152,7 +2079,7 @@ sub draw_text_line {
       next if ($at_text) eq "";
       $objectno++;
       $txt="text_$objectno";
-      my $bid=$self->canvas->
+      my $bid=$canvas->
 	createText($x+$xskip+$textdelta, $y,
 		   -anchor => 'nw',
 		   -text => $at_text,
@@ -2182,7 +2109,7 @@ sub draw_text_line {
 	if ($c=~m/^(.+)(-.+):(.+)$/) {
 	  # Depreciated ! Use style pattern!
 	  eval {
-	    $self->canvas->
+	    $canvas->
 	      itemconfigure($node_info->{$node}{$1},$2 => $3);
 	  };
 	  print STDERR $@ if $@ ne "";
@@ -2207,7 +2134,7 @@ sub draw_text_line {
       if ($_ ne "") {
 	$objectno++;
 	$txt="text_$objectno";
-	my $bid=$self->canvas->
+	my $bid=$canvas->
 	  createText($x+$xskip+$textdelta,
 		     $y,
 		     -text => encode($_),
@@ -2301,25 +2228,13 @@ sub interpolate_text_field {
   my @save = (${'TredMacro::this'},${'TredMacro::root'},${'TredMacro::grp'});
   (${'TredMacro::this'},${'TredMacro::root'},${'TredMacro::grp'})=
     ($node,($node ? $node->root : undef),$grp_ctxt);
-  if ($COMPILE&1) {
-    my $cached = $PATTERN_CODE_CACHE{$text};
-    unless (defined $cached) {
-      $cached = $PATTERN_CODE_CACHE{$text} = [map {
-	$_=~$code_match_in ? _compile_code($1) : $_
-      } split $code_match, $text]
-    }
-    $text = join '', map { ref($_) ? $_->() : $_ } @$cached; # maybe we should reset this,root,grp, etc. every time!
-  } else {
-    eval {
-      $text=~s{\<\?((?:[^?]|\?[^>])+)\?\>}
-	      {
-		my $result = eval "package TredMacro;\n".
-		  $self->interpolate_refs($node,$1);
-		print STDERR $@ if $@ and $Debug;
-		$result;
-	      }eg;
-    };
+  my $cached = $PATTERN_CODE_CACHE{$text};
+  unless (defined $cached) {
+    $cached = $PATTERN_CODE_CACHE{$text} = [map {
+      $_=~$code_match_in ? _compile_code($1) : $_
+    } split $code_match, $text]
   }
+  $text = join '', map { ref($_) ? $_->() : $_ } @$cached; # maybe we should reset this,root,grp, etc. every time!
   (${'TredMacro::this'},${'TredMacro::root'},${'TredMacro::grp'})=@save; # 
   return $text;
 }
