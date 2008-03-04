@@ -49,9 +49,9 @@ use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_g
 	     );
 }
 
-# this is a stub
-#   use Benchmark qw(:all);
-#   *old_redraw = \&redraw;
+# # this is a stub
+#    use Benchmark qw(:all);
+#    *old_redraw = \&redraw;
 #   *redraw = sub {
 #     my @args = @_;
 # #     print timethese(10, {
@@ -63,7 +63,7 @@ use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_g
 #       });
 #   };
 
-our $objectno;
+#our $objectno;
 our ($block, $bblock);
 $block  = qr/\{((?:(?> [^{}]* )|(??{ $block }))*)\}/x;
 $bblock = qr/\{(?:(?>  [^{}]* )|(??{ $bblock }))*\}/x;
@@ -282,7 +282,7 @@ sub clear_pinfo {
   %{$self->{style_hash_info}}=();
   %{$self->{gen_info}}=();
   %{$self->{oinfo}}=();
-  %{$self->{iinfo}}=();
+#  %{$self->{iinfo}}=();
 }
 
 sub store_gen_pinfo {
@@ -309,11 +309,17 @@ sub store_obj_pinfo {
   $self->{oinfo}->{$obj}=$value;
 }
 
-sub store_id_pinfo {
-  my ($self,$obj,$value) = @_;
-  return undef unless ref($self);
-  $self->{iinfo}->{$obj}=$value;
-}
+# sub get_id_pinfo {
+#   my ($self,$obj) = @_;
+#   return undef unless ref($self);
+#   return $self->{iinfo}->{$obj};
+# }
+
+# sub store_id_pinfo {
+#   my ($self,$obj,$value) = @_;
+#   return undef unless ref($self);
+#   $self->{iinfo}->{$obj}=$value;
+# }
 
 sub get_node_pinfo {
   my ($self,$node,$key) = @_;
@@ -333,12 +339,6 @@ sub get_obj_pinfo {
   return $self->{oinfo}->{$obj};
 }
 
-sub get_id_pinfo {
-  my ($self,$obj) = @_;
-  return undef unless ref($self);
-  return $self->{iinfo}->{$obj};
-}
-
 sub node_is_displayed {
   my ($self,$node)=@_;
   return $self->{node_info}{$node}{E} ? 1 : 0;
@@ -346,7 +346,8 @@ sub node_is_displayed {
 
 sub find_item {
   my ($self,$which,$tag)=@_;
-  return map { $self->get_id_pinfo($_) } $self->canvas()->find($which,$tag);
+  #return map { $self->get_id_pinfo($_) } 
+  return $self->canvas()->find($which,$tag);
 }
 
 sub apply_options {
@@ -1589,7 +1590,7 @@ sub redraw {
   my $lineHeight=$self->getFontHeight() * $lineSpacing;
   my $edge_label_yskip= (scalar(@$node_patterns) ? $self->get_edgeLabelSkipAbove : 0);
   my $can_dash=($Tk::VERSION=~/\.([0-9]+)$/ and $1>=22);
-  $objectno=0;
+#  $objectno=0;
 
   my $skipHiddenLevels = $Opts{skipHiddenLevels} || $self->get_skipHiddenLevels;
   my $skipHiddenParents = $skipHiddenLevels || $Opts{skipHiddenParents} || $self->get_skipHiddenParents;
@@ -1625,12 +1626,12 @@ sub redraw {
       #my @c=split ',',$c;
       my @c = $self->eval_coords_spec($node,$parent,$c,$coords);
       next unless @c;
-      $objectno++;
-      my $line="line_$objectno";
+#      $objectno++;
+#      my $line="line_$objectno";
       my $l;
       my $arrow_shape = $arrowshape[$lin] || $self->get_lineArrowShape;
       my @opts = ($self->line_options($node,$fsfile->FS,$can_dash),
-		     -tags => [$line,'line','scale_width'],
+		     -tags => ['line','scale_width'],
 		     -arrow =>  $arrow[$lin] || $self->get_lineArrow,
                      (defined($arrow_shape) ? (-arrowshape => $arrow_shape) : ()),
 		     -width =>  $width[$lin] || $self->get_lineWidth,
@@ -1647,12 +1648,12 @@ sub redraw {
 	  Data::Dumper->new([\@c,\@opts],['coords','opts'])->Dump;
 	print STDERR $@."\n";
       } else {
-	$self->store_id_pinfo($l,$line);
-	$node_info->{$node}{"Line$lin"}=$line;
-	$self->store_obj_pinfo($line,$node);
-	$gen_info->{'tag:'.$line}=$tag[$lin];
-	$canvas->lower($line,'all');
-	$canvas->raise($line,'line');
+	# $self->store_id_pinfo($l,$line);
+	$node_info->{$node}{"Line$lin"}=$l;
+	$self->store_obj_pinfo($l,$node);
+	$gen_info->{'tag:'.$l}=$tag[$lin];
+	$canvas->lower($l,'all');
+	$canvas->raise($l,'line');
       }
       $lin++;
    }
@@ -1667,23 +1668,23 @@ sub redraw {
 
     $shape='oval' unless ($shape eq 'rectangle' or $shape eq 'polygon');
     my @node_coords=$self->node_coords($node,$currentNode);
-    $objectno++;
-    my $oval="oval_$objectno";
+#    $objectno++;
+    # my $oval="oval_$objectno";
     my $o=$canvas->create($shape,
 			  @node_coords,
-			  -tags => ['point',$oval],
+			  -tags => ['point'],
 			  -outline => $self->get_nodeOutlineColor,
 			  $self->node_options($node,
 					      $fsfile->FS,
 					      $currentNode)
 			 );
-    $self->store_id_pinfo($o,$oval);
-    $self->apply_style_opts($oval,@{$Opts{Oval}},
+    # $self->store_id_pinfo($o,$oval);
+    $self->apply_style_opts($o,@{$Opts{Oval}},
 			    $self->get_node_style($node,"Oval"),
 			    ($node eq $currentNode ? $self->get_node_style($node,"CurrentOval") : ())
 			   );
-    $node_info->{$node}{"Oval"}=$oval;
-    $self->store_obj_pinfo($oval,$node);
+    $node_info->{$node}{"Oval"}=$o;
+    $self->store_obj_pinfo($o,$node);
 
     # EdgeLabel
     if (not $vertical_tree and scalar(@$edge_patterns) and $parent) {
@@ -1749,8 +1750,8 @@ sub redraw {
     $node_info->{$node}{"NodeHasBox"}=$node_has_box;
     ## Boxes around attributes
     if ($vertical_tree && $self->get_horizStripe || !$vertical_tree && $self->get_vertStripe) {
-      $objectno++;
-      my $stripe = "stripe_$objectno";
+#      $objectno++;
+#      my $stripe = "stripe_$objectno";
       my $stripe_id = $canvas->
 	createRectangle(
 	  $vertical_tree ?
@@ -1768,16 +1769,16 @@ sub redraw {
 	   -fill => $currentNode==$node ? $self->get_stripeColor  :
 	     $self->realcanvas->cget('-background'),
 	   -outline => undef,
-	   -tags => [$stripe,'stripe']
+	   -tags => ['stripe']
 	);
-      $self->store_id_pinfo($stripe_id,$stripe);
-      $self->store_obj_pinfo($stripe,$node);
-      $node_info->{$node}{"Stripe"}=$stripe;
+      # $self->store_id_pinfo($stripe_id,$stripe);
+      $self->store_obj_pinfo($stripe_id,$node);
+      $node_info->{$node}{"Stripe"}=$stripe_id;
     }
     if ($node_has_box) {
       ## get maximum width stored here by recalculate_positions
-      $objectno++;
-      my $box="textbox_$objectno";
+#      $objectno++;
+#      my $box="textbox_$objectno";
       my $bid=$canvas->
 	createRectangle(
 	  $vertical_tree ? (
@@ -1792,11 +1793,11 @@ sub redraw {
 	      0+$node_info->{$node}{"NodeLabel_YPOS"}+ $self->get_ymargin+
 		scalar(@$node_patterns)*$lineHeight
 	    ),
-	  -tags => ['textbox',$box]
+	  -tags => ['textbox']
 		       );
-      $self->store_id_pinfo($bid,$box);
+      # $self->store_id_pinfo($bid,$box);
       $self->apply_style_opts(
-	$box,
+	$bid,
 	$self->node_box_options($node,$fsfile->FS,
 				$currentNode,0),
 	@{$Opts{TextBox}},
@@ -1804,8 +1805,8 @@ sub redraw {
 			      ($node==$currentNode ?
 				 "CurrentTextBox" : "TextBox")
 			     ));
-      $node_info->{$node}{"TextBox"}=$box;
-      $self->store_obj_pinfo($box,$node);
+      $node_info->{$node}{"TextBox"}=$bid;
+      $self->store_obj_pinfo($bid,$node);
     }
     $edge_has_box=!$vertical_tree &&
       scalar(@$edge_patterns) && $parent &&
@@ -1815,8 +1816,8 @@ sub redraw {
 	 ($valign_edge=$self->get_style_opt($node,"EdgeLabel","-dodrawbox",\%Opts) eq "yes"));
     $node_info->{$node}{"EdgeHasBox"}=$edge_has_box;
     if ($edge_has_box) {
-      $objectno++;
-      my $box="edgebox_$objectno";
+#      $objectno++;
+#      my $box="edgebox_$objectno";
       my $bid=$canvas->
 	createRectangle($node_info->{$node}{"EdgeLabel_XPOS"}-
 			$self->get_xmargin,
@@ -1827,11 +1828,11 @@ sub redraw {
 			$node_info->{$node}{"EdgeLabel_YPOS"}
 			+$self->get_ymargin
 			+scalar(@$edge_patterns)*$lineHeight,
-			-tags => ['edgebox',$box]
+			-tags => ['edgebox']
 		       );
-      $self->store_id_pinfo($bid,$box);
+      # $self->store_id_pinfo($bid,$box);
       $self->apply_style_opts(
-	$box,
+	$bid,
 	$self->node_box_options($node,
 				$fsfile->FS,
 				$currentNode,1),
@@ -1842,8 +1843,8 @@ sub redraw {
 				"EdgeTextBox"
 			     ));
 
-      $node_info->{$node}{"EdgeTextBox"}=$box;
-      $self->store_obj_pinfo($box,$node);
+      $node_info->{$node}{"EdgeTextBox"}=$bid;
+      $self->store_obj_pinfo($bid,$node);
     }
 
     ## Texts of attributes
@@ -2024,25 +2025,25 @@ sub draw_text_line {
   my $canvas = $self->realcanvas;
   if ($self->get_clearTextBackground and
       $clear and $X>0) {
-    $objectno++;
-    my $bg="textbg_$objectno";
+#    $objectno++;
+#    my $bg="textbg_$objectno";
     my $bid=$canvas->
       createRectangle($x+$textdelta,$y,
 		      $x+$textdelta+$X+1,
 		      $y+$lineHeight,
 		      -fill => $canvas->cget('-background'),
 		      -outline => undef,
-		      -tags => [$bg,'textbg',"textbg_$node"]
+		      -tags => ['textbg',"textbg_$node"]
 		     );
-    $self->store_id_pinfo($bid,$bg);
-    $self->apply_style_opts($bg,
+    # $self->store_id_pinfo($bid,$bg);
+    $self->apply_style_opts($bid,
 			    @{$Opts->{TextBg}},
 			    @{$Opts->{"TextBg[$i]"}},
 			    $self->get_node_style($node,"TextBg"),
 			    $self->get_node_style($node,"TextBg[$i]")
 			   );
-    $node_info->{$node}{"TextBg[$i]"}=$bg;
-    $self->store_obj_pinfo($bg,$node);
+    $node_info->{$node}{"TextBg[$i]"}=$bid;
+    $self->store_obj_pinfo($bid,$node);
   }
 
   ## Draw attribute
@@ -2066,7 +2067,7 @@ sub draw_text_line {
   my $j=0;
   my $color=undef;
   my @color_stack;
-  foreach (grep {$_ ne ""} split(m/([#\$]${bblock})/,$msg)) {
+  foreach (grep {length} split(m/([#\$]${bblock})/,$msg)) {
     if (/^\$${block}$/) {
       my $c=$1;
       $j++;
@@ -2077,8 +2078,8 @@ sub draw_text_line {
 	$at_text=$self->prepare_text_field($node,$c,$grp);
       }
       next if ($at_text) eq "";
-      $objectno++;
-      $txt="text_$objectno";
+#      $objectno++;
+#      $txt="text_$objectno";
       my $bid=$canvas->
 	createText($x+$xskip+$textdelta, $y,
 		   -anchor => 'nw',
@@ -2087,10 +2088,10 @@ sub draw_text_line {
 		   defined($color) ? $color :
 		   $self->which_text_color($fsfile,$c),
 		   -font => $self->get_font,
-		   -tags => [$txt,'text','text_item']
+		   -tags => ['text','text_item']
 		  );
-      $self->store_id_pinfo($bid,$txt);
-      $self->apply_style_opts($txt,
+      # $self->store_id_pinfo($bid,$txt);
+      $self->apply_style_opts($bid,
 		   @{$Opts->{Text}},
 		   @{$Opts->{"Text[$c]"}},
 		   @{$Opts->{"Text[$c][$i]"}},
@@ -2100,9 +2101,9 @@ sub draw_text_line {
 		   $self->get_node_style($node,"Text[$c][$i]"),
 		   $self->get_node_style($node,"Text[$c][$i][$j]"));
       $xskip+=$self->getTextWidth($at_text);
-      $self->store_obj_pinfo($txt,$node);
-      $node_info->{$node}{"Text[$c][$i][$j]"}=$txt;
-      $gen_info->{"attr:$txt"}=$c;
+      $self->store_obj_pinfo($bid,$node);
+      $node_info->{$node}{"Text[$c][$i][$j]"}=$bid;
+      $gen_info->{"attr:$bid"}=$c;
     } elsif (/^\#${block}$/) {
       unless ($self->get_noColor) {
 	my $c=$1;
@@ -2132,17 +2133,17 @@ sub draw_text_line {
       }
     } else {
       if ($_ ne "") {
-	$objectno++;
-	$txt="text_$objectno";
+#	$objectno++;
+#	$txt="text_$objectno";
 	my $bid=$canvas->
 	  createText($x+$xskip+$textdelta,
 		     $y,
 		     -text => encode($_),
 		     -font => $self->get_font,
-		     -tags => [$txt,'plaintext','text_item']
+		     -tags => ['plaintext','text_item']
 		    );
-	$self->store_id_pinfo($bid,$txt);
-	$self->apply_style_opts($txt,
+	#$self->store_id_pinfo($bid,$txt);
+	$self->apply_style_opts($bid,
 				-anchor => 'nw',
 				-fill =>
 				defined($color) ? $color : $self->get_textColor,
