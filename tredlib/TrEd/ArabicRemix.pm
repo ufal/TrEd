@@ -5,6 +5,20 @@
 package TrEd::ArabicRemix;
 
 
+sub remix ($;$) {
+
+    my @data = split /([\p{Arabic}\x{064B}-\x{0652}\x{0670}\x{0657}\x{0656}\x{0640}\p{InArabicPresentationFormsA}\p{InArabicPresentationFormsB}]+)/, $_[0];
+
+    for (my $i = 0; $i < @data; $i++) {
+
+
+	$data[$i] = reverse $data[$i] if $i % 2;
+    }
+
+    return join "", reverse @data;
+}
+
+
 sub direction ($) {
 
     return  1 if $_[0] =~ /\p{Latin}|[0-9\x{0660}-\x{0669}]/;
@@ -13,7 +27,7 @@ sub direction ($) {
 }
 
 
-sub remix ($;$) {
+sub remixdir ($;$) {
 
     my @char = split //, $_[0];
 
