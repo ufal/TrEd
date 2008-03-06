@@ -553,6 +553,32 @@ my %default_binding = (
      },
      'select left sibling',
     ],
+  '<Shift-Home>'=>
+    [sub {
+       my $win = cast_to_win( $_[1] );
+       my $tv = $win->treeView;
+       my $node = first { $tv->node_is_displayed($_) } @{$win->{Nodes}};
+       if ($node) {
+	 setCurrent($win,$node);
+	 centerTo($win,$node);
+       }
+       Tk->break;
+     },
+     'select left-most node',
+   ],
+  '<Shift-End>'=>
+    [sub {
+       my $win = cast_to_win( $_[1] );
+       my $tv = $win->treeView;
+       my $node = first { $tv->node_is_displayed($_) } reverse @{$win->{Nodes}};
+       if ($node) {
+	 setCurrent($win,$node);
+	 centerTo($win,$node);
+       }
+       Tk->break;
+     },
+     'select right-most node',
+   ],
   '<Shift-Left>'=>
     [sub {
        my $grp = $_[1];
