@@ -382,6 +382,21 @@ sub GetVisibleNodes {
   return @n;
 }
 
+=item C<GetDisplayedNodes()>
+
+Return the list of all nodes actually currently displayed in the
+current window in TrEd (which nodes are actually displayed can be
+e.g. specified with get_nodelist_hook).
+
+=cut
+
+sub GetDisplayedNodes {
+  if (ref $grp->{Nodes}) {
+    return @{$grp->{Nodes}};
+  }
+  return;
+}
+
 =item C<PrevNodeLinear(node,attribute,top?)>
 
 Returns nearest node in the tree preceding the given node in linear
