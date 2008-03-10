@@ -3,11 +3,17 @@
 
 use ActivePerl::PPM::Client;
 use ActivePerl::PPM::Package;
+use File::Find;
+use File::Copy;
+use File::Spec;
+
 my $ppm = ActivePerl::PPM::Client->new;
 
 use FindBin;
 
-my $package_dir = $FindBin::RealBin.'/packages58_win32';
+my $install_base=$FindBin::RealBin;
+my $package_dir = File::Spec->catfile($install_base,'packages58_win32');
+
 
 # current status of all repositories
 my %repo_state = map { $_ => $ppm->repo($_)->{enabled} } $ppm->repos;
@@ -27,7 +33,7 @@ eval {
 $ppm->repo_sync(repo => $my_repo);
 
 my @features = do {{
-  open my $list,'<', $package_dir.'/packages_list';
+  open my $list,'<', File::Spec->catfile($package_dir,'packages_list');
   <$list>
 }};
 chomp @features;
@@ -50,6 +56,12 @@ $ppm->repo_enable($_,$repo_state{$_})
   for
   grep {$repo_state{$_}}
   keys %repo_state;
+
+find ({ wanted => \&count, no_chdir=>1 },File::Spec->catfile($install_base,'tred'));
+my $file_count=0;
+sub count{ $file_count++ };
+find ({ wanted => \&report, no_chdir=>1 },File::Spec->catfile($install_base,'tred'));
+sub report{ print $_."\n" };
 exit;
 __END__
 
