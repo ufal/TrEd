@@ -46,7 +46,7 @@ $version =~ s{^\$Id:\s*\S+\s*|\s+pajas.*$}{}g;
 $version =  "1.".$version;
 
 $about=
-  "Copyright (c) 2000-2007 by Petr Pajas\n".
+  "Copyright (c) 2000-2008 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
   "Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html";
 

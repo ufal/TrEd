@@ -3,7 +3,8 @@
 #
 # $Id$
 #
-# BTred ver. 0.1 - Copyright (C) 2000 by Petr Pajas
+# BTrEd
+# Copyright 2000-2008 Petr Pajas, All rights reserved.
 # This software is covered by GPL - The General Public Licence
 # Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html.
 #
@@ -2328,6 +2329,6 @@ this program and also on-line at http://www.gnu.org/copyleft/gpl.html.
 
 Petr Pajas <pajas@matfyz.cz>
 
-Copyright 2000-2007 Petr Pajas, All rights reserved.
+Copyright 2000-2008 Petr Pajas, All rights reserved.
 
 =cut

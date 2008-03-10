@@ -4,6 +4,8 @@
 #
 # This is ntred - a hub/client for btred servers
 #
+# NTrEd
+# Copyright 2003-2008 Petr Pajas and Zdenek Zabokrtsky, All rights reserved.
 # See documentation at the end of program (or run ntred --man)
 #
 
@@ -1834,6 +1836,6 @@ Petr Pajas <pajas@matfyz.cz>
 
 Zdenek Zabokrtsky <zabokrtsky@ufal.mff.cuni.cz>
 
-Copyright 2003-2007 Petr Pajas and Zdenek Zabokrtsky, All rights reserved.
+Copyright 2003-2008 Petr Pajas and Zdenek Zabokrtsky, All rights reserved.
 
 =cut
