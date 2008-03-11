@@ -4,16 +4,17 @@ if [ ! -f documentation/manual/tred.xml ]; then
   echo "not in tred/ directory"
   exit 1
 fi
+DEVELDIR=`dirname $0`
 
 echo "Generating documentation from tred.def"
-pod2xml tredlib/tred.def | xsltproc devel/pod2db.xsl - \
-    | devel/pod2db.xsh -q -P- > documentation/manual/tred_def.xml
+$DEVELDIR/pod2db.sh tredlib/tred.def > documentation/manual/tred_def.xml
 
-DEVELDIR=`dirname $0`
 DEVELDIR="${DEVELDIR:-$PWD}"
 pushd "$DEVELDIR" >/dev/null
 DEVELDIR=`pwd -P`
 popd >/dev/null
+
+
 
 "$DEVELDIR"/make_pod_html documentation
 
