@@ -68,11 +68,16 @@ $pf->Label(-textvariable => \$status3,
 	   -anchor => 'nw')->pack(@pack,-pady => 0);
 my $bf=$mw->Frame->pack(-pady => 10, -padx => 15, -fill => 'x' );
 our $abort = sub {
-  print "here\n";
   $mw->destroy;
   undef $mw;
   CORE::exit;
 };
+sub Quit {
+  $mw->destroy;
+  undef $mw;
+  CORE::exit;
+};
+
 $bf->Button(-text=>'Abort',
 	    -command =>
 	    sub {
@@ -214,56 +219,14 @@ sub install_ap {
   }
 }
 
-=comment
-
-  my $b1=$bf->Button(
-	      -text => ' Open ActivePerl website ',
-	      -command => sub {
-		system("start $ap_download_site");
-	      },
-	     )->pack(-side => 'left',-padx=>15,-pady=>15)->focus;
-  $action=$ap_installer_url ?
-    ' Download ActivePerl installer ' :
-    ' Lookup ActivePerl Installer on the Web ';
-  my $target;
-  my $b2=$bf->Button(
-	      -textvariable=>\$action,
-	      -command => sub {
-		if ($action=~/Check/) {
-		  my $message=check_ap_version();
-		  print STDERR $message,"\n";
-		  if ($perl_ok) {
-		    install_tred();
-		  }
-		} elsif (defined $target) {
-		  unless (system("msiexec.exe","/i",$target)==0) {
-		    err($!);
-		  }
-		  check_ap_version();
-		  if ($perl_ok) {
-		    install_tred();
-		  }
-		  $action = ' Check ActivePerl version ';
-		} elsif ($ap_installer_url) {
-		  $target = download_latest_ap()
-		} else {
-		  locate_latest_ap();
-		}
-	      },
-	     )->pack(-side => 'right',-padx=>15,-pady=>15)->focus;
-  MainLoop();
-}
-exit;
-
-=cut
-
 sub open_ap_site {
   system("start $ap_download_site");
   $action = 'recheck_ap_version'
 }
 sub install_tred {
   if (-f $tred_setup) {
-    exec ('start',qq(/W "$perl" "$tred_setup"));
+    system ($perl, qq("$tred_setup"));
+    Quit();
   } else {
     err("Couldn't find TrEd installer $tred_setup");
   }
