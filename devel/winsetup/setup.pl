@@ -25,10 +25,16 @@ use FindBin;
 use Win32 qw(CSIDL_DESKTOP CSIDL_PROGRAMS CSIDL_COMMON_PROGRAMS);
 use Win32::Shortcut;
 use Win32::TieRegistry (Delimiter=>'/');
-
+use Win32::API;
 use Getopt::Long;
 
-
+print "ARGV: ",@ARGV,"\n";
+if (@ARGV and $ARGV[0] eq '--log-file') {
+  shift;
+  my $log = shift;
+  open STDERR, '>', $log || warn "Cannot create $log: $!\n";
+  open STDOUT, '>&STDERR' || warn "Cannot dup STDERR: $!\n";
+}
 Win32::SetChildShowWindow(0) if defined &Win32::SetChildShowWindow;
 
 $SIG{__DIE__} = sub {
