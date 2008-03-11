@@ -35,9 +35,10 @@ use lib ("$FindBin::RealBin", "$FindBin::RealBin/../lib",
 
 
 use Getopt::Long;
-use vars qw($shell $help $OUT $term);
+use vars qw($shell $help $OUT $term $host);
 GetOptions(
   "shell|s" => \$shell,
+  "host|h=s" => \$host,
   "help|h" => \$help,
  ) || do {
    help();
@@ -66,7 +67,7 @@ $port = $1 if $port =~ /(\d+)/; # untaint port number
 
 print "Port: $port\n";
 
-my $sock = new IO::Socket::INET(LocalHost => 'localhost',
+my $sock = new IO::Socket::INET(LocalHost => $host || 'localhost',
 				LocalPort => $port,
 				Proto => 'tcp',
 				Listen => 5,
