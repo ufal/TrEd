@@ -1,3 +1,5 @@
+- bug: after Apply Config, recent files are lost and replaced by those in the saved .tredrc
+
 - undo for tree-related Node-menu items 
 
 - add a command-line flag to turn off backup file creation
