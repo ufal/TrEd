@@ -11,6 +11,9 @@ BEGIN{
    Win32::API->new( 'kernel32', 'FreeConsole', [], 'I' )->Call();
  }
 }
+BEGIN{
+  Win32::SetChildShowWindow(0) if defined &Win32::SetChildShowWindow;
+}
 
 use ActivePerl::PPM::Client;
 use ActivePerl::PPM::Package;
