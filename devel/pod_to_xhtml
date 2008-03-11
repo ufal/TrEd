@@ -3,7 +3,7 @@
 
 use strict;
 use Pod::Xhtml;
- use Pod::Hyperlink::BounceURL;
+use Pod::Hyperlink::BounceURL;
 use Pod::Usage;
 use Getopt::Long;
 use XML::XSH2 qw(xsh_init open_doc);
@@ -40,6 +40,7 @@ $XML::XSH2::Map::title = $opt{title};
 
 use XML::XSH2::Inline;
 
+nobackup;
 quiet;
 echo $outfile;
 open --string $xhtml;
@@ -126,6 +127,8 @@ for //x:code[not(ancestor::x:dt)] {
     }
   }
 }
+
+map :i {s/%3A%3A/__/g} //@href;
 
 save --format html --file $outfile;
 
