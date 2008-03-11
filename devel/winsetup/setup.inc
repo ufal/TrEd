@@ -1,13 +1,4 @@
 # -*- cperl -*-
-BEGIN{
-  eval { require Win32::API };
-  if (exists &Win32::API::new) {
-    Win32::API->new( 'kernel32', 'FreeConsole', [], 'I' )->Call();
-  }
-}
-BEGIN{
-  Win32::SetChildShowWindow(0) if defined &Win32::SetChildShowWindow;
-}
 
 our %win32_dir = (
   "Desktop" => CSIDL_DESKTOP,
@@ -242,7 +233,7 @@ sub locate_latest_ap {
       if (@links) {
 	$ap_installer_url = $links[-1];
 	if ($ap_installer_url) {
-	  print $ap_installer_url,"\n";
+	  print STDERR $ap_installer_url,"\n";
 	  $status2='Found ActivePerl MSI Installer.';
 	  $status3=$ap_installer_url;
 	  return;
@@ -309,7 +300,7 @@ sub download_latest_ap {
     my $do_abort=0;
     local $abort = sub {
       $do_abort=1;
-      print "Aborting...\n";
+      print STDERR "Aborting...\n";
       return;
     };
     my $res = eval { download_file($ap_installer_url,$target,sub {
@@ -399,8 +390,8 @@ sub download_file {
       }
       print $out_fh $chunk;
       flush $out_fh;
-      print "$bytes_received of $expected_length\t";
-      print $res->status_line, " "x20,"\r";
+      print STDERR "$bytes_received of $expected_length\t";
+      print STDERR $res->status_line, " "x20,"\r";
       $callback->($bytes_received,$expected_length);
   };
   my $res = $ua->request($request,$sub);
@@ -418,7 +409,7 @@ sub download_file {
   close $out_fh;
   if ($res->is_success) {
   } else {
-    print "download failed\n";
+    print STDERR "download failed\n";
   }
 #  exit;
   return [$res->is_success,$res->status_line];
