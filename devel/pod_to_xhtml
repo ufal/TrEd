@@ -40,7 +40,7 @@ $XML::XSH2::Map::title = $opt{title};
 
 use XML::XSH2::Inline;
 
-nobackup;
+nobackups;
 quiet;
 echo $outfile;
 open --string $xhtml;
