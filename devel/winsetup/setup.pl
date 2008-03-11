@@ -36,8 +36,8 @@ $SIG{__DIE__} = sub {
   die $@;
 };
 
-my $inc = File::Spec->rel2abs('setup.inc', dirname($0));
-print "$inc\n";
+my $inc = File::Spec->rel2abs('tred/devel/winsetup/setup.inc',
+			      File::Spec->rel2abs($FindBin::RealBin));
 do $inc;
 die $@ if $@;
 

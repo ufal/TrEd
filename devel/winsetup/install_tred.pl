@@ -47,7 +47,9 @@ our %create_shortcut = (
 );
 
 my $upgrade = 0;
-my $install_base=File::Spec->rel2abs($FindBin::RealBin);
+my $install_base=File::Spec->rel2abs($FindBin::RealBin.'../../../..');
+chdir $install_base;
+
 my $install_packages = 1;
 my $install_tred_path= File::Spec->catfile($install_base,'tred');
 my $install_target = 'c:\tred';
@@ -57,25 +59,30 @@ my $license_file = File::Spec->rel2abs('tred/LICENSE',$install_base);
 my $mk_data_folder = 1;
 my ($status,$status2,$progress); # watched text variables
 my $Log; # text widget
-chdir $install_base;
 
-my $mw=Tk::MainWindow->new(-title=>'TrEd Installer');
+
+my $mw=Tk::MainWindow->new(-title=>'TrEd Setup Wizard');
 $mw->optionAdd("*font","{Sans} 9");
-my $lf = $mw->Frame(-background=>'white')->pack(-expand => 'yes', -fill => 'x');
+my $tf = $mw->Frame(-background=>'white')->pack(-expand => 'yes', -fill => 'x');
+my $lf = $tf->Frame(-background=>'white')->pack(-expand => 'yes', -fill => 'x');
 $lf->Label(
-  -font => '{Sans} 16',
-  -text => 'Installing the tree editor TrEd',
+	   -background=>'white',
+	   -font => '{Sans} 16',
+	   -foreground => 'darkblue',
+	   -text => 'Installing the tree editor TrEd',
 )->pack(-side=>'left',-padx=>10,-pady=>10);
 $lf->Label(
+	   -background=>'white',
 	   -image => $mw->Photo(-file => $icon)
 	  )->pack(-side=>'right',-padx=>10,-pady=>10);
-$mw->Label(
+$tf->Label(
+	   -background=>'white',
 	   -anchor=>'nw',
 	   -font => '{Sans} 10',
 	   -text=>'Copyright (c) 2000-2008 by Petr Pajas',
 	  )->pack(qw(-expand yes -fill x -padx 10));
 
-$mw->Frame(qw(-height 2 -relief sunken))->pack(qw(-expand yes -fill x -padx 5 -pady 10));
+$mw->Frame(qw(-height 3 -relief sunken))->pack(qw(-expand yes -fill x -padx 5 -pady 10));
 my $nb = $mw->NoteBook(-takefocus=>0);
 $nb->pack(qw(-expand yes -fill both -padx 10 -pady 10));
 #$mw->Frame(qw(-height 2 -relief sunken))->pack(qw(-expand yes -fill x -padx 5 -pady 10));

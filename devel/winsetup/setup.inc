@@ -13,14 +13,14 @@ our %win32_dir = (
   "Desktop" => CSIDL_DESKTOP,
 );
 
+my $install_base = File::Spec->rel2abs($FindBin::RealBin);
 chdir $install_base;
 
 my $minimum_build = shift || 822;
 my $minimum_perl_version = shift || 5.008008;
 my $url = q(http://downloads.activestate.com/ActivePerl/Windows/5.8/);
 my $ap_download_site = q(http://www.activestate.com/store/activeperl/download/);
-my $install_base = dirname($0);
-my $tred_setup = File::Spec->rel2abs('install_tred.pl',$install_base);
+my $tred_setup = File::Spec->rel2abs('tred/devel/winsetup/install_tred.pl',$install_base);
 my $icon = File::Spec->rel2abs('tred/tredlib/tred.xpm',$install_base);
 my $ap_installer_url = shift; #url of the latest .msi
 my $ap_installer_local=glob("ActivePerl-*.msi");
@@ -28,23 +28,27 @@ if (defined $ap_installer_local) {
   $ap_installer_local=File::Spec->rel2abs($ap_installer_local,$install_base);
 }
 
-my $mw=Tk::MainWindow->new(-title=>'Perl and TrEd Installer');
+my $mw=Tk::MainWindow->new(-title=>'Installing TrEd');
 $mw->optionAdd("*font","{Sans} 9");
-
-my $lf = $mw->Frame()->pack(-expand => 'yes', -fill => 'x');
+my $tf = $mw->Frame(-background=>'white')->pack(-expand => 'yes', -fill => 'x');
+my $lf = $tf->Frame(-background=>'white')->pack(-expand => 'yes', -fill => 'x');
 $lf->Label(
-  -font => '{Sans} 16',
-  -text => 'Tree Editor TrEd - Installation',
+	   -background=>'white',
+	   -font => '{Sans} 16',
+	   -foreground => 'darkblue',
+	   -text => 'Installing the tree editor TrEd',
 )->pack(-side=>'left',-padx=>10,-pady=>10);
 $lf->Label(
+	   -background=>'white',
 	   -image => $mw->Photo(-file => $icon)
 	  )->pack(-side=>'right',-padx=>10,-pady=>10);
-
-$mw->Label(
+$tf->Label(
+	   -background=>'white',
 	   -anchor=>'nw',
 	   -font => '{Sans} 10',
 	   -text=>'Copyright (c) 2000-2008 by Petr Pajas',
 	  )->pack(qw(-expand yes -fill x -padx 10));
+
 
 my $pf=$mw->Frame(-relief=>'sunken',-border=>2)->pack(-pady => 10, -padx => 15, -fill => 'both' );
 my @pack = qw(-padx 10 -pady 10 -fill x -expand yes);
