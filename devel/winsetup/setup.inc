@@ -23,7 +23,7 @@ my $ap_download_site = q(http://www.activestate.com/store/activeperl/download/);
 my $tred_setup = File::Spec->rel2abs('tred/devel/winsetup/install_tred.pl',$install_base);
 my $icon = File::Spec->rel2abs('tred/tredlib/tred.xpm',$install_base);
 my $ap_installer_url = shift; #url of the latest .msi
-my $ap_installer_local=glob("ActivePerl-*.msi");
+my $ap_installer_local=glob("activeperl58_win32/ActivePerl-*.msi");
 if (defined $ap_installer_local) {
   $ap_installer_local=File::Spec->rel2abs($ap_installer_local,$install_base);
 }
