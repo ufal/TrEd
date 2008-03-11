@@ -4,17 +4,6 @@
 use strict;
 use warnings;
 
-my $pid;
-BEGIN{
- eval { require Win32::API };
- if (exists &Win32::API::new) {
-   Win32::API->new( 'kernel32', 'FreeConsole', [], 'I' )->Call();
- }
-}
-BEGIN{
-  Win32::SetChildShowWindow(0) if defined &Win32::SetChildShowWindow;
-}
-
 use ActivePerl::PPM::Client;
 use ActivePerl::PPM::Package;
 use ActivePerl::PPM::Logger qw(ppm_status);
@@ -429,6 +418,14 @@ sub Install_TrEd {
     }
   }
   {
+    my $tredrc= File::Spec->catfile($install_target,'tredlib','tredrc');
+    if (-f $tredrc) {
+      my $activity = ppm_status('begin',"Setting read-only permission on default tredrc");
+      my $perm = ((stat $tredrc)[2] & 0444); # read-only
+      chmod($perm,$tredrc);
+    }
+  }
+  {
     my $activity = ppm_status('begin','Creating registry entries');
     for my $loc (qw(LMachine CUser)) {
       eval {
@@ -522,6 +519,7 @@ BEGIN {
   my $source_dir;
   my $activity;
   sub count_files{ $file_count++ };
+  my $overwrite_all = undef;
   sub do_copy_tree{
     my $source=$_;
     $source=~s{/}{\\}g;
@@ -531,24 +529,37 @@ BEGIN {
     #$target_info=$target;
     if (-f $source) {
       if (-f $target && !-w $target) {
-	if ($mw->messageBox(
-			    -title => "Error occurred while copying files",
-			    -message=>join("\n",
-					   "The target file",
-					   "",
-					   $target,
-					   "",
-					   "exists and is not writable!",
-					   "",
-					   "Shell I attempt to overwrite the file anyway?"),
-			    -type=>'yesno') eq 'Yes') {
+	if ((defined($overwrite_all) and $overwrite_all==1) or
+	    $mw->messageBox
+	    (
+	     -title => "Error occurred while copying files",
+	     -message=>join("\n",
+			    "The target file",
+			    "",
+			    $target,
+			    "",
+			    "exists and is not writable!",
+			    "",
+			    "Shell I attempt to overwrite the file anyway?"),
+	     -type=>'yesno') eq 'Yes') {
 	  my $perm = (stat $target)[2] & 07777;
 	  chmod($perm|0600, $target) || die "chmod failed on $target: $!";
 	  copy($source,$target) || die "Copy $source to $target failed: $!";
-	  chmod($perm,$target);
+	  chmod($perm|0600,$target);
+	  Log("overwriting read-only $target\n");
+	  if (!defined($overwrite_all) and $mw->messageBox(
+			      -title => "Question",
+			      -message=>"Overwrite all read-only files in the target folder?\n(Note: this question is asked only once.)",
+			      -type=>'yesno') eq 'Yes') {
+	    $overwrite_all=1;
+	  } elsif(!defined($overwrite_all)) {
+	    $overwrite_all=0;
+	  }
 	}
       } else {
+	my $perm = (stat $source)[2] & 07777;
 	copy($source,$target) || die "Copy $source to $target failed: $!";
+	chmod($perm|0600,$target);
       }
     } elsif (-d $source) {
       -d $target || mkdir($target) || die "mkdir failed: $! ($target)";
@@ -576,7 +587,7 @@ BEGIN {
       $activity->end;
       $progress=1;
     }
-    print "Copied $file_no files".($file_no<$file_count ? "of $file_count" : "\n");
+    print STDERR "Copied $file_no files".($file_no<$file_count ? "of $file_count" : "\n");
   }
 }
 
