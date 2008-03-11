@@ -94,7 +94,10 @@ my $option_frame = $pf->Frame;
 my @pl = qw(-side top -pady 2 -anchor w);
 our @options = (["Download and install ActivePerl automatically for me" => 'download_ap',{}],
 		["Open ActivePerl website (I will download and install myself)",'open_ap_site',{}],
-		["I have installed ActivePerl in the meantime (check version again)",'recheck_ap_version',{}],
+		["I have installed ActivePerl in the meantime (check version again)",'recheck_ap_version',{}
+		],
+		["My ActivePerl installation is here (browse to a disk folder, e.g. C:\\Perl)",'browse_ap',{}
+		],
 	       );
 sub display_options {
   unless ($option_frame->ismapped) {
@@ -129,7 +132,13 @@ MainLoop;
 
 exit;
 
-
+sub browse_ap {
+  my $dir = $mw->chooseDirectory(
+      -title=>'Browse to ActivePerl directory',
+       -mustexist => 1,
+  );
+  recheck_ap_version($dir);
+}
 sub recheck_ap_version {
   my $message=check_ap_version();
   print STDERR $message,"\n";
@@ -416,41 +425,58 @@ sub download_file {
 }
 
 sub check_ap_version {
-my $ver =
-  $Registry->{"LMachine/Software/ActiveState/ActivePerl//CurrentVersion"} ||
-  $Registry->{"CUser/Software/ActiveState/ActivePerl//CurrentVersion"};
-
-my $message;
-if (!defined $ver) {
-  $message = ( 'ActivePerl not installed.' );
-} elsif ($ver<$minimum_build) {
-  $message = ( "Currently installed build $ver of ActivePerl is too old.\nAt least build $minimum_build is required." );
-  $perl_old=1;
-} else {
-  my $dir = $Registry->{"LMachine/Software/ActiveState/ActivePerl/$ver//"} ||
-    $Registry->{"CUser/Software/ActiveState/ActivePerl/$ver//"};
+  my $dir=shift;
+  my $ver;
+  my $message;
   if (defined $dir) {
-    $perl = File::Spec->rel2abs('bin/perl.exe',$dir);
-    if (-d $dir and -f $perl) {
-      my $perl_ver = `$perl -e "print \$]"`;
-      if (defined $perl_ver) {
-	if ($perl_ver < $minimum_perl_version) {
-	  $message = ( "Currently installed version $perl_ver of ActivePerl is too old.\nAt least version $minimum_perl_version is required." );
-	  $perl_old=1;
-	} else {
-	  $message = ( "Found ActivePerl $perl_ver (build $ver)." );
-	  $perl_ok=1;
-	}
-      } else {
-	$message = ( "Cannot start Perl executable: $!");
+    my $p = File::Spec->rel2abs('bin/perl.exe',$dir);
+    if (-d $dir and -f $p) {
+      my $ver = `$p -MActivePerl -e "print ActivePerl->VERSION"`;
+      chomp $ver;
+      unless ($ver=~/^\d+$/) {
+	$message = ( 'ActivePerl not installed in "$dir" or is too old.' );
       }
     } else {
-      $message = ( "ActivePerl (build $ver) installed in $dir, but executable $perl does not exist!");
+      $message = ( 'ActivePerl not installed in "$dir".' );
     }
   } else {
-    $message = ( "ActivePerl installation not found" );
+    $ver =
+      $Registry->{"LMachine/Software/ActiveState/ActivePerl//CurrentVersion"} ||
+	$Registry->{"CUser/Software/ActiveState/ActivePerl//CurrentVersion"};
   }
-}
-return $message;
+  return $message if defined $message;
+  if (!defined $ver) {
+    $message = ( 'ActivePerl not installed.' );
+  } elsif ($ver<$minimum_build) {
+    $message = ( "Currently installed build $ver of ActivePerl is too old.\nAt least build $minimum_build is required." );
+    $perl_old=1;
+  } else {
+    if (!defined $dir) {
+      $dir = $Registry->{"LMachine/Software/ActiveState/ActivePerl/$ver//"} ||
+	$Registry->{"CUser/Software/ActiveState/ActivePerl/$ver//"};
+    }
+    if (defined $dir) {
+      $perl = File::Spec->rel2abs('bin/perl.exe',$dir);
+      if (-d $dir and -f $perl) {
+	my $perl_ver = `$perl -e "print \$]"`;
+	if (defined $perl_ver) {
+	  if ($perl_ver < $minimum_perl_version) {
+	    $message = ( "Currently installed version $perl_ver of ActivePerl is too old.\nAt least version $minimum_perl_version is required." );
+	    $perl_old=1;
+	  } else {
+	    $message = ( "Found ActivePerl $perl_ver (build $ver)." );
+	    $perl_ok=1;
+	  }
+	} else {
+	  $message = ( "Cannot start Perl executable: $!");
+	}
+      } else {
+	$message = ( "ActivePerl (build $ver) installed in $dir, but executable $perl does not exist!");
+      }
+    } else {
+      $message = ( "ActivePerl installation not found" );
+    }
+  }
+  return $message;
 }
 
