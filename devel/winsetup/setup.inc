@@ -263,7 +263,7 @@ sub open_ap_site {
 }
 sub install_tred {
   if (-f $tred_setup) {
-    exec ($perl, qq("$tred_setup"));
+    exec ('start',qq(/W "$perl" "$tred_setup"));
   } else {
     err("Couldn't find TrEd installer $tred_setup");
   }
