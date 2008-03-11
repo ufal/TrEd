@@ -32,7 +32,7 @@ done
 for f in $dir/../tredlib/libs/pml-base/PMLSchema/*.pm; do
     n="basename ${f%.pm}"
     n=$(basename "$n")
-    pod="$pod_dir/PMLSchema::${n}.pod"
+    pod="$pod_dir/PMLSchema__${n}.pod"
     podchecker "$f"
     podselect "$f" > "$pod"
 done
