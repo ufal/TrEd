@@ -42,6 +42,9 @@ my $upgrade = 0;
 my $install_base=File::Spec->rel2abs($FindBin::RealBin.'../../../..');
 chdir $install_base;
 
+my $package_dir_58 = File::Spec->catfile($install_base,'packages58_win32');
+my $package_dir_510 = File::Spec->catfile($install_base,'packages510_win32');
+my $package_dir = $] >= 5.010 ? $package_dir_510 : $package_dir_58;
 my $install_packages = 1;
 my $install_tred_path= File::Spec->catfile($install_base,'tred');
 my $install_target = 'c:\tred';
@@ -73,8 +76,11 @@ $tf->Label(
 	   -font => '{Sans} 10',
 	   -text=>'Copyright (c) 2000-2008 by Petr Pajas',
 	  )->pack(qw(-expand yes -fill x -padx 10));
-
-$mw->Frame(qw(-height 3 -relief sunken))->pack(qw(-expand yes -fill x -padx 5 -pady 10));
+$tf->Frame(-height => 10)->pack();
+$mw->Frame(-relief=>'sunken',-border=>1,
+	   -height => 2)->pack(-expand=>'yes',-fill => 'x');
+$mw->Frame(-height => 10)->pack();
+#$mw->Frame(qw(-height 3 -relief sunken))->pack(qw(-expand yes -fill x -padx 5 -pady 10));
 my $nb = $mw->NoteBook(-takefocus=>0);
 $nb->pack(qw(-expand yes -fill both -padx 10 -pady 10));
 #$mw->Frame(qw(-height 2 -relief sunken))->pack(qw(-expand yes -fill x -padx 5 -pady 10));
@@ -296,7 +302,6 @@ sub Fail {
 sub Install_PPM_Modules {
   my $ppm = ActivePerl::PPM::Client->new;
   return unless $install_packages;
-  my $package_dir = File::Spec->catfile($install_base,'packages58_win32');
   Log("Installing required Perl modules\n");
   # current status of all repositories
   my %repo_state = map { $_ => $ppm->repo($_)->{enabled} } $ppm->repos;
