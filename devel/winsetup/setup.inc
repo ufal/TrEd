@@ -6,9 +6,12 @@ our %win32_dir = (
 
 my $install_base = File::Spec->rel2abs($FindBin::RealBin);
 chdir $install_base;
+my $package_dir_510 = File::Spec->catfile($install_base,'packages510_win32');
+my $tk_ppd=File::Spec->catfile($package_dir_510,'Tk.ppd');
 
 my $minimum_build = shift || 822;
 my $minimum_perl_version = shift || 5.008008;
+my $maximum_perl_version = 5.010999;
 my $url = q(http://downloads.activestate.com/ActivePerl/Windows/5.8/);
 my $ap_download_site = q(http://www.activestate.com/store/activeperl/download/);
 my $tred_setup = File::Spec->rel2abs('tred/devel/winsetup/install_tred.pl',$install_base);
@@ -18,6 +21,7 @@ my $ap_installer_local=glob("activeperl58_win32/ActivePerl-*.msi");
 if (defined $ap_installer_local) {
   $ap_installer_local=File::Spec->rel2abs($ap_installer_local,$install_base);
 }
+my $perl_version;
 
 my $mw=Tk::MainWindow->new(-title=>'Installing TrEd');
 $mw->optionAdd("*font","{Sans} 9");
@@ -39,8 +43,10 @@ $tf->Label(
 	   -font => '{Sans} 10',
 	   -text=>'Copyright (c) 2000-2008 by Petr Pajas',
 	  )->pack(qw(-expand yes -fill x -padx 10));
-
-
+$tf->Frame(-height => 10)->pack();
+$mw->Frame(-relief=>'sunken',-border=>1,
+	   -height => 2)->pack(-expand=>'yes',-fill => 'x');
+$mw->Frame(-height => 10)->pack();
 my $pf=$mw->Frame(-relief=>'sunken',-border=>2)->pack(-pady => 10, -padx => 15, -fill => 'both' );
 my @pack = qw(-padx 10 -pady 10 -fill x -expand yes);
 
@@ -136,16 +142,19 @@ exit;
 
 sub browse_ap {
   my $dir = $mw->chooseDirectory(
-      -title=>'Browse to ActivePerl directory',
-       -mustexist => 1,
+				 -title=>'Browse to ActivePerl directory',
+				 -mustexist => 1,
   );
+  print "choosen directory: $dir\n";
   recheck_ap_version($dir);
 }
 sub recheck_ap_version {
-  my $message=check_ap_version();
+  my ($dir) = @_;
+  my $message=check_ap_version($dir);
   print STDERR $message,"\n";
   hide_options();
   if ($perl_ok) {
+    install_tk();
     install_tred();
   } else {
     $status='Installation of ActivePerl';
@@ -218,7 +227,7 @@ sub install_ap {
   $status2="Please follow the instructions of the ActivePerl Setup Wizard (other window).";
   $status3="Waiting for the installer to finish\n";
   $mw->update;
-  if (system("msiexec.exe","/i",$ap_installer_local)==0) {
+  if (job("msiexec.exe",qq(/i "$ap_installer_local"))==0) {
     recheck_ap_version();
   } else {
     $status2="ActivePerl installer returned error.\n";
@@ -234,9 +243,57 @@ sub open_ap_site {
   system("start $ap_download_site");
   $action = 'recheck_ap_version'
 }
+sub install_tk {
+  if ($perl_version >= 5.010 and system($perl,'-MTk', '-e1')!=0) {
+    print "Installing Tk for $perl $perl_version\n";
+    $mw->update;
+    $status  = "Installing Perl/Tk\n";
+    $status2 = "Please wait for PPM installer to finish\n";
+    $status3 = "This may take a while...";
+    $mw->update;
+    my $ppm = File::Spec->rel2abs('ppm.bat',dirname($perl));
+    print "PPM: $ppm\n";
+    print "Tk.ppd: $tk_ppd\n";
+    if (job($ppm,qq(install "$tk_ppd"))==0) {
+      $status3="Success.";
+    } else {
+      $status3="There were errors.";
+      if (system($perl,'-MTk', '-e1')!=0) {
+	if ($mw->messageBox(-title => 'Question',
+			    -message => "Installation of Tk module failed.\n".
+			    "Do you want to use Perl Package Manager to install it from the internet?",
+			    -type=>'yesno'
+			   ) eq 'Yes') {
+	  $status2="Starting the Perl Package Manager";
+	  $status3="Use Ctrl+1 and select the package named 'Tk'\n".
+	    "Apply the button 'Mark for install [+]' on the package and\n".
+	    "then the button 'Run marked actions [Ctrl+Enter]' to install it";
+	  $mw->update;
+	  job($ppm,'');
+	  $status2="PPM ended.";
+	  $status3="";
+	  $mw->update;
+	  $continue_b->configure(-state => 'normal');
+	  if (job($perl,'-MTk -e1')!=0) {
+	    err("Failed to install PPM Tk package!");
+	  } else {
+	    $action = 'install_tred';
+	  }
+	}
+      }
+    }
+    $mw->update;
+  }
+}
 sub install_tred {
   if (-f $tred_setup) {
-    system ($perl, qq("$tred_setup"));
+    $status  = "Installing TrEd\n";
+    $status2 = "Please wait for TrEd Setup Wizard to finish\n";
+    $status3 ="";
+    if ($mw->ismapped) {
+      $mw->update;
+    }
+    job($perl, qq("$tred_setup"));
     Quit();
   } else {
     err("Couldn't find TrEd installer $tred_setup");
@@ -436,15 +493,17 @@ sub download_file {
 }
 
 sub check_ap_version {
-  my $dir=shift;
+  my ($dir)=@_;
   my $ver;
   my $message;
   if (defined $dir) {
     my $p = File::Spec->rel2abs('bin/perl.exe',$dir);
     if (-d $dir and -f $p) {
-      my $ver = `$p -MActivePerl -e "print ActivePerl->VERSION"`;
+      $ver = `$p -MActivePerl -e "print ActivePerl->VERSION"`;
+      print "Found version $ver in $dir\n";
       chomp $ver;
-      unless ($ver=~/^\d+$/) {
+      if ($ver=~/^\d+$/) {
+      } else {
 	$message = ( 'ActivePerl not installed in "$dir" or is too old.' );
       }
     } else {
@@ -469,13 +528,16 @@ sub check_ap_version {
     if (defined $dir) {
       $perl = File::Spec->rel2abs('bin/perl.exe',$dir);
       if (-d $dir and -f $perl) {
-	my $perl_ver = `$perl -e "print \$]"`;
-	if (defined $perl_ver) {
-	  if ($perl_ver < $minimum_perl_version) {
-	    $message = ( "Currently installed version $perl_ver of ActivePerl is too old.\nAt least version $minimum_perl_version is required." );
+	$perl_version = `$perl -e "print \$]"`;
+	if (defined $perl_version) {
+	  if ($perl_version < $minimum_perl_version) {
+	    $message = ( "Currently installed version $perl_version of ActivePerl is too old.\nAt least version $minimum_perl_version is required." );
+	    $perl_old=1;
+	  } elsif ($perl_version > $maximum_perl_version) {
+	    $message = ( "TrEd is not compatible with the installed version $perl_version of ActivePerl.\nVersions based on Perl $minimum_perl_version are recommended." );
 	    $perl_old=1;
 	  } else {
-	    $message = ( "Found ActivePerl $perl_ver (build $ver)." );
+	    $message = ( "Found ActivePerl $perl_version (build $ver)." );
 	    $perl_ok=1;
 	  }
 	} else {
@@ -488,6 +550,38 @@ sub check_ap_version {
       $message = ( "ActivePerl installation not found" );
     }
   }
+  print STDERR $message,"\n";
   return $message;
 }
 
+sub system_noblock {
+  my ($cmd,$args,$cb,$opts)=@_;
+  my $job = Win32::Job->new;
+  $opts ||= {no_window=>1};
+  $job->spawn($cmd,"$cmd $args",$opts);
+  $job->watch(sub {
+		if (defined($cb) and $cb->()) {
+		  return 1;
+		} else {
+		  Tk::Event::DoOneEvent(0);
+		  return 0;
+		}
+	      },0.01);
+  return $job->status()->{exitcode};
+}
+
+sub job {
+  my ($cmd,$args,$opts)=@_;
+  my $do_abort=0;
+  local $abort = sub {
+    $do_abort=1;
+    print STDERR "Aborting...\n";
+    return;
+  };
+  my $ret = system_noblock($cmd,$args, sub {  $do_abort; },$opts);
+  if ($do_abort) {
+    Quit();
+    return -1000;
+  }
+  return $ret;
+}

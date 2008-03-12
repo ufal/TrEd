@@ -26,6 +26,8 @@ use Win32 qw(CSIDL_DESKTOP CSIDL_PROGRAMS CSIDL_COMMON_PROGRAMS);
 use Win32::Shortcut;
 use Win32::TieRegistry (Delimiter=>'/');
 use Win32::API;
+use Win32::Job;
+
 use Getopt::Long;
 
 print "ARGV: ",@ARGV,"\n";
