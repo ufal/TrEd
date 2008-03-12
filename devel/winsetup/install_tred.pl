@@ -398,8 +398,24 @@ sub Install_PPM_Modules {
 }
 
 sub Install_TrEd {
+  my $tredrc= File::Spec->catfile($install_target,'tredlib','tredrc');
+  {
+    if (-f $tredrc) {
+      my $activity = ppm_status('begin',"Dropping read-only permission from default tredrc");
+      my $perm = ((stat $tredrc)[2] | 0600); # read-write
+      chmod($perm,$tredrc);
+    }
+  }
+
   copy_tree($mw, $install_tred_path => $install_target,
 	    "Copying TrEd files");
+  {
+    if (-f $tredrc) {
+      my $activity = ppm_status('begin',"Setting read-only permission on default tredrc");
+      my $perm = ((stat $tredrc)[2] & 0444); # read-only
+      chmod($perm,$tredrc);
+    }
+  }
   if (-f 'tred.mac') {
     copy_tree($mw, File::Spec->rel2abs('tred.mac',$install_base) => File::Spec->catfile($install_target,'tredlib'),
 	      "Copying custom TrEd macros");
@@ -409,9 +425,9 @@ sub Install_TrEd {
 	      "Copying TrEd resources");
   }
   if (-d "${install_target}/bin" || mkdir("${install_target}/bin")) {
-    copy_tree($mw, File::Spec->rel2abs('tools/nsgmls',$install_base) => File::Spec->catfile($install_target,'bin'),
+    copy_tree($mw, File::Spec->rel2abs('tools\nsgmls',$install_base) => File::Spec->catfile($install_target,'bin'),
 	      "Copying utilities");
-    copy_tree($mw, File::Spec->rel2abs('tools/print/prfile32.exe',$install_base) => File::Spec->catfile($install_target,'bin'),
+    copy_tree($mw, File::Spec->rel2abs('tools\print\prfile32.exe',$install_base) => File::Spec->catfile($install_target,'bin'),
 	      "Copying utilities");
   }
   my @pl2bat = qw(tred btred trprint any2any);
@@ -420,14 +436,6 @@ sub Install_TrEd {
     for my $i (0..$#pl2bat) {
       Pl2Bat(File::Spec->catfile($install_target,$pl2bat[$i]));
       $activity->tick(($i+1)/@pl2bat);
-    }
-  }
-  {
-    my $tredrc= File::Spec->catfile($install_target,'tredlib','tredrc');
-    if (-f $tredrc) {
-      my $activity = ppm_status('begin',"Setting read-only permission on default tredrc");
-      my $perm = ((stat $tredrc)[2] & 0444); # read-only
-      chmod($perm,$tredrc);
     }
   }
   {
@@ -492,7 +500,10 @@ sub Pl2Bat {
   my $file=shift;
   my $bat=$file;
   my ($base,$path,$suffix)=fileparse($file);
-  die "file $file is .bat already?" if $suffix eq '.bat';
+  if ($suffix eq '.bat') {
+    Log("file $file is .bat already?");
+    return;
+  }
   $bat=File::Spec->catfile($path,$base.'.bat');
 
   my $text = <<'BAT';
@@ -528,7 +539,12 @@ BEGIN {
   sub do_copy_tree{
     my $source=$_;
     $source=~s{/}{\\}g;
-    my $source_base = $source; $source_base=~s/^\Q$source_dir\E//;
+    my $source_base = $source;
+    my $strip = $source_dir;
+    if (-f $strip) {
+      $strip=dirname($strip);
+    }
+    $source_base=~s/^\Q$strip\E//;
     my $target=File::Spec->catfile($target_dir,$source_base);
     $status2=$source;
     #$target_info=$target;
@@ -548,8 +564,8 @@ BEGIN {
 			    "Shell I attempt to overwrite the file anyway?"),
 	     -type=>'yesno') eq 'Yes') {
 	  my $perm = (stat $target)[2] & 07777;
-	  chmod($perm|0600, $target) || die "chmod failed on $target: $!";
-	  copy($source,$target) || die "Copy $source to $target failed: $!";
+	  chmod($perm|0600, $target) || Log("chmod failed on $target: $!");
+	  copy($source,$target) || Log("Copy $source to $target failed: $!");
 	  chmod($perm|0600,$target);
 	  Log("overwriting read-only $target\n");
 	  if (!defined($overwrite_all) and $mw->messageBox(
@@ -563,11 +579,11 @@ BEGIN {
 	}
       } else {
 	my $perm = (stat $source)[2] & 07777;
-	copy($source,$target) || die "Copy $source to $target failed: $!";
+	copy($source,$target) || Log("Copy $source to $target failed: $!");
 	chmod($perm|0600,$target);
       }
     } elsif (-d $source) {
-      -d $target || mkdir($target) || die "mkdir failed: $! ($target)";
+      -d $target || mkdir($target) || Log("mkdir failed: $! ($target)");
     }
   }
   sub copy_tree {
