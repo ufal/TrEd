@@ -92,14 +92,16 @@ $continue_b->focus;
 
 my $option_frame = $pf->Frame;
 my @pl = qw(-side top -pady 2 -anchor w);
-our @options = (["Download and install ActivePerl automatically for me" => 'download_ap',{}],
+our @standard_options = (["Download and install ActivePerl automatically for me" => 'download_ap',{}],
 		["Open ActivePerl website (I will download and install myself)",'open_ap_site',{}],
 		["I have installed ActivePerl in the meantime (check version again)",'recheck_ap_version',{}
 		],
 		["My ActivePerl installation is here (browse to a disk folder, e.g. C:\\Perl)",'browse_ap',{}
 		],
 	       );
+our @options;
 sub display_options {
+  @options= @_ ? @_ : @standard_options;
   unless ($option_frame->ismapped) {
     for my $o (@options) {
       $o->[3] = $option_frame->Radiobutton(
@@ -142,6 +144,7 @@ sub browse_ap {
 sub recheck_ap_version {
   my $message=check_ap_version();
   print STDERR $message,"\n";
+  hide_options();
   if ($perl_ok) {
     install_tred();
   } else {
@@ -152,13 +155,22 @@ sub recheck_ap_version {
     }
 
     if ($ap_installer_local) {
-      $status2.="\n\nPress Continue to start the ActivePerl Setup Wizard.";
-      $status3="";
-      $action='install_ap';
+      $status3="\n\Please, choose from the following options:";
+      #$action='install_ap';
+      {
+	my @o = (
+			  ["Install ActivePerl now" => 'install_ap',{}],
+			  ["I already have ActivePerl installed here (browse to a disk folder, e.g. C:\\Perl)",'browse_ap',{}
+			  ],
+			 );
+	$action=$o[0][1];
+	display_options(@o);
+      }
+
     } else {
       $status3="For licensing reasons, ActivePerl installer cannot be distributed with this software.\n".
 	"You can choose from the following options:";
-      display_options();
+      display_options(@standard_options);
       if ($options[0][2]->{-state} ne 'disabled') {
 	$action=$options[0][1];
       } else {
@@ -194,8 +206,9 @@ sub download_ap {
     $status2="Failed to find a suitable ActivePerl package on the web.\n".
       "Please, try to download and install ActivePerl yourself.\n";
     $status3="Please, choose next action:";
-    $options[0][2]->{-state} = 'disabled';
-    display_options();
+    my @o = @standard_options;
+    local $o[0][2]->{-state} = 'disabled';
+    display_options(@o);
     $action=$options[1][1];
   }
 }
@@ -211,11 +224,9 @@ sub install_ap {
     $status2="ActivePerl installer returned error.\n";
     $status3="Please, choose next action:";
     hide_options();
-    local @options = (
-		      @options,
-		      ['Try run the ActivePerl Installer again','install_ap',{}]
-		     );
-    display_options();
+    display_options(@standard_options,
+		    ['Try run the ActivePerl Installer again','install_ap',{}]
+		   );
   }
 }
 
