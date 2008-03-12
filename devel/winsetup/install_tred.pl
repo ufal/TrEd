@@ -404,9 +404,9 @@ sub Install_TrEd {
 	      "Copying TrEd resources");
   }
   if (-d "${install_target}/bin" || mkdir("${install_target}/bin")) {
-    copy_tree($mw, File::Spec->rel2abs('nsgmls',$install_base) => File::Spec->catfile($install_target,'bin'),
+    copy_tree($mw, File::Spec->rel2abs('tools/nsgmls',$install_base) => File::Spec->catfile($install_target,'bin'),
 	      "Copying utilities");
-    copy_tree($mw, File::Spec->rel2abs('bin/prfile32.exe',$install_base) => File::Spec->catfile($install_target,'bin'),
+    copy_tree($mw, File::Spec->rel2abs('tools/print/prfile32.exe',$install_base) => File::Spec->catfile($install_target,'bin'),
 	      "Copying utilities");
   }
   my @pl2bat = qw(tred btred trprint any2any);
