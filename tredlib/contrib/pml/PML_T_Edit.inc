@@ -81,7 +81,7 @@ sub ChooseValFrame {
     $node,
     -withdraw => 1,
     -assign_func => sub {
-      my ($n, $ids, $current_fsfile, $dummy, $chooser)=@_;
+      my ($n, $ids, undef, $current_fsfile, undef, $chooser)=@_;
       if ($current_fsfile == $fsfile) {
 	$n->{'val_frame.rf'} = undef;
 	AddToAlt($n,'val_frame.rf',map { $refid."#".$_} split /\|/,$ids);
