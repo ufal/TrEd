@@ -9546,8 +9546,9 @@ sub redraw_fsfile {
 sub redraw_stylesheet {
   my ($grp,$stylesheet)=@_;
   return if $insideEval;
-  foreach (stylesheetUsingWindows($grp,$stylesheet)) {
-    redraw_win($_);
+  foreach my $win (stylesheetUsingWindows($grp,$stylesheet)) {
+    applyWindowStylesheet($win,$stylesheet);
+    redraw_win($win);
   }
   return;
 }
@@ -10376,16 +10377,19 @@ sub node_release {
 		      -bitmap=> 'question',
 		      -title => 'Incompatible node type',
 		      -buttons => ["Do not paste",'Paste anyway']) eq 'Paste anyway') {
-	  while ($parent) {
-	    $p=0, last if ($node eq $parent);
-	    $parent=$parent->parent;
+	  my $top=$parent;
+	  while ($top) {
+	    if ($node eq $top) {
+	      undef $parent;
+	      last;
+	    }
+	    $top=$top->parent;
 	  }
-	  if ($p and $tv->get_obj_pinfo($p) 
-		and $node->parent!=$tv->get_obj_pinfo($p)) {
+	  if ($parent and $node->parent!=$top) {
 	    save_undo($win,prepare_undo($win, "Cat/Paste node with mouse"));
 	    my $oldparent=$node->parent;
 	    Fslib::Paste(Cut($node),
-			 $tv->get_obj_pinfo($p),
+			 $parent,
 			 $win->{FSFile}->FS);
 	    $win->{FSFile}->notSaved(1);
 	    doEvalHook($win,"node_moved_hook",$node,$oldparent);
