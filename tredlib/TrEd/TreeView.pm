@@ -520,9 +520,8 @@ sub getTextWidth {
 sub balance_xfix_node {
   my ($self, $xfix, $node) = @_;
   my $node_info = $self->{node_info};
-  my @c = grep { $node_info->{$_}{"E"} } $node->children;
   $xfix += $node_info->{$node}{"XFIX"};
-  foreach my $c (@c) {
+  foreach my $c (@{$node_info->{$node}{"CH"}}) {
     $node_info->{$c}{"XPOS"}=$node_info->{$c}{"XPOS"}+$xfix;
     $node_info->{$c}{"NodeLabel_XPOS"}=
 			    $node_info->{$c}{"NodeLabel_XPOS"}+
@@ -540,7 +539,8 @@ sub balance_node {
   my $i=0;
   my $before = $node_info->{$node}{"Before"};
 #  $last_baseX+=$node_info->{$node}{"Before"};
-  my @c = grep { $node_info->{$_}{"E"} } $node->children;
+  my $CH = $node_info->{$node}{"CH"};
+  my @c = $CH ? @$CH : ();
   foreach my $c (@c) {
     $last_baseX = $self->balance_node($last_baseX,$c,$balanceOpts);
     $last_baseX += $xskip;
@@ -588,17 +588,17 @@ sub balance_node {
 
 
 sub _bno {
-  my ($nodes,$i,$last,$childs)=@_;
+  my ($nodes,$i,$last,$node_info)=@_;
   my @res;
   for (;$i<=$last;$i++) {
     my $node = $nodes->[$i];
-    my $kids = $childs->{ $node };
+    my $kids = $node_info->{ $node }{"CH"};
     if ($kids) {
       my $mid = int @$kids/2-1;
       push @res,
-	@{ _bno($kids,0,$mid,$childs) },
+	@{ _bno($kids,0,$mid,$node_info) },
 	$node,
-	@{ _bno($kids,$mid+1,$#$kids,$childs) };
+	@{ _bno($kids,$mid+1,$#$kids,$node_info) };
     } else {
       push @res, $node;
     }
@@ -608,16 +608,15 @@ sub _bno {
 
 sub balance_node_order {
   my ($self, $nodes) = @_;
-  my %childs;
   my @level0;
   my $i=0;
   my $node_info = $self->{node_info};
   foreach my $node (@$nodes) {
     my $parent = $node_info->{$node}{"P"};
-    push @{ $childs{ $parent } }, $node;
+    push @{ $node_info->{$parent}{"CH"} }, $node;
     push @level0, $node if $node_info->{$node}{"Level"}==0;
   }
-  return _bno(\@level0,0,$#level0,\%childs);
+  return _bno(\@level0,0,$#level0,$node_info);
 }
 
 sub compute_level {
@@ -709,7 +708,7 @@ sub recalculate_positions_vert {
     $self->compute_level($node,$Opts,$skipHiddenLevels);
   }
   if ($balance) {
-    @{$nodes} = @{$self->balance_node_order($nodes)};
+    @{$nodes} = @{ $self->balance_node_order($nodes) };
   }
   # we reverse back to normal order in vertical mode
   foreach $node ($self->get_reverseNodeOrder ? reverse @{$nodes} : @{$nodes}) {
@@ -868,8 +867,14 @@ sub recalculate_positions {
     $node_info->{$node}{"E"}=1;
   }
   foreach $node (@{$nodes}) {
-    $level=$self->compute_level($node,$Opts,$skipHiddenLevels);
-    $level+=$self->get_style_opt($node,"Node","-level",$Opts);
+    $self->compute_level($node,$Opts,$skipHiddenLevels);
+  }
+  if ($balance) {
+    @{$nodes} = @{$self->balance_node_order($nodes)};
+  }
+  # we reverse back to normal order in vertical mode
+  foreach $node (@{$nodes}) {
+    $level=$node_info->{$node}{'Level'}+$self->get_style_opt($node,"Node","-level",$Opts);
     $node_info->{$node}{"EdgeLabelHeight"}= $edge_label_height;
 
     $maxlevel=max($maxlevel,$level);
