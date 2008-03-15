@@ -1661,7 +1661,7 @@ sub saveFile {
     $err .= "Error reverting $f from backup $f~ after saving error: $@\n" if $@;
     return ($out,$err);
   }
-  IOBackend::unlink_uri($out."~",$out) if $no_backups;
+  IOBackend::unlink_uri($out."~") if $no_backups;
   $fsfile->notSaved(0);
   return ($out, undef);
 }
