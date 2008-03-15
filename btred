@@ -17,7 +17,6 @@ use Getopt::Long;
 use Pod::Usage;
 use IO;
 use IO::File;
-#use Getopt::Std;
 
 if ($^V lt v5.6.0) {
   print STDERR '-' x 50,"\n";
@@ -43,7 +42,7 @@ use vars qw($quiet $Quiet $debug $carp $csts_xargs $strip_prefix $add_prefix
 	    $_ERR %optmap $no_secondary $include_macro $ioBackends
 	    $locale_charset $host $allow_switch_context
 	    @resource_paths @define_symbols $dump_macros
-	    $strict $warnings
+	    $strict $warnings $no_backups
 	   );
 
 $version='$Revision$ ';
@@ -53,7 +52,6 @@ $version='$Revision$ ';
 shift @TredMacro::ARGV; pop @TredMacro::ARGV;
 @ARGV=grep { not(/^-o$/.../^--$/) } @ARGV;
 
-#getopts('qQDx:p:r:s:a:f:c:i:m:e:t:n:hd:NHSTFX:RPWVL:b:');
 my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 %optmap =  (
 	    "quiet|q" => \$quiet,
@@ -110,6 +108,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "strict" => \$strict,
 	    "warnings" => \$warnings,
 	    "version|v"        => \$print_version,
+	    "no-backups" => \$no_backups,
 	   );
 
 $optparser->getoptions(%optmap) or $usage=1;
@@ -1662,6 +1661,7 @@ sub saveFile {
     $err .= "Error reverting $f from backup $f~ after saving error: $@\n" if $@;
     return ($out,$err);
   }
+  IOBackend::unlink_uri($out."~",$out) if $no_backups;
   $fsfile->notSaved(0);
   return ($out, undef);
 }
@@ -2021,7 +2021,7 @@ B<both> from C<filename> B<and> the default macro set (F<tred.mac>).
 C<--macro-file> can still be used in combination with
 B<--include-macro-file> to supply a replacement for F<tred.mac>.
 
-=item B<--execute|-e> code
+=item B<--execute|-e> perl-code
 
 Macro code to apply to given files. If no code is specified, btred
 expects a function called `autostart' to be defined in the used
@@ -2143,7 +2143,7 @@ $this=$this-E<gt>following_visible(FS()) };> loop).
 =item B<--file-encoding|-n> encoding
 
 Allows to specify character encoding of input files (does not apply to
-XML files) and is probably only useful with Perl >= 5.8.
+XML files).
 
 =item B<--terminal-encoding|-d> encoding
 
