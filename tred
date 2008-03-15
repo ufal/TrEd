@@ -37,7 +37,8 @@ use vars qw($svn_version $version $about $opt_u $opt_h $opt_c
 	    $normalPrevPixmap
 	    $locale_charset
 	    $no_secondary
-	    %HELP %vertical_key_arrow_map
+	    %HELP %vertical_key_arrow_map 
+	    $manpage $listoptions $no_backups %optmap
            );
 
 $svn_version='$Id$';
@@ -104,82 +105,58 @@ use Tk::Scale;
 Tk::CmdLine::SetArguments();
 
 # Once we got rid of them we call getopt to read all the other options
-use Getopt::Std;
-getopts('qm:c:l:t:n:p:vhuW:GI:HDYB:RX:s:S:Z:y:e:');
+use Getopt::Long;
+use Pod::Usage;
+my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
+%optmap =  (
+  'quiet|q' => \$opt_q,
+  'macro-file|m=s' => \$opt_m,
+  'config-file|c=s' => \$opt_c,
+  'filelist|l=s' => \$opt_l,
+  'context|t=s' => \$opt_t,
+  'file-encoding|n=s' => \$opt_n,
+  'split-window|p=i' => \$opt_p,
+  'version|v' => \$opt_v,
+  'help|h' => \$opt_h,
+  'usage|u' => \$opt_u,
+  'window-embed|W=s' => \$opt_W,
+  'no-geometry|G' => \$opt_G,
+  'include-macro-file|I=s' => \$opt_I,
+  'show-hidden-nodes|H' => \$opt_H,
+  'debugging|D' => \$opt_D,
+  'no-secondary-files|Y' => \$opt_Y,
+  'extra-backends|B=s' => \$opt_B,
+  'tectogrammatical-trees|R' => \$opt_R,
+  'csts-tree-attributes|X=s' => \$opt_X,
+  'stylesheet|s=s' => \$opt_s ,
+  'stylesheet-file|S=s' => \$opt_S,
+  'resource-dir|Z=s' => \$opt_Z,
+  'define-symbol|y=s' => \$opt_y,
+  'execute|e=s' => \$opt_e,
+  'man' => \$manpage,
+  "list-options" => \$list_options,
+  "no-backups" => \$no_backups,
+);
+$optparser->getoptions(%optmap) or $opt_u=1;
 
-if ($opt_u || $opt_h) {
-  print <<'EOH';
-Usage:
- tred [-q] [-c <config-file>] [-m|-I <macro-file>] [-t context]
-      [-l <filelist>] [-n encoding] file1[##N|#N] [file2[##N|#N] [...]]
-or
- tred -u|-h|-v    for usage/help/version
-
-EOH
-  exit unless $opt_h;
-  print <<'EOF';
-This is TrEd - an interactive tool for editing tree graphs.
-
-Each filename may be followed by suffixes of the following forms:
-
-#N      where N is a number possibly followed by one or more
-	upper-case letters. In this case, #N tells TrEd to skip to the
-	first tree the root of which has `#N' as a value of attribute
-	called `form' (this feature is optimized for specific
-	instances of fs-format used while working on The Prague
-	Dependency Treebank)
-
-##N     where N is a number. This makes TrEd to go to the N-th tree in
-	the given file after the file is opened.
-
--m      specifies a macro file different from the one given in your
-	configuration file (tred.mac by default)
-
--I      specifies an additional macro file
-
--c      specifies a config-file to be used (overrides
-	~/.tredrc and all the other files TrEd would otherwise try to
-	search for).
-
--l      specifies a file containing a list of files to open
-
--t      start in the given macro context (package). TredMacro is the
-        default context, and it is used also when the given context
-        is not found.
-
--S      stylesheet file (overrides ~/.tred-stylesheets)
-
--s      start with the given pattern stylesheet.
-
--n      allows to specify the default charset for FS files (useful
-        with perl >= 5.7)
-
--p      split window to given number of subwindows (horizontally if
-        positive, vertically if negative) and open n'th file
-        in n'th subwindow.
-
--e      code to evaluate just before the main loop is started
-
--Z dir  provide ResourcePath (overrides current setting in ~/.tredrc).      
-
-Other options:
-
--q              be quiet
--H              Start with showing hidden nodes
--G              Do not initially resize window to its last geomtery.
--W <window_id>  Embed main window into the given window
--Y              Do not load secondary files
--B <backends>   Comma separated list of additional backends to import
--y name[=v],... Like '#define name' or '#define name v' in macros
-
-Options specific to CSTS backend:
-
--R              build tectogrammatic trees from CSTS files
-
--X <gov>,[<ord>],[<hide>] - use attribute <gov> to build tree from CSTS
-                files, <ord> to order nodes, <hide> to distinguish
-                hidden nodes
-EOF
+# Help and usage
+if ($opt_u) {
+  pod2usage(-msg => 'TrEd - a graphical visualizer and editor of tree graphs');
+#  exit 0;
+}
+if ($opt_h) {
+  pod2usage(-exitstatus => 0, -verbose => 1);
+}
+if ($manpage) {
+  pod2usage(-exitstatus => 0, -verbose => 2);
+}
+if ($list_options) {
+  foreach my $o (keys %optmap) {
+    $o=~s/=.$//;
+    foreach my $oo (split /\|/,$o) {
+      print sort ((length($oo)>1) ? "--$oo\n" : "-$oo\n");
+    }
+  }
   exit;
 }
 
@@ -2353,6 +2330,8 @@ sub saveFile {
   } elsif (@warnings) {
     errorMessage($win,"Saving file to '$f':\n\n".
 		   join("\n",@warnings),'warn');
+  } else {
+    IOBackend::unlink_uri($f."~") if $no_backups;
   }
   setFSLockInfo($win->{FSFile}, setLock($f)) if $lockFiles;
   my $autosave=autosave_filename($f);
@@ -6401,7 +6380,7 @@ sub startMain {
 
   if ($opt_p) {
     my $dir=$opt_p>0 ? 'vert' : 'horiz';
-    for (my $i=1;$i<$opt_p;$i++) {
+    for (my $i=1;$i<abs($opt_p);$i++) {
       splitWindow(\%group,$dir);
     }
     focusCanvas($group{treeWindows}->[0]->canvas,\%group);
@@ -10660,3 +10639,207 @@ sub cleanup_tredmacro {
 #  print Dumper($w),"\n";
 #  $w->destroy if ($w->IsWidget);
 # }
+
+__END__
+
+=head1 tred
+
+TrEd - a graphical visualizer and editor of tree graphs
+
+=head2 SYNOPSIS
+
+ tred [-q] [-c <config-file>] [-m|-I <macro-file>] [-t context]
+      [-l <filelist>] [-n encoding] [other-options] [file[##ID|#N] ...]
+
+or
+
+  tred -u          for usage
+  tred -h          for help
+  tred --man       for the manual page
+  tred --version   for version
+
+=head2 DESCRIPTION
+
+TrEd is a graphical visualizer and editor of tree graphs.
+
+=head2 Filename arguments
+
+Filenames on the command-line may be optionally followed by suffixes
+of the following forms:
+
+#ID     where ID is an identifier of a node (for file formats that have
+        identifiers, e.g. PML).
+
+##N     where N is a number. This makes TrEd to go to the N-th tree in
+	the given file after the file is opened.
+
+
+=head2 Options
+
+=over 8
+
+=item B<--filelist|-l> filename
+
+Read a list of filenames to process from a given file (one filename
+per line). Files specified in a file-list are processed prior to files
+specified on the command-line. If file-list is a file with .fl
+extension, then the first line may contain a file-list name (as in
+TrEd). Moreover, unlike in other file-lists, filenames in .fl
+file-lists are asssumed to be relative to the file-list file location.
+
+=item B<--macro-file|-m> filename
+
+File with macro definitions to load.  If no macro-file is given,
+standard macro file (by default F<tred.mac>) is used.
+
+=item B<--include-macro-file|-I> filename
+
+A file containing additional set of macros to load. This option is
+typically used instead of C<--macro-file> to allow loading macros
+B<both> from C<filename> B<and> the default macro set (F<tred.mac>).
+C<--macro-file> can still be used in combination with
+B<--include-macro-file> to supply a replacement for F<tred.mac>.
+
+=item B<--config-file|-c> filename
+
+TrEd configuration file (overrides ~/.tredrc).
+
+=item B<--stylesheet-file> filename
+
+TrEd stylesheet configuration file (overrides ~/.tred-stylesheets).
+
+=item B<--resource-dir> dirnames
+
+Specifies resource path. This option can be repeated and overrides
+ResoucePath setting in the TrEd configuration file.
+
+=item B<--context|-t> context_name
+
+Initial macro context.
+
+=item B<--show-hidden-nodes|-H> 
+
+Start in the mode where hidden nodes are displayed.
+
+=item B<--stylesheet|-s> stylesheet-name
+
+Initial stylesheet to render the tree according to.
+
+=item B<--split-window|-p> number
+
+Split window to given number of subwindows (horizontally if
+positive, vertically if negative) and open n'th file
+in n'th subwindow.
+
+=item B<--execute|-e> perl-code
+
+Macro code to evaluate just before the main loop is started.
+
+=item B<--window-embed|-W> window_ID
+
+Embed main window into window with the given window ID.
+
+=item B<--no-geometry|-G>
+
+Do not initially resize window to its last geomtery.
+
+=item B<--extra-backends|-B> backend
+
+Comma separated list of user-defined IO-backend modules to load.
+
+=item B<--file-encoding|-n> encoding
+
+Allows to specify character encoding of input files (does not apply to
+XML files).
+
+=item B<--define-symbol> symbol_name
+
+Symbol name or a name=value pair to be used by macro-preprocessor
+(equivalent to a C<#define> instruction at the beginning of the macro
+file). Multiple definitions symbols may be separated by a comma and
+the option may be repeated.
+
+=item B<--no-secondary-files|-Y>
+
+Neither load or save "secondary" files. Normally, secondary files (if
+loaded) are saved along with their primary files (the exactly same
+file-name prefix/suffix processing and format apply to both the
+primary and secondary files). A secondary file is a file required by a
+(normal - primary) file to be loaded along with it; this is typical
+for files containing some form of a stand-off annotation where one
+tree is built upon another. Note however, that this does not include so
+called knitting - an operation where the stand-off annotation is
+handled by a IO backend and the resulting knitted file appears to
+btred as a single unit.
+
+=item B<--tectogrammatical-trees|-R>
+
+Build tectogrammatic trees from CSTS files.
+
+=item B<--csts-tree-attributes|-X> gov,ord?,hide?
+
+CSTS format is "many in one"; there may be more tree structures in one
+file.  This option can be used to specify which tree structure should
+be used.  Provide a comma separated list consisting of names of node
+atributes corresponding to CSTS elements that contain the necessary
+information to build a tree out of a CSTS file. The first attribute
+should be an attribute containing the index of the governing node; the
+second one is optional and specifies the ordering attribute; the third
+one is also optional and if specified, it should be the attribute used
+to mark hidden nodes with the string 'hide'. If the third argument is
+specified as empty (i.e. there is a trailing comma), default to
+'X_hide' with preset-value 'hide'. 
+
+Examples: 
+  -X govTR,dord  - corresponds to elements <TRg> and <tfr>
+                   in CSTS
+
+  -X govMD_c,ord,x_MD_c_hide 
+                 - corresponds to <MDg src="c">, <r>, 
+                   and <x name="MD_c_hide">).
+
+=item B<--quiet|-q>
+
+Print only general processing information on stderr.
+
+=item B<--debugging|-D>
+
+Print a lot of debugging information on the stderr.
+
+=item B<--version|-v>
+
+Print version and quit.
+
+=item B<--man|-m>
+
+Displays the help as manual page.
+
+=item B<--help|-h>
+
+Prints the help page and exits.
+
+=item B<--usage|-u>
+
+Print a brief help message on usage and exits.
+
+=back
+
+=head2 SEE ALSO
+
+TrEd User Manual at L<http://ufal.mff.cuni.cz/~pajas/tred/ar01-toc.html>
+(also located in the documentation directory in the installation of
+TrEd).
+
+=head2 LICENSE
+
+This software is distributed under GPL - The General Public Licence.
+Full text of the GPL can be found in the LICENSE file distributed with
+this program and also on-line at http://www.gnu.org/copyleft/gpl.html.
+
+=head2 AUTHOR
+
+Petr Pajas <pajas@matfyz.cz>
+
+Copyright 2000-2008 Petr Pajas, All rights reserved.
+
+=cut
