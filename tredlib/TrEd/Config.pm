@@ -544,7 +544,6 @@ sub set_config {
   $maxDisplayedAttributes     =	val_or_def($confs,"maxdisplayedattributes",20);
   $lastAction		      =	val_or_def($confs,"lastaction",undef);
 
-  &$set_user_config($confs) if (ref($set_user_config));
   $maxUndo		      =	val_or_def($confs,"maxundo",30);
   $reloadKeepsPatterns	      =	val_or_def($confs,"reloadpreservespatterns",1);
   $autoSave	              =	val_or_def($confs,"autosave",5);
@@ -555,6 +554,10 @@ sub set_config {
   $noLockProto                =	val_or_def($confs,"nolockprotocols",'^(https?|zip|tar)\$');
   $ioBackends                 =	val_or_def($confs,"iobackends",undef);
   $htmlBrowser                =	val_or_def($confs,"htmlbrowser",undef);
+
+  # ADD NEW OPTIONS HERE
+
+  &$set_user_config($confs) if (ref($set_user_config)); # let this be the very last line
   {
     no strict qw(vars);
     foreach (keys %$confs) {
