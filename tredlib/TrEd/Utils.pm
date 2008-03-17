@@ -83,7 +83,7 @@ sub saveStyleSheets {
     print STDERR "cannot write to stylesheet file: $stylesheetFile\n";
     return 0;
   };
-  foreach my $stylesheet (keys (%{$gui->{stylesheets}})) {
+  foreach my $stylesheet (sort keys (%{$gui->{stylesheets}})) {
     next if $stylesheet eq STYLESHEET_FROM_FILE();
     print $f "#"x 50,"\n";
     print $f "stylesheet: $stylesheet\n";
