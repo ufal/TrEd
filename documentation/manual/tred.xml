@@ -6330,7 +6330,7 @@ sub CreateImages {
     <title>Command-line options</title>
     <section>
       <title>Synopsis</title>
-      <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="tred_cmd.xml" xpointer="xpointer(/article/section/section/title[.='SYNOPSIS']/following-sibling::*)"/>
+      <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="tred_cmd.xml" xpointer="xpointer(/article/section/title[.='SYNOPSIS']/following-sibling::*)"/>
     </section>
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="tred_cmd.xml" xpointer="xpointer(/article/section/section[title='Filename arguments'])"/>
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="tred_cmd.xml" xpointer="xpointer(/article/section/section[title='Options'])"/>
