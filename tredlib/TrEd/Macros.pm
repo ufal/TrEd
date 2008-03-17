@@ -348,6 +348,7 @@ sub read_macros {
 	} elsif (/^\#\s*(if)?include\s+"([^\r\n]+\S)"\s*(?:encoding\s+(\S+)\s*)?$/) {
 	  my $enc = $3;
 	  my $pattern = $2;
+	  my $if=$1;
 	  my @includes;
 	  if ($pattern=~/^<(.*)>$/) {
 	    my $glob = $1;
@@ -364,7 +365,7 @@ sub read_macros {
 	    if (-f $mf) {
 	      read_macros($mf,$libDir,1,$enc,@contexts);
 	      push @macros,"\n#line $line \"$file\"\n";
-	    } elsif ($1 ne 'if') {
+	    } elsif ($if ne 'if') {
 	      die
 		"Error including macros $mf\n from $file: ",
 		  "file not found!\n";
