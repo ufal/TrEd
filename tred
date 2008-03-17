@@ -36,7 +36,7 @@ use vars qw($svn_version $version $about $opt_u $opt_h $opt_c
 	    $normalNextPixmap
 	    $normalPrevPixmap
 	    $locale_charset
-	    $no_secondary
+	    $no_secondary 
 	    %HELP %vertical_key_arrow_map 
 	    $manpage $listoptions $no_backups %optmap
            );
@@ -136,12 +136,15 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
   'man' => \$manpage,
   "list-options" => \$list_options,
   "no-backups" => \$no_backups,
+  "autosave=i" => \$opt_auto_save,
 );
 $optparser->getoptions(%optmap) or $opt_u=1;
 
 # Help and usage
 if ($opt_u) {
-  pod2usage(-msg => 'TrEd - a graphical visualizer and editor of tree graphs');
+  pod2usage({
+    -msg => 'TrEd - a graphical visualizer and editor of tree graphs',
+  });
 #  exit 0;
 }
 if ($opt_h) {
@@ -960,7 +963,7 @@ sub setConfig {
     print STDERR "Reading filelist ".$fl->name." from ".$fl->filename."\n" if $tredDebug;
     addNewFilelist(undef,$fl);
   }
-
+  $autoSave = $opt_auto_save if defined $opt_auto_save;
 #    $CSTSBackend::csts2fs=$cstsToFs;
 #    $CSTSBackend::fs2csts=$fsToCsts;
 
@@ -10642,11 +10645,11 @@ sub cleanup_tredmacro {
 
 __END__
 
-=head1 tred
+=head1 NAME
 
 TrEd - a graphical visualizer and editor of tree graphs
 
-=head2 SYNOPSIS
+=head1 SYNOPSIS
 
  tred [-q] [-c <config-file>] [-m|-I <macro-file>] [-t context]
       [-l <filelist>] [-n encoding] [other-options] [file[##ID|#N] ...]
@@ -10658,7 +10661,7 @@ or
   tred --man       for the manual page
   tred --version   for version
 
-=head2 DESCRIPTION
+=head1 DESCRIPTION
 
 TrEd is a graphical visualizer and editor of tree graphs.
 
@@ -10824,19 +10827,19 @@ Print a brief help message on usage and exits.
 
 =back
 
-=head2 SEE ALSO
+=head1 SEE ALSO
 
-TrEd User Manual at L<http://ufal.mff.cuni.cz/~pajas/tred/ar01-toc.html>
+TrEd User Manual at http://ufal.mff.cuni.cz/~pajas/tred/ar01-toc.html
 (also located in the documentation directory in the installation of
 TrEd).
 
-=head2 LICENSE
+=head1 LICENSE
 
 This software is distributed under GPL - The General Public Licence.
 Full text of the GPL can be found in the LICENSE file distributed with
-this program and also on-line at http://www.gnu.org/copyleft/gpl.html.
+this program and also on-line at http://www.gnu.org/copyleft/gpl.html .
 
-=head2 AUTHOR
+=head1 AUTHOR
 
 Petr Pajas <pajas@matfyz.cz>
 
