@@ -203,7 +203,7 @@ if (-d $libDir) {
 {
   # in Windows, if HOME not defined, use user's AppData folder instaed
   require TrEd::Utils;
-  import TrEd::Utils qw(find_win_home);
+  import TrEd::Utils qw(:all);
   find_win_home();
 
   my $ld=$libDir;
