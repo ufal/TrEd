@@ -43,7 +43,8 @@ sub draw_group {
   $c->delete('group'.$group_no);
 
   my $color   = $opts->{color}   || ($opts->{colors}   ? $opts->{colors}[$group_no-1]   : $colors[$group_no-1]   );
-  my $stipple = $opts->{stipple} || ($opts->{stipples} ? $opts->{stipples}[$group_no-1] : stipple($c,$group_no-1));
+  my $stipples = $opts->{stipples};
+  my $stipple = $opts->{stipple} || ($stipples ? $stipples->[($group_no-1)%@$stipples] : stipple($c,$group_no-1));
   my $xshift= defined $opts->{x_shift} ? $opts->{x_shift} : 2;
   my $raise= defined $opts->{y_shift} ? $opts->{y_shift} : 20;
   my $group_width= defined $opts->{group_line_width} ? $opts->{group_line_width} : 30;
@@ -203,8 +204,8 @@ sub draw_group {
 
 # define stipples
 {
-  my %stipples = (
-    dash1 => [8,8,pack("b8"x8,qw{
+  my @bits = (
+    [qw{
 	1.......
 	.1......
 	..1.....
@@ -213,8 +214,8 @@ sub draw_group {
 	.....1..
 	......1.
 	.......1
-    })],
-    dash2=> [8,8,pack("b8"x8,qw{
+    }],
+    [qw{
 	 .......1
 	 ......1.
 	 .....1..
@@ -223,28 +224,8 @@ sub draw_group {
 	 ..1.....
 	 .1......
 	 1.......
-    })],
-    dash3 => [8,8,pack("b8"x8,qw{
-	....1...
-	...1....
-	..1.....
-	.1......
-	1.......
-	.......1
-	......1.
-	.....1..
-    })],
-    dash4 => [8,8,pack("b8"x8,qw{
-         ...1....
-	 ....1...
-	 .....1..
-	 ......1.
-	 .......1
-	 1.......
-	 .1......
-	 ..1.....
-    })],
-    dash5 => [8,8,pack("b8"x8,qw{
+    }],
+    [qw{
 	...1...1
 	...1...1
 	...1...1
@@ -253,8 +234,8 @@ sub draw_group {
 	...1...1
 	...1...1
 	...1...1
-    })],
-    dash6 => [8,8,pack("b8"x8,qw{
+    }],
+    [qw{
 	........
 	........
 	........
@@ -263,22 +244,67 @@ sub draw_group {
 	........
 	........
 	11111111
-    })],
+    }],
    );
-  my @stipples = sort keys %stipples;
-  my $stipples_defined = 0;
+  sub _bitmap {
+    return pack("b8"x8,@{$_[0]});
+  }
+  sub _rot_bitmap {
+    my ($bits,$amount) = @_;
+    return _bitmap([ map { substr($_,$amount).substr($_,0,$amount) } @$bits ]);
+  }
+  sub _vrot_bitmap {
+    my ($bits,$amount) = @_;
+    return _bitmap([@$bits[$amount..$#$bits],@$bits[0..$amount-1]]);
+  }
+  sub _or_bitmap {
+    my ($bitmap1,$bitmap2) = @_;
+    return $bitmap1|$bitmap2;
+  }
+
+  my %normal_stipples = (
+    dash1 => _bitmap($bits[0]),
+    dash2 => _bitmap($bits[1]),
+    dash3 => _rot_bitmap($bits[1],4),
+    dash4 => _rot_bitmap($bits[0],4),
+    dash5 => _bitmap($bits[2]),
+    dash6 => _bitmap($bits[3]),
+  );
+  my %dense_stipples = (
+    dense1 => _or_bitmap(_rot_bitmap($bits[0],1), _rot_bitmap($bits[0],5)),
+    dense2 => _or_bitmap(_rot_bitmap($bits[1],1),_rot_bitmap($bits[1],5)),
+    dense3 => _or_bitmap(_rot_bitmap($bits[0],3),_rot_bitmap($bits[0],7)),
+    dense4 => _or_bitmap(_rot_bitmap($bits[1],3),_rot_bitmap($bits[1],7)),
+    dense5 => _or_bitmap(_rot_bitmap($bits[2],1),_rot_bitmap($bits[2],3)),
+    dense6 => _or_bitmap(_vrot_bitmap($bits[3],1),_vrot_bitmap($bits[3],3)),
+  );
+  my %stipples = (%normal_stipples,%dense_stipples);
+  my @normal_stipples = sort(keys(%normal_stipples));
+  my @dense_stipples = sort(keys(%dense_stipples));
+  my @stipples = @normal_stipples,@dense_stipples;
+  sub define_stipples {
+    my $c = shift;
+    for (keys %stipples) {
+      unless (defined($c->toplevel->GetBitmap($_))) {
+	$c->toplevel->DefineBitmap($_ => 8,8,$stipples{$_})
+      }
+    }
+    return 1;
+  }
   sub stipple {
     my $c = shift;
     my $no  =shift;
-    unless ($TrEd::Groups::stipples_defined) {
-      $TrEd::Groups::stipples_defined=1;
-      for (keys %stipples) {
-	unless (defined($c->toplevel->GetBitmap($_))) {
-	  $c->toplevel->DefineBitmap($_ => @{$stipples{$_}})
-	}
-      }
-    }
-    return $stipples[$no % @stipples] if $TrEd::Groups::stipples_defined;
+    return $stipples[$no % @stipples] if define_stipples();
+  }
+  sub dense_stipples {
+    my $grp=shift;
+    define_stipples($grp->treeView->realcanvas);
+    return \@dense_stipples;
+  }
+  sub normal_stipples {
+    my $grp=shift;
+    define_stipples($grp->treeView->realcanvas);
+    return \@normal_stipples;
   }
 }
 
