@@ -42,8 +42,8 @@ sub canvas {
 }
 
 sub canvas_frame {
-  my ($self) = @_;
-  my $canvas=$self->canvas();
+  my ($self,$canvas) = @_;
+  $canvas||=$self->canvas();
   my $frame=undef;
   if (ref($canvas)) {
     my %pi=$canvas->packInfo();
@@ -60,12 +60,13 @@ sub contains {
     ||  $w eq $self->canvas_frame();
 }
 
-sub remove_canvas {
-  my ($self)=@_;
-  my $canvas=$self->canvas();
-  my $brother_canvas;
+# this can work as a class method as well
+sub remove_split {
+  my ($self,$canvas)=@_;
+  $canvas||=$self->canvas();
   return undef unless $canvas;
-  my $frame=$self->canvas_frame();
+  my $frame=$self->canvas_frame($canvas);
+  my $brother_canvas;
   my $pframe;
   {
     my %pi=$frame->packInfo();
@@ -115,6 +116,9 @@ sub remove_canvas {
   }
   return ($canvas,$brother_canvas);
 }
+BEGIN{
+*remove_canvas = \&remove_split;
+}
 
 sub canvas_destroy {
   my ($self)=@_;
@@ -140,47 +144,57 @@ sub frame_widget {
 }
 
 sub split_frame {
-  my ($self,$newc,$ori)=@_;
+  my ($self,$newc,$ori,$ratio)=@_;
 				# like hsplit_framed but work vertically
+  $ratio ||= 0.5;
+  $ratio = -$ratio if $ori eq 'horiz';
   my $c=$self->canvas();
   my $top=$c->toplevel;
   my $frame=$self->canvas_frame();
-  my $wd=$frame->width;
-  my $ht=$frame->height;
-  my ($side,$fill);
+  my $owd=$frame->width;
+  my $oht=$frame->height;
+  my ($side,$fill,$wd,$ht);
   if ($ori eq 'horiz') {
-    $ht=($ht-32)/2;
+    $ht=$oht*abs($ratio)-16;
+    $oht-=$ht+16;
+    $wd=$owd;
     $side='bottom';
     $fill='x';
   } else {
-    $wd=($wd-32)/2;
+    $wd=$owd*abs($ratio)-16;
+    $owd-=$wd+16;
+    $ht=$oht;
     $side='left';
     $fill='y';
   }
   my ($cf,$newcf,$sep);
 
   $c->packForget();
-  $c->configure(-width=>$wd, -height=>$ht);
+  $c->configure(-width=>$owd, -height=>$oht);
   $newc->configure(-width=>$wd, -height=>$ht);
 
-  $c->GeometryRequest($wd,$ht);
+  $c->GeometryRequest($owd,$oht);
   $cf=$self->frame_widget($c,[],[qw(-side left)]);
 
   $newc->GeometryRequest($wd,$ht);
   $newcf=$self->frame_widget($newc,[],[qw(-side left)]);
-
-  if ($ori eq 'horiz') {
+  if ($ratio<0) {
     # SWAPPING the pack order
     my $swap=$cf;
     $cf=$newcf;
     $newcf=$swap;
   }
+
   $sep=$top->Separator(-widget1=>$cf,
 		       -widget2=>$newcf,
-		       -orientation=>$ori);
+		       -orientation=>$ori,
+		      );
+  $sep->configure(-side =>'bottom');
+
   $cf->pack(-in => $frame, -side => $side, qw(-expand yes -fill both));
   $sep->pack(-in => $frame, -side => $side,  -fill => $fill, qw(-expand no));
   $newcf->pack(-in => $frame, -side => $side, qw(-expand yes -fill both));
+  $newc->GeometryRequest($wd,$ht);
 }
 
 
