@@ -171,8 +171,9 @@ sub Populate
 
  my $cs = $w->ConfigSpecs(-widget1 => ['PASSIVE','widget1','Widget1',$w->Parent],
 			  -widget2 => ['PASSIVE','widget1','Widget2',$w->Parent],
-                 -orientation  => ['PASSIVE','orientation','Orientation','horiz'],
 		 -side  => ['METHOD','side','Side','top'],
+                 -orientation  => ['PASSIVE','orientation','Orientation','horiz'],
+
                  -delay      => ['PASSIVE','delay','Delay', 1],
                  -background => [['SELF',$w->{'sep'},$w->{'but'}],'background','Background',undef],
                  -foreground => [Tk::Configure->new($w->{'lin'},'-background'),'foreground','Foreground','black'],
@@ -184,8 +185,7 @@ sub Populate
 sub side
 {
  my ($w,$val) = @_;
- if (@_ > 1)
-  {
+ if (@_ > 1) {
    $w->{'side'} = $val;
    my $cursor;
    if ($w->vert)
@@ -203,7 +203,7 @@ sub side
     {
      $x->configure(-cursor => $cursor);
     }
-  }
+ }
  return $w->{'side'};
 }
 
