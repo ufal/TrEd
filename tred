@@ -2523,45 +2523,51 @@ sub toggleSidePanel {
   my ($grp)=@_;
   if ($showSidePanel) {
     unless ($grp->{attrsViewFrame}) {
-      $grp->{attrsViewFrame}=$grp->{top}->Frame();
-      $grp->{attrsView}=$grp->{attrsViewFrame}->TrEdNodeEditDlg(
-	{object=>undef,
-	 dialog => $grp->{attrsViewFrame},
-	 no_show=>1,
-	 search_field => 0,
-	 TrEdNodeEdit=>{
-	   -takefocus=>0,
-	   -font => 'C_small',
-	 },
-	 enable_callback => sub{ 0 },
-	 no_focus => 1,
-       });
-    }
-    unless ($grp->{attrViewAdjuster}) {
-      $grp->{attrsViewAdjuster}=$grp->{bodyFrame}->Adjuster(
-	-side=>'left',
-	-restore => 1,
+      $grp->{attrsViewFrame}=$grp->{top}->Frame( 
+	-relief => 'sunken',
+	-borderwidth => 2,
        );
+      $grp->{attrsView}=$grp->{attrsViewFrame}->TrEdNodeEditDlg({
+	object=>undef,
+	dialog => $grp->{attrsViewFrame},
+	no_show=>1,
+	search_field => 0,
+	TrEdNodeEdit=>{
+	  -takefocus=>0,
+	  -font => 'C_small',
+	  -borderwidth => 1,
+	  -selectborderwidth=>1,
+	  -scrollbars=>'osoe',
+	  -itemstyle => {
+	    -pady=>1,
+	    -padx=>1,
+	  },
+	  -colors => {
+	    bg => '#efefef',
+	    constant => 'white',
+	  },
+	 },
+	enable_callback => sub{ 0 },
+	no_focus => 1,
+      });
     }
-    unless ($grp->{attrsViewPacked}) {
+    unless ($grp->{attrViewPacked}) {
       $grp->{attrsViewPacked}=1;
-      $grp->{attrsViewFrame}->pack(-in => $grp->{bodyFrame},
-				   -side => 'left',
-				   -fill => 'both',
-				   -expand => 1,
-				  );
-      $grp->{attrsViewAdjuster}->packAfter(
+      my ($other)=$grp->{bodyFrame}->packSlaves;
+      ($other)=$other->packSlaves;
+      TrEd::Window->splitPack(
+	$other,
 	$grp->{attrsViewFrame},
-	-side => 'left',
-	-fill=>'y');
+	'vert',
+	-0.2
+      );
     }
-    #$grp->{treeWindows}->[0]->split_frame( $grp->{attrsViewFrame},'vert',-0.25 );
     update_attribute_view($grp->{focusedWindow});
   } else {
     if ($grp->{attrsViewFrame}){
       $grp->{attrsView}->empty();
-      $grp->{attrsViewAdjuster}->packForget(1);
-      $grp->{attrsViewPacked}=0;
+      TrEd::Window->remove_split($grp->{attrsViewFrame});
+      $grp->{attrsViewPacked}=undef;
     }
   }
 }
@@ -2569,13 +2575,15 @@ sub toggleSidePanel {
 sub update_status_info {
   my ($win)=@_;
   update_status_line($win);
-  update_attribute_view($win);
+  $win->toplevel->afterIdle(sub{
+			      update_attribute_view($win);
+			    });
 
 }
 sub update_attribute_view {
   my ($grp,$win) = grp_win($_[0]);
   my $view = $grp->{attrsView};
-  return unless $view and $showSidePanel;
+  return unless $view and $grp->{attrsViewPacked};
   my $current = $win->{currentNode};
   $view->set_data({
     type => $current && $current->type,
@@ -5009,7 +5017,7 @@ sub removeWindow {
       delete $grp->{focusedWindow};
       focusCanvas($brother,$grp);
     }
-    $win->treeView=undef;
+    $win->{treeView}=undef;
     undef $win;
   }
 }
@@ -6307,14 +6315,16 @@ sub startMain {
   $group{vLineSeparator}->packAfter($group{vLineFrame},-side => 'top');
 
   $group{bodyFrame}=$top->Frame();
-  $group{bodyFrame}->pack(qw/-fill both -expand yes/);
-  $group{bottomFrame}->pack(qw/-pady 2 -side bottom -fill x -expand no/);
-
-  # frame canvas here
   $group{focusedWindow}->frame_widget($canvas,[],
 				      [qw/-side left/])
     ->pack(qw/-expand yes -fill both/,
-	   -in => $group{bodyFrame}, -side=>'right');
+	   -in => $group{bodyFrame},
+	   -side=>'right');
+
+  $group{bottomFrame}->pack(qw/-pady 2 -side bottom -fill x -expand no/);
+  $group{bodyFrame}->pack(qw/-fill both -expand yes/);
+
+  # frame canvas here
   
 #  $group{sLineFrame}->pack(qw/-fill x -expand yes/);
 
@@ -6565,24 +6575,31 @@ sub saveRuntimeConfig {
   # Save configuration
   print STDERR "Saving some configuration options.\n" if $tredDebug;
   my @conf;
-  my $comment = ';; Options changed by TrEd on every close (DO NOT EDIT)';
-  my $ommit="canvasheight|canvaswidth|recentfile[0-9]+|geometry|lastaction|filelist[0-9]+";
   if (open(F,"<$configFile")) {
-    @conf= grep { !/^\s*(?:\Q$comment\E|(?:$ommit)\s*=)/io } <F>;
+    @conf=<F>;
     close(F);
   }
-  pop @conf while $conf[$#conf] =~ /^\s*$/;
-  push @conf, "\n",$comment."\n";
+  updateRuntimeConfig($grp,\@conf);
+  saveConfig($grp,@conf);
+}
+sub updateRuntimeConfig {
+  my ($grp,$conf)=@_;
+  my $comment = ';; Options changed by TrEd on every close (DO NOT EDIT)';
+  my $ommit="canvasheight|canvaswidth|recentfile[0-9]+|geometry|showsidepanel|lastaction|filelist[0-9]+";
+  @$conf = grep { !/^\s*(?:\Q$comment\E|(?:$ommit)\s*=)/io } @$conf;
+  pop @$conf while $conf->[-1] =~ /^\s*$/;
+  push @$conf, "\n",$comment."\n";
   #  $geometry=~s/^[0-9]+x[0-9]+//;
   if ($grp->{lastActionBookmark}) {
     my $s = $grp->{lastActionBookmark};
     $s=~s/\\/\\\\/g;
-    push @conf,"LastAction\t=\t".$s."\n";
+    push @$conf,"LastAction\t=\t".$s."\n";
   }
   do {
     my $s;
-    push @conf,
+    push @$conf,
       "Geometry\t=\t".$geometry."\n",
+      "ShowSidePanel\t=\t".$showSidePanel."\n",
       "CanvasHeight\t=\t".$defCHeight."\n",
       "CanvasWidth\t=\t".$defCWidth."\n",
 	map { 
@@ -6597,12 +6614,11 @@ sub saveRuntimeConfig {
 	$_->save;
 	$s=$_->filename();
 	$s=~s/\\/\\\\/g;
-	push @conf,"filelist".$i++."\t\t=\t".$s."\n";
+	push @$conf,"filelist".$i++."\t\t=\t".$s."\n";
       }
     }
   };
-  chomp $conf[$#conf];
-  saveConfig($grp,@conf);
+  chomp $conf->[-1];
 }
 
 sub _do_goto_tree {
@@ -7295,9 +7311,9 @@ sub editConfig {
   $d->bind('<Destroy>'=> [sub { shift; shift->{configDialog}=undef; },$grp ]);
   $d->bind($d,'<Escape>'=> [sub { shift; shift->destroy(); },$d]);
   if (open(F,"<$configFile")) {
-    my $conf = join EMPTY,<F>;
-    chomp $conf;
-    $t->insert('0.0',$conf."\n");
+    my @conf = <F>;
+    updateRuntimeConfig($grp,\@conf);
+    $t->insert('0.0',join(EMPTY,@conf)."\n");
     close(F);
   }
   $t->mark(qw/set insert 0.0/);
@@ -9845,7 +9861,8 @@ sub currentDown {
 sub currentUp {
   my $grp=$_[0];
   my $win=$grp->{focusedWindow};
-  my $node = $win->{currentNode}->parent;
+  my $node = $win->{currentNode};
+  $node = $node && $node->parent;
   while ($node and !$win->treeView->node_is_displayed($node)) {
     $node = $node->parent;
   }
