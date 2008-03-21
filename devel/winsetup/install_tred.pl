@@ -192,10 +192,9 @@ sub prev_page {
 			   )->pack(-fill => 'x',-padx=>10,-pady =>5 );
   }
 }
-
+my $finish_b;
 {
   my $name = "installation";
-  my $finish_b;
   my $page = $nb->add($name,
 		      -label => "Install",
 		      -state => 'disabled',
@@ -294,8 +293,13 @@ sub Fail {
 		  -icon => 'error',
 		  -message => join("\n", "Installation failed",@_)
 		 );
-  $mw->destroy;
-  exit;
+  if ($finish_b) {
+    $finish_b->configure(-state => 'normal');
+    die;
+  } else {
+    $mw->destroy;
+    exit;
+  }
 }
 
 
@@ -348,10 +352,17 @@ sub Install_PPM_Modules {
     }};
     Log("done.\n");
     chomp @features;
-    my @packages = $ppm->packages_missing( want => [map { [$_ => undef] } @features] );
+    my @best= grep { defined } map { $ppm->package_best($_,0) } @features;
+    for (@best) {
+      Log("best ".$_->name_version."\n");
+    }
+    my @packages = $ppm->packages_missing( want => [map { [$_,0] } @features] );
+    for (@packages) {
+      Log("pkg ".$_->name_version."\n");
+    }
     if (@packages) {
-      my $what = @packages > 1 ? (@packages . " packages") : "package";
-      my $activity = ppm_status("begin", "Installing PPM $what");
+      my $what = @packages > 1 ? (@packages . " PPM packages") : " PPM package";
+      my $activity = ppm_status("begin", "Installing $what");
       eval {
 	$ppm->install(packages => \@packages ); # force => 1 
       };
@@ -365,6 +376,39 @@ sub Install_PPM_Modules {
     } else {
       Log("No packages to install.\n");
     }
+    Log("Finding packages for upgrade...");
+    @packages=();
+    for my $best (@best) {
+      for my $area_name ($ppm->areas) {
+	my $area = $ppm->area($area_name);
+	my $name=$best->name;
+	my $pkg = $area->package($name);
+	if ($pkg and
+	    $pkg->name eq $name and
+	    $pkg->version ne $best->version and
+	    $best->better_than($pkg)) {
+	  Log("upgrade $name\n");
+	  push @packages,$best;
+	}
+      }
+    }
+    if (@packages) {
+      my $what = @packages > 1 ? (@packages . " PPM packages") : " PPM package";
+      my $activity = ppm_status("begin", "Upgrading $what");
+      eval {
+	$ppm->install(packages => \@packages );
+      };
+      if ($@) {
+	Log("\nERROR:",$@,"\n");
+	$activity->end('fail');
+	$fail=1;
+      } else {
+	$activity->end;
+      }
+    } else {
+      Log("No packages to upgrade.\n");
+    }
+
   };
   if ($@) {
     Log("\nERROR:",$@,"\n");
