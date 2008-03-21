@@ -1388,6 +1388,9 @@ sub loadFile {
     $status->{ok} = @warnings ? -1 : 1;
   } else {
     $status->{ok} = 0;
+    if (ref($fsfile) and !$allow_no_trees and $Fslib::FSError==0) {
+      $status->{error} = "No trees found in this file; if it is ok, try --allow-no-trees.";
+    }
     $status->{report} .= "ERROR(s): ".$status->{error}."\n";
   }
   if (@warnings) {
