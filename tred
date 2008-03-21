@@ -81,6 +81,7 @@ use Tk::Pane;
 use Tk::Dialog;
 use Tk::Font;
 use Tk::Scale;
+use Tk::Adjuster;
 
 
 {
@@ -1004,7 +1005,7 @@ sub ApplyGlobalConfig {
 				);
   };
   update_value_line($grp);
-  update_status_line($grp->{focusedWindow});
+  update_status_info($grp->{focusedWindow});
   print STDERR $@ if $@;
   update_treeviews($grp);
   $grp->{top}->afterCancel($grp->{autoSaveCallback});
@@ -2518,6 +2519,69 @@ sub set_value_line {
   return $v;
 }
 
+sub toggleSidePanel {
+  my ($grp)=@_;
+  if ($showSidePanel) {
+    unless ($grp->{attrsViewFrame}) {
+      $grp->{attrsViewFrame}=$grp->{top}->Frame();
+      $grp->{attrsView}=$grp->{attrsViewFrame}->TrEdNodeEditDlg(
+	{object=>undef,
+	 dialog => $grp->{attrsViewFrame},
+	 no_show=>1,
+	 search_field => 0,
+	 TrEdNodeEdit=>{
+	   -takefocus=>0,
+	   -font => 'C_small',
+	 },
+	 enable_callback => sub{ 0 },
+	 no_focus => 1,
+       });
+    }
+    unless ($grp->{attrViewAdjuster}) {
+      $grp->{attrsViewAdjuster}=$grp->{bodyFrame}->Adjuster(
+	-side=>'left',
+	-restore => 1,
+       );
+    }
+    unless ($grp->{attrsViewPacked}) {
+      $grp->{attrsViewPacked}=1;
+      $grp->{attrsViewFrame}->pack(-in => $grp->{bodyFrame},
+				   -side => 'left',
+				   -fill => 'both',
+				   -expand => 1,
+				  );
+      $grp->{attrsViewAdjuster}->packAfter(
+	$grp->{attrsViewFrame},
+	-side => 'left',
+	-fill=>'y');
+    }
+    #$grp->{treeWindows}->[0]->split_frame( $grp->{attrsViewFrame},'vert',-0.25 );
+    update_attribute_view($grp->{focusedWindow});
+  } else {
+    if ($grp->{attrsViewFrame}){
+      $grp->{attrsView}->empty();
+      $grp->{attrsViewAdjuster}->packForget(1);
+      $grp->{attrsViewPacked}=0;
+    }
+  }
+}
+
+sub update_status_info {
+  my ($win)=@_;
+  update_status_line($win);
+  update_attribute_view($win);
+
+}
+sub update_attribute_view {
+  my ($grp,$win) = grp_win($_[0]);
+  my $view = $grp->{attrsView};
+  return unless $view and $showSidePanel;
+  my $current = $win->{currentNode};
+  $view->set_data({
+    type => $current && $current->type,
+    object => $current,
+  });
+}
 sub update_status_line {
   my ($win)=@_;
   return unless $win;
@@ -4681,11 +4745,7 @@ sub onCurrentChange {
       }
     };
     doEvalHook($win,"current_node_change_hook",$node,$prev) unless $insideEval;
-    update_status_line($win);
-    ## EXPERIMENT WITH PERSISTENT NODE EDITOR
-    #    if ($win->{framegroup}->{attrsEditor}) {
-    #      editAttrsDialog_schema($win,$node)
-    #    }
+    update_status_info($win);
   }
 }
 
@@ -4898,7 +4958,7 @@ sub focusCanvas {
     $treeViewOpts->{highlightAttributes}=$newfocus->{treeView}->get_highlightAttributes;
     $grp->{focusedWindow}=$newfocus;
     update_value_line($grp);
-    update_status_line($grp->{focusedWindow});
+    update_status_info($grp->{focusedWindow});
     update_value_line_current($newfocus,$newfocus->{currentNode});
     updateTitle($grp);
     updateScaleFactor($grp);
@@ -5580,6 +5640,9 @@ sub startMain {
 	  -command=> [\&splitWindow,\%group,'horiz']],
 	 [Button=> "[3] Split view vertically", -underline=> 1,
 	  -command=> [\&splitWindow,\%group,'vert']],
+	 [Checkbutton=> '[4] Side panel', -underline=> 1,
+	  -variable=> \$showSidePanel,
+	  -command => [\&toggleSidePanel,\%group]],
 	 [Separator=> EMPTY],
 	 [Button=> 'List of sentences ...', -underline=> 8,
 	  -command=> [\&viewSentences,\%group]],
@@ -5838,9 +5901,6 @@ sub startMain {
   $group{ContextsMenuLabel}=$group{MenubarFrame}->Label(-text=>'Context:',-underline=>5)->pack(qw/-side right/);
   $group{Balloon}->attach($group{ContextsMenu}, -balloonmsg=> "macro context");
 
-
-
-  require Tk::Adjuster;
   $group{vLineFrame}=$top->Frame();
   $group{valueLine}=
     $group{vLineFrame}->
@@ -6235,12 +6295,16 @@ sub startMain {
 
   $group{vLineSeparator}->packAfter($group{vLineFrame},-side => 'top');
 
+  $group{bodyFrame}=$top->Frame();
+  $group{bodyFrame}->pack(qw/-fill both -expand yes/);
   $group{bottomFrame}->pack(qw/-pady 2 -side bottom -fill x -expand no/);
-
 
   # frame canvas here
   $group{focusedWindow}->frame_widget($canvas,[],
-				      [qw/-side left/])->pack(qw/-expand yes -fill both/);
+				      [qw/-side left/])
+    ->pack(qw/-expand yes -fill both/,
+	   -in => $group{bodyFrame}, -side=>'right');
+  
 #  $group{sLineFrame}->pack(qw/-fill x -expand yes/);
 
   print STDERR "Binding keystrokes...\n" if $tredDebug;
@@ -6381,6 +6445,7 @@ sub startMain {
   $group{selectedStylesheet}=$stylesheet;
   applyWindowStylesheet($group{focusedWindow},$stylesheet);
 
+  toggleSidePanel(\%group);
   if ($opt_p) {
     my $dir=$opt_p>0 ? 'vert' : 'horiz';
     for (my $i=1;$i<abs($opt_p);$i++) {
@@ -7937,18 +8002,6 @@ sub focusxFind {
   }
 }
 
-#######
-# EXPERIMENT WITH PERSISTENT ATTR DIALOG
-# sub updateAttrDialog {
-#   my ($grp) = @_;
-#   if ($grp->{updateAttrDialog} and $grp->{attrsEditor}) {
-#     $grp->{attrsEditor}->delete('all');
-#     $grp->{attrsEditor}->add_members(@{$grp->{updateAttrDialog}});
-#     $grp->{attrsEditor}->update();
-#     delete $grp->{updateAttrDialog};
-#   }
-# }
-######
 
 sub determineNodeType {
   my ($win,$node)=@_;
@@ -9467,7 +9520,7 @@ sub redraw_win {
     saveFileStateUpdate($win);
     resetUndoStatus($win);
     resetTreePosStatus($win->{framegroup});
-    update_status_line($win);
+    update_status_info($win);
   }
   #------------------------------------------------------------
   #{
@@ -10143,7 +10196,7 @@ sub evalMacro {
   if (defined $macro) {
     $grp->{statusLineText}="$key" if $tredDebug;
     $grp->{statusLineText}.=", $macro" if $tredDebug;
-    update_status_line($win) if $tredDebug;
+    update_status_info($win) if $tredDebug;
 #    use Benchmark;
 #    my $t0= new Benchmark;
 #    # ... your code here ...
@@ -10157,7 +10210,7 @@ sub evalMacro {
     return 1;
   } else {
     $grp->{statusLineText}=$key if $tredDebug; #"$prefix$K" if $tredDebug;
-    update_status_line($win) if $tredDebug;
+    update_status_info($win) if $tredDebug;
   }
   return undef;
 }
