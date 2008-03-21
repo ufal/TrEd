@@ -98,6 +98,7 @@ BEGIN {
   $userConf
   $ioBackends
   $htmlBrowser
+  $showSidePanel
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
 
@@ -540,6 +541,7 @@ sub set_config {
   $defCWidth		      =	val_or_def($confs,"canvaswidth",'18c');
   $defCHeight		      =	val_or_def($confs,"canvasheight",'12c');
   $geometry		      =	val_or_def($confs,"geometry",undef);
+  $showSidePanel              =	val_or_def($confs,"showsidepanel",undef);
   $maxDisplayedValues	      =	val_or_def($confs,"maxdisplayedvalues",25);
   $maxDisplayedAttributes     =	val_or_def($confs,"maxdisplayedattributes",20);
   $lastAction		      =	val_or_def($confs,"lastaction",undef);
