@@ -281,7 +281,7 @@ sub delta_width
 {
  my ($w,$dx) = @_;
  my $l = $w->{'lin'};
- $l->placeForget;
+ $l->placeForget if $l;
  my $s = $w->slave1;
  my $s2 = $w->slave2;
  if ($s)
@@ -343,7 +343,7 @@ sub delta_height
 {
  my ($w,$dy) = @_;
  my $l = $w->{'lin'};
- $l->placeForget;
+ $l->placeForget if $l;
  my $s = $w->slave1;
  my $s2 = $w->slave2;
  if ($s)
