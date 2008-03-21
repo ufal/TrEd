@@ -29,6 +29,11 @@ sub AUTOLOAD {
   }
 }
 
+sub DESTROY {
+  my ($self)=@_;
+  undef $self->{treeView};
+}
+
 sub toplevel {
   my ($self)=@_;
   return $self->canvas()->toplevel();
