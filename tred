@@ -976,9 +976,12 @@ sub ApplyGlobalConfig {
 
   my $bg = $treeViewOpts->{backgroundColor} || 'white';
   my $bgoff = $treeViewOpts->{backgroundColorNofocus} || $bg; #'#fbfbfb';
-  @normal_win_opts = (qw/-relief flat -borderwidth 0 -highlightthickness 0 /,
-		      -background => $bgoff);
-  @focused_win_opts = (qw/-relief flat/,
+  @normal_win_opts = (qw/-relief flat -borderwidth 0/,
+		      -background => $bgoff,
+		      -highlightbackground => $bgoff,
+		      -highlightthickness  => $highlightWindowWidth, # must be the same as below
+		     );
+  @focused_win_opts = (qw/-relief flat -borderwidth 0/,
 		       -highlightthickness  => $highlightWindowWidth,
 		       -highlightbackground => $highlightWindowColor,
 		       -bg => $bg
@@ -1886,6 +1889,9 @@ sub loadFile {
     $status->{ok} = @warnings ? -1 : 1;
   } else {
     $status->{ok} = 0;
+    if (ref($fsfile) and $Fslib::FSError==0) {
+      $status->{error} = "No trees found in this file.";
+    }
     $status->{report} .= "ERRORS:\n\n".$status->{error}."\n";
   }
   if (@warnings) {
@@ -2133,14 +2139,16 @@ sub openFile {
   # add file to filelist
   updateTitle($grp) unless $opts{-preload};
 
-  applyFileSuffix($win,$goto) unless $opts{-preload};
+  unless ($opts{-preload}) {
+    applyFileSuffix($win,$goto);
+    get_nodes_win($win,1); # for the hook below
+  }
   $win->{redrawn}=0; # if redraw is called during the hook, we will know it
   doEvalHook($win,"file_opened_hook") if ($fsfile and !$opts{-nohook});
   unless ($opts{-preload}) {
     switchContext($win,$opt_t,1)
       if ($opt_t ne EMPTY and
 	    $win->{macroContext} ne $opt_t);
-    get_nodes_win($win,$opts{-noredraw});
     unless ($opts{-noredraw}) {
       redraw_win($win) unless $win->{redrawn};
       centerTo($win,$win->{currentNode});
@@ -2523,15 +2531,35 @@ sub toggleSidePanel {
   my ($grp)=@_;
   if ($showSidePanel) {
     unless ($grp->{attrsViewFrame}) {
-      $grp->{attrsViewFrame}=$grp->{top}->Frame( 
+      $grp->{attrsViewFrame}=$grp->{top}->Frame(
 	-relief => 'sunken',
 	-borderwidth => 2,
        );
+      my $cb = $grp->{attrsViewFrame}->Checkbutton(
+	-text => 'Hide empty values',
+	-underline => 2,
+	-relief => 'flat',
+	-anchor=>'nw',
+	-justify => 'left',
+	-command => sub {
+	if ($grp->{attrsViewPacked}) {
+	  update_attribute_view($grp->{focusedWindow});
+	}
+      })->pack(-side=>'top',-fill=>'x');
+      $grp->{frame}->bind('my',"<Alt-d>", sub{
+			  if ($grp->{attrsView} and $grp->{attrsViewPacked}) {
+			    $grp->{attrsView}->Subwidget('scrolled')->{userdata}{hide_empty}=
+			      !$grp->{attrsView}->Subwidget('scrolled')->{userdata}{hide_empty};
+			    update_attribute_view($grp->{focusedWindow});
+			    Tk->break;
+			  }
+			});
       $grp->{attrsView}=$grp->{attrsViewFrame}->TrEdNodeEditDlg({
 	object=>undef,
 	dialog => $grp->{attrsViewFrame},
 	no_show=>1,
 	search_field => 0,
+	hide_empty => 1,
 	TrEdNodeEdit=>{
 	  -takefocus=>0,
 	  -font => 'C_small',
@@ -2550,8 +2578,9 @@ sub toggleSidePanel {
 	enable_callback => sub{ 0 },
 	no_focus => 1,
       });
+      $cb->configure(-variable => \$grp->{attrsView}->Subwidget('scrolled')->{userdata}{hide_empty});
     }
-    unless ($grp->{attrViewPacked}) {
+    unless ($grp->{attrsViewPacked}) {
       $grp->{attrsViewPacked}=1;
       my ($other)=$grp->{bodyFrame}->packSlaves;
       ($other)=$other->packSlaves;
@@ -2646,8 +2675,10 @@ sub update_value_line {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow}; # only focused window uses the value line
   update_tree_pos($grp);
-  return set_value_line($grp,get_value_line($win,$win->{FSFile},
+  my $vl = set_value_line($grp,get_value_line($win,$win->{FSFile},
 					    $win->{treeNo},1,1));
+  update_value_line_current($win,$win->{currentNode});
+  return $vl;
 }
 
 ### Get Nodes
@@ -4993,9 +5024,11 @@ sub splitWindow {
   my $twin     = newTrEdWindow($grp);
   my $canvas=$twin->canvas();
   $canvas->configure(@normal_win_opts);
-  $grp->{focusedWindow}->split_frame($canvas,$dir);
+  my $win = $grp->{focusedWindow};
+  return unless $win;
+  $win->split_frame($canvas,$dir);
   foreach (qw(FSFile treeNo currentNode currentFileNo macroContext currentFilelist)) {
-    $twin->{$_}=$grp->{focusedWindow}->{$_};
+    $twin->{$_}=$win->{$_};
   }
   applyWindowStylesheet($twin,$grp->{selectedStylesheet});
   get_nodes_win($twin);
