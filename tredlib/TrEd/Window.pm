@@ -144,16 +144,19 @@ sub frame_widget {
 }
 
 sub split_frame {
-  my ($self,$newc,$ori,$ratio)=@_;
-				# like hsplit_framed but work vertically
-  $ratio ||= 0.5;
-  $ratio = -$ratio if $ori eq 'horiz';
-  my $c=$self->canvas();
+  my $self = shift;
+  $self->splitPack($self->canvas(),@_);
+}
+
+sub splitPack {
+  my ($self,$c,$newc,$ori,$ratio)=@_;
+  my $frame=$self->canvas_frame($c);
   my $top=$c->toplevel;
-  my $frame=$self->canvas_frame();
   my $owd=$frame->width;
   my $oht=$frame->height;
   my ($side,$fill,$wd,$ht);
+  $ratio ||= 0.5;
+  $ratio = -$ratio if $ori eq 'horiz';
   if ($ori eq 'horiz') {
     $ht=$oht*abs($ratio)-16;
     $oht-=$ht+16;
@@ -194,7 +197,13 @@ sub split_frame {
   $cf->pack(-in => $frame, -side => $side, qw(-expand yes -fill both));
   $sep->pack(-in => $frame, -side => $side,  -fill => $fill, qw(-expand no));
   $newcf->pack(-in => $frame, -side => $side, qw(-expand yes -fill both));
-  $newc->GeometryRequest($wd,$ht);
+  $frame->update; # pack first
+  if ($ori eq 'horiz') {
+    $sep->delta_height($ht-$newc->height);
+  } else {
+    $sep->delta_width($wd-$newc->width);
+  }
+  return $sep;
 }
 
 
