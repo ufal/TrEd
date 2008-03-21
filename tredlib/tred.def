@@ -7,6 +7,7 @@ package TredMacro;
 use Exporter;
 use Fslib;
 use TrEd::MinMax qw(first max maxstr min minstr reduce sum);
+BEGIN { require TrEd::Macros; }
 use base qw(main Exporter);
 use Carp;
 use vars qw(@FORCE_EXPORT);
@@ -27,40 +28,6 @@ sub _croak {
   my ($pkg, $file, $line) = caller(1);
   die join('',@_).' at '.$file.' line '.$line."\n";
 }
-
-sub Bind {
-  require TrEd::Macros;
-  while (@_) {
-    my $macro = shift;
-    my $bind=shift;
-    croak("undefined binding for macro $macro") unless defined $bind;
-    my ($caller)=caller;
-    if (ref($bind) eq 'HASH') {
-      my $context  =$bind->{context}||$caller;
-      if (exists $bind->{changing_file}) {
-	my $changes_file = $bind->{changing_file};
-	my $old_macro=$macro;
-	$macro = sub {
-	  $context->$old_macro();
-	  ChangingFile($changes_file);
-	}
-      }
-      if ($bind->{key}) {
-	TrEd::Macros::bind_key($context,$bind->{key},$macro);
-      }
-      if ($bind->{menu}) {
-	TrEd::Macros::add_to_menu($context,$bind->{menu},$macro);
-      }
-    } else {
-      TrEd::Macros::bind_key($caller,$bind,$macro);
-    }
-  }
-}
-# sub AddMenu {
-#   my ($label,$macro)=@_;
-#   my ($caller)=caller;
-#   TrEd::Macros::add_to_menu($caller,$label,$macro);
-# }
 
 =pod
 
@@ -1587,6 +1554,97 @@ sub ListRegroupElements {
 
 =over 4
 
+=cut
+
+=item C<Bind( macro => bind-options,...)>
+
+This macro can be used to dynamically create keyboard bindings and
+menu items for user-defined macros in TrEd. The arguments consist of
+one or more (macro => bind-options ) pairs
+where macro is a subroutine name or a CODE reference and
+bind-options is either a keyboard shortcut (e.g. 'Ctrl+a') or a HASH references
+with the following keys and values (all optional):
+
+=over 8
+
+=item context
+
+the binding context, e.g. the package in which context the macro is
+evaluated. Only relevant if the macro is specified by name. If not
+given, the caller package is used.
+
+=item key
+
+a keyboard binding for the macro (e.g. 'Ctrl+a'); if not given, no
+keyboard binding is created.
+
+=item menu
+
+a label to be used for a menu-item created for the macro. If not
+given, no menu-item is created for the macro.
+
+=item changing_file
+
+if the key C<changing_file> exists in the bind-options hash and its
+value is I<value>, a call to the macro C<<<ChangignFile(I<value>)>>>
+is made immediatelly after each invocation of the macro via this
+binding.
+
+=back
+
+=cut
+
+sub Bind {
+#ifdef TRED
+  while (@_) {
+    my $macro = shift;
+    my $bind=shift;
+    my ($caller)=caller;
+    if (ref($bind) eq 'HASH') {
+      my $context  =$bind->{context}||$caller;
+      if (exists $bind->{changing_file}) {
+	my $changes_file = $bind->{changing_file};
+	my $old_macro=$macro;
+	if (ref($old_macro) eq 'CODE') {
+	  $macro = sub {
+	    &$old_macro();
+	    ChangingFile($changes_file);
+	  }
+	} else {
+	  $macro = sub {
+	    $context->$old_macro();
+	    ChangingFile($changes_file);
+	  }
+	}
+      }
+      if ($bind->{key}) {
+	TrEd::Macros::bind_key($context,$bind->{key},$macro);
+      }
+      if ($bind->{menu}) {
+	TrEd::Macros::add_to_menu($context,$bind->{menu},$macro);
+      }
+    } elsif(defined($bind) and !ref($bind)) {
+      TrEd::Macros::bind_key($caller,$bind,$macro);
+    } else {
+      croak("Usage: Bind(macro => string|hash-ref, ...)");
+    }
+  }
+#endif TRED
+}
+
+=item C<GUI()>
+
+Return a reference if running from TrEd, i.e., GUI is available;
+otherwise return C<undef>. If running from TrEd the returned value is
+a TrEd::Window object representing the currently focused window.
+
+=cut
+
+
+sub GUI {
+  return (ref($grp) eq 'TrEd::Window') ? $grp : undef;
+}
+
 =item C<CloseGUI()>
 
 This macro is only available in TrEd. It closes TrEd's main window and
@@ -1602,20 +1660,6 @@ sub CloseGUI {
     $Redraw='none';
     ChangingFile(0);
   }
-}
-
-
-=item C<GUI()>
-
-Return a reference if running from TrEd, i.e., GUI is available;
-otherwise return C<undef>. If running from TrEd the returned value is
-a TrEd::Window object representing the currently focused window.
-
-=cut
-
-
-sub GUI {
-  return (ref($grp) eq 'TrEd::Window') ? $grp : undef;
 }
 
 #ifdef TRED
@@ -3218,7 +3262,9 @@ sub Print {
     local $main::insideEval = 0;
     local $grp->{currentNode} = $this;
     local $grp->{root} = $root;
-
+    local $grp->{treeNo} = $grp->{treeNo};
+    local $win->{Nodes} = $win->{Nodes};
+    
     my $canvas=ToplevelFrame()->Canvas();
     $opts{-range}=CurrentTreeNumber()+1 if ($opts{-range} eq "");
 
@@ -3283,11 +3329,11 @@ sub Print {
 	 $main::treeViewOpts,
 	 $ss,
 	 $grp,
+	 [\&main::printGetNodesCallback,$grp]
 	);
 
     $TrEd::TreeView::on_get_root_style = undef;
     $TrEd::TreeView::on_get_node_style = undef;
-
 
     $canvas->destroy();
   } else {
