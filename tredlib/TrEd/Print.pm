@@ -3,6 +3,7 @@ use File::Spec;
 use TrEd::TreeView;
 use base qw(TrEd::TreeView);
 use Encode;
+use Carp;
 
 sub setFontMetrics {
   my ($self,$filename,$fontsize,$fontscale)=@_;
@@ -202,6 +203,26 @@ sub parse_print_list {
   return @printList;
 }
 
+sub get_nodes_callback {
+  my $callback = shift;
+  my $nodes;
+  if (!defined($callback)) {
+    my $treeView = shift;
+    ($nodes) = $treeView->nodes(@_);
+  } else {
+    my ($cb,@args);
+    if (ref($callback) eq 'ARRAY') {
+      ($cb,@args)=@$callback;
+    } elsif (ref($callback) eq 'CODE') {
+      $cb=$callback;
+    } else {
+      croak("the get_nodes_callback argument to TrEd::Print::print_trees must be a code-ref or an array\n");
+    }
+    ($nodes) = $cb->(@args,@_);
+  }
+  return $nodes;
+}
+
 sub print_trees {
   my ($fsfile,			# FSFile object
       $toplevel,		# Tk window to make busy when printing output
@@ -227,6 +248,7 @@ sub print_trees {
       $canvas_opts,		# color hash reference
       $stylesheet,
       $grp_ctx,
+      $get_nodes_callback,
      )=@_;
 
   return if (not defined($printRange));
@@ -341,7 +363,7 @@ sub print_trees {
 	$P->new_page();
 	do {
 	  $treeView->set_showHidden($show_hidden);
-	  my ($nodes) = $treeView->nodes($fsfile,$printList[$t]-1,undef);
+	  my $nodes = get_nodes_callback($get_nodes_callback,$treeView,$fsfile,$printList[$t]-1,undef);
 	  my $valtext;
 	  if (ref($snt) eq 'ARRAY') {
 	    $valtext = $snt->[$printList[$t]-1];
@@ -458,7 +480,7 @@ sub print_trees {
 	_msg("$infotext\n");
 	do {
 	  $treeView->set_showHidden($show_hidden);
-	  my ($nodes) = $treeView->nodes($fsfile,$printList[$t]-1,undef);
+	  my $nodes = get_nodes_callback($get_nodes_callback,$treeView,$fsfile,$printList[$t]-1,undef);
 	  my $valtext;
 	  if (ref($snt) eq 'ARRAY') {
 	    $valtext = $snt->[$printList[$t]-1];

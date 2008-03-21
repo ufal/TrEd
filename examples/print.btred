@@ -73,6 +73,25 @@ my %opts =
     __run_hook(undef,$win,"switch_stylesheet_hook",$prevstylesheet,$stylesheet);
     return 1;
   }
+  sub printGetNodesCallback { # called from print_trees
+    my ($win,$treeview,$fsfile,$tree_no,$current)=@_;
+    local $TrEd::TreeView::on_get_nodes = [\&onGetNodes,$win];
+    $win->{treeNo}=$tree_no;
+    $win->{root}=$fsfile->treeList->[$tree_no];
+    return (($win->{Nodes},$win->{currentNode}) = $treeview->nodes($fsfile,
+								   $tree_no,
+								   $current));
+  }
+  sub onGetNodes {
+    my ($treeview,$fsfile,$tree_no,$current,$win)=@_;
+    __run_hook($treeview,
+	       $win,
+	       "get_nodelist_hook",
+	       $fsfile,
+	       $tree_no,
+	       $current,
+	       $treeview->get_showHidden());
+  }
 }
 
 

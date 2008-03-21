@@ -4455,18 +4455,17 @@ sub printThis {
       $err = 1;
     }
   }} while ($err);
-  $range=$grp->{focusedWindow}->{treeNo}+1 if (!defined($range) or $range eq EMPTY);
+  $range=$win->{treeNo}+1 if (!defined($range) or $range eq EMPTY);
 
   my $stylesheet = $win->{stylesheet};
   my $ss = undef;
   if ($stylesheet ne STYLESHEET_FROM_FILE()) {
-    $ss=$win->{framegroup}->{stylesheets}->{$stylesheet};
+    $ss=$grp->{stylesheets}->{$stylesheet};
   }
-  local $TrEd::TreeView::on_get_nodes = [\&onGetNodes,$win];
   local $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
   local $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
   
-  my $fsfile = $grp->{focusedWindow}->{FSFile};
+  my $fsfile = $win->{FSFile};
   my @range = ($one_per_file ? TrEd::Print::parse_print_list($fsfile,$range) : ($range));
   my $max_num_length = $one_per_file ? max(map length, @range) : 0;
   for my $r (@range) {
@@ -4479,7 +4478,7 @@ sub printThis {
 			     $canvas,
 			     $r,
 			     @print_opts,
-			     $grp->{focusedWindow}->{treeView}->get_showHidden(),
+			     $win->{treeView}->get_showHidden(),
 			     {
 			       'PS' => $psFontFile,
 			       'AFM' => $psFontAFMFile,
@@ -4494,10 +4493,12 @@ sub printThis {
 			     $psMedia,
 			     $treeViewOpts,
 			     $ss,
-			     $grp->{focusedWindow},
+			     $win,
+			     [\&printGetNodesCallback,$win],
 			    );
   }
   errorMessage($win, $@) if $@;
+  get_nodes_win($win); # printGetNodesCallback have fiddled with $win
 ## uncomment to get preview (see also above)
 #  $canvas->pack();
 #  ShowDialog($dlg);
@@ -4648,6 +4649,16 @@ sub onGetNodes {
 	     $tree_no,
 	     $current,
 	     $treeview->get_showHidden());
+}
+
+sub printGetNodesCallback { # called from print_trees
+  my ($win,$treeview,$fsfile,$tree_no,$current)=@_;
+  local $TrEd::TreeView::on_get_nodes = [\&onGetNodes,$win];
+  $win->{treeNo}=$tree_no;
+  $win->{root}=$fsfile->treeList->[$tree_no];
+  return (($win->{Nodes},$win->{currentNode}) = $treeview->nodes($fsfile,
+								 $tree_no,
+								 $current));
 }
 
 sub onTreeChange {
@@ -7865,14 +7876,17 @@ sub dumpSentView {
 		 $no,0,1,0,$img_file,0,
 		 "$imageMagickConvert -density 75 - ".IOBackend::quote_filename($img_file),
 		 1,1,
-		 $grp->{focusedWindow}->{treeView}->get_showHidden(),
+		 $win->{treeView}->get_showHidden(),
 		 {
 		   'PS' => $psFontFile,
 		   'AFM' => $psFontAFMFile,
 		   'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$ttFont} : EMPTY),
 		   'Size' => $psFontSize,
 		 },
-		 0,0,0,0,0,'BBox',$treeViewOpts,$ss);
+		 0,0,0,0,0,'BBox',$treeViewOpts,$ss,
+		 $win,
+		 [\&printGetNodesCallback,$win],
+		);
 	  };
 	  $errors .= $@ if $@;
 
@@ -7885,6 +7899,7 @@ sub dumpSentView {
       }
     }
     closeSimpleHtml($html);
+    get_nodes_win($win); # printGetNodesCallback may have fiddled with $win
   }
   errorMessage($win,$errors) if defined $errors;
 

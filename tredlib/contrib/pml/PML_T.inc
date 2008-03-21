@@ -291,8 +291,11 @@ sub DrawCorefArrows {
   my (@coords,@colors,@dash,@tags);
   my ($rotate_prv_snt,$rotate_nxt_snt,$rotate_dfr_doc)=(0,0,0);
   my $ids={};
-  my $nd = $node->root; # $root can't be used here - think TrEd::Print!
-  while ($nd) { $ids->{$nd->{id}}=1 } continue { $nd=$nd->following };
+  #my $nd = $node->root; # $root can't be used here - think TrEd::Print!
+  #while ($nd) { $ids->{$nd->{id}}=1 } continue { $nd=$nd->following };
+  for my $nd (GetDisplayedNodes()) {
+    $ids->{$nd->{id}}=1
+  }
   foreach my $coref (@$corefs) {
     my $cortype=shift @$cortypes;
     if ($ids->{$coref}) { #index($coref,$id1)==0) {
