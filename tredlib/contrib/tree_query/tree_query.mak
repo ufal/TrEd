@@ -17,8 +17,10 @@
 # allow the user to mark the nodes with colours and recognize the
 # colored nodes in the result tree
 
-# - _#lbrothers
-# - _#rbrothers
+# - _#lbrothers   - works
+# - _#rbrothers   - does not yet work if relation is not 'parent'
+# - _#sons        - works
+# - _#descendants - works
 # - modify type of the default relation: parent/ancestor/effective_parent/...)
 #   (parent and ancestor implemented, TODO: effective_parent)
 # - additional relations to existing nodes (of any type except parent and possibly descendant)
@@ -61,6 +63,16 @@ Bind 'query_sql' => {
   menu => 'Query SQL server',
   changing_file => 0,
 };
+Bind 'get_dbi' => {
+  key => 'c',
+  menu => 'Connect to SQL server',
+  changing_file => 0,
+};
+Bind 'select_sql_configuration' => {
+  key => 's',
+  menu => 'Select SQL configuration',
+  changing_file => 0,
+};
 
 #include <contrib/support/extra_edit.inc>
 
@@ -93,11 +105,56 @@ EOF
   }
 }
 
-my $dbi_config;
+$TrEd::Preserve::dbi_config;
+my ($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown');
+my $default_pg_config = <<"EOF";
+  <driver>Pg</driver>
+  <host>localhost</host>
+  <port>5432</port>
+  <database>treebase</database>
+  <username>$userlogin</username>
+  <password></password>
+EOF
+my $default_oracle_config = <<"EOF";
+  <driver>Oracle</driver>
+  <host>euler.ms.mff.cuni.cz</host>
+  <port>1521</port>
+  <database>XE</database>
+  <username></username>
+  <password></password>
+EOF
+my $default_dbi_config = $default_oracle_config;
 my $dbi;
+
+sub limit {
+  my ($limit)=@_;
+  unless ($TrEd::Preserve::dbi_config) {
+    get_dbi();
+  }
+  my $driver = $TrEd::Preserve::dbi_config->get_root->{driver};
+  if ($driver eq 'Oracle') {
+    return 'AND ROWNUM<'.$limit;
+  } elsif ($driver eq 'Pg') {
+    return 'LIMIT '.$limit.';';
+  }
+}
+sub select_sql_configuration {
+  my $res = QuestionQuery('Select SQL connection',
+			  'Please select one of the following configurations',
+			  'PostgreSQL','Oracle','Cancel'
+			 );
+  if ($res eq 'PostgreSQL') {
+    $default_dbi_config = $default_pg_config;
+    undef $TrEd::Preserve::dbi_config;
+    get_dbi();
+  } elsif ($res eq 'Oracle') {
+    $default_dbi_config = $default_oracle_config;
+    undef $TrEd::Preserve::dbi_config;
+    get_dbi();
+  }
+}
 sub get_dbi {
-  my ($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown');
-  $dbi_config ||=
+  my $dbi_config = $TrEd::Preserve::dbi_config ||=
   PMLInstance->load({ string => <<"EOF" });
 <dbi xmlns="http://ufal.mff.cuni.cz/pdt/pml/">
   <head>
@@ -113,19 +170,14 @@ sub get_dbi {
      </structure></root>
     </pml_schema></schema>
   </head>
-  <driver>Pg</driver>
-  <host>localhost</host>
-  <port>5432</port>
-  <database>treebase</database>
-  <username>$userlogin</username>
-  <password></password>
+  $default_dbi_config
 </dbi>
 EOF
   my $cfg = $dbi_config->get_root;
   my $cfg_type = $dbi_config->get_schema->get_root_type;
   if (EditAttribute($cfg,'',$cfg_type,'password')) {
     $dbi = DBI->connect('dbi:'.$cfg->{driver}.':'.
-			"database=".$cfg->{database}.';'.
+			($cfg->{driver} eq 'Oracle' ? "sid=" : "database=").$cfg->{database}.';'.
 			"host=".$cfg->{host}.';'.
 			"port=".$cfg->{port},
 			$cfg->{username},
@@ -170,14 +222,16 @@ my $occurrences_strategy = SUB_QUERY;
 
 # serialize to SQL (or SQL fragment)
 sub serialize_conditions {
-  my ($node,$as_id)=@_;
+  my ($node,$as_id, $parent_as_id)=@_;
   if ($node->parent) {
-    my $sql =  serialize_element( 'and', $node->{conditions}, $as_id );
+    my $sql =  serialize_element( 'and', $node->{conditions}, $as_id, $parent_as_id );
+    print "$node=>$as_id => $sql\n";
     if ($occurrences_strategy == SUB_QUERY) {
-      my @occ_child = grep { defined $_->{occurrences} } $node->children;
+      my @occ_child = grep { length($_->{occurrences}) } $node->children;
       for my $child (@occ_child) {
 	my $occ = $child->{occurrences};
-	$sql .= " AND $occ=(".make_sql($child,0,1,$as_id).")";
+	$sql .= " AND " if length $sql;
+	$sql .= " $occ=(".make_sql($child,0,1,$as_id).")";
       }
     }
     return $sql;
@@ -219,7 +273,7 @@ sub make_sql {
     my $n = $tree;
     while ($n) {
       if ($n->parent) {
-	if (defined $n->{occurrences} and $n!=$tree) {
+	if (length($n->{occurrences}) and $n!=$tree) {
 	  $n = $n->following_right_or_up;
 	  next;
 	} else {
@@ -235,8 +289,6 @@ sub make_sql {
   my @join;
   my @where;
   my $table = 'a';
-
-
   for (my $i=0; $i<@nodes; $i++) {
     my $n = $nodes[$i];
     my $id = $id{$n};
@@ -247,13 +299,13 @@ sub make_sql {
       push @join," FROM $table $id ";
     } else {
       my $join;
+      push @join,'';
       if ($parent->parent) {
 	if ($n->{'relation'} eq 'ancestor') {
 	  $join.=qq{$id."root_idx"=$parent_id."root_idx" AND }.
-	    qq{$id."idx" BETWEEN $parent_id."l" AND $parent_id."r"};
+	    qq{$id."idx" BETWEEN $parent_id."idx" AND $parent_id."r"};
 	} elsif ($n->{'relation'} eq 'effective_parent') {
-	  # TODO
-	  # $join.=qq{$id."parent_idx"=$id{$n->parent}."idx"};
+	  $join .= qq{$id."root_idx"=n0."root_idx"};
 	} elsif ($n->{'relation'} eq 'parent' or
 		 $n->{'relation'} eq '') {
 	  $join.=qq{$id."parent_idx"=$id{$n->parent}."idx"};
@@ -264,15 +316,19 @@ sub make_sql {
 	}
       } else {
 	# what do we with _optional here?
-	$join .= "$id.root_idx=n0.root_idx";
+	$join .= qq{$id."root_idx"=n0."root_idx"};
       }
-      push @join, 
-	" JOIN $table $id ON ".$join.
-	  join('', (map { qq{ AND $id{$_}."idx" != ${id}."idx"} }
-		      grep { $_->parent == $n->parent }
+      $join.=
+	join('', (map { qq{ AND $id{$_}."idx" != ${id}."idx"} }
+		    grep { $_->parent == $n->parent }
 		      map { $nodes[$_] } 0..($i-1)));
+      $join[-1].= " JOIN $table $id ".(length($join) ? ' ON '.$join : q{});
+      if ($parent->parent and $n->{'relation'} eq 'effective_parent') {
+	$join[-1].=qq{ JOIN ${table}_eparents ${id}_e ON ${id}_e."idx"=${id}."idx"}.
+                   qq{ AND ${id}_e."eparent_idx"=$parent_id."idx"};
+      }
     }
-    my $where = Tree_Query::serialize_conditions($n,$id);
+    my $where = Tree_Query::serialize_conditions($n,$id,$parent_id);
     if ($n->{optional}) {
       if (length $where) {
 	$where = qq{(($where) OR $id."idx"=$parent_id."idx")};
@@ -303,7 +359,7 @@ sub make_sql {
 	  my $w = $where[$_];
 	  defined($w) and length($w)
 	} 0..$#nodes)),
-      ((defined($tree_parent_id) and defined($id{$tree})) ? () : ["\nLIMIT 100;\n",'space'])
+      ((defined($tree_parent_id) and defined($id{$tree})) ? () : ["\n".limit(100)."\n",'space'])
     );
   if ($format) {
     return \@sql;
@@ -313,15 +369,17 @@ sub make_sql {
 }
 
 sub serialize_element {
-  my ($name,$value,$as_id)=@_;
+  my ($name,$value,$as_id,$parent_as_id)=@_;
   if ($name eq 'test') {
     my $left = $value->{a};
     my $right = $value->{b};
     for ($left,$right) {
-      s/"_[#]descendants"/"r"-"l"/g;
+      s/"_[#]descendants"/"r"-"idx"/g;
+      s/"_[#]lbrothers"/"chord"/g;
+      s/"_[#]rbrothers"/$parent_as_id."chld"-"chord"-1/g;
       s/"_[#]sons"/"chld"/g;
       s/"_depth"/"lvl"/g;
-      s/(?<![.])(\"[^"]*\")/$as_id.$1/g;
+      s/(^|.)(\"[^"]*\")/$1 eq '.' ? $1.$2 : "$1$as_id.$2"/eg;
     }
     return ($value->{negate}==1 ? 'NOT ' : '').
            ($left.' '.uc($value->{operator}).' '.$right);
@@ -338,7 +396,8 @@ sub serialize_element {
 			  serialize_element(
 			    $n,
 			    $_->value,
-			    $as_id
+			    $as_id,
+			    $parent_as_id,
 			   ) } $seq->elements);
    return () unless length $condition;
    return ($value->{negate} ? "NOT ($condition)" :
@@ -361,7 +420,7 @@ sub serialize_conditions_as_stylesheet {
 sub serialize_element_as_stylesheet {
   my ($node,$path,$name,$value)=@_;
   if ($name eq 'test') {
-    return ($value->{negate} ? "#{red(}\${$path/negate=NOT}#{)} " : '').
+    return ($value->{negate} ? "#{darkred(}\${$path/negate=NOT}#{)} " : '').
            (
 	     "\${$path/a=".$value->{a}."} ".
 	     "#{darkblue(}\${$path/operator=".uc($value->{operator})."}#{)} ".
@@ -374,7 +433,7 @@ sub serialize_element_as_stylesheet {
      @$seq
    );
    my $i=1;
-   return ($value->{negate} ? "#{red(}\${$path/negate=NOT}#{)} " : '').
+   return ($value->{negate} ? "#{darkred(}\${$path/negate=NOT}#{)} " : '').
          "#{darkviolet(}\${$path=(}#{)}".
        	  join(' #{darkviolet(}${'.$path.'/#content='.uc($name).'}#{)} ',map {
 	    my $n = $_->name;
