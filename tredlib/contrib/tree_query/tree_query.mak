@@ -50,12 +50,13 @@
 # - ancestor-descendant: light-blue
 # - e_parent-e_child: green
 # - preceding-following: yellow
-
 package Tree_Query;
 BEGIN {
   use vars qw($this $root);
   import TredMacro;
   import PML qw(&SchemaName);
+  use File::Spec;
+  use Benchmark ':hireswallclock';
 }
 
 Bind 'query_sql' => {
@@ -63,14 +64,17 @@ Bind 'query_sql' => {
   menu => 'Query SQL server',
   changing_file => 0,
 };
-Bind 'get_dbi' => {
+
+my $default_dbi_config; # see below
+my $dbi_config;
+my $dbi;
+
+Bind sub {
+  undef $dbi;
+  connect_dbi()
+} => {
   key => 'c',
   menu => 'Connect to SQL server',
-  changing_file => 0,
-};
-Bind 'select_sql_configuration' => {
-  key => 's',
-  menu => 'Select SQL configuration',
   changing_file => 0,
 };
 
@@ -105,113 +109,116 @@ EOF
   }
 }
 
-$TrEd::Preserve::dbi_config;
-my ($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown');
-my $default_pg_config = <<"EOF";
-  <driver>Pg</driver>
-  <host>localhost</host>
-  <port>5432</port>
-  <database>treebase</database>
-  <username>$userlogin</username>
-  <password></password>
-EOF
-my $default_oracle_config = <<"EOF";
-  <driver>Oracle</driver>
-  <host>euler.ms.mff.cuni.cz</host>
-  <port>1521</port>
-  <database>XE</database>
-  <username></username>
-  <password></password>
-EOF
-my $default_dbi_config = $default_oracle_config;
-my $dbi;
-
 sub limit {
   my ($limit)=@_;
-  unless ($TrEd::Preserve::dbi_config) {
-    get_dbi();
+  unless ($dbi_config) {
+    connect_dbi()||return;
   }
-  my $driver = $TrEd::Preserve::dbi_config->get_root->{driver};
+  my $driver = $dbi_config->get_root->{driver};
   if ($driver eq 'Oracle') {
     return 'AND ROWNUM<'.$limit;
   } elsif ($driver eq 'Pg') {
     return 'LIMIT '.$limit.';';
   }
 }
-sub select_sql_configuration {
-  my $res = QuestionQuery('Select SQL connection',
-			  'Please select one of the following configurations',
-			  'PostgreSQL','Oracle','Cancel'
-			 );
-  if ($res eq 'PostgreSQL') {
-    $default_dbi_config = $default_pg_config;
-    undef $TrEd::Preserve::dbi_config;
-    get_dbi();
-  } elsif ($res eq 'Oracle') {
-    $default_dbi_config = $default_oracle_config;
-    undef $TrEd::Preserve::dbi_config;
-    get_dbi();
+sub connect_dbi {
+  require DBI;
+  my $id=shift;
+  return if $dbi;
+  unless ($dbi_config) {
+    if (-f (my $filename=FindInResources('treebase.conf'))) {
+      $dbi_config =
+	PMLInstance->load({ filename=>$filename });
+    } else {
+      my $tred_d = File::Spec->catfile($ENV{HOME},'.tred.d');
+      mkdir $tred_d unless -d $tred_d;
+      $dbi_config =
+	PMLInstance->load({ string => $default_dbi_config, 
+			    filename=> File::Spec->catfile($tred_d,'treebase.conf')});
+    }
   }
-}
-sub get_dbi {
-  my $dbi_config = $TrEd::Preserve::dbi_config ||=
-  PMLInstance->load({ string => <<"EOF" });
-<dbi xmlns="http://ufal.mff.cuni.cz/pdt/pml/">
-  <head>
-    <schema><pml_schema 
-      xmlns="http://ufal.mff.cuni.cz/pdt/pml/schema/" version="1.1">
-     <root name="dbi"><structure>
-       <member name="driver"><cdata format="NMTOKEN"/></member>
-       <member name="host"><cdata format="url"/></member>
-       <member name="port"><cdata format="integer"/></member>
-       <member name="database"><cdata format="NMTOKEN"/></member>
-       <member name="username"><cdata format="NMTOKEN"/></member>
-       <member name="password"><cdata format="any"/></member>
-     </structure></root>
-    </pml_schema></schema>
-  </head>
-  $default_dbi_config
-</dbi>
-EOF
-  my $cfg = $dbi_config->get_root;
-  my $cfg_type = $dbi_config->get_schema->get_root_type;
-  if (EditAttribute($cfg,'',$cfg_type,'password')) {
+  my $cfgs = $dbi_config->get_root->{configurations};
+  my $cfg_type = $dbi_config->get_schema->get_type_by_name('dbi-config.type')->get_content_decl;
+  if (!defined($id) or GUI()) {
+    my @opts = ((map { $_->{id} } ListV($cfgs)),' NEW ');
+    my @sel=@opts ? $opts[0] : ();
+    ListQuery('Select treebase connection',
+	      'browse',
+	      \@opts,
+	      \@sel) || return;
+    ($id) = @sel;
+  }
+  return unless $id;
+  my $cfg;
+  if ($id eq ' NEW ') {
+    $cfg = Fslib::Struct->new();
+    GUI() && EditAttribute($cfg,'',$cfg_type) || return;
+    $cfgs->append($cfg);
+    $dbi_config->save();
+    $id = $cfg->{id};
+  } else {
+    $cfg = first { $_->{id} eq $id } ListV($cfgs);
+    return unless $cfg;
+  }
+  unless (defined($cfg->{username}) and defined($cfg->{password})) {
+    GUI() && EditAttribute($cfg,'',$cfg_type,'password') || return;
+    $dbi_config->save();
+  }
+  eval {
     $dbi = DBI->connect('dbi:'.$cfg->{driver}.':'.
-			($cfg->{driver} eq 'Oracle' ? "sid=" : "database=").$cfg->{database}.';'.
-			"host=".$cfg->{host}.';'.
-			"port=".$cfg->{port},
+			  ($cfg->{driver} eq 'Oracle' ? "sid=" : "database=").$cfg->{database}.';'.
+			    "host=".$cfg->{host}.';'.
+			      "port=".$cfg->{port},
 			$cfg->{username},
 			$cfg->{password},
 			{ RaiseError => 1 }
 		       );
+  };
+  if ($@) {
+    ErrorMessage($@);
+    EditAttribute($cfg,'',$cfg_type,'password') || return;
+    $dbi_config->save();
+    return connect_dbi($id);
   }
   return $dbi;
 }
 sub query_sql {
-  require DBI;
   my $sql = serialize_conditions($root);
   my $max=100;
   #  my @text_opt = eval { require Tk::CodeText; } ? (qw(CodeText -syntax SQL)) : qw(Text);
-  $sql = EditBoxQuery(
-    "SQL Query",
-    $sql,
-    'Confirm or Edit the generated SQL Query',
-    #    { -widget => \@text_opt },
-  );
-
-  if (defined $sql and length $sql) {
-    get_dbi() unless $dbi;
-    print "Sending query:\n$sql\n...\n";
-    my $results = $dbi->selectall_arrayref($sql,{MaxRows=>100, RaiseError=>1});
-    print "Displaying results.\n";
-    ListQuery("Results",
-	      'browse',
-	      [map { join '|',@$_ } @$results],
-	      [],
-	      {buttons=>[qw(Ok)]});
+  if (GUI()) {
+    $sql = EditBoxQuery(
+      "SQL Query",
+      $sql,
+      'Confirm or Edit the generated SQL Query',
+      #    { -widget => \@text_opt },
+     );
   }
-  print "Done.\n";
+  if (defined $sql and length $sql) {
+    connect_dbi()||return unless $dbi;
+    print qq(\n<query-result query.rf="$root->{id}" nodes=").$root->descendants.qq(">\n<sql>\n<![CDATA[$sql]]></sql>\n);
+    STDOUT->flush;
+    my $t0 = new Benchmark;
+    my $results = eval { $dbi->selectall_arrayref($sql,{MaxRows=>100, RaiseError=>1}) };
+    if ($@) {
+      print qq(  <error><![CDATA[$@]]></error>);
+      print qq(</query>\n);
+      return;
+    }
+    my $t1 = new Benchmark;
+    print qq(  <ok query.rf="$root->{id}" returned_rows=").@$results.qq(" time=").timestr(timediff($t1,$t0)).qq("/>\n);
+    print qq(</query-result>\n);
+    if (GUI()) {
+      ListQuery("Results",
+		'browse',
+		[map { join '|',@$_ } @$results],
+		[],
+		{buttons=>[qw(Ok)]});
+    }
+    return $results;
+  }
 }
+
 
 use constant {
   SUB_QUERY => 1,
@@ -219,13 +226,11 @@ use constant {
 };
 
 my $occurrences_strategy = SUB_QUERY;
-
 # serialize to SQL (or SQL fragment)
 sub serialize_conditions {
   my ($node,$as_id, $parent_as_id)=@_;
   if ($node->parent) {
     my $sql =  serialize_element( 'and', $node->{conditions}, $as_id, $parent_as_id );
-    print "$node=>$as_id => $sql\n";
     if ($occurrences_strategy == SUB_QUERY) {
       my @occ_child = grep { length($_->{occurrences}) } $node->children;
       for my $child (@occ_child) {
@@ -289,12 +294,14 @@ sub make_sql {
   my @join;
   my @where;
   my $table = 'a';
+  my %conditions;
   for (my $i=0; $i<@nodes; $i++) {
     my $n = $nodes[$i];
     my $id = $id{$n};
     push @select, $id;
     my $parent = $n->parent;
     my $parent_id = $id{$parent};
+    $conditions{$id} = Tree_Query::serialize_conditions($n,'___SELF___',$parent_id);
     if ($i==0) {
       push @join," FROM $table $id ";
     } else {
@@ -319,7 +326,9 @@ sub make_sql {
 	$join .= qq{$id."root_idx"=n0."root_idx"};
       }
       $join.=
-	join('', (map { qq{ AND $id{$_}."idx" != ${id}."idx"} }
+	join('', (map { qq{ AND $id{$_}."idx"}.
+			  ($conditions{$id} eq $conditions{$id{$_}} ? '<' : '!=' ).
+			qq{${id}."idx"} }
 		    grep { $_->parent == $n->parent }
 		      map { $nodes[$_] } 0..($i-1)));
       $join[-1].= " JOIN $table $id ".(length($join) ? ' ON '.$join : q{});
@@ -329,6 +338,7 @@ sub make_sql {
       }
     }
     my $where = Tree_Query::serialize_conditions($n,$id,$parent_id);
+    # where could also be obtained by replacing ___SELF___ with $id
     if ($n->{optional}) {
       if (length $where) {
 	$where = qq{(($where) OR $id."idx"=$parent_id."idx")};
@@ -445,6 +455,56 @@ sub serialize_element_as_stylesheet {
 	  "#{darkviolet(}\${$path=)}#{)}";
   }
 }
+
+my ($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown');
+$default_dbi_config = <<"EOF";
+<dbi xmlns="http://ufal.mff.cuni.cz/pdt/pml/">
+  <head>
+    <schema>
+      <pml_schema 
+	  xmlns="http://ufal.mff.cuni.cz/pdt/pml/schema/" version="1.1">
+	<root name="dbi">
+	  <structure>
+	    <member name="configurations">
+	      <list ordered="0" type="dbi-config.type"/>
+	    </member>
+	  </structure>
+	</root>
+	<type name="dbi-config.type">
+	  <structure>
+	    <member name="id" role="#ID" required="1" as_attribute="1"><cdata format="ID"/></member>
+	    <member name="driver"><cdata format="NMTOKEN"/></member>
+	    <member name="host"><cdata format="url"/></member>
+	    <member name="port"><cdata format="integer"/></member>
+	    <member name="database"><cdata format="NMTOKEN"/></member>
+	    <member name="username"><cdata format="NMTOKEN"/></member>
+	    <member name="password"><cdata format="any"/></member>
+	  </structure>
+	</type>
+      </pml_schema>
+    </schema>
+  </head>
+  <configurations>
+    <LM id="postgress">
+      <driver>Pg</driver>
+      <host>localhost</host>
+      <port>5432</port>
+      <database>treebase</database>
+      <username>$userlogin</username>
+      <password></password>
+    </LM>
+    <LM id="oracle">
+      <driver>Oracle</driver>
+      <host>localhost</host>
+      <port>1521</port>
+      <database>XE</database>
+      <username></username>
+      <password></password>
+    </LM>
+  </configurations>
+</dbi>
+EOF
+
 
 } # use strict
 1;
