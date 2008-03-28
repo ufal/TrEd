@@ -59,7 +59,7 @@ BEGIN {
   use Benchmark ':hireswallclock';
 }
 
-Bind 'query_sql' => {
+Bind sub { query_sql({limit=>100}) } => {
   key => 'space',
   menu => 'Query SQL server',
   changing_file => 0,
@@ -67,6 +67,7 @@ Bind 'query_sql' => {
 
 my $default_dbi_config; # see below
 my $dbi_config;
+my $dbi_configuration;
 my $dbi;
 
 Bind sub {
@@ -114,7 +115,7 @@ sub limit {
   unless ($dbi_config) {
     connect_dbi()||return;
   }
-  my $driver = $dbi_config->get_root->{driver};
+  my $driver = $dbi_configuration->{driver};
   if ($driver eq 'Oracle') {
     return 'AND ROWNUM<'.$limit;
   } elsif ($driver eq 'Pg') {
@@ -135,6 +136,7 @@ sub connect_dbi {
       $dbi_config =
 	PMLInstance->load({ string => $default_dbi_config, 
 			    filename=> File::Spec->catfile($tred_d,'treebase.conf')});
+      $dbi_config->save();
     }
   }
   my $cfgs = $dbi_config->get_root->{configurations};
@@ -148,7 +150,7 @@ sub connect_dbi {
 	      \@sel) || return;
     ($id) = @sel;
   }
-  return unless $id;
+  return unless defined $id;
   my $cfg;
   if ($id eq ' NEW ') {
     $cfg = Fslib::Struct->new();
@@ -158,12 +160,17 @@ sub connect_dbi {
     $id = $cfg->{id};
   } else {
     $cfg = first { $_->{id} eq $id } ListV($cfgs);
-    return unless $cfg;
+    die "Didn't find configuration '$id'" unless $cfg;
   }
   unless (defined($cfg->{username}) and defined($cfg->{password})) {
-    GUI() && EditAttribute($cfg,'',$cfg_type,'password') || return;
+    if (GUI()) {
+       EditAttribute($cfg,'',$cfg_type,'password') || return;
+    } else {
+      die "The configuration $id does not specify username or password\n";
+    }
     $dbi_config->save();
   }
+  $dbi_configuration = $cfg;
   eval {
     $dbi = DBI->connect('dbi:'.$cfg->{driver}.':'.
 			  ($cfg->{driver} eq 'Oracle' ? "sid=" : "database=").$cfg->{database}.';'.
@@ -176,15 +183,17 @@ sub connect_dbi {
   };
   if ($@) {
     ErrorMessage($@);
-    EditAttribute($cfg,'',$cfg_type,'password') || return;
+    GUI() && EditAttribute($cfg,'',$cfg_type,'password') || return;
     $dbi_config->save();
     return connect_dbi($id);
   }
   return $dbi;
 }
 sub query_sql {
-  my $sql = serialize_conditions($root);
-  my $max=100;
+  my $opts = shift;
+  $opts||={};
+  my $xml = $opts->{xml};
+  my $sql = serialize_conditions($root,$opts);
   #  my @text_opt = eval { require Tk::CodeText; } ? (qw(CodeText -syntax SQL)) : qw(Text);
   if (GUI()) {
     $sql = EditBoxQuery(
@@ -195,19 +204,39 @@ sub query_sql {
      );
   }
   if (defined $sql and length $sql) {
-    connect_dbi()||return unless $dbi;
-    print qq(\n<query-result query.rf="$root->{id}" nodes=").$root->descendants.qq(">\n<sql>\n<![CDATA[$sql]]></sql>\n);
+    unless ($dbi) {
+      connect_dbi()||die "Connection to DBI failed\n";
+    }
+    print qq(\n<query-result query.rf="$root->{id}" nodes=").$root->descendants.qq(">\n<sql>\n<![CDATA[$sql]]></sql>\n) if $xml;
     STDOUT->flush;
     my $t0 = new Benchmark;
-    my $results = eval { $dbi->selectall_arrayref($sql,{MaxRows=>100, RaiseError=>1}) };
+    my $results = eval { $dbi->selectall_arrayref($sql,
+						  {
+						    MaxRows=>$opts->{limit}, RaiseError=>1
+						   }
+						 ) };
     if ($@) {
-      print qq(  <error><![CDATA[$@]]></error>);
-      print qq(</query>\n);
+      if ($xml) {
+	print qq(  <error><![CDATA[\n);
+	print $@;
+	print qq(]]></error>\n);
+	print qq(</query>\n);
+      } else {
+	my $err = $@;
+	$err=~y/\n/ /;
+	print "$root->{id}\tFAIL\t$err\n";
+      }
       return;
     }
     my $t1 = new Benchmark;
-    print qq(  <ok query.rf="$root->{id}" returned_rows=").@$results.qq(" time=").timestr(timediff($t1,$t0)).qq("/>\n);
-    print qq(</query-result>\n);
+    my $time = timestr(timediff($t1,$t0));
+    my $no_results = $opts->{count} ? $results->[0][0]  : scalar(@$results);
+    if ($xml) {
+      print qq(  <ok query.rf="$root->{id}" returned_rows="$no_results" time=").$time.qq("/>\n) if $xml;
+      print qq(</query-result>\n) if $xml;
+    } else {
+      print "$root->{id}\tOK\t$no_results\t$time\n";
+    }
     if (GUI()) {
       ListQuery("Results",
 		'browse',
@@ -228,21 +257,22 @@ use constant {
 my $occurrences_strategy = SUB_QUERY;
 # serialize to SQL (or SQL fragment)
 sub serialize_conditions {
-  my ($node,$as_id, $parent_as_id)=@_;
+  my ($node,$opts)=@_;
+  $opts||={};
   if ($node->parent) {
-    my $sql =  serialize_element( 'and', $node->{conditions}, $as_id, $parent_as_id );
+    my $sql =  serialize_element( 'and', $node->{conditions}, $opts->{id}, $opts->{parent_id} );
     if ($occurrences_strategy == SUB_QUERY) {
       my @occ_child = grep { length($_->{occurrences}) } $node->children;
       for my $child (@occ_child) {
 	my $occ = $child->{occurrences};
 	$sql .= " AND " if length $sql;
-	$sql .= " $occ=(".make_sql($child,0,1,$as_id).")";
+	$sql .= " $occ=(".make_sql($child,{count=>1, parent_id=>$opts->{id}}).")";
       }
     }
     return $sql;
   } else {
     init_id_map($root);
-    return make_sql($root,0);
+    return make_sql($root,{count=>$opts->{count}});
   }
 }
 sub get_value_line_hook {
@@ -251,7 +281,7 @@ sub get_value_line_hook {
   my $tree = $fsfile->tree($treeNo);
   return unless $tree;
   init_id_map($tree);
-  return make_sql($tree,1);
+  return make_sql($tree,{format=>1});
 }
 
 my %id;
@@ -271,7 +301,10 @@ sub init_id_map {
 }
 
 sub make_sql {
-  my ($tree,$format,$count,$tree_parent_id)=@_;
+  my ($tree,$opts)=@_;
+  $opts||={};
+  my ($format,$count,$tree_parent_id) = 
+    map {$opts->{$_}} qw(format count parent_id limit);
   # we rely on depth first order!
   my @nodes;
   if ($occurrences_strategy == SUB_QUERY) {
@@ -301,7 +334,7 @@ sub make_sql {
     push @select, $id;
     my $parent = $n->parent;
     my $parent_id = $id{$parent};
-    $conditions{$id} = Tree_Query::serialize_conditions($n,'___SELF___',$parent_id);
+    $conditions{$id} = Tree_Query::serialize_conditions($n,{id=>'___SELF___',parent_id=>$parent_id});
     if ($i==0) {
       push @join," FROM $table $id ";
     } else {
@@ -337,7 +370,7 @@ sub make_sql {
                    qq{ AND ${id}_e."eparent_idx"=$parent_id."idx"};
       }
     }
-    my $where = Tree_Query::serialize_conditions($n,$id,$parent_id);
+    my $where = Tree_Query::serialize_conditions($n,{id=>$id,parent_id=>$parent_id});
     # where could also be obtained by replacing ___SELF___ with $id
     if ($n->{optional}) {
       if (length $where) {
@@ -369,7 +402,8 @@ sub make_sql {
 	  my $w = $where[$_];
 	  defined($w) and length($w)
 	} 0..$#nodes)),
-      ((defined($tree_parent_id) and defined($id{$tree})) ? () : ["\n".limit(100)."\n",'space'])
+      ( (defined($tree_parent_id) and defined($id{$tree}) or !defined($opts->{limit})  )
+	  ? () : ["\n".limit($opts->{limit})."\n",'space'])
     );
   if ($format) {
     return \@sql;
