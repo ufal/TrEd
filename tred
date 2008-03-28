@@ -6299,14 +6299,6 @@ sub startMain {
   ##########################
 
 
-  $group{attrButton}=
-    $group{frame}->Button(-takefocus=>0, -text=> "Edit Stylesheet",
-			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"wizard"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [sub { editStylesheetDialog(@_) },\%group])->pack(-side=>'right');
-  $group{Balloon}->attach($group{attrButton},
-			  -balloonmsg=> "customize display patterns\nof the selected stylesheet\n(e.g. change tree appearance, labels etc.)");
 
   $group{StylesheetMenu}=$group{frame}->
     Optionmenu(-options => [],
@@ -6316,6 +6308,14 @@ sub startMain {
 			       },\%group],
 	       -relief=> 'groove', #$menubarRelief,
 	       -borderwidth=> 2)->pack(qw/-side right -padx 3/);
+  $group{attrButton}=
+    $group{frame}->Button(-takefocus=>0, -text=> "Edit Stylesheet",
+			  -relief=> $buttonsRelief,
+			  -image=> icon(\%group,"wizard"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [sub { editStylesheetDialog(@_) },\%group])->pack(-side=>'right');
+  $group{Balloon}->attach($group{attrButton},
+			  -balloonmsg=> "customize display patterns\nof the selected stylesheet\n(e.g. change tree appearance, labels etc.)");
   $group{StylesheetMenu}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
   $group{StylesheetMenuLabel}=$group{frame}->Label(qw/-text Style: -underline 2/)->pack(qw/-side right/);
   updateStylesheetMenu(\%group);
