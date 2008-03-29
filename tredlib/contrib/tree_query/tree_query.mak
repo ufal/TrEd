@@ -266,13 +266,17 @@ sub serialize_conditions {
       for my $child (@occ_child) {
 	my $occ = $child->{occurrences};
 	$sql .= " AND " if length $sql;
-	$sql .= " $occ=(".make_sql($child,{count=>1, parent_id=>$opts->{id}}).")";
+	$sql .= " $occ=(".make_sql($child,{count=>1, parent_id=>$opts->{id},
+					  }).")";
       }
     }
     return $sql;
   } else {
     init_id_map($root);
-    return make_sql($root,{count=>$opts->{count}});
+    return make_sql($root,{
+      count=>$opts->{count},
+      limit => $opts->{limit}
+    });
   }
 }
 sub get_value_line_hook {
@@ -362,7 +366,12 @@ sub make_sql {
 	join('', (map { qq{ AND $id{$_}."idx"}.
 			  ($conditions{$id} eq $conditions{$id{$_}} ? '<' : '!=' ).
 			qq{${id}."idx"} }
-		    grep { $_->parent == $n->parent }
+		    grep { #$_->parent == $n->parent
+			   #  or
+			   (first { !$_->{optional} } $_->ancestors)
+			     ==
+			   (first { !$_->{optional} } $n->ancestors)
+			 }
 		      map { $nodes[$_] } 0..($i-1)));
       $join[-1].= " JOIN $table $id ".(length($join) ? ' ON '.$join : q{});
       if ($parent->parent and $n->{'relation'} eq 'effective_parent') {
