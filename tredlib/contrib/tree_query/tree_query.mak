@@ -66,6 +66,7 @@ Bind sub { query_sql({limit=>100}) } => {
 };
 
 my $default_dbi_config; # see below
+my $treebase_sources = q(/net/projects/pdt/pdt20/data/binary);
 my $dbi_config;
 my $dbi_configuration;
 my $dbi;
@@ -238,16 +239,54 @@ sub query_sql {
       print "$root->{id}\tOK\t$no_results\t$time\n";
     }
     if (GUI()) {
-      ListQuery("Results",
-		'browse',
-		[map { join '|',@$_ } @$results],
-		[],
-		{buttons=>[qw(Ok)]});
+      my $sel = [];
+      if (ListQuery("Results",
+		    'browse',
+		    [map { join '|',@$_ } @$results],
+		    $sel,
+		    {buttons=>[qw(Ok)]})) {
+	if (@$sel) {
+	  print "$sel->[0]\n";
+	  my @files = idx_to_pos(split /\|/, $sel->[0]);
+	  if (@files) {
+	    print map { $_."\n" } @files;
+	    my @wins = TrEdWindows();
+	    my $res_win;
+	    if (@wins>1) {
+	      ($res_win) = grep { $_ ne $grp } @wins;
+	    } else {
+	      $res_win = SplitWindowHorizontally();
+	    }
+	    {
+	      SetCurrentWindow($res_win);
+	      Open(File::Spec->catfile($treebase_sources,$files[0]));
+	      print File::Spec->catfile($treebase_sources,$files[0]),"\n";
+	    }
+	  }
+	}
+      }
     }
     return $results;
   }
 }
 
+sub idx_to_pos {
+  my @res;
+  for my $idx (@_) {
+    print "idx: $idx\n";
+    my $result = eval { $dbi->selectall_arrayref(
+      qq(SELECT file,sent_num,pos FROM a_pos WHERE idx = $idx),
+      { MaxRows=>1, RaiseError=>1 }
+     )};
+    if ($@) {
+      ErrorMessage($@);
+    } else {
+      $result = $result->[0];
+      push @res, $result->[0].'##'.$result->[1].'.'.$result->[2];
+    }
+  }
+  return @res;
+}
 
 use constant {
   SUB_QUERY => 1,
