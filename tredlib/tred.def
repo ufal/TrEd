@@ -2591,6 +2591,7 @@ sub Open {
   } else {
     main::openFile($grp,$_[0]);
   }
+  $this=$grp->{currentNode};
 }
 
 =item C<Save()>
