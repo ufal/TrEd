@@ -66,7 +66,6 @@ Bind sub { query_sql({limit=>100}) } => {
 };
 
 my $default_dbi_config; # see below
-my $treebase_sources = q(/net/projects/pdt/pdt20/data/binary);
 my $dbi_config;
 my $dbi_configuration;
 my $dbi;
@@ -79,6 +78,14 @@ Bind sub {
   menu => 'Connect to SQL server',
   changing_file => 0,
 };
+Bind sub {
+  edit_config();
+} => {
+  key => 'e',
+  menu => 'Connect to SQL server',
+  changing_file => 0,
+};
+
 
 #include <contrib/support/extra_edit.inc>
 
@@ -123,10 +130,7 @@ sub limit {
     return 'LIMIT '.$limit.';';
   }
 }
-sub connect_dbi {
-  require DBI;
-  my $id=shift;
-  return if $dbi;
+sub load_config {
   unless ($dbi_config) {
     if (-f (my $filename=FindInResources('treebase.conf'))) {
       $dbi_config =
@@ -140,6 +144,21 @@ sub connect_dbi {
       $dbi_config->save();
     }
   }
+  return $dbi_config;
+}
+
+sub edit_config {
+  load_config();
+  GUI() && EditAttribute($dbi_config->get_root,'',
+			 $dbi_config->get_schema->get_root_decl->get_content_decl) || return;
+  $dbi_config->save();
+}
+
+sub connect_dbi {
+  require DBI;
+  my ($id,$force_edit)=@_;
+  return if $dbi;
+  load_config() || return;
   my $cfgs = $dbi_config->get_root->{configurations};
   my $cfg_type = $dbi_config->get_schema->get_type_by_name('dbi-config.type')->get_content_decl;
   if (!defined($id) or GUI()) {
@@ -255,16 +274,28 @@ sub query_sql {
 	    if (@wins>1) {
 	      ($res_win) = grep { $_ ne $grp } @wins;
 	    } else {
-	      $res_win = SplitWindowHorizontally();
+	      $res_win = SplitWindowVertically();
 	    }
 	    {
 	      SetCurrentWindow($res_win);
-	      Open(File::Spec->catfile($treebase_sources,$files[0]));
-	      print File::Spec->catfile($treebase_sources,$files[0]),"\n";
+	      CloseFileInWindow($res_win);
+	      SetCurrentStylesheet(STYLESHEET_FROM_FILE);
+	      my $treebase_sources = $dbi_configuration->{sources};
+	      unless (defined($treebase_sources) and 
+		      length($treebase_sources)) {
+		EditAttribute($dbi_configuration,'sources',
+			      $dbi_config->schema->
+				find_type_by_path('/configurations/[1]'),
+			     ) || return;
+		$dbi_config->save();
+		$treebase_sources = $dbi_configuration->{sources};
+	      }
+	      Open($treebase_sources.'/'.$files[0]);
+	      $this=$grp->{currentNode};
 	    }
 	  }
 	}
-      }
+     }
     }
     return $results;
   }
@@ -280,6 +311,7 @@ sub idx_to_pos {
      )};
     if ($@) {
       ErrorMessage($@);
+      return;
     } else {
       $result = $result->[0];
       push @res, $result->[0].'##'.$result->[1].'.'.$result->[2];
@@ -369,10 +401,10 @@ sub make_sql {
   my @select;
   my @join;
   my @where;
-  my $table = 'a';
   my %conditions;
   for (my $i=0; $i<@nodes; $i++) {
     my $n = $nodes[$i];
+    my $table = $n->{type}||$tree->{type}||'a';
     my $id = $id{$n};
     push @select, $id;
     my $parent = $n->parent;
@@ -561,6 +593,7 @@ $default_dbi_config = <<"EOF";
 	    <member name="database"><cdata format="NMTOKEN"/></member>
 	    <member name="username"><cdata format="NMTOKEN"/></member>
 	    <member name="password"><cdata format="any"/></member>
+	    <member name="sources"><cdata format="anyURI"/></member>
 	  </structure>
 	</type>
       </pml_schema>
