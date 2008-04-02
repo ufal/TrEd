@@ -55,7 +55,7 @@ $about=
 # Get user's login name
 ($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown');
 ($userlogin =~ /\S/) || warn "Couldn\'t deterbmine user\'s login name\n";
-
+use Carp;
 use Tk;
 
 # work around a bug in Tk
@@ -645,6 +645,30 @@ my %default_binding = (
        Tk->break;
      },
      'select next node in linear order',
+    ],
+  '<Control-Tab>'=>
+    [sub {
+       my $grp = $_[1];
+       focusNextWindow($grp);
+       Tk->break;
+     },
+     'focus next view',
+    ],
+  '<Control-Shift-Tab>'=>
+    [sub {
+       my $grp = $_[1];
+       focusPrevWindow($grp);
+       Tk->break;
+     },
+     'focus previous view',
+    ],
+  '<Control-Shift-ISO_Left_Tab>'=>
+    [sub {
+       my $grp = $_[1];
+       focusPrevWindow($grp);
+       Tk->break;
+     },
+     'focus previous view',
     ],
  );
    
@@ -1380,6 +1404,18 @@ sub checkLock {
   }
 }
 
+sub closeFileInWindow {
+  my ($grp_or_win)=@_;
+  my ($grp,$win)=grp_win($grp_or_win);
+  my $keep;
+  if (fsfileDisplayingWindows($grp,
+			      $win->{FSFile})<2) {
+    $keep=askSaveFile($win,1,1);
+    return if $keep == -1;
+  }
+  closeFile($win, -keep_postponed => $keep);
+}
+
 sub closeFile {
   my ($win,%opts)=@_;
 
@@ -1705,7 +1741,7 @@ sub updateScaleFactor {
   my ($grp)=@_;
   my $factor = $grp->{focusedWindow}->treeView->scale_factor();
   $grp->{canvasScaleLabel}->configure(-text=>'Scale: '.int(100*$factor).'%');
-  $grp->{canvasScale}=$grp->{focusedWindow}->treeView->get_scale;
+  $grp->{canvasScale}=($grp->{focusedWindow}->treeView->get_scale||0);
 }
 
 sub updateTitle {
@@ -4918,7 +4954,12 @@ sub newTrEdWindow {
     ? $opt_t : 'TredMacro';
   $win->{stylesheet} = STYLESHEET_FROM_FILE();
   $windows = $grp->{treeWindows};
-  push @$windows, $win;
+  my $focused_win = $grp->{focusedWindow};
+  if ($focused_win) {
+    @$windows = map { ( $_ == $focused_win) ? ($_,$win) : $_ } @$windows;
+  } else {
+    push @$windows, $win;
+  }
   $grp->{rmsplitButton}->configure(-state => @$windows>1 ? 'normal' : 'disabled')
     if $grp->{rmsplitButton};
   return $win;
@@ -4984,6 +5025,19 @@ sub findCanvasWindow {
     return $w if $w->contains($canvas);
   }
   return undef;
+}
+
+sub focusNextWindow {
+  my ($grp)=@_;
+  my $windows=$grp->{treeWindows};
+  my $idx = Index($windows,$grp->{focusedWindow});
+  return focusCanvas($windows->[($idx+1) % @$windows]->canvas,$grp);
+}
+sub focusPrevWindow {
+  my ($grp)=@_;
+  my $windows=$grp->{treeWindows};
+  my $idx = Index($windows,$grp->{focusedWindow});
+  return focusCanvas($windows->[$idx-1]->canvas,$grp);
 }
 
 sub focusCanvas {
@@ -5523,17 +5577,7 @@ sub startMain {
 					 , \%group]);
   $group{FileMenu}->command(-label=> 'Close in Window',
 			    -underline=> 9,
-			    -command=> [ sub {
-					    my ($grp)=@_;
-					    my $keep;
-					    if (fsfileDisplayingWindows($grp,
-						$grp->{focusedWindow}->{FSFile})<2) {
-					      $keep=askSaveFile($grp->{focusedWindow},1,1);
-					      return if $keep == -1;
-					    }
-					    closeFile($grp->{focusedWindow}, -keep_postponed => $keep);
-					  }
-					 , \%group]);
+			    -command=> [ \&closeFileInWindow, \%group]);
   $group{FileMenu}->command(-label=> 'Close and remove from filelist',
 			    -underline => 12,
 			    -command=> [ sub {
@@ -8181,7 +8225,7 @@ sub editAttrsDialog_schema {
   $win->toplevel->Busy(-recurse=>1);
   if ($attr_path ne EMPTY) {
     $node_type = $base_type->find($attr_path,1);
-    die "Unknown attribute $attr_path\n" unless $node_type;
+    croak("Unknown attribute $attr_path") unless $node_type;
     $enabled = 0 if doEvalHook($win,'enable_attr_hook',$attr_path,"normal") eq 'stop';
   } else {
     $enabled= 0 if (doEvalHook($win,'enable_edit_node_hook',$node) eq 'stop');
@@ -9566,6 +9610,7 @@ sub doEditAttr {
 
 sub nodeOptions {
   my ($win,$node)=@_;
+  return unless $win->{FSFile};
   return $win->treeView->node_options($node,
 					$win->{FSFile}->FS,
 					$win->{currentNode});
@@ -9573,6 +9618,7 @@ sub nodeOptions {
 
 sub nodeBoxOptions {
   my ($win,$node,$edge)=@_;
+  return unless $win->{FSFile};
   return $win->treeView->node_box_options($node,
 					 $win->{FSFile}->FS,
 					 $win->{currentNode},$edge);
