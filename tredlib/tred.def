@@ -2707,6 +2707,89 @@ sub SaveAs {
 #endif
 }
 
+=item C<Backends()>
+
+Return a list of currently registered I/O backends.
+
+=cut
+
+sub Backends {
+  return @main::backends;
+}
+
+=item C<AddBackend($classname,$before_backend)>
+
+Register a new I/O backend. Note that the caller is responsible for
+loading the required module (e.g. by calling Fslib::ImportBackends());
+If $before_backend is defined, the new backend is added before a given
+backend. Otherwise the backend is added as a last backend.
+
+=cut
+
+sub AddBackend {
+  my $class = shift;
+  my $before = shift;
+  if (defined $before) {
+    my $found;
+    @main::backends = map {
+      if (!$found and ($_ eq $before)) {
+	$found=1;
+	($class,$_)
+      } else { ($_) }
+    } @main::backends;
+    if (!$found) {
+      carp("TrEdMacro::AddBackend(): backend '$before' not found");
+      push @main::backends,$class;
+    }
+  } else {
+    push @main::backends,$class;
+  }
+}
+
+=item C<RemoveBackend($classname)>
+
+Remove (unregister) a given backend.
+
+=cut
+
+sub RemoveBackend {
+  my $class = shift;
+  @main::backends = grep { $_ ne $class } @main::backends;
+}
+
+
+=item C<AddNewFilelist($filelist)>
+
+This macro is only available in TrEd.
+Creates a new TrED filelist from a given Filelist object.
+
+=cut
+
+#ifdef TRED
+sub AddNewFileList {
+  my ($fl)=@_;
+  croak("Not a file-list") unless UNIVERSAL::isa($fl,'Filelist');
+  main::addNewFilelist($grp->{framegroup},$fl);
+}
+#endif
+
+=item C<SelectFilelist($name)>
+
+This macro is only available in TrEd. Selects the filelist of a given
+name for the current window.
+
+=cut
+
+#ifdef TRED
+sub SelectFileList {
+  my ($name)=@_;
+  croak("Usage: SelectFilelist(name)") if !defined($name) or ref($name) or !length($name);
+  main::selectFilelist($grp,$name);
+}
+#endif
+
+
+
 
 =item C<GetFileSaveStatus()>
 
