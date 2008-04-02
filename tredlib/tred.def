@@ -2587,9 +2587,11 @@ Open a given FSFile in TrEd.
 
 sub Open {
   if (exists($grp->{framegroup})) {
-    main::openFile($grp->{framegroup},$_[0]);
+    main::openFile($grp->{framegroup},@_);
+    $root=$grp->{root};
+    $this=$grp->{currentNode};
   } else {
-    main::openFile($grp,$_[0]);
+    main::openFile($grp,@_);
   }
 }
 
@@ -2773,7 +2775,21 @@ sub AddNewFileList {
 }
 #endif
 
-=item C<SelectFilelist($name)>
+
+=item C<GetCurrentFileList()>
+
+This macro is only available in TrEd. It returns the current file-list
+(a Filelist object).
+
+=cut
+
+#ifdef TRED
+sub GetCurrentFileList {
+  return $grp->{currentFilelist};
+}
+#endif
+
+=item C<SetCurrentFilelist($name)>
 
 This macro is only available in TrEd. Selects the filelist of a given
 name for the current window.
@@ -2781,14 +2797,25 @@ name for the current window.
 =cut
 
 #ifdef TRED
-sub SelectFileList {
+sub SetCurrentFileList {
   my ($name)=@_;
   croak("Usage: SelectFilelist(name)") if !defined($name) or ref($name) or !length($name);
   main::selectFilelist($grp,$name);
 }
 #endif
 
+=item C<TrEdFileLists()>
 
+This macro is only available in TrEd. It returns all registered
+filelists.
+
+=cut
+
+#ifdef TRED
+sub TrEdFileLists {
+  return @::filelists;
+}
+#endif
 
 
 =item C<GetFileSaveStatus()>

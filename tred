@@ -1092,7 +1092,7 @@ sub gotoFile {
   my ($grp_or_win,$fn,$no_recent,$no_redraw)=@_;
   my ($grp,$win) = grp_win($grp_or_win);
   return unless $win->{currentFilelist};
-  return 0 if doEvalHook($win,"goto_file_hook") eq 'stop';
+  return 0 if doEvalHook($win,"goto_file_hook",$fn) eq 'stop';
   return 0 if ($fn>=$win->{currentFilelist}->file_count() or $fn<0);
   my $last_no = $win->{currentFileNo};
   $win->{currentFileNo} = $fn;
@@ -1695,17 +1695,17 @@ sub updatePostponed {
 	  -variable=> \$grp->{appenddefault});
     $grp->{PostponedFileMenu}->checkbutton(-label => 'Preserve patterns on reload',
 	  -variable=> \$reloadKeepsPatterns);
-    $grp->{PostponedFileMenu}->checkbutton(-label => 'Build TGTS from CSTS',
-					   -variable=> \$grp->{buildTGTSfromCSTS},
-					   -command => [sub {
-							  my ($grp)=@_;
-							  if ($grp->{buildTGTSfromCSTS}) {
-							    Csts2fs::setupTR();
-							  } else {
-							    Csts2fs::setupAR();
-							  }
-							},$grp]
-					  );
+#     $grp->{PostponedFileMenu}->checkbutton(-label => 'Build TGTS from CSTS',
+# 					   -variable=> \$grp->{buildTGTSfromCSTS},
+# 					   -command => [sub {
+# 							  my ($grp)=@_;
+# 							  if ($grp->{buildTGTSfromCSTS}) {
+# 							    Csts2fs::setupTR();
+# 							  } else {
+# 							    Csts2fs::setupAR();
+# 							  }
+# 							},$grp]
+# 					  );
 
     $grp->{PostponedFileMenu}->command(-label=> 'Open files',
 				       -state=> 'disabled',
@@ -1958,6 +1958,13 @@ sub merge_status {
 sub openFile {
   my ($grp_or_win,$fname,%opts)= @_;
   my ($grp,$win)=grp_win($grp_or_win);
+  unless ($opts{-nohook}) {
+    if (doEvalHook($win,"open_file_hook",$fname,{%opts}) eq 'stop') {
+      # not sure what status should we return
+      return wantarray ? ($win->{FSFile},_new_status(ok => 1)) : $win->{FSFile};
+    }
+  }
+
   my $no_err = $grp->{noOpenFileError};
   my $fsfile = $win->{FSFile};
 
@@ -5928,7 +5935,7 @@ sub startMain {
 			sort(keys(%{$menuBindings{$context}})))];
 #      }
   }
-  $group{UserMenu}=MenubarItem($group{Menubar},qw/-label ~User-defined -menuitems/=> $cM);
+  $group{UserMenu}=MenubarItem($group{Menubar},qw/-label ~Macros -menuitems/=> $cM);
 
   addBindTags($group{frame},'my');
 
@@ -6199,7 +6206,19 @@ sub startMain {
   $group{Balloon}->attach($group{nextFileButton},
 			  -balloonmsg=> "visit the next file in the file-list");
   addBindTags($group{nextFileButton},'my');
-
+  # bind action control
+  for my $bind ([nextFileButton => \&nextRealFile],
+		[prevFileButton => \&prevRealFile]) {
+    my $button = $group{$bind->[0]};
+    my $cmd = $bind->[1];
+    $button->bindtags([$button, ref($button), $button->toplevel, 'all']);
+    $button->bind($button, '<Control-ButtonRelease-1>',
+		  sub {
+		    $button->flash();
+		    $cmd->(\%group);
+		    Tk->break;
+		  });
+  }
 
   $group{printButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Print",
