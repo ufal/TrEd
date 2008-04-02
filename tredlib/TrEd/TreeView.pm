@@ -140,7 +140,7 @@ sub get_pattern_lists {
     $patterns ? @{$patterns} :
     $fsfile         ? $fsfile->patterns() : ();
   @style_patterns = map { $_->[1] } grep { $_->[0] eq 'style' } @patterns;
-  @patterns = grep { $_->[0] eq 'node' or $_->[0] eq 'edge' } @patterns;
+  @patterns = grep { $_->[0] eq 'node' or $_->[0] eq 'edge' or $_->[0] eq 'label' } @patterns;
   @node_patterns = map { $_->[1] } grep { $_->[0] eq 'node' } @patterns;
   @edge_patterns = map { $_->[1] } grep { $_->[0] eq 'edge' } @patterns;
   my $pl = [\@node_patterns,\@edge_patterns,\@style_patterns,\@patterns];
@@ -222,10 +222,10 @@ sub scale {
   my @scrollregion=@{$c->cget('-scrollregion')};
   $c->configure(-scrollregion =>
 		  [
-		    min($corners[0]-$x+$nx,$scrollregion[0],$corners[0]),
-		    min($corners[1]-$y+$ny,$scrollregion[1],$corners[1]),
-		    max($corners[2]-$x+$nx,$scrollregion[2],$corners[2]),
-		    max($corners[3]-$y+$ny,$scrollregion[3],$corners[3])
+		    min($corners[0]-$x+$nx,$scrollregion[0],$corners[0])||0,
+		    min($corners[1]-$y+$ny,$scrollregion[1],$corners[1])||0,
+		    max($corners[2]-$x+$nx,$scrollregion[2],$corners[2])||0,
+		    max($corners[3]-$y+$ny,$scrollregion[3],$corners[3])||0,
 		   ]);
   my $xview= $c->xviewCoord($x);
   my $yview= $c->yviewCoord($y);
@@ -245,10 +245,10 @@ sub scale {
 
   $c->xviewCoord($x*$factor,$xview);
   $c->yviewCoord($y*$factor,$yview);
-  $c->configure(-scrollregion => [min2(0,$c->canvasx(0)),
-				  min2(0,$c->canvasy(0)),
-				  max2($c->canvasx($c->width),$self->{canvasWidth}),
-				  max2($c->canvasx($c->height),$self->{canvasHeight})]);
+  $c->configure(-scrollregion => [min2(0,$c->canvasx(0))||0,
+				  min2(0,$c->canvasy(0))||0,
+				  max2($c->canvasx($c->width),$self->{canvasWidth})||0,
+				  max2($c->canvasx($c->height),$self->{canvasHeight})])||0;
 }
 
 sub scale_font {
@@ -747,7 +747,7 @@ sub recalculate_positions_vert {
   for (my $i=0; $i<$pattern_count; $i++) {
     my $max = 0;
     ($pat_style,$pat)=@{$patterns->[$i]};
-    if ($pat_style eq 'node') { $n_i++ } else { $e_i++ }
+    if ($pat_style eq 'node') { $n_i++ } elsif ($pat_style eq 'edge') { $e_i++ }
     next if $i==0;
     my $sep = $Opts->{'columnsep['.$i.']'};
     $sep = $columnsep unless defined $sep;
@@ -1413,7 +1413,7 @@ sub redraw {
     # only for root node if any
     foreach $style ($self->get_label_patterns($fsfile,"rootstyle")) {
       foreach ($self->interpolate_text_field($node,$style,$grp)=~/\#${block}/g) {
-  	if (/^(Oval|CurrentOval|TextBox|EdgeTextBox|CurrentTextBox|CurrentEdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-.+?):'?(.+)'?$/) {
+  	if (/^(Oval|CurrentOval|TextBox|EdgeTextBox|CurrentTextBox|CurrentEdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|ExtraLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-.+?):'?(.+)'?$/) {
 	  if (exists $Opts{"$1$2"}) {
 	    push @{$Opts{"$1$2"}},$3=>$4;
 	  } else {
@@ -1439,7 +1439,7 @@ sub redraw {
     my %nopts=();
     foreach $style (@$style_patterns) {
       foreach ($self->interpolate_text_field($node,$style,$grp)=~/\#${block}/g) {
-	if (/^((CurrentOval|Oval|CurrentTextBox|TextBox|EdgeTextBox|CurrentEdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-[^:]+?)):(.+)$/) {
+	if (/^((CurrentOval|Oval|CurrentTextBox|TextBox|EdgeTextBox|CurrentEdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|ExtraLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-[^:]+?)):(.+)$/) {
 	  if (exists $nopts{"$2$3"}) {
 	    push @{$nopts{"$2$3"}},$4=>$5;
 	  } else {
@@ -1627,16 +1627,17 @@ sub redraw {
     my @dash=map { /\d/ ? [split /,/,$_] : $_ } 
       split '&',$self->get_style_opt($node,"Line","-dash",\%Opts);
     my @smooth=split '&',$self->get_style_opt($node,"Line","-smooth",\%Opts);
-    my $lin=0;
     my %nodehash;
 
     my $coords=$self->get_style_opt($node,"Line","-coords",\%Opts);
     $coords = $self->parse_coords_spec($node,$coords,$nodes,\%nodehash);
 
     my @coords=split '&',$coords;
+    my $lin=-1;
     COORD: foreach my $c (@coords) {
       #my @c=split ',',$c;
       my @c = $self->eval_coords_spec($node,$parent,$c,$coords);
+      $lin++;
       next unless @c;
 #      $objectno++;
 #      my $line="line_$objectno";
@@ -1667,7 +1668,6 @@ sub redraw {
 	$canvas->lower($l,'all');
 	$canvas->raise($l,'line');
       }
-      $lin++;
    }
 
     undef %nodehash;
@@ -1864,10 +1864,13 @@ sub redraw {
       $self->store_obj_pinfo($bid,$node);
     }
 
+    undef %nodehash;
+
     ## Texts of attributes
     my ($msg,$x,$y);
     my ($e_i,$n_i)=(0,0);
     my ($pat_class,$pat);
+    my $extra_i=0;
     for (my $i=0;$i<=$#$patterns;$i++) {
       ($pat_class,$pat)=@{$patterns->[$i]};
       $msg=$self->interpolate_text_field($node,$pat,$grp);
@@ -1888,7 +1891,7 @@ sub redraw {
 				!$edge_has_box,
 				\%Opts,$grp,1);
 	}
-      } else { # node
+      } elsif ($pat_class eq "node") { # node
 	if ($vertical_tree) {
 	  $x= $i==0
 	      ? 0+$node_info->{$node}{"NodeLabel_XPOS"}
@@ -1902,6 +1905,15 @@ sub redraw {
 	$self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$x,$y,
 			      !$node_has_box,
 			      \%Opts,$grp);
+      } elsif ($pat_class eq "label") {
+	my $coords = $self->get_style_opt($node,"ExtraLabel[$extra_i]","-coords",\%Opts);
+	$extra_i++;
+	$coords = $self->parse_coords_spec($node,$coords,$nodes,\%nodehash);
+	#my @c=split ',',$coords;
+	if (my @c = $self->eval_coords_spec($node,$parent,$coords)) {
+	  print "$msg $coords =  @c,  $extra_i\n";
+	  $self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,@c[0,1],1,\%Opts,$grp);
+	}
       }
     }
   }
@@ -2008,7 +2020,7 @@ sub raise_order {
 sub reset_scroll_region {
   my ($self)=@_;
   my $canvas = $self->canvas;
-  $canvas->configure(-scrollregion =>[0,0, $self->{canvasWidth}, $self->{canvasHeight}]);
+  $canvas->configure(-scrollregion =>[0,0, $self->{canvasWidth}||0, $self->{canvasHeight}||0]);
   $canvas->xviewMoveto(0);
   $canvas->yviewMoveto(0);
 }
