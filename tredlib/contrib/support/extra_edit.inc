@@ -12,6 +12,33 @@
 #bind NewSon to Ctrl+Shift+Down menu New son node
 #bind NewParent to Ctrl+Shift+Up menu New son parent
 #bind DeleteThisNode to Delete menu Delete current node
+#bind cut_to_parents_parent to Ctrl+Up menu Move node to parent's parent
+#bind cut_to_rbrother to Ctrl+Right menu Move node to right brother
+#bind cut_to_lbrother to Ctrl+Left menu Move node to left brother
+#bind cut_to_firstson to Ctrl+Down menu Move node to first son
+
+sub cut_to_firstson {
+  return unless ($this and $this->firstson and $this->parent);
+  my $p=$this->parent;
+  my $b=CutNode($this->firstson);
+  $this=CutPaste($this,$b);
+  $b=PasteNode($b,$p);
+  foreach ($this->children) {
+    CutPaste($_,$b);
+  }
+}
+sub cut_to_parents_parent {
+  return unless $this and $this->parent and $this->parent->parent;
+  CutPaste($this,$this->parent->parent);
+}
+sub cut_to_rbrother {
+  return unless $this and $this->rbrother;
+  CutPaste($this,$this->rbrother);
+}
+sub cut_to_lbrother {
+  return unless $this and $this->lbrother;
+  CutPaste($this,$this->lbrother);
+}
 
 sub trim_subtree {
   return unless ($this and $root and $this!=$root);
