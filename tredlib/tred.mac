@@ -328,30 +328,51 @@ sub GotoPrevNodeLin {
   $this=$next if $next;
 }
 
-use vars qw(@global_exit_hooks);
+{
+  my (@exit_hooks,@open_file_hooks);
 
-# the hook may be either a sub name, CODE ref or ARRAY ref, where
-# the first element of the array is the name/CODE-ref to execute
-# and the rest are arguments to be passed to it
-sub register_exit_hook ($) {
-  my ($hook)=@_;
-  push @global_exit_hooks,$hook;
-}
-
-sub unregister_exit_hook ($) {
-  my ($hook)=@_;
-  @global_exit_hooks=grep { $_ ne $hook } @global_exit_hooks;
-}
-
-sub exit_hook {
-  foreach my $sub (@global_exit_hooks) {
+  # the hook may be either a sub name, CODE ref or ARRAY ref, where
+  # the first element of the array is the name/CODE-ref to execute
+  # and the rest are arguments to be passed to it
+  sub __callback {
+    my $sub = shift;
     if (ref($sub) eq 'ARRAY') {
       my $realsub=shift @$sub;
-      eval{ &{$realsub}(@$sub); };
+      &{$realsub}(@$sub,@_);
     } else {
-      eval{ &$sub(); };
+      &$sub(@_);
     }
-    stderr($@) if $@;
+  }
+
+  sub register_exit_hook ($) {
+    my ($hook)=@_;
+    push @exit_hooks,$hook;
+  }
+  sub unregister_exit_hook ($) {
+    my ($hook)=@_;
+    @exit_hooks=grep { $_ ne $hook } @exit_hooks;
+  }
+  sub register_open_file_hook ($) {
+    my ($hook)=@_;
+    push @open_file_hooks,$hook;
+  }
+  sub unregister_open_file_hook ($) {
+    my ($hook)=@_;
+    @open_file_hooks=grep { $_ ne $hook } @open_file_hooks;
+  }
+  sub open_file_hook {
+    my @args = @_;
+    foreach my $sub (@open_file_hooks) {
+      return 'stop' if __callback($sub,@args) eq 'stop';
+    }
+    return;
+  }
+  sub exit_hook {
+    my @args = @_;
+    foreach my $sub (@exit_hooks) {
+      eval { __callback($sub,@args) };
+      stderr($@) if $@;
+    }
   }
 }
 
