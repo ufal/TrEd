@@ -104,7 +104,7 @@ sub allow_switch_context_hook {
 sub switch_context_hook {
   CreateStylesheets();
   SetCurrentStylesheet('Tree_Query'),Redraw()
-    if GetCurrentStylesheet() eq STYLESHEET_FROM_FILE();
+    if GetCurrentStylesheet() ne 'Tree_Query'; #eq STYLESHEET_FROM_FILE();
 }
 sub CreateStylesheets{
   unless(StylesheetExists('Tree_Query')){
@@ -125,7 +125,7 @@ sub limit {
   }
   my $driver = $dbi_configuration->{driver};
   if ($driver eq 'Oracle') {
-    return 'AND ROWNUM<'.$limit;
+    return 'AND ROWNUM<='.$limit;
   } elsif ($driver eq 'Pg') {
     return 'LIMIT '.$limit.';';
   }
@@ -236,7 +236,10 @@ sub query_sql {
 						   }
 						 ) };
     if ($@) {
-      if ($xml) {
+      if (GUI()) {
+	ErrorMessage($@);
+	return;
+      } elsif ($xml) {
 	print qq(  <error><![CDATA[\n);
 	print $@;
 	print qq(]]></error>\n);
@@ -258,17 +261,29 @@ sub query_sql {
       print "$root->{id}\tOK\t$no_results\t$time\n";
     }
     if (GUI()) {
-      my $sel = [];
-      if (ListQuery("Results",
-		    'browse',
-		    [map { join '|',@$_ } @$results],
-		    $sel,
-		    {buttons=>[qw(Ok)]})) {
-	if (@$sel) {
-	  print "$sel->[0]\n";
-	  my @files = idx_to_pos(split /\|/, $sel->[0]);
-	  if (@files) {
-	    print map { $_."\n" } @files;
+#      my $sel = [];
+#       if (ListQuery("Results",
+# 		    'browse',
+# 		    [map { join '/',@$_ } @$results],
+# 		    $sel,
+# 		    {buttons=>[qw(Ok)]})) {
+      my $matches = @$results;
+	if ($matches and QuestionQuery('Results',
+				       ((defined($opts->{limit}) and $matches==$opts->{limit}) ? '>=' : '').
+					 $matches.' match'.($matches>1?'(es)':''),
+					'Display','Cancel') eq 'Display') {
+	  my $treebase_sources = $dbi_configuration->{sources};
+	  unless (defined($treebase_sources) and
+		    length($treebase_sources)) {
+	    EditAttribute($dbi_configuration,'sources',
+			  $dbi_config->schema->
+			    find_type_by_path('/configurations/[1]'),
+			 ) || return;
+	    $dbi_config->save();
+	    $treebase_sources = $dbi_configuration->{sources};
+	  }
+	  if ($treebase_sources) {
+	    IOBackend::register_input_protocol_handler(pmltq=>\&pmltq_protocol_handler);
 	    my @wins = TrEdWindows();
 	    my $res_win;
 	    if (@wins>1) {
@@ -277,45 +292,59 @@ sub query_sql {
 	      $res_win = SplitWindowVertically();
 	    }
 	    {
+	      my $fl = Filelist->new(__PACKAGE__);
+	      my @files = map {
+		#'pmltq://'.$_ 
+		my @pos=@$_;
+		my ($first) = idx_to_pos([$pos[0],$pos[1]]);
+		(defined $first and length $first) ? ($treebase_sources.'/'.$first) : ()
+	      } @$results;
+	      $fl->add(0, @files);
+	      print map { $_."\n" } @files;
 	      SetCurrentWindow($res_win);
 	      CloseFileInWindow($res_win);
 	      SetCurrentStylesheet(STYLESHEET_FROM_FILE);
-	      my $treebase_sources = $dbi_configuration->{sources};
-	      unless (defined($treebase_sources) and 
-		      length($treebase_sources)) {
-		EditAttribute($dbi_configuration,'sources',
-			      $dbi_config->schema->
-				find_type_by_path('/configurations/[1]'),
-			     ) || return;
-		$dbi_config->save();
-		$treebase_sources = $dbi_configuration->{sources};
-	      }
-	      Open($treebase_sources.'/'.$files[0]);
+	      AddNewFileList($fl);
+	      SelectFileList($fl->name);
+	      Open($fl->file_at(0));
 	      $this=$grp->{currentNode};
 	    }
 	  }
+	} else {
+	  QuestionQuery('Results','No results','OK');
 	}
-     }
+#      }
     }
     return $results;
   }
 }
 
+sub pmltq_protocol_handler {
+  my ($url)=@_;
+  return if $url =~ '\.lock$';
+  $url=~s{^pmltq://}{} || die "not a pmltq:// URI";
+  my ($first) = idx_to_pos([split m{/}, $url]);
+  if (defined $first and length $first) {
+    my $treebase_sources = $dbi_configuration->{sources};
+    return ($treebase_sources.'/'.$first,0);
+  }
+  return;
+}
+
 sub idx_to_pos {
+  my $idx_list=shift;
   my @res;
-  for my $idx (@_) {
-    print "idx: $idx\n";
-    my $result = eval { $dbi->selectall_arrayref(
-      qq(SELECT file,sent_num,pos FROM a_pos WHERE idx = $idx),
+  my @list=@$idx_list;
+  while (@list) {
+    my ($idx,$type)=(shift@list, shift@list);
+    print "idx: $idx, $type\n";
+    print qq[SELECT "file", "sent_num", "pos" FROM ${type}_pos WHERE "idx" = $idx,\n];
+    my $result = $dbi->selectall_arrayref(
+      qq(SELECT "file", "sent_num", "pos" FROM ${type}_pos WHERE "idx" = $idx ).limit(1),
       { MaxRows=>1, RaiseError=>1 }
-     )};
-    if ($@) {
-      ErrorMessage($@);
-      return;
-    } else {
-      $result = $result->[0];
-      push @res, $result->[0].'##'.$result->[1].'.'.$result->[2];
-    }
+     );
+    $result = $result->[0];
+    push @res, $result->[0].'##'.$result->[1].'.'.$result->[2];
   }
   return @res;
 }
@@ -331,14 +360,20 @@ sub serialize_conditions {
   my ($node,$opts)=@_;
   $opts||={};
   if ($node->parent) {
-    my $sql =  serialize_element( 'and', $node->{conditions}, $opts->{id}, $opts->{parent_id} );
+    my $sql =  serialize_element({
+      %$opts,
+      name => 'and',
+      condition => $node->{conditions},
+    });
     if ($occurrences_strategy == SUB_QUERY) {
       my @occ_child = grep { length($_->{occurrences}) } $node->children;
       for my $child (@occ_child) {
 	my $occ = $child->{occurrences};
 	$sql .= " AND " if length $sql;
-	$sql .= " $occ=(".make_sql($child,{count=>1, parent_id=>$opts->{id},
-					  }).")";
+	$sql .= " $occ=(".make_sql($child,{
+	  count=>1,
+	  parent_id=>$opts->{id},
+	}).")";
       }
     }
     return $sql;
@@ -402,6 +437,7 @@ sub make_sql {
   my @join;
   my @where;
   my %conditions;
+  my %extra_joins;
   for (my $i=0; $i<@nodes; $i++) {
     my $n = $nodes[$i];
     my $table = $n->{type}||$tree->{type}||'a';
@@ -409,7 +445,11 @@ sub make_sql {
     push @select, $id;
     my $parent = $n->parent;
     my $parent_id = $id{$parent};
-    $conditions{$id} = Tree_Query::serialize_conditions($n,{id=>'___SELF___',parent_id=>$parent_id});
+    $conditions{$id} = Tree_Query::serialize_conditions($n,{
+      type=>$table,
+      id=>'___SELF___',
+      parent_id=>$parent_id
+     });
     if ($i==0) {
       push @join," FROM $table $id ";
     } else {
@@ -417,8 +457,10 @@ sub make_sql {
       push @join,'';
       if ($parent->parent) {
 	if ($n->{'relation'} eq 'ancestor') {
-	  $join.=qq{$id."root_idx"=$parent_id."root_idx" AND }.
-	    qq{$id."idx" BETWEEN $parent_id."idx" AND $parent_id."r"};
+	  if ($n->parent->parent) {
+	    $join.=qq{$id."root_idx"=$parent_id."root_idx" AND }.
+	      qq{$id."idx" BETWEEN $parent_id."idx" AND $parent_id."r"};
+	  }
 	} elsif ($n->{'relation'} eq 'effective_parent') {
 	  $join .= qq{$id."root_idx"=n0."root_idx"};
 	} elsif ($n->{'relation'} eq 'parent' or
@@ -431,26 +473,34 @@ sub make_sql {
 	}
       } else {
 	# what do we with _optional here?
-	$join .= qq{$id."root_idx"=n0."root_idx"};
+	if ($n->parent->parent) {
+	  $join .= qq{$id."root_idx"=n0."root_idx"};
+	}
       }
       $join.=
 	join('', (map { qq{ AND $id{$_}."idx"}.
 			  ($conditions{$id} eq $conditions{$id{$_}} ? '<' : '!=' ).
 			qq{${id}."idx"} }
 		    grep { #$_->parent == $n->parent
-			   #  or
-			   (first { !$_->{optional} } $_->ancestors)
-			     ==
-			   (first { !$_->{optional} } $n->ancestors)
+		      #  or
+		      my $type=$_->{type}||$tree->{type}||'a';
+		      $type eq $table and
+			(first { !$_->{optional} } $_->ancestors)==(first { !$_->{optional} } $n->ancestors)
 			 }
 		      map { $nodes[$_] } 0..($i-1)));
+      $join='1=1' unless $join=~/\S/;
       $join[-1].= " JOIN $table $id ".(length($join) ? ' ON '.$join : q{});
       if ($parent->parent and $n->{'relation'} eq 'effective_parent') {
 	$join[-1].=qq{ JOIN ${table}_eparents ${id}_e ON ${id}_e."idx"=${id}."idx"}.
                    qq{ AND ${id}_e."eparent_idx"=$parent_id."idx"};
       }
     }
-    my $where = Tree_Query::serialize_conditions($n,{id=>$id,parent_id=>$parent_id});
+    my $where = Tree_Query::serialize_conditions($n,{
+      type=>$table,
+      id=>$id,
+      parent_id=>$parent_id,
+      join => \%extra_joins,
+    });
     # where could also be obtained by replacing ___SELF___ with $id
     if ($n->{optional}) {
       if (length $where) {
@@ -464,13 +514,23 @@ sub make_sql {
       ($count ? ['count(1)','space'] : (map {
 	(($_==0 ? () : [', ','space']),
 	 [$select[$_].'."idx"',$nodes[$_]],
-	 [' AS "'.$select[$_].'.idx"','space']
+	 [' AS "'.$select[$_].'.idx"','space'],
+	 [q(, ').($nodes[$_]->{type}||$tree->{type}).q('),$nodes[$_]],
+	 [' AS "'.$select[$_].'.type"','space']
 	)
       } 0..$#nodes)),
       (map {
 	(($_==0 ? () : ["\n ",'space']),
 	 [$join[$_],$nodes[$_]])
       } 0..$#nodes),
+      (map {
+	my $name=$_;
+	my $tab=$extra_joins{$_}[0];
+	my $on=$extra_joins{$_}[1];
+	([' ','space'],[
+	  qq(\n  JOIN $tab $name ON $on)
+	])
+      } sort { length($a)<=>length($b) } keys %extra_joins),
       (
        ((defined($tree_parent_id) and defined($id{$tree}) and ++$i) ?
 	  ["\nWHERE\n     ".$id{$tree}.'."parent_idx"='.$tree_parent_id.'."idx"','space'] : ()),
@@ -492,19 +552,42 @@ sub make_sql {
   }
 }
 
+sub serialize_expression {
+  my ($opts)=@_;
+  my $exp = $opts->{expression};
+  $exp=~s{(?:(\w+)\.)?"([^"]+)"}{
+    print "$1 => $2\n";
+    my $id = defined($1) ? $1 : $opts->{id};
+    my @ref = split m{/}, $2;
+    my $column = pop @ref;
+    my $table = $opts->{type};
+    for my $tab (@ref) {
+      my $prev = $id;
+      $id.="_$tab";
+      $table.="_$tab";
+      $opts->{join}{$id} = [$table => qq($id."idx" = $prev."idx")];# should be qq($prev."$tab")
+    }
+    qq($id."$column");
+  }e;
+  print "exp: $exp\n";
+  return $exp;
+}
+
 sub serialize_element {
-  my ($name,$value,$as_id,$parent_as_id)=@_;
+  my ($opts)=@_;
+  my ($name,$value,$as_id,$parent_as_id)=map {$opts->{$_}} qw(name condition id parent_id);
   if ($name eq 'test') {
-    my $left = $value->{a};
-    my $right = $value->{b};
+    my $left = serialize_expression({%$opts,expression=>$value->{a}});
+    my $right = serialize_expression({%$opts,expression=>$value->{b}});
     for ($left,$right) {
       s/"_[#]descendants"/"r"-"idx"/g;
       s/"_[#]lbrothers"/"chord"/g;
       s/"_[#]rbrothers"/$parent_as_id."chld"-"chord"-1/g;
       s/"_[#]sons"/"chld"/g;
       s/"_depth"/"lvl"/g;
-      s/(^|.)(\"[^"]*\")/$1 eq '.' ? $1.$2 : "$1$as_id.$2"/eg;
+    #  s/(^|.)(\"[^"]*\")/$1 eq '.' ? $1.$2 : "$1$as_id.$2"/eg;
     }
+    print "$left => $right\n";
     return ($value->{negate}==1 ? 'NOT ' : '').
            ($left.' '.uc($value->{operator}).' '.$right);
   } elsif ($name =~ /^(?:and|or)$/) {
@@ -517,12 +600,13 @@ sub serialize_element {
 			grep { defined and length }
 			map {
 			  my $n = $_->name;
-			  serialize_element(
-			    $n,
-			    $_->value,
-			    $as_id,
-			    $parent_as_id,
-			   ) } $seq->elements);
+			  serialize_element({
+			    %$opts,
+			    name => $n,
+			    condition => $_->value,
+			    id => $as_id,
+			    parent_id => $parent_as_id,
+			   }) } $seq->elements);
    return () unless length $condition;
    return ($value->{negate} ? "NOT ($condition)" :
 	   @$seq > 1 ? "($condition)" : $condition);
@@ -577,10 +661,11 @@ $default_dbi_config = <<"EOF";
     <schema>
       <pml_schema 
 	  xmlns="http://ufal.mff.cuni.cz/pdt/pml/schema/" version="1.1">
+        <revision>1.0</revision>
 	<root name="dbi">
 	  <structure>
 	    <member name="configurations">
-	      <list ordered="0" type="dbi-config.type"/>
+	      <list ordered="1" type="dbi-config.type"/>
 	    </member>
 	  </structure>
 	</root>
@@ -619,7 +704,6 @@ $default_dbi_config = <<"EOF";
   </configurations>
 </dbi>
 EOF
-
 
 } # use strict
 1;
