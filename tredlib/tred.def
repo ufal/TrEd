@@ -2591,7 +2591,39 @@ sub Open {
   } else {
     main::openFile($grp,$_[0]);
   }
-  $this=$grp->{currentNode};
+}
+
+=item C<CloseFile(file?)>
+
+Close a given FSFile.
+
+=cut
+
+sub CloseFile {
+  shift unless ref($_[0]);
+  my $file = $_[0]||CurrentFile();
+  croak("Not a FSFile object!\n") 
+    if defined($file) and !UNIVERSAL::isa($file,'FSFile');
+  if (exists($grp->{framegroup})) {
+    main::closeFile($grp->{framegroup},$file);
+  } else {
+    main::closeFile($grp,$file);
+  }
+  $Redraw='all';
+}
+
+=item C<CloseFileInWindow(window?)>
+
+This macro is for TrEd only. It closes the FSFile open in the given or
+current window.  If the file is open in other windows, it is kept
+among postponed files. If the file is modified, the user is asked to
+save it.
+
+=cut
+
+sub CloseFileInWindow {
+  my $ret = GUI() && main::closeFileInWindow($grp);
+  $Redraw='all';
 }
 
 =item C<Save()>
