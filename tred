@@ -1062,7 +1062,7 @@ sub fileSchema {
 
 sub lastFileNo {
   my ($win)=@_;
-  return $win->{currentFilelist} ? $win->{currentFilelist}->file_count()-1 : -1;x
+  return $win->{currentFilelist} ? $win->{currentFilelist}->file_count()-1 : -1;
 }
 
 sub currentFileNo {
@@ -2964,7 +2964,7 @@ sub insertToFilelist {
   my ($grp,$win)=grp_win($grp_or_win);
   $filelist=$win->{currentFilelist} unless defined($filelist);
   $position=$win->{currentFileNo} unless defined($position);
-  return -1 unless ref($filelist);
+  return -1 unless ref($filelist) and UNIVERSAL::can($filelist,'add');
 
 
   print "Insert: ",@_," ",$_[0]," is at position ",$filelist->position($_[0]),"\n"  if $tredDebug;
@@ -3021,7 +3021,7 @@ sub removeFromFilelist {
   my ($grp,$win)=grp_win($grp_or_win);
   $filelist=$win->{currentFilelist} if not defined($filelist);
   $position=$win->{currentFileNo} if not defined($position);
-  return unless ref($filelist);
+  return unless ref($filelist) and UNIVERSAL::can($filelist,'remove');
   
   $filelist->remove(@_);
   if ($filelist eq $win->{currentFilelist}) {
@@ -7105,6 +7105,7 @@ sub renameFileInFilelist {
   # TRY UPDATING THE CURRENT FILELIST:
   #  if position is undefined - update all
   #  if defined, update only given position
+  return unless ref($filelist) and UNIVERSAL::can($filelist,'list_ref') and UNIVERSAL::can($filelist,'files_ref');
   my $pattern_list = $filelist->list_ref;
   my $rel_name = File::Spec->abs2rel($filename, $filelist->filename);
   # my %fixed;
@@ -8257,7 +8258,7 @@ sub editAttrsDialog_schema {
     validate_flags => PML_VALIDATE_NO_CHILDNODES(),
     set_command => sub {
       my ($callback)=@_;
-      $win->{FSFile}->notSaved(1);
+      $win->{FSFile}->notSaved(1) if $win->{FSFile};
       save_undo($win,prepare_undo($win,$dlg_title));
       lastActionBookmark($win->{framegroup});
       &$callback();
