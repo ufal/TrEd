@@ -213,7 +213,7 @@ sub query_sql {
   my $opts = shift;
   $opts||={};
   my $xml = $opts->{xml};
-  my $sql = serialize_conditions($root,$opts);
+  my $sql = serialize_conditions($opts->{root}||$root,$opts);
   #  my @text_opt = eval { require Tk::CodeText; } ? (qw(CodeText -syntax SQL)) : qw(Text);
   if (GUI()) {
     $sql = EditBoxQuery(
@@ -283,7 +283,7 @@ sub query_sql {
 	    $treebase_sources = $dbi_configuration->{sources};
 	  }
 	  if ($treebase_sources) {
-	    IOBackend::register_input_protocol_handler(pmltq=>\&pmltq_protocol_handler);
+	    #IOBackend::register_input_protocol_handler(pmltq=>\&pmltq_protocol_handler);
 	    my @wins = TrEdWindows();
 	    my $res_win;
 	    if (@wins>1) {
@@ -294,10 +294,10 @@ sub query_sql {
 	    {
 	      my $fl = Filelist->new(__PACKAGE__);
 	      my @files = map {
-		#'pmltq://'.$_ 
-		my @pos=@$_;
-		my ($first) = idx_to_pos([$pos[0],$pos[1]]);
-		(defined $first and length $first) ? ($treebase_sources.'/'.$first) : ()
+		'pmltq://'.join('/',@$_)
+#		my @pos=@$_;
+#		my ($first) = idx_to_pos([$pos[0],$pos[1]]);
+#		(defined $first and length $first) ? ('pmltq://'.$treebase_sources.'/'.$first) : ()
 	      } @$results;
 	      $fl->add(0, @files);
 	      print map { $_."\n" } @files;
@@ -305,9 +305,8 @@ sub query_sql {
 	      CloseFileInWindow($res_win);
 	      SetCurrentStylesheet(STYLESHEET_FROM_FILE);
 	      AddNewFileList($fl);
-	      SelectFileList($fl->name);
-	      Open($fl->file_at(0));
-	      $this=$grp->{currentNode};
+	      SetCurrentFileList($fl->name);
+	      GotoFileNo(0);
 	    }
 	  }
 	} else {
@@ -317,6 +316,22 @@ sub query_sql {
     }
     return $results;
   }
+}
+
+sub open_pmltq {
+  my ($filename,$opts)=@_;
+  print "open_pmltq: $filename,$opts\n";
+  return unless $filename=~s{pmltq://}{};
+  my ($first) = idx_to_pos([split m{/}, $filename]);
+  if (defined $first and length $first) {
+    my $treebase_sources = $dbi_configuration->{sources};
+    Open($treebase_sources.'/'.$first,0);
+    Redraw();
+  }
+  return 'stop';
+}
+BEGIN {
+  register_open_file_hook(\&open_pmltq);
 }
 
 sub pmltq_protocol_handler {
@@ -515,7 +530,7 @@ sub make_sql {
 	(($_==0 ? () : [', ','space']),
 	 [$select[$_].'."idx"',$nodes[$_]],
 	 [' AS "'.$select[$_].'.idx"','space'],
-	 [q(, ').($nodes[$_]->{type}||$tree->{type}).q('),$nodes[$_]],
+	 [q(, ').($nodes[$_]->{type}||$tree->{type}||'a').q('),$nodes[$_]],
 	 [' AS "'.$select[$_].'.type"','space']
 	)
       } 0..$#nodes)),
