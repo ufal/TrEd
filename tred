@@ -2193,7 +2193,10 @@ sub openFile {
       if ($opt_t ne EMPTY and
 	    $win->{macroContext} ne $opt_t);
     unless ($opts{-noredraw}) {
-      redraw_win($win) unless $win->{redrawn};
+      unless ($win->{redrawn}) {
+	get_nodes_win($win); # the hook may have changed something
+	redraw_win($win);
+      }
       centerTo($win,$win->{currentNode});
     }
   }
