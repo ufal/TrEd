@@ -268,10 +268,10 @@ sub query_sql {
 # 		    $sel,
 # 		    {buttons=>[qw(Ok)]})) {
       my $matches = @$results;
-	if ($matches and QuestionQuery('Results',
-				       ((defined($opts->{limit}) and $matches==$opts->{limit}) ? '>=' : '').
-					 $matches.' match'.($matches>1?'(es)':''),
-					'Display','Cancel') eq 'Display') {
+      if ($matches and QuestionQuery('Results',
+				     ((defined($opts->{limit}) and $matches==$opts->{limit}) ? '>=' : '').
+				       $matches.' match'.($matches>1?'(es)':''),
+				     'Display','Cancel') eq 'Display') {
 	  my $treebase_sources = $dbi_configuration->{sources};
 	  unless (defined($treebase_sources) and
 		    length($treebase_sources)) {
@@ -295,9 +295,10 @@ sub query_sql {
 	      my $fl = Filelist->new(__PACKAGE__);
 	      my @files = map {
 		'pmltq://'.join('/',@$_)
-#		my @pos=@$_;
-#		my ($first) = idx_to_pos([$pos[0],$pos[1]]);
-#		(defined $first and length $first) ? ('pmltq://'.$treebase_sources.'/'.$first) : ()
+		  #		my @pos=@$_;
+		  #		my ($first) = idx_to_pos([$pos[0],$pos[1]]);
+		  #		(defined $first and length $first) ?
+		  # ('pmltq://'.$treebase_sources.'/'.$first) : ()
 	      } @$results;
 	      $fl->add(0, @files);
 	      print map { $_."\n" } @files;
@@ -322,12 +323,21 @@ sub open_pmltq {
   my ($filename,$opts)=@_;
   print "open_pmltq: $filename,$opts\n";
   return unless $filename=~s{pmltq://}{};
-  my ($first) = idx_to_pos([split m{/}, $filename]);
+  my @paths = idx_to_pos([split m{/}, $filename]);
+  my $first = $paths[0];
   if (defined $first and length $first) {
     my $treebase_sources = $dbi_configuration->{sources};
-    Open($treebase_sources.'/'.$first,0);
+    $opts->{-norecent}=1;
+    Open($treebase_sources.'/'.$first,$opts);
+    $first=~s/\.\d+$//;
+    my @nodes = ($root,$root->descendants);
+    for my $node (@nodes[map { /^\Q$first\E\.(\d+)$/ ? $1 : () } @paths]) {
+      print "$node\n";
+      $node->{__select}=1;
+    }
     Redraw();
   }
+  
   return 'stop';
 }
 BEGIN {
@@ -456,6 +466,9 @@ sub make_sql {
   for (my $i=0; $i<@nodes; $i++) {
     my $n = $nodes[$i];
     my $table = $n->{type}||$tree->{type}||'a';
+    if ($n->{relation} =~ m{^a/}) {
+      $table = $n->{type}||'a';
+    }
     my $id = $id{$n};
     push @select, $id;
     my $parent = $n->parent;
@@ -481,6 +494,9 @@ sub make_sql {
 	} elsif ($n->{'relation'} eq 'parent' or
 		 $n->{'relation'} eq '') {
 	  $join.=qq{$id."parent_idx"=$id{$n->parent}."idx"};
+	} elsif ($n->{'relation'} eq 'a/lex.rf' or
+		 $n->{'relation'} eq 'a/lex.rf|a/aux.rf') {
+	  $join.=qq{$id."idx"=$id{$n->parent}."a_lex_idx"};
 	}
 	if ($n->{optional}) {
 	  # identify with parent
@@ -522,6 +538,17 @@ sub make_sql {
 	$where = qq{(($where) OR $id."idx"=$parent_id."idx")};
       }
     }
+    if ($n->{'relation'} eq 'a/aux.rf' || $n->{'relation'} eq 'a/lex.rf|a/aux.rf') {
+      if ($where=~/\S/) {
+	$where.=' AND';
+      }
+      $where.=' '.serialize_expression({
+	  type=>$table,
+	  expression => '$parent_id."a_aux/a_idx"',
+	  join => \%extra_joins,
+	  id=>$id,
+	}).qq(=$id."idx");
+    }
     push @where, $where;
   }
   my $i=0;
@@ -542,8 +569,9 @@ sub make_sql {
 	my $name=$_;
 	my $tab=$extra_joins{$_}[0];
 	my $on=$extra_joins{$_}[1];
+	my $type=$extra_joins{$_}[2] || '';
 	([' ','space'],[
-	  qq(\n  JOIN $tab $name ON $on)
+	  qq(\n $type JOIN $tab $name ON $on)
 	])
       } sort { length($a)<=>length($b) } keys %extra_joins),
       (
@@ -580,7 +608,7 @@ sub serialize_expression {
       my $prev = $id;
       $id.="_$tab";
       $table.="_$tab";
-      $opts->{join}{$id} = [$table => qq($id."idx" = $prev."idx")];# should be qq($prev."$tab")
+      $opts->{join}{$id} = [$table => qq($id."idx" = $prev."idx"), 'LEFT'];# should be qq($prev."$tab")
     }
     qq($id."$column");
   }e;
