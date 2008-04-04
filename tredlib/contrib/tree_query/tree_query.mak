@@ -394,7 +394,7 @@ sub serialize_conditions {
       my @occ_child = grep { length($_->{occurrences}) } $node->children;
       for my $child (@occ_child) {
 	my $occ = $child->{occurrences};
-	$sql .= " AND " if length $sql;
+	$sql .= " AND " if $sql=~/\S/;
 	$sql .= " $occ=(".make_sql($child,{
 	  count=>1,
 	  parent_id=>$opts->{id},
@@ -435,6 +435,32 @@ sub init_id_map {
   };
 }
 
+sub relation {
+  my ($n,$opts)=@_;
+  my ($id,$parent_id)=map { $opts->{$_} } qw(id parent_id);
+  my $condition;
+  if ($n->parent) {
+    if ($n->{'relation'} eq 'ancestor') {
+      if ($n->parent->parent) {
+	$condition = qq{$id."root_idx"=$parent_id."root_idx" AND }.
+	  qq{$id."idx" BETWEEN $parent_id."idx" AND $parent_id."r"};
+      }
+    } elsif ($n->{'relation'} eq 'effective_parent') {
+      $condition = qq{$id."root_idx"=n0."root_idx"};
+    } elsif ($n->{'relation'} eq 'parent' or
+	       $n->{'relation'} eq '') {
+      $condition = qq{$id."parent_idx"=$id{$n->parent}."idx"};
+    } elsif ($n->{'relation'} eq 'a/lex.rf') {
+      $condition = qq{$id."idx"=$id{$n->parent}."a_lex_idx"};
+    }
+    if ($n->{optional}) {
+      # identify with parent
+      $condition = qq{(($condition) OR $id."idx"=$parent_id."idx")};
+    }
+  }
+  return $condition;
+}
+
 sub make_sql {
   my ($tree,$opts)=@_;
   $opts||={};
@@ -447,13 +473,13 @@ sub make_sql {
     while ($n) {
       if ($n->parent) {
 	if (length($n->{occurrences}) and $n!=$tree) {
-	  $n = $n->following_right_or_up;
+	  $n = $n->following_right_or_up($tree);
 	  next;
 	} else {
 	  push @nodes, $n;
 	}
       }
-      $n = $n->following;
+      $n = $n->following($tree);
     }
   } else {
     @nodes =  grep { $_->parent }  ($tree, $tree->descendants);
@@ -484,24 +510,7 @@ sub make_sql {
       my $join;
       push @join,'';
       if ($parent->parent) {
-	if ($n->{'relation'} eq 'ancestor') {
-	  if ($n->parent->parent) {
-	    $join.=qq{$id."root_idx"=$parent_id."root_idx" AND }.
-	      qq{$id."idx" BETWEEN $parent_id."idx" AND $parent_id."r"};
-	  }
-	} elsif ($n->{'relation'} eq 'effective_parent') {
-	  $join .= qq{$id."root_idx"=n0."root_idx"};
-	} elsif ($n->{'relation'} eq 'parent' or
-		 $n->{'relation'} eq '') {
-	  $join.=qq{$id."parent_idx"=$id{$n->parent}."idx"};
-	} elsif ($n->{'relation'} eq 'a/lex.rf' or
-		 $n->{'relation'} eq 'a/lex.rf|a/aux.rf') {
-	  $join.=qq{$id."idx"=$id{$n->parent}."a_lex_idx"};
-	}
-	if ($n->{optional}) {
-	  # identify with parent
-	  $join = qq{(($join) OR $id."idx"=$parent_id."idx")};
-	}
+	$join.=relation($n,{%$opts, id=>$id,parent_id=>$parent_id});
       } else {
 	# what do we with _optional here?
 	if ($n->parent->parent) {
@@ -538,56 +547,72 @@ sub make_sql {
 	$where = qq{(($where) OR $id."idx"=$parent_id."idx")};
       }
     }
-    if ($n->{'relation'} eq 'a/aux.rf' || $n->{'relation'} eq 'a/lex.rf|a/aux.rf') {
+    if ($n->{'relation'} eq 'a/aux.rf' or
+	$n->{'relation'} eq 'a/lex.rf|a/aux.rf') {
       if ($where=~/\S/) {
-	$where.=' AND';
+	$where.=' AND ';
       }
-      $where.=' '.serialize_expression({
-	  type=>$table,
-	  expression => '$parent_id."a_aux/a_idx"',
+      $where.='('.serialize_expression({
+	  type=>$n->parent->{type}||$tree->{type}||'t',
+	  expression => qq{$parent_id."a_aux/a_idx"},
 	  join => \%extra_joins,
 	  id=>$id,
 	}).qq(=$id."idx");
+      if ($n->{'relation'} eq 'a/lex.rf|a/aux.rf') {
+	  $where.=qq{ OR $id."idx"=$id{$n->parent}."a_lex_idx"};
+      }
+      $where.=')';
     }
     push @where, $where;
   }
   my $i=0;
-  my @sql = (['SELECT '],
-      ($count ? ['count(1)','space'] : (map {
-	(($_==0 ? () : [', ','space']),
-	 [$select[$_].'."idx"',$nodes[$_]],
-	 [' AS "'.$select[$_].'.idx"','space'],
-	 [q(, ').($nodes[$_]->{type}||$tree->{type}||'a').q('),$nodes[$_]],
-	 [' AS "'.$select[$_].'.type"','space']
-	)
-      } 0..$#nodes)),
-      (map {
-	(($_==0 ? () : ["\n ",'space']),
-	 [$join[$_],$nodes[$_]])
-      } 0..$#nodes),
-      (map {
-	my $name=$_;
-	my $tab=$extra_joins{$_}[0];
-	my $on=$extra_joins{$_}[1];
-	my $type=$extra_joins{$_}[2] || '';
-	([' ','space'],[
-	  qq(\n $type JOIN $tab $name ON $on)
-	])
-      } sort { length($a)<=>length($b) } keys %extra_joins),
-      (
-       ((defined($tree_parent_id) and defined($id{$tree}) and ++$i) ?
-	  ["\nWHERE\n     ".$id{$tree}.'."parent_idx"='.$tree_parent_id.'."idx"','space'] : ()),
-       map {
-	 (($i++ == 0 ? ([ "\nWHERE\n     ",'space']) : ["\n AND ",'space']),
-	  [$where[$_],$nodes[$_]]
-	 )
-      } (grep {
-	  my $w = $where[$_];
-	  defined($w) and length($w)
-	} 0..$#nodes)),
-      ( (defined($tree_parent_id) and defined($id{$tree}) or !defined($opts->{limit})  )
-	  ? () : ["\n".limit($opts->{limit})."\n",'space'])
-    );
+  my @sql = (['SELECT ']);
+  if ($count) {
+    push @sql,['count(1)','space'];
+  } else {
+    push @sql, (map {
+      (($_==0 ? () : [', ','space']),
+       [$select[$_].'."idx"',$nodes[$_]],
+       [' AS "'.$select[$_].'.idx"','space'],
+       [q(, ').($nodes[$_]->{type}||$tree->{type}||'a').q('),$nodes[$_]],
+       [' AS "'.$select[$_].'.type"','space']
+      )
+    } 0..$#nodes)
+  }
+  # joins
+  push @sql, (map {
+    (($_==0 ? () : ["\n ",'space']),
+     [$join[$_],$nodes[$_]])
+  } 0..$#nodes);
+  # extra joins
+  push @sql,
+    (map {
+      my $name=$_;
+      my $tab=$extra_joins{$_}[0];
+      my $on=$extra_joins{$_}[1];
+      my $type=$extra_joins{$_}[2] || '';
+      ([' ','space'],[
+	qq(\n $type JOIN $tab $name ON $on)
+       ])
+    } sort { length($a)<=>length($b) } keys %extra_joins);
+  my @WHERE;
+  if (defined($tree_parent_id) and defined($id{$tree})) {
+    my $rel = relation($tree, {%$opts,id=>$id{$tree},parent_id=>$tree_parent_id});
+    push @WHERE,[$rel, $tree] if $rel=~/\S/;
+  }
+  push @WHERE, (map {
+    [$where[$_],$nodes[$_]]
+  } grep {
+    my $w = $where[$_];
+    defined($w) and length($w)
+  } 0..$#nodes);
+  push @sql, [ "\nWHERE\n     ",'space'];
+  push @sql, (map { ($_, ["\n AND ",'space']) } @WHERE);
+  pop @sql; # pop the last AND or a solitary WHERE
+  unless (defined($tree_parent_id) and defined($id{$tree}) 
+	  or !defined($opts->{limit})) {
+    push @sql, ["\n".limit($opts->{limit})."\n",'space']
+  }
   if ($format) {
     return \@sql;
   } else {
