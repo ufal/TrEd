@@ -2275,8 +2275,10 @@ sub autoSaveAll {
   my @files=grep { $_->notSaved == 1 } @openfiles;
   return unless @files;
   $top->title("Autosaving...");
+  $top->update;
   $top->Busy(-recurse=> 1) if (!$insideEval);
   foreach my $fsfile (@files) {
+    next if $fsfile->appData('noautosave');
     my $f=autosave_filename($fsfile->filename);
     print STDERR "auto-saving recovery file ".$fsfile->filename." to '$f'\n" if $tredDebug;
 
