@@ -39,6 +39,7 @@
 # - T_A_AUX      (relation to A_ (list))
 # - T_EPARENTS   (relation to T_ (list))
 
+# warn if optional=1 for a relation that implies a different type
 
 # some helpful predicates:
 #  - is_leaf
@@ -50,6 +51,9 @@
 # - ancestor-descendant: light-blue
 # - e_parent-e_child: green
 # - preceding-following: yellow
+
+
+
 package Tree_Query;
 BEGIN {
   use vars qw($this $root);
@@ -105,15 +109,27 @@ sub switch_context_hook {
   CreateStylesheets();
   SetCurrentStylesheet('Tree_Query'),Redraw()
     if GetCurrentStylesheet() ne 'Tree_Query'; #eq STYLESHEET_FROM_FILE();
+  FileAppData('noautosave',1);
 }
 sub CreateStylesheets{
   unless(StylesheetExists('Tree_Query')){
     SetStylesheetPatterns(<<'EOF','Tree_Query',1);
 context:   Tree_Query
+hint: 
 rootstyle: #{vertical:0}
-node: #{darkblue}${name}
-node: <? Tree_Query::serialize_conditions_as_stylesheet($this) ?>
-node: #{brown}${description}
+node: <? length $${occurrences} ? ($${occurrences}."x")  : "" 
+?><? $${optional} ? '?'  : q()
+?><? Tree_Query::serialize_conditions_as_stylesheet($this) ?>
+node: <?length($${type}) ? $${type}.': ' : '' ?>#{darkblue}${name}#{brown}${description}
+style: <? 
+  my $rel = $${relation};
+  $rel eq 'ancestor' ? "#{Line-dash:_}#{Line-fill:blue}" :
+  $rel eq 'effective_parent' ? "#{Line-dash:_}#{Line-fill:green}" :
+  $rel eq 'a/lex.rf' ? "#{Line-fill:violet}" :
+  $rel eq 'a/aux.rf' ? "#{Line-dash:_}#{Line-fill:violet}" :
+  $rel eq 'a/lex.rf|a/aux.rf' ? "#{Line-dash:.}#{Line-fill:violet}" :
+  q()
+?>
 EOF
   }
 }
@@ -191,18 +207,40 @@ sub connect_dbi {
     $dbi_config->save();
   }
   $dbi_configuration = $cfg;
+  require Sys::SigAction;
+  import Sys::SigAction qw( set_sig_handler );
+  # this is taken from http://search.cpan.org/~lbaxter/Sys-SigAction/dbd-oracle-timeout.POD
   eval {
+    #note that if you ask for safe, it will not work...
+    my $h = set_sig_handler( 'ALRM',
+			     sub {
+			       die "timed out connecting to database on $cfg->{host}\n";
+			     },
+			     { flags=>0 ,safe=>0 } );
+    alarm(10);
+    if ($cfg->{driver} eq 'Pg') {
+      require DBD::Pg;
+      import DBD::Pg qw(:async);
+    }
     $dbi = DBI->connect('dbi:'.$cfg->{driver}.':'.
 			  ($cfg->{driver} eq 'Oracle' ? "sid=" : "database=").$cfg->{database}.';'.
 			    "host=".$cfg->{host}.';'.
 			      "port=".$cfg->{port},
 			$cfg->{username},
 			$cfg->{password},
-			{ RaiseError => 1 }
+			{ RaiseError => 1,
+			  (($cfg->{driver} eq 'Pg') ? (AutoCommit=>0) : ())
+			}
 		       );
+    alarm(0);
+    die "Connection failed" if not $dbi;
   };
+  alarm(0);
   if ($@) {
     ErrorMessage($@);
+    if ($@ =~ /timed out/) {
+      return;
+    }
     GUI() && EditAttribute($cfg,'',$cfg_type,'password') || return;
     $dbi_config->save();
     return connect_dbi($id);
@@ -230,11 +268,7 @@ sub query_sql {
     print qq(\n<query-result query.rf="$root->{id}" nodes=").$root->descendants.qq(">\n<sql>\n<![CDATA[$sql]]></sql>\n) if $xml;
     STDOUT->flush;
     my $t0 = new Benchmark;
-    my $results = eval { $dbi->selectall_arrayref($sql,
-						  {
-						    MaxRows=>$opts->{limit}, RaiseError=>1
-						   }
-						 ) };
+    my $results = eval { run_query($sql,{ MaxRows=>$opts->{limit}, RaiseError=>1, Timeout => $opts->{timeout}||30 }) };
     if ($@) {
       if (GUI()) {
 	ErrorMessage($@);
@@ -268,76 +302,89 @@ sub query_sql {
 # 		    $sel,
 # 		    {buttons=>[qw(Ok)]})) {
       my $matches = @$results;
-      if ($matches and QuestionQuery('Results',
-				     ((defined($opts->{limit}) and $matches==$opts->{limit}) ? '>=' : '').
-				       $matches.' match'.($matches>1?'(es)':''),
-				     'Display','Cancel') eq 'Display') {
-	  my $treebase_sources = $dbi_configuration->{sources};
-	  unless (defined($treebase_sources) and
-		    length($treebase_sources)) {
-	    EditAttribute($dbi_configuration,'sources',
-			  $dbi_config->schema->
-			    find_type_by_path('/configurations/[1]'),
-			 ) || return;
-	    $dbi_config->save();
-	    $treebase_sources = $dbi_configuration->{sources};
-	  }
-	  if ($treebase_sources) {
-	    #IOBackend::register_input_protocol_handler(pmltq=>\&pmltq_protocol_handler);
-	    my @wins = TrEdWindows();
-	    my $res_win;
-	    if (@wins>1) {
-	      ($res_win) = grep { $_ ne $grp } @wins;
-	    } else {
-	      $res_win = SplitWindowVertically();
-	    }
-	    {
-	      my $fl = Filelist->new(__PACKAGE__);
-	      my @files = map {
-		'pmltq://'.join('/',@$_)
-		  #		my @pos=@$_;
-		  #		my ($first) = idx_to_pos([$pos[0],$pos[1]]);
-		  #		(defined $first and length $first) ?
-		  # ('pmltq://'.$treebase_sources.'/'.$first) : ()
-	      } @$results;
-	      $fl->add(0, @files);
-	      print map { $_."\n" } @files;
-	      SetCurrentWindow($res_win);
-	      CloseFileInWindow($res_win);
-	      SetCurrentStylesheet(STYLESHEET_FROM_FILE);
-	      AddNewFileList($fl);
-	      SetCurrentFileList($fl->name);
-	      GotoFileNo(0);
-	    }
-	  }
-	} else {
-	  QuestionQuery('Results','No results','OK');
+      if ($matches) {
+	return $results unless QuestionQuery('Results',
+					     ((defined($opts->{limit}) and $matches==$opts->{limit}) ? '>=' : '').
+					       $matches.' match'.($matches>1?'(es)':''),
+					     'Display','Cancel') eq 'Display';
+	my $treebase_sources = $dbi_configuration->{sources};
+	unless (defined($treebase_sources) and
+		  length($treebase_sources)) {
+	  EditAttribute($dbi_configuration,'sources',
+			$dbi_config->schema->
+			  find_type_by_path('/configurations/[1]'),
+		       ) || return;
+	  $dbi_config->save();
+	  $treebase_sources = $dbi_configuration->{sources};
 	}
-#      }
+	if ($treebase_sources) {
+	  #IOBackend::register_input_protocol_handler(pmltq=>\&pmltq_protocol_handler);
+	  my @wins = TrEdWindows();
+	  my $res_win;
+	  if (@wins>1) {
+	    ($res_win) = grep { $_ ne $grp } @wins;
+	  } else {
+	    $res_win = SplitWindowVertically();
+	  }
+	  {
+	    my $fl = Filelist->new(__PACKAGE__);
+	    my @files = map {
+	      'pmltq://'.join('/',@$_)
+		#		my @pos=@$_;
+		#		my ($first) = idx_to_pos([$pos[0],$pos[1]]);
+		#		(defined $first and length $first) ?
+		# ('pmltq://'.$treebase_sources.'/'.$first) : ()
+	    } @$results;
+	    $fl->add(0, @files);
+	    SetCurrentWindow($res_win);
+	    CloseFileInWindow($res_win);
+	    SetCurrentStylesheet(STYLESHEET_FROM_FILE);
+	    AddNewFileList($fl);
+	    SetCurrentFileList($fl->name);
+	    GotoFileNo(0);
+	  }
+	}
+      } else {
+	QuestionQuery('Results','No results','OK');
+      }
     }
     return $results;
   }
 }
 
+our @last_results;
+our %is_match;
+sub map_results {
+  my ($tree)=@_;
+  $tree||=$root;
+  %is_match=();
+  return unless @last_results;
+  my $treebase_sources = $dbi_configuration->{sources};
+  my $fn = FileName();
+  return unless $fn=~s{^$treebase_sources/}{};
+  $fn.='##'.(CurrentTreeNumber()+1);
+  eval {
+  my @nodes = ($tree,$tree->descendants);
+  my @matches = map { /^\Q$fn\E\.(\d+)$/ ? $1 : () } @last_results;
+#  print "matches:".Dumper(\@matches);
+  for my $node (@nodes[@matches]) {
+    $is_match{$node}=1;
+  }
+  };
+  warn $@ if $@;
+}
 sub open_pmltq {
   my ($filename,$opts)=@_;
   print "open_pmltq: $filename,$opts\n";
   return unless $filename=~s{pmltq://}{};
-  my @paths = idx_to_pos([split m{/}, $filename]);
-  my $first = $paths[0];
+  @last_results = idx_to_pos([split m{/}, $filename]);
+  my $first = $last_results[0];
   if (defined $first and length $first) {
     my $treebase_sources = $dbi_configuration->{sources};
     $opts->{-norecent}=1;
     Open($treebase_sources.'/'.$first,$opts);
-    $first=~s/\.\d+$//;
-    my @nodes = ($root,$root->descendants);
-    for my $node (@nodes[map { /^\Q$first\E\.(\d+)$/ ? $1 : () } @paths]) {
-      print "$node\n";
-      $node->{__select}=1;
-    }
     Redraw();
   }
-  
   return 'stop';
 }
 BEGIN {
@@ -362,16 +409,72 @@ sub idx_to_pos {
   my @list=@$idx_list;
   while (@list) {
     my ($idx,$type)=(shift@list, shift@list);
-    print "idx: $idx, $type\n";
-    print qq[SELECT "file", "sent_num", "pos" FROM ${type}_pos WHERE "idx" = $idx,\n];
-    my $result = $dbi->selectall_arrayref(
-      qq(SELECT "file", "sent_num", "pos" FROM ${type}_pos WHERE "idx" = $idx ).limit(1),
-      { MaxRows=>1, RaiseError=>1 }
-     );
+    my $result = run_query(qq(SELECT "file", "sent_num", "pos" FROM ${type}_pos WHERE "idx" = $idx ).limit(1),
+			   { MaxRows=>1, RaiseError=>1 });
     $result = $result->[0];
     push @res, $result->[0].'##'.$result->[1].'.'.$result->[2];
   }
   return @res;
+}
+
+sub run_query {
+  my ($sql, $opts)=@_;
+  local $dbi->{RaiseError} = $opts->{RaiseError};
+  my $canceled = 0;
+  my $driver_name = $dbi->{Driver}->{Name};
+  my $sth;
+  if ($driver_name eq 'Pg') {
+    $sth = $dbi->prepare( $sql, { pg_async => 1 } );
+    my $step=2;
+    my $time=0;
+    eval {
+      print $sth->execute();
+      if (defined $opts->{Timeout}) {
+	do {{
+	  $time+=$step;
+	  sleep $step;
+	  if ($time>=$opts->{Timeout}) {
+	    $sth->pg_cancel();
+	    die "Query evaluation takes too long: cancelled after $opts->{Timeout} seconds."
+	  }
+	}} while (!$sth->pg_ready);
+      }
+      $sth->pg_result;
+    };
+    if ($@) {
+      $dbi->rollback();
+      die $@;
+    }
+  } else {
+    $sth = $dbi->prepare( $sql );
+    eval {
+      if (defined $opts->{Timeout}) {
+	my $h = set_sig_handler( 'ALRM',
+				 sub {
+				   $canceled = 1; 
+				   my $res = $sth->cancel();
+				   warn "Canceled: ".(defined($res) ? $res : 'undef');
+				 }, #dont die (oracle spills its guts)
+				 { mask=>[ qw( INT ALRM ) ] ,safe => 0 }
+				);
+	alarm($opts->{Timeout});
+	$sth->execute();
+	alarm(0);
+      } else {
+	$sth->execute();
+      }
+    };
+    alarm(0);
+    if ( $@ ) {
+      $dbi->rollback();
+      if ($canceled) {
+	die "Query evaluation takes too long: cancelled after $opts->{Timeout} seconds."
+      } else {
+	die $@;
+      }
+    }
+  }
+  return $sth->fetchall_arrayref(undef,$opts->{MaxRows});
 }
 
 use constant {
@@ -423,7 +526,9 @@ my %id;
 sub init_id_map {
   my ($tree)=@_;
   my @nodes = $tree->descendants;
-  %id = map { ($_ => lc($_->{name})) } @nodes;
+  %id = map {
+    ($_ => lc($_->{name}))
+  } @nodes;
   my $id = 'n0';
   my %occup; @occup{values %id}=();
   for my $n (@nodes) {
@@ -455,7 +560,9 @@ sub relation {
     }
     if ($n->{optional}) {
       # identify with parent
-      $condition = qq{(($condition) OR $id."idx"=$parent_id."idx")};
+      if (length($condition)) {
+	$condition = qq{(($condition) OR $id."idx"=$parent_id."idx")};
+      }
     }
   }
   return $condition;
@@ -526,7 +633,7 @@ sub make_sql {
 		      my $type=$_->{type}||$tree->{type}||'a';
 		      $type eq $table and
 			(first { !$_->{optional} } $_->ancestors)==(first { !$_->{optional} } $n->ancestors)
-			 }
+		      }
 		      map { $nodes[$_] } 0..($i-1)));
       $join='1=1' unless $join=~/\S/;
       $join[-1].= " JOIN $table $id ".(length($join) ? ' ON '.$join : q{});
@@ -543,6 +650,7 @@ sub make_sql {
     });
     # where could also be obtained by replacing ___SELF___ with $id
     if ($n->{optional}) {
+      # identify with parent
       if (length $where) {
 	$where = qq{(($where) OR $id."idx"=$parent_id."idx")};
       }
@@ -620,11 +728,23 @@ sub make_sql {
   }
 }
 
+sub map_attr {
+  my ($attr)=@_;
+
+}
+
 sub serialize_expression {
   my ($opts)=@_;
+  my $parent_id = $opts->{parent_id};
   my $exp = $opts->{expression};
+  for ($exp) {
+    s/(?:(\w+)\.)?"_[#]descendants"/$1"r"-$1"idx"/g;
+    s/"_[#]lbrothers"/"chord"/g;
+    s/(?:(\w+)\.)?"_[#]rbrothers"/$1$parent_id."chld"-$1"chord"-1/g;
+    s/"_[#]sons"/"chld"/g;
+    s/"_depth"/"lvl"/g;
+  }
   $exp=~s{(?:(\w+)\.)?"([^"]+)"}{
-    print "$1 => $2\n";
     my $id = defined($1) ? $1 : $opts->{id};
     my @ref = split m{/}, $2;
     my $column = pop @ref;
@@ -636,8 +756,7 @@ sub serialize_expression {
       $opts->{join}{$id} = [$table => qq($id."idx" = $prev."idx"), 'LEFT'];# should be qq($prev."$tab")
     }
     qq($id."$column");
-  }e;
-  print "exp: $exp\n";
+  }ge;
   return $exp;
 }
 
@@ -647,15 +766,6 @@ sub serialize_element {
   if ($name eq 'test') {
     my $left = serialize_expression({%$opts,expression=>$value->{a}});
     my $right = serialize_expression({%$opts,expression=>$value->{b}});
-    for ($left,$right) {
-      s/"_[#]descendants"/"r"-"idx"/g;
-      s/"_[#]lbrothers"/"chord"/g;
-      s/"_[#]rbrothers"/$parent_as_id."chld"-"chord"-1/g;
-      s/"_[#]sons"/"chld"/g;
-      s/"_depth"/"lvl"/g;
-    #  s/(^|.)(\"[^"]*\")/$1 eq '.' ? $1.$2 : "$1$as_id.$2"/eg;
-    }
-    print "$left => $right\n";
     return ($value->{negate}==1 ? 'NOT ' : '').
            ($left.' '.uc($value->{operator}).' '.$right);
   } elsif ($name =~ /^(?:and|or)$/) {
