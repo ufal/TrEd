@@ -9685,7 +9685,7 @@ sub redraw_win {
 		: undef),
 	   $win
 	  );
-  doEvalHook($win,"after_redraw_hook");
+  # doEvalHook($win,"after_redraw_hook");
   if ($win->{FSFile}) {
     setCurrent($win,$win->{currentNode});
     ensureCurrentIsDisplayed($win);
