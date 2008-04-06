@@ -94,11 +94,19 @@ the tree.
 =cut
 
 sub SearchForNodeById ($){
-  my$id=$_[0];
-  my$found;
-  my$treeNo=CurrentTreeNumber();
+  my ($id)=@_;
+  my ($found,$tree,$treeNo);
+
+  my $node_hash = GetNodeHash();
+  $found = $node_hash->{$id};
   my $tree = $this->root;
-  unless($found = first{ $_->{id} eq $id } ($tree,$tree->descendants)){
+  if (ref($found) and (my $r = $found->root)!=$tree) {
+    my @trees=GetTrees();
+    $treeNo=Index(\@trees,$r);
+  } else {
+    $treeNo=CurrentTreeNumber();
+  }
+  unless ($found ||= first{ $_->{id} eq $id } ($tree,$tree->descendants)){
     #we have to look into another trees
     my @trees=GetTrees();
     my $maxnum=$#trees;
@@ -150,7 +158,7 @@ sub GetNodeHash {
     }
     $fsfile->changeAppData('id-hash',\%ids);
   }
-  $fsfile->appData('id-hash');
+  return $fsfile->appData('id-hash');
 }
 
 =item ClearNodesHash($fsfile?)

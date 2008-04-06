@@ -6,6 +6,8 @@
 
 #encoding iso-8859-2
 
+{ # PML_T.inc
+
 use Carp;
 BEGIN { import PML; }
 use Scalar::Util qw(weaken);
@@ -34,7 +36,7 @@ sub AFile {
   my $fsfile = $_[0] || $grp->{FSFile};
   return undef unless ref($fsfile->metaData('refnames')) and ref($fsfile->appData('ref'));
   my $refid = $fsfile->metaData('refnames')->{adata};
-  $fsfile->appData('ref')->{$refid};
+  return $fsfile->appData('ref')->{$refid};
 }
 
 =item GetANodeIDs($node?)
@@ -128,6 +130,7 @@ sub ClearANodesHash {
   my $fsfile = $_[0] || $grp->{FSFile};
   my $a_fs = AFile($fsfile);
   $a_fs->changeAppData('id-hash',undef) if ref($a_fs);
+  return;
 }
 
 
@@ -178,7 +181,7 @@ sub AnalyticalTree {
     } GetANodeIDs($t_node);
   $this = $a_ids->{$first};
   ChangingFile(0);
-  1;
+  return 1;
 }
 
 sub SwitchToAFile {
@@ -201,6 +204,7 @@ sub file_resumed_hook {
       SwitchContext('PML_A_View');
     }
   }
+  return;
 }
 
 #endif TRED
@@ -241,36 +245,38 @@ sub get_value_line_hook {
   return \@out;
 }
 
+#include <contrib/support/arrows.inc>
+
+
+# init caches
+sub root_style_hook {
+  my ($node,$styles)=@_;
+  %PML_T::coreflemmas_hash=();
+  DrawArrows_init();
+  return;
+}
+# clear caches
+sub after_redraw_hook {
+  %PML_T::coreflemmas_hash=();
+  DrawArrows_cleanup();
+  return;
+}
+
 sub node_style_hook {
   my ($node,$styles)=@_;
-  my %line = ref($styles->{Line}) ? @{$styles->{Line}} : ();
-  my %my_line;
-
-  # make sure we only alter the very first line
-  my $lines = do{{ my @split = split /&/,$line{coords}; 0+@split }};
-  if ($lines>1) {
-    for (keys %my_line) {
-      my @l = split /&/,$line{$_};
-      shift @l;
-      $line{$_}=join '&',$my_line{$_},@l;
-    }
-  } else {
-    $line{$_}=$my_line{$_} for keys %my_line;
-  }
-
   if  ($node->{'coref_text.rf'} or $node->{'coref_gram.rf'} or $node->{'compl.rf'} or $node->{coref_special}) {
     my @gram = grep {$_ ne "" } ListV($node->{'coref_gram.rf'});
     my @text = grep {$_ ne "" } ListV($node->{'coref_text.rf'});
     my @compl = grep {$_ ne "" } ListV($node->{'compl.rf'});
-    DrawCorefArrows($node,$styles,\%line,
+    DrawCorefArrows($node,$styles,undef,
 		      [@gram,@text,@compl],
 		      [(map 'grammatical',@gram),
 		       (map 'textual',@text),
 		       (map 'compl',@compl)
-		      ]
+		      ],
                      );
   }
-  1;
+  return 1;
 }
 
 =item DrawCorefArrows()
@@ -284,105 +290,66 @@ C<arrow_exoph>.
 
 =cut
 
-my %coreflemmas;
 sub DrawCorefArrows {
-  my ($node,$styles,$line,$corefs,$cortypes)=@_;
-  delete $coreflemmas{$node->{id}};
-  my (@coords,@colors,@dash,@tags);
+  my ($node,$styles,$line,$corefs,$cortypes,$displayed_nodes_hash)=@_;
   my ($rotate_prv_snt,$rotate_nxt_snt,$rotate_dfr_doc)=(0,0,0);
-  my $ids={};
-  #my $nd = $node->root; # $root can't be used here - think TrEd::Print!
-  #while ($nd) { $ids->{$nd->{id}}=1 } continue { $nd=$nd->following };
-  for my $nd (GetDisplayedNodes()) {
-    $ids->{$nd->{id}}=1
-  }
+  my @edges;
+  my %common = (
+    -arrow => 'last',
+    -smooth => 1,
+    -arrowshape => '16,18,3',
+    -width => 1,
+    -dash => '',
+  );
   foreach my $coref (@$corefs) {
     my $cortype=shift @$cortypes;
-    if ($ids->{$coref}) { #index($coref,$id1)==0) {
-      print STDERR "ref-arrows: Same sentence\n" if $main::macroDebug;
-      # same sentence
-      my $T="[?\$node->{id} eq '$coref'?]";
-      my $X="(x$T-xn)";
-      my $Y="(y$T-yn)";
-      my $D="sqrt($X**2+$Y**2)";
-      push @colors,CustomColor('arrow_'.$cortype);
-      push @dash,GetPatternsByPrefix('full')?($cortype eq'compl'?'2,3,5,3':$cortype eq'grammatical'?'5,3':1):'';
-      my $c = <<COORDS;
-
-&n,n,
-(x$T+xn)/2 - $Y*(25/$D+0.12),
-(y$T+yn)/2 + $X*(25/$D+0.12),
-x$T,y$T
-
-
-COORDS
-      push @coords,$c;
-      push @tags,$cortype;
-    } else { # should be always the same document, if it exists at all
-      my($refed,$treeNo)=SearchForNodeById($coref);
+    my($refed,$treeNo)=SearchForNodeById($coref);
+    my %edge = (-tag => $cortype);
+    if ($refed) {
       my $orientation=$treeNo-CurrentTreeNumber()-1;
-      $orientation=$orientation>0 ? 'right' : ($orientation<0 ? 'left':0);
-      $coreflemmas{$node->{id}}.=' '.$refed->{t_lemma};
-      if($orientation=~/left|right/){
-	if($orientation eq'left'){
-	  print STDERR "ref-arrows: Preceding sentence\n"if $main::macroDebug;
-	  push @colors,CustomColor('arrow_'.$cortype);
-	  push @dash,'';
-	  push @coords,"\&n,n,n-30,n+$rotate_prv_snt";
-	  push @tags,$cortype;
-	  $rotate_prv_snt+=10;
-	}else{ #right
-	  print STDERR "ref-arrows: Following sentence\n" if $main::macroDebug;
-	  push @colors,CustomColor('arrow_'.$cortype);
-	  push @dash,'';
-	  push @coords,"\&n,n,n+30,n+$rotate_nxt_snt";
-	  push @tags,$cortype;
-	  $rotate_nxt_snt+=10;
-	}
-      }else{
-	print STDERR "ref-arrows: Not found!\n" if $main::macroDebug;
-	push @colors,CustomColor('error');
-	push @dash,'';
-	push @coords,"&n,n,n+$rotate_dfr_doc,n-25";
-	push @tags,$cortype;
-	$rotate_dfr_doc+=10;
+      $PML_T::coreflemmas_hash{$node->{id}}.=' '.$refed->{t_lemma} if $orientation;
+      if ($orientation == 0) {
+	$edge{-target} = $refed;
+	$edge{-fill}=CustomColor('arrow_'.$cortype);
+	$edge{-dash}=GetPatternsByPrefix('full')?($cortype eq'compl'?'2,3,5,3':$cortype eq'grammatical'?'5,3':1):'';
+      } elsif ($orientation<0) {
+	print STDERR "ref-arrows: Preceding sentence\n"if $main::macroDebug;
+	$edge{-fill}=CustomColor('arrow_'.$cortype);
+	$edge{-deltax}=-30;
+	$edge{-deltay}=10*($rotate_prv_snt++);
+      }else{ #right
+	print STDERR "ref-arrows: Following sentence\n" if $main::macroDebug;
+	$edge{-fill}=CustomColor('arrow_'.$cortype);
+	$edge{-deltax}=+30;
+	$edge{-deltay}=10*($rotate_nxt_snt++);
       }
+    } else {
+      print STDERR "ref-arrows: Not found!\n" if $main::macroDebug;
+      $edge{-fill}=CustomColor('error');
+      $edge{-deltax}=10*($rotate_dfr_doc++);
+      $edge{-deltay}=-25;
     }
+    push @edges,\%edge;
   }
-  if($node->{coref_special}eq'segm') { # pointer to an unspecified segment of preceeding sentences
+  if ($node->{coref_special} eq 'segm') { # pointer to an unspecified segment of preceeding sentences
     print STDERR "ref-arrows: Segment - unaimed arrow\n" if $main::macroDebug;
-    push @colors,CustomColor('arrow_segment');
-    push @dash,'';
-    push @coords,"&n,n,n-25,n+$rotate_prv_snt";
-    push @tags,'segm';
-    $rotate_prv_snt+=10;
+    push @edges, {
+      -fill   => CustomColor('arrow_segment'),
+      -deltax => -25,
+      -deltay => 10*($rotate_prv_snt++),
+      -tag => 'segm'
+    };
   }
-  if($node->{coref_special}eq'exoph') {
+  if ($node->{coref_special} eq 'exoph') {
     print STDERR "ref-arrows: Exophora\n" if $main::macroDebug;
-    push @colors,CustomColor('arrow_exoph');
-    push @dash,'';
-    push @coords,"&n,n,n+$rotate_dfr_doc,n-25";
-    push @tags,'exoph';
-    $rotate_dfr_doc+=10;
+    push @edges, {
+      -fill   => CustomColor('arrow_segment'),
+      -deltax => 10*($rotate_dfr_snt++),
+      -deltay => -25,
+      -tag => 'exoph'
+    };
   }
-  $line->{-coords} ||= 'n,n,p,p';
-
-  # make sure we don't alter any previous line
-  my $lines = scalar($line->{-coords}=~/&/g)+1;
-  for (qw(-arrow -dash -width -fill -smooth -arrowshape)) {
-    $line->{$_}.='&'x($lines-scalar($line->{$_}=~/&/g)-1);
-  }
-  if (@coords) {
-    AddStyle($styles,'Line',
-	     -coords => $line->{-coords}.join("",@coords),
-	     -arrow => $line->{-arrow}.('&last' x @coords),
-             -arrowshape => $line->{-arrowshape}.('&16,18,3' x @coords),
-	     -dash => $line->{-dash}.join('&','',@dash),
-	     -width => $line->{-width}.('&1' x @coords),
-	     -fill => $line->{-fill}.join("&","",@colors),
-	     -tag => $line->{-tag}.join("&","",@tags),
-	     -smooth => $line->{-smooth}.('&1' x @coords));
-  }
+  DrawArrows($node,$styles,\@edges,\%common);
 }
 
 sub _FollowArrows{
@@ -406,6 +373,7 @@ sub _FollowArrows{
   return unless $found;
   TredMacro::GotoTree($treeNo);
   $this=$found;
+  return;
 }#_FollowArrows
 
 sub JumpToAntecedent {
@@ -418,26 +386,31 @@ sub JumpToAntecedent {
     }
   }
   _FollowArrows(@arrows)if@arrows;
+  return;
 }#JumpToAntecedent
 
 sub JumpToAntecedentAll {
   ChangingFile(0);
   JumpToAntecedent('compl.rf','coref_text.rf','coref_gram.rf');
+  return;
 }#JumpToAntecedentAll
 
 sub JumpToAntecedentCompl {
   ChangingFile(0);
   JumpToAntecedent('compl.rf');
+  return;
 }#JumpToAntecedentCompl
 
 sub JumpToAntecedentText {
   ChangingFile(0);
   JumpToAntecedent('coref_text.rf');
+  return;
 }#JumpToAntecedentText
 
 sub JumpToAntecedentGram {
   ChangingFile(0);
   JumpToAntecedent('coref_gram.rf');
+  return;
 }#JumpToAntecedentGram
 
 sub get_status_line_hook {
@@ -563,7 +536,7 @@ sub _FilterEChildren { # node suff from
     } # unless node == from
     $node=$node->rbrother;
   }
-  @sons;
+  return @sons;
 } # _FilterEChildren
 
 sub GetEChildren { # node
@@ -585,7 +558,7 @@ sub GetEChildren { # node
       @sons=@oldsons;
     }
   }
-  @sons;
+  return @sons;
 } # GetEChildren
 
 =item GetEDescendants($node?)
@@ -684,20 +657,30 @@ C<m/tag> of the referenced analytical nodes), return 1, else return 0.
 sub IsInfinitive {
   my $node = $_[0] || $this;
   my @anodes = grep { $_->attr('m/tag') =~ /^V/ } GetANodes($node);
-  @anodes and not(&IsFiniteVerb or &IsPassive);
+  return (@anodes and not(&IsFiniteVerb or &IsPassive)) ? 1 : 0;
 }#IsInfinitive
 
 
-=item ModalVerbLemma($lemma)
+=item IsModalVerbLemma($lemma)
 
 Return 1 if trlemma is a member of the list of all possible modal verb
 lemmas (morfological lemma suffixes (/[-`_].*/) are ignored).
 
 =cut
 
-sub ModalVerbLemma ($) {
-  $_[0]=~/^(?:dát|dovést|hodlat|chtít|mít|moci|mus[ei]t|smìt|umìt)($|[-`_].*)/;
-}#ModalVerbLemma
+sub IsModalVerbLemma ($) {
+  return ($_[0]=~/^(?:dát|dovést|hodlat|chtít|mít|moci|mus[ei]t|smìt|umìt)($|[-`_].*)/) ? 1 : 0;
+}#IsModalVerbLemma
+
+=item ModalVerbLemma($lemma)
+
+Deprecated alias for  IsModalVerbLemma
+
+=cut
+
+BEGIN {
+  *ModalVerbLemma = \&IsModalVerbLemma;
+}
 
 =item CreateStylesheets()
 
@@ -795,8 +778,8 @@ sub CreateStylesheets{
 node:<? '#{customparenthesis}' if $${is_parenthesis}
   ?><? $${nodetype}eq'root' ? '${id}' : '${t_lemma}'
   ?><? '#{customdetail}.${sentmod}'if$${sentmod}
-  ?><? '#{customcoref}'.$PML_T::coreflemmas{$${id}}
-    if $PML_T::coreflemmas{$${id}}ne'' ?>
+  ?><? '#{customcoref}'.$PML_T::coreflemmas_hash{$${id}}
+    if $PML_T::coreflemmas_hash{$${id}}ne'' ?>
 
 node:<?
   ($${nodetype} eq 'root' ? '#{customnodetype}${nodetype}' :
@@ -960,61 +943,62 @@ sub switch_context_hook {
     SetCurrentStylesheet('PML_T_Compact');
     Redraw() if GUI();
   }
-  undef$PML::arf;
+  undef $PML::arf;
+  return;
 }
 
 ## Show suite ##
 
 sub NoShow {
-  undef%PML_T::show;
+  undef %PML_T::show;
   ChangingFile(0);
 }#NoShow
 
 sub ShowEParents {
   my $node=$this;
-  undef%PML_T::show;
+  undef %PML_T::show;
   $PML_T::show{$_}=1 foreach map{$_->{id}}GetEParents($node);
   ChangingFile(0);
 }#ShowEParents
 
 sub ShowEChildren {
   my $node=$this;
-  undef%PML_T::show;
+  undef %PML_T::show;
   $PML_T::show{$_}=1 foreach map{$_->{id}}GetEChildren($node);
   ChangingFile(0);
 }#ShowEParents
 
 sub ShowExpand {
   my $node=$this;
-  undef%PML_T::show;
+  undef %PML_T::show;
   $PML_T::show{$_}=1 foreach map{$_->{id}}ExpandCoord($node);
   ChangingFile(0);
 }#ShowExpand
 
 sub ShowEDescendants {
   my $node=$this;
-  undef%PML_T::show;
+  undef %PML_T::show;
   $PML_T::show{$_}=1 foreach map{$_->{id}}GetEDescendants($node);
   ChangingFile(0);
 }#ShowEDescendants
 
 sub ShowEAncestors {
   my $node=$this;
-  undef%PML_T::show;
+  undef %PML_T::show;
   $PML_T::show{$_}=1 foreach map{$_->{id}}GetEAncestors($node);
   ChangingFile(0);
 }#ShowEAncestors
 
 sub ShowESiblings {
   my $node=$this;
-  undef%PML_T::show;
+  undef %PML_T::show;
   $PML_T::show{$_}=1 foreach map{$_->{id}}GetESiblings($node);
   ChangingFile(0);
 }#ShowESiblings
 
 sub ShowNearestNonMember {
   my $node=$this;
-  undef%PML_T::show;
+  undef %PML_T::show;
   $PML_T::show{$_}=1 foreach map{$_->{id}}GetNearestNonMember($node);
   ChangingFile(0);
 }#ShowNearestNonMember
@@ -1034,9 +1018,11 @@ sub DeleteNode{
   foreach my$child($node->children){
     CutPaste($child,$parent);
   }
+  delete GetNodeHash()->{$node->{id}};
   DeleteLeafNode($node);
-  $this=$parent unless@_;
+  $this=$parent unless @_;
   ChangingFile(1);
+  return 1;
 }#DeleteNode
 
 =item DeleteSubtree(node?)
@@ -1048,12 +1034,19 @@ deepord. Cannot be used for the root.
 
 sub DeleteSubtree{
   shift unless ref $_[0];
-  my$node=$_[0]||$this;
+  my $node=$_[0]||$this;
   ChangingFile(0),return unless $node->parent;
-  my$parent=$node->parent;
+  my $parent=$node->parent;
+  my $id_hash = GetNodeHash();
+  if ($id_hash) {
+    for my $n ($node,$node->descendants) {
+      delete $id_hash->{$n->{id}};
+    }
+  }
   TredMacro::DeleteSubtree($node);
-  $this=$parent unless@_;
+  $this=$parent unless @_;
   ChangingFile(1);
+  return 1;
 }#DeleteSubtree
 
 =item NewNode(node?,id?)
@@ -1070,9 +1063,10 @@ sub NewNode{
   my ($node,$id)=@_;
   $node ||= $this;
   my $new = InitNode(NewSon($node),$node);
-  $new->{id} = defined($id) ? $id : NewID($new);
+  $id||=NewID($new);
+  $new->{id} = $id;
   weaken( GetNodeHash()->{$id} = $new );
-  $new;
+  return $new;
 }#NewNode
 
 =item InitNode(node,obj?)
@@ -1092,7 +1086,7 @@ sub InitNode{
   my $schema = Schema($obj);
   croak("InitNode: Couldn't derive PML schema") unless (ref($schema));
   $node->set_type_by_name($schema,'t-node.type');
-  $node;
+  return $node;
 }#InitNode
 
 =item NewID(node?)
@@ -1108,7 +1102,7 @@ sub NewID {
   my $top = ref($_[0]) ? $_[0]->root : $root;
   my $id = $top->{id}.'a'.
     ((sort {$b<=>$a} map{$_->{id}=~/a([0-9]+)$/;$1}$top->descendants)[0]+1);
-  $id;
+  return $id;
 }#NewNode
 
 sub FindVallex {
@@ -1187,6 +1181,7 @@ sub OpenValLexicon {
       %opts
     });
   ChangingFile(0);
+  return;
 }
 
 
@@ -1201,7 +1196,10 @@ sub ShowAssignedValFrames {
     -frameid => $rf
    );
   ChangingFile(0);
+  return;
 }
+
+} # PML_T.inc
 
 =back
 
