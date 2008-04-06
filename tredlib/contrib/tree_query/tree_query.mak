@@ -52,9 +52,10 @@
 # - e_parent-e_child: green
 # - preceding-following: yellow
 
-
-
 package Tree_Query;
+{
+use strict;
+
 BEGIN {
   use vars qw($this $root);
   import TredMacro;
@@ -92,9 +93,7 @@ Bind sub {
 
 
 #include <contrib/support/extra_edit.inc>
-
-{
-use strict;
+#include <contrib/support/arrows.inc>
 
 # Setup context
 unshift @TredMacro::AUTO_CONTEXT_GUESSING,
@@ -133,6 +132,112 @@ style: <?
 EOF
   }
 }
+
+my %id;
+my %name2node_hash;
+sub init_id_map {
+  my ($tree)=@_;
+  my @nodes = $tree->descendants;
+  %id = map {
+    my $n=lc($_->{name});
+    (defined($n) and length($n)) ? ($_=>$n) : ()
+  } @nodes;
+  %name2node_hash = map {
+    my $n=lc($_->{name});
+    (defined($n) and length($n)) ? ($n=>$_) : ()
+  } @nodes;
+  my $id = 'n0';
+  my %occup; @occup{values %id}=();
+  for my $n (@nodes) {
+    unless (defined $id{$n} and length $id{$n}) {
+      $id++ while exists $occup{$id}; # just for sure
+      $id{$n}=$id; # generate id;
+      $occup{$id}=1;
+    }
+  };
+}
+
+
+sub root_style_hook {
+  DrawArrows_init();
+  init_id_map($root);
+}
+sub after_redraw_hook {
+  DrawArrows_cleanup();
+}
+my %color = (
+  'preceding' => 'green',
+  'a/lex.rf' => 'violet',
+  'a/lex.rf|a/aux.rf' => 'violet',
+  'a/aux.rf' => 'violet',
+);
+my %dash = (
+  'preceding' => '',
+  'a/lex.rf' => '',
+  'a/lex.rf|a/aux.rf' => '.',
+  'a/aux.rf' => '_',
+);
+sub node_style_hook {
+  my ($node,$styles) = @_;
+  DrawArrows($node,$styles,
+	     [
+	       map {
+		 scalar {
+		   -target => $name2node_hash{lc($_->{target})},
+		   -fill   => $color{$_->{relation}},
+		   -dash   => $dash{$_->{relation}},
+		 }
+	       } ListV($node->attr('extra-relations'))
+	     ],
+	     {
+	       -arrow => 'last',
+	       -arrowshape => '16,20,5',
+	       -width => 2,
+	       -smooth => 1,
+	     });
+}
+
+sub node_release_hook {
+  my ($node,$target,$mod)=@_;
+  return unless $target and $mod;
+  return 'stop' unless $target->parent and $node->parent;
+  if ($mod eq 'Control') {
+    my @sel;
+    ListQuery('Select treebase connection',
+	      'browse',
+	      [qw(preceding a/lex.rf a/lex.rf|a/aux.rf a/aux.rf)],
+	      \@sel) || return;
+    init_id_map($node->root);
+    for my $s (@sel) {
+      AddOrRemoveRelation($node,$target,$s);
+    }
+    TredMacro::Redraw_FSFile_Tree();
+    ChangingFile(1);
+  }
+  return;
+}
+
+# note: you have to call init_id_map($root); first!
+sub AddOrRemoveRelation {
+  my ($node,$target,$type)=@_;
+  if (!defined($target->{name})) {
+    my $i=0;
+    $i++ while (exists $name2node_hash{"ref$i"});
+    $target->set_attr('name',"ref$i");
+  }
+  my $relations = $node->attr('extra-relations');
+  if (first { $target->{name} eq $_->{target} } ListV($relations)) {
+    @{$relations} = grep { $target->{name} ne $_->{target} } ListV($relations);
+  }else{
+    AddToList($node,'extra-relations',
+	      Fslib::Struct->new({
+		target => $target->{name},
+		relation => $type,
+	       },1)
+	     );
+  }
+}
+
 
 sub limit {
   my ($limit)=@_;
@@ -522,27 +627,10 @@ sub get_value_line_hook {
   return make_sql($tree,{format=>1});
 }
 
-my %id;
-sub init_id_map {
-  my ($tree)=@_;
-  my @nodes = $tree->descendants;
-  %id = map {
-    ($_ => lc($_->{name}))
-  } @nodes;
-  my $id = 'n0';
-  my %occup; @occup{values %id}=();
-  for my $n (@nodes) {
-    unless (defined $id{$n} and length $id{$n}) {
-      $id++ while exists $occup{$id}; # just for sure
-      $id{$n}=$id; # generate id;
-      $occup{$id}=1;
-    }
-  };
-}
 
 sub relation {
   my ($n,$opts)=@_;
-  my ($id,$parent_id)=map { $opts->{$_} } qw(id parent_id);
+  my ($id,$parent_id)=@$opts{qw(id parent_id)};
   my $condition;
   if ($n->parent) {
     if ($n->{'relation'} eq 'ancestor') {
@@ -567,7 +655,32 @@ sub relation {
   }
   return $condition;
 }
-
+sub extra_relation {
+  my ($id,$rel,$opts)=@_;
+  my $target = $rel->{target};
+  my $relation = $rel->{relation};
+  if ($relation eq 'preceding') {
+    return qq{$id."idx"<$target."idx"};
+  } elsif ($relation eq 'a/lex.rf') {
+    return qq{$id."a_lex_idx"=$target."idx"}
+  } elsif ($relation eq 'a/aux.rf') {
+    return serialize_expression({
+      id=>$id,
+      type=>$opts->{type},
+      join=>$opts->{join},
+      expression => qq{"a_aux/a_idx"},
+    }).qq(=$target."idx");
+  } elsif ($relation eq 'a/lex.rf|a/aux.rf') {
+    return
+      qq{$id."a_lex_idx"=$target."idx" OR }.
+      serialize_expression({
+      id=>$id,
+      type=>$opts->{type},
+      join=>$opts->{join},
+      expression => qq{"a_aux/a_idx"},
+    }).qq(=$target."idx");
+  }
+}
 sub make_sql {
   my ($tree,$opts)=@_;
   $opts||={};
@@ -670,6 +783,12 @@ sub make_sql {
 	  $where.=qq{ OR $id."idx"=$id{$n->parent}."a_lex_idx"};
       }
       $where.=')';
+    }
+    for my $rel (ListV($n->attr('extra-relations'))) {
+      if ($where=~/\S/) {
+	$where.=' AND ';
+      }
+      $where.='('.extra_relation($id,$rel,{type=>$table,join => \%extra_joins}).')';
     }
     push @where, $where;
   }
