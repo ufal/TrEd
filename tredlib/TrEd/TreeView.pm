@@ -1213,10 +1213,12 @@ sub get_node_style {
 }
 
 sub parse_coords_spec {
-  my ($self,$node,$coords,$nodes,$nodehash)=@_;
+  my ($self,$node,$coords,$nodes,$nodehash,$grp_ctxt)=@_;
   # perl inline search
   no strict 'refs';
   my $node_info = $self->{node_info};
+  my @save = (${'TredMacro::this'},${'TredMacro::grp'});
+
   $coords =~
     s{([xy])\[\?((?:.|\n)*?)\?\]}{
       my $i=0;
@@ -1232,14 +1234,12 @@ sub parse_coords_spec {
 	  $cached = $COORD_CODE_CACHE{$key}=
 	    eval "package TredMacro; sub{ my \$node=\$_[0]; eval { $code } }";
 	}
-	my $save_this = ${'TredMacro::this'};
-	${'TredMacro::this'}=$node;
+	(${'TredMacro::this'},${'TredMacro::grp'})=($node,$grp_ctxt);
 	while ($i<@$nodes) {
 	  last if ($cached->($nodes->[$i]));
 	  print STDERR $@ if $@ ne "";
 	  $i++;
 	}
-	${'TredMacro::this'}=$save_this;
 	if ($i<@$nodes) {
 	  $nodehash->{"x$key"} = $node_info->{$nodes->[$i]}{ "XPOS"};
 	  $nodehash->{"y$key"} = $node_info->{$nodes->[$i]}{ "YPOS"};
@@ -1267,11 +1267,9 @@ sub parse_coords_spec {
 	  $cached = $COORD_CODE_CACHE{$key}=
 	    eval "package TredMacro; sub{ my \$node=\$_[0]; eval { $code } }";
 	}
-	my $save_this = ${'TredMacro::this'};
-	${'TredMacro::this'}=$node;
+	(${'TredMacro::this'},${'TredMacro::grp'})=($node,$grp_ctxt);
 	$that = $cached->($node);
 	print STDERR $@ if $@ ne "";
-	${'TredMacro::this'}=$save_this;
 	if (ref($that)) {
 	  $nodehash->{"x$key"}=
 	    $node_info->{$that}{ "XPOS"};
@@ -1284,6 +1282,7 @@ sub parse_coords_spec {
 	}
       }
     }ge;
+  (${'TredMacro::this'},${'TredMacro::grp'})=@save; # 
 
   # simple comparison inline
   $coords =~
@@ -1630,7 +1629,7 @@ sub redraw {
     my %nodehash;
 
     my $coords=$self->get_style_opt($node,"Line","-coords",\%Opts);
-    $coords = $self->parse_coords_spec($node,$coords,$nodes,\%nodehash);
+    $coords = $self->parse_coords_spec($node,$coords,$nodes,\%nodehash,$grp);
 
     my @coords=split '&',$coords;
     my $lin=-1;
@@ -1710,7 +1709,7 @@ sub redraw {
 
       if ($coords) {
 	# edge label with explicit coords
-	$coords = $self->parse_coords_spec($node,$coords,$nodes,\%nodehash);
+	$coords = $self->parse_coords_spec($node,$coords,$nodes,\%nodehash,$grp);
 	#my @c=split ',',$coords;
 	if (my @c = $self->eval_coords_spec($node,$parent,$coords)) {
 	  if ($halign_edge eq "left") {
@@ -1908,7 +1907,7 @@ sub redraw {
       } elsif ($pat_class eq "label") {
 	my $coords = $self->get_style_opt($node,"ExtraLabel[$extra_i]","-coords",\%Opts);
 	$extra_i++;
-	$coords = $self->parse_coords_spec($node,$coords,$nodes,\%nodehash);
+	$coords = $self->parse_coords_spec($node,$coords,$nodes,\%nodehash,$grp);
 	#my @c=split ',',$coords;
 	if (my @c = $self->eval_coords_spec($node,$parent,$coords)) {
 	  print "$msg $coords =  @c,  $extra_i\n";
