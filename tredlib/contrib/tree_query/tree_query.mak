@@ -97,8 +97,9 @@ Bind sub {
 
 # Setup context
 unshift @TredMacro::AUTO_CONTEXT_GUESSING,
-sub { 
-SchemaName() eq 'tree_query' ? __PACKAGE__ : undef };
+sub {
+  SchemaName() eq 'tree_query' ? __PACKAGE__ : undef ;
+};
 sub allow_switch_context_hook {
   return 'stop' if SchemaName() ne 'tree_query';
 }
@@ -110,6 +111,11 @@ sub switch_context_hook {
     if GetCurrentStylesheet() ne 'Tree_Query'; #eq STYLESHEET_FROM_FILE();
   FileAppData('noautosave',1);
 }
+sub file_reloaded_hook {
+  print "here\n";
+  FileAppData('noautosave',1);
+}
+
 sub CreateStylesheets{
   unless(StylesheetExists('Tree_Query')){
     SetStylesheetPatterns(<<'EOF','Tree_Query',1);
@@ -166,19 +172,26 @@ sub after_redraw_hook {
   DrawArrows_cleanup();
 }
 my %color = (
-  'preceding' => 'green',
+  'depth-first-precedes' => 'green',
+  'deepord-less-than' => '',
   'a/lex.rf' => 'violet',
   'a/lex.rf|a/aux.rf' => 'violet',
   'a/aux.rf' => 'violet',
+  coref_text => '#4C509F',
+  coref_gram => '#C05633',
 );
 my %dash = (
-  'preceding' => '',
+  'depth-first-precedes' => '',
+  'deepord-less-than' => '',
   'a/lex.rf' => '',
   'a/lex.rf|a/aux.rf' => '.',
   'a/aux.rf' => '_',
+  coref_text => '',
+  coref_gram => '',
 );
 sub node_style_hook {
   my ($node,$styles) = @_;
+  my $i=0;
   DrawArrows($node,$styles,
 	     [
 	       map {
@@ -186,13 +199,14 @@ sub node_style_hook {
 		   -target => $name2node_hash{lc($_->{target})},
 		   -fill   => $color{$_->{relation}},
 		   -dash   => $dash{$_->{relation}},
+		   -raise => 8+8*(++$i),
 		 }
 	       } ListV($node->attr('extra-relations'))
 	     ],
 	     {
 	       -arrow => 'last',
-	       -arrowshape => '16,20,5',
-	       -width => 2,
+	       -arrowshape => '14,18,4',
+	       -width => 1,
 	       -smooth => 1,
 	     });
 }
@@ -205,7 +219,7 @@ sub node_release_hook {
     my @sel;
     ListQuery('Select treebase connection',
 	      'browse',
-	      [qw(preceding a/lex.rf a/lex.rf|a/aux.rf a/aux.rf)],
+	      [$node->type->schema->get_type_by_name('q-extra-relation.type')->get_content_decl->get_values()],
 	      \@sel) || return;
     init_id_map($node->root);
     for my $s (@sel) {
@@ -226,12 +240,12 @@ sub AddOrRemoveRelation {
     $target->set_attr('name',"ref$i");
   }
   my $relations = $node->attr('extra-relations');
-  if (first { $target->{name} eq $_->{target} } ListV($relations)) {
-    @{$relations} = grep { $target->{name} ne $_->{target} } ListV($relations);
+  if (first { lc($target->{name}) eq $_->{target} and $type eq $_->{relation} } ListV($relations)) {
+    @{$relations} = grep { lc($target->{name}) ne $_->{target} and $type eq $_->{relation} } ListV($relations);
   }else{
     AddToList($node,'extra-relations',
 	      Fslib::Struct->new({
-		target => $target->{name},
+		target => lc($target->{name}),
 		relation => $type,
 	       },1)
 	     );
@@ -639,7 +653,7 @@ sub relation {
 	  qq{$id."idx" BETWEEN $parent_id."idx" AND $parent_id."r"};
       }
     } elsif ($n->{'relation'} eq 'effective_parent') {
-      $condition = qq{$id."root_idx"=n0."root_idx"};
+      $condition = extra_relation($id,'effective_parent',{%$opts,target=>$parent_id});
     } elsif ($n->{'relation'} eq 'parent' or
 	       $n->{'relation'} eq '') {
       $condition = qq{$id."parent_idx"=$id{$n->parent}."idx"};
@@ -659,8 +673,28 @@ sub extra_relation {
   my ($id,$rel,$opts)=@_;
   my $target = $rel->{target};
   my $relation = $rel->{relation};
-  if ($relation eq 'preceding') {
+  if ($rel eq 'effective_parent') {
+    return qq{$id."root_idx"=n0."root_idx" AND }.
+      serialize_expression({
+	id=>$id,
+	type=>$opts->{type},
+	join=>$opts->{join},
+	expression => qq{"eparents/idx"}
+       }).qq{=$target."idx" };
+  } elsif ($relation eq 'depth-first-precedes') {
     return qq{$id."idx"<$target."idx"};
+  } elsif ($relation eq 'deepord-less-than') {
+    return serialize_expression({
+      id=>$id,
+      type=>$opts->{type},
+      join=>$opts->{join},
+      expression => qq{"tfa/deepord"},
+    }).qq(<).serialize_expression({
+      id=>$target,
+      type=>$opts->{type},
+      join=>$opts->{join},
+      expression => qq{"tfa/deepord"},
+    });
   } elsif ($relation eq 'a/lex.rf') {
     return qq{$id."a_lex_idx"=$target."idx"}
   } elsif ($relation eq 'a/aux.rf') {
@@ -679,6 +713,20 @@ sub extra_relation {
       join=>$opts->{join},
       expression => qq{"a_aux/a_idx"},
     }).qq(=$target."idx");
+  } elsif ($relation eq 'coref_gram') {
+      serialize_expression({
+      id=>$id,
+      type=>$opts->{type},
+      join=>$opts->{join},
+      expression => qq{"coref_gram/corg_idx"}
+     }).qq(=$target."idx");
+  } elsif ($relation eq 'coref_text') {
+      serialize_expression({
+      id=>$id,
+      type=>$opts->{type},
+      join=>$opts->{join},
+      expression => qq{"coref_text/cort_idx"}
+     }).qq(=$target."idx");
   }
 }
 sub make_sql {
@@ -705,7 +753,7 @@ sub make_sql {
     @nodes =  grep { $_->parent }  ($tree, $tree->descendants);
   }
   my @select;
-  my @join;
+  my @table;
   my @where;
   my %conditions;
   my %extra_joins;
@@ -724,20 +772,17 @@ sub make_sql {
       id=>'___SELF___',
       parent_id=>$parent_id
      });
-    if ($i==0) {
-      push @join," FROM $table $id ";
-    } else {
-      my $join;
-      push @join,'';
+    if ($n->parent->parent) {
+      my $condition=q();
       if ($parent->parent) {
-	$join.=relation($n,{%$opts, id=>$id,parent_id=>$parent_id});
+	$condition.=relation($n,{%$opts, id=>$id,parent_id=>$parent_id});
       } else {
 	# what do we with _optional here?
 	if ($n->parent->parent) {
-	  $join .= qq{$id."root_idx"=n0."root_idx"};
+	  $condition .= qq{$id."root_idx"=n0."root_idx"};
 	}
       }
-      $join.=
+      $condition.=
 	join('', (map { qq{ AND $id{$_}."idx"}.
 			  ($conditions{$id} eq $conditions{$id{$_}} ? '<' : '!=' ).
 			qq{${id}."idx"} }
@@ -748,12 +793,9 @@ sub make_sql {
 			(first { !$_->{optional} } $_->ancestors)==(first { !$_->{optional} } $n->ancestors)
 		      }
 		      map { $nodes[$_] } 0..($i-1)));
-      $join='1=1' unless $join=~/\S/;
-      $join[-1].= " JOIN $table $id ".(length($join) ? ' ON '.$join : q{});
-      if ($parent->parent and $n->{'relation'} eq 'effective_parent') {
-	$join[-1].=qq{ JOIN ${table}_eparents ${id}_e ON ${id}_e."idx"=${id}."idx"}.
-                   qq{ AND ${id}_e."eparent_idx"=$parent_id."idx"};
-      }
+      push @table,[$table,$id,$n,$condition];
+    } else {
+      push @table,[$table,$id,$n];
     }
     my $where = Tree_Query::serialize_conditions($n,{
       type=>$table,
@@ -792,37 +834,39 @@ sub make_sql {
     }
     push @where, $where;
   }
-  my $i=0;
   my @sql = (['SELECT ']);
   if ($count) {
     push @sql,['count(1)','space'];
   } else {
     push @sql, (map {
+      my $n = $nodes[$_];
       (($_==0 ? () : [', ','space']),
-       [$select[$_].'."idx"',$nodes[$_]],
-       [' AS "'.$select[$_].'.idx"','space'],
-       [q(, ').($nodes[$_]->{type}||$tree->{type}||'a').q('),$nodes[$_]],
-       [' AS "'.$select[$_].'.type"','space']
+       [$select[$_].'."idx"',$n],
+       [' AS "'.$select[$_].'.idx"',$n],
+       [q(, ').($nodes[$_]->{type}||$tree->{type}||'a').q('),$n],
+       [' AS "'.$select[$_].'.type"',$n]
       )
     } 0..$#nodes)
   }
   # joins
-  push @sql, (map {
-    (($_==0 ? () : ["\n ",'space']),
-     [$join[$_],$nodes[$_]])
-  } 0..$#nodes);
-  # extra joins
-  push @sql,
-    (map {
-      my $name=$_;
-      my $tab=$extra_joins{$_}[0];
-      my $on=$extra_joins{$_}[1];
-      my $type=$extra_joins{$_}[2] || '';
-      ([' ','space'],[
-	qq(\n $type JOIN $tab $name ON $on)
-       ])
-    } sort { length($a)<=>length($b) } keys %extra_joins);
   my @WHERE;
+  {
+    my $i=0;
+    for my $t (@table) {
+      my ($tab, $name, $node, $condition)=@$t;
+      push @sql, ($i++)==0 ? ["\nFROM\n  ",'space'] : [",\n  ",'space'];
+      push @sql, ["$tab $name",$node];
+      if ($extra_joins{$name}) {
+	for my $join_as (sort { length($a)<=>length($b) } keys %{$extra_joins{$name}}) {
+	  my ($join_tab,$join_on,$join_type)=@{$extra_joins{$name}{$join_as}};
+	  $join_type||='';
+	  push @sql, [' ','space'], [qq($join_type JOIN $join_tab $join_as ON $join_on),$node]
+	}
+      }
+      push @WHERE, [$condition] if defined($condition) and $condition=~/\S/;
+    }
+  }
+
   if (defined($tree_parent_id) and defined($id{$tree})) {
     my $rel = relation($tree, {%$opts,id=>$id{$tree},parent_id=>$tree_parent_id});
     push @WHERE,[$rel, $tree] if $rel=~/\S/;
@@ -864,15 +908,16 @@ sub serialize_expression {
     s/"_depth"/"lvl"/g;
   }
   $exp=~s{(?:(\w+)\.)?"([^"]+)"}{
-    my $id = defined($1) ? $1 : $opts->{id};
+    my $id = defined($1) ? lc($1) : $opts->{id};
     my @ref = split m{/}, $2;
     my $column = pop @ref;
     my $table = $opts->{type};
+    my $node_id = $id;
     for my $tab (@ref) {
       my $prev = $id;
       $id.="_$tab";
       $table.="_$tab";
-      $opts->{join}{$id} = [$table => qq($id."idx" = $prev."idx"), 'LEFT'];# should be qq($prev."$tab")
+      $opts->{join}{$node_id}{$id}=[$table => qq($id."idx" = $prev."idx"), 'LEFT'];# should be qq($prev."$tab")
     }
     qq($id."$column");
   }ge;
