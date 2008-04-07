@@ -79,9 +79,9 @@ sub DrawArrows {
   my ($node,$styles,$edges,$opts)=@_;
   my $i = 0;
   my %props;
-  my $raise = $opts->{-raise}||25;
-  my $frac  = $opts->{-frac}||0.12;
   foreach my $edge (@$edges) {
+    my $raise = $edge->{-raise}||$opts->{-raise}||25;
+    my $frac  = $edge->{-frac}||$opts->{-frac}||0.12;
     for my $p (@opts) {
       push @{$props{$p}}, $edge->{$p}||$opts->{$p}||'';
     }
