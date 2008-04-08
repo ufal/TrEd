@@ -1,13 +1,23 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2008-02-06 14:10:18 pajas>
+## Time-stamp: <2008-04-08 11:31:33 pajas>
 ## $Id$
 
 #encoding iso-8859-2
 
 package Analytic;
 BEGIN { import TredMacro; }
+
+push @TredMacro::AUTO_CONTEXT_GUESSING, sub {
+  if( $grp->{FSFile}->FS->exists->{afun} and $grp->{FSFile}->FS->exists->{AID} ) {
+    if (CurrentContext() eq 'Analytic_Correction') {
+      return 'Analytic_Correction';
+    } else {
+      return 'Analytic';
+    }
+  }
+};
 
 my $_CatchError;
 

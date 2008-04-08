@@ -37,7 +37,7 @@ package TR_Correction;
 #binding-context Quotation
 #include "tr_quotation_common.mak"
 
-#binding-context TREdit
-#include "edit.mak"
+###binding-context TREdit
+####include "edit.mak"
 
 #endif pdt10_t

@@ -6,6 +6,13 @@ package AcademicTreebank;
 BEGIN { import TredMacro; }
 use vars qw(%ORIGA_INFO %ORIGT_INFO %ORIGS_INFO @ORIGT_INFO);
 
+push @TredMacro::AUTO_CONTEXT_GUESSING, sub {
+  if ($grp->{FSFile}->FS->exists->{x_origt} and
+	$grp->{FSFile}->FS->exists->{x_origa}) {
+    return 'AcademicTreebank';
+  }
+  return;
+};
 
 #ifinclude <contrib/pdt10_a/pdt_tags.mak>
 #bind show_tag to Alt+t menu Describe PDT tag
