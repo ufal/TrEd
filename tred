@@ -5067,13 +5067,16 @@ sub focusCanvas {
   }
   my $newfocus=findCanvasWindow($grp,$c);
   if ($newfocus) {
-    $grp->{selectedContext}=$newfocus->{macroContext};
-    $grp->{selectedStylesheet}=$newfocus->{stylesheet};
+    my $prevcontext = $grp->{selectedContext};
+    my $context = $newfocus->{macroContext};
+    doEvalHook($grp->{focusedWindow},"pre_switch_context_hook",$prevcontext,$context); # stop is ignored here
+    $grp->{selectedContext}=$context;
+    $grp->{focusedWindow}=$newfocus;
+    $grp->{selectedStylesheet} = $newfocus->{stylesheet};
     $treeViewOpts->{drawBoxes}=$newfocus->{treeView}->get_drawBoxes();
     $treeViewOpts->{drawEdgeBoxes}=$newfocus->{treeView}->get_drawEdgeBoxes();
     $treeViewOpts->{showHidden}=$newfocus->{treeView}->get_showHidden();
     $treeViewOpts->{highlightAttributes}=$newfocus->{treeView}->get_highlightAttributes;
-    $grp->{focusedWindow}=$newfocus;
     update_value_line($grp);
     update_status_info($grp->{focusedWindow});
     update_value_line_current($newfocus,$newfocus->{currentNode});
@@ -5081,6 +5084,7 @@ sub focusCanvas {
     updateScaleFactor($grp);
     resetUndoStatus($newfocus);
     resetTreePosStatus($grp);
+    doEvalHook($newfocus,"switch_context_hook",$prevcontext,$context);
   } else {
     print STDERR "DID NOT FIND Window of $c\n";
   }
