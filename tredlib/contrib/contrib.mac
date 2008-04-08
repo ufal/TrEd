@@ -1,14 +1,59 @@
 # -*- cperl-*-
 
-# This file is included by default in tred.mac and serves only as a
-# wrapper for other contributed macro packages inclusions
+=pod
 
-# define pdt10 if you wish to include PDT1.0-specific macros
+=head1 NAME
 
+contrib/contrib.mac - a file responsible for loading other macro files
+
+=head2 DESCRIPTION
+
+This file is included by default in tred.mac and serves as a wrapper
+for other contributed macro package inclusions.
+
+Besides it provides file_opened_hook and file_resumed_hook in the
+package TredMacros. These hooks should not be overriden by other macro
+packages. See below how to plug context-specific code in.
+
+=cut
 
 #include "<*/contrib.mac>"
 
 package TredMacro;
+
+
+=pod
+
+=head2 @TredMacro::AUTO_CONTEXT_GUESSING
+
+This global variable can be used by contributed TrEd macro packages to
+plug-in their custom context guessing functions.  The purpose of such
+a function is to detect whether the current file is suitable for the
+macro package and if so, to indicate the correct binding context.
+
+The function must return name of the context to switch to or undef if
+the current file does not suit.
+
+The synopsis for a package named 'Foo' is as follows:
+
+  #binding-context Foo
+  package Foo;
+  import TredMacro;
+
+  push @TredMacro::AUTO_CONTEXT_GUESSING, sub {
+    my ($hook)=@_;
+    if (PML::SchemaName() eq 'foo-data') { # some test that the file suites the macro package
+      if ($hook eq 'file_opened_hook') {
+         # some open-specific code
+      } elsif ($hook eq 'file_resumed_hook') {
+         # some resume-specific code
+      }
+      return 'Foo'; # return name of the macro package (context) to use
+    }
+    return;
+  };
+
+=cut
 
 # ------------------------------------
 # try guessing proper initial context
@@ -16,60 +61,25 @@ package TredMacro;
 
 #ifdef TRED
 
-#
-# @TredMacro::AUTO_CONTEXT_GUESSING
-#
-# contributed macro packages may push their custom context guessing
-# functions into this variable. The function must return name of the
-# context to switch to or undef.
-#
-
 sub file_opened_hook {
-    my ($mode)= GetPatternsByPrefix('mode',STYLESHEET_FROM_FILE());
-    return unless $grp->{FSFile};
-    foreach my $sub (@TredMacro::AUTO_CONTEXT_GUESSING) {
-      my $ret = &$sub;
-      if (defined($ret)) {
-	return SwitchContext($ret);
-      }
-    }
-    if (defined($mode)) {
-      return SwitchContext($mode);
-#ifdef pml
-    } elsif (PML::SchemaName() eq 'tdata') {
-      return SwitchContext('PML_T_View');
-    } elsif (PML::SchemaName() eq 'adata') {
-      return SwitchContext('PML_A_View');
-    } elsif (PML::SchemaName() eq 'aeditdata') {
-      return SwitchContext('PML_A_Edit');
-    } elsif (PML::SchemaName() eq 'mdata') {
-      return SwitchContext('PML_M');
-#endif pml
-#ifdef transf
-    } elsif ($grp->{FSFile}->FS->exists->{x_TNT}
-	     and $grp->{FSFile}->FS->hide eq 'X_hide') {
-      return SwitchContext('Transfer');
-#endif transf
-#ifdef cac
-    } elsif ($grp->{FSFile}->FS->exists->{x_origt} and
-	     $grp->{FSFile}->FS->exists->{x_origa}) {
-      return SwitchContext('AcademicTreebank');
-#endif cac
-#ifdef pdt10_t
-    } elsif ($grp->{FSFile}->FS->hide eq 'TR') {
-      return SwitchContext('Tectogrammatic') 
-	unless (CurrentContext() eq 'TR_Correction' or
-		CurrentContext() eq 'TFA');
-#endif pdt10_t
-#ifdef pdt10_a
-    } elsif($grp->{FSFile}->FS->exists->{afun}) {
-      return SwitchContext('Analytic') unless CurrentContext() eq 'Analytic_Correction';
-#endif pdt10_a
-    } 
+  __guess_context('file_opened_hook',@_)
 }
-
 sub file_resumed_hook {
-  &file_opened_hook;
+  __guess_context('file_resumed_hook',@_)
+}
+sub __guess_context {
+  my ($hook)=@_;
+  my ($mode)= GetPatternsByPrefix('mode',STYLESHEET_FROM_FILE());
+  return unless $grp->{FSFile};
+  foreach my $sub (@TredMacro::AUTO_CONTEXT_GUESSING) {
+    my $ret = &$sub;
+    if (defined($ret)) {
+      return SwitchContext($ret);
+    }
+  }
+  if (defined($mode)) {
+    return SwitchContext($mode);
+  }
 }
 
 #endif TRED

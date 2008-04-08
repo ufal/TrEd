@@ -1,11 +1,21 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2008-02-06 14:00:42 pajas>
+## Time-stamp: <2008-04-08 11:29:15 pajas>
 
 package Tectogrammatic;
 
 BEGIN { import TredMacro; }
 
+push @TredMacro::AUTO_CONTEXT_GUESSING, sub {
+  if ($grp->{FSFile}->FS->hide eq 'TR') {
+    if (CurrentContext() eq 'TR_Correction' or CurrentContext() eq 'TFA') {
+      return CurrentContext();
+    } else {
+      return 'Tectogrammatic';
+    }
+  }
+  return;
+};
 
 sub patterns_forced {
   return (grep { $_ eq 'force' } GetPatternsByPrefix('patterns',STYLESHEET_FROM_FILE()) ? 1 : 0)
