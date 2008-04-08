@@ -73,24 +73,6 @@ sub switch_context_hook {
 #   }
 # }
 
-sub ShiftLeft {
-  return unless (GetOrd($this)>1);
-  if (HiddenVisible()) {
-    ShiftNodeLeft($this);
-  } else {
-    ShiftNodeLeftSkipHidden($this,1);
-  }
-}
-
-sub ShiftRight {
-  return unless ($this->parent);
-  if (HiddenVisible()) {
-    ShiftNodeRight($this);
-  } else {
-    ShiftNodeRightSkipHidden($this);
-  }
-}
-
 #include "tfa_common.mak"
 
 

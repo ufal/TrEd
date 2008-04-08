@@ -1,3 +1,5 @@
+# -*- cperl -*-
+
 #include "projectivize.inc"
 
 ############################### macros for moving nodes and subtrees #####################
@@ -20,6 +22,23 @@ sub Move {
 
 }
 
+sub ShiftLeft {
+  return unless ($this->parent);
+  if (HiddenVisible()) {
+    ShiftNodeLeft($this);
+  } else {
+    ShiftNodeLeftSkipHidden($this,1);
+  }
+}
+
+sub ShiftRight {
+  return unless ($this->parent);
+  if (HiddenVisible()) {
+    ShiftNodeRight($this);
+  } else {
+    ShiftNodeRightSkipHidden($this);
+  }
+}
 
 #************************** shifting subtrees ****************************************************
 sub MoveST {
@@ -186,25 +205,30 @@ sub brothernodes {
 }
 
 sub ShiftSToverSTLeft {
+  shift unless ref($_[0]);
+  my $node=shift()||$this;
 # switches the (projectivized) subtree of the current node with the (projectivized) subtree to the left,
 # according to the visibility-of-hidden-nodes status
-  return unless (GetOrd($this)>0);
+  return unless ($node->parent);
   if (HiddenVisible()) {
-    ShiftSubTreeOverSubTreeLeft($this);
+    ShiftSubTreeOverSubTreeLeft($node);
   } else {
-    ShiftSubTreeOverSubTreeLeftSkipHidden($this);
+    ShiftSubTreeOverSubTreeLeftSkipHidden($node);
   }
 }
 
 
 sub ShiftSToverSTRight {
+  shift unless ref($_[0]);
+  my $node=shift()||$this;
+
 # switches the (projectivized) subtree of the current node with the (projectivized) subtree to the right,
 # according to the visibility-of-hidden-nodes status
-  return unless (GetOrd($this)>0);
+  return unless ($node->parent);
   if (HiddenVisible()) {
-    ShiftSubTreeOverSubTreeRight($this);
+    ShiftSubTreeOverSubTreeRight($node);
   } else {
-    ShiftSubTreeOverSubTreeRightSkipHidden($this);
+    ShiftSubTreeOverSubTreeRightSkipHidden($node);
   }
 }
 
