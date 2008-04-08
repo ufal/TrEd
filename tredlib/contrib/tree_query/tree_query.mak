@@ -684,16 +684,22 @@ sub extra_relation {
   } elsif ($relation eq 'depth-first-precedes') {
     return qq{$id."idx"<$target."idx"};
   } elsif ($relation eq 'deepord-less-than') {
+    my $order;
+    if ($opts->{type} eq 'a') {
+      $order = 'ord';
+    } else {
+      $order = 'tfa/deepord';
+    }
     return serialize_expression({
       id=>$id,
       type=>$opts->{type},
       join=>$opts->{join},
-      expression => qq{"tfa/deepord"},
+      expression => $order
     }).qq(<).serialize_expression({
       id=>$target,
       type=>$opts->{type},
       join=>$opts->{join},
-      expression => qq{"tfa/deepord"},
+      expression => $order
     });
   } elsif ($relation eq 'a/lex.rf') {
     return qq{$id."a_lex_idx"=$target."idx"}
