@@ -112,7 +112,6 @@ sub switch_context_hook {
   FileAppData('noautosave',1);
 }
 sub file_reloaded_hook {
-  print "here\n";
   FileAppData('noautosave',1);
 }
 
@@ -298,7 +297,7 @@ sub connect_dbi {
   my $cfg_type = $dbi_config->get_schema->get_type_by_name('dbi-config.type')->get_content_decl;
   if (!defined($id) or GUI()) {
     my @opts = ((map { $_->{id} } ListV($cfgs)),' NEW ');
-    my @sel=@opts ? $opts[0] : ();
+    my @sel= $dbi_configuration ? $dbi_configuration->{id} : @opts ? $opts[0] : ();
     ListQuery('Select treebase connection',
 	      'browse',
 	      \@opts,
@@ -384,7 +383,8 @@ sub query_sql {
     unless ($dbi) {
       connect_dbi()||die "Connection to DBI failed\n";
     }
-    print qq(\n<query-result query.rf="$root->{id}" nodes=").$root->descendants.qq(">\n<sql>\n<![CDATA[$sql]]></sql>\n) if $xml;
+    my $driver_name = $dbi->{Driver}->{Name};
+    print qq(\n<query-result query.rf="$root->{id}" nodes=").$root->descendants.qq(" driver="$driver_name">\n<sql>\n<![CDATA[$sql]]></sql>\n) if $xml;
     STDOUT->flush;
     my $t0 = new Benchmark;
     my $results = eval { run_query($sql,{ MaxRows=>$opts->{limit}, RaiseError=>1, Timeout => $opts->{timeout}||30 }) };
@@ -399,8 +399,12 @@ sub query_sql {
 	print qq(</query>\n);
       } else {
 	my $err = $@;
-	$err=~y/\n/ /;
-	print "$root->{id}\tFAIL\t$err\n";
+	$err=~s/\n/ /g;
+	if ($err =~ /^Query evaluation takes too long:/) {
+	  print "$root->{id}\tTIMEOUT\t".($opts->{timeout}||30)."s\n";
+	} else {
+	  print "$root->{id}\tFAIL\t$err\n";
+	}
       }
       return;
     }
@@ -411,7 +415,8 @@ sub query_sql {
       print qq(  <ok query.rf="$root->{id}" returned_rows="$no_results" time=").$time.qq("/>\n) if $xml;
       print qq(</query-result>\n) if $xml;
     } else {
-      print "$root->{id}\tOK\t$no_results\t$time\n";
+      my $driver_name = $dbi->{Driver}->{Name};
+      print "$root->{id}\tOK\t$driver_name\t$no_results\t$time\n";
     }
     if (GUI()) {
 #      my $sel = [];
@@ -485,7 +490,6 @@ sub map_results {
   eval {
   my @nodes = ($tree,$tree->descendants);
   my @matches = map { /^\Q$fn\E\.(\d+)$/ ? $1 : () } @last_results;
-#  print "matches:".Dumper(\@matches);
   for my $node (@nodes[@matches]) {
     $is_match{$node}=1;
   }
@@ -494,7 +498,6 @@ sub map_results {
 }
 sub open_pmltq {
   my ($filename,$opts)=@_;
-  print "open_pmltq: $filename,$opts\n";
   return unless $filename=~s{pmltq://}{};
   @last_results = idx_to_pos([split m{/}, $filename]);
   my $first = $last_results[0];
@@ -547,14 +550,14 @@ sub run_query {
     my $step=2;
     my $time=0;
     eval {
-      print $sth->execute();
+      $sth->execute();
       if (defined $opts->{Timeout}) {
 	do {{
 	  $time+=$step;
 	  sleep $step;
 	  if ($time>=$opts->{Timeout}) {
 	    $sth->pg_cancel();
-	    die "Query evaluation takes too long: cancelled after $opts->{Timeout} seconds."
+	    die "Query evaluation takes too long: cancelled after $opts->{Timeout} seconds.\n"
 	  }
 	}} while (!$sth->pg_ready);
       }
@@ -620,6 +623,7 @@ sub serialize_conditions {
 	$sql .= " $occ=(".make_sql($child,{
 	  count=>1,
 	  parent_id=>$opts->{id},
+	  join => $opts->{join},
 	}).")";
       }
     }
@@ -686,9 +690,9 @@ sub extra_relation {
   } elsif ($relation eq 'deepord-less-than') {
     my $order;
     if ($opts->{type} eq 'a') {
-      $order = 'ord';
+      $order = q("ord");
     } else {
-      $order = 'tfa/deepord';
+      $order = q("tfa/deepord");
     }
     return serialize_expression({
       id=>$id,
@@ -699,7 +703,7 @@ sub extra_relation {
       id=>$target,
       type=>$opts->{type},
       join=>$opts->{join},
-      expression => $order
+      expression => qq{$target.$order},
     });
   } elsif ($relation eq 'a/lex.rf') {
     return qq{$id."a_lex_idx"=$target."idx"}
@@ -762,7 +766,7 @@ sub make_sql {
   my @table;
   my @where;
   my %conditions;
-  my %extra_joins;
+  my $extra_joins = $opts->{join} || {};
   for (my $i=0; $i<@nodes; $i++) {
     my $n = $nodes[$i];
     my $table = $n->{type}||$tree->{type}||'a';
@@ -807,7 +811,7 @@ sub make_sql {
       type=>$table,
       id=>$id,
       parent_id=>$parent_id,
-      join => \%extra_joins,
+      join => $extra_joins,
     });
     # where could also be obtained by replacing ___SELF___ with $id
     if ($n->{optional}) {
@@ -824,7 +828,7 @@ sub make_sql {
       $where.='('.serialize_expression({
 	  type=>$n->parent->{type}||$tree->{type}||'t',
 	  expression => qq{$parent_id."a_aux/a_idx"},
-	  join => \%extra_joins,
+	  join => $extra_joins,
 	  id=>$id,
 	}).qq(=$id."idx");
       if ($n->{'relation'} eq 'a/lex.rf|a/aux.rf') {
@@ -836,11 +840,11 @@ sub make_sql {
       if ($where=~/\S/) {
 	$where.=' AND ';
       }
-      $where.='('.extra_relation($id,$rel,{type=>$table,join => \%extra_joins}).')';
+      $where.='('.extra_relation($id,$rel,{type=>$table,join => $extra_joins}).')';
     }
     push @where, $where;
   }
-  my @sql = (['SELECT ']);
+  my @sql = (['SELECT DISTINCT ']);
   if ($count) {
     push @sql,['count(1)','space'];
   } else {
@@ -862,9 +866,9 @@ sub make_sql {
       my ($tab, $name, $node, $condition)=@$t;
       push @sql, ($i++)==0 ? ["\nFROM\n  ",'space'] : [",\n  ",'space'];
       push @sql, ["$tab $name",$node];
-      if ($extra_joins{$name}) {
-	for my $join_as (sort { length($a)<=>length($b) } keys %{$extra_joins{$name}}) {
-	  my ($join_tab,$join_on,$join_type)=@{$extra_joins{$name}{$join_as}};
+      if ($extra_joins->{$name}) {
+	for my $join_as (sort { length($a)<=>length($b) } keys %{$extra_joins->{$name}}) {
+	  my ($join_tab,$join_on,$join_type)=@{$extra_joins->{$name}{$join_as}};
 	  $join_type||='';
 	  push @sql, [' ','space'], [qq($join_type JOIN $join_tab $join_as ON $join_on),$node]
 	}
