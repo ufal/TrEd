@@ -3,19 +3,35 @@
 
 #bind NewTreeAfter Alt+N menu New tree
 #bind trim_subtree Alt+T menu Trim (remove all but current subtree)
-#bind copy_to_clipboad to Ctrl+Insert menu Copy subtree
-#bind cut_to_clipboad to Shift+Delete menu Cut subtree
-#bind paste_from_clipboad to Shift+Insert menu Paste subtree
-#bind paste_as_new_tree to Ctrl+Shift+Insert menu Paste as new tree
-#bind NewRBrother to Ctrl+Shift+Right menu New right brother node
-#bind NewLBrother to Ctrl+Shift+Left menu New left brother node
-#bind NewSon to Ctrl+Shift+Down menu New son node
-#bind NewParent to Ctrl+Shift+Up menu New son parent
 #bind DeleteThisNode to Delete menu Delete current node
-#bind cut_to_parents_parent to Ctrl+Up menu Move node to parent's parent
-#bind cut_to_rbrother to Ctrl+Right menu Move node to right brother
-#bind cut_to_lbrother to Ctrl+Left menu Move node to left brother
-#bind cut_to_firstson to Ctrl+Down menu Move node to first son
+#bind DeleteSubtree to Ctrl+Delete menu Delete current subtree
+
+#bind cut_to_clipboad to Shift+Delete menu Cut subtree to clipboard
+#bind copy_to_clipboad to Ctrl+Insert menu Copy subtree to clipboard
+#bind paste_from_clipboad to Shift+Insert menu Paste subtree from clipboard
+#bind paste_as_new_tree to Ctrl+Shift+Insert menu Paste as new tree
+
+#bind cut_to_parents_parent to Ctrl+Up menu Place node on parent's parent
+#bind cut_to_parents_rbrother to Ctrl+Right menu Place node on parent's right brother
+#bind cut_to_parents_lbrother to Ctrl+Left menu Place node on parent's left brother
+#bind cut_to_sibling to Ctrl+Down menu Place node on its left- or right-sibling (whichever exists)
+
+#bind NewRBrother to Alt+Right menu New right brother node
+#bind NewLBrother to Alt+Left menu New left brother node
+#bind NewSon to Alt+Down menu New son node
+#bind NewParent to Alt+Up menu New son parent
+
+#include "reordering.inc"
+#include "projectivize.inc"
+
+#bind ShiftLeft to Ctrl+Shift+Left menu Move node to the left
+#bind ShiftRight to Ctrl+Shift+Right menu Move node to the right
+#bind ShiftSToverSTLeft to Alt+Shift+Left menu Swap subtree with subtree to the left
+#bind ShiftSToverSTRight to Alt+Shift+Right menu Swap subtree with subtree to the right
+#insert ShiftSTLeft as menu Move subtree to the left
+#insert ShiftSTRight as menu Move subtree to the right
+#insert ProjectivizeCurrentSubTree as menu Projectivize subtree
+#insert ProjectivizeTree as menu Projectivize tree
 
 sub cut_to_firstson {
   return unless ($this and $this->firstson and $this->parent);
@@ -28,16 +44,53 @@ sub cut_to_firstson {
   }
 }
 sub cut_to_parents_parent {
-  return unless $this and $this->parent and $this->parent->parent;
-  CutPaste($this,$this->parent->parent);
+  my $p = $this && $this->parent && $this->parent->parent;
+  return unless $p;
+  my $ordering=TredMacro::_node_ord($this->parent);
+  if (defined($ordering) and length($ordering)) {
+    CutPaste($this,$p);
+  } else {
+    CutPasteAfter($this,$this->parent);
+  }
 }
-sub cut_to_rbrother {
-  return unless $this and $this->rbrother;
-  CutPaste($this,$this->rbrother);
+sub cut_to_parents_rbrother {
+  return unless $this and $this->parent and $this->parent->rbrother;
+  CutPaste($this,$this->parent->rbrother);
 }
-sub cut_to_lbrother {
-  return unless $this and $this->lbrother;
-  CutPaste($this,$this->lbrother);
+sub cut_to_parents_lbrother {
+  return unless $this and $this->parent and $this->parent->lbrother;
+  CutPaste($this,$this->parent->lbrother);
+}
+sub cut_to_sibling {
+  return unless $this;
+  my $b = $this->lbrother;
+  if ($b) {
+    if ($b->firstson) {
+      my $ordering=TredMacro::_node_ord($b->firstson);
+      if (defined($ordering) and length($ordering)) {
+	CutPaste($this,$b);
+      } else {
+	$b=$b->firstson;
+	$b=$b->rbrother while $b->rbrother;
+	CutPasteAfter($this,$b);
+      }
+    } else {
+      CutPaste($this,$b);
+    }
+  } elsif ($b=$this->rbrother) {
+    if ($b->firstson) {
+      my $ordering=TredMacro::_node_ord($b->firstson);
+      if (defined($ordering) and length($ordering)) {
+	CutPaste($this,$b);
+      } else {
+	$b=$b->firstson;
+	$b=$b->lbrother while $b->lbrother;
+	CutPasteBefore($this,$b);
+      }
+    } else {
+      CutPaste($this,$b);
+    }
+  }
 }
 
 sub trim_subtree {
