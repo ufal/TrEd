@@ -195,17 +195,20 @@ sub SwitchToAFile {
   return 1;
 }
 
-sub file_resumed_hook {
-  if (SchemaName() =~ /^a(?:edit)?data$/) {
-    SetCurrentStylesheet(STYLESHEET_FROM_FILE());
-    if (CurrentContext() eq 'PML_T_Edit') {
-      SwitchContext('PML_A_Edit');
-    } else {
-      SwitchContext('PML_A_View');
-    }
-  }
-  return;
-}
+
+# sub file_resumed_hook {
+#   if (SchemaName() =~ /^a(?:edit)?data$/) {
+#     SetCurrentStylesheet(STYLESHEET_FROM_FILE());
+#     if (CurrentContext() eq 'PML_T_Edit') {
+#       SwitchContext('PML_A_Edit');
+#     } else {
+#       SwitchContext('PML_A_View');
+#     }
+#   } else {
+#     &TredMacro::file_resumed_hook;
+#   }
+#   return;
+# }
 
 #endif TRED
 

@@ -6,6 +6,14 @@ package Transfer;
 
 BEGIN { import TredMacro; }
 
+push @TredMacro::AUTO_CONTEXT_GUESSING, sub {
+  if ($grp->{FSFile}->FS->exists->{x_TNT} and $grp->{FSFile}->FS->hide eq 'X_hide') {
+    return 'Transfer';
+  }
+  return;
+};
+
+
 #bind default_tr_attrs to F8 menu Display default attributes
 sub default_tr_attrs {
   return unless $grp->{FSFile};
