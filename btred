@@ -1484,7 +1484,7 @@ sub openSecondary {
 
 sub openFile {
   my ($grp,$f,%opts) = @_;
-  if (doEvalHook($win,"open_file_hook",$f,{%opts}) eq 'stop') {
+  if (doEvalHook($grp,"open_file_hook",$f,{%opts}) eq 'stop') {
     # not sure what status should we return
     return 1;
   }
