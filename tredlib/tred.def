@@ -1063,20 +1063,47 @@ sub PlainDeleteSubtree {
 
 Adjusts the special FS numbering attribute of every node of the list
 referenced by the listref argument so that the value for the attribute
-corresponds to the order of the node in the list.
+corresponds to the order of the node in the list and repaste each node
+so that the structural order corresponds with this new numbering.
+
+If no numbering FS numbering attribute is available, all this macro
+does is to ensure that the structural order of sibling nodes
+corresponds to their order in the given list.
 
 =cut
 
 sub NormalizeOrds {
   my ($nodesref)=@_;
-
+  return unless @$nodesref>0;
   my $ord=_node_ord($nodesref->[0]);
-  return unless defined($ord);
-  for (my $i=0;$i<=$#$nodesref;$i++) {
-    $nodesref->[$i]->{$ord}=$i;
-  }
-  for (my $i=0;$i<=$#$nodesref;$i++) {
-    RepasteNode($nodesref->[$i]);
+  if (defined($ord) and length($ord)) {
+    my $i = 0;
+    for my $node (@$nodesref) {
+      $node->{$ord}=$i++;
+    }
+    for my $node (@$nodesref) {
+      RepasteNode($node);
+    }
+  } else {
+    # this is tricky, all we can do here is to reorder siblings
+    my %by_parent;
+    my $p;
+    for my $node (@$nodesref) {
+      push @{$by_parent{$p}},$node if ($p=$node->parent);
+    }
+    foreach my $group (values %by_parent) {
+      if (@$group>1) {
+	my $prev;
+	foreach my $node (@$group) {
+	  if ($prev) {
+	    CutPasteAfter($node,$prev);
+	  } else {
+	    CutPaste($node,$parent);
+	  }
+	  $prev=$node;
+	}
+      }
+    }
   }
 }
 
@@ -1090,8 +1117,10 @@ the values of the special FS numbering attribute.
 sub SortByOrd {
   my ($nodesref)=@_;
   my $ord=_node_ord($nodesref->[0]);
-  local ($a,$b);
-  @$nodesref=sort { $a->{$ord} <=> $b->{$ord} } @$nodesref;
+  if (defined $ord) {
+    local ($a,$b);
+    @$nodesref=sort { $a->{$ord} <=> $b->{$ord} } @$nodesref;
+  }
   return $nodesref;
 }
 
@@ -1122,25 +1151,33 @@ sub ShiftNodeRightSkipHidden {
   my ($node)=@_;
   return unless $node;
   my $ord=_node_ord($node);
-  my @all=GetNodes();
-  SortByOrd(\@all);
+  if (defined($ord) and length($ord)) {
+    my @all=GetNodes();
+    SortByOrd(\@all);
 
-  # This is sideeffect, but
-  # whe want to do this anyway
-  NormalizeOrds(\@all);
-  #
-  #
-  my $n=$node->{$ord};
-  return $n if ($n == $#all);
+    # This is sideeffect, but
+    # whe want to do this anyway
+    NormalizeOrds(\@all);
+    #
+    #
+    my $n=$node->{$ord};
+    return $n if ($n == $#all);
 
-  my @vis=GetVisibleNodes();
-  SortByOrd(\@vis);
-  my $m=Index(\@vis,$node);
-  return unless (defined($m) and $m<$#vis);
-  my $x=min(Index(\@all,$vis[$m+1]),$#all);
-  for (my $i=$n+1;$i<=$x;$i++) { $all[$i]->{$ord}--; }
-  $node->{$ord}=$x;
-  RepasteNode($node);
+    my @vis=GetVisibleNodes();
+    SortByOrd(\@vis);
+    my $m=Index(\@vis,$node);
+    return unless (defined($m) and $m<$#vis);
+    my $x=min(Index(\@all,$vis[$m+1]),$#all);
+    for (my $i=$n+1;$i<=$x;$i++) {
+      $all[$i]->{$ord}--;
+    }
+    $node->{$ord}=$x;
+    RepasteNode($node);
+  } elsif($node->parent) {
+    my $rb = $node->rbrother;
+    $rb = $rb->rbrother while($rb and IsHidden($rb));
+    CutPasteAfter($node,$rb) if $rb;
+  }
 }
 
 =item C<ShiftNodeLeftSkipHidden(node,min?)>
@@ -1157,54 +1194,67 @@ sub ShiftNodeLeftSkipHidden {
   my ($node,$min)=@_;          # min sets the minimum left...
   return unless $node;
   my $ord=_node_ord($node);     # ... boundary for Ord
-  my @all=GetNodes();
-  SortByOrd(\@all);
+  if (defined($ord) and length($ord)) {
+    my @all=GetNodes();
+    SortByOrd(\@all);
 
-  # This is a side-effect, but
-  # we want to do it anyway
-  NormalizeOrds(\@all);
-  #
-  #
-  my $n=$node->{$ord};
-  return $n if ($n == 0);
+    # This is a side-effect, but
+    # we want to do it anyway
+    NormalizeOrds(\@all);
+    #
+    #
+    my $n=$node->{$ord};
+    return $n if ($n == 0);
 
-  my @vis=GetVisibleNodes();
-  SortByOrd(\@vis);
-  my $m=Index(\@vis,$node);
-  return unless (defined($m) and !defined($min) || $m>$min);
-  my $x=max(Index(\@all,$vis[$m-1]),0);
-  for (my $i=$n-1;$i>=$x;$i--) { $all[$i]->{$ord}++; }
-  $node->{$ord}=$x;
-  RepasteNode($node);
+    my @vis=GetVisibleNodes();
+    SortByOrd(\@vis);
+    my $m=Index(\@vis,$node);
+    return unless (defined($m) and !defined($min) || $m>$min);
+    my $x=max(Index(\@all,$vis[$m-1]),0);
+    for (my $i=$n-1;$i>=$x;$i--) {
+      $all[$i]->{$ord}++;
+    }
+    $node->{$ord}=$x;
+    RepasteNode($node);
+  } elsif ($node->parent) {
+    my $lb = $node->lbrother;
+    $lb=$lb->lbrother while ($lb and IsHidden($lb));
+    CutPasteBefore($node,$lb) if $lb;
+  }
 }
 
 =item C<ShiftNodeRight(node)>
 
 Shift the current node in the tree to the right by modifying the tree
 structure and value of the special FS numbering attribute
-appropriately.
+accordingly.
 
 =cut
 
 sub ShiftNodeRight {
   my ($node)=@_;
-  my $ord=_node_ord($node);
   return unless $node;
-  my @all=GetNodes();
-  SortByOrd(\@all);
 
-  # This is a side-effect, but
-  # we want to do it anyway
-  NormalizeOrds(\@all);
-  #
-  #
+  my $ord=_node_ord($node);
+  if (defined($ord) and length($ord)) {
+    my @all=GetNodes();
+    SortByOrd(\@all);
 
-  my $n=$node->{$ord};
-  return $n if ($n == $#all);
+    # This is a side-effect, but
+    # we want to do it anyway
+    NormalizeOrds(\@all);
+    #
+    #
 
-  $all[$n+1]->{$ord}=$n;
-  $node->{$ord}=$n+1;
-  RepasteNode($node);
+    my $n = $node->{$ord};
+    return $n if ($n == $#all);
+    $all[$n+1]->{$ord}=$n;
+    $node->{$ord}=$n+1;
+    RepasteNode($node);
+  } elsif ($node->parent) {
+    my $rb = $node->rbrother;
+    CutPasteAfter($node) if $rb;
+  }
 }
 
 =item C<ShiftNodeLeft(node)>
@@ -1219,21 +1269,26 @@ sub ShiftNodeLeft {
   my ($node)=@_;
   return unless $node;
   my $ord=_node_ord($node);
-  my @all=GetNodes();
-  SortByOrd(\@all);
+  if (defined($ord) and length($ord)) {
+    my @all=GetNodes();
+    SortByOrd(\@all);
 
-  # This is sideeffect, but
-  # whe want to do this anyway
-  NormalizeOrds(\@all);
-  #
-  #
+    # This is sideeffect, but
+    # whe want to do this anyway
+    NormalizeOrds(\@all);
+    #
+    #
 
-  my $n=$node->{$ord};
-  return $n if ($n == 0);
+    my $n=$node->{$ord};
+    return $n if ($n == 0);
 
-  $all[$n-1]->{$ord}=$n;
-  $node->{$ord}=$n-1;
-  RepasteNode($node);
+    $all[$n-1]->{$ord}=$n;
+    $node->{$ord}=$n-1;
+    RepasteNode($node);
+  } elsif ($node->parent) {
+    my $lb = $node->lbrother;
+    CutPasteBefore($node,$lb) if $lb;
+  }
 }
 
 =item C<GetNodesExceptSubtree(node)>
