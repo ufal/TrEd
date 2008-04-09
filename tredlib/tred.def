@@ -1400,6 +1400,16 @@ sub IsAlt {
   return 1 if ref($_[0]) eq 'Fslib::Alt';
 }
 
+=item C<IsSeq(value)>
+
+Check that a given value is a sequence, i.e. Fslib::Seq object.
+
+=cut
+
+sub IsSeq {
+  return 1 if ref($_[0]) eq 'Fslib::Seq';
+}
+
 =item C<List(value,value,...)>
 
 Return a new list (Fslib::List object) populated with given values.
@@ -1440,6 +1450,18 @@ all its values. Otherwise return empty (Perl) list.
 
 sub ListV {
   ref($_[0]) eq 'Fslib::List' ? @{$_[0]} : ()
+}
+
+=item C<SeqV(value)>
+
+If the value is a sequence (i.e. a Fslib::Seq object), return all its
+elements (Fslib::Seq::Element objects). Otherwise return empty (Perl)
+list.
+
+=cut
+
+sub SeqV {
+  ref($_[0]) eq 'Fslib::Seq' ? $_[0]->elements : ()
 }
 
 =item C<AddToAlt(node,attr,value,value...)>
@@ -1488,7 +1510,7 @@ sub AddToList {
     $val = Fslib::List->new(@_);
     $node->set_attr($attr,$val,1);
   } else {
-    die "AddToList: Attribute '$attr' contains a non-empty non-list value. Refusing to add '$val'!\n"
+    die "AddToList: Attribute '$attr' contains a non-empty non-list value. Refusing to add to '$val'!\n"
   }
 }
 
@@ -1512,10 +1534,39 @@ sub AddToListUniq {
     $val = Fslib::List->new(uniq(@_));
     $node->set_attr($attr,$val,1);
   } else {
-    die "AddToList: Attribute '$attr' contains a non-empty non-list value. Refusing to add '$val'!\n"
+    die "AddToList: Attribute '$attr' contains a non-empty non-list value. Refusing to add to '$val'!\n"
   }
 }
 
+=item C<AddToSeq(node, attr, name => value, name => value,...)> or C<AddToSeq(node, attr, element, ...)>
+
+Add elements to a given sequence attribute. If C<$node-E<gt>attr($attr)> is not defined or
+empty, a new C<Fslib::Seq> object containing given name-value pairs (C<Fslib::Seq::Element> objects) is created. If
+C<$node-E<gt>attr($attr)> is a C<Fslib::Seq> object, given elements are simply added
+to it. Error is issued if C<$node-E<gt>attr($attr)> is defined, non-empty, yet not
+a C<Fslib::Seq> object.
+
+=cut
+
+sub AddToSeq {
+  my ($node,$attr)=(shift,shift);
+  my $val = $node->attr($attr);
+  unless (IsSeq($val)) {
+    if (!defined($val) or !length($val)) {
+      $val = Fslib::Seq->new();
+      $node->set_attr($attr,$val,1);
+    } else {
+      die "AddToSeq: Attribute '$attr' contains a non-empty non-sequence value. Refusing to add to '$val'!\n"
+    }
+  }
+  while (@_) {
+    if (ref($_[0]) eq 'Fslib::Seq::Element') {
+      $val->push_element_obj(shift);
+    } else {
+      $val->push_element((shift,shift));
+    }
+  }
+}
 
 =back
 
