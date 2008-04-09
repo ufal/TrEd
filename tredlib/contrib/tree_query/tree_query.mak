@@ -799,7 +799,7 @@ sub user_defined_relation {
       ($id,$target)=($target,$id);
     }
     return qq{$id."a_lex_idx"=$target."idx"}
-  } elsif ($relation eq 'a/aux.rf' and $opts->{extra_relation}) {
+  } elsif ($relation eq 'a/aux.rf') {
     unless ($opts->{extra_relation}) {
       # reverse
       ($id,$target,$type)=($target,$id,$opts->{parent_type});
