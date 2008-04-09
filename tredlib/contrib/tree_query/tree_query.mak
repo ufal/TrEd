@@ -64,7 +64,7 @@ BEGIN {
   use Benchmark ':hireswallclock';
 }
 
-Bind sub { query_sql({limit=>100}) } => {
+Bind sub { query_sql({limit=>100, timeout=>150}) } => {
   key => 'space',
   menu => 'Query SQL server',
   changing_file => 0,
@@ -215,7 +215,7 @@ sub node_release_hook {
   return unless $target and $mod;
   return 'stop' unless $target->parent and $node->parent;
   if ($mod eq 'Control') {
-    my @sel;
+    my @sel = map { $_->{relation} } ListV($node->attr('extra-relations'));
     ListQuery('Select treebase connection',
 	      'browse',
 	      [$node->type->schema->get_type_by_name('q-extra-relation.type')->get_content_decl->get_values()],
@@ -610,24 +610,26 @@ sub serialize_conditions {
   my ($node,$opts)=@_;
   $opts||={};
   if ($node->parent) {
-    my $sql =  serialize_element({
+    my $el = serialize_element({
       %$opts,
       name => 'and',
       condition => $node->{conditions},
     });
+    my @sql;
+    push @sql,[$el,$node] if defined($el) and length($el);
     if ($occurrences_strategy == SUB_QUERY) {
       my @occ_child = grep { length($_->{occurrences}) } $node->children;
       for my $child (@occ_child) {
 	my $occ = $child->{occurrences};
-	$sql .= " AND " if $sql=~/\S/;
-	$sql .= " $occ=(".make_sql($child,{
+	my $subquery = make_sql($child,{
 	  count=>1,
 	  parent_id=>$opts->{id},
 	  join => $opts->{join},
-	}).")";
+	});
+	push @sql,[qq{ $occ=($subquery)},$child];
       }
     }
-    return $sql;
+    return wantarray ? @sql : join(' AND ',map { $_->[0] } @sql);
   } else {
     init_id_map($root);
     return make_sql($root,{
@@ -653,16 +655,16 @@ sub relation {
   if ($n->parent) {
     if ($n->{'relation'} eq 'ancestor') {
       if ($n->parent->parent) {
-	$condition = qq{$id."root_idx"=$parent_id."root_idx" AND }.
+	$condition = qq{$id."root_idx"=$parent_id."root_idx" AND $id."idx"!=$parent_id."idx" AND }.
 	  qq{$id."idx" BETWEEN $parent_id."idx" AND $parent_id."r"};
       }
     } elsif ($n->{'relation'} eq 'effective_parent') {
       $condition = extra_relation($id,'effective_parent',{%$opts,target=>$parent_id});
     } elsif ($n->{'relation'} eq 'parent' or
 	       $n->{'relation'} eq '') {
-      $condition = qq{$id."parent_idx"=$id{$n->parent}."idx"};
+      $condition = qq{$id."parent_idx"=$parent_id."idx"};
     } elsif ($n->{'relation'} eq 'a/lex.rf') {
-      $condition = qq{$id."idx"=$id{$n->parent}."a_lex_idx"};
+      $condition = qq{$id."idx"=$parent_id."a_lex_idx"};
     }
     if ($n->{optional}) {
       # identify with parent
@@ -724,6 +726,7 @@ sub extra_relation {
       expression => qq{"a_aux/a_idx"},
     }).qq(=$target."idx");
   } elsif ($relation eq 'coref_gram') {
+    return
       serialize_expression({
       id=>$id,
       type=>$opts->{type},
@@ -731,13 +734,20 @@ sub extra_relation {
       expression => qq{"coref_gram/corg_idx"}
      }).qq(=$target."idx");
   } elsif ($relation eq 'coref_text') {
+    return
       serialize_expression({
       id=>$id,
       type=>$opts->{type},
       join=>$opts->{join},
       expression => qq{"coref_text/cort_idx"}
      }).qq(=$target."idx");
+  } elsif ($relation eq 'ancestor') {
+    return qq{$id."root_idx"=$target."root_idx" AND $id."idx"!=$target."idx" AND }.
+      qq{$target."idx" BETWEEN $id."idx" AND $id."r"};
+  } elsif ($relation eq 'parent') {
+    return qq{$id."parent_idx"=$target."idx"};
   }
+
 }
 sub make_sql {
   my ($tree,$opts)=@_;
@@ -807,7 +817,7 @@ sub make_sql {
     } else {
       push @table,[$table,$id,$n];
     }
-    my $where = Tree_Query::serialize_conditions($n,{
+    my @conditions = serialize_conditions($n,{
       type=>$table,
       id=>$id,
       parent_id=>$parent_id,
@@ -816,39 +826,33 @@ sub make_sql {
     # where could also be obtained by replacing ___SELF___ with $id
     if ($n->{optional}) {
       # identify with parent
-      if (length $where) {
-	$where = qq{(($where) OR $id."idx"=$parent_id."idx")};
+      if (@conditions) {
+	@conditions = (['((',$n],@conditions,[qq{) OR $id."idx"=$parent_id."idx")},$n]);
       }
     }
     if ($n->{'relation'} eq 'a/aux.rf' or
 	$n->{'relation'} eq 'a/lex.rf|a/aux.rf') {
-      if ($where=~/\S/) {
-	$where.=' AND ';
-      }
-      $where.='('.serialize_expression({
+      push @conditions,
+	['('.serialize_expression({
 	  type=>$n->parent->{type}||$tree->{type}||'t',
 	  expression => qq{$parent_id."a_aux/a_idx"},
 	  join => $extra_joins,
 	  id=>$id,
-	}).qq(=$id."idx");
-      if ($n->{'relation'} eq 'a/lex.rf|a/aux.rf') {
-	  $where.=qq{ OR $id."idx"=$id{$n->parent}."a_lex_idx"};
-      }
-      $where.=')';
+	}).qq(=$id."idx").
+	  (($n->{'relation'} eq 'a/lex.rf|a/aux.rf') 
+	     ? qq{ OR $id."idx"=$id{$n->parent}."a_lex_idx"}
+	     : qq{}).')',$n];
     }
     for my $rel (ListV($n->attr('extra-relations'))) {
-      if ($where=~/\S/) {
-	$where.=' AND ';
-      }
-      $where.='('.extra_relation($id,$rel,{type=>$table,join => $extra_joins}).')';
+      push @conditions,['('.extra_relation($id,$rel,{type=>$table,join => $extra_joins}).')',$n];
     }
-    push @where, $where;
+    push @where, @conditions;
   }
-  my @sql = (['SELECT DISTINCT ']);
+  my @sql = (['SELECT ']);
   if ($count) {
     push @sql,['count(1)','space'];
   } else {
-    push @sql, (map {
+    push @sql, (['DISTINCT '], map {
       my $n = $nodes[$_];
       (($_==0 ? () : [', ','space']),
        [$select[$_].'."idx"',$n],
@@ -856,7 +860,7 @@ sub make_sql {
        [q(, ').($nodes[$_]->{type}||$tree->{type}||'a').q('),$n],
        [' AS "'.$select[$_].'.type"',$n]
       )
-    } 0..$#nodes)
+    } 0..$#nodes);
   }
   # joins
   my @WHERE;
@@ -873,20 +877,15 @@ sub make_sql {
 	  push @sql, [' ','space'], [qq($join_type JOIN $join_tab $join_as ON $join_on),$node]
 	}
       }
-      push @WHERE, [$condition] if defined($condition) and $condition=~/\S/;
+      push @WHERE, [$condition,$node] if defined($condition) and $condition=~/\S/;
     }
   }
 
-  if (defined($tree_parent_id) and defined($id{$tree})) {
-    my $rel = relation($tree, {%$opts,id=>$id{$tree},parent_id=>$tree_parent_id});
-    push @WHERE,[$rel, $tree] if $rel=~/\S/;
-  }
-  push @WHERE, (map {
-    [$where[$_],$nodes[$_]]
-  } grep {
-    my $w = $where[$_];
-    defined($w) and length($w)
-  } 0..$#nodes);
+#   if (defined($tree_parent_id) and defined($id{$tree})) {
+#     my $rel = relation($tree, {%$opts,id=>$id{$tree},parent_id=>$tree_parent_id});
+#     push @WHERE,[$rel, $tree] if $rel=~/\S/;
+#   }
+  push @WHERE, @where;
   push @sql, [ "\nWHERE\n     ",'space'];
   push @sql, (map { ($_, ["\n AND ",'space']) } @WHERE);
   pop @sql; # pop the last AND or a solitary WHERE
