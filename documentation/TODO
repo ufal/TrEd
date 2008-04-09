@@ -1,4 +1,5 @@
-- display current filelist (or a tree of file-lists) in the side-bar
+- display current filelist (or a tree of file-lists) and 
+  a filesystem-browser in the side-bar
 - SSH tunneling in NTrEd
 - allow the stylesheet to define raise-order of canvas items
 - allow the nodes to take dimensions of the textbox
@@ -6,8 +7,12 @@
 - allow positioning of the tree levels based on actual text heights (with possibly skipped labels)
 - create dimensions and position of the textbox according to non-empty labels
 - value-line: support for displaying preceding and following context (differentiated e.g. by font)
+- allow additional textlabels, positioned using -coords and anchoring
 - after Save File As it does not appear in the recent files
 - undo for tree-related Node-menu items 
+- document various side-effects (setting $this/$root in GotoFile, ...)
+- fix: undo/redo on add/delete node (e.g. in PML_T) breaks id-hashes
+- make lower-level operations id-hash aware
 - add an option to TrEd to remember the last context and stylesheet used for a postponed file and restore it on resume
 - in TrEd: keep this file (i.e. do not close this particular file automatically when opening another)
 
@@ -24,6 +29,7 @@ Make an on-line help for:
   - default bindigs
 
 - add a register_context_guesser function
+
 
 TreeView:
 ---------
