@@ -3,7 +3,7 @@
 
 #bind NewTreeAfter Alt+N menu New tree
 #bind trim_subtree Alt+T menu Trim (remove all but current subtree)
-#bind DeleteThisNode to Delete menu Delete current node
+#bind delete_node_keep_children to Delete menu Delete current node (pasting its children on its parent)
 #bind DeleteSubtree to Ctrl+Delete menu Delete current subtree
 
 #bind cut_to_clipboad to Shift+Delete menu Cut subtree to clipboard
@@ -154,3 +154,16 @@ sub paste_as_new_tree {
   $TredMacro::nodeClipboard=undef;
 }
 
+sub delete_node_keep_children {
+  shift unless ref $_[0];
+  my $node=shift()||$this;
+  my $parent = $node->parent;
+  return unless $parent;
+  for my $child ($node->children) {
+    CutPaste($child,$parent);
+  }
+  DeleteLeafNode($node);
+  if ($this==$node) {
+    $this=$parent;
+  }
+}
