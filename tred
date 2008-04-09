@@ -1118,7 +1118,7 @@ sub _filelistFullFileName {
   my ($filelist,$filename)=@_;
   return unless ref $filelist;
   my $suffix;
-  ($filename,$suffix)=parse_suffix($filename);
+  ($filename,$suffix)=parseFileSuffix($filename);
   return Fslib::ResolvePath($filelist->filename(),$filename).$suffix;
 }
 
@@ -1133,12 +1133,12 @@ sub nextOrPrevFile {
   if ($real and $win->{FSFile}) {
     my $prev_filename= $win->{FSFile}->filename;
     my $f = $filename = filelistFullFileName($win,$pos);
-    ($prev_filename) = parse_suffix($prev_filename);
-    ($f) = parse_suffix($f);
+    ($prev_filename) = parseFileSuffix($prev_filename);
+    ($f) = parseFileSuffix($f);
     while ($f eq $prev_filename) {
       $pos+=$delta;
       $f=$filename=filelistFullFileName($win,$pos);
-      ($f) = parse_suffix($f);
+      ($f) = parseFileSuffix($f);
     }
   } else {
     $filename=filelistFullFileName($win,$pos);
@@ -1818,17 +1818,6 @@ sub newFileFromCurrent {
   return 1;
 }
 
-sub parse_suffix {
-  my ($filename)=@_;
-  if ($filename=~s/(##?[0-9A-Z]+(?:-?\.[0-9]+)?)$// ) {
-    return ($filename,$1);
-  } elsif ($filename=~/^(.*)#([^#]+)$/ and PMLSchema::CDATA->check_string_format($2,'ID')) {
-    return ($1,'#'.$2);
-  } else {
-    return ($filename,undef);
-  }
-}
-
 
 # openStandaloneFile should be called whenever a file is opened via
 # a non-filelist operation (that is other than nextFile, or gotoFile)
@@ -1865,7 +1854,7 @@ sub reloadFile {
     my $f=$fsfile->filename();
     my @patterns=$fsfile->patterns();
     my $hint=$fsfile->hint();
-    ($f)=parse_suffix($f);
+    ($f)=parseFileSuffix($f);
     if ($fsfile->lastTreeNo >= 0) {
       my $no=$win->{treeNo}+1;
       my $nodeidx=0;
@@ -1968,7 +1957,7 @@ sub openFile {
   my $no_err = $grp->{noOpenFileError};
   my $fsfile = $win->{FSFile};
 
-  my ($f,$goto) = parse_suffix($fname);
+  my ($f,$goto) = parseFileSuffix($fname);
   print "Goto suffix is $goto\n" if defined($goto) and $tredDebug;
 
   $opts{-keep} ||= $grp->{keepfiles};
@@ -1980,6 +1969,7 @@ sub openFile {
     unless ($opts{-preload}) {
       updateTitle($grp);
       applyFileSuffix($win,$goto);
+      unhideCurrentNode($win);
       get_nodes_win($win, $opts{-noredraw});
       doEvalHook($win,"file_resumed_hook") unless $opts{-nohook};
       unless ($opts{-noredraw}) {
@@ -2015,6 +2005,7 @@ sub openFile {
 	  resumeFile($win,$of,$opts{-keep});
 	  updateTitle($grp);
 	  applyFileSuffix($win,$goto);
+	  unhideCurrentNode($win);
 	  get_nodes_win($win, $opts{-noredraw});
 	  doEvalHook($win,"file_resumed_hook") unless $opts{-nohook};
 	  unless ($opts{-noredraw}) {
@@ -2184,6 +2175,7 @@ sub openFile {
 
   unless ($opts{-preload}) {
     applyFileSuffix($win,$goto);
+    unhideCurrentNode($win);
     get_nodes_win($win,1); # for the hook below
   }
   $win->{redrawn}=0; # if redraw is called during the hook, we will know it
@@ -2206,60 +2198,13 @@ sub openFile {
   return wantarray ? ($fsfile,$status) : $fsfile;
 }
 
-sub getNodeByNo {
-  my ($win,$no)=@_;
-  my $root=$win->{FSFile}->treeList->[$win->{treeNo}];
-  my $i=$no;
-  while ($root and $i>0) {
-    $i--;
-    $root=$root->following();
-  }
-  return $root;
-}
-
-sub applyFileSuffix {
-  my ($win,$goto)= @_;
-  return unless $win;
-  my $fsfile = $win->{FSFile};
-  return unless $fsfile and defined($goto) and $goto ne EMPTY;
-  # -- smells like PDT-specific code, at least the second case
-  # but we want it, dont we:)
-
-  if ($goto=~/^##([0-9]+)/) {
-    $win->{treeNo}=min(max2(0,$1-1),$fsfile->lastTreeNo);
-  } elsif ($goto=~/^#([0-9]+)/) {
-    for (my $i=0;$i<=$fsfile->lastTreeNo;$i++) {
-      $win->{treeNo}=$i,last if ($fsfile->treeList->[$i]->{form} eq "#$1");
-    }
-  } elsif ($goto=~/^#([^#]+)$/) {
-    my $id = $1;
-    if (PMLSchema::CDATA->check_string_format($id,'ID')) {
-      my $id_hash = $fsfile->appData('id-hash');
-      if (UNIVERSAL::isa($id_hash,'HASH') and exists($id_hash->{$id})) {
-	my $node = $id_hash->{$id};
-	my $n = Index($fsfile->treeList,$node->root);
-	if ($n>=0) {
-	  $win->{treeNo}=$n;
-	  $win->{currentNode}=$node;
-	  unless (isShown($win,$node)) {
-	    $win->treeView->set_showHidden(1);
-	  }
-	  return;
-	}
-      }
+sub unhideCurrentNode {
+  my ($win)=@_;
+  if ($win->{currentNode}) {
+    unless (isShown($win,$win->{currentNode})) {
+      $win->treeView->set_showHidden(1);
     }
   }
-  # new: we're the dot in .[0-9]+ (TM)
-  if ($goto=~/\.([0-9]+)$/) {
-    my $root=getNodeByNo($win,$1);
-    if ($root) {
-      $win->{currentNode}=$root;
-      unless (isShown($win,$root)) {
-	$win->treeView->set_showHidden(1);
-      }
-    }
-  }
-  # hey, caller, you should redraw after this!
 }
 
 sub autosave_filename {
@@ -2843,7 +2788,7 @@ sub looseFilePositionInFilelist {
   my $pos = $filelist->position($fsfile);
   return $pos if $pos >= 0;
 
-  ($fname)=parse_suffix($fname);
+  ($fname)=parseFileSuffix($fname);
   my $files=$filelist->files_ref;
   my $basedir=$filelist->dirname();
   my $relfname=$fname;
@@ -2851,7 +2796,7 @@ sub looseFilePositionInFilelist {
     $relfname=substr($fname,length($basedir));
   }
   for (my $i=0; $i < $filelist->file_count; $i++) {
-    my ($fn) = parse_suffix($files->[$i]->[0]);
+    my ($fn) = parseFileSuffix($files->[$i]->[0]);
     return $i if ($fname eq $fn or $relfname eq $fn);
   }
   return -1;
@@ -7139,7 +7084,7 @@ sub renameFileInFilelist {
   # my %fixed;
   for my $i (defined ($position) ? $position : 0..($filelist->file_count()-1)) {
     my $fn = $filelist->file_at($i);
-    my ($f, $suffix) = parse_suffix($fn);
+    my ($f, $suffix) = parseFileSuffix($fn);
     if (_is_same_file(_filelistFullFileName($filelist,$f),$old_file)) {
       my $pattern_no = $filelist->file_pattern_index($i);
       my $pattern = $pattern_list->[$pattern_no];
