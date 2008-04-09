@@ -6,7 +6,7 @@ use strict;
 
 use Carp;
 use Data::Dumper;
-
+use List::Util qw(first min max);
 require Exporter;
 
 our @ISA = qw(Exporter);
@@ -35,6 +35,9 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
   setStylesheetPatterns
   updateStylesheetMenu
   getStylesheetMenuList
+  applyFileSuffix
+  parseFileSuffix
+  getNodeByNo
 
   STYLESHEET_FROM_FILE
   NEW_STYLESHEET
@@ -258,6 +261,70 @@ sub splitPatterns {
 
   }
   return $hint,$context,\@result;
+}
+
+sub parseFileSuffix {
+  my ($filename)=@_;
+  if ($filename=~s/(##?[0-9A-Z]+(?:-?\.[0-9]+)?)$// ) {
+    return ($filename,$1);
+  } elsif ($filename=~/^(.*)#([^#]+)$/ and PMLSchema::CDATA->check_string_format($2,'ID')) {
+    return ($1,'#'.$2);
+  } else {
+    return ($filename,undef);
+  }
+}
+
+sub applyFileSuffix {
+  my ($win,$goto)= @_;
+  return unless $win;
+  my $fsfile = $win->{FSFile};
+  return unless $fsfile and defined($goto) and $goto ne EMPTY;
+
+  if ($goto=~/^##([0-9]+)/) {
+    $win->{treeNo}=min(max(0,$1-1),$fsfile->lastTreeNo);
+  } elsif ($goto=~/^#([0-9]+)/) {
+    # this is PDT 1.0-specific code, sorry
+    for (my $i=0;$i<=$fsfile->lastTreeNo;$i++) {
+      $win->{treeNo}=$i,last if ($fsfile->treeList->[$i]->{form} eq "#$1");
+    }
+  } elsif ($goto=~/^#([^#]+)$/) {
+    my $id = $1;
+    if (PMLSchema::CDATA->check_string_format($id,'ID')) {
+      my $id_hash = $fsfile->appData('id-hash');
+      if (UNIVERSAL::isa($id_hash,'HASH') and exists($id_hash->{$id})) {
+	my $node = $id_hash->{$id};
+	# we would like to use Fslib::Index() here, but can't
+	my $list = $fsfile->treeList;
+	my $n = first {
+	  $list->[$_]==$node->root
+	} 0..$#$list;
+	if (defined($n)) {
+	  $win->{treeNo}=$n;
+	  $win->{currentNode}=$node;
+	  return;
+	}
+      }
+    }
+  }
+  # new: we're the dot in .[0-9]+ (TM)
+  if ($goto=~/\.([0-9]+)$/) {
+    my $root=getNodeByNo($win,$1);
+    if ($root) {
+      $win->{currentNode}=$root;
+    }
+  }
+  # hey, caller, you should redraw after this!
+}
+
+sub getNodeByNo {
+  my ($win,$no)=@_;
+  my $root=$win->{FSFile}->treeList->[$win->{treeNo}];
+  my $i=$no;
+  while ($root and $i>0) {
+    $i--;
+    $root=$root->following();
+  }
+  return $root;
 }
 
 
