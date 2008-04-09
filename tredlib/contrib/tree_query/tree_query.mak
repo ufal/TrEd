@@ -241,8 +241,8 @@ sub node_release_hook {
 	$name
       }
     } SeqV($node->attr('extra-relations'));
-    ListQuery('Select treebase connection',
-	      'browse',
+    ListQuery('Select treebase connections to add or preserve',
+	      'multiple',
 	      [
 		map {
 		  my $name = $_->get_name;
@@ -273,11 +273,12 @@ sub AddOrRemoveRelations {
   my %types = map { $_=> 1 } @$types;
   my $relations = $node->attr('extra-relations');
   my %have;
-  my @keep = map {
+  my @keep = grep {
     my $rel_name = $_->name;
-    my $t = $_->value->{target};
+    my $val = $_->value;
+    my $t = defined($val) && $val->{target};
     if ($rel_name eq 'user-defined') {
-      $rel_name = $_->value->{label};
+      $rel_name = $val->{label};
     }
     if (lc($target->{name}) eq $t) {
       $have{$rel_name}=1;
@@ -290,16 +291,18 @@ sub AddOrRemoveRelations {
     my ($name,$value);
     if ($type=~s/^(user-defined): //) {
       $name=$1;
-      $value = Fslib::Container->new({
+      $value = Fslib::Container->new(undef,{
 	target => lc($target->{name}),
 	label => $type
        },1)
     } else {
       $name = $type;
-      $value = Fslib::Container->new({
+      $value = Fslib::Container->new(undef,{
 	target => lc($target->{name}),
-      });
+      },1);
     }
+    use Data::Dumper;
+    print Dumper($value),"\n";
     push @keep,Fslib::Seq::Element->new($name=>$value);
   }
   if (!$relations) {
@@ -726,26 +729,23 @@ sub get_value_line_hook {
 sub relation {
   my ($n,$opts)=@_;
   my ($id,$parent_id)=@$opts{qw(id parent_id)};
-  if ($n->parent and $n->parent->parent) {
-    my ($rel) = SeqV($n->{relation});
-    my $name = $rel ? $rel->name : 'parent';
-    my $condition;
-    if ($name eq 'parent') {
-      $condition= qq{$id."parent_idx"=$parent_id."idx"};
-    } elsif ($name eq 'ancestor') {
-      $condition= extra_relation($id,$rel,$parent_id,$opts);
-    } elsif ($n->{'relation'} eq 'user-defined') {
-      $condition= user_defined_relation($id,$rel->value,$parent_id,$opts);
-    }
-    if ($n->{optional}) {
-      # identify with parent
-      if (length($condition)) {
-	$condition = qq{(($condition) OR $id."idx"=$parent_id."idx")};
-      }
-    }
-    return $condition;
+  my ($rel) = SeqV($n->{relation});
+  my $name = $rel ? $rel->name : 'parent';
+  my $condition;
+  if ($name eq 'parent') {
+    $condition= qq{$id."parent_idx"=$parent_id."idx"};
+  } elsif ($name eq 'ancestor') {
+    $condition= extra_relation($id,$rel,$parent_id,$opts);
+  } elsif ($name eq 'user-defined') {
+    $condition= user_defined_relation($id,$rel->value,$parent_id,$opts);
   }
-  return;
+  if ($n->{optional}) {
+    # identify with parent
+    if (length($condition)) {
+      $condition = qq{(($condition) OR $id."idx"=$parent_id."idx")};
+    }
+  }
+  return $condition;
 }
 
 sub extra_relation {
@@ -816,13 +816,13 @@ sub user_defined_relation {
       ($id,$target,$type)=($target,$id,$opts->{parent_type});
     }
     return
-      qq{$id."a_lex_idx"=$target."idx" OR }.
+      qq{($id."a_lex_idx"=$target."idx" OR }.
       serialize_expression({
       id=>$id,
       type=>$type,
       join=>$opts->{join},
       expression => qq{"a_aux/a_idx"},
-    }).qq(=$target."idx");
+    }).qq{=$target."idx")};
   } elsif ($relation eq 'coref_gram') {
     return
       serialize_expression({
@@ -830,7 +830,7 @@ sub user_defined_relation {
       type=>$type,
       join=>$opts->{join},
       expression => qq{"coref_gram/corg_idx"}
-     }).qq(=$target."idx");
+     }).qq{=$target."idx"};
   } elsif ($relation eq 'coref_text') {
     return
       serialize_expression({
@@ -838,7 +838,7 @@ sub user_defined_relation {
       type=>$type,
       join=>$opts->{join},
       expression => qq{"coref_text/cort_idx"}
-     }).qq(=$target."idx");
+     }).qq{=$target."idx"};
   }
 }
 
@@ -885,7 +885,12 @@ sub make_sql {
     my @conditions;
     if ($parent->parent) {
       my $condition=q();
-      $condition.=relation($n,{%$opts, id=>$id,parent_id=>$parent_id,parent_type=>$n->parent->{'node-type'}||$tree->{'node-type'}});
+      $condition.=relation($n,{%$opts,
+			       id=>$id,
+			       parent_id=>$parent_id,
+			       parent_type=>($n->parent->{'node-type'}||$tree->{'node-type'}),
+			       join => $extra_joins,
+			      });
       push @table,[$table,$id,$n,$condition];
       push @conditions,
 	(map { [qq{$id{$_}."idx"}.
