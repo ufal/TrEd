@@ -6,8 +6,10 @@
 - allow positioning of the tree levels based on actual text heights (with possibly skipped labels)
 - create dimensions and position of the textbox according to non-empty labels
 - value-line: support for displaying preceding and following context (differentiated e.g. by font)
-
+- after Save File As it does not appear in the recent files
 - undo for tree-related Node-menu items 
+- add an option to TrEd to remember the last context and stylesheet used for a postponed file and restore it on resume
+- in TrEd: keep this file (i.e. do not close this particular file automatically when opening another)
 
 - make use of Tk::QueryDialog
 
