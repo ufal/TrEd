@@ -78,6 +78,7 @@ use Tk::DialogBox;
 use Tk::Tiler;
 use Tk::BrowseEntry;
 use Tk::Pane;
+use Tk::Panedwindow;
 use Tk::Dialog;
 use Tk::Font;
 use Tk::Scale;
@@ -2521,24 +2522,42 @@ sub set_value_line {
 
 sub toggleSidePanel {
   my ($grp)=@_;
+  unless (defined $grp->{sidePanelFrame}) {
+    $grp->{sidePanelFrame}=$grp->{bodyPane}->Frame();
+    initSidePanel($grp);
+  }
   if ($showSidePanel) {
-    unless ($grp->{attrsViewFrame}) {
-      $grp->{attrsViewFrame}=$grp->{top}->Frame(
-	-relief => 'sunken',
-	-borderwidth => 2,
-       );
-      my $cb = $grp->{attrsViewFrame}->Checkbutton(
-	-text => 'Hide empty values',
-	-underline => 2,
-	-relief => 'flat',
-	-anchor=>'nw',
-	-justify => 'left',
+    unless ($grp->{sidePanelPacked}) {
+      $grp->{bodyPane}->add($grp->{sidePanelFrame},-before=>$grp->{windowFrame},-width=>$grp->{bodyPane}->width/6);
+      $grp->{sidePanelPacked}=1;
+    }
+  } else {
+    if ($grp->{sidePanelPacked}) {
+      $grp->{bodyPane}->forget($grp->{sidePanelFrame});
+      $grp->{sidePanelPacked}=0;
+    }
+  }
+}
+
+sub initSidePanel {
+  my ($grp)=@_;
+  unless ($grp->{attrsViewFrame}) {
+    $grp->{attrsViewFrame}=$grp->{sidePanelFrame}->Frame(
+      -relief => 'sunken',
+      -borderwidth => 2,
+     );
+    my $cb = $grp->{attrsViewFrame}->Checkbutton(
+      -text => 'Hide empty values',
+      -underline => 2,
+      -relief => 'flat',
+      -anchor=>'nw',
+      -justify => 'left',
 	-command => sub {
-	if ($grp->{attrsViewPacked}) {
-	  update_attribute_view($grp->{focusedWindow});
-	}
-      })->pack(-side=>'top',-fill=>'x');
-      $grp->{frame}->bind('my',"<Alt-d>", sub{
+	  if ($grp->{attrsViewPacked} and $grp->{sidePanelPacked}) {
+	    update_attribute_view($grp->{focusedWindow});
+	  }
+	})->pack(-side=>'top',-fill=>'x');
+    $grp->{frame}->bind('my',"<Alt-d>", sub{
 			  if ($grp->{attrsView} and $grp->{attrsViewPacked}) {
 			    $grp->{attrsView}->Subwidget('scrolled')->{userdata}{hide_empty}=
 			      !$grp->{attrsView}->Subwidget('scrolled')->{userdata}{hide_empty};
@@ -2546,51 +2565,37 @@ sub toggleSidePanel {
 			    Tk->break;
 			  }
 			});
-      $grp->{attrsView}=$grp->{attrsViewFrame}->TrEdNodeEditDlg({
-	object=>undef,
-	dialog => $grp->{attrsViewFrame},
-	no_show=>1,
-	search_field => 0,
-	hide_empty => 1,
-	knit_support => 1,
-	TrEdNodeEdit=>{
-	  -takefocus=>0,
-	  -font => 'C_small',
-	  -borderwidth => 1,
-	  -selectborderwidth=>1,
-	  -scrollbars=>'osoe',
-	  -itemstyle => {
-	    -pady=>1,
-	    -padx=>1,
-	  },
-	  -colors => {
-	    bg => '#efefef',
-	    constant => 'white',
-	  },
-	 },
-	enable_callback => sub{ 0 },
-	no_focus => 1,
-      });
-      $cb->configure(-variable => \$grp->{attrsView}->Subwidget('scrolled')->{userdata}{hide_empty});
-    }
-    unless ($grp->{attrsViewPacked}) {
-      $grp->{attrsViewPacked}=1;
-      my ($other)=$grp->{bodyFrame}->packSlaves;
-      ($other)=$other->packSlaves;
-      TrEd::Window->splitPack(
-	$other,
-	$grp->{attrsViewFrame},
-	'vert',
-	-0.2
-      );
-    }
+    $grp->{attrsView}=$grp->{attrsViewFrame}->TrEdNodeEditDlg({
+      object=>undef,
+      dialog => $grp->{attrsViewFrame},
+      no_show=>1,
+      search_field => 0,
+      hide_empty => 1,
+      knit_support => 1,
+      TrEdNodeEdit=>{
+	-takefocus=>0,
+	-font => 'C_small',
+	-borderwidth => 1,
+	-selectborderwidth=>1,
+	-scrollbars=>'osoe',
+	-itemstyle => {
+	  -pady=>1,
+	  -padx=>1,
+	},
+	-colors => {
+	  bg => '#efefef',
+	  constant => 'white',
+	},
+      },
+      enable_callback => sub{ 0 },
+      no_focus => 1,
+    });
+    $cb->configure(-variable => \$grp->{attrsView}->Subwidget('scrolled')->{userdata}{hide_empty});
+  }
+  $grp->{attrsViewPacked}=1;
+  $grp->{attrsViewFrame}->pack(-fill=>'both', -expand => 1);
+  if ($showSidePanel) {
     update_attribute_view($grp->{focusedWindow});
-  } else {
-    if ($grp->{attrsViewFrame}){
-      $grp->{attrsView}->empty();
-      TrEd::Window->remove_split($grp->{attrsViewFrame});
-      $grp->{attrsViewPacked}=undef;
-    }
   }
 }
 
@@ -2605,7 +2610,7 @@ sub update_status_info {
 sub update_attribute_view {
   my ($grp,$win) = grp_win($_[0]);
   my $view = $grp->{attrsView};
-  return unless $view and $grp->{attrsViewPacked};
+  return unless $view and $grp->{attrsViewPacked} and $grp->{sidePanelPacked};
   my $current = $win->{currentNode};
   $view->set_data({
     type => $current && $current->type,
@@ -6364,15 +6369,18 @@ sub startMain {
 
   $group{vLineSeparator}->packAfter($group{vLineFrame},-side => 'top');
 
-  $group{bodyFrame}=$top->Frame();
+  $group{bodyPane}=$top->Panedwindow();
+  $group{bottomFrame}->pack(qw/-pady 2 -side bottom -fill x -expand no/);
+  $group{bodyPane}->pack(qw/-fill both -expand yes/);
+  $group{windowFrame}=$group{bodyPane}->Pane();
+  $group{bodyPane}->add($group{windowFrame});
+  
   $group{focusedWindow}->frame_widget($canvas,[],
 				      [qw/-side left/])
     ->pack(qw/-expand yes -fill both/,
-	   -in => $group{bodyFrame},
+	   -in => $group{windowFrame},
 	   -side=>'right');
 
-  $group{bottomFrame}->pack(qw/-pady 2 -side bottom -fill x -expand no/);
-  $group{bodyFrame}->pack(qw/-fill both -expand yes/);
 
   # frame canvas here
   
