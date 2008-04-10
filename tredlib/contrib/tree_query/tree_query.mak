@@ -64,10 +64,17 @@ BEGIN {
   use Benchmark ':hireswallclock';
 }
 
-Bind sub { query_sql({limit=>100, timeout=>30}) } => {
+our ($DEFAULT_LIMIT,$DEFAULT_TIMEOUT)=(100, 30);
+
+Bind 'query_sql' => {
   key => 'space',
   menu => 'Query SQL server',
   changing_file => 0,
+};
+
+Bind 'fix_netgraph_query' => {
+  key => 'f',
+  menu => 'Attempt to fix NetGraph query',
 };
 
 my $default_dbi_config; # see below
@@ -123,20 +130,20 @@ hint:
 rootstyleforbalanced:#{balance:1}#{Node-textalign:center}#{NodeLabel-halign:center}
 rootstyle: #{vertical:0}#{nodeXSkip:15}
 rootstyle: #{Node-addwidth:3}#{Node-addheight:3}#{CurrentOval-width:3}#{CurrentOval-outline:red}
-node: <? length $${occurrences} ? ($${occurrences}."x")  : "" 
+node: <?length($${node-type}) ? $${node-type}.': ' : '' ?><? length $${occurrences} ? ($${occurrences}."x")  : "" 
 ?><? $${optional} ? '?'  : q()
 ?><? Tree_Query::serialize_conditions_as_stylesheet($this) ?>
-node: <?length($${node-type}) ? $${node-type}.': ' : '' ?>#{darkblue}${name}#{brown}<? my$d=$${description}; $d=~s{^User .*?:}{}; $d ?>
+node: #{darkblue}${name}#{brown}<? my$d=$${description}; $d=~s{^User .*?:}{}; $d ?>
 style: <? 
   my ($rel) = map {
     my $name = $_->name;
     $name eq 'user-defined' ? $_->value->{label} : $name
-  } SeqV($${relation});
+  } SeqV($this->{relation});
   $rel eq 'ancestor' ? "#{Line-dash:_}#{Line-fill:blue}" :
   $rel eq 'effective_parent' ? "#{Line-dash:_}#{Line-fill:green}" :
-  $rel eq 'a/lex.rf' ? "#{Line-fill:violet}" :
-  $rel eq 'a/aux.rf' ? "#{Line-dash:_}#{Line-fill:violet}" :
-  $rel eq 'a/lex.rf|a/aux.rf' ? "#{Line-dash:.}#{Line-fill:violet}" :
+  $rel eq 'a/lex.rf' ? "#{Line-fill:violet}#{Line-arrow:first}#{Line-arrowshape:14,18,4}" :
+  $rel eq 'a/aux.rf' ? "#{Line-dash:_}#{Line-fill:violet}#{Line-arrow:first}#{Line-arrowshape:14,18,4}" :
+  $rel eq 'a/lex.rf|a/aux.rf' ? "#{Line-dash:.}#{Line-fill:violet}#{Line-arrow:first}#{Line-arrowshape:14,18,4}" :
   q()
 ?>
 style:<?
@@ -255,7 +262,7 @@ sub node_release_hook {
 	      ],
 	      \@sel) || return;
     init_id_map($node->root);
-    AddOrRemoveRelations($node,$target,\@sel);
+    AddOrRemoveRelations($node,$target,\@sel,{-add_only=>0});
     TredMacro::Redraw_FSFile_Tree();
     ChangingFile(1);
   }
@@ -264,11 +271,12 @@ sub node_release_hook {
 
 # note: you have to call init_id_map($root); first!
 sub AddOrRemoveRelations {
-  my ($node,$target,$types)=@_;
+  my ($node,$target,$types,$opts)=@_;
   if (!defined($target->{name})) {
     my $i=0;
     $i++ while (exists $name2node_hash{"ref$i"});
     $target->set_attr('name',"ref$i");
+    $name2node_hash{"ref$i"}=$target;
   }
   my %types = map { $_=> 1 } @$types;
   my $relations = $node->attr('extra-relations');
@@ -282,7 +290,7 @@ sub AddOrRemoveRelations {
     }
     if (lc($target->{name}) eq $t) {
       $have{$rel_name}=1;
-      $types{$rel_name}
+      $opts->{-add_only} || $types{$rel_name}
     } else {
       1
     }
@@ -427,6 +435,7 @@ sub connect_dbi {
   return $dbi;
 }
 sub query_sql {
+  shift unless ref($_[0]); # shift-away package name
   my $opts = shift;
   $opts||={};
   my $xml = $opts->{xml};
@@ -434,14 +443,17 @@ sub query_sql {
   unless ($dbi) {
     connect_dbi()||die "Connection to DBI failed\n";
   }
+  my ($limit,$timeout) = map { int($opts->{$_}||$dbi_config->get_root->get_member($_)) } qw(limit timeout);
+  $limit||=$DEFAULT_LIMIT;
+  $timeout||=$DEFAULT_TIMEOUT;
   my $driver_name = $dbi->{Driver}->{Name};
-  my $sql = serialize_conditions($opts->{root}||$root,{%$opts,syntax=>$driver_name});
+  my $sql = serialize_conditions($opts->{root}||$root,{%$opts,syntax=>$driver_name,limit=>$limit});
   #  my @text_opt = eval { require Tk::CodeText; } ? (qw(CodeText -syntax SQL)) : qw(Text);
   if (GUI()) {
     $sql = EditBoxQuery(
       "SQL Query",
       $sql,
-      'Confirm or Edit the generated SQL Query',
+      qq{Confirm or Edit the generated SQL Query (results limit: $limit, timeout $timeout)},
       #    { -widget => \@text_opt },
      );
   }
@@ -449,7 +461,7 @@ sub query_sql {
     print qq(\n<query-result query.rf="$root->{id}" nodes=").$root->descendants.qq(" driver="$driver_name">\n<sql>\n<![CDATA[$sql]]></sql>\n) if $xml;
     STDOUT->flush;
     my $t0 = new Benchmark;
-    my $results = eval { run_query($sql,{ MaxRows=>$opts->{limit}, RaiseError=>1, Timeout => $opts->{timeout}||30 }) };
+    my $results = eval { run_query($sql,{ MaxRows=>$limit, RaiseError=>1, Timeout => $timeout }) };
     if ($@) {
       if (GUI()) {
 	ErrorMessage($@);
@@ -463,7 +475,7 @@ sub query_sql {
 	my $err = $@;
 	$err=~s/\n/ /g;
 	if ($err =~ /^Query evaluation takes too long:/) {
-	  print "$root->{id}\tTIMEOUT\t".($opts->{timeout}||30)."s\n";
+	  print "$root->{id}\tTIMEOUT\t".($timeout)."s\n";
 	} else {
 	  print "$root->{id}\tFAIL\t$err\n";
 	}
@@ -490,7 +502,7 @@ sub query_sql {
       my $matches = @$results;
       if ($matches) {
 	return $results unless QuestionQuery('Results',
-					     ((defined($opts->{limit}) and $matches==$opts->{limit}) ? '>=' : '').
+					     ((defined($limit) and $matches==$limit) ? '>=' : '').
 					       $matches.' match'.($matches>1?'(es)':''),
 					     'Display','Cancel') eq 'Display';
 	my $treebase_sources = $dbi_configuration->{sources};
@@ -754,8 +766,18 @@ sub extra_relation {
   if ($relation eq 'user-defined') {
     return user_defined_relation($id,$rel->value,$target,{%$opts,extra_relation=>1});
   } elsif ($relation eq 'ancestor') {
-    return qq{$id."root_idx"=$target."root_idx" AND $id."idx"!=$target."idx" AND }.
+    my $cond = qq{$id."root_idx"=$target."root_idx" AND $id."idx"!=$target."idx" AND }.
       qq{$target."idx" BETWEEN $id."idx" AND $id."r"};
+    my $min = int($rel->value->{min_length});
+    my $max = int($rel->value->{max_length});
+    if ($min>0 and $max>0) {
+      $cond.=qq{ AND $id."lvl"-$target."lvl" BETWEEN $min AND $max};
+    } elsif ($min>0) {
+      $cond.=qq{ AND $id."lvl"-$target."lvl">=$min}
+    } elsif ($max>0) {
+      $cond.=qq{ AND $id."lvl"-$target."lvl"<$max}
+    }
+    return $cond;
   } elsif ($relation eq 'parent') {
     return qq{$id."parent_idx"=$target."idx"};
   } elsif ($relation eq 'depth-first-precedes') {
@@ -877,11 +899,17 @@ sub make_sql {
     push @select, $id;
     my $parent = $n->parent;
     my $parent_id = $id{$parent};
-    $conditions{$id} = Tree_Query::serialize_conditions($n,{
-      type=>$table,
-      id=>'___SELF___',
-      parent_id=>$parent_id
-     });
+    $conditions{$id} =
+      join(' AND ',
+	   grep { defined and length }
+	     (
+	       Tree_Query::serialize_conditions($n,{
+		 type=>$table,
+		 id=>'___SELF___',
+		 parent_id=>$parent_id,
+		}),
+	       map { extra_relation('___SELF___',$_,$_->value->{target},{type=>$table}) } SeqV($n->attr('extra-relations'))
+	      ));
     my @conditions;
     if ($parent->parent) {
       my $condition=q();
@@ -918,7 +946,7 @@ sub make_sql {
     if ($n->{optional}) {
       # identify with parent
       if (@conditions) {
-	@conditions = (['((',$n],@conditions,[qq{) OR $id."idx"=$parent_id."idx")},$n]);
+	@conditions = ([ ['((',$n], AND_Group(@conditions), [qq{) OR $id."idx"=$parent_id."idx")},$n] ]);
       }
     }
     for my $rel (SeqV($n->attr('extra-relations'))) {
@@ -958,10 +986,7 @@ sub make_sql {
       push @WHERE, [$condition,$node] if defined($condition) and $condition=~/\S/;
     }
   }
-  push @WHERE, @where;
-  push @sql, [ "\nWHERE\n     ",'space'];
-  push @sql, (map { ($_, ["\n AND ",'space']) } @WHERE);
-  pop @sql; # pop the last AND or a solitary WHERE
+  push @sql, [ "\nWHERE\n     ",'space'],AND_Group(@WHERE,@where);
   unless (defined($tree_parent_id) and defined($id{$tree}) 
 	  or !defined($opts->{limit})) {
     push @sql, ["\n".limit($opts->{limit})."\n",'space']
@@ -971,6 +996,13 @@ sub make_sql {
   } else {
     return join '',map { $_->[0] } @sql;
   }
+}
+
+sub AND_Group {
+  my @res = (map {(ref($_) and ref($_->[0])) ? @$_ : $_ } 
+	     map { ($_, ["\n AND ",'space']) } @_);
+  pop @res; # pop the last AND
+  return @res;
 }
 
 sub map_attr {
@@ -1083,6 +1115,59 @@ sub serialize_element_as_stylesheet {
   }
 }
 
+sub fix_netgraph_ord_to_precedes {
+  my ($node,$group) = @_;
+  if (ref($group)) {
+    my $seq = $group->{'#content'};
+    if (ref($seq)) {
+      my $elements_list=$seq->elements_list;
+      @$elements_list = map {
+	my @res=($_);
+	if ($_->name eq 'test') {
+	  my $val = $_->value;
+          if ($val->{operator}=~/[<>]/) {
+	    my ($x,$y)=($val->{a},$val->{b});
+	    if ($val->{operator} =~/>/) {
+	      ($x,$y)=($y,$x);
+	    }
+	    # we now assume $x < $y (we ignore the = in $x <= $y)
+	    my ($start,$end);
+	    my $ord = (($node->{'node-type'}||$node->root->{'node-type'}) eq 't') ? 'tfa/deepord' : 'ord';
+	    if ($x eq qq("$ord") and $y=~/^([[:alnum:]]+)\."\Q$ord\E"$/) {
+	      $end = $name2node_hash{lc($1)};
+	      $start=$node;
+	    } elsif ($y eq qq("$ord") and $x=~/^([[:alnum:]]+)\."\Q$ord\E"$/) {
+	      $start=$name2node_hash{lc($1)};
+	      $end=$node;
+	    }
+	    if ($start && $end) {
+	      AddOrRemoveRelations($start,$end,['order-precedes'],{-add_only=>1});
+	      @res=(); # remove the element
+	      ChangingFile(1);
+	    }
+	  }
+	} elsif ($_->name =~ /^(?:and|or)$/) {
+	  fix_netgraph_ord_to_precedes($node,$_->value);
+	}
+	@res;
+      } @$elements_list;
+    }
+  }
+  return $group;
+}
+
+sub fix_netgraph_query {
+  my $node = $root;
+  init_id_map($root);
+  use Data::Dumper;
+  ChangingFile(0);
+  while ($node) {
+    fix_netgraph_ord_to_precedes($node,$node->{conditions});
+    $node=$node->following;
+  }
+}
+
+
 my ($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown');
 $default_dbi_config = <<"EOF";
 <dbi xmlns="http://ufal.mff.cuni.cz/pdt/pml/">
@@ -1090,9 +1175,11 @@ $default_dbi_config = <<"EOF";
     <schema>
       <pml_schema 
 	  xmlns="http://ufal.mff.cuni.cz/pdt/pml/schema/" version="1.1">
-        <revision>1.0</revision>
+        <revision>1.1</revision>
 	<root name="dbi">
 	  <structure>
+	    <member name="limit"><cdata format="nonNegativeInteger"/></member>
+	    <member name="timeout"><cdata format="nonNegativeInteger"/></member>
 	    <member name="configurations">
 	      <list ordered="1" type="dbi-config.type"/>
 	    </member>
@@ -1113,6 +1200,8 @@ $default_dbi_config = <<"EOF";
       </pml_schema>
     </schema>
   </head>
+  <limit>$DEFAULT_LIMIT</limit>
+  <timeout>$DEFAULT_TIMEOUT</timeout>
   <configurations>
     <LM id="postgress">
       <driver>Pg</driver>
