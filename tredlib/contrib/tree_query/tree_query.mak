@@ -272,52 +272,53 @@ sub node_release_hook {
 # note: you have to call init_id_map($root); first!
 sub AddOrRemoveRelations {
   my ($node,$target,$types,$opts)=@_;
-  if (!defined($target->{name})) {
+  if (defined($target) and !defined($target->{name})) {
     my $i=0;
     $i++ while (exists $name2node_hash{"ref$i"});
     $target->set_attr('name',"ref$i");
     $name2node_hash{"ref$i"}=$target;
   }
   my %types = map { $_=> 1 } @$types;
-  my $relations = $node->attr('extra-relations');
+  my $attr = $opts->{-attribute} || 'extra-relations';
+  my $relations = $node->attr($attr);
   my %have;
   my @keep = grep {
     my $rel_name = $_->name;
     my $val = $_->value;
-    my $t = defined($val) && $val->{target};
+    my $t = defined($val) && defined($target) && $val->{target};
     if ($rel_name eq 'user-defined') {
       $rel_name = $val->{label};
     }
-    if (lc($target->{name}) eq $t) {
+    if (defined($target) and lc($target->{name}) eq $t) {
       $have{$rel_name}=1;
       $opts->{-add_only} || $types{$rel_name}
     } else {
       1
     }
   } SeqV($relations);
+  my @new;
   for my $type (grep { !$have{$_} } @$types) {
     my ($name,$value);
     if ($type=~s/^(user-defined): //) {
       $name=$1;
       $value = Fslib::Container->new(undef,{
-	target => lc($target->{name}),
+	(defined($target) ? (target => lc($target->{name})) : ()),
 	label => $type
        },1)
     } else {
       $name = $type;
       $value = Fslib::Container->new(undef,{
-	target => lc($target->{name}),
+	(defined($target) ? (target => lc($target->{name})) : ()),
       },1);
     }
-    use Data::Dumper;
-    print Dumper($value),"\n";
-    push @keep,Fslib::Seq::Element->new($name=>$value);
+    push @new,Fslib::Seq::Element->new($name=>$value);
   }
   if (!$relations) {
-    AddToSeq($node,'extra-relations', @keep);
+    AddToSeq($node,$attr, @keep,@new);
   } else {
-    @{$node->{'extra-relations'}->elements_list}=@keep;
+    @{$node->{$attr}->elements_list}=(@keep,@new);
   }
+  return @new;
 }
 
 
@@ -747,7 +748,7 @@ sub relation {
   if ($name eq 'parent') {
     $condition= qq{$id."parent_idx"=$parent_id."idx"};
   } elsif ($name eq 'ancestor') {
-    $condition= extra_relation($id,$rel,$parent_id,$opts);
+    $condition= extra_relation($parent_id,$rel,$id,$opts);
   } elsif ($name eq 'user-defined') {
     $condition= user_defined_relation($id,$rel->value,$parent_id,$opts);
   }
@@ -771,11 +772,11 @@ sub extra_relation {
     my $min = int($rel->value->{min_length});
     my $max = int($rel->value->{max_length});
     if ($min>0 and $max>0) {
-      $cond.=qq{ AND $id."lvl"-$target."lvl" BETWEEN $min AND $max};
+      $cond.=qq{ AND $target."lvl"-$id."lvl" BETWEEN $min AND $max};
     } elsif ($min>0) {
-      $cond.=qq{ AND $id."lvl"-$target."lvl">=$min}
+      $cond.=qq{ AND $target."lvl"-$id."lvl">=$min}
     } elsif ($max>0) {
-      $cond.=qq{ AND $id."lvl"-$target."lvl"<$max}
+      $cond.=qq{ AND $target."lvl"-$id."lvl"<=$max}
     }
     return $cond;
   } elsif ($relation eq 'parent') {
@@ -899,15 +900,15 @@ sub make_sql {
     push @select, $id;
     my $parent = $n->parent;
     my $parent_id = $id{$parent};
-    $conditions{$id} =
-      join(' AND ',
+    $conditions{$id} = 
+      sort join(' AND ',
 	   grep { defined and length }
 	     (
-	       Tree_Query::serialize_conditions($n,{
+	       scalar(serialize_conditions($n,{
 		 type=>$table,
 		 id=>'___SELF___',
 		 parent_id=>$parent_id,
-		}),
+		})),
 	       map { extra_relation('___SELF___',$_,$_->value->{target},{type=>$table}) } SeqV($n->attr('extra-relations'))
 	      ));
     my @conditions;
@@ -1156,11 +1157,85 @@ sub fix_netgraph_ord_to_precedes {
   return $group;
 }
 
+
+sub __serialize_node {
+  my ($n)=@_;
+  my $type=$n->{'node-type'} || $n->root->{'node-type'};
+  return join(' AND ',
+       sort grep { defined and length }
+	 (
+	   scalar(serialize_conditions($n,{
+	     type=>$type,
+	     id=>'___SELF___',
+	     parent_id=>'___PARENT___',
+	   })),
+	   map { extra_relation('___SELF___', $_,$_->value->{target},{type=>$type}) } SeqV($n->attr('extra-relations'))
+	  ));
+}
+
+sub __test_optional_chain {
+  my ($node)=@_;
+  return unless $node;
+  my $son = $node->firstson;
+  return (
+    $son
+    and (!$son->rbrother)
+    and ($son->children<=1)
+    and (!$son->{relation} or $son->{relation}->name_at(0) eq 'parent')
+    and !(defined($node->{occurrences}) and length($node->{occurrences}))
+    and (!$node->{relation} or $node->{relation}->name_at(0) eq 'parent')
+  )
+  ? 1 : 0;
+}
+
+sub reduce_optional_node_chain {
+  my ($node)=@_;
+  my $parent = $node->parent;
+  return unless $parent and $parent->parent;
+  my $conditions = __serialize_node($node);
+  my $last = $node;
+  my $max_length=0;
+  my $min_length=0;
+  while (__test_optional_chain($last) and ($last==$node or $conditions eq __serialize_node($last))) {
+    $max_length++;
+    $min_length++ unless $last->{optional};
+    $last=$last->firstson;
+  }
+  if ($max_length>1) {
+    ChangingFile(1);
+    # trim the chain between $node and $last
+    my $son = $node->firstson;
+    CutPasteAfter($last,$node);
+    DeleteSubtree($son);
+    AddOrRemoveRelations($node,$last,['ancestor'],{
+      -add_only=>1
+    });
+    AddOrRemoveRelations($node,undef,['ancestor'],{
+      -attribute=>'relation',
+      -add_only=>0
+    });
+    $node->{occurrences}=0;
+    $node->{optional}=0;
+    $node->set_attr('conditions/negate',!$node->attr('conditions/negate'));
+    my ($rel) = AddOrRemoveRelations($last,undef,['ancestor'],{
+      -attribute=>'relation',
+      -add_only=>0,
+    });
+    $rel->value->{min_length}=$min_length if $min_length;
+    $rel->value->{max_length}=$max_length;
+  }
+}
+
 sub fix_netgraph_query {
-  my $node = $root;
   init_id_map($root);
   use Data::Dumper;
   ChangingFile(0);
+  my $node = $root;
+  while ($node) {
+    reduce_optional_node_chain($node);
+    $node=$node->following;
+  }
+  $node = $root;
   while ($node) {
     fix_netgraph_ord_to_precedes($node,$node->{conditions});
     $node=$node->following;
