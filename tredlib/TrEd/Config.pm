@@ -331,6 +331,7 @@ sub set_config {
   $treeViewOpts->{skipHiddenParents} = val_or_def($confs,"skiphiddenparents",0);
   $treeViewOpts->{drawSentenceInfo} = val_or_def($confs,"drawsentenceinfo",0);
   $treeViewOpts->{drawFileInfo} = val_or_def($confs,"drawfileinfo",0);
+  $treeViewOpts->{useFSColors} = val_or_def($confs,"usefscolors",0);
 
   $TrEd::Convert::inputenc = val_or_def($confs,"defaultfileencoding",$TrEd::Convert::inputenc);
   $TrEd::Convert::outputenc = val_or_def($confs,"defaultdisplayencoding",$TrEd::Convert::outputenc);
