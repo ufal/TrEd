@@ -2226,7 +2226,7 @@ not set and a given stylesheet is not found).
 sub SetStylesheetPatterns {
   my ($patterns,$stylesheet,$create) = @_;
   main::setStylesheetPatterns($grp,$patterns,$stylesheet,$create);
-  main:redraw_stylesheet($grp->{framegroup},$stylesheet);
+  main::redraw_stylesheet($grp->{framegroup},$stylesheet);
 }
 
 =item C<DeleteStylesheet(stylesheet)>
