@@ -3035,6 +3035,9 @@ key, overwritting any previous value.
 
 sub FileUserData {
   my ($name,$value)=@_;
+  unless ($grp->{FSFile}) {
+    confess("FileUserData: no file is open\n");
+  }
   if (@_<=1) {
     $grp->{FSFile}->userData()->{$name};
   } else {
