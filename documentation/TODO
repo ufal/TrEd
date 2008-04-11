@@ -1,48 +1,69 @@
-- display current filelist (or a tree of file-lists) and 
-  a filesystem-browser in the side-bar
-- SSH tunneling in NTrEd
-- allow the stylesheet to define raise-order of canvas items
-- allow the nodes to take dimensions of the textbox
-- allow empty text labels to be skipped on each node
-- allow positioning of the tree levels based on actual text heights (with possibly skipped labels)
-- create dimensions and position of the textbox according to non-empty labels
-- value-line: support for displaying preceding and following context (differentiated e.g. by font)
-- allow additional textlabels, positioned using -coords and anchoring
-- after Save File As it does not appear in the recent files
-- undo for tree-related Node-menu items 
-- document various side-effects (setting $this/$root in GotoFile, ...)
-- fix: undo/redo on add/delete node (e.g. in PML_T) breaks id-hashes
-- make lower-level operations id-hash aware
-- add an option to TrEd to remember the last context and stylesheet used for a postponed file and restore it on resume
-- in TrEd: keep this file (i.e. do not close this particular file automatically when opening another)
+-*- org -*-
 
-- make use of Tk::QueryDialog
+* TrEd [6/23]
 
-- a dynamic keyboard/menu bind-adopter
+ - [ ] display current filelist (or a tree of file-lists) and a
+       filesystem-browser in the side-bar
+ - [X] allow the stylesheet to define raise-order of canvas items
+       rootstyle:#{stackOrder:line,point,...}
+ - [X] allow the nodes to take dimensions of the textbox
+       #{Node-surroundtext:1}
+ - [X] allow empty text labels to be skipped on each node
+       #{NodeLabel-skipempty:1}, #{EdgeLabel-skipempty:1}
+ - [ ] allow positioning of the tree levels based on actual text
+       heights (with possibly skipped labels)
+ - [ ] create dimensions and position of the textbox according to
+       non-empty labels
+ - [ ] value-line: support for displaying preceding and following
+       context (differentiated e.g. by font size or colour)
+ - [X] allow additional textlabels, positioned using #{-coords:...} and
+       anchoring (float:)
+ - [ ] undo for tree-related Node-menu items 
+ - [ ] document various side-effects (setting $this/$root in GotoFile,
+       ...)
+ - [ ] fix: undo/redo on add/delete node (e.g. in PML_T) breaks
+       id-hashes
+ - [ ] make lower-level operations id-hash aware
+ - [ ] add an option to TrEd to remember the last context and
+       stylesheet used for a postponed file and restore it on resume
+ - [X] in TrEd: keep this file (i.e. do not close this particular file
+       automatically when opening another)
+ - [X] after Save File As it does not appear in the recent files
+       fixed: recent-files are updated on every saveFile and closeFile
+ - [ ] make use of Tk::QueryDialog
+ - [ ] a dynamic keyboard/menu bind-adopter
+ - [ ] add macro: ChangeFilename() (take its guts from saveFileAs).
+ - [ ] allow patterns use something like ${@V} to get direct access to
+       the value attribute, ${@N} for the numbering attribute, etc.
+ - [ ] make ${@O} (or similar) in patterns return the actual index of
+       the node in left-to-right order of \@nodes returned by the
+       hook; ${@L} could be the node-level, etc.
+ - [ ] on-line help for default bindigs with HTML output
+ - [ ] add a register_context_guesser macro
+ - [ ] fix <Escape> binding: error is spit if Escape is first used to
+       close the stylesheet-editor and then a node-attribute editor
+ - [ ] document #{Node-surroundtext:1}, #{NodeLabel-skipempty:1},
+       #{EdgeLabel-skipempty:1}, float:..., node:#{-option:value}
 
-- add macro: ChangeFilename() (take its guts from saveFileAs).
+* NTrEd [0/1]
 
-- allow patterns use something like ${@V} to get direct access to the
-  value attribute, ${@N} for the numbering attribute, etc.
-
-Make an on-line help for:
-  - default bindigs
-
-- add a register_context_guesser function
+  - [ ] SSH tunneling in NTrEd
 
 
-TreeView:
----------
-introduce stylesheet labels:
+* TreeView
 
-tree-order: (aka ord/dord)
-line-order: (aka sentord)
+  - an idea:
 
-This 1) eliminates the need to have these in dedicated attributes,
-2) allows for better coustomization.
+    introduce stylesheet labels:
+    
+    tree-order: (aka ord/dord)
+    line-order: (aka sentord)
 
-PMLSchema
----------
-- document PMLSchema's for_each_decl
-- setters in PMLSchema objects
+    This 1) eliminates the need to have these in dedicated attributes,
+    2) allows for better coustomization.
+
+* PMLSchema
+
+  - [ ] document PMLSchema's for_each_decl
+  - [ ] setters in PMLSchema objects
 

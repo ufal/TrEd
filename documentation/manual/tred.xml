@@ -3563,6 +3563,19 @@ Tk: 804.027
 		</para>
 	      </entry>
 	    </row>
+	    <row>
+	    <entry><literal moreinfo="none">stackOrder</literal></entry>
+	    <entry>
+		<para>
+		  A comma separated list of item tags 
+		  defining a z-axis
+		  ordering of canvas items (lowest first).
+		  The default stackOrder is:
+		  line, node, textbox, edgetextbox, textbg, text,
+		  plaintext.
+		</para>
+	      </entry>
+	    </row>
 	  </tbody>
 	</tgroup>
       </table>
@@ -4697,17 +4710,28 @@ sub CreateImages {
 	    <para>Color used to display text of normal tree attributes.</para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry id="usefscolors">
+	  <term><literal moreinfo="none">UseFSColors</literal></term>
+	  <listitem>
+	    <para>Enable node-label coloring according to FS-format specific color flags: Shadow, Hilite and XHilite.
+	      Defaults to 0 TrEd revisions >= 1.3271.
+	      See <ulink url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format
+	      description</ulink> to learn about how to specify which attributes
+	      are shadowed, highlighted and extra-highlighted. 
+	    </para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry id="textcolorshadow">
 	  <term><literal moreinfo="none">TextColorShadow</literal></term>
 	  <listitem>
-	    <para>Color used to display text of shadowed tree attributes.</para>
+	    <para>Color used to display text of shadowed tree attributes (only used if <literal>UseFSColors=1</literal>).</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry id="textcolorhilite">
 	  <term><literal moreinfo="none">TextColorHilite</literal></term>
 	  <listitem>
 	    <para>Color used to display text of highlighted tree
-	      attributes.</para>
+	      attributes (only used if <literal>UseFSColors=1</literal>).</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry id="textcolorxhilite">
@@ -4715,9 +4739,7 @@ sub CreateImages {
 	  <listitem>
 	    <para>Color used to display text of extra-highlighted tree
 	      attributes.
-	      See <ulink url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format
-		description</ulink> to learn about how to specify which attributes
-	      are shadowed, highlighted and extra-highlighted.
+	      (only used if <literal>UseFSColors=1</literal>)
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -4951,7 +4973,6 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	
 	<varlistentry id="highlightwindowwidth">
 	  <term><literal moreinfo="none">HighlightWindowWidth</literal></term>
 	  <listitem>
@@ -4968,7 +4989,7 @@ sub CreateImages {
 	  <term><literal moreinfo="none">NodeWidth</literal></term>
 	  <listitem>
 	    <para>
-	      The horizontal diameter of the elipsis representing a node in
+	      The horizontal diameter of the ellipsis representing a node in
 	      a tree.
 	    </para>
 	  </listitem>
@@ -4977,7 +4998,7 @@ sub CreateImages {
 	  <term><literal moreinfo="none">NodeHeight</literal></term>
 	  <listitem>
 	    <para>
-	      The vertical diameter of the elipsis representing a node in
+	      The vertical diameter of the ellipsis representing a node in
 	      a tree.
 	    </para>
 	  </listitem>
@@ -4986,7 +5007,7 @@ sub CreateImages {
 	  <term><literal moreinfo="none">CurrentNodeWidth</literal></term>
 	  <listitem>
 	    <para>
-	      The horizontal diameter of the elipsis representing the active node in
+	      The horizontal diameter of the ellipsis representing the active node in
 	      a tree.
 	    </para>
 	  </listitem>
@@ -4995,7 +5016,7 @@ sub CreateImages {
 	  <term><literal moreinfo="none">CurrentNodeHeight</literal></term>
 	  <listitem>
 	    <para>
-	      The vertical diameter of the elipsis representing the active node in
+	      The vertical diameter of the ellipsis representing the active node in
 	      a tree.
 	    </para>
 	  </listitem>
@@ -7472,6 +7493,7 @@ sub CreateImages {
 		  <literal moreinfo="none">normal</literal>
 		  values, depending on the
 		  color specified in the FS file header.
+		  See also <link linkend="usefscolors">UseFSColors</link> configuration option.
 		</entry>
 	      </row>
 	      <row>

@@ -20,10 +20,11 @@ HighlightWindowWidth  	= 3
 
 TextColor	 	= black			;; normal color for attribute
 ActiveTextColor	= blue			;; when mouse is over
-  ;; ---- Graph-like colors ----
-;;TextColorShadow	= darkgrey		;; shadow attribute color 
-;;TextColorHilite	= darkgreen		;; highlited attribute color
-;;TextColorXHilite	= darkred			;; extra-highlited attribute color
+;; ---- Graph-like colors ----
+;;UseFSColors = 0                       ;; set to 1 to enable FS-format coloring
+;;TextColorShadow	= darkgrey	;; (FS-format) shadow attribute color 
+;;TextColorHilite	= darkgreen	;; (FS-format) highlited attribute color
+;;TextColorXHilite	= darkred	;; (FS-format) extra-highlited attribute color
   ;; ---- 10 more colors for attributes in TrEd ----
 ;;CustomColor1	= darkblue 		;; 1st custom attribute color 
 ;;CustomColor2	= darkmagenta		;; 2nd custom attribute color 

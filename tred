@@ -38,7 +38,7 @@ use vars qw($svn_version $version $about $opt_u $opt_h $opt_c
 	    $locale_charset
 	    $no_secondary 
 	    %HELP %vertical_key_arrow_map 
-	    $manpage $listoptions $no_backups %optmap
+	    $manpage $listoptions $no_backups %optmap $carp
            );
 
 $svn_version='$Id$';
@@ -139,8 +139,11 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
   "list-options" => \$list_options,
   "no-backups" => \$no_backups,
   "autosave=i" => \$opt_auto_save,
+  "carp" => \$carp,
 );
 $optparser->getoptions(%optmap) or $opt_u=1;
+
+$SIG{__DIE__} = sub { confess(@_) } if $carp;
 
 # Help and usage
 if ($opt_u) {
@@ -1235,6 +1238,20 @@ sub tieGotoFile {
   }
 }
 
+sub setWindowFile {
+  my ($win,$fsfile)=@_;
+  $win->{FSFile}=$fsfile;
+  if ($fsfile) {
+    $win->{treeNo}=$fsfile->currentTreeNo;
+    $win->{currentNode}=$fsfile->currentNode;
+  } else {
+    $win->{treeNo}=undef;
+    $win->{currentNode}=undef;
+  }
+  if (isFocused($win)) {
+    updateSessionStatus($win->{framegroup});
+  }
+}
 
 sub resumeFile {
   my ($win,$fsfile,$keep)=@_;
@@ -1244,9 +1261,7 @@ sub resumeFile {
 
   closeFile($win,-keep_postponed => $keep);
 
-  $win->{FSFile}=$fsfile;
-  $win->{treeNo}=$fsfile->currentTreeNo;
-  $win->{currentNode}=$fsfile->currentNode;
+  setWindowFile($win,$fsfile);
   saveFileStateUpdate($win);
 }
 
@@ -1451,8 +1466,7 @@ sub closeFile {
     $w->{Nodes}=undef;
     #  undef $NodeClipboard;
     $w->{root}=undef;
-    $w->{FSFile}=undef;
-    $w->{treeNo}=undef;
+    setWindowFile($w,undef);
     delete $w->{currentNode} if (exists $w->{currentNode});
     $w->{treeView}->clear_pinfo();
     set_value_line($w->{framegroup},EMPTY) if (isFocused($w));
@@ -1464,6 +1478,7 @@ sub closeFile {
       my $f = $fsfile->filename();
       print STDERR "Removing $f from list of open files\n"  if $tredDebug;
       @openfiles=grep { $_ ne $fsfile } @openfiles;
+      addToRecent($grp,$f) unless $opts{-norecent};
       my $autosave = autosave_filename($f);
       unlink $autosave if defined $autosave;
       removeLock($fsfile,$f);
@@ -1650,6 +1665,12 @@ sub lastActionBookmark {
   }
 }
 
+sub updateSessionStatus {
+  my ($grp)=@_;
+  my $win = $grp->{focusedWindow};
+  $grp->{keepcurrentfile}=($win->{FSFile} && $win->{FSFile}->appData('noautoclose')) ? 1 : 0;
+}
+
 sub updateBookmarks {
   my ($grp)=@_;
 
@@ -1690,7 +1711,17 @@ sub updatePostponed {
 				       -state=> 'disabled',
 				       -background=> '#444444'
 				      );
-    $grp->{PostponedFileMenu}->checkbutton(-label => 'Don\'t close file when opening a new one',
+    $grp->{PostponedFileMenu}->checkbutton(-label => 'Keep this file when opening a new one',
+					   -variable=> \$grp->{keepcurrentfile},
+					   -command => [sub {
+							  my ($grp)=@_;
+							  my $win = $grp->{focusedWindow};
+							  if ($win and $win->{FSFile}) {
+							    $win->{FSFile}->changeAppData('noautoclose',$grp->{keepcurrentfile})
+							  }
+							},$grp]
+					  );
+    $grp->{PostponedFileMenu}->checkbutton(-label => 'Keep all files',
 	  -variable=> \$grp->{keepfiles});
     $grp->{PostponedFileMenu}->checkbutton(-label => 'Add open files to default file-list',
 	  -variable=> \$grp->{appenddefault});
@@ -1798,7 +1829,7 @@ sub newFileFromCurrent {
   $keep=$keep || $answer;
   closeFile($win,-no_update => 1,-keep_postponed => $keep);
 #  $new->new_tree(0);
-  $win->{FSFile}=$new;
+  setWindowFile($win,$new);
   push @openfiles, $win->{FSFile};
   updatePostponed($grp);
 
@@ -1994,7 +2025,8 @@ sub openFile {
       $opts{-keep} = $answer;
     }
   }
-  closeFile($win,-no_update =>1 , -keep_postponed => $opts{-keep})
+  closeFile($win,-no_update =>1 ,
+	    -keep_postponed => ($opts{-keep}||($fsfile&&$fsfile->appData('noautoclose'))))
     unless $opts{-preload};
 
   # Search open files for requested file, resume if available
@@ -2158,8 +2190,7 @@ sub openFile {
     errorMessage($win,$status->{report},'warn');
   }
 
-  $win->{FSFile}=$fsfile unless $opts{-preload};
-  $win->{treeNo}=0;
+  setWindowFile($win,$fsfile) unless $opts{-preload};
   if ($fsfile) {
     if ($opts{-justheader}) {
       $f=sprintf('%03d',$NewFileNo++)."_new_".filename($f);
@@ -2351,6 +2382,7 @@ sub saveFile {
     $win->{FSFile}->notSaved(1);
     $ret = -1;
   }
+  addToRecent($win->{framegroup},$f);
   saveFileStateUpdate($win);
   return $ret;
 }
@@ -5033,6 +5065,7 @@ sub focusCanvas {
     updateScaleFactor($grp);
     resetUndoStatus($newfocus);
     resetTreePosStatus($grp);
+    updateSessionStatus($grp);
     doEvalHook($newfocus,"switch_context_hook",$prevcontext,$context);
   } else {
     print STDERR "DID NOT FIND Window of $c\n";
@@ -6692,12 +6725,15 @@ sub onIdleNextTree {
   my ($grp,$win)=grp_win(shift);
   return unless $win->{FSFile};
   $win->toplevel->afterCancel($grp->{IdleTask}) if ($grp->{IdleTask});
-  $win->{treeNo}=max2(0,min2($win->{treeNo}+1,$win->{FSFile}->lastTreeNo));
-  update_tree_pos($grp);
-  #  update_value_line($grp);
-  #  $grp->{valueLine}->idletasks();
-  $grp->{vLineNumLabel}->idletasks();
-  $grp->{IdleTask}=$win->toplevel->afterIdle([\&_do_goto_tree,$win]);
+  my $last = $win->{FSFile}->lastTreeNo;
+  if ($win->{treeNo}<$last) {
+    $win->{treeNo}=max2(0,$win->{treeNo}+1);
+    update_tree_pos($grp);
+    #  update_value_line($grp);
+    #  $grp->{valueLine}->idletasks();
+    $grp->{vLineNumLabel}->idletasks();
+    $grp->{IdleTask}=$win->toplevel->afterIdle([\&_do_goto_tree,$win]);
+  }
   Tk->break;
 }
 
@@ -8699,6 +8735,8 @@ H<RootStyles>
   C<labelsep            >- space between node and label in vertical mode
   C<columnsep           >- space between columns in vertical mode
   C<columnsep[i]        >- space before i-th column in vertical mode
+  C<stackOrder          >- comma separated list of item tags defining a z-axis
+                           ordering of canvas items (lowest first)
 
 H<Styles>
 
@@ -10425,6 +10463,7 @@ sub node_down {
   $w->dtag('selected');
   $w->addtag('selected', 'withtag', $canvas_obj);
   $w->raise('current');
+  $w->raise('text[]');
 }				# end plot_down
 
 sub node_move {
@@ -10450,29 +10489,27 @@ sub node_move {
     $w->dtag('nearest');
   }
 
-  my @dots= $tv->find_item('withtag','point');
-  my $nearestNode=0;
+  my @nodes= $w->find('withtag','point');
+  my ($cur)=$w->find('withtag','selected');
+  my $node=$tv->get_obj_pinfo($cur);
   my $bestDist=10000;
   my $dist;
-  my $node=$tv->get_obj_pinfo($tv->find_item('withtag','selected'));
-  foreach my $p (@dots) {
+  $nearest=undef;
+  foreach my $p (@nodes) {
+    my @b = $w->bbox($p);
+    my ($dX,$dY) = (($b[2]+$b[0])/2-$cx,($b[3]+$b[1])/2-$cy);
     my $n=$tv->get_obj_pinfo($p);
     if ($n and $n!=$node) {
-      $dist=
-	($cx-$tv->get_node_pinfo($n,"XPOS"))*
-	  ($cx-$tv->get_node_pinfo($n,"XPOS"))+
-	    ($cy-$tv->get_node_pinfo($n,"YPOS"))*
-	      ($cy-$tv->get_node_pinfo($n,"YPOS"));
+      $dist=$dX*$dX+$dY*$dY;
       if ($bestDist>$dist) {
 	$bestDist=$dist;
-	$nearestNode=$n;
+	$nearest=$p;
       }
     }
   }
-  if ($bestDist<800) {
-    $w->addtag('nearest','withtag',$tv->get_node_pinfo($nearestNode,"Oval"));
-    $w->itemconfigure($tv->get_node_pinfo($nearestNode,"Oval"),
-		      -fill=> $tv->get_nearestNodeColor);
+  if (defined($nearest) and $bestDist<800) {
+    $w->addtag('nearest','withtag',$nearest);
+    $w->itemconfigure($nearest, -fill=> $tv->get_nearestNodeColor);
   }
 }				# end plot_move
 }
@@ -10496,6 +10533,7 @@ sub node_release {
       $parent=$tv->get_obj_pinfo($p);
       $w->itemconfigure($tv->get_node_pinfo($parent,"Oval"),
 			  nodeOptions($win,$parent));
+      $tv->apply_stored_style_opts("Oval",$parent);
       if (doEvalHook($win,"node_release_hook",$node,$parent,"$button") ne 'stop') {
 	if ($parent->test_child_type($node) or
 	    userQuery($win,"WARNING:\n\n".
@@ -10530,6 +10568,8 @@ sub node_release {
     }
     # returning node to its position
     $w->coords($sel, $tv->node_coords($node,$win->{currentNode}));
+    # print lower;
+    $w->lower($sel,'point');
   } else { redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo}); }
 }
 
@@ -10953,6 +10993,11 @@ Print only general processing information on stderr.
 =item B<--debugging|-D>
 
 Print a lot of debugging information on the stderr.
+
+=item B<--carp>
+
+Replace 'die' with 'Carp::confess', so that a complete stack trace is
+printed upon error. Useful for debugging.
 
 =item B<--version|-v>
 
