@@ -48,6 +48,7 @@ use strict;
 my %displayed_nodes_hash;
 
 sub DrawArrows_init {
+  return unless CurrentFile();
   for my $node (GetDisplayedNodes()) {
     $displayed_nodes_hash{$node}=1
   }
@@ -58,6 +59,7 @@ sub DrawArrows_init {
 # clear caches
 sub DrawArrows_cleanup {
   %displayed_nodes_hash=();
+  return unless CurrentFile();
   FileUserData('DrawArrows',undef);
   return;
 }
