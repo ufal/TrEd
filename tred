@@ -9672,7 +9672,6 @@ sub redraw_fsfile {
 
 sub redraw_stylesheet {
   my ($grp,$stylesheet)=@_;
-  return if $insideEval;
   foreach my $win (stylesheetUsingWindows($grp,$stylesheet)) {
     applyWindowStylesheet($win,$stylesheet);
     redraw_win($win);
