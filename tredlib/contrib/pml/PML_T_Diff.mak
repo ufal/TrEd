@@ -58,6 +58,8 @@ sub switch_context_hook {
 }
 
 sub pre_switch_context_hook {
+  my ($precontext,$context)=@_;
+  return unless ($precontext ne $context);
   remove_diff_patterns();
   return;
 }
