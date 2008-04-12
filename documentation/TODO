@@ -1,6 +1,6 @@
 -*- org -*-
 
-* TrEd [8/24]
+* TrEd [9/24]
 
  - [ ] display current filelist (or a tree of file-lists) and a
        filesystem-browser in the side-bar
@@ -41,8 +41,9 @@
        coordinates, etc.
  - [ ] on-line help for default bindigs with HTML output
  - [ ] add a register_context_guesser macro
- - [ ] fix <Escape> binding: error is spit if Escape is first used to
-       close the stylesheet-editor and then a node-attribute editor
+ - [X] fix <Escape> binding: error is spit if Escape is first used to
+       close the stylesheet-editor and then a node-attribute editor.
+       Fixed this and possible similar errors by avoiding bind('all',...).
  - [ ] document #{Node-surroundtext:1}, #{NodeLabel-skipempty:1},
        #{EdgeLabel-skipempty:1}, float:..., node:#{-option:value}
 
