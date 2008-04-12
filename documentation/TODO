@@ -1,6 +1,6 @@
 -*- org -*-
 
-* TrEd [6/23]
+* TrEd [8/24]
 
  - [ ] display current filelist (or a tree of file-lists) and a
        filesystem-browser in the side-bar
@@ -10,9 +10,9 @@
        #{Node-surroundtext:1}
  - [X] allow empty text labels to be skipped on each node
        #{NodeLabel-skipempty:1}, #{EdgeLabel-skipempty:1}
- - [ ] allow positioning of the tree levels based on actual text
+ - [X] allow positioning of the tree levels based on actual text
        heights (with possibly skipped labels)
- - [ ] create dimensions and position of the textbox according to
+ - [X] create dimensions and position of the textbox according to
        non-empty labels
  - [ ] value-line: support for displaying preceding and following
        context (differentiated e.g. by font size or colour)
@@ -25,7 +25,7 @@
        id-hashes
  - [ ] make lower-level operations id-hash aware
  - [ ] add an option to TrEd to remember the last context and
-       stylesheet used for a postponed file and restore it on resume
+       stylesheet used for a postponed file and restore them on resume
  - [X] in TrEd: keep this file (i.e. do not close this particular file
        automatically when opening another)
  - [X] after Save File As it does not appear in the recent files
@@ -37,7 +37,8 @@
        the value attribute, ${@N} for the numbering attribute, etc.
  - [ ] make ${@O} (or similar) in patterns return the actual index of
        the node in left-to-right order of \@nodes returned by the
-       hook; ${@L} could be the node-level, etc.
+       hook; ${@L} could be the node-level, ${@X} and ${@Y} for its
+       coordinates, etc.
  - [ ] on-line help for default bindigs with HTML output
  - [ ] add a register_context_guesser macro
  - [ ] fix <Escape> binding: error is spit if Escape is first used to
