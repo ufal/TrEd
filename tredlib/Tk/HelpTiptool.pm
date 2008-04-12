@@ -80,8 +80,8 @@ EOF
     $ml->Subwidget('scrolled')->bind($ml->Subwidget('scrolled'),'<3>', [$w,'ButtonDown']);
 
 
-    $w->bind('all', '<Alt-Button-1>', ['Tk::HelpTiptool::StartMotion',$w]);
-    $w->bind('all', '<Alt-B1-Motion>', ['Tk::HelpTiptool::Motion',$w]);
+#    $w->bind('<Alt-Button-1>', ['Tk::HelpTiptool::StartMotion',$w]);
+#    $w->bind('<Alt-B1-Motion>', ['Tk::HelpTiptool::Motion',$w]);
     for ($t, $t1, $t2, $t3, $t0) {
       $_->bind('<1>', ['Tk::HelpTiptool::StartMotion',$w]);
       $_->bind('<B1-Motion>', ['Tk::HelpTiptool::Motion',$w]);
@@ -89,8 +89,7 @@ EOF
     $ml->Subwidget('scrolled')->menu(undef);
     $ml->Subwidget('yscrollbar')->configure(-width=>7) unless $^O eq 'MSWin32';
 
-    # append to global list of balloons
-    $w->bind('all','<Escape>',['Deactivate',$w]);
+    $w->bind('<Escape>',['Deactivate',$w]);
 
     $w->{'popped'} = 0;
     $w->{'buttonDown'} = 0;
