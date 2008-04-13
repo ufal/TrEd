@@ -7,7 +7,7 @@ package TrEd::ArabicRemix;
 
 sub remix ($;$) {
 
-    my @data = split /([\p{Arabic}\x{064B}-\x{0652}\x{0670}\x{0657}\x{0656}\x{0640}\p{InArabicPresentationFormsA}\p{InArabicPresentationFormsB}]+)/, $_[0];
+    my @data = split /((?:\p{Arabic}|[\x{064B}-\x{0652}\x{0670}\x{0657}\x{0656}\x{0640}]|\p{InArabicPresentationFormsA}|\p{InArabicPresentationFormsB})+)/, $_[0];
 
     for (my $i = 0; $i < @data; $i++) {
 
