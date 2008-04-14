@@ -82,6 +82,9 @@ my %opts =
 								   $tree_no,
 								   $current));
   }
+  sub redraw_stylesheet {
+    return;
+  }
   sub onGetNodes {
     my ($treeview,$fsfile,$tree_no,$current,$win)=@_;
     __run_hook($treeview,

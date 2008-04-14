@@ -38,6 +38,7 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
   applyFileSuffix
   parseFileSuffix
   getNodeByNo
+  applyWindowStylesheet
 
   STYLESHEET_FROM_FILE
   NEW_STYLESHEET
@@ -223,6 +224,21 @@ sub getStylesheetMenuList {
    } sort keys %{$grp->{stylesheets}}];
 }
 
+sub applyWindowStylesheet {
+  my ($win,$stylesheet)=@_;
+  return unless $win;
+  my $s=$win->{framegroup}->{stylesheets}->{$stylesheet};
+  if ($stylesheet eq STYLESHEET_FROM_FILE()) {
+    $win->{treeView}->set_patterns(undef);
+    $win->{treeView}->set_hint(undef);
+  } else {
+    if ($s) {
+      $win->{treeView}->set_patterns($s->{patterns});
+      $win->{treeView}->set_hint(\$s->{hint});
+    }
+  }
+  $win->{stylesheet}=$stylesheet;
+}
 
 sub splitPatterns {
   my ($text)=@_;
