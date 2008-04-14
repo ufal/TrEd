@@ -585,8 +585,7 @@ sub balance_node {
   $node_info->{$node}{"NodeLabel_XPOS"} =
 			  $node_info->{$node}{"NodeLabel_XPOS"} +
 			  $add;
-  return max($last_baseX,$xpos+
-	     $node_info->{$node}{"After"});
+  return max2($last_baseX,$xpos+$node_info->{$node}{"After"});
 }
 
 
@@ -684,7 +683,7 @@ sub recalculate_positions_vert {
 
   my $fontHeight=$self->getFontHeight() * $lineSpacing;
   my $node_label_height=2*$self->get_ymargin + $fontHeight;
-  my $levelHeight=max($nodeHeight,$node_label_height) + $nodeYSkip;
+  my $levelHeight=max2($nodeHeight,$node_label_height) + $nodeYSkip;
 
   my $xpos;
   my $ypos = $baseYPos;
@@ -740,7 +739,7 @@ sub recalculate_positions_vert {
 	$node_info->{$node}{"EdgeLabel_XPOS"}= $label_xpos; #compat
       }
       $node_info->{$node}{"X[0]"}=$m;
-      $canvasWidth = max($canvasWidth, $label_xpos + $m);
+      $canvasWidth = max2($canvasWidth, $label_xpos + $m);
       $node_info->{$node}{"After"}=0;
       $node_info->{$node}{"Before"}=0;
     }
@@ -759,7 +758,7 @@ sub recalculate_positions_vert {
     foreach $node (@{$nodes}) {
       $m=$self->getTextWidth( $self->prepare_text($node,$pat,$grp) );
       $node_info->{$node}{"X[$i]"}=$m;
-      $max = max($max,$m);
+      $max = max2($max,$m);
     }
     if ($pat_style eq 'node') {
       $gen_info->{"NodeLabel_XPOS[$n_i]"}=$canvasWidth;
@@ -901,6 +900,7 @@ sub recalculate_positions {
   # now we compute he level heights
 
   my $ymargin=$self->get_ymargin;
+  my $xmargin=$self->get_xmargin;
   {
     my $ypos = $baseYPos;
     for my $level (0..$maxlevel) {
@@ -967,18 +967,54 @@ sub recalculate_positions {
 
     $halign_node=$self->get_style_opt($node,"NodeLabel","-halign",$Opts);
 
-    $xSkipBefore=$nodeWidth/2;
-    $xSkipAfter=$nodeWidth/2;
-    if ($halign_node eq 'right') {
-      $xSkipBefore=max($xSkipBefore,$nodeLabelWidth-$nodeWidth/2);
-      $nodeLabelXShift=-$nodeLabelWidth+$nodeWidth/2;
-    } elsif ($halign_node eq 'center') {
-      $xSkipBefore=max($xSkipBefore,$nodeLabelWidth/2);
-      $xSkipAfter=max($xSkipAfter,$nodeLabelWidth/2);
-      $nodeLabelXShift=-$nodeLabelWidth/2;
+    if ($self->get_style_opt($node,'Node','-surroundtext',$Opts)) {
+      my $nw= $xmargin + $nodeLabelWidth/2;
+      my $addw = ($self->get_style_opt($node,'Node','-addwidth',$Opts)||0);
+      if ($self->get_style_opt($node,'Node','-shape',$Opts) eq 'oval') {
+	my $nh=$node_label_height/2;
+	my $addh = ($self->get_style_opt($node,'Node','-addheight',$Opts)||0);
+	# here we compute the ellipse axes $A,$B from its semi-latus
+	# rectum $L and the distance of its foci $C corresponding
+	# to text-box width/height or or vice-versa, whichever is less 
+	my ($A,$B,$L,$C);
+	if ($nw<=$nh) {
+	  ($L,$C) = ($nw,$nh)
+	} else {
+	  ($C,$L) = ($nw,$nh)
+	}
+	$A=($L+sqrt($L*$L+4*$C*$C))/2;
+	$B=sqrt($L*$A);
+	($B,$A)=($A,$B) if ($nw<=$nh);
+	$addw += ($NI->{"NodeSurroundWidth"}=($A-$nw));
+	$NI->{"NodeSurroundHeight"}=$B-$nh;
+      }
+      if ($halign_node eq 'right') {
+	$xSkipAfter=$addw;
+	$xSkipBefore=2*$nw+$addw;
+	$nodeLabelXShift=-$nodeLabelWidth;
+      } elsif ($halign_node eq 'center') {
+	$xSkipAfter = ($xSkipBefore = $nw+$addw);
+	$nodeLabelXShift=-$nodeLabelWidth/2;
+      } else {
+	$xSkipAfter=2*$nw+$addw;
+	$xSkipBefore=$addw;
+	$nodeLabelXShift=0;
+      }
     } else {
-      $xSkipAfter=max($xSkipAfter,$nodeLabelWidth-$nodeWidth/2);
-      $nodeLabelXShift=-$nodeWidth/2;
+      my $nw = $nodeWidth/2 + ($self->get_style_opt($node,'Node','-addwidth',$Opts)||0);
+      $xSkipBefore=$nw;
+      $xSkipAfter=$nw;
+      if ($halign_node eq 'right') {
+	$xSkipBefore=max2($xSkipBefore,$nodeLabelWidth-$nw);
+	$nodeLabelXShift=-$nodeLabelWidth+$nw;
+      } elsif ($halign_node eq 'center') {
+	$xSkipBefore=max2($xSkipBefore,$nodeLabelWidth/2);
+	$xSkipAfter=max2($xSkipAfter,$nodeLabelWidth/2);
+	$nodeLabelXShift=-$nodeLabelWidth/2;
+      } else {
+	$xSkipAfter=max2($xSkipAfter,$nodeLabelWidth-$nw);
+	$nodeLabelXShift=-$nw;
+      }
     }
     $nodeLabelXShift+=$self->get_style_opt($node,"NodeLabel","-xadj",$Opts);
     # Try to add reasonable skip so that the edge labels do
@@ -987,12 +1023,12 @@ sub recalculate_positions {
 	$self->get_style_opt($node,"Node","-disableedgelabelspace",$Opts) ne "yes"
        ) {
       if ($halign_edge eq 'right') {
-	$xSkipBefore=max($xSkipBefore,2*$edgeLabelWidth);
+	$xSkipBefore=max2($xSkipBefore,2*$edgeLabelWidth);
       } elsif ($halign_edge eq 'center') {
-	$xSkipBefore=max($xSkipBefore,$edgeLabelWidth);
-	$xSkipAfter=max($xSkipAfter,$edgeLabelWidth);
+	$xSkipBefore=max2($xSkipBefore,$edgeLabelWidth);
+	$xSkipAfter=max2($xSkipAfter,$edgeLabelWidth);
       } else {
-	$xSkipAfter=max($xSkipAfter,2*$edgeLabelWidth);
+	$xSkipAfter=max2($xSkipAfter,2*$edgeLabelWidth);
       }
     }
     $xSkipBefore+=$self->get_style_opt($node,"Node","-addbeforeskip",$Opts);
@@ -1012,14 +1048,15 @@ sub recalculate_positions {
       } else {
 	$minxpos=$baseXPos+$xSkipBefore;
       }
-      $xpos=max($xpos,$minxpos)+$nodeXSkip+$self->get_style_opt($node,"Node","-extrabeforeskip",$Opts);
+      $xpos = $minxpos if $minxpos>$xpos;
+      $xpos+=$nodeXSkip+$self->get_style_opt($node,"Node","-extrabeforeskip",$Opts);
       $prevnode[$level]=$node
     }
     $NI->{"XPOS"}=$xpos;
     $NI->{"NodeLabel_XPOS"}=$xpos+$nodeLabelXShift;
 
-    $canvasWidth = max($canvasWidth,
-		       $xpos+$xSkipAfter+$nodeWidth+2*$self->get_xmargin+$baseXPos);
+    $canvasWidth = max2($canvasWidth,
+		       $xpos+$xSkipAfter+$nodeWidth+2*$xmargin+$baseXPos);
     push @zero_level, $node if ($level == 0);
   }
 
@@ -1096,27 +1133,9 @@ sub node_coords {
     my ($nw,$nh);
     if ($self->get_style_opt($node,'Node','-surroundtext',$Opts)) {
       @ret = @{$NI->{"TextBoxCoords"}};
-      $nw=$ret[2]-$ret[0];
-      $nh=$ret[3]-$ret[1];
-      my $addw = ($self->get_style_opt($node,'Node','-addwidth',$Opts)||0);
-      my $addh = ($self->get_style_opt($node,'Node','-addheight',$Opts)||0);
-      if ($shape eq 'oval') {
-	# here we compute the ellipse axes $A,$B from its semi-latus
-	# rectum $L and the distance of its foci $C corresponding
-	# to text-box width/height or or vice-versa, whichever is less 
-	my ($A,$B,$L,$C);
-	if ($nw<=$nh) {
-	  ($L,$C) = ($nw,$nh)
-	} else {
-	  ($C,$L) = ($nw,$nh)
-	}
-	$A=($L+sqrt($L*$L+4*$C*$C))/2;
-	$B=sqrt($L*$A);
-	($B,$A)=($A,$B) if ($nw<=$nh);
-	$addw+=($A-$nw);
-	$addh+=($B-$nh);
-      }
-      @ret=($ret[0]-$addw/2,$ret[1]-$addh/2,$ret[2]+$addw/2,$ret[3]+$addh/2);
+      my $addw = $NI->{"NodeSurroundWidth"};
+      my $addh = $NI->{"NodeSurroundHeight"};
+      @ret=($ret[0]-$addw,$ret[1]-$addh,$ret[2]+$addw,$ret[3]+$addh);
     } else {
       if ($currentNode eq $node) {
 	$nw=$self->get_style_opt($node,'Node','-currentwidth',$Opts);
@@ -1593,7 +1612,7 @@ sub redraw {
       }; print STDERR $@ if $@;
       $self->{canvasHeight}+=$fontHeight;
       my $ftw = $self->getTextWidth($ftext,1);
-      $self->{canvasWidth}=max($self->{canvasWidth},$ftw);
+      $self->{canvasWidth}=max2($self->{canvasWidth},$ftw);
       $self->apply_style_opts(
 	$canvas->
 	  createLine(0,$self->{canvasHeight},
@@ -1661,6 +1680,10 @@ sub redraw {
 
   my $skipHiddenLevels = $Opts{skipHiddenLevels} || $self->get_skipHiddenLevels;
   my $skipHiddenParents = $skipHiddenLevels || $Opts{skipHiddenParents} || $self->get_skipHiddenParents;
+  my $ymargin=$self->get_ymargin;
+  my $xmargin=$self->get_xmargin;
+  my $drawBoxes=$self->get_drawBoxes;
+  my  $drawEdgeBoxes=$self->get_drawEdgeBoxes;
 
   foreach $node (@{$nodes}) {
     my $NI=$node_info->{$node};
@@ -1739,24 +1762,24 @@ sub redraw {
     my $skip_empty_nlabels = $self->get_style_opt($node,"NodeLabel","-skipempty",\%Opts);
     my $skip_empty_elabels = $self->get_style_opt($node,"EdgeLabel","-skipempty",\%Opts);
     $node_has_box=
-      $self->get_drawBoxes 
+      $drawBoxes 
 	&& ($valign_edge=$self->get_style_opt($node,"NodeLabel","-nodrawbox",\%Opts) ne "yes")
-	  || !$self->get_drawBoxes
+	  || !$drawBoxes
 	    && ($valign_edge=$self->get_style_opt($node,"NodeLabel","-dodrawbox",\%Opts) eq "yes");
     $NI->{"NodeHasBox"}=$node_has_box;
     if ($node_has_box or $self->get_style_opt($node,'Node','-surroundtext',\%Opts)) {
       my $count = $skip_empty_nlabels ? $NI->{"NodeLabel_nonempty"} : scalar(@$node_patterns);
       $NI->{"TextBoxCoords"} =
 	$vertical_tree
-	  ? [ 0+$gen_info->{"NodeLabel_XMIN"}-$self->get_xmargin,
-	      0+$NI->{"NodeLabel_YPOS"}-$self->get_ymargin,
-	      0+$gen_info->{"NodeLabel_XMAX"}+$self->get_xmargin,
-	      0+$NI->{"NodeLabel_YPOS"}+$self->get_ymargin+$lineHeight ]
-	  : [ 0+$NI->{"NodeLabel_XPOS"}-$self->get_xmargin,
-	      0+$NI->{"NodeLabel_YPOS"}-$self->get_ymargin,
+	  ? [ 0+$gen_info->{"NodeLabel_XMIN"}-$xmargin,
+	      0+$NI->{"NodeLabel_YPOS"}-$ymargin,
+	      0+$gen_info->{"NodeLabel_XMAX"}+$xmargin,
+	      0+$NI->{"NodeLabel_YPOS"}+$ymargin+$lineHeight ]
+	  : [ 0+$NI->{"NodeLabel_XPOS"}-$xmargin,
+	      0+$NI->{"NodeLabel_YPOS"}-$ymargin,
 	      0+$NI->{"NodeLabel_XPOS"}+
-		$NI->{"NodeLabelWidth"}+$self->get_xmargin,
-	      0+$NI->{"NodeLabel_YPOS"}+ $self->get_ymargin+
+		$NI->{"NodeLabelWidth"}+$xmargin,
+	      0+$NI->{"NodeLabel_YPOS"}+ $ymargin+
 		$count*$lineHeight];
     }
     my @node_coords=$self->node_coords($node,$currentNode);
@@ -1844,9 +1867,9 @@ sub redraw {
 	createRectangle(
 	  $vertical_tree ?
 	    (-200,
-	     0+$NI->{"NodeLabel_YPOS"}-$self->get_ymargin,
+	     0+$NI->{"NodeLabel_YPOS"}-$ymargin,
 	     0+$self->{canvasWidth}+200,
-	     $NI->{"NodeLabel_YPOS"}+$self->get_ymargin+$lineHeight,
+	     $NI->{"NodeLabel_YPOS"}+$ymargin+$lineHeight,
 	    ) :
 	    (
 	     0+$NI->{"XPOS"}-$self->get_nodeWidth,
@@ -1890,9 +1913,9 @@ sub redraw {
     }
     $edge_has_box=!$vertical_tree &&
       scalar(@$edge_patterns) && $parent &&
-	($self->get_drawEdgeBoxes &&
+	($drawEdgeBoxes &&
 	 ($valign_edge=$self->get_style_opt($node,"EdgeLabel","-nodrawbox",\%Opts) ne "yes") ||
-	 !$self->get_drawEdgeBoxes &&
+	 !$drawEdgeBoxes &&
 	 ($valign_edge=$self->get_style_opt($node,"EdgeLabel","-dodrawbox",\%Opts) eq "yes"));
     $NI->{"EdgeHasBox"}=$edge_has_box;
     if ($edge_has_box) {
@@ -1900,13 +1923,13 @@ sub redraw {
 #      my $box="edgebox_$objectno";
       my $bid=$canvas->
 	createRectangle($NI->{"EdgeLabel_XPOS"}-
-			$self->get_xmargin,
+			$xmargin,
 			$NI->{"EdgeLabel_YPOS"}
-			-$self->get_ymargin,
+			-$ymargin,
 			$NI->{"EdgeLabel_XPOS"}+
-			$self->get_xmargin+$edgeLabelWidth,
+			$xmargin+$edgeLabelWidth,
 			$NI->{"EdgeLabel_YPOS"}
-			+$self->get_ymargin
+			+$ymargin
 			+scalar(@$edge_patterns)*$lineHeight,
 			-tags => ['edgebox']
 		       );
@@ -1970,9 +1993,7 @@ sub redraw {
 	  if ($skip_empty_nlabels and $NI->{"X[$i]"}==0) {
 	    $empty=1;
 	  }
-	  if ($empty) {
-	    $n_y-=$lineHeight;
-	  } elsif ($n_i) {
+	  if (!$empty and $n_i) {
 	    $n_y+=$lineHeight;
 	  }
 	}
@@ -2064,7 +2085,7 @@ sub redraw {
   ##  $canvas->createLine(0,0,$canvas->width, $canvas->height,-fill => 'green');
   if ($stipple ne "") {
     $canvas->createRectangle(-1000,-1000,
-			     max(5000,$self->{canvasWidth}),max(5000,$self->{canvasHeight}),
+			     max2(5000,$self->{canvasWidth}),max2(5000,$self->{canvasHeight}),
 			     -outline => undef,
 			     -fill=>'lightgray',
 			     -stipple => 'gray25',
@@ -2188,7 +2209,7 @@ sub draw_text_line {
 		   -text => $at_text,
 		   ($use_fs_colors ? (-fill => $self->which_text_color($fsfile,$c)) : ()),
 		   -font => $self->get_font,
-		   -tags => ['text','text_item', "text[$node][$i]" ]
+		   -tags => ['text','text_item', "text[$node]", "text[$node][$i]" ]
 		  );
       # $self->store_id_pinfo($bid,$txt);
       eval { #apply_style_opts
@@ -2250,7 +2271,7 @@ sub draw_text_line {
 		     -text => encode($_),
 		     -anchor => 'nw',
 		     -font => $self->get_font,
-		     -tags => ['plaintext','text_item',"text[$node][$i]"]
+		     -tags => ['plaintext','text_item',"text[$node]", "text[$node][$i]"]
 		    );
 	#$self->store_id_pinfo($bid,$txt);
 	eval { #apply_style_opts

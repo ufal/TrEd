@@ -5277,22 +5277,25 @@ sub createCanvasBindings {
     $canvas->bind('point', "<$_-B2-Motion>"=> [sub {node_motion_modif(@_)},$grp,"-2"]);
   }
 
-
-
   # Text 1
-  $canvas->bind('text', '<1>'=> [sub {node_down(@_) },$grp,0]);
+  for my $tag (qw(text textbg textbox edgebox stripe)) {
+    $canvas->bind($tag, '<1>'=> [sub {node_down(@_) },$grp,0]);
+    $canvas->bind($tag, '<B1-Motion>'=> [sub {node_move(@_) },$grp,0]);
+    $canvas->bind($tag, '<ButtonRelease-1>'=> [sub {node_release(@_)},$grp,0]);
+  }
+
+  # Text 1 modif
   foreach (qw(Shift Control Alt Meta)) {
     $canvas->bind('text', "<$_-Button-1>"=> [sub {text_click_modif(@_)},$grp,$_]);
   }
 
+  # Text Dobule-1
+  $canvas->bind('text', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },$grp]);
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('text', "<$_-Double-1>"=> [sub {text_doubleclick_modif(@_)},$grp,$_]);
+  }
+
   # TextBg
-  $canvas->bind('textbox', '<1>'=> [sub {
-				      my $w = $_[0];
-				      node_select(@_);
-				    },$grp,0]);
-  $canvas->bind('edgebox', '<1>'=> [sub {node_select(@_) },$grp,0]);
-  $canvas->bind('textbg', '<1>'=> [sub {node_select(@_) },$grp,0]);
-  $canvas->bind('stripe', '<1>'=> [sub {node_select(@_) },$grp,0]);
   foreach (qw(Shift Control Alt Meta)) {
     $canvas->bind('textbg', "<$_-Button-1>"=> [sub {text_click_modif(@_); Tk->break; },$grp,$_]);
   }
@@ -5338,22 +5341,6 @@ sub createCanvasBindings {
       }
     }
   }
-  
-  
-  # Text 1
-  $canvas->bind('text', '<1>'=> [sub {node_select(@_) },$grp,0]);
-  foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('text', "<$_-Button-1>"=> [sub {text_click_modif(@_)},$grp,$_]);
-  }
-
-  # Text Dobule-1
-  $canvas->bind('text', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },$grp]);
-  foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('text', "<$_-Double-1>"=> [sub {text_doubleclick_modif(@_)},$grp,$_]);
-  }
-
-
-
 }
 
 sub MenubarItem {
@@ -10461,17 +10448,30 @@ sub node_down {
   my ($canvas_obj) = $tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($canvas_obj);
 
+  unless (first { $_ eq 'point' } $w->gettags($canvas_obj)) {
+    my ($cx,$cy)=($w->canvasx($nx),$w->canvasy($ny));
+    $canvas_obj = first {
+      first { $_ eq 'point' } $w->gettags($_)
+    } $tv->find_item(overlapping => $cx-1,$cy-1,$cx+1,$cy+1);
+    if ($canvas_obj and $node!=$tv->get_obj_pinfo($canvas_obj)) {
+      undef $canvas_obj;
+    }
+  }
   setCurrent($win,$node);
   $w->dtag('selected');
+  return unless $canvas_obj;
   $w->addtag('selected', 'withtag', $canvas_obj);
-  $w->raise('current');
-  $w->raise('text[]');
+  $w->raise('selected');
+  $w->raise("text[$node]");
 }				# end plot_down
 
 sub node_move {
   my($w,$grp,$scroll)= @_;
   my $win=findCanvasWindow($grp,$w);
   my $tv=$win->treeView;
+  my ($sel)=$tv->find_item('withtag','selected');
+  return unless $sel;
+
   my $e= $w->XEvent;
   my ($deltax,$deltay) = (-$nx,-$ny);
   ($nx,$ny)= ($e->x, $e->y);
@@ -10492,8 +10492,7 @@ sub node_move {
   }
 
   my @nodes= $w->find('withtag','point');
-  my ($cur)=$w->find('withtag','selected');
-  my $node=$tv->get_obj_pinfo($cur);
+  my $node=$tv->get_obj_pinfo($sel);
   my $bestDist=10000;
   my $dist;
   $nearest=undef;
@@ -10518,14 +10517,17 @@ sub node_move {
 sub node_release {
   my($w,$grp,$button)= @_;
   my $win=findCanvasWindow($grp,$w);
-  my $tv=$win->treeView;
   return unless $win->{FSFile};
+
+  my $tv=$win->treeView;
+  my ($sel)=$tv->find_item('withtag','selected');
+  return unless $sel;
+
   my $e= $w->XEvent;
   my($x, $y)= ($e->x, $e->y);
   my $parent;
   my $node;
   my $center=0;
-  my ($sel)=$tv->find_item('withtag','selected');
   $node=$tv->get_obj_pinfo($sel) if (defined ($sel));
   if ($node) {
     my ($p)=$tv->find_item('withtag','nearest');
