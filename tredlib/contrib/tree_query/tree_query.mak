@@ -200,6 +200,8 @@ my %color = (
   'a/aux.rf' => 'violet',
   coref_text => '#4C509F',
   coref_gram => '#C05633',
+  ancestor => 'blue',
+  effective_parent => 'green',
 );
 my %dash = (
   'depth-first-precedes' => '',
@@ -209,6 +211,8 @@ my %dash = (
   'a/aux.rf' => '_',
   coref_text => '',
   coref_gram => '',
+  ancestor => '_',
+  effective_parent => '_',
 );
 sub node_style_hook {
   my ($node,$styles) = @_;
@@ -1155,6 +1159,81 @@ sub fix_netgraph_ord_to_precedes {
   return $group;
 }
 
+sub fix_tecto_coap {
+  my ($node,$group) = @_;
+  if (ref($group)) {
+    my $seq = $group->{'#content'};
+    if (ref($seq)) {
+      my $elements_list=$seq->elements_list;
+      @$elements_list = map {
+	my @res=($_);
+	if ($_->name eq 'test') {
+	  my $val = $_->value;
+	  if ($val->{operator} eq 'in'
+		and $val->{a} eq q("functor")) {
+	    my $y = $val->{b};
+	    $y=~s/\s//g;
+	    $y=~s/^\(|\)$//g;
+	    if (join(',',uniq sort split(/,/,$y)) eq q('ADVS','APPS','CONFR','CONJ','CONTRA','CSQ','DISJ','GRAD','OPER','REAS')) {
+	      $val->{a} = q("nodetype");
+	      $val->{b} = q('coap');
+	      $val->{operator} = '=';
+	      ChangingFile(1);
+	    }
+	  }
+	} elsif ($_->name =~ /^(?:and|or)$/) {
+	  fix_tecto_coap($node,$_->value);
+	}
+	@res;
+      } @$elements_list;
+    }
+  }
+  return $group;
+}
+
+sub fix_or2in {
+  my ($node,$group) = @_;
+  if (ref($group)) {
+    my $seq = $group->{'#content'};
+    if (ref($seq)) {
+      my $elements_list=$seq->elements_list;
+      @$elements_list = map {
+	my $el = $_;
+	my @res=($el);
+	my $name = $el->name;
+	if ($name eq 'or' or $name eq 'and') {
+	  my $or = $el->value->{'#content'};
+	  if (ref($or)) {
+	    my $tests=$or->elements_list;
+	    if (@$tests>3
+		and !(first { !($_->name eq 'test' and $_->value ->{operator} eq '=') } @$tests) # all are tests with =
+		and !($name eq 'and' and first { !($_->value->{negate}) } @$tests)            # all have the same a
+		and !(first { !($_->value->{a} eq $tests->[0]->value->{a}) } @$tests)            # all have the same a
+	       ) { 
+	      ChangingFile(1);
+	      @res = (
+		Fslib::Seq::Element->new(
+		  'test',
+		  Fslib::Struct->new({
+		    negate => $name eq 'or' ? $el->value->{negate} : !$el->value->{negate},
+		    a => $tests->[0]->value->{a},
+		    operator => 'in',
+		    b => '('.join(',', sort map { $_->value->{b} } @$tests) .')',
+		  },1)
+		)
+	      );
+	    } else {
+	      fix_or2in($node,$el->value);
+	    }
+	  }
+	}
+	@res;
+      } @$elements_list;
+    }
+  }
+  return $group;
+}
+
 
 sub __serialize_node {
   my ($n)=@_;
@@ -1227,15 +1306,33 @@ sub reduce_optional_node_chain {
 sub fix_netgraph_query {
   init_id_map($root);
   ChangingFile(0);
-  my $node = $root;
-  while ($node) {
-    reduce_optional_node_chain($node);
-    $node=$node->following;
+  {
+    my $node = $root;
+    while ($node) {
+      fix_or2in($node,$node->{conditions});
+      $node=$node->following;
+    }
   }
-  $node = $root;
-  while ($node) {
-    fix_netgraph_ord_to_precedes($node,$node->{conditions});
-    $node=$node->following;
+  {
+    my $node = $root;
+    while ($node) {
+      fix_tecto_coap($node,$node->{conditions});
+      $node=$node->following;
+    }
+  }
+  {
+    my $node = $root;
+    while ($node) {
+      reduce_optional_node_chain($node);
+      $node=$node->following;
+    }
+  }
+  {
+    my $node = $root;
+    while ($node) {
+      fix_netgraph_ord_to_precedes($node,$node->{conditions});
+      $node=$node->following;
+    }
   }
 }
 
