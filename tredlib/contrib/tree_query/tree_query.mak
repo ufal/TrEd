@@ -573,8 +573,6 @@ sub map_results {
 }
 sub open_pmltq {
   my ($filename,$opts)=@_;
-  print "open_pmltq $filename\n";
-
   return unless $filename=~s{pmltq://}{};
   @last_results = idx_to_pos([split m{/}, $filename]);
   my $first = $last_results[0];
@@ -1228,7 +1226,6 @@ sub reduce_optional_node_chain {
 
 sub fix_netgraph_query {
   init_id_map($root);
-  use Data::Dumper;
   ChangingFile(0);
   my $node = $root;
   while ($node) {
