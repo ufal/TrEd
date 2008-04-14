@@ -454,7 +454,7 @@ functor (attribute C<functor>)
 sub IsCoord {
   my $node=$_[0] || $this;
   return 0 unless $node;
-  return $node->{functor} =~ /CONJ|CONFR|DISJ|GRAD|ADVS|CSQ|REAS|CONTRA|APPS|OPER/;
+  return $node->{functor} =~ /ADVS|APPS|CONFR|CONJ|CONTRA|CSQ|DISJ|GRAD|OPER|REAS/;
 }
 
 =item ExpandCoord($node,$keep?)
