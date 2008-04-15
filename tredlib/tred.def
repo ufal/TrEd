@@ -1654,6 +1654,7 @@ sub ListRegroupElements {
 
 =back
 
+
 =cut
 
 =head2 GUI-related macros
@@ -1736,6 +1737,26 @@ sub Bind {
     }
   }
 #endif TRED
+}
+
+
+=item C<UnbindBuiltin(key-binding)>
+
+(TrEd only). Remove default TrEd's keybinding for a given key so that
+custom macro can be bound to that key.
+E.g. UnbindBuiltin('Ctrl+Home'); Note: use with care. Built-in
+key-bining once removed cannot be restored (except by restarting TrEd).
+
+=cut
+
+sub UnbindBuiltin {
+#ifdef TRED
+  my ($key)=@_;
+  $key=~s/\+/-/g;	# convert ctrl-x to ctrl+x
+  $key=~s/([^-]+-)/ucfirst($1)/eg;
+  $key=~s/Ctrl-/Control-/g;
+  $grp->{framegroup}{frame}->bind('my',"<$key>",undef);
+#endif
 }
 
 =item C<GUI()>
