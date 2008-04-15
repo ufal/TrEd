@@ -70,19 +70,11 @@ use IO;
 use Cwd;
 use File::Spec;
 use constant EMPTY => q{};
-use Tk::LabFrame;
-use Tk::Listbox;
-use Tk::HList;
-use Tk::ItemStyle;
-use Tk::DialogBox;
-use Tk::Tiler;
-use Tk::BrowseEntry;
-use Tk::Pane;
-use Tk::Panedwindow;
-use Tk::Dialog;
+use Tk::widgets
+  qw(Frame Pane DynaTabFrame LabFrame Listbox HList
+     ItemStyle DialogBox Tiler BrowseEntry Panedwindow Dialog DialogBox
+     Scale Adjuster Entry Text);
 use Tk::Font;
-use Tk::Scale;
-use Tk::Adjuster;
 
 
 {
@@ -314,11 +306,11 @@ if ($docDir ne EMPTY) {
 require TrEd::Convert;
 import TrEd::Convert;
 
-if ($TrEd::Convert::support_unicode) {
-  require Tk::Entry;
-  require Tk::Text;
-#  require Tk::UCSKeyBind;
-}
+# if ($TrEd::Convert::support_unicode) {
+#   require Tk::Entry;
+#   require Tk::Text;
+# #  require Tk::UCSKeyBind;
+# }
 
 # import read_macros etc.
 require TrEd::Macros;
@@ -1103,14 +1095,46 @@ sub gotoFile {
   my ($fs,$status) = openFile($win,filelistFullFileName($win,$fn),
 			      -norecent => $no_recent, -noredraw => $no_redraw);
   $win->{currentFileNo} = $last_no unless $status;
-  if ($grp->{Filelist} and
-	$grp->{filelistCurrentFilelist} eq $win->{currentFilelist}) {
-    my $path=filelistEntryPath($win->{currentFilelist},$fn);
-    $grp->{Filelist}->anchorSet($path);
-    $grp->{Filelist}->selectionClear();
-    $grp->{Filelist}->selectionSet($path);
-  }
+  update_filelist_views($grp,$win->{currentFilelist},0);
   return $status;
+}
+
+sub update_filelist_views {
+  my ($grp,$fl,$reload)=@_;
+  if ($grp->{Filelist} and ($grp->{filelistCurrentFilelist} == $fl)) {
+    update_a_filelist_view($grp,$grp->{Filelist},$fl,$win->{currentFileNo},$reload);
+  }
+  update_sidepanel_filelist_view($grp,$fl,$reload);
+}
+
+sub update_sidepanel_filelist_view {
+  my ($grp,$fl,$reload)=@_;
+  return unless $fl;
+  my $win = $grp->{focusedWindow};
+  my $view = $grp->{sidePanel} && $grp->{sidePanel}->widget('filelistView');
+  return unless ($view and $view->is_shown);
+  my $filelistView=$view->data;
+  if ($filelistView and ($win->{currentFilelist} == $fl)) {
+    update_a_filelist_view($grp,$filelistView,$fl,$win->{currentFileNo},$reload);
+  }
+}
+
+sub update_a_filelist_view {
+  my ($grp,$fv,$fl,$pos,$reload)=@_;
+  if ($reload) {
+    $fl->expand();
+    feedHListWithFilelist($grp,$fv,$fl);
+  }
+  if (defined($fl->current)) {
+    $pos=max2(0,$fl->position);
+  }
+  my $path=filelistEntryPath($fl,$pos);
+  $fv->selectionClear();
+  if (defined($path) and length($path) and $fv->info('exists',$path)) {
+    $fv->anchorSet($path);
+    $fv->see($path);
+    $fv->selectionSet($path);
+  }
 }
 
 sub filelistFullFileName {
@@ -2554,7 +2578,6 @@ sub set_value_line {
 sub toggleSidePanel {
   my ($grp)=@_;
   unless (defined $grp->{sidePanelFrame}) {
-    $grp->{sidePanelFrame}=$grp->{bodyPane}->Frame();
     initSidePanel($grp);
   }
   if ($showSidePanel) {
@@ -2570,14 +2593,21 @@ sub toggleSidePanel {
   }
 }
 
+
+
 sub initSidePanel {
   my ($grp)=@_;
-  unless ($grp->{attrsViewFrame}) {
-    $grp->{attrsViewFrame}=$grp->{sidePanelFrame}->Frame(
+  require TrEd::SidePanel;
+  unless ($grp->{sidePanel}) {
+    $grp->{sidePanel}=TrEd::SidePanel->new($grp->{bodyPane});
+    $grp->{sidePanelFrame} = $grp->{sidePanel}->frame();
+  }
+  unless ($grp->{sidePanel}->widget('attrsView')) {
+    my $colf = $grp->{sidePanelFrame}->Frame(
       -relief => 'sunken',
       -borderwidth => 2,
      );
-    my $cb = $grp->{attrsViewFrame}->Checkbutton(
+    my $cb = $colf->Checkbutton(
       -text => 'Hide empty values',
       -underline => 2,
       -relief => 'flat',
@@ -2596,9 +2626,9 @@ sub initSidePanel {
 			    Tk->break;
 			  }
 			});
-    $grp->{attrsView}=$grp->{attrsViewFrame}->TrEdNodeEditDlg({
+    my $attrsView = $colf->TrEdNodeEditDlg({
       object=>undef,
-      dialog => $grp->{attrsViewFrame},
+      dialog => $colf,
       no_show=>1,
       search_field => 0,
       hide_empty => 1,
@@ -2621,12 +2651,52 @@ sub initSidePanel {
       enable_callback => sub{ 0 },
       no_focus => 1,
     });
-    $cb->configure(-variable => \$grp->{attrsView}->Subwidget('scrolled')->{userdata}{hide_empty});
+    $cb->configure(-variable => \$attrsView->Subwidget('scrolled')->{userdata}{hide_empty});
+    $grp->{sidePanel}->add('attrsView', $colf, { -label => 'Node Attributes',
+						 -data => $attrsView,
+						 -show_command => sub {
+						   update_attribute_view($grp->{focusedWindow});
+						  }
+					       });
+    $grp->{sidePanel}->widget('attrsView')->show;
   }
-  $grp->{attrsViewPacked}=1;
-  $grp->{attrsViewFrame}->pack(-fill=>'both', -expand => 1);
-  if ($showSidePanel) {
-    update_attribute_view($grp->{focusedWindow});
+  unless ($grp->{sidePanel}->widget('filelistView')) {
+    my $colf = $grp->{sidePanelFrame}->Frame(
+      -relief => 'sunken',
+      -borderwidth => 2,
+     );
+    my $t= $colf->Scrolled(qw/HList -relief sunken
+			      -selectmode extended
+			      -scrollbars oe/,
+			   -separator=> "\t"
+			  )
+      ->pack(qw/-expand yes -fill both -side top/);
+    disable_scrollbar_focus($t);
+    $t->BindMouseWheelVert();
+    $grp->{sidePanel}->add('filelistView', $colf, {
+      -label => 'Current Filelist',
+      -data => $t,
+      -show_command => sub {
+	update_sidepanel_filelist_view($grp,$grp->{focusedWindow}{currentFilelist},1);
+      }
+     });
+    $t->bind('<Double-1>'=> [
+      sub {
+	my ($w,$grp)=@_;
+	my $win = $grp->{focusedWindow};
+	my $anchor=$w->info('anchor');
+	my $nextentry=$w->info('next',$anchor);
+	my $data=$w->info('data',$anchor);
+	unless ($nextentry and $w->info('parent',$nextentry) eq $anchor) {
+	  # file -> go to
+	  $win->{currentFilelist}->set_current($data);
+	  my $pos = $win->{currentFilelist}->position;
+	  if ($pos>=0) {
+	    gotoFile($win,$pos);
+	  }
+	}
+      },$grp ]);
+    #$grp->{sidePanel}->widget('filelistView')->show;
   }
 }
 
@@ -2640,10 +2710,12 @@ sub update_status_info {
 }
 sub update_attribute_view {
   my ($grp,$win) = grp_win($_[0]);
-  my $view = $grp->{attrsView};
-  return unless $view and $grp->{attrsViewPacked} and $grp->{sidePanelPacked};
+  my $view = $grp->{sidePanel} && $grp->{sidePanel}->widget('attrsView');
+  return unless $view and $view->is_shown;
+  my $attrsView=$view->data;
+  return unless ref $attrsView;
   my $current = $win->{currentNode};
-  $view->set_data({
+  $attrsView->set_data({
     type => $current && $current->type,
     object => $current,
   });
@@ -2779,7 +2851,7 @@ sub selectFilelistNoUpdate {
   my $fl=switchFilelist($grp,$list_name);
   print "Switching filelist to $list_name\n" if $tredDebug;
   return unless defined($fl);
-  if ($fl ne $win->{currentFilelist}) {
+  unless ($fl == $win->{currentFilelist}) {
     # save file position in the current file-list
     # before switching
     $win->{currentFilelist}->set_current(filelistFullFileName($win,$win->{currentFileNo}))
@@ -2804,6 +2876,7 @@ sub selectFilelist {
       nextFile($win);
     }
     updateTitle($grp);
+    update_sidepanel_filelist_view($grp,$fl,1);
   }
 }
 
@@ -2856,18 +2929,9 @@ sub switchFilelist {
   return undef unless $fl;
   if ($grp->{Filelist}) {
     $grp->{filelistCurrentFilelist}=$fl;
-    $fl->expand();
-    feedHListWithFilelist($grp,$grp->{Filelist},$fl);
-    my $activate=0;
+    update_a_filelist_view($grp,$grp->{Filelist},$fl,0,1);
     if (defined($fl->current)) {
-      $activate=max2(0,$fl->position);
-    }
-    my $path=filelistEntryPath($fl,$activate);
-    $grp->{Filelist}->selectionClear();
-    if (defined($path) and $path ne EMPTY) {
-      $grp->{Filelist}->anchorSet($path);
-      $grp->{Filelist}->see($path);
-      $grp->{Filelist}->selectionSet($path);
+      update_a_filelist_view($grp,$grp->{Filelist},$fl, max2(0,$fl->position),0);
     }
     $grp->{Filelist}->update();
   }
@@ -2978,19 +3042,11 @@ sub insertToFilelist {
   print "Inserting @list to position ",$position+1,"\n" if $tredDebug;
   $filelist->add($position+1,@list);
 
-  if ($grp->{Filelist} and 
-      $grp->{filelistCurrentFilelist} eq $filelist) {
-    feedHListWithFilelist($grp,$grp->{Filelist},$filelist);
+  update_filelist_views($grp,$filelist,1);
+  if ($grp->{Filelist} and $grp->{filelistCurrentFilelist} == $filelist) {
     $position = max2(0,$filelist->position($list[0]));
-    my $path=filelistEntryPath($filelist,$position);
-
-    $grp->{Filelist}->selectionClear();
-    if ($grp->{Filelist}->info('exists',$path)) {
-      $grp->{Filelist}->anchorSet($path);
-      $grp->{Filelist}->selectionSet($path);
-      $grp->{Filelist}->see($path);
-    }
-    # select all files resulting from added patterns
+    update_a_filelist_view($grp,$grp->{Filelist},$filelist,$position,0);
+    # select all files resulting from an added patterns
     for (my $i=0 ; $i<$filelist->file_count ; $i++) {
       if (defined(Index(\@list,$filelist->file_pattern($i)))) {
 	my $file = filelistEntryPath($filelist,$i);
@@ -3021,18 +3077,10 @@ sub removeFromFilelist {
 			       $filelist->file_count-1);
   }
 
-  if ($grp->{Filelist} and 
-      $grp->{filelistCurrentFilelist} eq $filelist) {
-    $position=min($position,$filelist->file_count-1);
-    feedHListWithFilelist($grp,$grp->{Filelist},$filelist);
-      $grp->{Filelist}->selectionClear();
-    my $path;
-    $path=$grp->{filelistCurrentFilelist}->list_ref->[$position];
-    if ($grp->{Filelist}->info('exists',$path)) {
-      $grp->{Filelist}->anchorSet($path);
-      $grp->{Filelist}->selectionSet($path);
-      $grp->{Filelist}->see($grp->{Filelist}->info('anchor'));
-    }
+  update_filelist_views($grp,$filelist,1);
+  if ($grp->{Filelist} and $grp->{filelistCurrentFilelist} == $filelist) {
+    $position=min2($position,$filelist->file_count-1);
+    update_a_filelist_view($grp,$grp->{Filelist},$filelist,$position,0);
   }
 }
 
@@ -5036,6 +5084,7 @@ sub focusCanvas {
     my $context = $newfocus->{macroContext};
     doEvalHook($grp->{focusedWindow},"pre_switch_context_hook",$prevcontext,$context); # stop is ignored here
     $grp->{selectedContext}=$context;
+    my $prevfl=$grp->{focusedWindow}->{currentFilelist};
     $grp->{focusedWindow}=$newfocus;
     $grp->{selectedStylesheet} = $newfocus->{stylesheet};
     $treeViewOpts->{drawBoxes}=$newfocus->{treeView}->get_drawBoxes();
@@ -5050,6 +5099,8 @@ sub focusCanvas {
     resetUndoStatus($newfocus);
     resetTreePosStatus($grp);
     updateSessionStatus($grp);
+    my $fl = $newfocus->{currentFilelist};
+    update_sidepanel_filelist_view($grp,$fl,$fl == $prevfl ? 0 : 1);
     doEvalHook($newfocus,"switch_context_hook",$prevcontext,$context);
   } else {
     print STDERR "DID NOT FIND Window of $c\n";
@@ -5933,7 +5984,6 @@ sub startMain {
 			 doEvalHook($grp->{focusedWindow},"macros_reloaded_hook");
 			 redraw_all($grp);
 		       },\%group]],
-	 
 	 [
 	  Cascade=> 'Debugging messages',
 	  -underline => 0,
@@ -9234,18 +9284,17 @@ sub doFindPrevTemplated {
 ######################################
 sub cmpTemplateField {
   my ($grp,$val,$templ)=@_;
-
   my $method=substr($grp->{templateMatchMethod},0,1);
-  return $val=~ /^$templ$/ if ($method eq 'E');
-  return $val=~ /$templ/ if ($method eq 'R');
-  return $val eq $templ if ($method eq 'L');
+  return (($val=~ /^$templ$/) ? 1 : 0) if ($method eq 'E');
+  return (($val=~ /$templ/) ? 1 : 0) if ($method eq 'R');
+  return (($val eq $templ) ? 1 : 0) if ($method eq 'L');
   if ($method eq 'W') {
     $templ=~s/[.^$(){}<>\\]/\\\&/g;
     $templ=~s/\*/.\*/g;
     $templ=~s/\?/./g;
-    return $val=~ /^$templ$/;
+    return (($val=~ /^$templ$/) ? 1 : 0);
   }
-  return $val eq $templ;
+  return (($val eq $templ) ? 1 : 0);
 }
 
 ######################################
