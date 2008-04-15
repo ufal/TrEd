@@ -620,20 +620,27 @@ sub idx_to_pos {
 
 sub run_query {
   my ($sql, $opts)=@_;
+#  my $do_profile = eval { require DBI::Profile };
+#   if ($do_profile) {
+#     $dbi->{Profile} = DBI::Profile->new();
+#     $dbi->{Profile}->{Data} = undef;
+#   }
   local $dbi->{RaiseError} = $opts->{RaiseError};
+  require Time::HiRes;
   my $canceled = 0;
   my $driver_name = $dbi->{Driver}->{Name};
   my $sth;
   if ($driver_name eq 'Pg') {
     $sth = $dbi->prepare( $sql, { pg_async => 1 } );
-    my $step=2;
+    my $step=0.05;
     my $time=0;
     eval {
       $sth->execute();
       if (defined $opts->{Timeout}) {
-	do {{
+	while (!$sth->pg_ready) {
+#	do {{
 	  $time+=$step;
-	  sleep $step;
+	  Time::HiRes::sleep($step);
 	  if ($time>=$opts->{Timeout}) {
 	    if (!GUI() or QuestionQuery('Query Timeout',
 					'The evaluation of the query seems to take too long',
@@ -644,7 +651,8 @@ sub run_query {
 	      $time=0;
 	    }
 	  }
-	}} while (!$sth->pg_ready);
+#	}} while (!$sth->pg_ready);
+	}
       }
       $sth->pg_result;
     };
@@ -687,6 +695,9 @@ sub run_query {
       }
     }
   }
+#   if ($do_profile) {
+#     print STDERR $dbi->{Profile}->format;
+#   }
   return $sth->fetchall_arrayref(undef,$opts->{MaxRows});
 }
 
