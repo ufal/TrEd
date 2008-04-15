@@ -46,6 +46,7 @@
        Fixed this and possible similar errors by avoiding bind('all',...).
  - [ ] document #{Node-surroundtext:1}, #{NodeLabel-skipempty:1},
        #{EdgeLabel-skipempty:1}, float:..., node:#{-option:value}
+ - [ ] minor contexts
 
 * NTrEd [0/1]
 
