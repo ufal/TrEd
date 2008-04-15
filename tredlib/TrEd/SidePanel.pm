@@ -6,6 +6,7 @@ package TrEd::SidePanel;
 use strict;
 use warnings;
 use Carp;
+use Tk::Adjuster;
 
 our $VERSION = '0.01';
 
@@ -93,8 +94,9 @@ sub new {
     -foreground=>'#555',
     -pady => 0,
     -command => [$self,'toggle']
-  )->pack(-fill => 'x');
+  )->pack(-fill => 'x',-side=>'top');
   weaken($self->{button}=$button);
+  weaken($self->{adjuster}=$panel_frame->Adjuster());
   weaken($self->{panel});
   return $self;
 }
@@ -117,6 +119,7 @@ sub hide {
   my ($self)=@_;
   return unless $self->is_shown;
   $self->button->configure(-foreground=>'#555');
+  $self->adjuster->packForget;
   $self->widget->packForget;
   $self->{shown}=0;
   return 1;
@@ -126,7 +129,8 @@ sub show {
   my ($self)=@_;
   return if $self->is_shown;
   $self->button->configure(-foreground=>'black');
-  $self->widget->pack(-after=>$self->button, -fill=>'both', -expand => 1);
+  $self->widget->pack(-after=>$self->button, -fill=>'both', -expand => 1,-side=>'top');
+  $self->adjuster->packAfter($self->widget,-side=>'top');
   $self->{shown}=1;
   my $command = $self->{-show_command};
   if (ref($command) eq 'CODE') {
@@ -158,7 +162,10 @@ sub panel {
   return $self->{panel};
 }
 
-
+sub adjuster {
+  my ($self)=@_;
+  return $self->{adjuster};
+}
 1;
 __END__
 # Below is stub documentation for your module. You'd better edit it!

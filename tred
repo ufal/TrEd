@@ -1125,9 +1125,9 @@ sub update_a_filelist_view {
     $fl->expand();
     feedHListWithFilelist($grp,$fv,$fl);
   }
-  if (defined($fl->current)) {
-    $pos=max2(0,$fl->position);
-  }
+#  if (defined($fl->current)) {
+#    $pos=max2(0,$fl->position);
+#  }
   my $path=filelistEntryPath($fl,$pos);
   $fv->selectionClear();
   if (defined($path) and length($path) and $fv->info('exists',$path)) {
@@ -2671,6 +2671,11 @@ sub initSidePanel {
 			   -separator=> "\t"
 			  )
       ->pack(qw/-expand yes -fill both -side top/);
+    my $hl = $t->Subwidget('scrolled');
+    $hl->{default_style_imagetext}=$hl->ItemStyle(
+      'imagetext',
+      -font => 'C_small',
+     );
     disable_scrollbar_focus($t);
     $t->BindMouseWheelVert();
     $grp->{sidePanel}->add('filelistView', $colf, {
@@ -3172,6 +3177,7 @@ sub filelistEntryPath {
 sub feedHListWithFilelist {
   my ($grp,$hl,$fl)=@_;
   return unless ref($hl) and ref($fl);
+  $hl=$hl->Subwidget('scrolled');
   $hl->delete('all');
   my $pat;
   my $f;
@@ -3184,7 +3190,9 @@ sub feedHListWithFilelist {
 	       -itemtype=> 'imagetext',
 	       -image=> $grp->{fileImage},
 	       -data=> $f,
-	       -text=> $f);
+	       -text=> $f,
+	       -style => $hl->{default_style_imagetext},
+	      );
       next;
     }
     unless ( $hl->info('exists', $pat) ) {
@@ -3192,13 +3200,17 @@ sub feedHListWithFilelist {
 	       -itemtype=> 'imagetext',
 	       -image=> $grp->{folderImage},
 	       -data=> $pat,
-	       -text=> $pat);
+	       -text=> $pat,
+	       -style => $hl->{default_style_imagetext},
+	      );
     }
     $hl->add("$pat\t$f",
 	     -itemtype=> 'imagetext',
 	     -image=> $grp->{fileImage},
 	     -data=> $f,
-	     -text=> $f);
+	     -text=> $f,
+	     -style => $hl->{default_style_imagetext},
+	    );
   }
 }
 
