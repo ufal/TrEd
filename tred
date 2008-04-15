@@ -71,7 +71,7 @@ use Cwd;
 use File::Spec;
 use constant EMPTY => q{};
 use Tk::widgets
-  qw(Frame Pane DynaTabFrame LabFrame Listbox HList
+  qw(Frame Pane LabFrame Listbox HList
      ItemStyle DialogBox Tiler BrowseEntry Panedwindow Dialog DialogBox
      Scale Adjuster Entry Text);
 use Tk::Font;
