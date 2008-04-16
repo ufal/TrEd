@@ -30,30 +30,17 @@ BEGIN {
   $vLineFont
   $libDir
   $iconPath
-  $psFontFile
-  $psFontAFMFile
-  $ttFont
-  $ttFontPath
   $appIcon
   $sortAttrs
-  $psFontSize
   $macroFile
   $defaultMacroFile
   $defaultMacroEncoding
-  $prtFmtWidth
-  $prtFmtHeight
-  $prtVMargin
-  $prtHMargin
-  $psMedia
-  $psFile
-  $maximizePrintSize
+  $printOptions
   $showHidden
   $createMacroMenu
   $maxMenuLines
   $useCzechLocales
   $useLocales
-  $printColors
-  $defaultPrintCommand
   $imageMagickConvert
   $cstsToFs
   $fsToCsts
@@ -121,6 +108,31 @@ $treeViewOpts={
      8 => 'cyan',
      9 => 'midnightblue'}
    };
+$printOptions={
+  printOnePerFile => 0,
+  printTo => 'printer', # was printToFile!!
+  printFormat => 'PS',
+  # printPsFile, # removed
+  printFileExtension => 'ps',
+  printSentenceInfo => 0,
+  printFileInfo => 0,
+  # printCommand, # removed
+  printImageMagickResolution => 80,
+  printNoRotate=>0,
+  printColors => 0,
+  ttFont=>"Arial",
+  ttFontPath => undef,
+  psFontFile => undef,
+  psFontSize => (($^O=~/^MS/) ? 14 : 12),
+  prtFmtWidth => 595,
+  prtFmtHeight => 842,
+  prtVMargin => '3c',
+  prtHMargin => '2c',
+  psMedia => 'A4',
+  psFile => undef,
+  maximizePrintSize => 0,
+  defaultPrintCommand => (($^O eq 'MSWin32') ? 'prfile32.exe /-' : 'lpr'),
+};
 
 my $resourcePathSplit = ($^O eq "MSWin32") ? ',' : ':';
 
@@ -268,17 +280,17 @@ sub set_config {
   $treeViewOpts->{useAdditionalEdgeLabelSkip}
                                       =
 					 val_or_def($confs,"useadditionaledgelabelskip",1);
-  $treeViewOpts->{currentNodeWidth}   =	 val_or_def($confs,"currentnodewidth",$treeViewOpts->{nodeWidth});
-  $treeViewOpts->{currentNodeHeight}  =	 val_or_def($confs,"currentnodeheight",$treeViewOpts->{nodeHeight});
+  $treeViewOpts->{currentNodeWidth}   =	 val_or_def($confs,"currentnodewidth",$treeViewOpts->{nodeWidth}+2);
+  $treeViewOpts->{currentNodeHeight}  =	 val_or_def($confs,"currentnodeheight",$treeViewOpts->{nodeHeight}+2);
   $treeViewOpts->{nodeXSkip}	      =	 val_or_def($confs,"nodexskip",10);
   $treeViewOpts->{nodeYSkip}	      =	 val_or_def($confs,"nodeyskip",10);
   $treeViewOpts->{edgeLabelSkipAbove} =	 val_or_def($confs,"edgelabelskipabove",10);
   $treeViewOpts->{edgeLabelSkipBelow} =	 val_or_def($confs,"edgelabelskipbelow",10);
   $treeViewOpts->{xmargin}	      =	 val_or_def($confs,"xmargin",2);
   $treeViewOpts->{ymargin}	      =	 val_or_def($confs,"ymargin",2);
-  $treeViewOpts->{lineWidth}	      =	 val_or_def($confs,"linewidth",1);
-  $treeViewOpts->{lineColor}	      =	 val_or_def($confs,"linecolor",'black');
-  $treeViewOpts->{hiddenLineColor}    =	 val_or_def($confs,"hiddenlinecolor",'gray');
+  $treeViewOpts->{lineWidth}	      =	 val_or_def($confs,"linewidth",2);
+  $treeViewOpts->{lineColor}	      =	 val_or_def($confs,"linecolor",'gray');
+  $treeViewOpts->{hiddenLineColor}    =	 val_or_def($confs,"hiddenlinecolor",'lightgray');
   $treeViewOpts->{dashHiddenLines}    =	 val_or_def($confs,"dashhiddenlines",0);
   $treeViewOpts->{lineArrow}	      =	 val_or_def($confs,"linearrow",'none');
   $treeViewOpts->{nodeColor}	      =	 val_or_def($confs,"nodecolor",'yellow');
@@ -317,8 +329,7 @@ sub set_config {
 
   $treeViewOpts->{clearTextBackground} = val_or_def($confs,"cleartextbackground",1);
 
-  $treeViewOpts->{backgroundColor}     = val_or_def($confs,"backgroundcolor",undef);
-
+  $treeViewOpts->{backgroundColor}     = val_or_def($confs,"backgroundcolor",'white');
 
   $treeViewOpts->{backgroundImageX}     = val_or_def($confs,"backgroundimagex",0);
   $treeViewOpts->{backgroundImageY}     = val_or_def($confs,"backgroundimagey",0);
@@ -393,63 +404,7 @@ sub set_config {
       $Fslib::resourcePath = $def_res_path;
     }
   }
-  if (exists $confs->{psfontfile}) {
-    $psFontFile=tilde_expand($confs->{psfontfile});
-    $psFontFile="$libDir/".$psFontFile if (not -f $psFontFile and -f 
-					   "$libDir/".$psFontFile);
-  } else {
-    if (!defined($Tk::VERSION) or $Tk::VERSION >= 804) {
-      $psFontFile="$libDir/fonts/n019003l.pfa";
-    } else {
-      $psFontFile="$libDir/fonts/ariam___.pfa";
-    }
-  }
 
-  $ttFont=val_or_def($confs,"ttfont","Arial");
-  if (exists $confs->{ttfontpath}) {
-    $ttFontPath=tilde_expand($confs->{ttfontpath});
-  } else {
-    my @fontpath;
-    if ($^O eq "MSWin32") {
-      require Win32::Registry;
-      my %shf;
-      my $ShellFolders;
-      my $shfolders="Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders";
-      $::HKEY_CURRENT_USER->Open($shfolders,$ShellFolders) or warn "Cannot read $shfolders $^E\n";
-      $ShellFolders->GetValues(\%shf);
-      @fontpath = ($shf{Fonts}[2]);
-      #		 qw(c:/windows/fonts/ c:/winnt/fonts/);
-    } else {
-      # use fontconfig here?
-      if (open my $fc,'/etc/fonts/fonts.conf') {
-	while (<$fc>) {
-	  push @fontpath,tilde_expand($1) if m{<dir>([^<]*)</dir>} and -d tilde_expand($1);
-	  # naive, should subst. entities, etc.
-	}
-      }
-      unless (@fontpath) {
-	@fontpath = ("$ENV{HOME}/.fonts/",
-		     qw(
-			/usr/X11R6/lib/X11/fonts/TTF/
-			/usr/X11R6/lib/X11/fonts/TrueType/
-			/usr/share/fonts/default/TrueType/
-			/usr/share/fonts/default/TTF/
-		       )
-		    );
-      }
-    }
-    $ttFontPath = join ",",map tilde_expand($_),@fontpath;
-  }
-
-  if (exists $confs->{psfontafmfile}) {
-    $psFontAFMFile=$confs->{psfontafmfile};
-  } else {
-    $psFontAFMFile=$psFontFile;
-    $psFontAFMFile=~s/\.[^.]+$/.afm/;
-    unless (-f $psFontAFMFile) {
-      $psFontAFMFile=~s!/([^/]+)$!/afm/$1!;
-    }
-  }
 
   if ($confs->{backgroundimage} ne "" 
       and ! -f $confs->{backgroundimage}
@@ -467,26 +422,82 @@ sub set_config {
   $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? tilde_expand($confs->{defaultmacrofile}) : "$libDir/tred.def";
   $defaultMacroEncoding=val_or_def($confs,"defaultmacroencoding",'utf8');
   $sortAttrs	     =	val_or_def($confs,"sortattributes",1);
-  $psFontSize	     =	val_or_def($confs,"psfontsize",($^O=~/^MS/) ? "14" : "12");
 
-  $prtFmtWidth	     =	val_or_def($confs,"prtfmtwidth",'595');
-  $prtFmtHeight	     =	val_or_def($confs,"prtfmtheight",'842');
-  $prtVMargin	     =	val_or_def($confs,"prtvmargin",'3c');
-  $prtHMargin	     =	val_or_def($confs,"prthmargin",'2c');
-
-  $psMedia	     =	val_or_def($confs,"psmedia",'A4');
-  $psFile=(exists $confs->{psfile}) ? tilde_expand($confs->{psfile}) : 'tred.ps';
-
-  $maximizePrintSize  =	 val_or_def($confs,"maximizeprintsize",0);
+  for my $opt (keys %$printOptions) {
+    $printOptions->{$opt} = val_or_def($confs,lc($opt),$printOptions->{$opt});
+  }
+  {
+    my $psFontFile = $printOptions->{psFontFile};
+    my $psFontAFMFile = $printOptions->{psFontAFMFile};
+    if (defined $psFontFile and length $psFontFile) {
+      $psFontFile=tilde_expand($psfontfile);
+      $psFontFile="$libDir/".$psFontFile if (not -f $psFontFile and -f 
+					       "$libDir/".$psFontFile);
+    } else {
+      if (!defined($Tk::VERSION) or $Tk::VERSION >= 804) {
+	$psFontFile="$libDir/fonts/n019003l.pfa";
+      } else {
+	$psFontFile="$libDir/fonts/ariam___.pfa";
+      }
+    }
+    if (defined $psFontAFMFile and length $psFontAMFFile) {
+      $psFontAFMFile=tilde_expand($psFontAFMFile);
+      $psFontAFMFile="$libDir/".$psFontAFMFile if (not -f $psFontAFMFile and -f 
+					       "$libDir/".$psFontAFMFile);
+    } else {
+      $psFontAFMFile=$psFontFile;
+      $psFontAFMFile=~s/\.[^.]+$/.afm/;
+      unless (-f $psFontAFMFile) {
+	$psFontAFMFile=~s!/([^/]+)$!/afm/$1!;
+      }
+    }
+    $printOptions->{psFontFile}=$psFontFile;
+    $printOptions->{psFontAFMFile}=$psFontAFMFile;
+  }
+  {
+    my $ttFontPath = $printOptions->{ttFontPath};
+    if (defined $ttFontPath and length $ttFontPath) {
+      $ttFontPath=tilde_expand($confs->{ttfontpath});
+      $ttFontPath="$libDir/".$ttFontPath if (not -d $ttFontPath and -d "$libDir/".$ttFontPath);
+    } else {
+      my @fontpath;
+      if ($^O eq "MSWin32") {
+	require Win32::Registry;
+	my %shf;
+	my $ShellFolders;
+	my $shfolders="Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders";
+	$::HKEY_CURRENT_USER->Open($shfolders,$ShellFolders) or warn "Cannot read $shfolders $^E\n";
+	$ShellFolders->GetValues(\%shf);
+	@fontpath = ($shf{Fonts}[2]);
+	#		 qw(c:/windows/fonts/ c:/winnt/fonts/);
+      } else {
+	# use fontconfig here?
+	if (open my $fc,'/etc/fonts/fonts.conf') {
+	  while (<$fc>) {
+	    push @fontpath,tilde_expand($1) if m{<dir>([^<]*)</dir>} and -d tilde_expand($1);
+	    # naive, should subst. entities, etc.
+	  }
+	}
+	unless (@fontpath) {
+	  @fontpath = ("$ENV{HOME}/.fonts/",
+		       qw(
+			   /usr/X11R6/lib/X11/fonts/TTF/
+			   /usr/X11R6/lib/X11/fonts/TrueType/
+			   /usr/share/fonts/default/TrueType/
+			   /usr/share/fonts/default/TTF/
+			)
+		      );
+	}
+      }
+      $ttFontPath = join ",",map tilde_expand($_),@fontpath;
+    }
+    $printOptions->{ttFontPath} = $ttFontPath;
+  }
   $createMacroMenu    =	 val_or_def($confs,"createmacromenu",0);
   $maxMenuLines	      =	 val_or_def($confs,"maxmenulines",20);
   $useCzechLocales    =	 val_or_def($confs,"useczechlocales",0);
   $useLocales         =	 val_or_def($confs,"uselocales",0);
   $Tk::strictMotif    =	 val_or_def($confs,"strictmotif",0);
-  $printColors	      =	 val_or_def($confs,"printcolors",0);
-  $defaultPrintCommand = val_or_def($confs,"defaultprintcommand",
-				    ($^O eq 'MSWin32') ? 'prfile32.exe /-' : 'lpr'
-				   );
   $imageMagickConvert = val_or_def($confs,"imagemagickconvert",'convert');
   $NoConvertWarning = val_or_def($confs,"noconvertwarning",0);
 
@@ -537,7 +548,7 @@ sub set_config {
   $macroDebug		      =	val_or_def($confs,"macrodebug",0);
   $tredDebug		      =	val_or_def($confs,"treddebug",$tredDebug);
   $Fslib::Debug               = val_or_def($confs,"backenddebug",$Fslib::Debug);
-  $defaultTemplateMatchMethod =	val_or_def($confs,"searchmethod",'Exhaustive regular expression');
+  $defaultTemplateMatchMethod =	val_or_def($confs,"searchmethod",'R');
   $defaultMacroListOrder      =	val_or_def($confs,"macrolistorder",'M');
   $defCWidth		      =	val_or_def($confs,"canvaswidth",'18c');
   $defCHeight		      =	val_or_def($confs,"canvasheight",'12c');

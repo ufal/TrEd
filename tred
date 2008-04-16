@@ -19,7 +19,7 @@ if ($^V lt v5.8.3) {
   print STDERR '-' x 50,"\n\n";
 }
 
-use vars qw($svn_version $version $about $opt_u $opt_h $opt_c
+use vars qw($svn_version $version $VERSION $about $opt_u $opt_h $opt_c
 	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_p
 	    $opt_n $opt_D $opt_v $opt_H $opt_I $opt_Z $opt_e
             $libDir $docDir
@@ -36,7 +36,7 @@ use vars qw($svn_version $version $about $opt_u $opt_h $opt_c
 	    $normalNextPixmap
 	    $normalPrevPixmap
 	    $locale_charset
-	    $no_secondary 
+	    $no_secondary
 	    %HELP %vertical_key_arrow_map 
 	    $manpage $listoptions $no_backups %optmap $carp
            );
@@ -45,6 +45,7 @@ $svn_version='$Id$';
 $version =  $svn_version;
 $version =~ s{^\$Id:\s*\S+\s*|\s+pajas.*$}{}g;
 $version =  "1.".$version;
+$VERSION = $version; $VERSION=~s/\s.*//;
 
 $about=
   "Copyright (c) 2000-2008 by Petr Pajas\n".
@@ -667,7 +668,6 @@ my %default_binding = (
      'focus previous view',
     ],
  );
-   
 
 ApplyGlobalConfig();
 
@@ -2638,7 +2638,7 @@ sub initSidePanel {
 	-font => 'C_small',
 	-borderwidth => 1,
 	-selectborderwidth=>1,
-	-scrollbars=>'osoe',
+	-scrollbars=>'soe',
 	-itemstyle => {
 	  -pady=>1,
 	  -padx=>1,
@@ -2667,7 +2667,7 @@ sub initSidePanel {
      );
     my $t= $colf->Scrolled(qw/HList -relief sunken
 			      -selectmode extended
-			      -scrollbars oe/,
+			      -scrollbars soe/,
 			   -separator=> "\t"
 			  )
       ->pack(qw/-expand yes -fill both -side top/);
@@ -3924,7 +3924,7 @@ sub initTTFonts {
   eval {
     $grp->{ttfonts}=TrEd::Print::get_ttf_fonts($opts,
 					       map TrEd::Config::tilde_expand($_),
-					       split /,/,$ttFontPath);
+					       split /,/,$printOptions->{ttFontPath});
   };
   if ($opts) {
     $opts->{_dlg}->destroy();
@@ -3969,9 +3969,9 @@ sub updatePrintDialogState {
   my %t=map { $_ => 1} keys %$w; # toggle
   my @disable;
   if ($s->{printTo} eq 'printer') {
-    @disable = qw(printOnePerFile resolution file format_PDF);
+    @disable = qw(printOnePerFile printImageMagickResolution psFile format_PDF);
   } elsif ($s->{printTo} eq 'file') {
-    @disable = qw(resolution command);
+    @disable = qw(printImageMagickResolution command);
   } elsif ($s->{printTo} eq 'convert') {
     @disable = qw(command psMedia prtFmtWidth prtFmtHeight);
   }
@@ -3979,12 +3979,12 @@ sub updatePrintDialogState {
     push @disable, qw(prtFmtWidth prtFmtHeight);
   }
 
-  if ($s->{format} eq 'EPS') {
+  if ($s->{printFormat} eq 'EPS') {
     push @disable,qw(font psMedia prtFmtWidth prtFmtHeight);
     push @disable,qw(printRange) unless $s->{printOnePerFile};
-  } elsif ($s->{format} eq 'PS') {
+  } elsif ($s->{printFormat} eq 'PS') {
     push @disable,qw(font);
-  } elsif ($s->{format} eq 'PDF') {
+  } elsif ($s->{printFormat} eq 'PDF') {
     push @disable,qw(printTo_printer);
     unless ($grp->{ttfonts}) {
       $w->{font}->toplevel->Busy(-recurse => 1);
@@ -3993,11 +3993,13 @@ sub updatePrintDialogState {
 #	$w->{font}->insert('end',$_);
 	$w->{font}->addItem($_);
       }
-      if (exists($grp->{ttfonts}->{$initTTFont})) {
-	$s->{ttFont} = $s->{initTTFont};
-      } else {
-	$s->{ttFont} = EMPTY;
-      }
+      $w->{font}->toplevel->afterIdle(sub{
+					if (exists($grp->{ttfonts}->{$initTTFont})) {
+					  $s->{ttFont} = $s->{initTTFont};
+					} else {
+					  $s->{ttFont} = EMPTY;
+					}
+				      });
       $w->{font}->toplevel->Unbusy();
       $w->{font}->focus;
       eval { $w->{font}->see(0) };
@@ -4005,13 +4007,13 @@ sub updatePrintDialogState {
   }
   $t{$_}=0 for (@disable);
   if ($extension eq '?') {
-    $extension = lc($s->{format});
+    $extension = lc($s->{printFormat});
   }
-  $s->{file}=~s/\.[^.]*$/.$extension/ if defined($extension) and
+  $s->{psFile}=~s/\.[^.]*$/.$extension/ if defined($extension) and
     not($s->{printTo} eq 'convert' and $extension =~ /^(?:pdf|e?ps)$/);
 
   if ($s->{printOnePerFile}) {
-    $s->{file}=~s/\.([^.]*)$/_\%n.$1/ if $s->{file}!~/[%]\d*n/;
+    $s->{psFile}=~s/\.([^.]*)$/_\%n.$1/ if $s->{psFile}!~/[%]\d*n/;
   }
 
   if ($s->{psMedia} eq 'BBox') {
@@ -4092,7 +4094,7 @@ sub _fix_combo_box {
 			     $cw->EntryEnter;
 			     $cw->{index_on_focus} = undef;
 			   },$cw]);
-    
+
     $w->bind($w,'<Return>',
 	     [sub{
 		shift;
@@ -4117,46 +4119,43 @@ sub printDialog {
   my $e_hist;
 
   my (%w,%s); # widgets, state
-  $s{command}=$grp->{printCommand} || 'lpr';
-  $s{file}=$grp->{printPsFile};
-  $s{file} =doEvalHook($win,"print_tree_filename_hook",$win->{FSFile}->appData('tred.print.filename'));
-  $s{file}=$win->{FSFile}->appData('tred.print.filename') if $s{file} eq EMPTY;
-  $s{file}=$win->{FSFile}->filename if $s{file} eq EMPTY;
-  $grp->{printFileExtension} ||= "ps";
-  $s{file}=~s/\.[^.]*$/.$grp->{printFileExtension}/;
-  $s{printTo}=$grp->{printToFile} || 'printer';
-  $s{format}=$grp->{printFormat} || 'PS';
-  $s{resolution}=$grp->{printImageMagickResolution} || 80;
+  $s{command}=$printOptions->{defaultPrintCommand};
+
+  $s{psFile}=$printOptions->{psFile};
+  $s{psFile} =doEvalHook($win,"print_tree_filename_hook",$win->{FSFile}->appData('tred.print.filename'));
+  $s{psFile}=$win->{FSFile}->appData('tred.print.filename') if $s{psFile} eq EMPTY;
+  $s{psFile}=$win->{FSFile}->filename if $s{psFile} eq EMPTY;
+  $s{psFile}=~s/\.[^.]*$/.$printOptions->{printFileExtension}/;
+
   $s{printRange}=$win->{treeNo}+1;# unless $printRange ne EMPTY;
-  $s{printSentence}=$grp->{printSentenceInfo};
-  $s{noRotate}=$grp->{printNoRotate};
-  $s{printOnePerFile}=$grp->{printOnePerFile};
-  $s{printColors}=$grp->{printColors};
-  $s{defaultPrtFmtWidth}=$prtFmtWidth;
-  $s{defaultPrtFmtHeight}=$prtFmtHeight;
-  $s{prtFmtWidth}=$prtFmtWidth;
-  $s{prtFmtHeight}=$prtFmtHeight;
-  $s{prtHMargin}=$prtHMargin;
-  $s{prtVMargin}=$prtVMargin;
-  $s{psMedia}=$psMedia;
-  $s{initTTFont} = $ttFont;
-  if ($grp->{ttfonts} and exists($grp->{ttfonts}->{$ttFont})) {
-    $s{ttFont} = $ttFont;
+  $s{defaultPrtFmtWidth}=$printOptions->{prtFmtWidth};
+  $s{defaultPrtFmtHeight}=$printOptions->{prtFmtHeight};
+
+  $s{printImageMagickResolution}=$printOptions->{printImageMagickResolution};
+
+  for my $opt (qw(printTo printFormat printSentenceInfo printFileInfo printNoRotate printOnePerFile
+		  printColors prtFmtWidth prtFmtHeight prtHMargin prtVMargin psMedia)) {
+    $s{$opt}=$printOptions->{$opt};
+  }
+  $s{initTTFont} = $printOptions->{ttFont};
+  if ($s{printFormat} eq 'PDF' and defined $s{initTTFont}) {
+    initTTFonts($grp,$grp->{top}) unless $grp->{ttfonts};
+    if ($grp->{ttfonts} and exists($grp->{ttfonts}->{$s{initTTFont}})) {
+      $s{ttFont} = $s{initTTFont};
+    }
   } else {
     $s{ttFont} = EMPTY;
   }
 
   # Dialog
   my $d= $grp->{top}->DialogBox(-title=> "Print",
-				-buttons=> ["OK", "Help", "Cancel"]);
+				-buttons=> ["OK", "Help", "Save configuration", "Cancel"]);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
   $d->BindEscape();
-  $d->Subwidget('B_Help')->configure(-command =>
-				      [sub{
-					 help_topic(shift,'printing');
-					 Tk->break;
-				       },$d]);
+  $d->Subwidget('B_Save configuration')->configure(-command =>
+						    [\&savePrintConfig,$win,\%s,\%w,1]);
+
   $d->BindReturn($d,1);
   $d->bind('<Tab>',[sub { shift->focusNext; }]);
   $d->bind('<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
@@ -4173,7 +4172,7 @@ sub printDialog {
 			   -font=> $font,
 			   -textvariable=> \$s{command})
     ->pack(qw/-padx 10 -side left -expand yes -fill x/);
-  set_grp_history($grp, $w{command}, 'printCommand', $e_hist);
+  set_grp_history($grp, $w{command}, 'defaultPrintCommand', $e_hist);
   $s{defaultBg}=$w{command}->cget('-background');
   $s{disabledBg}=$d->cget('-background');
 
@@ -4209,6 +4208,27 @@ sub printDialog {
     -borderwidth => 1,
     -buttonrelief => 'ridge'
    );
+
+
+  # TrueType font
+  my $of=$d->Frame();
+  my $bf=$of->Frame();
+
+  my %fmtbut;
+  my $pbf = $bf->Frame();
+  $w{font_label}=$pbf->Label(-text=> 'Font (TTF):',
+			       -anchor=> 'sw',
+			       -justify=> 'right');
+
+  $w{font}=$pbf->JComboBox_0_02(
+    -width => 30,
+    -mode => 'editable',
+    -validate => 'match',
+    -textvariable => \$s{ttFont},
+    -choices => [$grp->{ttfonts} ? (sort {$a cmp $b} keys %{$grp->{ttfonts}}) : ()],
+    @jcombo_opts
+   );
+  _fix_combo_box($w{font});
 
   # Page media
   $w{psMedia}=$mf->JComboBox_0_02(
@@ -4278,21 +4298,21 @@ sub printDialog {
   $w{file_label}= $ff->Label(-text=> 'File name:',
 			     -anchor=> 'w',
 			     -justify=> 'right')->pack(-side=> 'left');
-  $w{file}= $ff->$Entry(@Entry,
+  $w{psFile}= $ff->$Entry(@Entry,
 			-relief=> 'sunken',
 			-width=> 50,
 			-font=> $font,
-			-textvariable=> \$s{file})
+			-textvariable=> \$s{psFile})
     ->pack(qw/-padx 10 -side left -expand yes -fill x/);
-  $d->bind('<Alt-r>',[sub{shift;shift->{file}->focus},\$w]);
-  set_grp_history($grp, $w{file}, 'printFile',$e_hist);
-  if ($s{file} ne EMPTY) {
+  $d->bind('<Alt-r>',[sub{shift;shift->{psFile}->focus},\$w]);
+  set_grp_history($grp, $w{psFile}, 'printFile',$e_hist);
+  if ($s{psFile} ne EMPTY) {
     my $start = rindex($fil,"/")+1;
     my $end = rindex($fil,".");
     if ($start<$end) {
-      $w{file}->selectionClear();
-      $w{file}->selectionRange($start,$end);
-      $w{file}->icursor($start);
+      $w{psFile}->selectionClear();
+      $w{psFile}->selectionRange($start,$end);
+      $w{psFile}->icursor($start);
     }
   }
 
@@ -4309,65 +4329,36 @@ sub printDialog {
 		      -command =>
 		      [sub {
 			 my ($d,$s)=@_;
-			 my $initdir=dirname($s->{file});
+			 my $initdir=dirname($s->{psFile});
 			 $initdir=cwd() if ($initdir eq './');
 			 $initdir=~s!${TrEd::Convert::Ds}$!!m;
 			 my $file=
 			   get_save_filename($d,-title => "Print To File ...",
 					     $^O eq 'MSWin32' ? () :
-					     (-initialfile=> filename($s->{file})),
+					     (-initialfile=> filename($s->{psFile})),
 					     -d $initdir ? (-initialdir=> $initdir) : (),
 					     -filetypes=>
 					     [
-					      ($s->{format} eq 'PDF' ?
+					      ($s->{printFormat} eq 'PDF' ?
 					      ["PDF files", [qw/.pdf .PDF/]] :
 					      ["PostScript files", [qw/.ps .eps .PS .EPS/]]),
 					      ["All files", '*']
 					     ]
 					    );
-			 $s->{file}=$file if (defined $file and $file ne EMPTY);
+			 $s->{psFile}=$file if (defined $file and $file ne EMPTY);
 		       },$d,\%s])->pack(qw/-padx 10 -side left/);
-
-  # TrueType font
-  my $of=$d->Frame();
-  my $bf=$of->Frame();
-
-  my %fmtbut;
-  my $pbf = $bf->Frame();
-  $w{font_label}=$pbf->Label(-text=> 'Font (TTF):',
-			       -anchor=> 'sw',
-			       -justify=> 'right');
-
-
-
-
-#   $w{font}=$pbf->BrowseEntry(
-# 				-relief=> 'sunken',
-# 				-width=> 30,
-# 				-variable => \$s{ttFont},
-# 				-choices => [$grp->{ttfonts} ? (sort {$a cmp $b} keys %{$grp->{ttfonts}}) : ()]
-# 			       );
-  $w{font}=$pbf->JComboBox_0_02(
-    -width => 30,
-    -mode => 'editable',
-    -validate => 'match',
-    -textvariable => \$s{ttFont},
-    -choices => [$grp->{ttfonts} ? (sort {$a cmp $b} keys %{$grp->{ttfonts}}) : ()],
-    @jcombo_opts
-   );
-  _fix_combo_box($w{font});
 
   # Bitmap Resolutions
   my $imf=$bf->Frame();
-  $w{resolution}=$imf->JComboBox_0_02(
+  $w{printImageMagickResolution}=$imf->JComboBox_0_02(
     -mode => 'editable',
     -validate => 'key',
     -validatecommand => sub { $_[0]=~/^\d*$/ },
     -choices => ['50','60', '75','80','90','100','120','135','150','160','180',
 		 '200','225','240','260','300','360','600','720'],
-    -textvariable => \$s{resolution},
+    -textvariable => \$s{printImageMagickResolution},
    );
-  _fix_combo_box_return($w{resolution});
+  _fix_combo_box_return($w{printImageMagickResolution});
   my %printbuttons = ( printer => [$bf,'Send to printer',undef,8],
 		       file =>[$bf,'Print to file','?',9],
 		       convert =>[$imf,'Convert to a bitmap format by extension (ImageMagick)','png',13]
@@ -4389,11 +4380,11 @@ sub printDialog {
 
   $imf->Label(-text => "Resolution", -underline => 7)->pack(qw/-padx 10 -side left/);
   $imf->pack(qw/-fill x -expand yes -anchor nw/);
-  $w{resolution}->pack(qw/-padx 10 -side left/);
+  $w{printImageMagickResolution}->pack(qw/-padx 10 -side left/);
 
-  $d->bind('<Alt-i>',[sub{shift;shift->{resolution}->focus},\%w]);
+  $d->bind('<Alt-i>',[sub{shift;shift->{printImageMagickResolution}->focus},\%w]);
 
-  $w{printTo_convert}->lower($w{resolution});
+  $w{printTo_convert}->lower($w{printImageMagickResolution});
 
   foreach (qw(printer file)) {
     $w{"printTo_$_"}->pack(qw/-fill y -anchor nw/);
@@ -4412,7 +4403,7 @@ sub printDialog {
       Radiobutton(-text    => $fmtbuttons{$_}[1],
 		  -value   => $_,
 		  -underline => $fmtbuttons{$_}[3],
-		  -variable=> \$s{format},
+		  -variable=> \$s{printFormat},
 		  -relief  => 'flat',
 		  -command =>
 		  [\&updatePrintDialogState,$grp,\%w,\%s,$fmtbuttons{$_}[2],$d]
@@ -4438,9 +4429,9 @@ sub printDialog {
 				     -underline => 8,
 				     -variable=> \$s{printFileInfo},
 				     -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
-  $w{printSentence}=$bf->Checkbutton(-text=> 'Print sentence',
+  $w{printSentenceInfo}=$bf->Checkbutton(-text=> 'Print sentence',
 				     -underline => 8,
-				 -variable=> \$s{printSentence},
+				 -variable=> \$s{printSentenceInfo},
 				 -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
 
   $w{printOnePerFile}=$bf->Checkbutton(-text=> 'one tree per file (use %n in the filename to place the tree number)',
@@ -4449,10 +4440,10 @@ sub printDialog {
 				       -command => [\&updatePrintDialogState,$grp,\%w,\%s,undef,$d],
 				       -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
 
-  $w{noRotate}=
+  $w{printNoRotate}=
     $bf->Checkbutton(-text    => 'Disable landscape rotation of wide trees',
 		     -underline => 30,
-		     -variable=> \$s{noRotate},
+		     -variable=> \$s{printNoRotate},
 		     -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
   $bf->pack(-side=> 'left');
 
@@ -4497,27 +4488,13 @@ sub printDialog {
   $sf->pack(qw/-pady 10 -padx 10 -side bottom -expand yes -fill x/);
   $ff->pack(qw/-pady 10 -padx 10 -side bottom -expand yes -fill x/);
 
-  updatePrintDialogState($grp,\%w,\%s, $grp->{printFileExtension},$d);
+  updatePrintDialogState($grp,\%w,\%s, $printOptions->{printFileExtension},$d);
 #  $toFile ? $fe->focus : $ce->focus;
+
   $d->BindButtons;
-  my $result= ShowDialog($d,$s{printTo} eq "command" ? $w{command} : $w{file},$grp->{top});
-  $grp->{printRange}=$s{printRange};
-  $grp->{printOnePerFile}=$s{printOnePerFile};
-  $grp->{printToFile}=$s{printTo};
-  $grp->{printFormat}=$s{format};
-  $grp->{printPsFile}=$s{file};
-  $psMedia=$w{psMedia}->GetSelected;
-  ($grp->{printFileExtension})=$s{file}=~m!\.([^.\\/]+)$!;
-  $grp->{printSentenceInfo}=$s{printSentence};
-  $grp->{printFileInfo}=$s{printFileInfo};
-  $grp->{printCommand}=$s{command};
-  $grp->{printImageMagickResolution}=$s{resolution};
-  $grp->{printNoRotate}=$s{noRotate};
-  $grp->{printColors}=$s{printColors};
-  $win->{FSFile}->changeAppData('tred.print.filename',$s{file});
-  $ttFont=$s{ttFont};
-  $prtHMargin=$s{prtHMargin};
-  $prtVMargin=$s{prtVMargin};
+  my $result= ShowDialog($d,$s{printTo} eq "command" ? $w{command} : $w{psFile},$grp->{top});
+  savePrintConfig($win,\%s,\%w,0);
+
   my $one_per_file = 1 if $s{printOnePerFile};
   get_grp_histories($grp,$e_hist) if ($result =~ /OK/);
   $d->destroy;
@@ -4536,24 +4513,48 @@ sub printDialog {
       #2
       ($s{printTo} eq 'file') ? 1 : 0,
       #3
-      ($s{printTo} eq 'convert' or $s{format} eq 'EPS') ? 1 : 0,
+      ($s{printTo} eq 'convert' or $s{printFormat} eq 'EPS') ? 1 : 0,
       #4
-      ($s{format} eq 'PDF') ? 1 : 0,
+      ($s{printFormat} eq 'PDF') ? 1 : 0,
       #5
-      $s{file},
+      $s{psFile},
       #6
-      $s{printSentence} ? sub { get_value_line($win,$_[0],$_[1],1,0) } : undef,
+      $s{printSentenceInfo} ? sub { get_value_line($win,$_[0],$_[1],1,0) } : undef,
       #7
       $s{printFileInfo} ? 1 : 0,
       #8 
       (($s{printTo} eq 'convert') ?
-	 "$imageMagickConvert -density $s{resolution} - ".IOBackend::quote_filename($s{file}) : $s{command}),
+	 "$imageMagickConvert -density $s{printImageMagickResolution} - ".IOBackend::quote_filename($s{psFile}) : $s{command}),
       #9
       $s{printColors},
       #10
-      $s{noRotate});
+      $s{printNoRotate});
   } else {
     return ();
+  }
+}
+
+sub savePrintConfig {
+  my ($win,$s,$widgets,$save_to_tredrc)=@_;
+  my $grp = $win->{framegroup};
+  for my $opt (qw( printRange printOnePerFile printTo printFormat psFile
+		   printSentenceInfo printFileInfo printImageMagickResolution
+		   printNoRotate printColors ttFont prtHMargin prtVMargin )) {
+    $printOptions->{$opt}=$s->{$opt};
+  }
+  $printOptions->{defaultPrintCommand}=$s->{command};
+  $printOptions->{psMedia}=$widgets->{psMedia}->GetSelected;
+  ($printOptions->{printFileExtension})=$s->{psFile}=~m!\.([^.\\/]+)$!;
+
+  $win->{FSFile}->changeAppData('tred.print.filename',$s->{psFile});
+  if ($save_to_tredrc) {
+    my $config = getConfigFromFile();
+    updateRuntimeConfig($grp,$config,
+			{
+			  ';' => 'Options saved from the Print dialog',
+			  %$printOptions
+			});
+    saveConfig($grp,$config);
   }
 }
 
@@ -4574,7 +4575,7 @@ sub printThis {
     $err = 0;
     ($one_per_file,$range,@print_opts)=printDialog($grp);
     return unless scalar(@print_opts)>1;
-    if ($print_opts[2] and (!$grp->{ttfonts} or !$grp->{ttfonts}->{$ttFont})) {
+    if ($print_opts[2] and (!$grp->{ttfonts} or !$grp->{ttfonts}->{$printOptions->{ttFont}})) {
       plainErrorMessage($win,"You must select TrueType font for PDF!");
       $err = 1;
     }
@@ -4608,17 +4609,17 @@ sub printThis {
 			     @print_opts,
 			     $win->{treeView}->get_showHidden(),
 			     {
-			       'PS' => $psFontFile,
-			       'AFM' => $psFontAFMFile,
-			       'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$ttFont} : EMPTY),
-			       'Size' => $psFontSize,
+			       'PS' => $printOptions->{psFontFile},
+			       'AFM' => $printOptions->{psFontAFMFile},
+			       'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$printOptions->{ttFont}} : EMPTY),
+			       'Size' => $printOptions->{psFontSize},
 			     },
-			     $prtFmtWidth,
-			     $prtHMargin,
-			     $prtFmtHeight,
-			     $prtVMargin,
-			     $maximizePrintSize,
-			     $psMedia,
+			     $printOptions->{prtFmtWidth},
+			     $printOptions->{prtHMargin},
+			     $printOptions->{prtFmtHeight},
+			     $printOptions->{prtVMargin},
+			     $printOptions->{maximizePrintSize},
+			     $printOptions->{psMedia},
 			     $treeViewOpts,
 			     $ss,
 			     $win,
@@ -5460,6 +5461,10 @@ sub startMain {
     $top->optionAdd("\*$_.disabledBackground","lightgray");
     $top->optionAdd("\*$_.disabledForeground","gray20");
   }
+  $top->optionAdd("\*Scrollbar.width","10");
+  $top->optionAdd("\*Scrollbar.elementBorderWidth","1");
+  $top->optionAdd("\*Scrollbar.borderWidth","1");
+  $top->optionAdd("\*Scrollbar.troughColor","gray80");
   {
     # make sure button flashes are visible
     my $bg = $top->optionGet('Button.background','Background');
@@ -6560,10 +6565,6 @@ sub startMain {
 
   $group{focusedWindow}->canvas->focus;
 
-  $group{printToFile}=0;
-  $group{printCommand}=$defaultPrintCommand;
-  $group{printPsFile}=$psFile;
-
   print STDERR "Binding canvas destroy...\n" if $tredDebug;
   $top->bind($group{frame},
 		    '<Destroy>',
@@ -6674,7 +6675,7 @@ sub startMain {
     doEvalMacro($group{focusedWindow},$macro);
   }
   MainLoop;
-  unless ($group{top}) {
+  if ($group{top}) {
     saveRuntimeConfig(\%group);
   }
 
@@ -6694,24 +6695,41 @@ sub quit {
   $grp->{top}=undef;
 }
 
+sub getConfigFromFile {
+  my @conf;
+  if (open(my $fh,"<$configFile")) {
+    @conf=<$fh>;
+    close($fh);
+    return \@conf;
+  } else {
+    return;
+  }
+}
+
 sub saveRuntimeConfig {
   my $grp = shift;
   # Save configuration
   print STDERR "Saving some configuration options.\n" if $tredDebug;
-  my @conf;
-  if (open(F,"<$configFile")) {
-    @conf=<F>;
-    close(F);
-  }
-  updateRuntimeConfig($grp,\@conf);
-  saveConfig($grp,@conf);
+  my $config = getConfigFromFile() || [];
+  updateRuntimeConfig($grp,$config);
+  saveConfig($grp,$config);
 }
 sub updateRuntimeConfig {
-  my ($grp,$conf)=@_;
+  my ($grp,$conf,$update)=@_;
+  $update||={};
   my $comment = ';; Options changed by TrEd on every close (DO NOT EDIT)';
   my $ommit="canvasheight|canvaswidth|recentfile[0-9]+|geometry|showsidepanel|lastaction|filelist[0-9]+";
-  @$conf = grep { !/^\s*(?:\Q$comment\E|(?:$ommit)\s*=)/io } @$conf;
-  pop @$conf while $conf->[-1] =~ /^\s*$/;
+  my $update_comment = delete $update->{';'};
+  for (keys %$update) {
+    $ommit.=qq(|$_);
+  }
+  @$conf = grep { !/^\s*(?:\Q$comment\E|(?:$ommit)\s*=)/i } @$conf;
+  @$conf = grep { !/^\s*;*\s*\Q$update_comment\E/i } @$conf if defined $update_comment;
+  pop @$conf while @$conf and $conf->[-1] =~ /^\s*$/;
+
+  push @$conf, "\n",";; ".$update_comment."\n" if $update_comment;
+  push @$conf, (map { qq($_\t=\t).$update->{$_}."\n" } keys %$update);
+
   push @$conf, "\n",$comment."\n";
   #  $geometry=~s/^[0-9]+x[0-9]+//;
   if ($grp->{lastActionBookmark}) {
@@ -7291,18 +7309,25 @@ sub _is_same_file {
 }
 
 sub saveConfig {
- my ($win)=shift;
+ my ($win,$config)=@_;
  if (ref($win)=~/^Tk::/) {
    $top = $win->toplevel;
  } else {
    $top = $win->{top};
  }
-
- if (open(F,">$configFile")) {
-   print STDERR "SAVING CONFIG TO: $configFile\n";
-   print F @_;
-   close(F);
- } else {
+ if (-f $configFile and -w $configFile) {
+    my $renamed = rename $configFile, "${configFile}~";
+    if (open(my $fh,">$configFile")) {
+      print STDERR "SAVING CONFIG TO: $configFile\n";
+      print $fh (@$config);
+      close($fh);
+      return;
+    } elsif ($renamed) {
+      rename "${configFile}~", $configFile;
+    }
+  }
+ # otherwise something went wrong
+ { 
    my $lasterr=conv_from_locale($!);
    my ($trc)=TrEd::Config::tilde_expand('~/.tredrc');
    if (!_is_same_file($configFile,$trc)  and
@@ -7316,12 +7341,15 @@ sub saveConfig {
 			# -default=> 'Yes' # problem: Windows 'yes', UNIX 'Yes'
 		       )=~ m(yes)i) or 
 	 (!defined($top) and ! -f $trc and !defined($opt_c)))) {
-     if (open(F,">".$trc)) {
+     $renamed = rename $trc, "${trc}~";
+     if (open(my $fh,">".$trc)) {
        print STDERR "SAVING CONFIG TO: $trc\n";
-       print F @_;
-       close(F);
+       print $fh (@$config);
+       print STDERR "done\n";
+       close($fh);
        $configFile=$trc;
      } else {
+       rename("${trc}~", $trc) if $renamed;
        errorMessage($top,"Cannot write to \"$trc\": $lasterr!\n".
 		    "\nConfiguration could not be saved!\nCheck file and directory permissions.",1);
      }
@@ -7409,7 +7437,7 @@ sub editConfig {
 	   -underline => 2,
 	   -command=> [sub {
 			  my ($grp,$d,$t)=@_;
-			  saveConfig($d,$t->get("0.0","end"));
+			  saveConfig($d,[$t->get("0.0","end")]);
 			  apply_config(split(/\n/,$t->get("0.0","end")));
 			  reconfigure($grp);
 			  redraw_all($grp);
@@ -7438,12 +7466,9 @@ sub editConfig {
   $d->BindButtons;
   $d->bind('<Destroy>'=> [sub { shift; shift->{configDialog}=undef; },$grp ]);
   $d->bind($d,'<Escape>'=> [sub { shift; shift->destroy(); },$d]);
-  if (open(F,"<$configFile")) {
-    my @conf = <F>;
-    updateRuntimeConfig($grp,\@conf);
-    $t->insert('0.0',join(EMPTY,@conf)."\n");
-    close(F);
-  }
+  my $config = getConfigFromFile()||[];
+  updateRuntimeConfig($grp,$config);
+  $t->insert('0.0',join(EMPTY,@$config)."\n");
   $t->mark(qw/set insert 0.0/);
   $t->focus();
   $d->Popup;
@@ -8022,10 +8047,10 @@ sub dumpSentView {
 		 1,1,
 		 $win->{treeView}->get_showHidden(),
 		 {
-		   'PS' => $psFontFile,
-		   'AFM' => $psFontAFMFile,
-		   'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$ttFont} : EMPTY),
-		   'Size' => $psFontSize,
+		   'PS' => $printOptions->{psFontFile},
+		   'AFM' => $printOptions->{psFontAFMFile},
+		   'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$printOptions->{ttFont}} : EMPTY),
+		   'Size' => $printOptions->{psFontSize},
 		 },
 		 0,0,0,0,0,'BBox',$treeViewOpts,$ss,
 		 $win,
