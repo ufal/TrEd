@@ -2605,10 +2605,11 @@ sub initSidePanel {
   unless ($grp->{sidePanel}->widget('attrsView')) {
     my $colf = $grp->{sidePanelFrame}->Frame(
       -relief => 'sunken',
-      -borderwidth => 2,
+      -borderwidth => 1,
      );
     my $cb = $colf->Checkbutton(
       -text => 'Hide empty values',
+      -font => 'C_small',
       -underline => 2,
       -relief => 'flat',
       -anchor=>'nw',
@@ -2618,14 +2619,10 @@ sub initSidePanel {
 	    update_attribute_view($grp->{focusedWindow});
 	  }
 	})->pack(-side=>'top',-fill=>'x');
-    $grp->{frame}->bind('my',"<Alt-d>", sub{
-			  if ($grp->{attrsView} and $grp->{attrsViewPacked}) {
-			    $grp->{attrsView}->Subwidget('scrolled')->{userdata}{hide_empty}=
-			      !$grp->{attrsView}->Subwidget('scrolled')->{userdata}{hide_empty};
-			    update_attribute_view($grp->{focusedWindow});
-			    Tk->break;
-			  }
-			});
+    $grp->{frame}->bind('my',"<Alt-d>", [sub{
+					   toggle_attribute_view_hide_empty($_[1]);
+					   Tk->break;
+					 },$grp]);
     my $attrsView = $colf->TrEdNodeEditDlg({
       object=>undef,
       dialog => $colf,
@@ -2653,7 +2650,7 @@ sub initSidePanel {
     });
     $cb->configure(-variable => \$attrsView->Subwidget('scrolled')->{userdata}{hide_empty});
     $grp->{sidePanel}->add('attrsView', $colf, { -label => 'Node Attributes',
-						 -data => $attrsView,
+						 -data => $attrsView->Subwidget('scrolled'),
 						 -show_command => sub {
 						   update_attribute_view($grp->{focusedWindow});
 						  }
@@ -2663,17 +2660,23 @@ sub initSidePanel {
   unless ($grp->{sidePanel}->widget('filelistView')) {
     my $colf = $grp->{sidePanelFrame}->Frame(
       -relief => 'sunken',
-      -borderwidth => 2,
+      -borderwidth => 1,
      );
-    my $t= $colf->Scrolled(qw/HList -relief sunken
+    my $t= $colf->Scrolled(qw/HList
+			      -relief flat
+			      -borderwidth 1
+                              -selectborderwidth 1
 			      -selectmode extended
+			      -takefocus 0
 			      -scrollbars soe/,
-			   -separator=> "\t"
-			  )
+			      -separator=> "\t"
+			     )
       ->pack(qw/-expand yes -fill both -side top/);
     my $hl = $t->Subwidget('scrolled');
     $hl->{default_style_imagetext}=$hl->ItemStyle(
       'imagetext',
+      -padx=>1,
+      -pady=>1,
       -font => 'C_small',
      );
     disable_scrollbar_focus($t);
@@ -2725,6 +2728,16 @@ sub update_attribute_view {
     object => $current,
   });
 }
+sub toggle_attribute_view_hide_empty {
+  my ($grp)=@_;
+  my $view = $grp->{sidePanel} && $grp->{sidePanel}->widget('attrsView');
+  return unless $view and $view->is_shown;
+  my $attrsView=$view->data;
+  return unless ref $attrsView;
+  $attrsView->{userdata}{hide_empty}=!$attrsView->{userdata}{hide_empty};
+  update_attribute_view($grp->{focusedWindow});
+}
+
 sub update_status_line {
   my ($win)=@_;
   return unless $win;
@@ -6040,7 +6053,8 @@ sub startMain {
       Scrolled(qw/ROText
 		  -takefocus 0
 		  -state disabled
-                  -relief sunken -borderwidth 2
+                  -relief sunken
+		  -borderwidth 1
 		  -scrollbars ose/,
 		  -font => $vLineFont,
 		  -height => $valueLineHeight,
@@ -6054,7 +6068,7 @@ sub startMain {
       $bf->
 	ROText(qw(-takefocus 0
 		  -state disabled
-		  -borderwidth 2
+		  -borderwidth 1
 		  -height 1
 		  -width 10
 		 ),
@@ -6095,6 +6109,7 @@ sub startMain {
       -width => 10,
       -showvalue => 0,
       -resolution => 0.1,
+      -borderwidth => 1,
       -variable => \$group{canvasScale},
       -command => [sub {
 		     my ($grp,$step) = @_;
