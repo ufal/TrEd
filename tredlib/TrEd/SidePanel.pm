@@ -22,9 +22,15 @@ sub new {
   }, $class;
 }
 
-sub widgets {
+sub widget_names {
   my ($self)=@_;
   return @{$self->{widget_names}};
+}
+
+sub widgets {
+  my ($self)=@_;
+  my $widgets = $self->{widgets};
+  return map {$widgets->{$_}} @{$self->{widget_names}};
 }
 
 sub widget {
@@ -48,6 +54,7 @@ sub add {
   }
 
   $opts->{-label}||=$name;
+  $opts->{name}=$name;
   $opts->{panel} = $self;
 
   my $w = TrEd::SidePanel::Widget->new($tk_widget,$opts);
@@ -96,7 +103,7 @@ sub new {
     -command => [$self,'toggle']
   )->pack(-fill => 'x',-side=>'top');
   weaken($self->{button}=$button);
-  weaken($self->{adjuster}=$panel_frame->Adjuster());
+  weaken($self->{adjuster}=$panel_frame->Adjuster(-side=>'top', -widget=> $tk_widget));
   weaken($self->{panel});
   return $self;
 }
@@ -115,13 +122,57 @@ sub toggle {
   }
 }
 
+sub find_previous_widget {
+  my ($self,$shown)=@_;
+  my @w = $self->panel->widgets;
+  if ($shown) {
+    @w = grep { $_->is_shown or $_==$self } @w;
+  }
+  my $prev;
+  for my $w (@w) {
+    if ($w == $self) {
+      return $prev;
+    }
+    $prev = $w;
+  }
+  return;
+}
+
+sub find_next_widget {
+  my ($self,$shown)=@_;
+  my @w = $self->panel->widgets;
+  if ($shown) {
+    @w = grep { $_==$self or $_->is_shown } @w;
+  }
+  my $prev;
+  for my $w (@w) {
+    if ($prev and $prev == $self) {
+      return $w;
+    }
+    $prev = $w;
+  }
+  return;
+}
+
 sub hide {
   my ($self)=@_;
   return unless $self->is_shown;
+  my $h=0;
+  if ($self->adjuster->viewable) {
+    $h=$self->widget->reqheight+$self->adjuster->reqheight;
+  }
   $self->button->configure(-foreground=>'#555');
-  $self->adjuster->packForget;
+  $self->unpack_adjuster;
   $self->widget->packForget;
   $self->{shown}=0;
+  if ($h) {
+    $self->panel->frame->afterIdle(sub {
+				     my $nearest = $self->find_previous_widget(1) || $self->find_next_widget(1);
+				     if ($nearest) {
+				       $nearest->adjuster->delta_height($h);
+				     }
+				   });
+  }
   return 1;
 }
 
@@ -129,9 +180,21 @@ sub show {
   my ($self)=@_;
   return if $self->is_shown;
   $self->button->configure(-foreground=>'black');
-  $self->widget->pack(-after=>$self->button, -fill=>'both', -expand => 1,-side=>'top');
-  $self->adjuster->packAfter($self->widget,-side=>'top');
+  my $w = $self->widget;
+  $w->pack(-after=>$self->button, -fill=>'both', -expand => 1,-side=>'top');
   $self->{shown}=1;
+  $self->pack_adjuster;
+  $w->afterIdle(sub {
+		  unless ($self->adjuster->viewable) {
+		    my $nearest = $self->find_previous_widget(1) || $self->find_next_widget(1);
+		    if ($nearest) {
+		      my $h = $nearest->widget->height/2;
+		      my $reqh = $w->reqheight + $self->adjuster->reqheight+18;
+		      $h=$reqh if $reqh<$h;
+		      $nearest->adjuster->delta_height(-$h);
+		    }
+		  }
+		});
   my $command = $self->{-show_command};
   if (ref($command) eq 'CODE') {
     $command->();
@@ -140,6 +203,17 @@ sub show {
     $cmd->(@args);
   }
   return 1;
+}
+
+sub pack_adjuster {
+  my ($self)=@_;
+  return unless $self->is_shown;
+  $self->adjuster->pack(-after => $self->widget,-side=>'top',-expand => 0,-fill => 'x');
+}
+sub unpack_adjuster {
+  my ($self)=@_;
+  return unless $self->is_shown;
+  $self->adjuster->packForget;
 }
 
 sub data {
@@ -160,6 +234,11 @@ sub button {
 sub panel {
   my ($self)=@_;
   return $self->{panel};
+}
+
+sub name {
+  my ($self)=@_;
+  return $self->{name};
 }
 
 sub adjuster {
