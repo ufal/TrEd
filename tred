@@ -2691,6 +2691,26 @@ sub initSidePanel {
 			     )
       ->pack(qw/-expand yes -fill both -side top/);
     my $hl = $t->Subwidget('scrolled');
+    $hl->{balloonmsg} = '';
+    $grp->{Balloon}->attach($hl,-msg => \$hl->{balloonmsg},
+			    -initwait => 100,
+			    -postcommand => sub {
+			      my $w=shift;
+			      my $y=$w->XEvent->y;
+			      my $path = $w->nearest($y);
+			      if (defined($path) and length($path)
+				    and $w->infoExists($path)) {
+				my @bbox = $w->infoBbox($path);
+				if ($bbox[1]<$y and $y<$bbox[3]) {
+				  $hl->{balloonmsg}=$w->infoData($path);
+				  return 1;
+				} else {
+				  $hl->{balloonmsg}='';
+				  return;
+				}
+			      }
+			    }
+			   );
     $hl->{default_style_imagetext}=$hl->ItemStyle(
       'imagetext',
       -padx=>1,
