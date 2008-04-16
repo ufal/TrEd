@@ -1121,6 +1121,9 @@ sub update_sidepanel_filelist_view {
 
 sub update_a_filelist_view {
   my ($grp,$fv,$fl,$pos,$reload)=@_;
+  if ($fv->can('Subwidget') and $fv->Subwidget('scrolled')) {
+    $fv = $fv->Subwidget('scrolled');
+  }
   if ($reload) {
     $fl->expand();
     feedHListWithFilelist($grp,$fv,$fl);
@@ -1128,9 +1131,18 @@ sub update_a_filelist_view {
 #  if (defined($fl->current)) {
 #    $pos=max2(0,$fl->position);
 #  }
-  my $path=filelistEntryPath($fl,$pos);
   $fv->selectionClear();
+  if ($fv->{default_style_imagetext} and
+      $fv->{last_focused} and $fv->info('exists',$fv->{last_focused})) {
+    $fv->itemConfigure($fv->{last_focused}, 0, -style => $fv->{default_style_imagetext});
+    $fv->{last_focused}=undef;
+  }
+  my $path=filelistEntryPath($fl,$pos);
   if (defined($path) and length($path) and $fv->info('exists',$path)) {
+    if ($fv->{focused_style_imagetext}) {
+      $fv->itemConfigure($path, 0, -style => $fv->{focused_style_imagetext});
+      $fv->{last_focused}=$path;
+    }
     $fv->anchorSet($path);
     $fv->see($path);
     $fv->selectionSet($path);
@@ -1889,6 +1901,7 @@ sub openStandaloneFile {
 			       $win->{currentFileNo},
 			       $file.$goto);
       $win->{currentFileNo} = $pos if $pos >= 0;
+      update_filelist_views($grp,$win->{currentFilelist},0);
     }
     updateTitle($grp);
     return $ret;
@@ -2620,8 +2633,13 @@ sub initSidePanel {
 	  }
 	})->pack(-side=>'top',-fill=>'x');
     $grp->{frame}->bind('my',"<Alt-d>", [sub{
-					   toggle_attribute_view_hide_empty($_[1]);
-					   Tk->break;
+					   my ($w,$grp)=@_;
+					   if (defined(evalMacro($w,$grp,'ALT+'))) {
+					     Tk->break;
+					   } else {
+					     toggle_attribute_view_hide_empty($grp);
+					     Tk->break;
+					   }
 					 },$grp]);
     my $attrsView = $colf->TrEdNodeEditDlg({
       object=>undef,
@@ -2677,6 +2695,15 @@ sub initSidePanel {
       'imagetext',
       -padx=>1,
       -pady=>1,
+      -foreground => 'black',
+      -font => 'C_small',
+     );
+    $hl->{focused_style_imagetext}=$hl->ItemStyle(
+      'imagetext',
+      -padx=>1,
+      -pady=>1,
+      -foreground => 'blue',
+      -selectforeground => 'blue',
       -font => 'C_small',
      );
     disable_scrollbar_focus($t);
@@ -3190,7 +3217,9 @@ sub filelistEntryPath {
 sub feedHListWithFilelist {
   my ($grp,$hl,$fl)=@_;
   return unless ref($hl) and ref($fl);
-  $hl=$hl->Subwidget('scrolled');
+  if ($hl->can('Subwidget') and $hl->Subwidget('scrolled')) {
+    $hl=$hl->Subwidget('scrolled');
+  }
   $hl->delete('all');
   my $pat;
   my $f;
@@ -7830,15 +7859,25 @@ sub reloadSentenceView {
     $t->window('create', 'end', -window =>
 	       $t->Checkbutton(-selectcolor => undef,
 			       -indicatoron => 0,
-			       -height => 19,
-			       -width => 19,
+			       -height => 25,
+			       -width => 25,
+			       -background=>'white',
+			       -relief => 'flat',
+			       -borderwidth => 0,
+			       -padx => 5,
+			       -pady => 5,
 			       -selectimage => icon($grp,"green_belly3"),
 			       -image => icon($grp,"gray_belly3"),
 			       -variable => \$selref->[$i]
 			      ));
     $t->window('create', 'end', -window =>
-	       $t->Button(-height => 16,
-			  -width => 16,
+	       $t->Button(-height => 19,
+			  -width => 19,
+			  -background=>'white',
+			  -relief => 'flat',
+			  # -borderwidth => 0,
+			  -padx => 0,
+			  -pady => 0,
 			  -image => icon($grp,'1rightarrow'),
 			  -command => [\&openFile, $grp, "$filename##".($i+1)]
 			 ));
