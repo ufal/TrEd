@@ -709,6 +709,8 @@ sub node_release_hook {
     my ($node, $done, $mode) = @_;
     my (@line);
 
+    return unless $done;
+
     return 'stop' unless $node->parent();
 
     if ($mode eq 'Control') {

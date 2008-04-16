@@ -47,10 +47,12 @@ sub Populate {
 
   $cw->{fileTypes} = my $fileTypes = delete $args->{-filetypes};
   my(@filetypes) = GetFileTypes($cw->{'fileTypes'});
-  $cw->ConfigSpecs(-filter => ['PASSIVE', undef, undef, 
-			       defined $cw->{'fileTypes'} ?
-			       join(' ', @{ $filetypes[0]->[1] })
-			       : '*']);
+  $cw->ConfigSpecs(
+    -font => [ 'DESCENDANTS'],
+    -filter => ['PASSIVE', undef, undef, 
+		defined $cw->{'fileTypes'} ?
+		  join(' ', @{ $filetypes[0]->[1] })
+		    : '*']);
 
 
 #    $cw->{entry} = my $entry = $cw->Entry(qw /-state disabled/,
@@ -164,12 +166,13 @@ sub ChangeDir {
     $cw->{cwd}=$dir;
     $cw->ReadDir($cw->{cwd});
     $cw->UpdateEntry($cw->{cwd});
+    return $dir;
   }
+  return;
 }
 
 sub ChDir {
   my ($cw)=@_;
-
   $cw->ChangeDir($cw->Subwidget('filelist')->get('active'));
 }
 

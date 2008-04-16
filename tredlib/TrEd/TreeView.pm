@@ -941,6 +941,7 @@ sub recalculate_positions {
     } else {
       $valign_shift=$nodeYSkip+$nodeHeight;
     }
+    $ypos+=$self->get_style_opt($node,"Node","-yadj",$Opts);
     $NI->{"YPOS"}= $ypos;
     $NI->{"NodeLabel_YPOS"}=
 			    $ypos
@@ -1043,7 +1044,7 @@ sub recalculate_positions {
       $minxpos=0;
       if ($prevnode[$level]) {
 	$minxpos=
-	  $node_info->{$prevnode[$level]}{"XPOS"}+
+	  $node_info->{$prevnode[$level]}{"XPOS_noadj"}+
 	    $node_info->{$prevnode[$level]}{"After"}+$xSkipBefore;
       } else {
 	$minxpos=$baseXPos+$xSkipBefore;
@@ -1052,8 +1053,9 @@ sub recalculate_positions {
       $xpos+=$nodeXSkip+$self->get_style_opt($node,"Node","-extrabeforeskip",$Opts);
       $prevnode[$level]=$node
     }
-    $NI->{"XPOS"}=$xpos;
-    $NI->{"NodeLabel_XPOS"}=$xpos+$nodeLabelXShift;
+    $NI->{"XPOS_noadj"}=$xpos;
+    $NI->{"XPOS"}=$xpos+$self->get_style_opt($node,"Node","-xadj",$Opts);
+    $NI->{"NodeLabel_XPOS"}=$xpos+$nodeLabelXShift+$self->get_style_opt($node,"Node","-xadj",$Opts);
 
     $canvasWidth = max2($canvasWidth,
 		       $xpos+$xSkipAfter+$nodeWidth+2*$xmargin+$baseXPos);
