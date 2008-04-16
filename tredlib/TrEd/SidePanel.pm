@@ -100,6 +100,7 @@ sub new {
     -relief=>'flat',
     -foreground=>'#555',
     -pady => 0,
+    -padx => 0,
     -command => [$self,'toggle']
   )->pack(-fill => 'x',-side=>'top');
   weaken($self->{button}=$button);
