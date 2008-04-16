@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2008-02-06 14:46:20 pajas>
+## Time-stamp: <2008-04-16 23:24:45 pajas>
 
 package TR_Correction;
 
@@ -163,6 +163,7 @@ sub enable_attr_hook {
 
 sub node_release_hook {
   my ($node,$p, $mod) = @_;
+  return unless $p;
   if ($mod eq 'Alt') {
     my @choices = (["grammatical coreference" => 'Shift'],
 		   ["textual coreference" => 'Control'],

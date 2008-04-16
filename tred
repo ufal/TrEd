@@ -2753,6 +2753,38 @@ sub initSidePanel {
       },$grp ]);
     #$grp->{sidePanel}->widget('filelistView')->show;
   }
+  unless ($grp->{sidePanel}->widget('fileSystemView')) {
+    my $colf = $grp->{sidePanelFrame}->Frame(
+      -relief => 'sunken',
+      -borderwidth => 1,
+     );
+    my $fsel= $colf->MyFileSelect(-selectmode=> 'extended',
+				  -takefocus => 1,
+				  -font => 'C_small',
+				  -filetypes=> \@open_types)
+      ->pack(qw/-expand yes -fill both -side top/);
+    $fsel->Subwidget('filelist')->bind('<Double-1>',
+				       [sub {
+					  shift;
+					  my ($grp,$fsel)=@_;
+					  return if $fsel->ChDir();
+					  my ($file) = $fsel->getSelectedFiles;
+					  if (defined($file) and length($file)) {
+					    my $win = $grp->{focusedWindow};
+					    my $pos;
+					    $pos = $win->{currentFilelist}->position($file);
+					    $pos = insertToFilelist($win, undef,undef, $file) unless $pos>=0;
+					    gotoFile($win,$pos) if $pos>=0;
+					  }
+					},$grp,$fsel]);
+    $grp->{sidePanel}->add('fileSystemView', $colf, {
+      -label => 'Browse file system',
+      -data => $fsel,
+      -show_command => sub {
+      }
+     });
+  }
+
 }
 
 sub update_status_info {
@@ -10698,7 +10730,7 @@ sub node_release {
       $w->itemconfigure($tv->get_node_pinfo($parent,"Oval"),
 			  nodeOptions($win,$parent));
       $tv->apply_stored_style_opts("Oval",$parent);
-      if (doEvalHook($win,"node_release_hook",$node,$parent,"$button") ne 'stop') {
+      if (doEvalHook($win,"node_release_hook",$node,$parent,"$button",$e) ne 'stop') {
 	if ($parent->test_child_type($node) or
 	    userQuery($win,"WARNING:\n\n".
 			"The target node does not permit the dragged node ".
@@ -10757,6 +10789,8 @@ sub node_release_modif {
       $w->itemconfigure($tv->get_node_pinfo($parent,"Oval"),
 			  nodeOptions($win,$parent));
       doEvalHookWithUndo($win,"node_release_hook",$node,$parent,$mod,$e);
+    } else {
+      doEvalHookWithUndo($win,"node_release_hook",$node,undef,$mod,$e);
     }
     # try to detect that the tree was redrawn
     if ($tv->find_item('withtag','selected')) {

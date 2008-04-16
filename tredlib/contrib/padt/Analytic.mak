@@ -540,6 +540,8 @@ sub node_release_hook {
 
     my ($node, $done) = @_;
 
+    return unless $done;
+
     my @line;
 
     while ($done->{'afun'} eq '???' and $done->{'afunaux'} eq '') {
