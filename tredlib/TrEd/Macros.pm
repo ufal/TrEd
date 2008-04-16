@@ -223,16 +223,17 @@ sub read_macros {
     print STDERR "Reading $defaultMacroFile\n" if $macroDebug;
     push @macros,"\n#line 1 \"$defaultMacroFile\"\n";
     print "ERROR: Cannot open macros: $defaultMacroFile!\n", return 0
-      unless open(F,"<$defaultMacroFile");
-    set_encoding(\*F,$encoding);
-    push @macros, <F>;
-    close F;
+      unless open(my $fh,"<$defaultMacroFile");
+    set_encoding($fh,$encoding);
+    push @macros, <$fh>;
+    close $fh;
   }
   print STDERR "Reading $file\n" if $macroDebug;
-  open(F,"<$file")
-    || (!$keep && ($file="$libDir/$file") && open(F,"<$file")) ||
+  my $F;
+  open($F,"<$file")
+    || (!$keep && ($file="$libDir/$file") && open($F,"<$file")) ||
       die "ERROR: Cannot open macros: $file ($!)!\n";
-  set_encoding(\*F,$encoding);
+  set_encoding($F,$encoding);
 
 #
 # new "pragmas":
@@ -257,7 +258,7 @@ sub read_macros {
   my $line=1;
   my @conditions;
   my $ifok=1;
-  while (<F>) {
+  while (<$F>) {
     $line++;
     if (/^\#endif(?:$|\s)/) {
       push @macros,$_;
@@ -397,7 +398,7 @@ sub read_macros {
 	    }
 	  }
 	} elsif (/^\#\s*encoding\s+(\S+)\s*$/) {
-	  set_encoding(\*F,$1);
+	  set_encoding($F,$1);
 	}
       } else {
 	# $ifok == 0
@@ -406,7 +407,7 @@ sub read_macros {
     }
   }
   die "Missing #endif in $file line $line (".scalar(@conditions)." unmatched #if-pragmas)\n" if (@conditions);
-  close(F);
+  close($F);
   print STDERR "Read ",scalar(@macros)." lines of code.\n" if !$keep and $macroDebug;
   return 1;
 }
