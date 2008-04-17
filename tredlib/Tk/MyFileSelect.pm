@@ -49,6 +49,7 @@ sub Populate {
   my(@filetypes) = GetFileTypes($cw->{'fileTypes'});
   $cw->ConfigSpecs(
     -font => [ 'DESCENDANTS'],
+    -showhidden => ['PASSIVE',undef,undef, 0],
     -filter => ['PASSIVE', undef, undef, 
 		defined $cw->{'fileTypes'} ?
 		  join(' ', @{ $filetypes[0]->[1] })
@@ -125,13 +126,19 @@ sub ReadDir {
     $dir="$1$splitchar." if ($dir=~/^([a-z]:)(?:$rsplit)?$/i);
   }
   local *DIR;
-  my $flt = join('$|', split(' ', $cw->cget(-filter)) );
+  my $flt = join('$|', split(' ', $cw->cget('-filter')) );
   $flt =~ s!([\.\+])!\\$1!g;
-  $flt =~ s!\*!.*!g;
+  my $show_hidden = $cw->cget('-showhidden');
+  if ($show_hidden) {
+    $flt =~ s!\*!.*!g;
+  } else {
+    $flt =~ s!\*!^[^.$splitchar].*!g;
+  }
   opendir(DIR, $dir) || warn "can't opendir $dir: $!";
   my @all=grep { $_ ne "." } readdir(DIR);
-  @all= (sort(map { "$_$splitchar" } grep { -d "$dir$splitchar$_" } @all),
-	 sort grep { ! -d "$dir$splitchar$_" and $_ =~ m!${flt}$! } @all);
+  @all= (sort(map { "$_$splitchar" } grep { -d "$dir$splitchar$_"
+	  and ($show_hidden or m{^[.]+$|^[^.]}) } @all),
+	 sort grep { !(-d "$dir$splitchar$_") and m!${flt}$! } @all);
   $cw->Subwidget('filelist')->insert('end', @all);
   closedir DIR;
   return 1;
