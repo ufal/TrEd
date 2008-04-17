@@ -1053,12 +1053,13 @@ sub recalculate_positions {
       $xpos+=$nodeXSkip+$self->get_style_opt($node,"Node","-extrabeforeskip",$Opts);
       $prevnode[$level]=$node
     }
+    my $xadj = $self->get_style_opt($node,"Node","-xadj",$Opts);
     $NI->{"XPOS_noadj"}=$xpos;
-    $NI->{"XPOS"}=$xpos+$self->get_style_opt($node,"Node","-xadj",$Opts);
-    $NI->{"NodeLabel_XPOS"}=$xpos+$nodeLabelXShift+$self->get_style_opt($node,"Node","-xadj",$Opts);
+    $NI->{"XPOS"}=$xpos+$xadj;
+    $NI->{"NodeLabel_XPOS"}=$xpos+$xadj;
 
     $canvasWidth = max2($canvasWidth,
-		       $xpos+$xSkipAfter+$nodeWidth+2*$xmargin+$baseXPos);
+		       $xpos+$xadj+$xSkipAfter+$nodeWidth+2*$xmargin+$baseXPos);
     push @zero_level, $node if ($level == 0);
   }
 
@@ -1072,7 +1073,6 @@ sub recalculate_positions {
     }
     $canvasWidth = $baseX;
   }
-
   $self->{canvasWidth}=$canvasWidth;
   $self->{canvasHeight}=$baseYPos+
                      $gen_info->{"LevelYPos[".($maxlevel+1)."]"} + $ymargin;
@@ -1586,95 +1586,6 @@ sub redraw {
 
   my $lineSpacing=$Opts{lineSpacing} || $self->get_lineSpacing;
 
-  # draw sentence info
-  if ($fsfile and ($self->get_drawFileInfo or $self->get_drawSentenceInfo)) {
-    my $fontHeight=$self->getFontHeight()*$lineSpacing;
-    $self->{canvasHeight}+=$fontHeight; # add some skip
-    if ($self->get_drawFileInfo) {
-      my $currentfile=filename($fsfile->filename);
-      my ($ftext);
-      $ftext="File: $currentfile";
-      if (@$nodes) {
-	my $r_node = $nodes->[0]->root;
-	my $which_tree = Fslib::Index($fsfile->treeList,$r_node)+1;
-	$ftext.=", tree ".$which_tree." of ".($fsfile->lastTreeNo+1);
-      } else {
-	$ftext='';
-      }
-      eval { #apply_style_opts
-	$canvas->itemconfigure(
-	  $canvas->
-	    createText(0,
-		       $self->{canvasHeight},
-		       -tags => ['vline','text_item'],
-		       -font => $self->get_font,
-		       -text => $ftext,
-		       -justify => 'left', -anchor => 'nw'),
-	  @{$Opts{SentenceText}});
-      }; print STDERR $@ if $@;
-      $self->{canvasHeight}+=$fontHeight;
-      my $ftw = $self->getTextWidth($ftext,1);
-      $self->{canvasWidth}=max2($self->{canvasWidth},$ftw);
-      $self->apply_style_opts(
-	$canvas->
-	  createLine(0,$self->{canvasHeight},
-		     ($ftw || 0),
-		     $self->{canvasHeight}),
-	@{$Opts{SentenceFileInfo}});
-      $self->{canvasHeight}+=$fontHeight;
-    }
-    if ($self->get_drawSentenceInfo) {
-      if (ref($valtext) eq 'ARRAY') {
-	$valtext = join '',map {$_->[0]} @$valtext;
-      } else {
-	$valtext=~s{^(.*)/([^:]*):}{};
-      }
-      $valtext=~s/ +([.,!:;])|(\() |(\)) /$1/g;
-      my $i=1;
-      my $lines=$self->wrapLines($valtext,$self->{canvasWidth},$self->{reverseNodeOrder});
-      foreach (@$lines) {
-	if ($self->{reverseNodeOrder}) {
-	  eval { #apply_style_opts
-	    $canvas->itemconfigure(
-	    $canvas->
-	      createText($self->{canvasWidth},
-					   $self->{canvasHeight},
-			 -font => $self->get_font,
-			 -tags => ['vline','text_item'],
-			 -text => $_,
-			 -justify => 'right',
-			 -anchor => 'ne'),
-	    @{$Opts{SentenceLine}})
-	  }; print STDERR $@ if $@;
-	} else {
-	  eval { #apply_style_opts
-	    $canvas->itemconfigure(
-	    $canvas->
-	      createText(0,$self->{canvasHeight},
-			 -font => $self->get_font,
-			 -tags => ['vline','text_item'],
-			 -text => $_,
-					   -justify => 'left',
-			 -anchor => 'nw'),
-	    @{$Opts{SentenceLine}});
-	  }; print STDERR $@ if $@;
-	}
-	$self->{canvasHeight}+=$fontHeight;
-      }
-    }
-
-#    $canvas->createRectangle(0,0, $self->{canvasWidth},$self->{canvasHeight},
-#			      -outline => 'black',
-#			      -fill => undef,
-#				   -tags => 'vline'
-#			     );
-  }
-#   $canvas->configure(-scrollregion =>[0,0,
-# 				      $self->{canvasWidth},
-# 				      $self->{canvasHeight}]);
-#   $canvas->xviewMoveto(0);
-#   $canvas->yviewMoveto(0);
-
   my $lineHeight=$self->getFontHeight() * $lineSpacing;
   my $edge_label_yskip= (scalar(@$node_patterns) ? $self->get_edgeLabelSkipAbove : 0);
   my $can_dash=($Tk::VERSION=~/\.([0-9]+)$/ and $1>=22);
@@ -2018,6 +1929,89 @@ sub redraw {
       }
     }
   }
+
+  my @bbox = $canvas->bbox('!stripe');
+  $self->{canvasWidth}=$bbox[2]+$self->get_xmargin;
+  $self->{canvasHeight}=$bbox[3]+$self->get_ymargin;
+
+  # draw sentence info
+  if ($fsfile and ($self->get_drawFileInfo or $self->get_drawSentenceInfo)) {
+    my $fontHeight=$self->getFontHeight()*$lineSpacing;
+    $self->{canvasHeight}+=$fontHeight; # add some skip
+    if ($self->get_drawFileInfo) {
+      my $currentfile=filename($fsfile->filename);
+      my ($ftext);
+      $ftext="File: $currentfile";
+      if (@$nodes) {
+	my $r_node = $nodes->[0]->root;
+	my $which_tree = Fslib::Index($fsfile->treeList,$r_node)+1;
+	$ftext.=", tree ".$which_tree." of ".($fsfile->lastTreeNo+1);
+      } else {
+	$ftext='';
+      }
+      eval { #apply_style_opts
+	$canvas->itemconfigure(
+	  $canvas->
+	    createText(0,
+		       $self->{canvasHeight},
+		       -tags => ['vline','text_item'],
+		       -font => $self->get_font,
+		       -text => $ftext,
+		       -justify => 'left', -anchor => 'nw'),
+	  @{$Opts{SentenceText}});
+      }; print STDERR $@ if $@;
+      $self->{canvasHeight}+=$fontHeight;
+      my $ftw = $self->getTextWidth($ftext,1);
+      $self->{canvasWidth}=max2($self->{canvasWidth},$ftw);
+      $self->apply_style_opts(
+	$canvas->
+	  createLine(0,$self->{canvasHeight},
+		     ($ftw || 0),
+		     $self->{canvasHeight}),
+	@{$Opts{SentenceFileInfo}});
+      $self->{canvasHeight}+=$fontHeight;
+    }
+    if ($self->get_drawSentenceInfo) {
+      if (ref($valtext) eq 'ARRAY') {
+	$valtext = join '',map {$_->[0]} @$valtext;
+      } else {
+	$valtext=~s{^(.*)/([^:]*):}{};
+      }
+      $valtext=~s/ +([.,!:;])|(\() |(\)) /$1/g;
+      my $i=1;
+      my $lines=$self->wrapLines($valtext,$self->{canvasWidth},$self->{reverseNodeOrder});
+      foreach (@$lines) {
+	if ($self->{reverseNodeOrder}) {
+	  eval { #apply_style_opts
+	    $canvas->itemconfigure(
+	    $canvas->
+	      createText($self->{canvasWidth},
+					   $self->{canvasHeight},
+			 -font => $self->get_font,
+			 -tags => ['vline','text_item'],
+			 -text => $_,
+			 -justify => 'right',
+			 -anchor => 'ne'),
+	    @{$Opts{SentenceLine}})
+	  }; print STDERR $@ if $@;
+	} else {
+	  eval { #apply_style_opts
+	    $canvas->itemconfigure(
+	    $canvas->
+	      createText(0,$self->{canvasHeight},
+			 -font => $self->get_font,
+			 -tags => ['vline','text_item'],
+			 -text => $_,
+					   -justify => 'left',
+			 -anchor => 'nw'),
+	    @{$Opts{SentenceLine}});
+	  }; print STDERR $@ if $@;
+	}
+	$self->{canvasHeight}+=$fontHeight;
+      }
+    }
+  }
+
   ## Canvas Custom Balloons ##
   if ($fsfile) {
     my $hint=defined($self->hint) ? ${$self->hint} : $fsfile->hint;
@@ -2083,8 +2077,11 @@ sub redraw {
   }
 
   undef $@;
-  ## Canvas grid - for inactive TreeView ##
-  ##  $canvas->createLine(0,0,$canvas->width, $canvas->height,-fill => 'green');
+
+  @bbox = $canvas->bbox('!stripe'); # now including the file and sentence info
+  $self->{canvasWidth}=$bbox[2]+$self->get_xmargin;
+  $self->{canvasHeight}=$bbox[3]+$self->get_ymargin;
+
   if ($stipple ne "") {
     $canvas->createRectangle(-1000,-1000,
 			     max2(5000,$self->{canvasWidth}),max2(5000,$self->{canvasHeight}),
