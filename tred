@@ -2763,6 +2763,7 @@ sub initSidePanel {
 				  -font => 'C_small',
 				  -filetypes=> \@open_types)
       ->pack(qw/-expand yes -fill both -side top/);
+     $fsel->Subwidget('filelist')->configure(-background => 'white', -takefocus=>0);
     $fsel->Subwidget('filelist')->bind('<Double-1>',
 				       [sub {
 					  shift;
@@ -2782,7 +2783,7 @@ sub initSidePanel {
       -data => $fsel,
       -show_command => sub {
       }
-     });
+    });
   }
 
 }
@@ -4611,7 +4612,7 @@ sub printDialog {
       #4
       ($s{printFormat} eq 'PDF') ? 1 : 0,
       #5
-      $s{psFile},
+      TrEd::Config::tilde_expand($s{psFile}),
       #6
       $s{printSentenceInfo} ? sub { get_value_line($win,$_[0],$_[1],1,0) } : undef,
       #7
@@ -4687,10 +4688,11 @@ sub printThis {
   }
   local $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
   local $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
-  
+
   my $fsfile = $win->{FSFile};
   my @range = ($one_per_file ? TrEd::Print::parse_print_list($fsfile,$range) : ($range));
   my $max_num_length = $one_per_file ? max(map length, @range) : 0;
+  eval {
   for my $r (@range) {
     if ($one_per_file) {
       $print_opts[3] =~ s/[%](\d*)n/sprintf("%".($1 ne EMPTY ? '0'.int($1) : '0'.$max_num_length)."d",$r)/e;
@@ -4719,7 +4721,7 @@ sub printThis {
 			     $win,
 			     [\&printGetNodesCallback,$win],
 			    );
-  }
+  } };
   errorMessage($win, $@) if $@;
   get_nodes_win($win); # printGetNodesCallback have fiddled with $win
 ## uncomment to get preview (see also above)

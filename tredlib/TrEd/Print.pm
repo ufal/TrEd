@@ -10,11 +10,19 @@ sub setFontMetrics {
   $self->{psFontSize} = $fontsize;
   $self->{psFontScale} = $fontscale ? $fontscale : 1000;
   $self->{textWidthHash}={};
+  my $err="PostScript Font Metrics file not found: '$filename'\n".
+    "If printing from TrEd, check the settings of the psFontAFMFile configuration option.\n";
   if ($TrEd::Convert::support_unicode) {
     require PostScript::AGLFN;
+    unless (defined($filename) and length($filename) and -f $filename) {
+      die $err;
+    }
     $self->{psFontMetrics} = new PostScript::AGLFN($filename);
   } else {
     require PostScript::FontMetrics;
+    unless (defined($filename) and length($filename) and -f $filename) {
+      die $err;
+    }
     $self->{psFontMetrics} = new PostScript::FontMetrics($filename);
   }
   return $self->{psFontMetrics};
