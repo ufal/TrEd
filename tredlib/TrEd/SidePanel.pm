@@ -99,6 +99,7 @@ sub new {
     -anchor=>'w',
     -relief=>'flat',
     -foreground=>'#555',
+    -borderwidth => 0,
     -pady => 0,
     -padx => 0,
     -command => [$self,'toggle']
@@ -189,9 +190,9 @@ sub show {
 		  unless ($self->adjuster->viewable) {
 		    my $nearest = $self->find_previous_widget(1) || $self->find_next_widget(1);
 		    if ($nearest) {
-		      my $h = $nearest->widget->height/2;
-		      my $reqh = $w->reqheight + $self->adjuster->reqheight+18;
-		      $h=$reqh if $reqh<$h;
+		      my $h = ($nearest->widget->height+$nearest->button->height+$nearest->adjuster->height+18)/2;
+		      my $reqh = $self->button->height + $w->reqheight + $self->adjuster->reqheight+18;
+		      $h=$reqh unless $reqh>$h;
 		      $nearest->adjuster->delta_height(-$h);
 		    }
 		  }

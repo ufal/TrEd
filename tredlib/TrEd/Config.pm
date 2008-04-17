@@ -7,11 +7,13 @@ package TrEd::Config;
 # This software covered by GPL - The General Public Licence
 #
 
+use strict;
+
 BEGIN {
-  use Exporter  ();
-#  use Tk;			# Tk::strictMotif
   use vars      qw($VERSION @ISA @EXPORT @EXPORT_OK @config_file_search_list $quiet);
+  use Exporter  ();
   @ISA=qw(Exporter);
+  #  use Tk; # Tk::strictMotif
   $VERSION = "0.1";
   @EXPORT = qw(@config_file_search_list $set_user_config
   $appName
@@ -88,9 +90,9 @@ BEGIN {
   $showSidePanel
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
-
   @config_file_search_list=();
 }
+use vars (@EXPORT);
 
 $treeViewOpts={
   drawSentenceInfo => 0,
@@ -123,6 +125,7 @@ $printOptions={
   ttFont=>"Arial",
   ttFontPath => undef,
   psFontFile => undef,
+  psFontAFMFile => undef,
   psFontSize => (($^O=~/^MS/) ? 14 : 12),
   prtFmtWidth => 595,
   prtFmtHeight => 842,
@@ -378,7 +381,7 @@ sub set_config {
   unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
 
   {
-    $def_res_path=$libDir;
+    my $def_res_path=$libDir;
     if ($^O eq 'Win32') {
       $def_res_path=~s/[\\\/](?:lib[\\\/]tred|tredlib)$//;
       $def_res_path.="\\resources";
@@ -430,7 +433,7 @@ sub set_config {
     my $psFontFile = $printOptions->{psFontFile};
     my $psFontAFMFile = $printOptions->{psFontAFMFile};
     if (defined $psFontFile and length $psFontFile) {
-      $psFontFile=tilde_expand($psfontfile);
+      $psFontFile=tilde_expand($psFontFile);
       $psFontFile="$libDir/".$psFontFile if (not -f $psFontFile and -f 
 					       "$libDir/".$psFontFile);
     } else {
@@ -440,7 +443,7 @@ sub set_config {
 	$psFontFile="$libDir/fonts/ariam___.pfa";
       }
     }
-    if (defined $psFontAFMFile and length $psFontAMFFile) {
+    if (defined $psFontAFMFile and length $psFontAFMFile) {
       $psFontAFMFile=tilde_expand($psFontAFMFile);
       $psFontAFMFile="$libDir/".$psFontAFMFile if (not -f $psFontAFMFile and -f 
 					       "$libDir/".$psFontAFMFile);
