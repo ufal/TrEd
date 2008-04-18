@@ -6677,7 +6677,7 @@ sub startMain {
 			  print "state is ",$top->state(),"\n"  if $tredDebug;
 			},\%group ]);
 
-  print STDERR "GUI prepared.\nOpenning first file ...." if $tredDebug;
+  print STDERR "GUI prepared.\n" if $tredDebug;
   $top->update;
   $top->Busy(-recurse=> 1);
   if (doEvalHook($group{focusedWindow},"init_hook") eq 'stop') {
@@ -6727,8 +6727,10 @@ sub startMain {
   };
 
   if (findFilelist('Default')->count == 0 and findFilelist('CmdLine-1')) {
+    print STDERR "Selecting CmdLine-1 filelist." if $tredDebug;
     selectFilelist(\%group,'CmdLine-1');
   } else {
+    print STDERR "Selecting Default filelist." if $tredDebug;
     selectFilelist(\%group,'Default');
   }
   if ($opt_p) {
