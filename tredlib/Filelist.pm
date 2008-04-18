@@ -301,10 +301,10 @@ sub expand {
   return unless ref($self);
   @{ $self->files_ref }=();
   foreach my $i (0..$self->count-1) {
+    my $f = $self->list_ref->[$i];
     push @{ $self->files_ref },
-      $self->list_ref->[$i]=~/[\[\{\*\?]/ ?
-	map { [$_,$i] } glob($self->list_ref->[$i]) :
-	  [$self->list_ref->[$i],$i];
+      ($f=~m/[\[\{\*\?]/ and $f!~m{^[[:alnum:]]+://}) ?
+	(map { [$_,$i] } glob($f)) : [$f,$i];
   }
 
   my %saw;
