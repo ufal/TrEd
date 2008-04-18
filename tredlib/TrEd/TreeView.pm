@@ -1056,7 +1056,7 @@ sub recalculate_positions {
     my $xadj = $self->get_style_opt($node,"Node","-xadj",$Opts);
     $NI->{"XPOS_noadj"}=$xpos;
     $NI->{"XPOS"}=$xpos+$xadj;
-    $NI->{"NodeLabel_XPOS"}=$xpos+$xadj;
+    $NI->{"NodeLabel_XPOS"}=$xpos+$xadj+$nodeLabelXShift;
 
     $canvasWidth = max2($canvasWidth,
 		       $xpos+$xadj+$xSkipAfter+$nodeWidth+2*$xmargin+$baseXPos);
