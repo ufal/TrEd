@@ -22,24 +22,14 @@ sub node_release_hook {
   }
 }
 
-sub add_style {
-  my $styles=shift;
-  my $style=shift;
-  if (exists($styles->{$style})) {
-    push @{$styles->{$style}},@_
-  } else {
-    $styles->{$style}=[@_];
-  }
-}
-
 sub root_style_hook {
   my ($node,$styles)=@_;
-  add_style($styles,'NodeLabel', -valign => $node->{NodeVAlign});
+  AddStyle($styles,'NodeLabel', -valign => $node->{NodeVAlign});
 }
 
 sub node_style_hook {
   my ($node,$styles)=@_;
-  add_style($styles,'NodeLabel', 
+  AddStyle($styles,'NodeLabel', 
 	    -halign => $node->{NodeHAlign},
 	    -yadj => $node->{NodeY},
 	    -xadj => $node->{NodeX},
@@ -49,7 +39,7 @@ sub node_style_hook {
 	    -addafterskip => $node->{NodeSkipAfter},
 	    -extrabeforeskip => $node->{ExtraSkip}
 	   );
-  add_style($styles,'EdgeLabel',
+  AddStyle($styles,'EdgeLabel',
 	    -halign => $node->{EdgeHAlign},
 	    -valign => $node->{EdgeVAlign},
 	    -yadj => $node->{EdgeY},
@@ -57,14 +47,14 @@ sub node_style_hook {
 	    -drawbox => $node->{EdgeFrame},
 	    -nodrawbox => $node->{NoEdgeFrame}
 	   );
-  add_style($styles,'Line',
+  AddStyle($styles,'Line',
 	    -dash => $node->{Dash},
 	    -arrow => $node->{Arrow},
 	    -width => $node->{Width},
 	    -coords => $node->{Coords} || 'n,n,p,p',
 	    -smooth => $node->{Smooth}
 	   );
-  add_style($styles,'Node',
+  AddStyle($styles,'Node',
 	    -level => $node->{Level}
 	   );
 }

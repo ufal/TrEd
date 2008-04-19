@@ -4848,8 +4848,8 @@ sub onGetNodeStyle {
   doEvalHook($win,"node_style_hook",$node,$styles);
 }
 sub onGetRootStyle {
-  my ($treeview,$node,$styles,$win)=@_;
-  doEvalHook($win,"root_style_hook",$node,$styles);
+  my ($treeview,$node,$styles,$opts,$win)=@_;
+  doEvalHook($win,"root_style_hook",$node,$styles,$opts);
 }
 
 sub onGetNodes {
