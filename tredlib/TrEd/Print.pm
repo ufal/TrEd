@@ -279,14 +279,14 @@ sub print_trees {
   my $P;
   my $treeView;
 
-  my $hMargin = $c->fpixels($prtHMargin);
-  my $vMargin = $c->fpixels($prtVMargin);
+  my $hMargin = $c->fpixels($prtHMargin||0);
+  my $vMargin = $c->fpixels($prtVMargin||0);
 
   $Media='BBox' if $toPDF and $toEPS; # hack
 
   if ($Media eq 'User') {
-    $prtFmtWidth = $c->fpixels($prtFmtWidth);
-    $prtFmtHeight = $c->fpixels($prtFmtHeight);
+    $prtFmtWidth = $c->fpixels($prtFmtWidth||0);
+    $prtFmtHeight = $c->fpixels($prtFmtHeight||0);
   } elsif ($Media ne 'BBox') {
     die "Unknown media $Media\n" unless exists $media{$Media};
       $prtFmtWidth  = $media{$Media}[0];
@@ -382,7 +382,7 @@ sub print_trees {
 	  }
 	  $treeView->redraw($fsfile,undef,$nodes,$valtext,undef,$grp_ctx);
 	};
-	my $width=$c->fpixels($treeView->get_canvasWidth);
+	my $width=$c->fpixels($treeView->get_canvasWidth)+10;
 	my $height=$c->fpixels($treeView->get_canvasHeight)+10;
 	my $rotate = !$toEPS && !$noRotate && $Media ne 'BBox'
 	  && $height<$width;

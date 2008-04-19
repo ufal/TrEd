@@ -46,16 +46,6 @@ sub switch_context_hook {
   return 1;
 }
 
-# append given styles to the object
-sub add_style {
-  my $styles=shift;
-  my $obj=shift;
-  if (exists($styles->{$obj})) {
-    push @{$styles->{$obj}},@_
-  } else {
-    $styles->{$obj}=[@_];
-  }
-}
 
 # invoked by TrEd to allow custom styling of the tree ($node is the
 # root)
@@ -70,7 +60,7 @@ sub root_style_hook {
     }
     $node=$node->following;
   }
-  add_style($styles,'Line',
+  AddStyle($styles,'Line',
 	    -fill => 'black',
 	    -width => '1'
 	   );
@@ -85,16 +75,16 @@ sub node_style_hook {
   # styling ID_nodes
   if ($node->{x_TNT} eq 'ID_node') {
     my @glo=split(',',$node->{x_TNglo});
-    add_style($styles,'Line',
+    AddStyle($styles,'Line',
 	      -coords => join('&',"n,n,p,p", map { "n,n,x[ord=$_],y[ord=$_]" } @glo),
 	      -fill => $node->{x_TNcolor}.("&$node->{x_TNcolor}"x@glo),
 	      -arrow => 'last'.('&last'x@glo),
 	      -width => '1'.('&1'x@glo)
 	     );
-    add_style($styles,'Oval',
+    AddStyle($styles,'Oval',
 	      -fill => $node->{x_TNcolor},
 	     );
-    add_style($styles,'Node',
+    AddStyle($styles,'Node',
 	      -addwidth => 2,
 	      -addheight => 2,
 	      -shape => 'rectangle',
@@ -103,21 +93,21 @@ sub node_style_hook {
   }
   # styling ID_node children
   if ($node->parent and $node->parent->{x_TNT} eq 'ID_node') {
-    add_style($styles,'Node',
+    AddStyle($styles,'Node',
 	      -rellevel => '-0.1', # lower them down a little
 	     );
-    add_style($styles,'Line',
+    AddStyle($styles,'Line',
 	      -fill => $node->parent->{x_TNcolor},
 	      -dash => '_',
 	     );
   }
   # styling OR_nodes
   if ($node->{x_TNT} eq 'OR_node') {
-    add_style($styles,'Oval',
+    AddStyle($styles,'Oval',
 	      -fill => 'orange',
 	      -smooth => 0
 	     );
-    add_style($styles,'Node',
+    AddStyle($styles,'Node',
 	      -addwidth => 2,
 	      -addheight => 2,
 	      -shape => 'polygon',
@@ -127,10 +117,10 @@ sub node_style_hook {
   }
   # styling OR_node children
   if ($node->parent and $node->parent->{x_TNT} eq 'OR_node') {
-    add_style($styles,'Node',
+    AddStyle($styles,'Node',
 	      -rellevel => '0', # lower them down a little
 	     );
-    add_style($styles,'Line',
+    AddStyle($styles,'Line',
 	      -fill => 'orange',
 	      -dash => ',',
 	     );
@@ -139,7 +129,7 @@ sub node_style_hook {
   if (($node->parent and $node->parent->parent and
        $node->parent->{x_TNT} !~ /(OR|ID)_node/) and
       $node->{x_TNT} !~ /(OR|ID)_node/) {
-    add_style($styles,'Node',
+    AddStyle($styles,'Node',
 	      -rellevel => '0.8',
 	     );
   }

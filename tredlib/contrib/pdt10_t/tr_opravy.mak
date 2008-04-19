@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2008-04-16 23:24:45 pajas>
+## Time-stamp: <2008-04-18 22:21:37 pajas>
 
 package TR_Correction;
 
@@ -49,7 +49,7 @@ sub node_style_hook {
   my ($node,$styles)=@_;
   my $ARstruct = (which_struct() =~ /AR/) ? 1 : 0;
   my @aids = grep { $_ ne "" and $_ ne $node->{AID} } getAIDREFs($node);
-  my %line = ref($styles->{Line}) ? @{$styles->{Line}} : ();
+  my %line = GetStyles($styles,'Line');
   #'style:<? #diff ?><? "#{Line-fill:red}#{Line-dash:- -}" if $${_diff_dep_} ?>',
   if ($node->{_diff_dep_}) {
     $line{-fill}='red';
