@@ -101,9 +101,10 @@ my %opts =
 sub trees2pdf {
   local $TrEd::Convert::support_unicode=1;
   local $TrEd::Print::QUIET = 1 if $opts{-quiet};
+  $opts{-psMedia}||='A4';
   SetCurrentStylesheet(STYLESHEET_FROM_FILE());
 
-  file_opened_hook() if UNIVERSAL::can('TredMacro','file_opened_hook');
+  TredMacro->file_opened_hook() if UNIVERSAL::can('TredMacro','file_opened_hook');
   SwitchContext($opts{-context}) if defined $opts{-context};
 
   SetCurrentStylesheet($opts{-stylesheet}) if defined $opts{-stylesheet};

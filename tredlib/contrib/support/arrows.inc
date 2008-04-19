@@ -81,7 +81,7 @@ sub DrawArrows {
   my ($node,$styles,$edges,$opts)=@_;
   my $i = 0;
   my %props;
-  foreach my $edge (@$edges) {
+ foreach my $edge (@$edges) {
     my $raise = $edge->{-raise}||$opts->{-raise}||25;
     my $frac  = $edge->{-frac}||$opts->{-frac}||0.12;
     for my $p (@opts) {
@@ -112,7 +112,7 @@ COORDS
     }
   }
   if (defined($props{-coords}) and @{$props{-coords}}) {
-    my %line = ref($styles->{Line}) ? @{$styles->{Line}} : ();
+    my %line = GetStyles($styles);
     $line{-coords} ||= 'n,n,p,p';
     # make sure we don't alter any previous line
     my $lines = scalar($line{-coords}=~/&/g)+1;

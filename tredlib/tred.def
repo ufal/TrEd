@@ -2482,13 +2482,29 @@ style-hash (can be used e.g. from node_style_hook).
 =cut
 
 sub AddStyle {
+  my ($styles,$style,%s)=@_;
+  if (exists($styles->{$style})) {
+    $styles->{$style}{$_}=$s{$_} for keys %s;
+  } else {
+    $styles->{$style}=\%s;
+  }
+}
+
+=item C<GetStyles(styles,object)>
+
+Auxiliary funcion: return a (flat) list of key=>value pairs consisting
+of the styles of a given type of object obtained from the style-hash
+(can be used e.g. from node_style_hook).
+
+=cut
+
+sub GetStyles {
   my $styles=shift;
   my $style=shift;
   if (exists($styles->{$style})) {
-    push @{$styles->{$style}},@_
-  } else {
-    $styles->{$style}=[@_];
+    return %{$styles->{$style}}
   }
+  return;
 }
 
 =back

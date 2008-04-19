@@ -35,8 +35,11 @@ use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_g
   columnSep lineSpacing);
 
 %DefaultNodeStyle = (
+	      CurrentOval     =>  [],
 	      Oval            =>  [],
 	      TextBox         =>  [],
+	      CurrentTextBox  =>  [],
+	      CurrentEdgeTextBox  =>  [],
 	      EdgeTextBox     =>  [],
 	      Line            =>  [ -coords => "n,n,p,p" ],
 	      SentenceText    =>  [],
@@ -52,7 +55,7 @@ use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_g
 }
 
 # # #this is a stub
-# our $TEST;
+#  our $TEST;
 #   use Benchmark qw(:all);
 #   *old_redraw = \&redraw;
 #   *redraw = sub {
@@ -60,11 +63,11 @@ use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_g
 # #     print timethese(10, {
 # #       'c7t1' => sub { old_redraw(@args); },
 # #     });
-#      print cmpthese(10, {	# 
-#        'c0t0' => sub { $TEST=0; old_redraw(@args); },
-#        'c7t1' => sub { $TEST=1; old_redraw(@args); } ,
+#       cmpthese(10, {	# 
+#        'c0t0' => sub { old_redraw(@args); },
+# #       'c7t1' => sub { $TEST=1; old_redraw(@args); } ,
 #       });
-#   };
+#  };
 
 #our $objectno;
 our ($block, $bblock);
@@ -629,6 +632,7 @@ sub compute_level {
     return $level;
   }
   $level=0;
+  my $style = $self->{style_info}{$node};
   my $parent=$node->parent;
   if ($parent) {
     my $plevel = $self->compute_level($parent, $Opts, $skipHiddenLevels);
@@ -640,10 +644,10 @@ sub compute_level {
       } else {
 	$node_info->{$node}{"P"} = $node_info->{$parent}{"P"};
       }
-      $level += $self->get_style_opt($node,"Node","-rellevel",$Opts) if $node_info->{$node}{"E"};
+      $level += $style->{'Node'}{'-rellevel'} if $node_info->{$node}{"E"};
     } else {
       $node_info->{$node}{"P"}=$parent;
-      $level = $plevel + 1 + $self->get_style_opt($node,"Node","-rellevel",$Opts);
+      $level = $plevel + 1 + $style->{'Node'}{'-rellevel'};
     }
   }
   $node_info->{$node}{"Level"}= $level;
@@ -713,14 +717,17 @@ sub recalculate_positions_vert {
     @{$nodes} = @{ $self->balance_node_order($nodes) };
   }
   # we reverse back to normal order in vertical mode
+  my $style_info = $self->{style_info};
   foreach $node ($self->get_reverseNodeOrder ? reverse @{$nodes} : @{$nodes}) {
-    $level=$node_info->{$node}{'Level'}+$self->get_style_opt($node,"Node","-level",$Opts);
+    my $NI = $node_info->{$node};
+    my $style = $style_info->{$node};
+    $level=$NI->{'Level'}+$style->{'Node'}{'-level'};
 
     $xpos = $baseXPos + $level * (15+$nodeXSkip);
-    $node_info->{$node}{"XPOS"}= $xpos;
-    $node_info->{$node}{"YPOS"}= $ypos;
-    $node_info->{$node}{"NodeLabel_YPOS"}= $ypos-$nodeHeight;
-    $node_info->{$node}{"EdgeLabel_YPOS"}= $ypos-$nodeHeight;
+    $NI->{"XPOS"}= $xpos;
+    $NI->{"YPOS"}= $ypos;
+    $NI->{"NodeLabel_YPOS"}= $ypos-$nodeHeight;
+    $NI->{"EdgeLabel_YPOS"}= $ypos-$nodeHeight;
     my $label_xpos = $xpos + $nodeWidth + $labelsep;
     $ypos += $levelHeight;
     $self->{canvasHeight} += $levelHeight;
@@ -728,20 +735,20 @@ sub recalculate_positions_vert {
       ($pat_style,$pat)=@{$patterns->[0]};
       $m=$self->getTextWidth($self->prepare_text($node,$pat,$grp));
       if ($pat_style eq 'node') {
-	$node_info->{$node}{"NodeLabelWidth"}=$m;
+	$NI->{"NodeLabelWidth"}=$m;
 	#$gen_info->{"NodeLabelWidth[0]"}=0;
 	$gen_info->{"NodeLabel_XPOS[0]"}= $label_xpos;
-	$node_info->{$node}{"NodeLabel_XPOS"}= $label_xpos; # compat
+	$NI->{"NodeLabel_XPOS"}= $label_xpos; # compat
       } else {
-	$node_info->{$node}{"EdgeLabelWidth"}=$m;
+	$NI->{"EdgeLabelWidth"}=$m;
 	#$gen_info->{"NodeLabelWidth[0]"}=0;
 	$gen_info->{"EdgeLabel_XPOS[0]"}= $label_xpos;
-	$node_info->{$node}{"EdgeLabel_XPOS"}= $label_xpos; #compat
+	$NI->{"EdgeLabel_XPOS"}= $label_xpos; #compat
       }
-      $node_info->{$node}{"X[0]"}=$m;
+      $NI->{"X[0]"}=$m;
       $canvasWidth = max2($canvasWidth, $label_xpos + $m);
-      $node_info->{$node}{"After"}=0;
-      $node_info->{$node}{"Before"}=0;
+      $NI->{"After"}=0;
+      $NI->{"Before"}=0;
     }
   }
   $gen_info->{"NodeLabel_XMIN"}=$canvasWidth;
@@ -863,11 +870,13 @@ sub recalculate_positions {
   foreach $node (@{$nodes}) {
     $node_info->{$node}{"E"}=1;
   }
+  my $style_info = $self->{style_info};
   foreach $node (@{$nodes}) {
     my $level = $self->compute_level($node,$Opts,$skipHiddenLevels);
     my ($n_nonempty,$e_nonempty);
-    my $skip_empty_nlabels = $self->get_style_opt($node,"NodeLabel","-skipempty",$Opts);
-    my $skip_empty_elabels = $self->get_style_opt($node,"EdgeLabel","-skipempty",$Opts);
+    my $style = $style_info->{$node};
+    my $skip_empty_nlabels = $style->{'NodeLabel'}{'-skipempty'};
+    my $skip_empty_elabels = $style->{'EdgeLabel'}{'-skipempty'};
     my $NI=($node_info->{$node}||={});
     my ($nodeLabelWidth,$edgeLabelWidth)=(0,0);
     for (my $i=0;$i<$pattern_count;$i++) {
@@ -917,9 +926,12 @@ sub recalculate_positions {
   }
   foreach $node (@{$nodes}) {
     my $NI=$node_info->{$node};
-    $level=$NI->{'Level'}+$self->get_style_opt($node,"Node","-level",$Opts);
+    my $style = $style_info->{$node};
+    my $node_style = $style->{'Node'};
+    my $label_style = $style->{'NodeLabel'};
 
-
+    $level=$NI->{'Level'}+$node_style->{'-level'};
+    
     $NI->{"EdgeLabelHeight"}= $edge_label_height;
 
     my $node_label_height=2*$ymargin + $NI->{"NodeLabel_nonempty"}*$fontHeight;
@@ -931,7 +943,7 @@ sub recalculate_positions {
     my $thisLevelHeight = $gen_info->{"LevelHeight[$level]"};
     $ypos = $gen_info->{"LevelYPos[$level]"};
 
-    $valign=$self->get_style_opt($node,"NodeLabel","-valign",$Opts);
+    $valign=$label_style->{'-valign'};
     if ($valign eq 'bottom') {
       $valign_shift=-$nodeYSkip-$node_label_height;
       $ypos+=$node_label_height;
@@ -941,11 +953,11 @@ sub recalculate_positions {
     } else {
       $valign_shift=$nodeYSkip+$nodeHeight;
     }
-    $ypos+=$self->get_style_opt($node,"Node","-yadj",$Opts);
+    $ypos+=$node_style->{'-yadj'};
     $NI->{"YPOS"}= $ypos;
     $NI->{"NodeLabel_YPOS"}=
 			    $ypos
-			    +$self->get_style_opt($node,"NodeLabel","-yadj",$Opts)
+			    +$label_style->{'-yadj'}
 			    +$valign_shift;
     if ($valign eq 'bottom') {
       $edge_ypos=$ypos
@@ -959,21 +971,21 @@ sub recalculate_positions {
 	     + $self->get_edgeLabelSkipAbove
 	     - $thisLevelHeight;
     }
-    $edge_ypos+=$self->get_style_opt($node,"EdgeLabel","-yadj",$Opts);
+    $edge_ypos+=$style->{'EdgeLabel'}{'-yadj'};
     $NI->{"EdgeLabel_YPOS"}=$edge_ypos;
 
-    $halign_edge=$self->get_style_opt($node,"EdgeLabel","-halign",$Opts);
+    $halign_edge=$style->{'EdgeLabel'}{'-halign'};
 
     ($nodeLabelWidth,$edgeLabelWidth)=($NI->{"NodeLabelWidth"},$NI->{"EdgeLabelWidth"});
 
-    $halign_node=$self->get_style_opt($node,"NodeLabel","-halign",$Opts);
+    $halign_node=$label_style->{'-halign'};
 
-    if ($self->get_style_opt($node,'Node','-surroundtext',$Opts)) {
+    if ($node_style->{'-surroundtext'}) {
       my $nw= $xmargin + $nodeLabelWidth/2;
-      my $addw = ($self->get_style_opt($node,'Node','-addwidth',$Opts)||0);
-      if ($self->get_style_opt($node,'Node','-shape',$Opts) eq 'oval') {
+      my $addw = ($node_style->{'-addwidth'}||0);
+      if ($node_style->{'-shape'} eq 'oval') {
 	my $nh=$node_label_height/2;
-	my $addh = ($self->get_style_opt($node,'Node','-addheight',$Opts)||0);
+	my $addh = ($node_style->{'-addheight'}||0);
 	# here we compute the ellipse axes $A,$B from its semi-latus
 	# rectum $L and the distance of its foci $C corresponding
 	# to text-box width/height or or vice-versa, whichever is less 
@@ -1002,7 +1014,7 @@ sub recalculate_positions {
 	$nodeLabelXShift=0;
       }
     } else {
-      my $nw = $nodeWidth/2 + ($self->get_style_opt($node,'Node','-addwidth',$Opts)||0);
+      my $nw = $nodeWidth/2 + ($node_style->{'-addwidth'}||0);
       $xSkipBefore=$nw;
       $xSkipAfter=$nw;
       if ($halign_node eq 'right') {
@@ -1017,11 +1029,11 @@ sub recalculate_positions {
 	$nodeLabelXShift=-$nw;
       }
     }
-    $nodeLabelXShift+=$self->get_style_opt($node,"NodeLabel","-xadj",$Opts);
+    $nodeLabelXShift+=$label_style->{'-xadj'};
     # Try to add reasonable skip so that the edge labels do
     # not overlap. (this code however cannot ensure that!!)
     if ($self->get_useAdditionalEdgeLabelSkip() and
-	$self->get_style_opt($node,"Node","-disableedgelabelspace",$Opts) ne "yes"
+	$node_style->{'-disableedgelabelspace'} ne "yes"
        ) {
       if ($halign_edge eq 'right') {
 	$xSkipBefore=max2($xSkipBefore,2*$edgeLabelWidth);
@@ -1032,14 +1044,14 @@ sub recalculate_positions {
 	$xSkipAfter=max2($xSkipAfter,2*$edgeLabelWidth);
       }
     }
-    $xSkipBefore+=$self->get_style_opt($node,"Node","-addbeforeskip",$Opts);
-    $xSkipAfter+=$self->get_style_opt($node,"Node","-addafterskip",$Opts);
+    $xSkipBefore+=$node_style->{'-addbeforeskip'};
+    $xSkipAfter+=$node_style->{'-addafterskip'};
 
     $NI->{"After"}=$xSkipAfter;
     $NI->{"Before"}=$xSkipBefore;
     if ($balance) {
       #$xSkipBefore+
-      $xpos = $self->get_style_opt($node,"Node","-extrabeforeskip",$Opts);
+      $xpos = $node_style->{'-extrabeforeskip'};
     } else {
       $minxpos=0;
       if ($prevnode[$level]) {
@@ -1050,10 +1062,10 @@ sub recalculate_positions {
 	$minxpos=$baseXPos+$xSkipBefore;
       }
       $xpos = $minxpos if $minxpos>$xpos;
-      $xpos+=$nodeXSkip+$self->get_style_opt($node,"Node","-extrabeforeskip",$Opts);
+      $xpos+=$nodeXSkip+$node_style->{'-extrabeforeskip'};
       $prevnode[$level]=$node
     }
-    my $xadj = $self->get_style_opt($node,"Node","-xadj",$Opts);
+    my $xadj = $node_style->{'-xadj'};
     $NI->{"XPOS_noadj"}=$xpos;
     $NI->{"XPOS"}=$xpos+$xadj;
     $NI->{"NodeLabel_XPOS"}=$xpos+$xadj+$nodeLabelXShift;
@@ -1130,30 +1142,31 @@ sub node_coords {
 
   my $Opts=$self->get_gen_pinfo('Opts');
   my @ret;
-  my $shape = $self->get_style_opt($node,'Node','-shape',$Opts);
+  my $node_style = $self->{style_info}{$node}{Node};
+  my $shape = $node_style->{'-shape'};
   if ($shape ne 'polygon') {
     my ($nw,$nh);
-    if ($self->get_style_opt($node,'Node','-surroundtext',$Opts)) {
+    if ($node_style->{'-surroundtext'}) {
       @ret = @{$NI->{"TextBoxCoords"}};
       my $addw = $NI->{"NodeSurroundWidth"};
       my $addh = $NI->{"NodeSurroundHeight"};
       @ret=($ret[0]-$addw,$ret[1]-$addh,$ret[2]+$addw,$ret[3]+$addh);
     } else {
       if ($currentNode eq $node) {
-	$nw=$self->get_style_opt($node,'Node','-currentwidth',$Opts);
-	$nh=$self->get_style_opt($node,'Node','-currentheight',$Opts);
-	$nw=$self->get_style_opt($node,'Node','-width',$Opts) unless defined $nw;
-	$nh=$self->get_style_opt($node,'Node','-height',$Opts) unless defined $nh;
+	$nw=$node_style->{'-currentwidth'};
+	$nh=$node_style->{'-currentheight'};
+	$nw=$node_style->{'-width'} unless defined $nw;
+	$nh=$node_style->{'-height'} unless defined $nh;
 	$nw=$self->get_currentNodeWidth unless defined $nw;
 	$nh=$self->get_currentNodeHeight unless defined $nh;
       } else {
-	$nw=$self->get_style_opt($node,'Node','-width',$Opts);
-	$nh=$self->get_style_opt($node,'Node','-height',$Opts);
+	$nw=$node_style->{'-width'};
+	$nh=$node_style->{'-height'};
 	$nw=$self->get_nodeWidth unless defined $nw;
 	$nh=$self->get_nodeHeight unless defined $nh;
       }
-      $nw+=$self->get_style_opt($node,'Node','-addwidth',$Opts);
-      $nh+=$self->get_style_opt($node,'Node','-addheight',$Opts);
+      $nw+=$node_style->{'-addwidth'};
+      $nh+=$node_style->{'-addheight'};
       @ret = ($x-$nw/2,
 	      $y-$nh/2,
 	      $x+$nw/2,
@@ -1162,7 +1175,7 @@ sub node_coords {
   } else {
     my $horiz=0;
     @ret = map { $horiz=!$horiz; $_+($horiz ? $x : $y) } 
-      split(',',$self->get_style_opt($node,'Node','-polygon',$Opts))
+      split(',',$node_style->{'-polygon'})
   }
   return $factor!=1 ? (map{ $factor * $_ } @ret) : @ret;
 }
@@ -1257,11 +1270,12 @@ sub wrapLines {
 
 sub get_style_opt {
   my ($self,$node,$style,$opt,$opts)=@_;
-  my $hash_info = $self->{style_hash_info};
-  my $S = ($hash_info->{$node}{$style}||={ @{ $self->{style_info}->{$node}{$style}|| [] } });
-  return $S->{$opt} if exists $S->{$opt};
-  $S = ($hash_info->{$style}||={ @{ $opts->{$style} || [] } });
-  return $S->{$opt};
+  my $styles = $self->{style_info}->{$node}{$style};
+  if (ref($styles) and exists $styles->{$opt}) {
+    return $styles->{$opt}
+  } else {
+    return;
+  }
 }
 
 sub apply_style_opts {
@@ -1273,12 +1287,11 @@ sub apply_style_opts {
 
 sub apply_stored_style_opts {
   my ($self, $item, $node)=@_;
-  my $Opts=$self->get_gen_pinfo("Opts");
   my $what = $item; $what=~s/^Current//;
   eval { $self->realcanvas->
 	   itemconfigure($self->{node_info}{$node}{$what},
-			 @{$Opts->{$item}||[]},
-			 $self->get_node_style($node,$item)); };
+			 %{$self->{style_info}{$node}{$item}||{}});
+       };
   print STDERR $@ if $@ ne "";
   return $@;
 }
@@ -1286,7 +1299,7 @@ sub apply_stored_style_opts {
 sub get_node_style {
   my ($self,$node,$style)=@_;
   my $s=$self->{style_info}{$node}{$style};
-  return $s ? @{$s} : ();
+  return $s ? %{$s} : ();
 }
 
 sub parse_coords_spec {
@@ -1465,8 +1478,9 @@ sub redraw {
   my ($node_patterns,$edge_patterns,$style_patterns,$patterns,$label_patterns) = @{$self->get_pattern_lists($fsfile)};
 
   my %Opts=();
+  my %RootStyle=();
   while ( my($k,$v)= each %DefaultNodeStyle ) {
-    $Opts{$k}=[@$v];
+    $RootStyle{$k}={@$v};
   }
 
   my $canvas = $self->realcanvas;
@@ -1474,7 +1488,7 @@ sub redraw {
   $self->clear_pinfo();
   my $node_info = $self->{node_info};
   my $gen_info = $self->{gen_info};
-  $gen_info->{"Opts"}=\%Opts;
+  $gen_info->{"Opts"}=\%RootStyle;
 
   #------------------------------------------------------------
   #{
@@ -1490,11 +1504,7 @@ sub redraw {
     foreach $style ($self->get_label_patterns($fsfile,"rootstyle")) {
       foreach ($self->interpolate_text_field($node,$style,$grp)=~/\#${block}/g) {
   	if (/^(Oval|CurrentOval|TextBox|EdgeTextBox|CurrentTextBox|CurrentEdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node|Label)((?:\[[^\]]+\])*)(-.+?):'?(.+)'?$/) {
-	  if (exists $Opts{"$1$2"}) {
-	    push @{$Opts{"$1$2"}},$3=>$4;
-	  } else {
-	    $Opts{"$1$2"}=[$3=>$4];
-	  }
+	  $RootStyle{"$1$2"}{$3}=$4;
 	} elsif (/^(.*?):(.*)$/) {
 	  $Opts{$1}=$2;
 	} else {
@@ -1503,24 +1513,25 @@ sub redraw {
       }
     }
     # root styling hook
-    callback($on_get_root_style,$self,$node,\%Opts);
+    callback($on_get_root_style,$self,$node,\%RootStyle,\%Opts);
   }
 
   # styling patterns should be interpolated here for each node and
   # the results stored within node_pinfo
   my $filter_nodes = 0;
   my %skip_nodes;
-  my $style_info = $self->{style_info};
+  my $style_info = ($self->{style_info}||={});
+  my $k=0;
   foreach $node (@{$nodes}) {
-    my %nopts=();
+    my ($k,$val);
+    my %NodeStyle;
+    while ( my($k,$val)= each %RootStyle ) {
+      $NodeStyle{$k}={%$val};
+    }
     foreach $style (@$style_patterns) {
       foreach ($self->interpolate_text_field($node,$style,$grp)=~/\#${block}/g) {
 	if (/^((CurrentOval|Oval|CurrentTextBox|TextBox|EdgeTextBox|CurrentEdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node|Label)((?:\[[^\]]+\])*)(-[^:]+?)):(.+)$/) {
-	  if (exists $nopts{"$2$3"}) {
-	    push @{$nopts{"$2$3"}},$4=>$5;
-	  } else {
-	    $nopts{"$2$3"}=[$4=>$5];
-	  }
+	  $NodeStyle{"$2$3"}{$4}=$5;
 	  if ($1 eq 'Node-hide') {
 	    $skip_nodes{$node}=$5;
 	    $filter_nodes = 1;
@@ -1529,10 +1540,8 @@ sub redraw {
       }
     }
     # external styling hook
-    callback($on_get_node_style,$self,$node,\%nopts);
-    foreach (keys %nopts) {
-      $style_info->{$node}{$_}=$nopts{$_};
-    }
+    callback($on_get_node_style,$self,$node,\%NodeStyle);
+    $style_info->{$node}=\%NodeStyle;
   }
   if ($filter_nodes and !$self->get_showHidden()) {
     # $nodes = [ grep { !$skip_nodes{$_} } @$nodes ];
@@ -1609,21 +1618,22 @@ sub redraw {
 #     }
     use integer;
 
+    my $style = $style_info->{$node};
     ## Lines ##
-    my @tag=split '&',$self->get_style_opt($node,"Line","-tag",\%Opts);
-    my @arrow=split '&',$self->get_style_opt($node,"Line","-arrow",\%Opts);
+    my $line_style = $style->{'Line'};
+    my @tag=split '&',$line_style->{'-tag'};
+    my @arrow=split '&',$line_style->{'-arrow'};
     my @arrowshape=map { $_=~/^(\d+),(\d+),(\d+)$/ ? [split /,/] : undef } 
-      split '&',$self->get_style_opt($node,"Line","-arrowshape",\%Opts);
-    my @fill=split '&',$self->get_style_opt($node,"Line","-fill",\%Opts);
-    my @width=split '&',$self->get_style_opt($node,"Line","-width",\%Opts);
+      split '&',$line_style->{'-arrowshape'};
+    my @fill=split '&',$line_style->{'-fill'};
+    my @width=split '&',$line_style->{'-width'};
+
     my @dash=map { /\d/ ? [split /,/,$_] : $_ } 
-      split '&',$self->get_style_opt($node,"Line","-dash",\%Opts);
-    my @smooth=split '&',$self->get_style_opt($node,"Line","-smooth",\%Opts);
+      split '&',$line_style->{'-dash'};
+    my @smooth=split '&',$line_style->{'-smooth'};
     my %nodehash;
-
-    my $coords=$self->get_style_opt($node,"Line","-coords",\%Opts);
+    my $coords=$line_style->{'-coords'};
     $coords = $self->parse_coords_spec($node,$coords,$nodes,\%nodehash,$grp);
-
     my @coords=split '&',$coords;
     my $lin=-1;
     COORD: foreach my $c (@coords) {
@@ -1664,23 +1674,22 @@ sub redraw {
 
     undef %nodehash;
 
-#    $self->apply_style_opts($line,@{$Opts{Line}},
-#			    $self->get_node_style($node,"Line"));
-
     ## Node Shape ##
-    my $shape=lc($self->get_style_opt($node,'Node','-shape',\%Opts));
+    my $node_style = $style->{'Node'};
+    my $label_style = $style->{'NodeLabel'};
+    my $shape=lc($node_style->{'-shape'});
 
     $shape='oval' unless ($shape eq 'rectangle' or $shape eq 'polygon');
 
-    my $skip_empty_nlabels = $self->get_style_opt($node,"NodeLabel","-skipempty",\%Opts);
-    my $skip_empty_elabels = $self->get_style_opt($node,"EdgeLabel","-skipempty",\%Opts);
+    my $skip_empty_nlabels = $label_style->{'-skipempty'};
+    my $skip_empty_elabels = $style->{'EdgeLabel'}{'-skipempty'};
     $node_has_box=
       $drawBoxes 
-	&& ($valign_edge=$self->get_style_opt($node,"NodeLabel","-nodrawbox",\%Opts) ne "yes")
+	&& ($valign_edge=$label_style->{'-nodrawbox'} ne "yes")
 	  || !$drawBoxes
-	    && ($valign_edge=$self->get_style_opt($node,"NodeLabel","-dodrawbox",\%Opts) eq "yes");
+	    && ($valign_edge=$label_style->{'-dodrawbox'} eq "yes");
     $NI->{"NodeHasBox"}=$node_has_box;
-    if ($node_has_box or $self->get_style_opt($node,'Node','-surroundtext',\%Opts)) {
+    if ($node_has_box or $node_style->{'-surroundtext'}) {
       my $count = $skip_empty_nlabels ? $NI->{"NodeLabel_nonempty"} : scalar(@$node_patterns);
       $NI->{"TextBoxCoords"} =
 	$vertical_tree
@@ -1708,9 +1717,10 @@ sub redraw {
 			 );
     # $self->store_id_pinfo($o,$oval);
     eval { #apply_style_opts
-      $canvas->itemconfigure($o,@{$Opts{Oval}},
-			    $self->get_node_style($node,"Oval"),
-			    ($node eq $currentNode ? $self->get_node_style($node,"CurrentOval") : ())
+      $canvas->itemconfigure($o,
+			     (%{$style->{'Oval'}}),
+			       ($node eq $currentNode ? (%{$style->{'CurrentOval'}})
+				  : ())
 			   );
     }; print STDERR $@ if $@;
     $NI->{"Oval"}=$o;
@@ -1718,9 +1728,9 @@ sub redraw {
 
     # EdgeLabel
     if (not $vertical_tree and scalar(@$edge_patterns) and $parent) {
-      my $coords = $self->get_style_opt($node,"EdgeLabel","-coords",\%Opts);
-      $halign_edge=$self->get_style_opt($node,"EdgeLabel","-halign",\%Opts);
-      $valign_edge=$self->get_style_opt($node,"EdgeLabel","-valign",\%Opts);
+      my $coords = $style->{'EdgeLabel'}{'-coords'};
+      $halign_edge=$style->{'EdgeLabel'}{'-halign'};
+      $valign_edge=$style->{'EdgeLabel'}{'-valign'};
       $edgeLabelWidth=$NI->{"EdgeLabelWidth"};
       $edgeLabelHeight=$NI->{"EdgeLabelHeight"};
 
@@ -1766,7 +1776,7 @@ sub redraw {
 	} elsif ($valign_edge eq "center") {
 	  $x_edge_delta+=(($edgeLabelHeight*$x_edge_length)/$y_edge_length)/2;
 	}
-	$x_edge_delta+=$self->get_style_opt($node,"EdgeLabel","-xadj",\%Opts);
+	$x_edge_delta+=$style->{'EdgeLabel'}{'-xadj'};
 	$NI->{"EdgeLabel_XPOS"}=
 				$NI->{"XPOS"}+$x_edge_delta;
       }
@@ -1815,11 +1825,8 @@ sub redraw {
 	$bid,
 	$self->node_box_options($node,$fsfile->FS,
 				$currentNode,0),
-	@{$Opts{TextBox}},
-	$self->get_node_style($node,
-			      ($node==$currentNode ?
-				 "CurrentTextBox" : "TextBox")
-			     ));
+	%{$style->{ ($node==$currentNode ? "CurrentTextBox" : "TextBox") }}
+       );
       }; print STDERR $@ if $@;
       $NI->{"TextBox"}=$bid;
       $self->store_obj_pinfo($bid,$node);
@@ -1827,9 +1834,9 @@ sub redraw {
     $edge_has_box=!$vertical_tree &&
       scalar(@$edge_patterns) && $parent &&
 	($drawEdgeBoxes &&
-	 ($valign_edge=$self->get_style_opt($node,"EdgeLabel","-nodrawbox",\%Opts) ne "yes") ||
+	 ($valign_edge=$style->{'EdgeLabel'}{'-nodrawbox'} ne "yes") ||
 	 !$drawEdgeBoxes &&
-	 ($valign_edge=$self->get_style_opt($node,"EdgeLabel","-dodrawbox",\%Opts) eq "yes"));
+	 ($valign_edge=$style->{'EdgeLabel'}{'-dodrawbox'} eq "yes"));
     $NI->{"EdgeHasBox"}=$edge_has_box;
     if ($edge_has_box) {
 #      $objectno++;
@@ -1853,12 +1860,8 @@ sub redraw {
 	$self->node_box_options($node,
 				$fsfile->FS,
 				$currentNode,1),
-	@{$Opts{EdgeTextBox}},
-	$self->get_node_style($node,
-			      $node==$currentNode ?
-				"CurrentEdgeTextBox" :
-				"EdgeTextBox"
-			     ));
+	%{$style->{ $node==$currentNode ? "CurrentEdgeTextBox" : "EdgeTextBox" }}
+       );
       }; print STDERR $@ if $@;
       $NI->{"EdgeTextBox"}=$bid;
       $self->store_obj_pinfo($bid,$node);
@@ -1958,7 +1961,8 @@ sub redraw {
 		       -font => $self->get_font,
 		       -text => $ftext,
 		       -justify => 'left', -anchor => 'nw'),
-	  @{$Opts{SentenceText}});
+	  %{$RootStyle{SentenceText}}
+	 );
       }; print STDERR $@ if $@;
       $self->{canvasHeight}+=$fontHeight;
       my $ftw = $self->getTextWidth($ftext,1);
@@ -1968,7 +1972,7 @@ sub redraw {
 	  createLine(0,$self->{canvasHeight},
 		     ($ftw || 0),
 		     $self->{canvasHeight}),
-	@{$Opts{SentenceFileInfo}});
+	@{$RootStyle{SentenceFileInfo}});
       $self->{canvasHeight}+=$fontHeight;
     }
     if ($self->get_drawSentenceInfo) {
@@ -1992,7 +1996,7 @@ sub redraw {
 			 -text => $_,
 			 -justify => 'right',
 			 -anchor => 'ne'),
-	    @{$Opts{SentenceLine}})
+	    @{$RootStyle{SentenceLine}})
 	  }; print STDERR $@ if $@;
 	} else {
 	  eval { #apply_style_opts
@@ -2004,7 +2008,7 @@ sub redraw {
 			 -text => $_,
 					   -justify => 'left',
 			 -anchor => 'nw'),
-	    @{$Opts{SentenceLine}});
+	    @{$RootStyle{SentenceLine}});
 	  }; print STDERR $@ if $@;
 	}
 	$self->{canvasHeight}+=$fontHeight;
@@ -2137,8 +2141,8 @@ sub draw_text_line {
   my $gen_info = $self->{gen_info};
   my $style_info = $self->{style_info};
 #  $msg=~s/([\$\#]{[^}]+})/\#\#\#$1\#\#\#/g;
-  my $align= $self->get_style_opt($node,$what."[$i]","-textalign",$Opts);
-  $align = $self->get_style_opt($node,$what,"-textalign",$Opts) unless defined $align;
+  my $style=$style_info->{$node};
+  my $align= $style->{$what."[$i]"}{'-textalign'} || $style->{$what}{'-textalign'};
   my $textdelta=0;
   my $X =
     ($what eq 'Label') ?
@@ -2213,14 +2217,10 @@ sub draw_text_line {
       # $self->store_id_pinfo($bid,$txt);
       eval { #apply_style_opts
 	$canvas->itemconfigure($bid,
-		   @{$Opts->{Text}},
-		   @{$Opts->{"Text[$c]"}},
-		   @{$Opts->{"Text[$c][$i]"}},
-		   @{$Opts->{"Text[$c][$i][$j]"}},
-		   @{$style_info->{$node}{"Text"}},
-		   @{$style_info->{$node}{"Text[$c]"}},
-		   @{$style_info->{$node}{"Text[$c][$i]"}},
-		   @{$style_info->{$node}{"Text[$c][$i][$j]"}},
+		   %{$style->{"Text"}},
+		   %{$style->{"Text[$c]"}},
+		   %{$style->{"Text[$c][$i]"}},
+		   %{$style->{"Text[$c][$i][$j]"}},
 		   %inline_opts,
 		   (defined($color) ? (-fill => $color) : ())
 		  );
@@ -2275,8 +2275,7 @@ sub draw_text_line {
 	#$self->store_id_pinfo($bid,$txt);
 	eval { #apply_style_opts
 	  $canvas->itemconfigure($bid,
-				@{$Opts->{Text}},
-				@{$style_info->{$node}{Text}},
+				%{$style->{Text}},
 				%inline_opts,
 				(defined($color) ? (-fill => $color) : ())
 			       );
@@ -2300,10 +2299,8 @@ sub draw_text_line {
 		       );
       eval { #apply_style_opts
 	$canvas->itemconfigure($bid,
-			       @{$Opts->{TextBg}},
-			       @{$Opts->{"TextBg[$i]"}},
-			       @{$style_info->{$node}{TextBg}},
-			       @{$style_info->{$node}{"TextBg[$i]"}},
+			       %{$style->{TextBg}},
+			       %{$style->{"TextBg[$i]"}},
 			      );
       }; print STDERR $@ if $@;
       $node_info->{$node}{"TextBg[$i]"}=$bid;
