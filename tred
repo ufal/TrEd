@@ -2645,6 +2645,7 @@ sub initSidePanel {
       object=>undef,
       dialog => $colf,
       no_show=>1,
+      no_sort=>!$sortAttrs,
       search_field => 0,
       hide_empty => 1,
       knit_support => 1,
@@ -2803,6 +2804,7 @@ sub update_attribute_view {
   my $attrsView=$view->data;
   return unless ref $attrsView;
   my $current = $win->{currentNode};
+  $attrsView->set_option('no_sort'=>!$sortAttrs);
   $attrsView->set_data({
     type => $current && $current->type,
     object => $current,
@@ -5840,7 +5842,11 @@ sub startMain {
 # 			   redraw_win($grp->{focusedWindow});
 # 			 },\%group]],
 	 [Checkbutton=> 'Sort Attributes in Dialogs', -underline=> 1,
-	  -variable=> \$sortAttrs],
+	  -variable=> \$sortAttrs,
+	  -command => [sub {
+			 update_attribute_view($_[0]);
+		       },\%group]
+	 ],
 	 [Cascade=> 'Display mode', -underline=> 8,
 	  -menuitems=> [
 	    [Radiobutton => "Default",
@@ -5893,7 +5899,8 @@ sub startMain {
 					       my ($grp)=@_;
 					       my $win=$grp->{focusedWindow};
 					       save_undo($win,prepare_undo($win,"New Node"));
-					       newNode($win);
+					       my $new = newNode($win);
+					       determineNodeType($win,$new);
 					     },\%group]],
 	 [Button=> 'Remove Active Node', -underline=> 0, -command=> [sub {
 					       my ($grp)=@_;
@@ -5903,11 +5910,15 @@ sub startMain {
 					     },\%group]],
 	 [Button=> 'Insert New Tree', -underline=> 0, -command=> [sub {
 						      my ($grp)=@_;
-						      newTree($grp->{focusedWindow});
+						      my $win = $grp->{focusedWindow};
+						      newTree($win);
+						      determineNodeType($win,$win->{root});
 						    },\%group]],
 	 [Button=> 'Insert New Tree After', -underline=> 16, -command=> [sub {
 						      my ($grp)=@_;
-						      newTreeAfter($grp->{focusedWindow});
+						      my $win = $grp->{focusedWindow};
+						      newTreeAfter($win);
+						      determineNodeType($win,$win->{root});
 						    },\%group]],
 	 [Button=> 'Remove Whole Current Tree', -underline=> 7, -command=> [sub {
 						      my ($grp)=@_;
@@ -8424,6 +8435,7 @@ sub editAttrsDialog_schema {
     path => $attr_path,
     focus => (defined $focus ? $focus : $attr_path),
     buttons => [$enabled ? ($attr_path ? qw(OK Cancel) : qw(OK Help Cancel)) : ('Cancel')],
+    no_sort=>!$sortAttrs,
     buttons_configure => {
       Help => [ -command =>
 		  [sub {
