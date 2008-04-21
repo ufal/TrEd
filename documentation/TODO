@@ -52,6 +52,14 @@
    top-left corner is in positive or negative coordinates
  - [ ] remove obsoleted computation of canvas height/width
 
+* Minor Contexts
+
+ - query results displaying
+ - diff-gram displaying
+ - free node positioning
+ - subtree-folding
+ - multi tree
+
 * NTrEd [0/1]
 
   - [ ] SSH tunneling in NTrEd
