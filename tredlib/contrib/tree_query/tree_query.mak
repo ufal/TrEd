@@ -439,6 +439,9 @@ sub connect_dbi {
   }
   return $dbi;
 }
+
+
+our @last_query_nodes;
 sub query_sql {
   shift unless ref($_[0]); # shift-away package name
   my $opts = shift;
@@ -452,7 +455,9 @@ sub query_sql {
   $limit||=$DEFAULT_LIMIT;
   $timeout||=$DEFAULT_TIMEOUT;
   my $driver_name = $dbi->{Driver}->{Name};
-  my $sql = serialize_conditions($opts->{root}||$root,{%$opts,syntax=>$driver_name,limit=>$limit});
+  my $tree = $opts->{root}||$root;
+  my $sql = serialize_conditions($tree,{%$opts,syntax=>$driver_name,limit=>$limit});
+
   #  my @text_opt = eval { require Tk::CodeText; } ? (qw(CodeText -syntax SQL)) : qw(Text);
   if (GUI()) {
     $sql = EditBoxQuery(
@@ -522,6 +527,7 @@ sub query_sql {
 	}
 	if ($treebase_sources) {
 	  #IOBackend::register_input_protocol_handler(pmltq=>\&pmltq_protocol_handler);
+	  @last_query_nodes = get_query_nodes($tree);
 	  my @wins = TrEdWindows();
 	  my $res_win;
 	  if (@wins>1) {
@@ -567,14 +573,41 @@ sub map_results {
   return unless $fn=~s{^$treebase_sources/}{};
   $fn.='##'.(CurrentTreeNumber()+1);
   eval {
-  my @nodes = ($tree,$tree->descendants);
-  my @matches = map { /^\Q$fn\E\.(\d+)$/ ? $1 : () } @last_results;
-  for my $node (@nodes[@matches]) {
-    $is_match{$node}=1;
-  }
+    my @nodes = ($tree,$tree->descendants);
+    my @matches = map { /^\Q$fn\E\.(\d+)$/ ? $1 : () } @last_results;
+    for my $node (@nodes[@matches]) {
+      $is_match{$node}=1;
+    }
   };
   warn $@ if $@;
 }
+
+sub current_node_change_hook {
+  my ($node,$prev)=@_;
+  my $idx = Index(\@last_query_nodes,$node);
+  print $idx,"\n";
+  return if $idx<0;
+  my $result = @last_results[$idx];
+  my $treebase_sources = $dbi_configuration->{sources};
+  foreach my $win (TrEdWindows()) {
+    my $fsfile = $win->{FSFile};
+    next unless $fsfile;
+    my $fn = $fsfile->filename.'##'.($win->{treeNo}+1);
+    next unless ($treebase_sources.'/'.$result) =~ /\Q$fn\E\.(\d+)$/;
+    my $pos = $1;
+    my $r=$fsfile->tree($win->{treeNo});
+    for (1..$pos) {
+      $r=$r->following();
+    }
+    if ($r) {
+      SetCurrentNodeInOtherWin($win,$r);
+      CenterOtherWinTo($win,$r);
+    }
+  }
+  return;
+}
+
+
 sub open_pmltq {
   my ($filename,$opts)=@_;
   return unless $filename=~s{pmltq://}{};
@@ -588,6 +621,7 @@ sub open_pmltq {
   }
   return 'stop';
 }
+
 BEGIN {
   register_open_file_hook(\&open_pmltq);
 }
@@ -878,12 +912,8 @@ sub user_defined_relation {
   }
 }
 
-sub make_sql {
-  my ($tree,$opts)=@_;
-  $opts||={};
-  my ($format,$count,$tree_parent_id) = 
-    map {$opts->{$_}} qw(format count parent_id limit);
-  # we rely on depth first order!
+sub get_query_nodes {
+  my ($tree)=@_;
   my @nodes;
   if ($occurrences_strategy == SUB_QUERY) {
     my $n = $tree;
@@ -901,6 +931,16 @@ sub make_sql {
   } else {
     @nodes =  grep { $_->parent }  ($tree, $tree->descendants);
   }
+  return @nodes;
+}
+
+sub make_sql {
+  my ($tree,$opts)=@_;
+  $opts||={};
+  my ($format,$count,$tree_parent_id) = 
+    map {$opts->{$_}} qw(format count parent_id limit);
+  # we rely on depth first order!
+  my @nodes = get_query_nodes($tree);
   my @select;
   my @table;
   my @where;
@@ -913,7 +953,7 @@ sub make_sql {
     push @select, $id;
     my $parent = $n->parent;
     my $parent_id = $id{$parent};
-    $conditions{$id} = 
+    $conditions{$id} =
       sort join(' AND ',
 	   grep { defined and length }
 	     (
@@ -1017,11 +1057,6 @@ sub AND_Group {
 	     map { ($_, ["\n AND ",'space']) } @_);
   pop @res; # pop the last AND
   return @res;
-}
-
-sub map_attr {
-  my ($attr)=@_;
-
 }
 
 sub serialize_expression {
