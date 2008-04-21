@@ -86,7 +86,7 @@ sub remove_diff_patterns {
 sub current_node_change_hook {
   my ($node,$prev)=@_;
   return unless (exists($node->{_group_}));
-  foreach my $win (@{$grp->{framegroup}->{treeWindows}}) {
+  foreach my $win (TrEdWindows()) {
     next if ($win eq $grp);
     next unless ($win->{FSFile} and $win->{macroContext} eq 'TR_Diff');
     my $r=$win->{FSFile}->tree($win->{treeNo});
