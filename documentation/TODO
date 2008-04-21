@@ -45,7 +45,8 @@
        close the stylesheet-editor and then a node-attribute editor.
        Fixed this and possible similar errors by avoiding bind('all',...).
  - [ ] document #{Node-surroundtext:1}, #{NodeLabel-skipempty:1},
-       #{EdgeLabel-skipempty:1}, float:..., node:#{-option:value}
+       #{EdgeLabel-skipempty:1}, float:..., node:#{-option:value},
+       #{Node-xadj},#{Node-yadj}
  - [ ] minor contexts
  - [ ] printing should reflect the canvas bounding box even if the
    top-left corner is in positive or negative coordinates
