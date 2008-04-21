@@ -893,11 +893,8 @@ sub NewParent {
     PasteNode($ref,$nd);
   } else { # root of the tree
     my $trees=$grp->{FSFile}->treeList();
-    my $n;
-    for ($n=0;$n<=$#$trees;$n++) {
-      last if ($trees->[$n] == $ref);
-    }
-    if ($n>$#$trees) {
+    my $n=Index($trees,$ref);
+    if ($n<0) {
       die "tree not found in current FSFile";
     } else {
       $grp->{FSFile}->set_tree($nd,$n);
@@ -975,6 +972,20 @@ sub DeleteSubtree {
       }
     }
   }
+}
+
+=item C<DetermineNodeType($node)>
+
+For trees with PMLSchema-based node typing, try to determine the type
+of the node from the type of its parent, and associate the node with
+the type (using $node->set_type). If there are more possibilities, the
+user is asked to choose the correct type.
+
+=cut
+
+sub DetermineNodeType {
+  my ($node)=@_;
+  main::determineNodeType($grp,$node);
 }
 
 
@@ -2501,6 +2512,9 @@ of the styles of a given type of object obtained from the style-hash
 sub GetStyles {
   my $styles=shift;
   my $style=shift;
+  unless (defined($style)) {
+    carp("Usage: GetStyles(\$styles,\$object_type), where \$object_type is e.g. 'Node', 'Oval', or 'Line'\n");
+  }
   if (exists($styles->{$style})) {
     return %{$styles->{$style}}
   }

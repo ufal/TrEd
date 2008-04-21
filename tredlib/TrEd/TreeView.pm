@@ -1088,12 +1088,6 @@ sub recalculate_positions {
   $self->{canvasWidth}=$canvasWidth;
   $self->{canvasHeight}=$baseYPos+
                      $gen_info->{"LevelYPos[".($maxlevel+1)."]"} + $ymargin;
-#		     + $nodeHeight + $self->get_ymargin
-#		     + $node_pattern_count*$fontHeight;
-#		       (2*($nodeYSkip +
-#					 $self->get_ymargin)
-#		     + ($node_pattern_count+$edge_pattern_count)*$fontHeight
-#		     + $nodeHeight);
 }
 
 sub which_text_color {
@@ -1782,7 +1776,7 @@ sub redraw {
       }
     }
 
-    ## Boxes around attributes
+    # stripe
     if ($vertical_tree && $self->get_horizStripe || !$vertical_tree && $self->get_vertStripe) {
 #      $objectno++;
 #      my $stripe = "stripe_$objectno";
@@ -1809,6 +1803,7 @@ sub redraw {
       $self->store_obj_pinfo($stripe_id,$node);
       $NI->{"Stripe"}=$stripe_id;
     }
+    ## Boxes around attributes
     if ($node_has_box) {
       ## get maximum width stored here by recalculate_positions
 #      $objectno++;
@@ -1990,7 +1985,7 @@ sub redraw {
 	    $canvas->itemconfigure(
 	    $canvas->
 	      createText($self->{canvasWidth},
-					   $self->{canvasHeight},
+			 $self->{canvasHeight},
 			 -font => $self->get_font,
 			 -tags => ['vline','text_item'],
 			 -text => $_,
