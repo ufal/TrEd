@@ -1,7 +1,12 @@
 # -*- cperl -*-
 # Additional macros and bindings for creating trees from scratch
 
-#bind NewTreeAfter Alt+N menu New tree
+#bind new_tree_after Alt+N menu New tree
+#bind new_rbrother to Alt+Right menu New right brother node
+#bind new_lbrother to Alt+Left menu New left brother node
+#bind new_son to Alt+Down menu New son node
+#bind new_parent to Alt+Up menu New son parent
+
 #bind trim_subtree Alt+T menu Trim (remove all but current subtree)
 #bind delete_node_keep_children to Delete menu Delete current node (pasting its children on its parent)
 #bind DeleteSubtree to Ctrl+Delete menu Delete current subtree
@@ -16,10 +21,6 @@
 #bind cut_to_parents_lbrother to Ctrl+Left menu Place node on parent's left brother
 #bind cut_to_sibling to Ctrl+Down menu Place node on its left- or right-sibling (whichever exists)
 
-#bind NewRBrother to Alt+Right menu New right brother node
-#bind NewLBrother to Alt+Left menu New left brother node
-#bind NewSon to Alt+Down menu New son node
-#bind NewParent to Alt+Up menu New son parent
 
 #include "reordering.inc"
 #include "projectivize.inc"
@@ -32,6 +33,23 @@
 #insert ShiftSTRight as menu Move subtree to the right
 #insert ProjectivizeCurrentSubTree as menu Projectivize subtree
 #insert ProjectivizeTree as menu Projectivize tree
+
+sub new_tree_after {
+  DetermineNodeType(NewTreeAfter());
+}
+sub new_rbrother {
+  DetermineNodeType(NewRBrother());
+}
+sub new_lbrother {
+  DetermineNodeType(NewLBrother());
+}
+sub new_son {
+  DetermineNodeType(NewSon());
+}
+sub new_parent {
+  return unless $this->parent;
+  DetermineNodeType(NewParent());
+}
 
 sub cut_to_firstson {
   return unless ($this and $this->firstson and $this->parent);
