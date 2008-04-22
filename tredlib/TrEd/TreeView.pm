@@ -1866,7 +1866,7 @@ sub redraw {
 
     ## Texts of attributes
     my ($msg,$e_x,$n_x,$e_y,$n_y,$empty);
-    my ($i,$e_i,$n_i)=(0,0,0);
+    my ($i,$e_i,$n_i,$non_empty_n,$non_empty_e)=(0,0,0,0,0);
     my ($pat_class,$pat);
     $e_y=0+$NI->{"EdgeLabel_YPOS"};
     $n_y=0+$NI->{"NodeLabel_YPOS"};
@@ -1882,13 +1882,12 @@ sub redraw {
 	  if ($vertical_tree) {
 	    $e_x=0+$gen_info->{"EdgeLabel_XPOS[$e_i]"} if $i;
 	  } else {
-	    if ($skip_empty_nlabels and $NI->{"X[$i]"}==0) {
+	    if ($skip_empty_elabels and $NI->{"X[$i]"}==0) {
 	      $empty=1;
 	    }
-	    if ($empty) {
-	      $e_y-=$lineHeight;
-	    } elsif ($e_i) {
-	      $e_y+=$lineHeight;
+	    if (!$empty) {
+	      $e_y+=$lineHeight if $non_empty_e;
+	      $non_empty_e++;
 	    }
 	  }
 	  $e_i++;
@@ -1904,8 +1903,9 @@ sub redraw {
 	  if ($skip_empty_nlabels and $NI->{"X[$i]"}==0) {
 	    $empty=1;
 	  }
-	  if (!$empty and $n_i) {
-	    $n_y+=$lineHeight;
+	  if (!$empty) {
+	    $n_y+=$lineHeight if $non_empty_n;
+	    $non_empty_n++;
 	  }
 	}
 	$n_i++;

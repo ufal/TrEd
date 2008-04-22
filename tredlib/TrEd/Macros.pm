@@ -613,27 +613,22 @@ sub do_eval_hook {
       $result=eval($utf."$context\-\>global\-\>$hook(\@_)");
     }
   } else {
-    if (context_can($context,$hook)) {
-      print STDERR "running hook $context"."::"."$hook\n" if $hookDebug;
-      if (defined($safeCompartment)) {
-	no strict;
-	$safeCompartment->reval($utf."\&$context\:\:$hook(\@_)");
+    if (!context_can($context,$hook)) {
+      if ($context ne "TredMacro" and context_can('TredMacro',$hook)) {
+	$context = "TredMacro";
       } else {
-	no strict;
-	$result=eval($utf."\&$context\:\:$hook(\@_)");
-      }
-    } elsif ($context ne "TredMacro" and context_can('TredMacro',$hook)) {
-      print STDERR "running hook Tredmacro"."::"."$hook\n" if $hookDebug;
-      if (defined($safeCompartment)) {
-	no strict;
-	$safeCompartment->reval($utf."\&TredMacro\:\:$hook(\@_)");
-      } else {
-	no strict;
-	$result=eval($utf."\&TredMacro\:\:$hook(\@_)");
+	return;
       }
     }
+    print STDERR "running hook $context"."::"."$hook\n" if $hookDebug;
+    if (defined($safeCompartment)) {
+      no strict;
+      $safeCompartment->reval($utf."\&$context\:\:$hook(\@_)");
+    } else {
+      no strict;
+      $result=eval($utf."\&$context\:\:$hook(\@_)");
+    }
   }
-
   return $result;
 }
 

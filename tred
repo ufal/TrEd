@@ -1477,11 +1477,11 @@ sub closeFile {
     __debug("Closing ",$opts{-fsfile}->filename,"\n");
   } else {
     $fsfile = $win->{FSFile};
-    if ($fsfile) {
-      doEvalHook($win,"file_close_hook");
-      $fsfile->currentTreeNo($win->{treeNo});
-      $fsfile->currentNode($win->{currentNode});
-    }
+  }
+  if ($fsfile) {
+    doEvalHook($win,"file_close_hook",$fsfile,\%opts);
+    $fsfile->currentTreeNo($win->{treeNo});
+    $fsfile->currentNode($win->{currentNode});
   }
   if (!$opts{-keep_postponed} and
 	$fsfile and ref($fsfile->appData('fs-part-of')) and
@@ -1514,25 +1514,19 @@ sub closeFile {
       my $f = $fsfile->filename();
       print STDERR "Removing $f from list of open files\n"  if $tredDebug;
       @openfiles=grep { $_ ne $fsfile } @openfiles;
-      addToRecent($grp,$f) unless $opts{-norecent};
+      addToRecent($grp,$f) unless $opts{-norecent} or $fsfile->appData('norecent');
       my $autosave = autosave_filename($f);
       unlink $autosave if defined $autosave;
       removeLock($fsfile,$f);
 
       # remove dependency
-      my $requires = $fsfile->metaData('fs-require');
-      if ($requires) {
-	foreach my $req (@$requires) {
-	  my $req_fs = ref($fsfile->appData('ref')) ? $fsfile->appData('ref')->{$req->[0]} : undef;
-	  if (ref($req_fs) eq 'FSFile') {
-	    if (ref($req_fs->appData('fs-part-of'))) {
-	      @{$req_fs->appData('fs-part-of')} = grep { $_ != $fsfile } @{$req_fs->appData('fs-part-of')};
-	    }
-	    unless (fsfileDisplayingWindows($win->{framegroup},$req_fs)) {
-	      print STDERR "Attempting to close dependent ".$req_fs->filename."\n" if $tredDebug;
-	      closeFile($win,  %opts, -fsfile => $req_fs,-keep_postponed => 0);
-	    }
-	  }
+      for my $req_fs (getSecondaryFiles($win,$fsfile)) {
+	if (ref($req_fs->appData('fs-part-of'))) {
+	  @{$req_fs->appData('fs-part-of')} = grep { $_ != $fsfile } @{$req_fs->appData('fs-part-of')};
+	}
+	unless (fsfileDisplayingWindows($win->{framegroup},$req_fs)) {
+	  print STDERR "Attempting to close dependent ".$req_fs->filename."\n" if $tredDebug;
+	  closeFile($win,  %opts, -fsfile => $req_fs,-keep_postponed => 0);
 	}
       }
       undef $fsfile;
@@ -1546,6 +1540,23 @@ sub closeFile {
       redraw_win($w);
     }
   }
+}
+
+sub getSecondaryFiles {
+  my $win = cast_to_win(shift());
+  my $fsfile = (@_ ? shift() : $win->{FSFile});
+  return unless $fsfile;
+  my $requires = $fsfile->metaData('fs-require');
+  my @secondary;
+  if ($requires) {
+    foreach my $req (@$requires) {
+      my $req_fs = ref($fsfile->appData('ref')) ? $fsfile->appData('ref')->{$req->[0]} : undef;
+      if (ref($req_fs) eq 'FSFile') {
+	push @secondary,$req_fs;
+      }
+    }
+  }
+  return uniq @secondary;
 }
 
 sub plainErrorMessage {
@@ -2044,14 +2055,14 @@ sub openFile {
 	redraw_win($win);
 	centerTo($win,$win->{currentNode});
       }
-      addToRecent($grp,$f) unless $opts{-norecent};
+      addToRecent($grp,$f) unless ($opts{-norecent} or $fsfile->appData('norecent'));
     }
     $win->toplevel->Unbusy() unless $insideEval;
     return wantarray ? ($fsfile,_new_status(ok => 1)) : $fsfile;
   }
 
   # Shell we close current file?
-  if ($opts{-preload} or !$opts{-keep}) {
+  unless ($opts{-preload} or $opts{-keep}) {
     if (fsfileDisplayingWindows($grp,$fsfile)<2) {
       my $answer = askSaveFile($win,1,1);
       if ($answer == -1) {
@@ -2081,7 +2092,7 @@ sub openFile {
 	    redraw_win($win);
 	    centerTo($win,$win->{currentNode});
 	  }
-	  addToRecent($grp,$f) unless $opts{-norecent};
+	  addToRecent($grp,$f) unless ($opts{-norecent} or $fsfile->appData('norecent'));
 	}
 	$win->toplevel->Unbusy() unless $insideEval;
 	return wantarray ? ($of,_new_status(ok=>1)) : $of
@@ -2194,7 +2205,7 @@ sub openFile {
 	for my $req (@$requires) {
 	  my $req_filename = absolutize_path($fsfile->filename,$req->[1]);
 	  print STDERR "Pre-loading dependent $req_filename ($req->[1]) as appData('ref')->{$req->[0]}\n" if $tredDebug;
-	  my ($req_fs,$status2) = openFile($win,$req_filename,-preload => 1);
+	  my ($req_fs,$status2) = openFile($win,$req_filename,-preload => 1, -norecent=>1);
 	  merge_status($status,$status2);
 	  if (!$status2->{ok}) {
 	    undef $fsfile;
@@ -2225,7 +2236,6 @@ sub openFile {
   } elsif ($status->{ok}<1) {
     errorMessage($win,$status->{report},'warn');
   }
-
   setWindowFile($win,$fsfile) unless $opts{-preload};
   if ($fsfile) {
     if ($opts{-justheader}) {
@@ -2262,7 +2272,7 @@ sub openFile {
   }
   $win->toplevel->Unbusy() unless $insideEval;
 
-  addToRecent($grp,$f);
+  addToRecent($grp,$f) unless ($opts{-norecent} or $fsfile->appData('norecent'));
   return wantarray ? ($fsfile,$status) : $fsfile;
 }
 
@@ -4768,8 +4778,8 @@ sub getWindowContextRE {
 
 
 sub switchStylesheet {
-  my ($grp,$stylesheet)=@_;
-  my $win=$grp->{focusedWindow};
+  my ($grp_or_win,$stylesheet)=@_;
+  my ($grp,$win) = grp_win($grp_or_win);
   return unless ref($win);
   my $prevstylesheet=$win->{stylesheet};
   return if $prevstylesheet eq $stylesheet;
@@ -4790,10 +4800,10 @@ sub switchStylesheet {
       saveStyleSheets($grp,$stylesheetFile);
     }
     applyWindowStylesheet($win,$stylesheet);
-    $grp->{selectedStylesheet} = $stylesheet;
+    $grp->{selectedStylesheet} = $stylesheet if isFocused($win);
   } elsif ($stylesheet eq DELETE_STYLESHEET()) {
     if ($prevstylesheet eq STYLESHEET_FROM_FILE()) {
-      $grp->{selectedStylesheet} = $prevstylesheet;
+      $grp->{selectedStylesheet} = $prevstylesheet if isFocused($win);
       return 0;
     }
     $stylesheet=$prevstylesheet;
@@ -4806,7 +4816,7 @@ sub switchStylesheet {
       deleteStylesheet($grp,$stylesheet);
       saveStyleSheets($grp,$stylesheetFile);
     } else {
-      $grp->{selectedStylesheet} = $stylesheet;
+      $grp->{selectedStylesheet} = $stylesheet if isFocused($win);
       return 0;
     }
   } else {
