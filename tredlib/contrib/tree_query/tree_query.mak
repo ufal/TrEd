@@ -72,6 +72,19 @@ Bind 'query_sql' => {
   changing_file => 0,
 };
 
+Bind 'next_match' => {
+  key => 'n',
+  menu => 'Show Next Match',
+  changing_file => 0,
+};
+
+Bind sub { next_match('backward') } => {
+  key => 'p',
+  menu => 'Show Previous Match',
+  changing_file => 0,
+};
+
+
 Bind 'fix_netgraph_query' => {
   key => 'f',
   menu => 'Attempt to fix NetGraph query',
@@ -551,6 +564,7 @@ sub query_sql {
 	    AddNewFileList($fl);
 	    SetCurrentFileList($fl->name);
 	    GotoFileNo(0);
+	    current_node_change_hook($this,undef);
 	  }
 	}
       } else {
@@ -560,6 +574,7 @@ sub query_sql {
     return $results;
   }
 }
+
 
 our @last_results;
 our %is_match;
@@ -582,11 +597,34 @@ sub map_results {
   warn $@ if $@;
 }
 
+sub next_match {
+  my $dir=shift;
+  my $prev_grp = $grp;
+  my @save = ($this,$root,$grp);
+  for my $win (TrEdWindows()) {
+    my $fl = GetCurrentFileList($win);
+    if ($fl and $fl->name eq __PACKAGE__) {
+      $grp=$win;
+      eval {
+	if ($dir eq 'backward') {
+	  PrevFile();
+	} else {
+	  NextFile()
+	  }
+      };
+      ($this,$root,$grp)=@save;
+      current_node_change_hook($this,undef);
+      die $@ if $@;
+      return;
+    }
+  }
+  return;
+}
+
 sub current_node_change_hook {
   my ($node,$prev)=@_;
   my $idx = Index(\@last_query_nodes,$node);
-  print $idx,"\n";
-  return if $idx<0;
+  return if !defined($idx);
   my $result = @last_results[$idx];
   my $treebase_sources = $dbi_configuration->{sources};
   foreach my $win (TrEdWindows()) {
@@ -612,11 +650,20 @@ sub open_pmltq {
   my ($filename,$opts)=@_;
   return unless $filename=~s{pmltq://}{};
   @last_results = idx_to_pos([split m{/}, $filename]);
-  my $first = $last_results[0];
+  my ($node) = map { CurrentNodeInOtherWindow($_) } grep { CurrentContextForWindow($_) eq __PACKAGE__ } TrEdWindows();
+  my $idx = Index(\@last_query_nodes,$node);
+  my $first = $last_results[$idx||0];
   if (defined $first and length $first) {
     my $treebase_sources = $dbi_configuration->{sources};
     $opts->{-norecent}=1;
-    Open($treebase_sources.'/'.$first,$opts);
+    my $fsfile = Open($treebase_sources.'/'.$first,$opts);
+    if (ref $fsfile) {
+      $fsfile->changeAppData('tree_query_url',$filename);
+      $fsfile->changeAppData('norecent',1);
+      for my $req_fs (GetSecondaryFiles($fsfile)) {
+	$req_fs->changeAppData('norecent',1);
+      }
+    }
     Redraw();
   }
   return 'stop';
@@ -861,7 +908,7 @@ sub user_defined_relation {
 	id=>$id,
 	type=>$type,
 	join=>$opts->{join},
-	expression => qq{"eparents/idx"}
+	expression => qq{"eparents/eparent_idx"}
        }).qq{=$target."idx" };
   } elsif ($relation eq 'a/lex.rf') {
     unless ($opts->{extra_relation}) {
@@ -954,8 +1001,8 @@ sub make_sql {
     my $parent = $n->parent;
     my $parent_id = $id{$parent};
     $conditions{$id} =
-      sort join(' AND ',
-	   grep { defined and length }
+      join(' AND ',
+	   sort grep { defined and length }
 	     (
 	       scalar(serialize_conditions($n,{
 		 type=>$table,
@@ -969,6 +1016,7 @@ sub make_sql {
       my $condition=q();
       $condition.=relation($n,{%$opts,
 			       id=>$id,
+			       type => $table,
 			       parent_id=>$parent_id,
 			       parent_type=>($n->parent->{'node-type'}||$tree->{'node-type'}),
 			       join => $extra_joins,
