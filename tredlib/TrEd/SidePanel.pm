@@ -160,21 +160,29 @@ sub hide {
   my ($self)=@_;
   return unless $self->is_shown;
   my $h=0;
-  if ($self->adjuster->viewable) {
-    $h=$self->widget->reqheight+$self->adjuster->reqheight;
+
+  my $adj = $self->adjuster;
+  if ($self->adjuster_packed and $adj->viewable) {
+    $h=$self->widget->reqheight+$adj->reqheight;
   }
   $self->button->configure(-foreground=>'#555');
   $self->unpack_adjuster;
   $self->widget->packForget;
   $self->{shown}=0;
-  if ($h) {
+#  if ($h) {
     $self->panel->frame->afterIdle(sub {
-				     my $nearest = $self->find_previous_widget(1) || $self->find_next_widget(1);
-				     if ($nearest) {
-				       $nearest->adjuster->delta_height($h);
+				     my $next = $self->find_next_widget(1);
+				     my $prev=$self->find_previous_widget(1);
+				     my $nearest = $prev || $next;
+				     if ($h and $nearest) {
+				       $nearest->adjuster->delta_height($h) if $nearest->adjuster_packed;
+				     }
+				     if (!$next and $prev) {
+				       $prev->unpack_adjuster;
+				       $prev->widget->packConfigure(-expand=>1);
 				     }
 				   });
-  }
+#  }
   return 1;
 }
 
@@ -184,17 +192,26 @@ sub show {
   $self->button->configure(-foreground=>'black');
   my $w = $self->widget;
   $w->pack(-after=>$self->button, -fill=>'both', -expand => 1,-side=>'top');
+  my $next = $self->find_next_widget(1);
+  my $h=0;
+  if ($next) {
+    $self->pack_adjuster;
+    $h+=$self->adjuster->reqheight+18;
+  } else {
+    my $prev=$self->find_previous_widget(1);
+    if ($prev) {
+      $prev->pack_adjuster;
+      $h+=$prev->adjuster->reqheight+18;
+    }
+  }
   $self->{shown}=1;
-  $self->pack_adjuster;
   $w->afterIdle(sub {
-		  unless ($self->adjuster->viewable) {
-		    my $nearest = $self->find_previous_widget(1) || $self->find_next_widget(1);
-		    if ($nearest) {
-		      my $h = ($nearest->widget->height+$nearest->button->height+$nearest->adjuster->height+18)/2;
-		      my $reqh = $self->button->height + $w->reqheight + $self->adjuster->reqheight+18;
-		      $h=$reqh unless $reqh>$h;
-		      $nearest->adjuster->delta_height(-$h);
-		    }
+		  my $nearest = $self->find_previous_widget(1) || $self->find_next_widget(1);
+		  if ($nearest) {
+		    my $h = ($nearest->widget->height+$nearest->button->height+$nearest->adjuster->height+18)/2;
+		    my $reqh = $self->button->height + $w->reqheight + $h;
+		    $h=$reqh unless $reqh>$h;
+		    $nearest->adjuster->delta_height(-$h) if $nearest->adjuster_packed;
 		  }
 		});
   my $command = $self->{-show_command};
@@ -209,15 +226,19 @@ sub show {
 
 sub pack_adjuster {
   my ($self)=@_;
-  return unless $self->is_shown;
+  return unless $self->is_shown or $self->adjuster_packed;
   $self->adjuster->pack(-after => $self->widget,-side=>'top',-expand => 0,-fill => 'x');
 }
 sub unpack_adjuster {
   my ($self)=@_;
-  return unless $self->is_shown;
+  return unless $self->is_shown and $self->adjuster_packed;
   $self->adjuster->packForget;
 }
-
+sub adjuster_packed {
+  my ($self)=@_;
+  #  return   $self->{adjuster_packed};
+  return $self->adjuster->{master} ? 1 : 0;
+}
 sub data {
   my ($self)=@_;
   return $self->{-data};
