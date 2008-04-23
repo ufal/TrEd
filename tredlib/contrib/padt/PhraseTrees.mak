@@ -125,13 +125,12 @@ sub highlight_value_line_tag_hook {
 
 sub node_release_hook {
 
-    return unless $hooks_request_mode;
-
     my ($node, $done) = @_;
+    my (@line);
 
     return unless $done;
 
-    my @line;
+    return unless $hooks_request_mode;
 
     while ($done->{'afun'} eq '???' and $done->{'afunaux'} eq '') {
 
