@@ -71,13 +71,16 @@ Bind 'query_sql' => {
   menu => 'Query SQL server',
   changing_file => 0,
 };
-
-Bind 'next_match' => {
+Bind sub { next_match('this') } => {
+  key => 'm',
+  menu => 'Show Match',
+  changing_file => 0,
+};
+Bind sub { next_match('forward') } => {
   key => 'n',
   menu => 'Show Next Match',
   changing_file => 0,
 };
-
 Bind sub { next_match('backward') } => {
   key => 'p',
   menu => 'Show Previous Match',
@@ -87,7 +90,7 @@ Bind sub { next_match('backward') } => {
 
 Bind 'fix_netgraph_query' => {
   key => 'f',
-  menu => 'Attempt to fix NetGraph query',
+  menu => 'Attempt to fix a NetGraph query',
 };
 
 my $default_dbi_config; # see below
@@ -107,7 +110,7 @@ Bind sub {
   edit_config();
 } => {
   key => 'e',
-  menu => 'Connect to SQL server',
+  menu => 'Edit Connection Configuration',
   changing_file => 0,
 };
 
@@ -147,21 +150,17 @@ node: <?length($${node-type}) ? $${node-type}.': ' : '' ?><? length $${occurrenc
 ?><? $${optional} ? '?'  : q()
 ?><? Tree_Query::serialize_conditions_as_stylesheet($this) ?>
 node: #{darkblue}${name}#{brown}<? my$d=$${description}; $d=~s{^User .*?:}{}; $d ?>
-style: <? 
+style: #{Line-tag:relation}<? 
   my ($rel) = map {
     my $name = $_->name;
     $name eq 'user-defined' ? $_->value->{label} : $name
   } SeqV($this->{relation});
-  $rel eq 'ancestor' ? "#{Line-dash:_}#{Line-fill:blue}" :
-  $rel eq 'effective_parent' ? "#{Line-dash:_}#{Line-fill:green}" :
-  $rel eq 'a/lex.rf' ? "#{Line-fill:violet}#{Line-arrow:first}#{Line-arrowshape:14,18,4}" :
-  $rel eq 'a/aux.rf' ? "#{Line-dash:_}#{Line-fill:violet}#{Line-arrow:first}#{Line-arrowshape:14,18,4}" :
-  $rel eq 'a/lex.rf|a/aux.rf' ? "#{Line-dash:.}#{Line-fill:violet}#{Line-arrow:first}#{Line-arrowshape:14,18,4}" :
-  q()
+  my $color = Tree_Query::arrow_color($rel);
+  defined($color) ? "#{Line-fill:$color}" : ()
 ?>
 style:<?
    $this->parent 
-   ? ($${node-type} eq 't'
+   ? (($${node-type}||$root->{'node-type'}) eq 't'
       ? '#{Node-shape:rectangle}#{Oval-fill:pink}' 
       : '#{Oval-fill:yellow}' )
    : '#{Oval-fill:gray}' ?>
@@ -207,26 +206,24 @@ sub after_redraw_hook {
 }
 my %color = (
   'depth-first-precedes' => 'green',
-  'deepord-less-than' => '',
+  'order-precedes' => 'yellow',
   'a/lex.rf' => 'violet',
-  'a/lex.rf|a/aux.rf' => 'violet',
-  'a/aux.rf' => 'violet',
+  'a/aux.rf' => 'thistle',
+  'a/lex.rf|a/aux.rf' => 'tan',
   coref_text => '#4C509F',
   coref_gram => '#C05633',
   ancestor => 'blue',
+  'ancestor-of' => 'blue',
+  'descendant-of' => 'lightblue',
+  'parent-of' => 'black',
+  'parent' => 'black',
+  'child-of' => 'lightgray',
   effective_parent => 'green',
 );
-my %dash = (
-  'depth-first-precedes' => '',
-  'deepord-less-than' => '',
-  'a/lex.rf' => '',
-  'a/lex.rf|a/aux.rf' => '.',
-  'a/aux.rf' => '_',
-  coref_text => '',
-  coref_gram => '',
-  ancestor => '_',
-  effective_parent => '_',
-);
+sub arrow_color {
+  my $rel = shift;
+  return $color{$rel};
+}
 sub node_style_hook {
   my ($node,$styles) = @_;
   my $i=0;
@@ -236,11 +233,13 @@ sub node_style_hook {
 		 my $name = $_->name;
 		 $name = $_->value->{label} if $name eq 'user-defined';
 		 my $target = $_->value->{target};
+		 my $negate = $_->value->{negate};
 		 scalar {
 		   -target => $name2node_hash{lc($target)},
-		   -fill   => $color{$name},
-		   -dash   => $dash{$name},
+		   -fill   => arrow_color($name),
+		   (-dash   => $negate ? '-' : ''),
 		   -raise => 8+8*(++$i),
+		   -tag => 'extra_relation',
 		 }
 	       } SeqV($node->attr('extra-relations'))
 	     ],
@@ -544,7 +543,13 @@ sub query_sql {
 	  my @wins = TrEdWindows();
 	  my $res_win;
 	  if (@wins>1) {
-	    ($res_win) = grep { $_ ne $grp } @wins;
+	    ($res_win) = grep { 
+	      my $f = GetCurrentFileList($_);
+	      ($f and $f->name eq __PACKAGE__)
+	    } @wins;
+	    unless ($res_win) {
+	      ($res_win) = grep { $_ ne $grp } @wins;
+	    }
 	  } else {
 	    $res_win = SplitWindowVertically();
 	  }
@@ -558,12 +563,17 @@ sub query_sql {
 		# ('pmltq://'.$treebase_sources.'/'.$first) : ()
 	    } @$results;
 	    $fl->add(0, @files);
-	    SetCurrentWindow($res_win);
+
+	    my @context=($this,$root,$grp);
+	    #SetCurrentWindow($res_win);
 	    CloseFileInWindow($res_win);
+	    $grp=$res_win;
 	    SetCurrentStylesheet(STYLESHEET_FROM_FILE);
 	    AddNewFileList($fl);
 	    SetCurrentFileList($fl->name);
 	    GotoFileNo(0);
+	    ($this,$root,$grp)=@context;
+	    # SetCurrentWindow($grp);
 	    current_node_change_hook($this,undef);
 	  }
 	}
@@ -604,13 +614,24 @@ sub next_match {
   for my $win (TrEdWindows()) {
     my $fl = GetCurrentFileList($win);
     if ($fl and $fl->name eq __PACKAGE__) {
-      $grp=$win;
       eval {
 	if ($dir eq 'backward') {
+	  $grp=$win;
 	  PrevFile();
-	} else {
+	} elsif ($dir eq 'forward') {
+	  $grp=$win;
 	  NextFile()
+	} elsif ($dir eq 'this') {
+	  my $idx = Index(\@last_query_nodes,$this);
+	  print "idx:$idx\n";
+	  if (defined($idx)) {
+	    $grp=$win;
+	    my $treebase_sources = $dbi_configuration->{sources};
+	    print $treebase_sources.'/'.$last_results[$idx],"\n";
+	    Open($treebase_sources.'/'.$last_results[$idx]);
+	    Redraw($win);
 	  }
+	}
       };
       ($this,$root,$grp)=@save;
       current_node_change_hook($this,undef);
@@ -625,7 +646,7 @@ sub current_node_change_hook {
   my ($node,$prev)=@_;
   my $idx = Index(\@last_query_nodes,$node);
   return if !defined($idx);
-  my $result = @last_results[$idx];
+  my $result = $last_results[$idx];
   my $treebase_sources = $dbi_configuration->{sources};
   foreach my $win (TrEdWindows()) {
     my $fsfile = $win->{FSFile};
@@ -832,6 +853,18 @@ sub get_value_line_hook {
   return make_sql($tree,{format=>1});
 }
 
+sub line_click_hook {
+  my ($node,$tag,$button, $double,$modif, $ev)=@_;
+  if ($node and $double and $button eq '1' and !$modif) {
+    if ($tag eq 'relation') {
+      EditAttribute($node,'relation');
+      Redraw();
+    } elsif ($tag eq 'extra_relation') {
+      EditAttribute($node,'extra-relations');
+      Redraw();
+    }
+  }
+}
 
 sub relation {
   my ($n,$opts)=@_;
@@ -858,13 +891,23 @@ sub relation {
 sub extra_relation {
   my ($id,$rel,$target,$opts)=@_;
   my $relation = $rel->name;
+  my $params = $rel->value;
+  if ($relation eq 'descendant-of') {
+    $relation = 'ancestor-of';
+    ($id,$target)=($target,$id);
+  }
+  if ($relation eq 'child-of') {
+    $relation = 'parent-of';
+    ($id,$target)=($target,$id);
+  }
+
   if ($relation eq 'user-defined') {
-    return user_defined_relation($id,$rel->value,$target,{%$opts,extra_relation=>1});
-  } elsif ($relation eq 'ancestor') {
+    return user_defined_relation($id,$params,$target,{%$opts,extra_relation=>1});
+  } elsif ($relation eq 'ancestor' or $relation eq 'ancestor-of' ) {
     my $cond = qq{$id."root_idx"=$target."root_idx" AND $id."idx"!=$target."idx" AND }.
       qq{$target."idx" BETWEEN $id."idx" AND $id."r"};
-    my $min = int($rel->value->{min_length});
-    my $max = int($rel->value->{max_length});
+    my $min = int($params->{min_length});
+    my $max = int($params->{max_length});
     if ($min>0 and $max>0) {
       $cond.=qq{ AND $target."lvl"-$id."lvl" BETWEEN $min AND $max};
     } elsif ($min>0) {
@@ -872,9 +915,16 @@ sub extra_relation {
     } elsif ($max>0) {
       $cond.=qq{ AND $target."lvl"-$id."lvl"<=$max}
     }
+    if ($params->{negate}) {
+      $cond=qq{NOT($cond)};
+    }
     return $cond;
-  } elsif ($relation eq 'parent') {
-    return qq{$id."parent_idx"=$target."idx"};
+  } elsif ($relation eq 'parent-of') {
+    if ($params->{negate}) {
+      return qq{$id."idx"!=$target."parent_idx"};
+    } else {
+      return qq{$id."idx"=$target."parent_idx"};
+    }
   } elsif ($relation eq 'depth-first-precedes') {
     return qq{$id."idx"<$target."idx"};
   } elsif ($relation eq 'order-precedes') {
@@ -902,8 +952,10 @@ sub user_defined_relation {
   my ($id,$rel,$target,$opts)=@_;
   my $relation=$rel->{label};
   my $type = $opts->{type};
+  my $params = $rel->value;
+  my $cond;
   if ($relation eq 'effective_parent') {
-    return qq{$id."root_idx"=n0."root_idx" AND }.
+    $cond =  qq{$id."root_idx"=$target."root_idx" AND }.
       serialize_expression({
 	id=>$id,
 	type=>$type,
@@ -915,13 +967,13 @@ sub user_defined_relation {
       # reverse
       ($id,$target)=($target,$id);
     }
-    return qq{$id."a_lex_idx"=$target."idx"}
+    $cond =  qq{$id."a_lex_idx"=$target."idx"}
   } elsif ($relation eq 'a/aux.rf') {
     unless ($opts->{extra_relation}) {
       # reverse
       ($id,$target,$type)=($target,$id,$opts->{parent_type});
     }
-    return serialize_expression({
+    $cond =  serialize_expression({
       id=>$id,
       type=>$type,
       join=>$opts->{join},
@@ -932,7 +984,7 @@ sub user_defined_relation {
       # reverse
       ($id,$target,$type)=($target,$id,$opts->{parent_type});
     }
-    return
+    $cond = 
       qq{($id."a_lex_idx"=$target."idx" OR }.
       serialize_expression({
       id=>$id,
@@ -941,7 +993,7 @@ sub user_defined_relation {
       expression => qq{"a_aux/a_idx"},
     }).qq{=$target."idx")};
   } elsif ($relation eq 'coref_gram') {
-    return
+    $cond = 
       serialize_expression({
       id=>$id,
       type=>$type,
@@ -949,7 +1001,7 @@ sub user_defined_relation {
       expression => qq{"coref_gram/corg_idx"}
      }).qq{=$target."idx"};
   } elsif ($relation eq 'coref_text') {
-    return
+    $cond = 
       serialize_expression({
       id=>$id,
       type=>$type,
@@ -957,6 +1009,10 @@ sub user_defined_relation {
       expression => qq{"coref_text/cort_idx"}
      }).qq{=$target."idx"};
   }
+  if ($params->{negate}) {
+    $cond=qq{NOT($cond)};
+  }
+  return $cond;
 }
 
 sub get_query_nodes {
