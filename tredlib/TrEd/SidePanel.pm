@@ -82,6 +82,20 @@ sub is_shown {
   return $w->is_shown;
 }
 
+sub equalize_sizes {
+  my ($self)=@_;
+  my @shown = grep { $_->is_shown } $self->widgets;
+  return unless @shown;
+  my $height = $self->frame->height;
+  $height -= $_->button->height for $self->widgets;
+  $height=0 if $height<0;
+  my $equal_size = $height/@shown;
+  for my $w (@shown) {
+    next unless $w->adjuster_packed;
+    $w->adjuster->delta_height($equal_size-$w->height)
+  }
+}
+
 package TrEd::SidePanel::Widget;
 use Scalar::Util qw(weaken);
 sub new {
@@ -108,6 +122,16 @@ sub new {
   weaken($self->{adjuster}=$panel_frame->Adjuster(-side=>'top', -widget=> $tk_widget));
   weaken($self->{panel});
   return $self;
+}
+
+sub height {
+  my ($self)=@_;
+  return 0 unless $self->{shown};
+  my $h =  $self->widget->height;
+  if ($self->adjuster_packed) {
+    $h+=$self->adjuster->reqheight+18;
+  }
+  return $h;
 }
 
 sub is_shown {
@@ -173,14 +197,15 @@ sub hide {
     $self->panel->frame->afterIdle(sub {
 				     my $next = $self->find_next_widget(1);
 				     my $prev=$self->find_previous_widget(1);
-				     my $nearest = $prev || $next;
-				     if ($h and $nearest) {
-				       $nearest->adjuster->delta_height($h) if $nearest->adjuster_packed;
-				     }
+#				     my $nearest = $prev || $next;
+#				     if ($h and $nearest) {
+#				       $nearest->adjuster->delta_height($h) if $nearest->adjuster_packed;
+#				     }
 				     if (!$next and $prev) {
 				       $prev->unpack_adjuster;
 				       $prev->widget->packConfigure(-expand=>1);
 				     }
+				     $self->panel->equalize_sizes();
 				   });
 #  }
   return 1;
@@ -194,6 +219,7 @@ sub show {
   $w->pack(-after=>$self->button, -fill=>'both', -expand => 1,-side=>'top');
   my $next = $self->find_next_widget(1);
   my $h=0;
+  $self->{shown}=1;
   if ($next) {
     $self->pack_adjuster;
     $h+=$self->adjuster->reqheight+18;
@@ -204,16 +230,20 @@ sub show {
       $h+=$prev->adjuster->reqheight+18;
     }
   }
-  $self->{shown}=1;
-  $w->afterIdle(sub {
-		  my $nearest = $self->find_previous_widget(1) || $self->find_next_widget(1);
-		  if ($nearest) {
-		    my $h = ($nearest->widget->height+$nearest->button->height+$nearest->adjuster->height+18)/2;
-		    my $reqh = $self->button->height + $w->reqheight + $h;
-		    $h=$reqh unless $reqh>$h;
-		    $nearest->adjuster->delta_height(-$h) if $nearest->adjuster_packed;
-		  }
-		});
+  $w->afterIdle([$self->panel,'equalize_sizes']);
+#     sub {
+# 		  my $nearest = $self->find_previous_widget(1) || $self->find_next_widget(1);
+# 		  if ($nearest) {
+# 		    my $h = ($nearest->widget->height+$nearest->button->height+$nearest->adjuster->height+18)/2;
+# 		    my $reqh = $self->button->height + $w->reqheight + $h;
+# 		    $h=$reqh unless $reqh>$h;
+# 		    if ($nearest->adjuster_packed) {
+# 		      $nearest->adjuster->delta_height(-$h);
+# 		    } elsif ($self->adjuster_packed) {
+# 		      $self->adjuster->delta_height(-$h);
+# 		    }
+# 		  }
+# 		});
   my $command = $self->{-show_command};
   if (ref($command) eq 'CODE') {
     $command->();
