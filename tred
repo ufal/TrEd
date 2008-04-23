@@ -72,11 +72,10 @@ use Cwd;
 use File::Spec;
 use constant EMPTY => q{};
 use Tk::widgets
-  qw(Frame Pane LabFrame Listbox HList
+  qw(Frame Pane LabFrame Listbox HList Menu
      ItemStyle DialogBox Tiler BrowseEntry Panedwindow Dialog DialogBox
      Scale Adjuster Entry Text);
 use Tk::Font;
-
 
 {
   package Tk::Wm;
@@ -2704,7 +2703,7 @@ sub initSidePanel {
     my $hl = $t->Subwidget('scrolled');
     $hl->{balloonmsg} = '';
     $grp->{Balloon}->attach($hl,-msg => \$hl->{balloonmsg},
-			    -initwait => 100,
+			    -initwait => 200,
 			    -postcommand => sub {
 			      my $w=shift;
 			      my $y=$w->XEvent->y;
@@ -2746,25 +2745,49 @@ sub initSidePanel {
 	update_sidepanel_filelist_view($grp,$grp->{focusedWindow}{currentFilelist},1);
       }
      });
-    $t->bind('<Double-1>'=> [
-      sub {
-	my ($w,$grp)=@_;
-	my $win = $grp->{focusedWindow};
-	my $anchor=$w->info('anchor');
-	my $nextentry=$w->info('next',$anchor);
-	my $data=$w->info('data',$anchor);
-	unless ($nextentry and $w->info('parent',$nextentry) eq $anchor) {
-	  # file -> go to
-	  $win->{currentFilelist}->set_current($data);
-	  my $pos = $win->{currentFilelist}->position;
-	  if ($pos>=0) {
-	    gotoFile($win,$pos);
-	  }
+    my $open_callback = sub {
+      my ($w,$grp)=@_;
+      my $win = $grp->{focusedWindow};
+      my $anchor=$w->info('anchor');
+      my $nextentry=$w->info('next',$anchor);
+      my $data=$w->info('data',$anchor);
+      unless ($nextentry and $w->info('parent',$nextentry) eq $anchor) {
+	# file -> go to
+	$win->{currentFilelist}->set_current($data);
+	my $pos = $win->{currentFilelist}->position;
+	if ($pos>=0) {
+	  gotoFile($win,$pos);
 	}
-      },$grp ]);
+      }
+    };
+    $t->bind('<Double-1>'=> [$open_callback, $grp]);
+    my $menu = $t->Menu(
+      -tearoff => 0,
+      -menuitems => [
+	['Button' => '~Open selected',
+	 -command => [$open_callback,$t,$grp],
+	],
+	['Button' => '~Remove from filelist',
+	 -command => [sub {
+			my ($t,$grp)=@_;
+			my $anchor=$t->info('anchor');
+			my $fl =$grp->{focusedWindow}{currentFilelist};
+			removeFromFilelist($grp,
+					   $fl,
+					   getFilelistLinePosition($fl, $anchor), $t->info('selection'));
+			updateBookmarks($grp) if (ref($fl) and $fl->name eq 'Bookmarks');
+		      },$t,$grp],
+	],
+      ]);
+    $grp->{Balloon}->attach($menu,-msg => '');
+    $t->bind('<3>', sub { my ($w)=@_;
+			  
+			  $menu->Post($w->pointerxy);
+			  Tk->break; });
     #$grp->{sidePanel}->widget('filelistView')->show;
   }
   unless ($grp->{sidePanel}->widget('fileSystemView')) {
+    my $show_hidden=0;
     my $colf = $grp->{sidePanelFrame}->Frame(
       -relief => 'sunken',
       -borderwidth => 1,
@@ -2775,20 +2798,40 @@ sub initSidePanel {
 				  -filetypes=> \@open_types)
       ->pack(qw/-expand yes -fill both -side top/);
      $fsel->Subwidget('filelist')->configure(-background => 'white', -takefocus=>0);
-    $fsel->Subwidget('filelist')->bind('<Double-1>',
-				       [sub {
-					  shift;
-					  my ($grp,$fsel)=@_;
-					  return if $fsel->ChDir();
-					  my ($file) = $fsel->getSelectedFiles;
-					  if (defined($file) and length($file)) {
-					    my $win = $grp->{focusedWindow};
-					    my $pos;
-					    $pos = $win->{currentFilelist}->position($file);
-					    $pos = insertToFilelist($win, undef,undef, $file) unless $pos>=0;
-					    gotoFile($win,$pos) if $pos>=0;
-					  }
-					},$grp,$fsel]);
+    my $open_callback = [sub {
+			   shift if @_>2;
+			   my ($grp,$fsel)=@_;
+			   return if $fsel->ChDir();
+			   my ($file) = $fsel->getSelectedFiles;
+			   if (defined($file) and length($file)) {
+			     openStandaloneFile($grp,$file);
+			   }
+			 },$grp,$fsel];
+    $fsel->Subwidget('filelist')->bind('<Double-1>',$open_callback);
+    my $menu = $fsel->Menu(
+      -tearoff => 0,
+      -menuitems => [
+	['Button' => '~Open',
+	 -command => $open_callback,
+	],
+	['Button' => '~Add To Filelist',
+	 -command => [sub {
+	   my ($grp,$fsel)=@_;
+	   my @files = grep { defined && length} $fsel->getSelectedFiles;
+	   insertToFilelist($grp->{focusedWindow}, undef,undef, @files) if @files;
+	 },$grp,$fsel]
+	],
+	['Checkbutton' => '~Show hidden files',
+	 -variable => \$show_hidden,
+	 -command => [sub {
+	   my ($grp,$fsel)=@_;
+	   $fsel->configure(-showhidden=>$show_hidden);
+	   $fsel->ReadDir($fsel->getCWD);
+	 },$grp,$fsel]
+	],
+      ]
+    );
+    $fsel->Subwidget('filelist')->bind('<3>', sub { my ($w)=@_; $menu->Post($w->pointerxy); Tk->break; });
     $grp->{sidePanel}->add('fileSystemView', $colf, {
       -label => 'Browse file system',
       -data => $fsel,
@@ -2796,7 +2839,66 @@ sub initSidePanel {
       }
     });
   }
+  unless ($grp->{sidePanel}->widget('macroListView')) {
+    my $colf = $grp->{sidePanelFrame}->Frame(
+      -relief => 'sunken',
+      -borderwidth => 1,
+     );
+    my $hl = createMacroList($grp,$colf,\$grp->{focusedWindow}{macroContext},
+			     { -padx=>1,
+			       -pady=>1,
+			       -foreground => 'black',
+			       -font => 'C_small',
+			     }
+			    )
+      ->pack(qw/-expand yes -fill both -side top/);
+    $hl->configure(-takefocus=>0);
+    $grp->{macroListViewOrder}=$grp->{macroListOrder};
+    my $menu = $hl->Menu(
+      -tearoff => 0,
+      -menuitems => [
+	['Button' => 'Run selected macro',
+	 -command => [sub {
+			my ($grp,$t)=@_;
+			my $anchor = $t->info('anchor');
+			return unless $anchor;
+			my $macro=$t->info(data => $anchor);
+			doEvalMacro($grp->{focusedWindow},$macro) if defined $macro;
+		      },$grp,$hl],
+	],
+	['Checkbutton' => '~Swap Key/Name',
+	 -variable => \$grp->{macroListViewSwap},
+	 -command => [\&update_macrolist_view,$grp],
+	],
+	['Checkbutton' => 'See ~Perl names',
+	 -variable => \$grp->{macroListViewCalls},
+	 -command => [\&update_macrolist_view,$grp],
+	],
+	['Checkbutton' => 'Include ~Anonymous Macros',
+	 -variable => \$grp->{macroListViewAnonymous},
+	 -command => [\&update_macrolist_view,$grp],
+	],
+	['Cascade' => '~Sort By',
+	 -tearoff => 0,
+	 -menuitems => [
+	   map {
+	   [ Radiobutton => $_->[0],
+	     -variable => \$grp->{macroListViewOrder},
+	     -value => $_->[1],
+	     -command => [\&update_macrolist_view,$grp],
+	   ]} (['~Key','K'],['~Name','M'],['~Perl name','P'])
+	  ]
+	],
+      ]
+    );
+    $hl->bind('<3>', sub { my ($w)=@_; $menu->Post($w->pointerxy); Tk->break; });
 
+    $grp->{sidePanel}->add('macroListView', $colf, {
+      -label => 'List of Macros',
+      -data => $hl,
+      -show_command => [\&update_macrolist_view,$grp],
+    });
+  }
 }
 
 sub update_status_info {
@@ -2805,7 +2907,19 @@ sub update_status_info {
   $win->toplevel->afterIdle(sub{
 			      update_attribute_view($win);
 			    });
-
+}
+sub update_macrolist_view {
+  my ($grp,$win) = grp_win($_[0]);
+  my $view = $grp->{sidePanel} && $grp->{sidePanel}->widget('macroListView');
+  return unless $view and $view->is_shown;
+  my $hl=$view->data;
+  macrolistCreateItems($grp,$hl,
+		       $grp->{selectedContext},
+		       $grp->{macroListViewAnonymous},
+		       $grp->{macroListViewCalls},
+		       $grp->{macroListViewOrder},
+		       $grp->{macroListViewSwap},
+		      );
 }
 sub update_attribute_view {
   my ($grp,$win) = grp_win($_[0]);
@@ -3657,14 +3771,14 @@ sub filelistDialog {
 }
 
 sub generateSortedMacroTable {
-  my ($grp,$context,$include_anonymous) = @_;
+  my ($grp,$context,$include_anonymous,$order_by) = @_;
 
   my $Keys = $keyBindings{$context};
   my $Menus = $menuBindings{$context};
   my %macro_to_key = reverse %{ $Keys };
   my %macro_to_menu = map { $Menus->{$_}->[0] => $_ } keys %{ $Menus };
 
-  my @macroTable= 
+  my @macroTable=
     grep { defined($_->[2]) }
     map {
     my ($macro,$key) = @{ $Menus->{$_} };
@@ -3678,7 +3792,7 @@ sub generateSortedMacroTable {
 	exists($macro_to_menu{ $macro }) ? () : [ undef, $_, $macro ];
       } keys %{ $Keys };
   }
-  if ($grp->{macroListOrder} eq 'K') {
+  if ($order_by eq 'K') {
     return sort {
       my @a= split '\+',$a->[1];
       my @b= split '\+',$b->[1];
@@ -3690,22 +3804,69 @@ sub generateSortedMacroTable {
       }
       return $a cmp $b;
     } @macroTable;
+  } elsif ($order_by eq 'P') {
+    return sort { $a->[2] cmp $b->[2] } @macroTable;
   } else {
     return sort { $a->[0] cmp $b->[0] } @macroTable;
   }
 }
 
 sub macrolistCreateItems {
-  my ($grp,$t,$context,$include_anonymous,$see_macro)=@_;
+  my ($grp,$t,$context,$include_anonymous,$see_macro,$order_by,$swap)=@_;
   my $e;
+  my $style = $t->{default_style_text};
   $t->delete('all');
   $t->columnWidth(1,$see_macro ? EMPTY : 0);
-  foreach my $entry (generateSortedMacroTable($grp,$context,$include_anonymous)) {
+  foreach my $entry (generateSortedMacroTable($grp,$context,$include_anonymous,$order_by)) {
     $e= $t->addchild(EMPTY, -data => $entry->[2]);
-    $t->itemCreate($e, 0, -itemtype=>'text', -text=>$entry->[1]);
-    $t->itemCreate($e, 1, -itemtype=>'text', -text=>$entry->[2]) if $see_macro;
-    $t->itemCreate($e, 2, -itemtype=>'text', -text=> (defined($entry->[0]) ? $entry->[0] : 'ANONYMOUS'));
+    my $col0 = $entry->[1];
+    my $col2 = (defined($entry->[0]) ? $entry->[0] : 'ANONYMOUS');
+    ($col0,$col2)=($col2,$col0) if $swap;
+    $t->itemCreate($e, 0, -itemtype=>'text', -text=>$col0, -style=>$style);
+    $t->itemCreate($e, 1, -itemtype=>'text', -text=>$entry->[2],-style=>$style) if $see_macro;
+    $t->itemCreate($e, 2, -itemtype=>'text', -text=>$col2, -style=>$style);
+    $t->header(configure => 0, -text=>$swap ? 'Name' : 'Key');
+    $t->header(configure => 2, -text=>$swap ? 'Key'  : 'Name');
   }
+}
+
+sub createMacroList {
+  my ($grp,$parent_w,$context_ref,$style_opts)=@_;
+  my $t= $parent_w->Scrolled(qw/HList -columns 3
+				-selectmode browse
+				-header 1
+				-relief sunken 
+				-scrollbars ose/,
+			    );
+  $style_opts||={};
+  my $style = $t->{default_style_text}=$t->ItemStyle(
+    'text', %$style_opts
+   );
+
+  disable_scrollbar_focus($t);
+  $t->BindMouseWheelVert();
+  $t->header(create=>0,-itemtype=>'text',-borderwidth=>1, -relief=>'flat',-style=>$style,-text=>'Key');
+  $t->header(create=>1,-itemtype=>'text',-borderwidth=>1, -relief=>'flat',-style=>$style,-text=>'Perl');
+  $t->header(create=>2,-itemtype=>'text',-borderwidth=>1, -relief=>'flat',-style=>$style,-text=>'Name');
+  $t->columnWidth(0,EMPTY);
+  $t->columnWidth(1,0);
+  $t->columnWidth(2,EMPTY);
+  $t->anchorSet('0') if $t->info(exists => '0');
+  $t->configure(-width=> 0);
+  my $callback
+    = [
+       sub {
+	 my ($w,$grp,$t,$ctxt)=@_;
+	 my $macro = $t->info( data => $t->info('anchor') );
+	 if (ref($macro) eq 'Tk::Callback') { # CODE ref gets mangled to Tk::Callback by Tk
+	   $macro=$macro->[0];
+	 }
+	 doEvalMacro($grp->{focusedWindow},$macro);
+       },$grp,$t,$context_ref,
+      ];
+  $t->bind('<Return>'   => $callback);
+  $t->bind('<Double-1>' => $callback);
+  return $t;
 }
 
 sub macrolistDialog {
@@ -3727,35 +3888,25 @@ sub macrolistDialog {
   $d->minsize('200','200');
 #c  -Background white
   my $topframe = $d->Frame;
-  my $t= $topframe->Scrolled(qw/HList -columns 3
-           -selectmode browse
-           -height 25 -relief sunken -scrollbars oe/);
-  disable_scrollbar_focus($t);
-  $t->BindMouseWheelVert();
-  $grp->{Macrolist}=$d;
-  my $e;
-  my $maxw=0;
+  my $t = createMacroList($grp,$topframe,\$context);
+  $t->header(configure=>$_,-underline=>0) for 0..2;
+  $t->configure(-height => 25);
   macrolistCreateItems($grp,$t,$context,
 		       $grp->{macroListAnonymous},
-		       $grp->{macroListCalls});
-
-  $t->columnWidth(0,EMPTY);
-  $t->columnWidth(1,0);
-  $t->columnWidth(2,EMPTY);
-
-  $t->anchorSet('0') if $t->info(exists => '0');
-
-  $t->configure(-width=> 0);
-  my $callback
-    = [
-       sub {
-	 my ($w,$grp,$t,$ctxt)=@_;
-	 my $macro = $t->info( data => $t->info('anchor') );
-	 doEvalMacro($grp->{focusedWindow},$macro);
-       },$grp,$t,\$context,
-      ];
-  $d->bind('<Return>'   => $callback);
-  $d->bind('<Double-1>' => $callback);
+		       $grp->{macroListCalls},
+		       $grp->{macroListOrder},
+		       0
+		      );
+  $grp->{Macrolist}=$d;
+  my $renew_callback = [sub { #shift;
+		    my ($grp,$t,$ctxt)=@_;
+		    macrolistCreateItems($grp,$t,$$ctxt,
+					 $grp->{macroListAnonymous},
+					 $grp->{macroListCalls},
+					 $grp->{macroListOrder},
+					 0
+					);
+		  },$grp,$t,\$context];
 
   my $f=$topframe->Frame();
   $f->Label(-text => "Context: ",
@@ -3764,11 +3915,7 @@ sub macrolistDialog {
   my $om = 
     $f->Optionmenu(-options      => [getContexts()],
 		   -textvariable => \$context,
-		   -command      => [sub { my ($g,$list,$ctxt) = @_;
-					   macrolistCreateItems($g,$list,$ctxt,
-								$grp->{macroListAnonymous},
-								$grp->{macroListCalls});
-					 },$grp,$t],
+		   -command      => $renew_callback,
 		   -relief       => 'groove', #$menubarRelief,
 		   -borderwidth  => 2);
   $om->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);	  
@@ -3806,58 +3953,46 @@ sub macrolistDialog {
 			  },$d,$grp,$t,\$context ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>'right');
 
   my $rf = $f->Frame()->pack(-side=> 'right',-padx=> 20);
-  $rf->Radiobutton( -anchor  => 'nw',
+  $rf->Radiobutton(-anchor  => 'nw',
 		   -underline => 8,
 		   -text    => 'Sort by keyboard shortcut',
 		   -variable=> \$grp->{macroListOrder},
 		   -relief  => 'flat',
-		   -command => [sub { #shift;
-				       my ($grp,$t,$ctxt)=@_;
-				       macrolistCreateItems($grp,$t,$$ctxt,
-							    $grp->{macroListAnonymous},
-							    $grp->{macroListCalls});
-				     },$grp,$t,\$context],
+		   -command => $renew_callback,
 		   -value   => 'K'
 		 )->pack(-side=> 'top', -fill => 'x');
-  $rf->Radiobutton( -anchor  => 'nw',
+  $rf->Radiobutton(-anchor  => 'nw',
 		   -underline => 8,
 		   -text    => 'Sort by name',
 		   -variable=> \$grp->{macroListOrder},
 		   -relief  => 'flat',
-		   -command => [sub { #shift;
-				       my ($grp,$t,$ctxt)=@_;
-				       macrolistCreateItems($grp,$t,$$ctxt,
-							    $grp->{macroListAnonymous},
-							    $grp->{macroListCalls});
-				     },$grp,$t,\$context],
+		   -command => $renew_callback,
 		   -value   => 'M'
+		 )->pack(-side=> 'top', -fill => 'x');
+  $rf->Radiobutton(-anchor  => 'nw',
+		   -underline => 8,
+		   -text    => 'Sort by Perl name',
+		   -variable=> \$grp->{macroListOrder},
+		   -relief  => 'flat',
+		   -command => $renew_callback,
+		   -value   => 'P'
 		 )->pack(-side=> 'top', -fill => 'x');
 
   my $chf = $f->Frame()->pack(-side=> 'right',-padx=> 20);
-  $chf->Checkbutton( -anchor  => 'nw',
+  $chf->Checkbutton(-anchor  => 'nw',
 		   -underline => 0,
 		   -text    => 'Include anonymous macros',
 		   -variable=> \$grp->{macroListAnonymous},
 		   -relief  => 'flat',
-		   -command => [sub { #shift;
-				       my ($grp,$t,$ctxt)=@_;
-				       macrolistCreateItems($grp,$t,$$ctxt,
-							    $grp->{macroListAnonymous},
-							    $grp->{macroListCalls});
-				     },$grp,$t,\$context],
+		   -command => $renew_callback,
 		 )->pack(-side=> 'top', -fill => 'x');
 
-  $chf->Checkbutton( -anchor  => 'nw',
-		   -underline => 4,
+  $chf->Checkbutton(-anchor  => 'nw',
+		   -underline => 5,
 		   -text    => 'See Perl names',
 		   -variable=> \$grp->{macroListCalls},
 		   -relief  => 'flat',
-		   -command => [sub { #shift;
-				       my ($grp,$t,$ctxt)=@_;
-				       macrolistCreateItems($grp,$t,$$ctxt,
-							    $grp->{macroListAnonymous},
-							    $grp->{macroListCalls});
-				     },$grp,$t,\$context],
+		   -command => $renew_callback,
 		 )->pack(-side=> 'top', -fill => 'x');
 
   my $botframe=$d->Frame();
@@ -4840,13 +4975,16 @@ sub switchContext {
   my $ret = doEvalHook($win,"allow_switch_context_hook",$prevcontext,$context);
   if ($ret eq 'stop') {
     $win->{macroContext}=$prevcontext;
-    $grp->{selectedContext}=$prevcontext if (isFocused($win));
+    $grp->{selectedContext}=$prevcontext     if (isFocused($win));
     return 0;
   }
   $win->{macroContext}=$prevcontext;
   return 0 if (doEvalHook($win,"pre_switch_context_hook",$prevcontext,$context) eq 'stop');
   $win->{macroContext}=$context;
-  $grp->{selectedContext}=$context if (isFocused($win));
+  if (isFocused($win)) {
+    $grp->{selectedContext}=$context;
+    update_macrolist_view($win);
+  }
   doEvalHook($win,"switch_context_hook",$prevcontext,$context);
   unless ($noredraw) {
     updateStylesheetMenu($grp);
@@ -5220,6 +5358,7 @@ sub focusCanvas {
     resetUndoStatus($newfocus);
     resetTreePosStatus($grp);
     updateSessionStatus($grp);
+    update_macrolist_view($grp);
     my $fl = $newfocus->{currentFilelist};
     update_sidepanel_filelist_view($grp,$fl,$fl == $prevfl ? 0 : 1);
     doEvalHook($newfocus,"switch_context_hook",$prevcontext,$context);
@@ -5555,6 +5694,12 @@ sub startMain {
     $top=MainWindow->new();
   }
   $group{top} = $top;
+
+  # a workaround for focus being lost after popup menu usage on Win32
+  if ($^O eq 'MSWin32') {
+    require Tk::Menu;
+    $top->bind('Tk::Menu', '<<MenuSelect>>', sub { if ($Tk::popup) { $Tk::popup->Unpost; } });
+  }
 
 #  eval {
 #    require Tk::Stderr;
@@ -6115,6 +6260,7 @@ sub startMain {
                            push @TrEd::Macros::macros,"\n","package TredMacro;\n";
                            read_macros($opt_I,$libDir,1);
                          }
+			 update_macrolist_view($grp);
 			 doEvalHook($grp->{focusedWindow},"macros_reloaded_hook");
 			 redraw_all($grp);
 		       },\%group]],
@@ -6996,12 +7142,19 @@ sub ShowDialog {
 sub fileDialog {
   my ($grp,$header_only)= @_;
   my $file;
+  my $win = $grp->{focusedWindow};
 
 #  use Tk::FileSelect;
 #  my $FSref= $grp->{top}->FileSelect(-selectmode=> extended);
 #  print $FSref->Show;
 
-  $file= get_open_filename($grp->{top},-filetypes=> \@open_types);
+  my $dir;
+  if ($win->{FSFile}) {
+    $dir = dirname($win->{FSFile}->filename);
+  }
+  $file= get_open_filename($grp->{top},-filetypes=> \@open_types,
+			   (-d $dir ? ( -initialdir => $dir ) : ())
+			  );
   if (defined $file and $file ne EMPTY) {
     return openStandaloneFile($grp,$file,-justheader => $header_only);
   }
@@ -10376,7 +10529,6 @@ sub findMacroDescription {
 sub doEvalMacro {
   my ($win,$macro)=(shift,shift);
   return unless $macro;# and $win->{currentNode};
-
   my $bookmark=bookmarkThis($win->{framegroup});
   $win->toplevel->Busy(-recurse=> 1);
   $insideEval=1;
