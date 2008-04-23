@@ -1341,6 +1341,16 @@ sub inter_with_level ($) {
     return $level, $name, $path, @file;
 }
 
+#bind synchronize_file to Ctrl+Alt+equal menu Action: Synchronize Annotations
+sub synchronize_file {
+
+    ChangingFile(0);
+
+    open_level_second();
+    
+    Analytic::synchronize_file();
+}
+
 #bind open_level_first to Ctrl+Alt+1 menu Action: Edit MorphoTrees File
 sub open_level_first {
 

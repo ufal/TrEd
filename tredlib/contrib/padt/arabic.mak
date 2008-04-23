@@ -7,26 +7,16 @@
 #include "DeepLevels.mak"
 #include "PhraseTrees.mak"
 
-#binding-context TredMacro
+push @TredMacro::AUTO_CONTEXT_GUESSING, sub {
+  
+    return 'MorphoTrees' if $grp->{FSFile}->FS()->isList('type') and
+                            grep { /[EP]|paragraph|entity/ } $grp->{FSFile}->FS()->listValues('type');
+    
+    return 'DeepLevels'  if $grp->{FSFile}->FS()->isList('func') and
+                            grep { /ACT|PAT|ADDR|EFF|ORIG/ } $grp->{FSFile}->FS()->listValues('func');
 
-package TredMacro;
+    return 'Analytic'    if $grp->{FSFile}->FS()->exists('afun') and 
+                            $grp->{FSFile}->FS()->exists('arabclause');
 
-sub start_hook {
-  UnbindBuiltin('Ctrl+Home');
-  UnbindBuiltin('Ctrl+End');
-  return;
-}
-
-push @TredMacro::AUTO_CONTEXT_GUESSING,  sub {
-  my $res  =
-    ($grp->{FSFile}->FS()->isList('type') and
-       grep { /token_node|word_node/ } $grp->{FSFile}->FS()->listValues('type'))
-  ? 'MorphoTrees' :
-    ($grp->{FSFile}->FS()->isList('func') and
-       grep { /ACT|PAT|ADDR|EFF|ORIG/ } $grp->{FSFile}->FS()->listValues('func'))
-  ? 'DeepLevels' :
-    ( $grp->{FSFile}->FS->exists('afun') and $grp->{FSFile}->FS->exists('x_morph') )
-  ?    'Analytic' :
-    ();
-  return $res;
+    return;
 }
