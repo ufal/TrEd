@@ -95,6 +95,10 @@ my %opts =
 	       $current,
 	       $treeview->get_showHidden());
   }
+  sub isFocused {
+    my ($win)=@_;
+    return $win->{framegroup}{focusedWindow}==$win ? 1 : 0;
+  }
 }
 
 
