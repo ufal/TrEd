@@ -2770,14 +2770,12 @@ Open a given FSFile in TrEd.
 sub Open {
   my ($filename,$opts)=@_;
   $opts||={};
-  if (exists($grp->{framegroup})) {
-    my $ret = main::openFile($grp,$filename,%$opts);
+  my $ret = main::openFile($grp,$filename,%$opts);
+  if (exists($grp->{framegroup})) { # why?
     $root=$grp->{root};
     $this=$grp->{currentNode};
-    return $ret;
-  } else {
-    return main::openFile($grp,$filename,%$opts);
   }
+  return $ret;
 }
 
 =item C<CloseFile(file?)>
@@ -2791,11 +2789,7 @@ sub CloseFile {
   my $file = $_[0]||CurrentFile();
   croak("Not a FSFile object!\n") 
     if defined($file) and !UNIVERSAL::isa($file,'FSFile');
-  if (exists($grp->{framegroup})) {
-    main::closeFile($grp,$file);
-  } else {
-    main::closeFile($grp,$file);
-  }
+  main::closeFile($grp,$file);
   $Redraw='all';
 }
 
@@ -2809,7 +2803,9 @@ save it.
 =cut
 
 sub CloseFileInWindow {
-  my $ret = GUI() && main::closeFileInWindow($grp);
+  shift unless ref($_[0]);
+  my $win = shift() || $grp;
+  my $ret = GUI() && main::closeFileInWindow($win);
   $Redraw='all';
 }
 
@@ -3154,11 +3150,7 @@ sub GotoFileNo {
   if ($FileNotSaved ne '?' and $FileNotSaved) {
     SetFileSaveStatus(1);
   }
-  if (exists($grp->{framegroup})) {
-    $result=main::gotoFile($grp->{framegroup},$_[0]);
-  } else {
-    $result=main::gotoFile($grp,$_[0]);
-  }
+  $result=main::gotoFile($grp,$_[0]);
   $root=$grp->{root};
   $this=$grp->{currentNode};
   return $result;
