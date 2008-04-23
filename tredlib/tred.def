@@ -2397,7 +2397,8 @@ Set stylesheet for the active window.
 
 sub SetCurrentStylesheet {
   if (StylesheetExists($_[0]) or $_[0] eq STYLESHEET_FROM_FILE()) {
-    $grp->{framegroup}{selectedStylesheet} = $_[0] if main::isFocused($grp);
+    $grp->{framegroup}{selectedStylesheet} = $_[0] if $grp->{framegroup} and
+      main::isFocused($grp);
     return main::switchStylesheet($grp,$_[0]);
   }
   return -1;
