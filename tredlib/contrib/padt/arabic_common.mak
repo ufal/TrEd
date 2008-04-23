@@ -5,6 +5,14 @@
 use lib "$main::libDir/contrib/padt";
 use lib "$main::libDir/contrib/padt/PADT";
 
+sub start_hook {
+
+  UnbindBuiltin('Shift+Home');
+  UnbindBuiltin('Shift+End');
+
+  return;
+}
+
 sub init_hook {
 
     $support_unicode = $Tk::VERSION gt 804.00;
