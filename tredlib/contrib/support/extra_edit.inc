@@ -5,7 +5,7 @@
 #bind new_rbrother to Alt+Right menu New right brother node
 #bind new_lbrother to Alt+Left menu New left brother node
 #bind new_son to Alt+Down menu New son node
-#bind new_parent to Alt+Up menu New son parent
+#bind new_parent to Alt+Up menu New parent node
 
 #bind trim_subtree Alt+T menu Trim (remove all but current subtree)
 #bind delete_node_keep_children to Delete menu Delete current node (pasting its children on its parent)
