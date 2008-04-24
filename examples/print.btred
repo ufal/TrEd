@@ -58,12 +58,24 @@ my %opts =
     __run_hook($treeview,$win,"node_style_hook",$node,$styles);
   }
   sub onGetRootStyle {
-    my ($treeview,$node,$styles,$win)=@_;
-    __run_hook($treeview,$win,"root_style_hook",$node,$styles);
+    my ($treeview,$node,$styles,$opts,$win)=@_;
+    __run_hook($treeview,$win,"root_style_hook",$node,$styles,$opts);
+  }
+  sub grp_win {
+    my ($gw)=@_;
+    my ($gui,$win);
+    if ($gw->{framegroup}) {
+      $win=$gw;
+      $gui=$gw->{framegroup};
+    } else {
+      $gui=$gw;
+      $win=$gw->{focusedWindow};
+    }
+    return ($gui,$win);
   }
   sub switchStylesheet {
-    my ($gui,$stylesheet)=@_;
-    my $win=$gui->{focusedWindow};
+    my ($grp_win,$stylesheet)=@_;
+    my ($gui,$win)=grp_win($grp_win);
     return unless ref($win);
     my $prevstylesheet=$win->{stylesheet};
     return if $prevstylesheet eq $stylesheet;
@@ -96,8 +108,7 @@ my %opts =
 	       $treeview->get_showHidden());
   }
   sub isFocused {
-    my ($win)=@_;
-    return $win->{framegroup}{focusedWindow}==$win ? 1 : 0;
+    return 1;
   }
 }
 
