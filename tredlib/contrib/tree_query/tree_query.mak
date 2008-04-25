@@ -588,8 +588,10 @@ sub query_sql {
 
 our @last_results;
 our %is_match;
+our $btred_results;
 sub map_results {
   my ($tree)=@_;
+  return if $btred_results;
   $tree||=$root;
   %is_match=();
   return unless @last_results;
@@ -670,6 +672,7 @@ sub current_node_change_hook {
 sub open_pmltq {
   my ($filename,$opts)=@_;
   return unless $filename=~s{pmltq://}{};
+  $btred_results=0;
   @last_results = idx_to_pos([split m{/}, $filename]);
   my ($node) = map { CurrentNodeInOtherWindow($_) } grep { CurrentContextForWindow($_) eq __PACKAGE__ } TrEdWindows();
   my $idx = Index(\@last_query_nodes,$node);
