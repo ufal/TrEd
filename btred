@@ -1555,7 +1555,7 @@ sub applyFileSuffix {
   # but we want it, dont we:)
 
   if ($goto=~/^##([0-9]+)/) {
-    $grp->{treeNo}=min(max(0,$1-1),$grp->{FSFile}->lastTreeNo);
+    $grp->{treeNo}=min2(max2(0,$1-1),$grp->{FSFile}->lastTreeNo);
   } elsif ($goto=~/^#([0-9]+)/) {
     for (my $i=0;$i<=$grp->{FSFile}->lastTreeNo;$i++) {
       $grp->{treeNo}=$i,last if ($grp->{FSFile}->treeList->[$i]->{'form'} eq "#$1");
@@ -1891,7 +1891,7 @@ EOF
     }
     foreach my $package ( sort { length($b)<=>length($a) } keys %packages ) {
       no strict qw(refs);
-      _msg("Cleaning package $package\n");
+      _msg("Cleaning package $package\n") if $tredDebug;
       my $pkg_file = $package;
       $pkg_file =~ s{::}{/}g;
       $pkg_file .= '.pm';
@@ -1917,7 +1917,7 @@ sub init_safe_mode {
   $compartment->{Erase} = 1;
   $compartment->reval("package TredMacro;");
   $compartment->deny_only(qw()); # everything allowed for the first initialization
-  $compartment->share(qw(&do_eval_macro &do_eval_hook &min &max @INC 
+  $compartment->share(qw(&do_eval_macro &do_eval_hook &min &max &min2 &max2 @INC 
                          &nextTree &prevTree &gotoTree 
 			 &lastFileNo &currentFileNo $stderr $stdout
 			 &switchContext
