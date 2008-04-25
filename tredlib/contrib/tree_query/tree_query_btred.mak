@@ -53,6 +53,8 @@ sub test {
 
 
 {
+  my $query_file;
+  my $query_tree;
   my $query_node;
   my @query_stack;
   my %iterator;
@@ -84,31 +86,41 @@ sub test {
     };
   }
 
-sub test_btred {
-  shift if $_[0] eq __PACKAGE__;
-  my ($query_fn,$query_id)=@_;
-  my $query_file = FSFile->newFSFile($query_fn,[Backends()]);
-  print STDERR "$query_file\n";
-  my $query_tree = $query_file->appData('id-hash')->{$query_id};
-  die "Query tree $query_fn#$query_id not found\n" unless ref $query_tree;
-  init_search($query_tree);
-  my $match;
-  while ($match = find_next_match()) {
-    print join(",",map { $id{$_}.": ".$match->{$_}->{id}.": ".$match->{$_}->{functor} }
-		 sort {$id{$a} cmp $id{$b}}
-		 keys %$match)."\n";
+  sub start_hook {
+    my ($query_fn,$query_id)=@ARGV;
+    $query_file = FSFile->newFSFile($query_fn,[Backends()]);
+    $query_tree = $query_file->appData('id-hash')->{$query_id};
+    #  print STDERR "$query_file\n";
+    die "Query tree $query_fn#$query_id not found\n" unless ref $query_tree;
+    init_search($query_tree);
+    print "initialized\n";
+    print $query_node,",",$query_tree->{id},"\n";
   }
-}
 
+  sub test_btred {
+    my $match;
+    reset_search($query_tree);
 
+    while ($match = find_next_match()) {
+      print join(",",map { $id{$_}.": ".$match->{$_}->{id}.": ".$match->{$_}->{functor} }
+      		 sort {$id{$a} cmp $id{$b}}
+      		 keys %$match)."\n";
+    }
+  }
+
+  sub reset_search {
+    my ($query_tree)=@_;
+    $query_node=$query_tree->firstson;
+    %iterator=();
+    $ctxt={};
+  }
 
   sub init_search {
     my ($query_tree)=@_;
-    $query_node=$query_tree->firstson; # skipping the technical root, we should instead rebuild the tree using Kruskal
-    init_id_map($query_node);
     @query_stack=();
-    %iterator=();
-    print STDERR "$query_node",$id{$query_node},"\n";
+    reset_search($query_tree);
+    init_id_map($query_node);
+#    print STDERR "$query_node",$id{$query_node},"\n";
     %conditions = ( map { $_ => serialize_conditions($_) } ($query_node,$query_node->descendants) );
     $ctxt={};
   }
@@ -121,7 +133,7 @@ sub test_btred {
       name => 'and',
       condition => $qnode->{conditions},
     });
-    print STDERR "CONDITIONS: $conditions\n";
+#    print STDERR "CONDITIONS: $conditions\n";
     $debug{$qnode}=$conditions;
     return eval 'sub { my ($node)=@_; '.$conditions.' }';
   }
@@ -172,46 +184,51 @@ sub test_btred {
     #    }
     $exp=~s{(?:(\w+)\.)?"([^"]+)"}{
       my $node = defined($1) ? q($iterator{$name2node_hash{').lc($1).q('}}->node) : '$node';
-      $node.qq{->attr(q($2))};
+      my $attr = $2;
+      ($attr=~m{/}) ? $node.qq{->attr(q($attr))} : $node.qq[->{q($attr)}];
     }ge;
     return $exp;
   }
 
   sub find_next_match () {
-    if ($iterator{$query_node}) {
+    my $iterator = $iterator{$query_node};
+    if ($iterator) {
       # next
-      if ($iterator{$query_node}->node) {
-	$iterator{$query_node}->next;
-	$iterator{$query_node}->next while $iterator{$query_node}->node and !$conditions{$query_node}->($iterator{$query_node}->node);
+      if ($iterator->node) {
+	my $conditions = $conditions{$query_node};
+	$iterator->next;
+	$iterator->next while $iterator->node and !$conditions->($iterator->node);
       }
     } else {
       # first
-      $iterator{$query_node} = new_iterator();
+      $iterator = $iterator{$query_node} = new_iterator();
     }
     while (1) {
-      my $node = $iterator{$query_node}->node;
+      my $node = $iterator->node;
       if (!$node) {
 	if (@query_stack) {
-	  print STDERR "no node: backtracking from $query_node\n";
+#	  print STDERR "no node: backtracking from $query_node\n";
 	  # backtrack
 	  delete $iterator{$query_node};
 	  my $last=pop @query_stack;
 	  ($query_node,$ctxt)=@$last;
-	  print STDERR "query_node: $id{$query_node}, $debug{$query_node}, $iterator{$query_node}\n";
-	  if ($iterator{$query_node}->node) {
-	    $iterator{$query_node}->next;
-	    $iterator{$query_node}->next while $iterator{$query_node}->node and !$conditions{$query_node}->($iterator{$query_node}->node);
+#	  print STDERR "query_node: $id{$query_node}, $debug{$query_node}, $iterator{$query_node}\n";
+	  $iterator=$iterator{$query_node};
+	  if ($iterator->node) {
+	    $iterator->next;
+	    my $conditions = $conditions{$query_node};
+	    $iterator->next while $iterator->node and !$conditions->($iterator->node);
 	  }
 	  next;
 	} else {
-	  print STDERR "no node: no result\n";
+#	  print STDERR "no node: no result\n";
 	  return; # NO RESULT
 	}
       } else {
 	# TODO: check relational constraints, backtrack on invalidate
 	my $next =  $query_node->following;
 	unless ($next) {
-	  print STDERR "complete match\n";
+#	  print STDERR "complete match\n";
 	  # complete match:
 	  return { map { $_ => $iterator{$_}->node } keys %iterator };
 	}
@@ -219,8 +236,8 @@ sub test_btred {
 	$query_node=$next;
 	my $relation = $query_node->{relation} || 'parent';
 	my $seed = $iterator{$query_node->parent}->node;
-	print STDERR "creating iterator for query-node [$debug{$query_node}] with seed-node: $seed->{t_lemma},$seed->{functor}\n";
-	$iterator{$query_node} = new_iterator($seed); # node is the seed
+#	print STDERR "creating iterator for query-node [$debug{$query_node}] with seed-node: $seed->{t_lemma},$seed->{functor}\n";
+	$iterator = $iterator{$query_node} = new_iterator($seed); # node is the seed
 	next;
       }
     }
@@ -234,7 +251,7 @@ sub test_btred {
     if ($node) {
       my ($relation) = map {$_->name} SeqV($query_node->{relation});
       $relation||='parent';
-      print STDERR "iterator: $relation\n";
+#      print STDERR "iterator: $relation\n";
       if ($relation eq 'parent') {
 	$iterator = ChildnodeIterator->new($node);
       } elsif ($relation eq 'ancestor') {
@@ -247,7 +264,8 @@ sub test_btred {
     } else {
       $iterator = TreeIterator->new();
     }
-    $iterator->next while $iterator->node and !$conditions{$query_node}->($iterator->node);
+    my $conditions = $conditions{$query_node};
+    $iterator->next while $iterator->node and !$conditions->($iterator->node);
     return $iterator;
   }
 }
