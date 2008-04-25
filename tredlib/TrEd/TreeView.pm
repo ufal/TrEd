@@ -1967,7 +1967,7 @@ sub redraw {
 	  createLine(0,$self->{canvasHeight},
 		     ($ftw || 0),
 		     $self->{canvasHeight}),
-	@{$RootStyle{SentenceFileInfo}});
+	%{$RootStyle{SentenceFileInfo}});
       $self->{canvasHeight}+=$fontHeight;
     }
     if ($self->get_drawSentenceInfo) {
@@ -1991,7 +1991,7 @@ sub redraw {
 			 -text => $_,
 			 -justify => 'right',
 			 -anchor => 'ne'),
-	    @{$RootStyle{SentenceLine}})
+	    %{$RootStyle{SentenceLine}})
 	  }; print STDERR $@ if $@;
 	} else {
 	  eval { #apply_style_opts
@@ -2003,7 +2003,7 @@ sub redraw {
 			 -text => $_,
 					   -justify => 'left',
 			 -anchor => 'nw'),
-	    @{$RootStyle{SentenceLine}});
+	    %{$RootStyle{SentenceLine}});
 	  }; print STDERR $@ if $@;
 	}
 	$self->{canvasHeight}+=$fontHeight;
