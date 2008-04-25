@@ -38,8 +38,8 @@ my %opts =
   };
   $grp->{framegroup} = $gui; 
   
-  my $stylesheetFile = (defined($opt_S) and length($opt_S)) ? 
-    $opt_S : $ENV{HOME}."/.tred-stylesheets";
+  my $stylesheetFile = (defined($opts{stylesheet}) and length($opts{stylesheet})) ? 
+    $opts{stylesheet} : $ENV{HOME}."/.tred-stylesheets";
   TrEd::Utils::readStyleSheets($gui,$stylesheetFile);
 
   package main;
@@ -142,7 +142,7 @@ sub trees2pdf {
     -format => 'PDF',
     -noRotate => 1,
     -colors => 1,
-    ($otps{-psMedia} eq 'BBox') ?
+    ($opts{-psMedia} eq 'BBox') ?
       (-hMargin => 0, -vMargin => 0) : (),
     
     %opts,
