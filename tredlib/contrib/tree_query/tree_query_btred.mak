@@ -1,5 +1,6 @@
 # -*- cperl -*-
 
+{
 package Tree_Query_Btred;
 use strict;
 
@@ -346,5 +347,99 @@ sub node ($) {
 }
 
 
+=comment on implementation on top of btred search engine
+
+1. find in the query graph an oriented sceleton tree, possibly using
+Kruskal and some weighting rules favoring easy to follow types of
+edges (relations) with minimum number of potential target nodes
+(e.g. parent, ancestor a/lex.rf are better than child, descendant or
+a/aux.rf, and far better then their negated counterparts).
+
+2. Order sibling nodes of this tree by similar algorithm so that all
+relations between these nodes go from right bottom to left top (using
+reversing where possible) and the result is near optimal using similar
+weighting as above. This may be done only for relations not occuring
+in condition formulas.
+
+3. For each relation between nodes that occurs in a condition formula,
+assume that the relation is or is not satisfied so that the truth
+value of the condition is not decreased (whether to take the formula
+negatively or positively is probably easy to compute since we may
+eliminate all negations of non-atomic subformulas and then aim for
+TRUE value of the respective literal; that is, we only count the
+number of negations on the path from the root of the expression to the
+predicate representing the relational constraint and assume TRUE for
+even numbers and FALSE for odd numbers).
+
+The actual truth values of these relations will be verified only after
+all query nodes have been matched (or maybe for each node as soon as
+all nodes it refers to have been matched).
+
+4. The query context consists of:
+
+- the node in the query-tree being matched (current query node)
+
+- association of the previously matched query nodes with result node iterators
+
+- information about unresolved relational constraints on already
+  matched nodes
+
+- a flag RETURNING indicating that all child-nodes have been matched
+
+5. the search starts by creating an initial query context and a simple
+iterator for the root query node matches
+
+6. in each step one of the following cases occurs:
+
+- the iterator for the current query node is empty
+  -> backtrack: return to the state of the context of the previous query node
+     and iterate the associated iterator
+  -> fail if there is no previous query node
+
+- the iterator returns a node:
+
+  - check relational constraints depending on this node.
+    If any of them invalidates the condition on an already matched node,
+    itereate and repeat 6
+
+  - if RETURNING==0 and the current query node has
+    child-nodes, make the first of them the current node and repeat 6
+
+  - if the current query node has a right sibling, make it the current node,
+    and set RETURNING=0
+
+  - if the current query node has a parent, set RETURNING=1 and make the parent node the current node;
+
+  - otherwise: we have a complete match. Return the match, back-track
+    the context to the root-node and iterate the root-node iterator.
+    Then repeat 6.
+
+Note: #occurrences are treated as sub-queries that are processed by
+the simple iterators. The relation predicates from these sub-queries
+to the out-side trees are treated as predicate relations in complex
+relations and are only resolved as soon as all required query nodes
+are matched.
+
+More implementation details:
+
+back-tracking: either know how what to discard from the context or
+clone the context upon moving the context-node forward and return to
+the previous context when returning back
+
+Iterator:
+ ->node (the current result node)
+ ->iterate (returns 0 or 1)
+
+may, for efficiency, be not an Object but a triplet:
+
+$iterator=[$node,$data,$code_ref], with iterate being implemented as $code_ref->($data,$node);
+
+where the $data may consist of a 'seed' (e.g. the parent node)
+
+=cut
+
+
+
+}
 1;
 

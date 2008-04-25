@@ -45,13 +45,6 @@
 #  - is_leaf
 #
 
-#
-# relations and their representation by colors:
-# - parent-child: grey
-# - ancestor-descendant: light-blue
-# - e_parent-e_child: green
-# - preceding-following: yellow
-
 package Tree_Query;
 {
 use strict;
@@ -224,6 +217,7 @@ sub arrow_color {
   my $rel = shift;
   return $color{$rel};
 }
+
 sub node_style_hook {
   my ($node,$styles) = @_;
   my $i=0;
@@ -337,7 +331,6 @@ sub AddOrRemoveRelations {
   return @new;
 }
 
-
 sub limit {
   my ($limit)=@_;
   unless ($dbi_config) {
@@ -350,6 +343,7 @@ sub limit {
     return 'LIMIT '.$limit.';';
   }
 }
+
 sub load_config {
   unless ($dbi_config) {
     if (-f (my $filename=FindInResources('treebase.conf'))) {
