@@ -4,7 +4,9 @@
 #include <contrib/pml/PML.mak>
 
 #binding-context Tree_Query
+
 #include "tree_query.mak"
-#include "tree_query_btred.mak"
+
+###include "tree_query_btred.mak"
 
 #endif tree_query
