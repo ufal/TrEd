@@ -1121,7 +1121,9 @@ sub NormalizeOrds {
     my %by_parent;
     my $p;
     for my $node (@$nodesref) {
-      push @{$by_parent{$p}},$node if ($p=$node->parent);
+      if ($p=$node->parent) {
+	push @{$by_parent{$p}},$node;
+      }
     }
     foreach my $group (values %by_parent) {
       if (@$group>1) {
@@ -1130,7 +1132,7 @@ sub NormalizeOrds {
 	  if ($prev) {
 	    CutPasteAfter($node,$prev);
 	  } else {
-	    CutPaste($node,$parent);
+	    CutPaste($node,$node->parent);
 	  }
 	  $prev=$node;
 	}

@@ -131,30 +131,32 @@ sub cut_to_clipboad {
   $TredMacro::nodeClipboard=$this;
   $this=$this->rbrother ? $this->rbrother : $this->parent;
   CutNode($TredMacro::nodeClipboard);
-
-  my $nodesref=GetNodes();
-  SortByOrd($nodesref);
-  NormalizeOrds($nodesref);
+  if (_node_ord( $TredMacro::nodeClipboard)) {
+    my $nodesref=GetNodes();
+    SortByOrd($nodesref);
+    NormalizeOrds($nodesref);
+  }
 }
 
 sub paste_from_clipboad {
   return unless ($this and $TredMacro::nodeClipboard);
 
-  my $clipnodes=GetNodes($TredMacro::nodeClipboard);
-  SortByOrd($clipnodes);
-  NormalizeOrds($clipnodes);
-  my $nodes=GetNodes($root);
-  SortByOrd($nodes);
-  NormalizeOrds($nodes);
-  my $ord=FS()->order;
-  my $shift=$this->{$ord};
-  foreach my $node (@$clipnodes) {
-    $node->{$ord}+=$shift;
+  if (_node_ord($this)) {
+    my $clipnodes=GetNodes($TredMacro::nodeClipboard);
+    SortByOrd($clipnodes);
+    NormalizeOrds($clipnodes);
+    my $nodes=GetNodes($root);
+    SortByOrd($nodes);
+    NormalizeOrds($nodes);
+    my $ord=FS()->order;
+    my $shift=$this->{$ord};
+    foreach my $node (@$clipnodes) {
+      $node->{$ord}+=$shift;
+    }
+    foreach my $node (@$nodes) {
+      $node->{$ord}+=$#$clipnodes+1 if $node->{$ord}>$shift;
+    }
   }
-  foreach my $node (@$nodes) {
-    $node->{$ord}+=$#$clipnodes+1 if $node->{$ord}>$shift;
-  }
-
   PasteNode($TredMacro::nodeClipboard,$this);
   $this=$TredMacro::nodeClipboard;
   $TredMacro::nodeClipboard=undef;
@@ -163,9 +165,11 @@ sub paste_from_clipboad {
 sub paste_as_new_tree {
   return unless ($grp->{FSFile} and $TredMacro::nodeClipboard);
 
-  my $clipnodes=GetNodes($TredMacro::nodeClipboard);
-  SortByOrd($clipnodes);
-  NormalizeOrds($clipnodes);
+  if ($this) {
+    my $clipnodes=GetNodes($TredMacro::nodeClipboard);
+    SortByOrd($clipnodes);
+    NormalizeOrds($clipnodes);
+  }
   my $pos=$grp->{FSFile}->lastTreeNo()+1;
   $grp->{FSFile}->insert_tree($TredMacro::nodeClipboard,$pos);
   GotoTree($pos+1);
