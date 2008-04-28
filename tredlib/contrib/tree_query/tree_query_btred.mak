@@ -21,46 +21,48 @@ Bind \&test => {
   context=>'Tree_Query',
 };
 
-
-sub test {
-  # assuming the tree we get is ordered
-  my ($restart)=@_;
-  my $query_tree=$root;
-  my ($win) = grep {
-    my $fl = GetCurrentFileList($_);
-    ($fl and $fl->name eq 'Tree_Query')
-  } TrEdWindows();
-  print STDERR "$win\n";
-  return unless $win;
-  my $cur_win=$grp;
-  SetCurrentWindow($win);
-  print STDERR "Searching...\n";
-  $Tree_Query::btred_results=1;
-  %Tree_Query::is_match=();
-  init_search($query_tree) if $restart; # we skip the root
-  my $match = find_next_match();
-  if ($match) {
-    %Tree_Query::is_match = map { $match->{$_} => 1 } keys %$match;
-    print join(",",map { $match->{$_}->{id} 
-		       } keys %$match)."\n";
-  }
-  print STDERR "Searching done!\n";
-  Redraw();
-  SetCurrentWindow($cur_win);
-}
-
-
-
-
 {
+  our $DEBUG;
+#ifdef TRED
+  $DEBUG=1;
+#endif
   my $query_file;
   my $query_tree;
   my $query_node;
-  my @query_stack;
-  my %iterator;
-  my %conditions;
+
+  my @query_nodes;
+  my @conditions;
+  my @parent_pos;
+  my @iterators;
+  my @match;
+  my %qnode2pos;
+
+  my $query_pos;
+
   my %debug;
-  my $ctxt; # not yet used
+  my %have;
+
+  sub reset_search {
+    my ($query_tree)=@_;
+    $query_node=$query_tree->firstson;
+    $query_pos = 0;
+    %iterator=();
+    @iterators=();
+    @match=();
+    %have=();
+  }
+
+  sub prepare_query {
+    my ($query_tree)=@_;
+    reset_search($query_tree);
+    @query_nodes=($query_node,$query_node->descendants);
+    %qnode2pos = map { $query_nodes[$_] => $_ } 0..$#query_nodes;
+    @parent_pos = map { $qnode2pos{ $_->parent  } } @query_nodes;
+    init_id_map($query_tree);
+#    print STDERR "$query_node",$id{$query_node},"\n";
+    @conditions = map { serialize_conditions($_) } @query_nodes;
+  }
+
 
   my %id;
   my %name2node_hash;
@@ -86,13 +88,15 @@ sub test {
     };
   }
 
+#ifndef TRED
+
   sub start_hook {
     my ($query_fn,$query_id)=@ARGV;
     $query_file = FSFile->newFSFile($query_fn,[Backends()]);
     $query_tree = $query_file->appData('id-hash')->{$query_id};
     #  print STDERR "$query_file\n";
     die "Query tree $query_fn#$query_id not found\n" unless ref $query_tree;
-    init_search($query_tree);
+    prepare_query($query_tree);
     print "initialized\n";
     print $query_node,",",$query_tree->{id},"\n";
   }
@@ -102,28 +106,39 @@ sub test {
     reset_search($query_tree);
 
     while ($match = find_next_match()) {
-      print join(",",map { $id{$_}.": ".$match->{$_}->{id}.": ".$match->{$_}->{functor} }
-      		 sort {$id{$a} cmp $id{$b}}
-      		 keys %$match)."\n";
+      print join(",",map { $_->{id}.": ".$_->{functor} } @$match)."\n";
     }
   }
 
-  sub reset_search {
-    my ($query_tree)=@_;
-    $query_node=$query_tree->firstson;
-    %iterator=();
-    $ctxt={};
+#endif
+
+  sub test {
+    # assuming the tree we get is ordered
+    my ($restart)=@_;
+    my $query_tree=$root;
+    my ($win) = grep {
+      my $fl = GetCurrentFileList($_);
+      ($fl and $fl->name eq 'Tree_Query')
+    } TrEdWindows();
+    print STDERR "$win\n" if $DEBUG;
+    return unless $win;
+    my $cur_win=$grp;
+    SetCurrentWindow($win);
+    print STDERR "Searching...\n" if $DEBUG;
+    $Tree_Query::btred_results=1;
+    %Tree_Query::is_match=();
+    prepare_query($query_tree) if $restart; # we skip the root
+    my $match = find_next_match();
+    if ($match) {
+      %Tree_Query::is_match = map { $_ => 1 } @$match;
+      print join(",",map { $_->{id}.": ".$_->{functor} } @$match)."\n";
+      $this = $match->[0];
+    }
+    print STDERR "Searching done!\n" if $DEBUG;
+    Redraw();
+    SetCurrentWindow($cur_win);
   }
 
-  sub init_search {
-    my ($query_tree)=@_;
-    @query_stack=();
-    reset_search($query_tree);
-    init_id_map($query_node);
-#    print STDERR "$query_node",$id{$query_node},"\n";
-    %conditions = ( map { $_ => serialize_conditions($_) } ($query_node,$query_node->descendants) );
-    $ctxt={};
-  }
 
   sub serialize_conditions {
     my ($qnode,$opts)=@_;
@@ -133,20 +148,40 @@ sub test {
       name => 'and',
       condition => $qnode->{conditions},
     });
-#    print STDERR "CONDITIONS: $conditions\n";
-    $debug{$qnode}=$conditions;
-    return eval 'sub { my ($node)=@_; '.$conditions.' }';
+    if ($conditions=~/\S/) {
+      $debug{$qnode}=$conditions;
+      print STDERR "CONDITIONS: $conditions\n" if $DEBUG;
+      return eval 'sub { my ($node)=@_; '.$conditions.' }';
+    } else {
+      $debug{$qnode}='TRUE';
+      print STDERR "CONDITIONS: 1\n" if $DEBUG;
+      return eval 'sub {1}';
+    }
   }
 
   sub serialize_element {
     my ($opts)=@_;
     my ($name,$value)=map {$opts->{$_}} qw(name condition);
     if ($name eq 'test') {
-      my $left = serialize_expression({%$opts,expression=>$value->{a}});
-      my $right = serialize_expression({%$opts,expression=>$value->{b}});
+      my $left = serialize_expression({%$opts,expression=>$value->{a}}); # FIXME: quoting
+      my $right = serialize_expression({%$opts,expression=>$value->{b}}); # FIXME: quoting
       my $operator = $value->{operator};
       if ($operator eq '=') {
-	$operator = 'eq';
+	if ($right=~/^(?:\d*\.)?\d+$/ or $left=~/^(?:\d*\.)?\d+$/) {
+	  $operator = '==';
+	} else {
+	  $operator = 'eq';
+	}
+      } elsif ($operator eq 'like') {
+	# FIXME, this is ugly
+	$operator = '=~';
+	$right =~s{^'|'$}{}g;
+	$right =~ s{\\}{\\\\}g;
+	$right =~ s{\}}{\\\}}g;
+	$right=q(m{\Q).$right.q(\E});
+	$right=~s{%}{\\E.*\\Q}g;
+	$right=~s{_}{\\E.\\Q}g;
+	$right=~s{\\Q\\E}{}g;
       } elsif ($operator eq '~') {
 	$operator = '=~';
       }
@@ -182,63 +217,73 @@ sub test {
     #      s/"_[#]sons"/"chld"/g;
     #      s/"_depth"/"lvl"/g;
     #    }
-    $exp=~s{(?:(\w+)\.)?"([^"]+)"}{
-      my $node = defined($1) ? q($iterator{$name2node_hash{').lc($1).q('}}->node) : '$node';
-      my $attr = $2;
-      ($attr=~m{/}) ? $node.qq{->attr(q($attr))} : $node.qq[->{q($attr)}];
-    }ge;
+    if ($exp=~/^'((?:\d*\.)?\d+)'$/) {
+      $exp=$1;
+    } else {
+      $exp=~s{(?:(\w+)\.)?"([^"]+)"}{
+	my $node = defined($1) ? q($iterators[$qnode2pos{$name2node_hash{').lc($1).q('}}]->node) : '$node';
+	my $attr = $2;
+	($attr=~m{/}) ? $node.qq{->attr(q($attr))} : $node.qq[->{q($attr)}];
+      }ge;
+    }
     return $exp;
   }
 
   sub find_next_match () {
-    my $iterator = $iterator{$query_node};
+    my $iterator = $iterators[$query_pos];
     if ($iterator) {
       # next
       if ($iterator->node) {
-	my $conditions = $conditions{$query_node};
+	my $conditions = $conditions[$query_pos];
+	delete $have{$iterator->node};
 	$iterator->next;
-	$iterator->next while $iterator->node and !$conditions->($iterator->node);
+	$iterator->next while ($iterator->node and (exists($have{$iterator->node}) or !$conditions->($iterator->node)));
+	$have{$iterator->node}=1 if $iterator->node;
       }
     } else {
       # first
-      $iterator = $iterator{$query_node} = new_iterator();
+      print STDERR "creating Tree iterator query-node [$debug{$query_node}]\n" if $DEBUG;
+      $iterator = $iterators[$query_pos] = new_iterator();
     }
     while (1) {
       my $node = $iterator->node;
       if (!$node) {
-	if (@query_stack) {
-#	  print STDERR "no node: backtracking from $query_node\n";
+	if ($query_pos) {
+	  print STDERR "no node: backtracking from $query_node, $query_pos\n" if $DEBUG;
 	  # backtrack
-	  delete $iterator{$query_node};
-	  my $last=pop @query_stack;
-	  ($query_node,$ctxt)=@$last;
-#	  print STDERR "query_node: $id{$query_node}, $debug{$query_node}, $iterator{$query_node}\n";
-	  $iterator=$iterator{$query_node};
+	  delete $iterators[$query_pos];
+	  print STDERR "old_query_node: $id{$query_node}, $debug{$query_node}, $iterators[$query_pos]\n" if $DEBUG;
+	  $query_node = $query_nodes[--$query_pos];
+	  print STDERR "query_node: $id{$query_node}, $debug{$query_node}, $iterators[$query_pos]\n" if $DEBUG;
+	  $iterator=$iterators[$query_pos];
 	  if ($iterator->node) {
+	    delete $have{$iterator->node};
 	    $iterator->next;
-	    my $conditions = $conditions{$query_node};
-	    $iterator->next while $iterator->node and !$conditions->($iterator->node);
+	    my $conditions = $conditions[$query_pos];
+	    $iterator->next while ($iterator->node and (exists($have{$iterator->node}) or !$conditions->($iterator->node)));
+	    $have{$iterator->node}=1 if $iterator->node;
 	  }
 	  next;
 	} else {
-#	  print STDERR "no node: no result\n";
+	  print STDERR "no node: no result\n" if $DEBUG;
 	  return; # NO RESULT
 	}
       } else {
+	print STDERR "at: $id{$query_node}, $debug{$query_node} with node: $node->{t_lemma},$node->{functor}\n" if $DEBUG;
+
 	# TODO: check relational constraints, backtrack on invalidate
-	my $next =  $query_node->following;
-	unless ($next) {
-#	  print STDERR "complete match\n";
+	if ($query_pos<$#query_nodes) {
+	  $query_node =  $query_nodes[++$query_pos];
+	  my $relation = $query_node->{relation} || 'parent';
+	  my $seed = $iterators[$parent_pos[$query_pos]]->node;
+	  print STDERR "creating iterator for query-node [$debug{$query_node}] with seed-node: $seed->{t_lemma},$seed->{functor}\n" if $DEBUG;
+	  $iterator = $iterators[$query_pos] = new_iterator($seed); # node is the seed
+	  next;
+	} else {
+	  print STDERR "complete match\n" if $DEBUG;
 	  # complete match:
-	  return { map { $_ => $iterator{$_}->node } keys %iterator };
+	  return [map { $_->node } @iterators];
 	}
-	push @query_stack, [$query_node,$ctxt];
-	$query_node=$next;
-	my $relation = $query_node->{relation} || 'parent';
-	my $seed = $iterator{$query_node->parent}->node;
-#	print STDERR "creating iterator for query-node [$debug{$query_node}] with seed-node: $seed->{t_lemma},$seed->{functor}\n";
-	$iterator = $iterator{$query_node} = new_iterator($seed); # node is the seed
-	next;
       }
     }
   }# search
@@ -249,9 +294,10 @@ sub test {
     # TODO: deal with negative relations
     my $iterator;
     if ($node) {
-      my ($relation) = map {$_->name} SeqV($query_node->{relation});
+      my ($rel) = SeqV($query_node->{relation});
+      my $relation = $rel && $rel->name;
       $relation||='parent';
-#      print STDERR "iterator: $relation\n";
+      print STDERR "iterator: $relation\n" if $DEBUG;
       if ($relation eq 'parent') {
 	$iterator = ChildnodeIterator->new($node);
       } elsif ($relation eq 'ancestor') {
@@ -260,12 +306,23 @@ sub test {
 	$iterator = ParentIterator->new($node);
       } elsif ($relation eq 'descendant') {
 	$iterator = AncestorIterator->new($node);
+      } elsif ($relation eq 'user-defined') {
+	if ($rel->value->{label} eq 'a/aux.rf') {
+	  $iterator = AAuxRFIterator->new($node);
+	} elsif ($rel->value->{label} eq 'a/lex.rf') {
+	  $iterator = ALexRFIterator->new($node);
+	} elsif ($rel->value->{label} eq 'a/lex.rf|a/aux.rf') {
+	  $iterator = ALexOrAuxRFIterator->new($node);
+	} else {
+	  die "relation ".$rel->value->{label}." not yet implemented\n"
+	}
       }
     } else {
       $iterator = TreeIterator->new();
     }
-    my $conditions = $conditions{$query_node};
-    $iterator->next while $iterator->node and !$conditions->($iterator->node);
+    my $conditions = $conditions[$query_pos];
+    $iterator->next while ($iterator->node and (exists($have{$iterator->node}) or !$conditions->($iterator->node)));
+    $have{$iterator->node}=1 if $iterator->node;
     return $iterator;
   }
 }
@@ -286,7 +343,8 @@ sub new ($) {
 }
 
 sub next ($) {
-  $_[0]->[NODE] = ($_[0]->[NODE]->following || (TredMacro::NextTree() && $this));
+  $_[0]->[NODE] = ($_[0]->[NODE]->following || (TredMacro::NextTree() && $this)
+		  );
 }
 
 sub node ($) {
@@ -362,6 +420,68 @@ sub next ($) {
 
 sub node ($) {
   return $_[0]->[NODE];
+}
+
+package ALexRFIterator;
+
+use constant NODE=>0;
+
+sub new ($$) {
+  my ($class,$node)=@_;
+  my $lex_rf = $node->attr('a/lex.rf');
+  my $refnode;
+  if (defined $lex_rf) {
+    $lex_rf=~s/^.*?#//;
+    $refnode=PML_T::GetANodeByID($lex_rf);
+    print $lex_rf," => $refnode\n";
+  }
+  bless [$refnode],$class;
+}
+
+sub next ($) {
+  $_[0]->[NODE]=undef;
+  return;
+}
+
+sub node ($) {
+  return $_[0]->[NODE];
+}
+
+package AAuxRFIterator;
+
+sub new ($$) {
+  my ($class,$node)=@_;
+  my @aux_rf = ListV($node->attr('a/aux.rf'));
+  my $refnode;
+  bless [grep defined, map {
+    my $id = $_; $id=~s/^.*?#//;
+    PML_T::GetANodeByID($id)
+    } @aux_rf ],$class;
+}
+
+sub next ($) {
+  shift @{$_[0]};
+  return $_[0]->[0];
+}
+
+sub node ($) {
+  return $_[0]->[0];
+}
+
+package ALexOrAuxRFIterator;
+
+sub new ($$) {
+  my ($class,$node)=@_;
+  bless [ PML_T::GetANodes($node) ],$class;
+}
+
+sub next ($) {
+  shift @{$_[0]};
+  return $_[0]->[0];
+}
+
+sub node ($) {
+  return $_[0]->[0];
 }
 
 
