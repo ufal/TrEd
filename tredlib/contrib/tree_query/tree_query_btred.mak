@@ -21,6 +21,30 @@ Bind \&test => {
   context=>'Tree_Query',
 };
 
+my %test_relation = (
+  'ancestor-of'   => q(first { $_ == $start } $end->ancestors), # not very effective !!
+  'descendant-of' => q(first { $_ == $end } $start->ancestors), # not very effective !!
+
+  'child-of' => q($start->parent == $end),
+  'parent-of' => q($end->parent == $start),
+
+  'order-precedes' => q($start->get_order < $end->get_order ), # not very effective !!
+  'order-follows' => q($end->get_order < $start->get_order ), # not very effective !!
+
+  'depth-first-precedes' => q( $start->root==$end->root and  do{my $n=$start->following; $n=$n->following while ($n and $n!=$end); $n ? 1 : 0 }), # not very effective !!
+  'depth-first-follows' => q( $start->root==$end->root and  do{my $n=$end->following; $n=$n->following while ($n and $n!=$start); $n ? 1 : 0 }), # not very effective !!
+);
+
+my %test_user_defined_relation = (
+  'effective_parent' => undef, # not yet implemented
+  'a/lex.rf|a/aux.rf' => q(first { $_ eq $end->{id} } GetANodeIDs()),
+  'a/lex.rf' => q(do { my $id=$start->attr('a/lex.rf'); $id=~s/^.*?#//; $id  eq $end->{id} } ),
+  'a/aux.rf' => q(first { my $id=$_; $id=~s/^.*?#//; $id eq $end->{id} } ListV($start->attr('a/lex.rf'))),
+  'coref_text' => q(first { $_ eq $end->{id} } ListV($start->{'coref_text.rf'})),
+  'coref_gram' => q(first { $_ eq $end->{id} } ListV($start->{'coref_gram.rf'})),
+  'compl' => q(first { $_ eq $end->{id} } ListV($start->{'compl.rf'})),
+);
+
 {
   our $DEBUG;
 #ifdef TRED
@@ -32,6 +56,8 @@ Bind \&test => {
 
   my @query_nodes;
   my @conditions;
+  my @recompute_condition;
+  my @reverted_relations;
   my @parent_pos;
   my @iterators;
   my @match;
@@ -73,7 +99,9 @@ Bind \&test => {
 	my ($rel) = SeqV($qn->{relation});
 	my $relation = $rel && $rel->name;
 	$relation||='parent';
+
 	print STDERR "iterator: $relation\n" if $DEBUG;
+
 	if ($relation eq 'parent') {
 	  $iterator = ChildnodeIterator->new($conditions);
 	} elsif ($relation eq 'ancestor') {
@@ -164,6 +192,7 @@ Bind \&test => {
     $Tree_Query::btred_results=1;
     %Tree_Query::is_match=();
     prepare_query($query_tree) if $restart; # we skip the root
+    #return;
     my $match = find_next_match();
     if ($match) {
       %Tree_Query::is_match = map { $_ => 1 } @$match;
@@ -177,23 +206,73 @@ Bind \&test => {
 
   sub serialize_conditions {
     my ($qnode,$opts)=@_;
-    $opts||={};
     my $conditions = serialize_element({
       %$opts,
       name => 'and',
       condition => $qnode->{conditions},
     });
-    $debug{$qnode}=$conditions;
+    ($query_pos,@conditions,@iterators); # just for Perl to know we want to use these lexicals
+
+    my $pos = $opts->{query_pos};
+    my @relations = defined($reverted_relations[$pos]) ? @{$reverted_relations[$pos]} : (); # won't be needed when we plan the query
+    for my $rel (SeqV($qnode->attr('extra-relations'))) {
+      my $relation = $rel->name;
+      my $target = $rel->value->{target};
+      my $expression;
+      if ($relation eq 'user-defined') {
+	my $label = $rel->value->{label};
+	$expression = $test_user_defined_relation{$label};
+	die "User-defined relation '$label' not supported test!\n" unless defined $expression;
+      } else {
+	$expression = $test_relation{$relation};
+	die "Relation '$relation' not supported test!\n" unless defined $expression;
+      }
+      my $target_pos = $qnode2pos{$name2node_hash{lc($target)}};
+      if ($target_pos<$pos) {
+	push @relations, q/ do{ my ($start,$end)=($node,$iterators[/.$target_pos.q/]->node); (/.$expression.q/) } /;
+      } else {
+	# evaluate with target
+	push @{$reverted_relations[$target_pos]}, q/ do{ my ($end,$start)=($node,$iterators[/.$pos.q/]->node); (/.$expression.q/) } /;
+      }
+    }
+
     print STDERR "CONDITIONS: $conditions\n" if $DEBUG;
-    return eval 'sub { my ($node)=@_; $node and !exists($have{$node}) '.($conditions=~/\S/ ? ' and '.$conditions : '').' }';
+    my $recompute = $recompute_condition[$pos];
+    my $check_preceding = '';
+    if (defined $recompute) {
+      $check_preceding = join('', map {' and $conditions['.$_.']->($iterators['.$_.']->node) '} sort { $a<=>$b } keys %$recompute);
+    }
+
+    my $sub = 'sub { my ($node)=@_;
+                     $node and !exists($have{$node})'.
+		       ($conditions=~/\S/ ? ' and '.$conditions : '')
+		       .(join '',map { ' and '.$_ } @relations )
+		       .$check_preceding.' }';
+
+    $debug{$qnode}=$sub;
+    print STDERR "SUB: $sub\n" if $DEBUG;
+    $sub = eval $sub;
+    die $@ if $@;
+    return $sub;
+  }
+
+  sub debug_pos {
+    print "qp: ",\$query_pos," $query_pos\n" if $DEBUG;
   }
 
   sub serialize_element {
     my ($opts)=@_;
     my ($name,$value)=map {$opts->{$_}} qw(name condition);
     if ($name eq 'test') {
-      my $left = serialize_expression({%$opts,expression=>$value->{a}}); # FIXME: quoting
-      my $right = serialize_expression({%$opts,expression=>$value->{b}}); # FIXME: quoting
+      my %depends_on;
+      my $left = serialize_expression({%$opts,
+				       depends_on => \%depends_on,
+				       expression=>$value->{a}
+				      }); # FIXME: quoting
+      my $right = serialize_expression({%$opts,
+					depends_on => \%depends_on,
+					expression=>$value->{b}
+				       }); # FIXME: quoting
       my $operator = $value->{operator};
       if ($operator eq '=') {
 	if ($right=~/^(?:\d*\.)?\d+$/ or $left=~/^(?:\d*\.)?\d+$/) {
@@ -214,26 +293,41 @@ Bind \&test => {
       } elsif ($operator eq '~') {
 	$operator = '=~';
       }
-      return ($value->{negate}==1 ? 'not' : '').
+      my $last_dependency = max($opts->{query_pos},keys %depends_on);
+      my $pos = $opts->{query_pos};
+      if ($last_dependency>$pos) {
+	$recompute_condition[$_]{$pos}=1 for keys %depends_on;
+	my $truth_value = $opts->{negative_formula} ? 0 : 1;
+	$truth_value=!$truth_value if $value->{negate};
+	return ($value->{negate}==1 ? 'not' : '').
+	  ('( $query_pos < '.$last_dependency.' ? '.$truth_value.'  : ('.$left.' '.$operator.' '.$right.'))');
+      } else {
+	return ($value->{negate}==1 ? 'not' : '').
 	('('.$left.' '.$operator.' '.$right.')');
+      }
     } elsif ($name =~ /^(?:and|or)$/) {
       my $seq = $value->{'#content'};
       return () unless (UNIVERSAL::isa( $seq, 'Fslib::Seq') and @$seq);
+      my $negative = $opts->{negative_formula} ? 1 : 0;
+      $negative=!$negative if $value->{negate};
       my $condition = join(' '.$name.' ',
 			   grep { defined and length }
 			     map {
 			       my $n = $_->name;
 			       serialize_element({
 				 %$opts,
+				 negative_formula => $negative,
 				 name => $n,
 				 condition => $_->value,
-			       }) } $seq->elements);
+			       })
+			     } $seq->elements);
       return () unless length $condition;
       return ($value->{negate} ? "not($condition)" : "($condition)");
     } else {
-      warn "Unknown element $name ";
+      die "Unknown element $name ";
     }
   }
+
   sub serialize_expression {
     my ($opts)=@_;
     my $parent_id = $opts->{parent_id};
@@ -250,8 +344,18 @@ Bind \&test => {
       $exp=$1;
     } else {
       $exp=~s{(?:(\w+)\.)?"([^"]+)"}{
-	my $node = defined($1) ? q($iterators[$qnode2pos{$name2node_hash{').lc($1).q('}}]->node) : '$node';
+	my $name = $1;
 	my $attr = $2;
+	my $node='$node';
+	if (defined $name) {
+	  my $pos = $qnode2pos{$name2node_hash{lc($name)}};
+	  if ($pos!=$opts->{query_pos}) {
+	    $node='$iterators['.$pos.']->node';
+	    if ($pos>$opts->{query_pos}) {
+	      $opts->{depends_on}{$pos}=1;
+	    }
+	  }
+	}
 	($attr=~m{/}) ? $node.qq{->attr(q($attr))} : $node.qq[->{q($attr)}];
       }ge;
     }
@@ -494,11 +598,10 @@ use constant CONDITIONS=>0;
 use constant NODES=>1;
 sub start ($$) {
   my ($self,$node)=@_;
-  my @aux_rf = ListV($node->attr('a/aux.rf'));
   $self->[NODES]=[grep defined, map {
     my $id = $_; $id=~s/^.*?#//;
     PML_T::GetANodeByID($id)
-    } @aux_rf];
+    } ListV($node->attr('a/aux.rf'))];
   my $n = $self->[NODES]->[0];
   return $self->[CONDITIONS]->($n) ? $n : ($n && $self->next);
 }
@@ -528,21 +631,59 @@ sub start ($$) {
   my $n = $self->[NODES]->[0];
   return $self->[CONDITIONS]->($n) ? $n : ($n && $self->next);
 }
-sub next ($) {
-  my ($self)=@_;
-  my $nodes = $self->[NODES];
-  my $conditions=$self->[CONDITIONS];
-  shift @{$nodes};
-  shift @{$nodes} while ($nodes->[0] and !$conditions->($nodes->[0]));
-  return $nodes->[0];
+*next = \&AuxRFIterator::next;
+*node = \&AuxRFIterator::node;
+*reset = \&AuxRFIterator::reset;
+
+package CorefTextRFIterator;
+use base qw(Tree_Query::Iterator);
+use constant CONDITIONS=>0;
+use constant NODES=>1;
+sub start ($$) {
+  my ($self,$node)=@_;
+  $self->[NODES]=[grep defined, map {
+    PML::GetNodeByID($_)
+    } ListV($node->attr('coref_text.rf'))];
+  my $n = $self->[NODES]->[0];
+  return $self->[CONDITIONS]->($n) ? $n : ($n && $self->next);
 }
-sub node ($) {
-  return $_[0]->[NODES]->[0];
+*next = \&AuxRFIterator::next;
+*node = \&AuxRFIterator::node;
+*reset = \&AuxRFIterator::reset;
+
+package CorefGramRFIterator;
+use base qw(Tree_Query::Iterator);
+use constant CONDITIONS=>0;
+use constant NODES=>1;
+sub start ($$) {
+  my ($self,$node)=@_;
+  $self->[NODES]=[grep defined, map {
+    PML::GetNodeByID($_)
+    } ListV($node->attr('coref_gram.rf'))];
+  my $n = $self->[NODES]->[0];
+  return $self->[CONDITIONS]->($n) ? $n : ($n && $self->next);
 }
-sub reset ($) {
-  my ($self)=@_;
-  $self->[NODES]=undef;
+*next = \&AuxRFIterator::next;
+*node = \&AuxRFIterator::node;
+*reset = \&AuxRFIterator::reset;
+
+package ComplRFIterator;
+use base qw(Tree_Query::Iterator);
+use constant CONDITIONS=>0;
+use constant NODES=>1;
+sub start ($$) {
+  my ($self,$node)=@_;
+  $self->[NODES]=[grep defined, map {
+    PML::GetNodeByID($_)
+    } ListV($node->attr('compl.rf'))];
+  my $n = $self->[NODES]->[0];
+  return $self->[CONDITIONS]->($n) ? $n : ($n && $self->next);
 }
+*next = \&AuxRFIterator::next;
+*node = \&AuxRFIterator::node;
+*reset = \&AuxRFIterator::reset;
+
+
 
 =comment on implementation on top of btred search engine
 
