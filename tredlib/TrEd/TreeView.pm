@@ -2001,7 +2001,7 @@ sub redraw {
 			 -font => $self->get_font,
 			 -tags => ['vline','text_item'],
 			 -text => $_,
-					   -justify => 'left',
+			 -justify => 'left',
 			 -anchor => 'nw'),
 	    %{$RootStyle{SentenceLine}});
 	  }; print STDERR $@ if $@;
