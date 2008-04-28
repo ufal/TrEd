@@ -892,9 +892,14 @@ sub extra_relation {
   if ($relation eq 'descendant-of') {
     $relation = 'ancestor-of';
     ($id,$target)=($target,$id);
-  }
-  if ($relation eq 'child-of') {
+  } elsif ($relation eq 'child-of') {
     $relation = 'parent-of';
+    ($id,$target)=($target,$id);
+  } elsif ($relation eq 'order-follows') {
+    $relation = 'order-precedes';
+    ($id,$target)=($target,$id);
+  } elsif ($relation eq 'depth-first-follows') {
+    $relation = 'depth-first-precedes';
     ($id,$target)=($target,$id);
   }
 
