@@ -135,6 +135,7 @@ sub test {
     my @iterators;
     my @sub_queries;
     my $parent_query=$opts->{parent_query};
+    my $matched_nodes = $parent_query ? $parent_query->{matched_nodes} : [];
     my %have;
     my $query_pos;
     #######################
@@ -145,6 +146,9 @@ sub test {
 
     my @debug;
     my %name2pos;
+    # maps node position in a (sub)query to a position of the matching node in $matched_nodes
+    # we avoid using hashes for efficiency
+
     my $self = bless {
 
       query_pos => 0,
@@ -157,10 +161,14 @@ sub test {
       sub_queries => \@sub_queries,
       parent_query => $parent_query,
       parent_query_pos => $opts->{parent_query_pos},
-      parent_dependencies => $opts->{parent_dependencies} || [], # modified from subqueries
+
+
+      matched_nodes => $matched_nodes, # nodes matched so far (incl. nodes in subqueries; used for evaluation of cross-query relations)
 
       name2pos => \%name2pos,
       parent_pos => undef,
+      pos2match_pos => undef,
+      name2match_pos => undef,
     }, $class;
     weaken($self->{parent_query}) if $self->{parent_query};
     $query_pos = \$self->{query_pos};
@@ -175,19 +183,36 @@ sub test {
       my $name = lc($query_nodes[$_]->{name});
       (defined($name) and length($name)) ? ($name=>$_) : ()
     } 0..$#query_nodes;
+
+    {
+      my @all_query_nodes = ($query_node->root->descendants);
+      {
+	my %node2match_pos = map { $all_query_nodes[$_] => $_ } 0..$#all_query_nodes;
+	$self->{pos2match_pos} = [
+	  map { $node2match_pos{ $query_nodes[$_] } } 0..$#query_nodes
+	];
+      }
+      # we only allow refferrences to nodes in this query or some super-query
+      $self->{name2match_pos} = {
+	($self->{parent_query} ? (%{$self->{parent_query}{name2match_pos}}) : ()),
+	map { $_ => $self->{pos2match_pos}[$name2pos{$_}] } keys %name2pos
+      };
+    }
     {
       my %node2pos = map { $query_nodes[$_] => $_ } 0..$#query_nodes;
       $self->{parent_pos} = [ map { $node2pos{ $_->parent  } } @query_nodes ];
     }
 
     # compile condition testing functions and create iterators
+    my (@r1,@r2,@r3);
     for my $i (0..$#query_nodes) {
       my $qn = $query_nodes[$i];
 
       my $sub = $self->serialize_conditions($qn,{
 	query_pos => $i,
-	recompute_condition => [], # appended in recursion
-	reverted_relations => [],  # appended in recursion
+	recompute_condition => \@r1, # appended in recursion
+	recompute_subquery => \@r2,  # appended in recursion
+	reverted_relations => \@r3,  # appended in recursion
       });
       my $conditions = eval $sub; die $@ if $@; # use the above-mentioned lexical context
       push @debug, $sub;
@@ -263,6 +288,7 @@ sub test {
     });
 
     my $pos = $opts->{query_pos};
+    my $match_pos = $self->{pos2match_pos}[$pos];
 
     # extra-relations:
     # relations aiming forward will be evaluated on the target node
@@ -283,39 +309,28 @@ sub test {
       $expression = $rel->value->{negate} ? 'not('.$expression.')' : '('.$expression.')';
 
       my $target_pos = $self->{name2pos}{$target};
-      if (!defined $target_pos) {
-	my $parent = $self->{parent_query};
-	my $deps = $self->{parent_dependencies};
-	my $parent_pos = $self->{parent_query_pos};
-	my $parent_spec  = q/$parent_query/;
-	$target_pos = $parent->{name2pos}{$target};
-	while ($parent and !defined $target_pos) {
-	  $target_pos = $parent->{name2pos}{$target};
-	  $deps = $parent->{parent_dependencies};
-	  $parent_pos = $parent->{parent_query_pos};
-	  $parent = $parent->{parent_query};
-	  $parent_spec  .= q/->{parent_query}/ if $parent;
-	}
-	if (defined $target_pos) {
-	  my $expr = q/do{ my ($start,$end)=($node,/.$parent_spec.q/->{iterators}[/.$target_pos.q/]->node); /.$expression.q/ }/;
-	  if ($target_pos>$parent_pos) {
-	    print "=================\n";
-	    print "ADDING dependency of $parent_pos on $target_pos to $deps\n";
-	    $deps->[$target_pos]{$parent_pos}=1;
-	    
-            $expr = '('.$parent_spec.q/->{query_pos}</.$target_pos.' or '.$expr.' )';
-	  }
-	  push @relations, $expr;
+      my $target_match_pos = $self->{name2match_pos}{$target};
+      if (defined $target_pos) {
+	# target node in the same sub-query
+	if ($target_pos<$pos) {
+	  push @relations, q/ do{ my ($start,$end)=($node,$matched_nodes->[/.$target_match_pos.q/]); /.$expression.q/ } /;
+	} elsif ($target_pos>$pos) {
+	  # evaluate at target node
+	  push @{$reverted->[$target_pos]}, q/ do{ my ($end,$start)=($node,$matched_nodes->[/.$match_pos.q/]); /.$expression.q/ } /;
 	} else {
-	  die "Node '$target' does not exist or not in the scope\n";
+	  # huh, really?
+	  push @relations, q/ do{ my ($start,$end)=($node,$node); /.$expression.q/ } /;
+	}
+      } elsif (defined $target_match_pos) {
+	# this node is matched by some super-query
+	my $expr = q/do{ my ($start,$end)=($node,$matched_nodes->[/.$target_match_pos.q/]); /.$expression.q/ }/;
+	push @relations, $expr;
+	if ($target_match_pos > $match_pos) {
+	  # we need to postpone the evaluation of the whole sub-query up-till $matched_nodes->[$target_pos] is known
+	  $self->{postpone_subquery_till}=$target_match_pos if ($self->{postpone_subquery_till}||0)<$target_match_pos;
 	}
       } else {
-	if ($target_pos<$pos) {
-	  push @relations, q/ do{ my ($start,$end)=($node,$iterators[/.$target_pos.q/]->node); /.$expression.q/ } /;
-	} else {
-	  # evaluate with target
-	  push @{$reverted->[$target_pos]}, q/ do{ my ($end,$start)=($node,$iterators[/.$pos.q/]->node); /.$expression.q/ } /;
-	}
+	die "Node '$target' does not exist or belongs to a sub-query and cannot be referred from here!\n";
       }
     }
 
@@ -326,31 +341,47 @@ sub test {
       my $subquery = ref($self)->new($sqn, {
 	parent_query => $self,
 	parent_query_pos => $opts->{query_pos},
-        parent_dependencies => $opts->{recompute_condition},
       });
       push @{$self->{sub_queries}}, $subquery;
       my $sq_pos = $#{$self->{sub_queries}};
-      push @subquery_conditions,
-	qq/\$sub_queries[$sq_pos]->test_occurrences(\$node,$sqn->{occurrences})/;
+      my $sq_condition = qq/\$sub_queries[$sq_pos]->test_occurrences(\$node,$sqn->{occurrences})/;
+      my $postpone_subquery_till = $subquery->{postpone_subquery_till};
+      if (defined $postpone_subquery_till) {
+	if ($postpone_subquery_till<=$self->{pos2match_pos}[-1]) {
+	  # same subquery, simply postpone, just like when recomputing conditions
+	  push @{$opts->{recompute_subquery}[$postpone_subquery_till]},
+	    qq/\$sub_queries[$sq_pos]->test_occurrences(\$matched_nodes->[$match_pos],$sqn->{occurrences})/;
+	} else {
+	  # otherwise postpone this subquery as well
+	  $self->{postpone_subquery_till}=$postpone_subquery_till if $postpone_subquery_till>($self->{postpone_subquery_till}||0);
+	  push @subquery_conditions,$sq_condition;
+	}
+      } else {
+	push @subquery_conditions,$sq_condition;
+      }
+
     }
 
-    print STDERR "CONDITIONS: $conditions\n" if $DEBUG;
-    print "$opts->{recompute_condition}\n";
-    my $recompute = $opts->{recompute_condition}[$pos];
-    use Data::Dumper;
-    print Dumper([$pos => $recompute]);
-
+    print STDERR "CONDITIONS[$pos/$match_pos]: $conditions\n" if $DEBUG;
     my $check_preceding = '';
-    if (defined $recompute) {
-      $check_preceding = join('', map {' and $conditions['.$_.']->($iterators['.$_.']->node) '} sort { $a<=>$b } keys %$recompute);
-    }
 
-    my $sub = 'sub { my ($node)=@_;
-                     $node and !exists($have{$node})'.
-		       ($conditions=~/\S/ ? ' and '.$conditions : '')
-			 .(join '',map { ' and '.$_ } @relations )
-			 .(join '',map { ' and '.$_ } @subquery_conditions )
-			   .$check_preceding.' }';
+    my $recompute_cond = $opts->{recompute_condition}[$pos];
+    if (defined $recompute_cond) {
+      $check_preceding = join('', map {"\n   and ".'$conditions['.$_.']->($matched_nodes->['.$self->{pos2match_pos}[$_].']) '} sort { $a<=>$b } keys %$recompute_cond);
+    }
+    my $recompute_sq = $opts->{recompute_subquery}[$match_pos];
+    if (defined $recompute_sq) {
+      $check_preceding .= join('', map {"\n  and ".$_ } @$recompute_sq);
+    }
+    if (length $check_preceding) {
+      $check_preceding = "\n  and ".'($matched_nodes->['.$match_pos.']=$node) # a hack'.$check_preceding;
+    }
+    my $sub = 'sub { my ($node)=@_; '."\n  ".
+                       '$node and !exists($have{$node})'
+		       .($conditions=~/\S/ ? "\n  and ".$conditions : '')
+			 .(join '',map { "\n  and ".$_ } @relations )
+			 .(join '',map { "\n  and ".$_ } @subquery_conditions )
+			   .$check_preceding."\n}";
 
     print STDERR "SUB: $sub\n" if $DEBUG;
     return $sub;
@@ -427,6 +458,9 @@ sub test {
   sub serialize_expression {
     my ($self,$opts)=@_;
     my $parent_id = $opts->{parent_id};
+    my $pos = $opts->{query_pos};
+    my $match_pos = $self->{pos2match_pos}[$pos];
+
     my $exp = $opts->{expression};
     # TODO
     #    for ($exp) {
@@ -440,18 +474,28 @@ sub test {
       $exp=$1;
     } else {
       $exp=~s{(?:(\w+)\.)?"([^"]+)"}{
-	my $name = $1;
+	my $target = $1;
 	my $attr = $2;
 	my $node='$node';
-	if (defined $name) {
-	  my $pos = $self->{name2pos}{lc($name)};
-	  if (!defined $pos) {
-	    die "Node '$name' does not exist or not in the scope\n";
-	  } elsif ($pos!=$opts->{query_pos}) {
-	    $node='$iterators['.$pos.']->node';
-	    if ($pos>$opts->{query_pos}) {
+	if (defined $target) {
+	  $target = lc($target);
+	  my $target_pos = $self->{name2pos}{$target};
+	  my $target_match_pos = $self->{name2match_pos}{$target};
+	  if (defined $target_pos) {
+	    # target node in the same sub-query
+	    $node='$matched_nodes->['.$target_match_pos.']';
+	    if ($target_pos>$pos) {
 	      $opts->{depends_on}{$pos}=1;
 	    }
+	  } elsif (defined $target_match_pos) {
+	    # this node is matched by some super-query
+	    $node='$matched_nodes->['.$target_match_pos.']';
+	    if ($target_match_pos > $match_pos) {
+	      # we need to postpone the evaluation of the whole sub-query up-till $matched_nodes->[$target_pos] is known
+	      $self->{postpone_subquery_till}=$target_match_pos if ($self->{postpone_subquery_till}||0)<$target_match_pos;
+	    }
+	  } else {
+	    die "Node '$target' does not exist or belongs to a sub-query and cannot be referred from here!\n";
 	  }
 	}
 	($attr=~m{/}) ? $node.qq{->attr(q($attr))} : $node.qq[->{q($attr)}];
@@ -476,33 +520,32 @@ sub test {
     my $iterators = $self->{iterators};
     my $parent_pos = $self->{parent_pos};
     my $query_pos = \$self->{query_pos}; # a scalar reference
+    my $matched_nodes = $self->{matched_nodes};
+    my $pos2match_pos = $self->{pos2match_pos};
     my $have = $self->{have};
 
     my $iterator = $iterators->[$$query_pos];
-
     my $node = $iterator->node;
     if ($node) {
-      # print "==========NEXT============\n";
       delete $have->{$node};
       # print STDERR ("iterate $$query_pos $iterator: $self->{debug}[$$query_pos]\n") if $DEBUG;
-      $node = $iterator->next;
+      $node
+	= $matched_nodes->[$pos2match_pos->[$$query_pos]]
+	= $iterator->next;
       $have->{$node}=1 if $node;
     } elsif ($$query_pos==0) {
       # first
-      if ($opts->{seed}) {
-	# sub-query
-	# print "Starting subquery on $opts->{seed}->{id} $opts->{seed}->{t_lemma}.$opts->{seed}->{functor}\n" if $DEBUG;
-	$node = $iterator->start( $opts->{seed} );
-      } else {
-	# top-level query
-	$node = $iterator->start();
-      }
+      # print "Starting subquery on $opts->{seed}->{id} $opts->{seed}->{t_lemma}.$opts->{seed}->{functor}\n" if $opts->{seed} and $DEBUG;
+      $node
+	= $matched_nodes->[$pos2match_pos->[$$query_pos]]
+	= $iterator->start( $opts->{seed} );
       $have->{$node}=1 if $node;
     }
     while (1) {
       if (!$node) {
 	if ($$query_pos) {
 	  # backtrack
+	  $matched_nodes->[$pos2match_pos->[$$query_pos]]=undef;
 	  $$query_pos--;	# backtrack
 	  print STDERR ("backtrack to $$query_pos\n") if $DEBUG;
 	  $iterator=$iterators->[$$query_pos];
@@ -511,7 +554,9 @@ sub test {
 	  delete $have->{$node} if $node;
 
 	  #print STDERR ("iterate $$query_pos $iterator: $self->{debug}[$$query_pos]\n") if $DEBUG;
-	  $node = $iterator->next;
+	  $node
+	    = $matched_nodes->[$pos2match_pos->[$$query_pos]]
+	    = $iterator->next;
 	  $have->{$node}=1 if $node;
 	  next;
 	} else {
@@ -527,7 +572,9 @@ sub test {
 	  $$query_pos++;
 	  my $seed = $iterators->[ $parent_pos->[$$query_pos] ]->node;
 	  $iterator = $iterators->[$$query_pos];
-	  $node = $iterator->start($seed);
+	  $node
+	    = $matched_nodes->[$pos2match_pos->[$$query_pos]]
+	    = $iterator->start($seed);
 	  #print STDERR ("restart $$query_pos $iterator from $seed->{t_lemma}.$seed->{functor} $self->{debug}[$$query_pos]\n") if $DEBUG;
 	  $have->{$node}=1 if $node;
 	  next;
