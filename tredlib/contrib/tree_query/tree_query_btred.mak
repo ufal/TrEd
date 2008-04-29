@@ -374,7 +374,7 @@ sub test {
       $check_preceding .= join('', map {"\n  and ".$_ } @$recompute_sq);
     }
     if (length $check_preceding) {
-      $check_preceding = "\n  and ".'($matched_nodes->['.$match_pos.']=$node) # a hack'.$check_preceding;
+      $check_preceding = "\n  and ".'($matched_nodes->['.$match_pos.']=$node) # a trick: make it appear as if this node already matched!'.$check_preceding;
     }
     my $sub = 'sub { my ($node)=@_; '."\n  ".
                        '$node and !exists($have{$node})'
