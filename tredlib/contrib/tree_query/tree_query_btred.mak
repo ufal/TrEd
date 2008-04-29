@@ -33,10 +33,20 @@ my %test_relation = (
 
   'depth-first-precedes' => q( $start->root==$end->root and  do{my $n=$start->following; $n=$n->following while ($n and $n!=$end); $n ? 1 : 0 }), # not very effective !!
   'depth-first-follows' => q( $start->root==$end->root and  do{my $n=$end->following; $n=$n->following while ($n and $n!=$start); $n ? 1 : 0 }), # not very effective !!
+
 );
 
 my %test_user_defined_relation = (
-  'effective_parent' => undef, # not yet implemented
+  'eparent_of' => q(do{ my $type = $node->type->get_base_type_name;
+                        first { $_ == $start }
+                        ($type eq 't-node.type' ? PML_T::GetEParents($end) :
+                         $type eq 'a-node.type' ? PML_A::GetEParents($end,\\&PML_A::DiveAuxCP) : ())
+                   ),
+  'echild_of' => q(do{ my $type = $node->type->get_base_type_name;
+                        first { $_ == $end }
+                        ($type eq 't-node.type' ? PML_T::GetEParents($start) :
+                         $type eq 'a-node.type' ? PML_A::GetEParents($start,\\&PML_A::DiveAuxCP) : ())
+                   ),
   'a/lex.rf|a/aux.rf' => q(first { $_ eq $end->{id} } GetANodeIDs()),
   'a/lex.rf' => q(do { my $id=$start->attr('a/lex.rf'); $id=~s/^.*?#//; $id  eq $end->{id} } ),
   'a/aux.rf' => q(first { my $id=$_; $id=~s/^.*?#//; $id eq $end->{id} } ListV($start->attr('a/lex.rf'))),
@@ -56,8 +66,6 @@ my %test_user_defined_relation = (
 
   my @query_nodes;
   my @conditions;
-  my @recompute_condition;
-  my @reverted_relations;
   my @parent_pos;
   my @iterators;
   my @match;
@@ -65,8 +73,8 @@ my %test_user_defined_relation = (
 
   my $query_pos;
 
-  my %debug;
   my %have;
+  my %debug;
 
   sub reset_search {
     my ($query_tree)=@_;
@@ -77,6 +85,8 @@ my %test_user_defined_relation = (
     %have=();
   }
 
+  my @recompute_condition;
+  my @reverted_relations;
   sub prepare_query {
     my ($query_tree)=@_;
     @iterators=();@conditions=();
@@ -86,6 +96,8 @@ my %test_user_defined_relation = (
     @parent_pos = map { $qnode2pos{ $_->parent  } } @query_nodes;
     init_id_map($query_tree);
 #    print STDERR "$query_node",$id{$query_node},"\n";
+    @recompute_condition=();
+    @reverted_relations=();
     for my $i (0..$#query_nodes) {
       my $qn = $query_nodes[$i];
       my $conditions = serialize_conditions($qn,{query_pos => $i});
@@ -117,6 +129,16 @@ my %test_user_defined_relation = (
 	    $iterator = ALexRFIterator->new($conditions);
 	  } elsif ($rel->value->{label} eq 'a/lex.rf|a/aux.rf') {
 	    $iterator = ALexOrAuxRFIterator->new($conditions);
+	  } elsif ($rel->value->{label} eq 'coref_text') {
+	    $iterator = CorefTextRFIterator->new($conditions);
+	  } elsif ($rel->value->{label} eq 'coref_gram') {
+	    $iterator = CorefGramRFIterator->new($conditions);
+	  } elsif ($rel->value->{label} eq 'compl') {
+	    $iterator = ComplRFIterator->new($conditions);
+	  } elsif ($rel->value->{label} eq 'eparent') {
+	    $iterator = EChildIterator->new($conditions);
+	  } elsif ($rel->value->{label} eq 'echild_of') {
+	    $iterator = EParentIterator->new($conditions);
 	  } else {
 	    die "user-defined relation ".$rel->value->{label}." not yet implemented\n"
 	  }
@@ -204,6 +226,7 @@ my %test_user_defined_relation = (
     SetCurrentWindow($cur_win);
   }
 
+
   sub serialize_conditions {
     my ($qnode,$opts)=@_;
     my $conditions = serialize_element({
@@ -214,6 +237,9 @@ my %test_user_defined_relation = (
     ($query_pos,@conditions,@iterators); # just for Perl to know we want to use these lexicals
 
     my $pos = $opts->{query_pos};
+
+    # extra-relations:
+    # relations aiming forward will be evaluated on the target node
     my @relations = defined($reverted_relations[$pos]) ? @{$reverted_relations[$pos]} : (); # won't be needed when we plan the query
     for my $rel (SeqV($qnode->attr('extra-relations'))) {
       my $relation = $rel->name;
@@ -228,11 +254,12 @@ my %test_user_defined_relation = (
 	die "Relation '$relation' not supported test!\n" unless defined $expression;
       }
       my $target_pos = $qnode2pos{$name2node_hash{lc($target)}};
+      $expression = $rel->value->{negate} ? 'not('.$expression.')' : '('.$expression.')';
       if ($target_pos<$pos) {
-	push @relations, q/ do{ my ($start,$end)=($node,$iterators[/.$target_pos.q/]->node); (/.$expression.q/) } /;
+	push @relations, q/ do{ my ($start,$end)=($node,$iterators[/.$target_pos.q/]->node); /.$expression.q/ } /;
       } else {
 	# evaluate with target
-	push @{$reverted_relations[$target_pos]}, q/ do{ my ($end,$start)=($node,$iterators[/.$pos.q/]->node); (/.$expression.q/) } /;
+	push @{$reverted_relations[$target_pos]}, q/ do{ my ($end,$start)=($node,$iterators[/.$pos.q/]->node); /.$expression.q/ } /;
       }
     }
 
@@ -402,7 +429,7 @@ my %test_user_defined_relation = (
 	if ($query_pos<$#query_nodes) {
 	  $query_node =  $query_nodes[++$query_pos];
 	  my $relation = $query_node->{relation} || 'parent';
-	  my $seed = $iterators[$parent_pos[$query_pos]]->node;
+	  my $seed = $iterators[ $parent_pos[$query_pos] ]->node;
 	  print STDERR "creating iterator for query-node [$debug{$query_node}] with seed-node: $seed->{t_lemma},$seed->{functor}\n" if $DEBUG;
 	  $iterator = $iterators[$query_pos];
 	  $node = $iterator->start($seed);
@@ -631,9 +658,9 @@ sub start ($$) {
   my $n = $self->[NODES]->[0];
   return $self->[CONDITIONS]->($n) ? $n : ($n && $self->next);
 }
-*next = \&AuxRFIterator::next;
-*node = \&AuxRFIterator::node;
-*reset = \&AuxRFIterator::reset;
+*next = \&AAuxRFIterator::next;
+*node = \&AAuxRFIterator::node;
+*reset = \&AAuxRFIterator::reset;
 
 package CorefTextRFIterator;
 use base qw(Tree_Query::Iterator);
@@ -647,9 +674,9 @@ sub start ($$) {
   my $n = $self->[NODES]->[0];
   return $self->[CONDITIONS]->($n) ? $n : ($n && $self->next);
 }
-*next = \&AuxRFIterator::next;
-*node = \&AuxRFIterator::node;
-*reset = \&AuxRFIterator::reset;
+*next = \&AAuxRFIterator::next;
+*node = \&AAuxRFIterator::node;
+*reset = \&AAuxRFIterator::reset;
 
 package CorefGramRFIterator;
 use base qw(Tree_Query::Iterator);
@@ -663,9 +690,9 @@ sub start ($$) {
   my $n = $self->[NODES]->[0];
   return $self->[CONDITIONS]->($n) ? $n : ($n && $self->next);
 }
-*next = \&AuxRFIterator::next;
-*node = \&AuxRFIterator::node;
-*reset = \&AuxRFIterator::reset;
+*next = \&AAuxRFIterator::next;
+*node = \&AAuxRFIterator::node;
+*reset = \&AAuxRFIterator::reset;
 
 package ComplRFIterator;
 use base qw(Tree_Query::Iterator);
@@ -679,9 +706,49 @@ sub start ($$) {
   my $n = $self->[NODES]->[0];
   return $self->[CONDITIONS]->($n) ? $n : ($n && $self->next);
 }
-*next = \&AuxRFIterator::next;
-*node = \&AuxRFIterator::node;
-*reset = \&AuxRFIterator::reset;
+*next = \&AAuxRFIterator::next;
+*node = \&AAuxRFIterator::node;
+*reset = \&AAuxRFIterator::reset;
+
+package EParentIterator;
+use base qw(Tree_Query::Iterator);
+use constant CONDITIONS=>0;
+use constant NODES=>1;
+sub start ($$) {
+  my ($self,$node)=@_;
+  my $type = $node->type->get_base_type_name;
+  $self->[NODES]=[$type eq 't-node.type' ?
+		    PML_T::GetEParents($node) :
+		  $type eq 'a-node.type' ?
+		    PML_A::GetEParents($node,\&PML_A::DiveAuxCP) :
+		  ()
+		 ];
+  my $n = $self->[NODES]->[0];
+  return $self->[CONDITIONS]->($n) ? $n : ($n && $self->next);
+}
+*next = \&AAuxRFIterator::next;
+*node = \&AAuxRFIterator::node;
+*reset = \&AAuxRFIterator::reset;
+
+package EChildIterator;
+use base qw(Tree_Query::Iterator);
+use constant CONDITIONS=>0;
+use constant NODES=>1;
+sub start ($$) {
+  my ($self,$node)=@_;
+  my $type = $node->type->get_base_type_name;
+  $self->[NODES]=[$type eq 't-node.type' ?
+		    PML_T::GetEChildren($node) :
+		  $type eq 'a-node.type' ?
+		    PML_A::GetEChildren($node,\&PML_A::DiveAuxCP) :
+		  ()
+		 ];
+  my $n = $self->[NODES]->[0];
+  return $self->[CONDITIONS]->($n) ? $n : ($n && $self->next);
+}
+*next = \&AAuxRFIterator::next;
+*node = \&AAuxRFIterator::node;
+*reset = \&AAuxRFIterator::reset;
 
 
 
