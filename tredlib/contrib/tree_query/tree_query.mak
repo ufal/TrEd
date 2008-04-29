@@ -203,15 +203,19 @@ my %color = (
   'a/lex.rf' => 'violet',
   'a/aux.rf' => 'thistle',
   'a/lex.rf|a/aux.rf' => 'tan',
-  coref_text => '#4C509F',
-  coref_gram => '#C05633',
-  ancestor => 'blue',
+  'coref_text' => '#4C509F',
+  'coref_gram' => '#C05633',
+  'compl' => '#629F52',
+  'ancestor' => 'blue',
   'ancestor-of' => 'blue',
   'descendant-of' => 'lightblue',
   'parent-of' => 'black',
   'parent' => 'black',
   'child-of' => 'lightgray',
-  effective_parent => 'green',
+  'eparent' => 'green',
+  'eparent-of' => 'green',
+  'echild-of' => 'darkgreen',
+
 );
 sub arrow_color {
   my $rel = shift;
@@ -929,6 +933,22 @@ sub extra_relation {
     }
   } elsif ($relation eq 'depth-first-precedes') {
     return qq{$id."idx"<$target."idx"};
+  } elsif ($relation eq 'eparent_of') {
+    return qq{$id."root_idx"=$target."root_idx" AND }.
+      serialize_expression({
+	id=>$id,
+	type=>$opts->{type},
+	join=>$opts->{join},
+	expression => qq{"eparents/eparent_idx"}
+       }).qq{=$target."idx" };
+  } elsif ($relation eq 'echild_of') {
+    return qq{$id."root_idx"=$target."root_idx" AND }.
+      serialize_expression({
+	id=>$id,
+	type=>$opts->{type},
+	join=>$opts->{join},
+	expression => qq{$target."eparents/eparent_idx"}
+       }).qq{=$id."idx" };
   } elsif ($relation eq 'order-precedes') {
     my $order; # FIXME: get the ordering attribute from the database
     if ($opts->{type} eq 'a') {
@@ -956,7 +976,7 @@ sub user_defined_relation {
   my $type = $opts->{type};
   my $params = $rel->value;
   my $cond;
-  if ($relation eq 'effective_parent') {
+  if ($relation eq 'eparent') {
     $cond =  qq{$id."root_idx"=$target."root_idx" AND }.
       serialize_expression({
 	id=>$id,
@@ -1010,7 +1030,16 @@ sub user_defined_relation {
       join=>$opts->{join},
       expression => qq{"coref_text/cort_idx"}
      }).qq{=$target."idx"};
+  } elsif ($relation eq 'compl') {
+    $cond = 
+      serialize_expression({
+      id=>$id,
+      type=>$type,
+      join=>$opts->{join},
+      expression => qq{"compl/compl_idx"}
+     }).qq{=$target."idx"};
   }
+
   if ($params->{negate}) {
     $cond=qq{NOT($cond)};
   }
