@@ -132,7 +132,7 @@ sub ReadDir {
   if ($show_hidden) {
     $flt =~ s!\*!.*!g;
   } else {
-    $flt =~ s!\*!^[^.$splitchar].*!g;
+    $flt =~ s!\*!^[^.$rsplit].*!g;
   }
   opendir(DIR, $dir) || warn "can't opendir $dir: $!";
   my @all=grep { $_ ne "." } readdir(DIR);
