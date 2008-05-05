@@ -7,21 +7,25 @@ TrEd::NodeGroups - macros for v visualizing groups of nodes
 
 =head2 SYNOPSIS
 
-package MyMacros;
-use strict;
-BEGIN{ import TredMacro };
+  package MyMacros;
+  use strict;
+  BEGIN{ import TredMacro };
 
-sub after_redraw_hook {
-  my @nodes = GetVisibleNodes();
-  my $group1 = [ $nodes[0..$#$nodes/2] ];
-  my $group2 = [ $nodes[$#$nodes/2..$#$nodes] ];
-  my $group3 = [ $nodes[$#$nodes/3..2*$#$nodes/3] ];
-  TrEd::NodeGroups::draw_groups(
-    $grp,
-    [$group1,$group2,$group3],
-    { colors => [qw(red orange pink)] }
-  );
-}
+  sub after_redraw_hook {
+    my @nodes = GetVisibleNodes();
+    my $group1 = [ $nodes[0..$#$nodes/2] ];
+    my $group2 = [ $nodes[$#$nodes/2..$#$nodes] ];
+    my $group3 = [ $nodes[$#$nodes/3..2*$#$nodes/3] ];
+    TrEd::NodeGroups::draw_groups(
+      $grp,
+      [$group1,$group2,$group3],
+      { colors => [qw(red orange pink)],
+        # stipples => [qw(dense1 dense2 ... dense6)],
+        # stipples => [qw(dash1 dash2 ... dash6)], # default
+        # group_line_width => 30, # default
+      }
+    );
+  }
 
 =cut
 
