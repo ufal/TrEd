@@ -20,6 +20,12 @@ Bind \&test => {
   changing_file => 0,
   context=>'Tree_Query',
 };
+Bind \&plan_query => {
+  key => 'p',
+  menu => 'test planner',
+  changing_file => 0,
+  context=>'Tree_Query',
+};
 
 our $DEBUG;
 #ifdef TRED
@@ -48,6 +54,123 @@ sub test_btred {
   $evaluator->reset(); # prepare for next file
 }
 #endif
+
+our %weight = (
+  'user-defined:eparent' => 5,
+  'user-defined:eparent_of' => 5,
+  'user-defined:echild' => 2,
+  'user-defined:echild_of' => 2,
+  'user-defined:a/lex.rf|a/aux.rf' => 2,
+  'user-defined:a/lex.rf' => 1,
+  'user-defined:a/aux.rf' => 2,
+  'user-defined:coref_text' => 1,
+  'user-defined:coref_gram' => 1,
+  'user-defined:compl' => 1,
+  'ancestor' => 30,
+  'ancestor-of' => 30,
+  'descendant-of' => 8,
+  'child-of' => 0.5,
+  'parent' => 10,
+  'parent-of' => 10,
+  'order-precedes' => 1000,
+  'order-follows' => 1000,
+  'depth-first-precedes' => 100,
+  'depth-first-follows' => 100,
+);
+
+our %reverse = (
+  'user-defined:eparent' => 'user-defined:echild_of',
+  'user-defined:eparent_of' => 'user-defined:echild_of',
+  'user-defined:echild_of' => 'user-defined:eparent_of',
+  'ancestor' => 'descendant-of',
+  'ancestor-of' => 'descendant-of',
+  'descendant-of' => 'ancestor-of',
+  'child-of' => 'parent-of',
+  'parent' => 'child-of',
+  'parent-of' => 'child-of',
+  'order-precedes' => 'order-follows',
+  'order-follows' => 'order-precedes',
+  'depth-first-precedes' => 'depth-first-follows',
+  'depth-first-follows' => 'depth-first-precedes',
+);
+
+  sub plan_query {
+    my ($query_tree)=@_;
+    $query_tree=$TredMacro::root;
+    require Graph;
+    require Graph::ChuLiuEdmonds;
+
+    my @query_nodes=map { Tree_Query::Evaluator::_filter_subqueries($_) } $query_tree->children;
+    my %node2pos = map { $query_nodes[$_] => $_ } 0..$#query_nodes;
+    my %name2pos = map {
+      my $name = lc($query_nodes[$_]->{name});
+      (defined($name) and length($name)) ? ($name=>$_) : ()
+    } 0..$#query_nodes;
+    my @edges;
+    for my $i (0..$#query_nodes) {
+      my $n = $query_nodes[$i];
+      my $p = $node2pos{$n->parent};
+      if (defined $p) {
+	my ($rel) = TredMacro::SeqV($n->{relation});
+	my $relation = $rel && $rel->name;
+	$relation||='parent';
+	if ($relation eq 'user-defined') {
+	  $relation.=':'.$rel->value->{label};
+	}
+	push @edges,[$p,$i,$relation];
+      }
+      for my $rel (TredMacro::SeqV($n->attr('extra-relations'))) {
+	next if $rel->value->{negate};
+	my $relation = $rel->name;
+	
+	if ($relation eq 'user-defined') {
+	  $relation.=':'.$rel->value->{label};
+	}
+	my $target = lc( $rel->value->{target} );
+	my $t = $name2pos{$target};
+	if (defined $t) {
+	  push @edges,[$i,$t,$relation];
+	}
+      }
+      @edges = map {
+	my $e = $_;
+	if (my $reversed = $reverse{$e->[2]}) {
+	  ($e,[$e->[1],$e->[0],$reversed])
+	} else {
+	  ($e);
+	}
+      } @edges;
+    }
+    my $g=Graph->new(directed=>1);
+    $g->add_vertices(0..$#query_nodes);
+    $g->set_vertex_attribute(0,'label','root');
+    use Data::Dumper;
+    print Dumper(\@edges);
+    for my $e (@edges) {
+      my $has = $g->has_edge($e->[0],$e->[1]);
+      my $w = $weight{$e->[2]}||100000;
+      if (!$has or $g->get_edge_weight($e->[0],$e->[1])>$w) {
+	$g->delete_edge($e->[0],$e->[1]) if $has;
+	$g->add_weighted_edge($e->[0],$e->[1], $w);
+	$g->set_edge_attribute($e->[0],$e->[1],'type',$e->[2]);
+      }
+    }
+    print "############\n";
+    for my $x ($g->vertices) {
+      for my $e ($g->edges_from($x)) {
+	print "$x $e->[1] ".$g->get_edge_weight($e->[0],$e->[1])." # ".$g->get_edge_attribute($e->[0],$e->[1],'type')."\n";
+      }
+    }
+    
+    require Graph::Writer::GraphViz;
+    $Graph::ChuLiuEdmonds::DEBUG=1;
+    my $mst=$g->MST_ChuLiuEdmonds();
+    my $wr = Graph::Writer::GraphViz->new(-format => 'png');
+    $wr->write_graph($mst,'/tmp/graph_mst.png');
+    print "$g => $mst\n";
+    my $wr = Graph::Writer::GraphViz->new(-format => 'png');
+    $wr->write_graph($g,'/tmp/graph.png');
+  }
 
 sub test {
   # assuming the tree we get is ordered
@@ -80,6 +203,7 @@ sub test {
   Redraw();
   SetCurrentWindow($cur_win);
 }
+
 
 ###########################################
 {
@@ -124,6 +248,7 @@ sub test {
       length($_->{occurrences}) ?  () : _filter_subqueries($_)
     } $node->children;
   }
+
 
   sub new {
     my ($class,$query_tree,$opts)=@_;
