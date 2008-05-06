@@ -909,7 +909,11 @@ sub NewParent {
     }
   }
   if ($ref->parent) {
-    PasteNode($nd,$ref->parent);
+    if (defined $ord) {
+      PasteNode($nd,$ref->parent);
+    } else {
+      PasteNodeAfter($nd,$ref);
+    }
     CutNode($ref);
     PasteNode($ref,$nd);
   } else { # root of the tree
