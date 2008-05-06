@@ -609,6 +609,7 @@ sub map_results {
 
 sub next_match {
   my $dir=shift;
+  $btred_results=0;
   my $prev_grp = $grp;
   my @save = ($this,$root,$grp);
   for my $win (TrEdWindows()) {
@@ -1231,6 +1232,8 @@ sub serialize_element {
     my $operator = $value->{operator};
     if ($operator eq '~' and $opts->{syntax} eq 'Oracle') {
       return ($value->{negate}==1 ? 'NOT ' : '').qq{REGEXP_LIKE($left,$right)};
+    } elsif ($operator eq '~*' and $opts->{syntax} eq 'Oracle') {
+      return ($value->{negate}==1 ? 'NOT ' : '').qq{REGEXP_LIKE($left,$right,'i')};
     } else {
       return ($value->{negate}==1 ? 'NOT ' : '').
 	($left.' '.uc($operator).' '.$right);

@@ -11,21 +11,43 @@ BEGIN {
 
 Bind sub { test(1); ChangingFile(0) } => {
   key => 't',
-  menu => 'Test btred search',
+  menu => 'TrEd-based search (one tree)',
+  context=>'Tree_Query',
+};
+Bind sub { test(1,{all_trees=>1}); ChangingFile(0) } => {
+  key => 'Ctrl+t',
+  menu => 'TrEd-based search (all trees)',
   context=>'Tree_Query',
 };
 Bind \&test => {
   key => 'T',
-  menu => 'Test btred find next',
+  menu => 'TrEd-based search (next match)',
   changing_file => 0,
   context=>'Tree_Query',
 };
 Bind \&plan_query => {
   key => 'p',
   menu => 'test planner',
-  changing_file => 0,
   context=>'Tree_Query',
 };
+
+=comment
+
+TODO:
+
+- optional nodes
+- lengths of descendant/ancestor axes
+
+- relational predicates: so that one can use them in boolean combinations like (parent-of(ref0) or order-precedes(ref1))
+- define exact syntax for a term in the tree-query
+
+- Database:
+-   use tables for m/, m/w/, remove tables for tfa/,
+-   maybe use a separate table for every attribute?
+-   unify the PMLSchema to DB schema translation
+-   use test-data only
+
+=cut
 
 our $DEBUG;
 #ifdef TRED
@@ -35,12 +57,26 @@ $DEBUG=1;
 my $evaluator;
 #ifndef TRED
 sub start_hook {
+  use Getopt::Long ();
+  my %opts;
+  Getopt::Long::GetOptions(
+    \%opts,
+    'plan|p',
+  ) or die "Wrong options\n";
   my ($query_fn,$query_id)=@ARGV;
   my $query_file = FSFile->newFSFile($query_fn,[Backends()]);
+  if (ref($query_file)) {
+    if ($Fslib::FSError!=0) {
+      die "Error: loading query-file failed: $@ ($!)\n";
+    } elsif ($query_file->lastTreeNo<0) {
+      die "Error: Query file is empty\n";
+    }
+  }
   my $query_tree = $query_file->appData('id-hash')->{$query_id};
   #  print STDERR "$query_file\n";
+  plan_query($query_tree) if $opts{plan};
   die "Query tree $query_fn#$query_id not found\n" unless ref $query_tree;
-  $evaluator = Tree_Query::Evaluator->new($query_tree);
+  $evaluator = Tree_Query::Evaluator->new($query_tree,{all_trees=>1});
 
   # print STDERR "initialized @iterators, $query_pos\n";
   # print $query_node,",",$query_tree->{id},"\n";
@@ -96,7 +132,7 @@ our %reverse = (
 
   sub plan_query {
     my ($query_tree)=@_;
-    $query_tree=$TredMacro::root;
+    $query_tree||=$TredMacro::root;
     require Graph;
     require Graph::ChuLiuEdmonds;
 
@@ -107,9 +143,11 @@ our %reverse = (
       (defined($name) and length($name)) ? ($name=>$_) : ()
     } 0..$#query_nodes;
     my @edges;
+    my @parent;
     for my $i (0..$#query_nodes) {
       my $n = $query_nodes[$i];
       my $p = $node2pos{$n->parent};
+      $parent[$i]=$p;
       if (defined $p) {
 	my ($rel) = TredMacro::SeqV($n->{relation});
 	my $relation = $rel && $rel->name;
@@ -122,13 +160,12 @@ our %reverse = (
       for my $rel (TredMacro::SeqV($n->attr('extra-relations'))) {
 	next if $rel->value->{negate};
 	my $relation = $rel->name;
-	
 	if ($relation eq 'user-defined') {
 	  $relation.=':'.$rel->value->{label};
 	}
 	my $target = lc( $rel->value->{target} );
 	my $t = $name2pos{$target};
-	if (defined $t) {
+	if (defined $t and $t!=$i) {
 	  push @edges,[$i,$t,$relation];
 	}
       }
@@ -142,39 +179,110 @@ our %reverse = (
       } @edges;
     }
     my $g=Graph->new(directed=>1);
-    $g->add_vertices(0..$#query_nodes);
-    $g->set_vertex_attribute(0,'label','root');
-    use Data::Dumper;
-    print Dumper(\@edges);
+    $g->add_vertex($_) for 0..$#query_nodes;
+    #    $g->set_vertex_attribute('0','label','root');
+#ifdef TRED
+    $Graph::ChuLiuEdmonds::DEBUG=1;
+#    use Data::Dumper;
+#    print Dumper(\@edges);
+#endif
+    my %edges;
     for my $e (@edges) {
       my $has = $g->has_edge($e->[0],$e->[1]);
       my $w = $weight{$e->[2]}||100000;
       if (!$has or $g->get_edge_weight($e->[0],$e->[1])>$w) {
+	$edges{$e->[0],$e->[1]}=$e->[2];
 	$g->delete_edge($e->[0],$e->[1]) if $has;
 	$g->add_weighted_edge($e->[0],$e->[1], $w);
-	$g->set_edge_attribute($e->[0],$e->[1],'type',$e->[2]);
+	# $g->set_edge_attribute($e->[0],$e->[1],'type',$e->[2]);
       }
     }
+#ifdef TRED
     print "############\n";
     for my $x ($g->vertices) {
       for my $e ($g->edges_from($x)) {
-	print "$x $e->[1] ".$g->get_edge_weight($e->[0],$e->[1])." # ".$g->get_edge_attribute($e->[0],$e->[1],'type')."\n";
+	print #"$x $e->[1] ".
+	  $g->get_edge_weight($e->[0],$e->[1])."\n";# " # ".$g->get_edge_attribute($e->[0],$e->[1],'type')."\n";
       }
     }
-    
     require Graph::Writer::GraphViz;
-    $Graph::ChuLiuEdmonds::DEBUG=1;
+#endif
     my $mst=$g->MST_ChuLiuEdmonds();
+#ifdef TRED
     my $wr = Graph::Writer::GraphViz->new(-format => 'png');
     $wr->write_graph($mst,'/tmp/graph_mst.png');
     print "$g => $mst\n";
     my $wr = Graph::Writer::GraphViz->new(-format => 'png');
     $wr->write_graph($g,'/tmp/graph.png');
+    my @roots = grep { $mst->in_degree($_)==0 } $mst->vertices;
+    print "roots: @roots\n";
+    ChangingFile(1);
+#endif
+    for my $qn (@query_nodes) {
+      $qn->cut();
+    }
+    my $last_ref=0;
+    for my $i (0..$#query_nodes) {
+      my $qn = $query_nodes[$i];
+      my $p=undef;
+      if ($mst->in_degree($i)==0) {
+	$qn->paste_on($query_tree);
+      } else {
+	my ($e) = $mst->edges_to($i);
+	$p=$e->[0];
+	$qn->paste_on($query_nodes[$p]);
+      }
+
+      # turn relation into parent's extra-relation
+      my ($rel) = TredMacro::SeqV($qn->{relation});
+      if (defined $parent[$i]) {
+	my $parent = $query_nodes[$parent[$i]];
+	if (!defined($qn->{name})) {
+	  $last_ref++ while (exists $name2pos{"ref$last_ref"});
+	  $qn->set_attr('name',"ref$last_ref");
+	  $name2pos{"ref$last_ref"}=$i;
+	  $last_ref++;
+	}
+	if ($rel) {
+	  $qn->{relation}=undef;
+	  my $parent = $query_nodes[$parent[$i]];
+	  $rel->value->{target} = $qn->{name};
+	  if ($rel->name eq 'parent' or
+		$rel->name eq 'ancestor') {
+	    $rel->set_name($rel->name.'-of');
+	  }
+	  if ($rel->name eq 'user-defined') {
+	    if ($rel->value->{label} eq 'eparent') {
+	      $rel->value->{label}='eparent_of';
+	    }
+	  }
+	  TredMacro::AddToSeq($parent,'extra-relations',$rel->name,$rel->value);
+	} else {
+	  print "$i; $parent->{name} => $qn->{name}\n";
+	  TredMacro::AddToSeq($parent,'extra-relations','parent-of',
+			      Fslib::Container->new(undef,{
+				target => $qn->{name},
+			      },1));
+	}
+      }
+      # now turn the relevant extra-relation into relation
+      if (defined $p) {
+# 	my $parent = $query_nodes->[$p];
+# 	if (defined $parent{$qn}) {
+# 	  # turn relation into extra-relation
+# 	  my ($rel) = TredMacro::SeqV($qn->{relation});
+# 	  $qn->{relation}=undef;
+# 	  my $target = $query_nodes[$parent{$qn}];
+# 	  $rel->{target} = $target->{name};
+# 	  TredMacro::AddToSeq($qn,'extra-relations',$rel);
+# 	}
+      }
+    }
   }
 
 sub test {
   # assuming the tree we get is ordered
-  my ($restart)=@_;
+  my ($restart,$opts)=@_;
   my $query_tree=$root;
   my ($win) = grep {
     my $fl = GetCurrentFileList($_);
@@ -189,7 +297,7 @@ sub test {
   $Tree_Query::btred_results=1;
   %Tree_Query::is_match=();
 
-  $evaluator = Tree_Query::Evaluator->new($query_tree) if !$evaluator or $restart;
+  $evaluator = Tree_Query::Evaluator->new($query_tree,$opts) if !$evaluator or $restart;
 #  return;
   my $match = $evaluator->find_next_match();
   if ($match) {
@@ -210,6 +318,7 @@ sub test {
   package Tree_Query::Evaluator;
   use strict;
   use Scalar::Util qw(weaken);
+  use List::Util qw(first);
 
   my %test_relation = (
     'ancestor-of'   => q(first { $_ == $start } $end->ancestors), # not very effective !!
@@ -265,9 +374,7 @@ sub test {
     my $query_pos;
     #######################
 
-
     $opts ||= {};
-
 
     my @debug;
     my %name2pos;
@@ -345,7 +452,11 @@ sub test {
       my $iterator;
       if (!$self->{parent_query} and $qn==$query_node) {
 	# top-level node iterates throguh all nodes
-	$iterator = TreeIterator->new($conditions);
+	if ($opts->{all_trees}) {
+	  $iterator = FileTreeIterator->new($conditions);
+	} else {
+	  $iterator = TreeIterator->new($conditions);
+	}
       } else {
 	$iterator = $self->create_iterator($qn,$conditions);
       }
@@ -492,7 +603,7 @@ sub test {
 
     my $recompute_cond = $opts->{recompute_condition}[$pos];
     if (defined $recompute_cond) {
-      $check_preceding = join('', map {"\n   and ".'$conditions['.$_.']->($matched_nodes->['.$self->{pos2match_pos}[$_].']) '} sort { $a<=>$b } keys %$recompute_cond);
+      $check_preceding = join('', map {"\n   and ".'$conditions['.$_.']->($matched_nodes->['.$self->{pos2match_pos}[$_].'],1) '} sort { $a<=>$b } keys %$recompute_cond);
     }
     my $recompute_sq = $opts->{recompute_subquery}[$match_pos];
     if (defined $recompute_sq) {
@@ -501,8 +612,8 @@ sub test {
     if (length $check_preceding) {
       $check_preceding = "\n  and ".'($matched_nodes->['.$match_pos.']=$node) # a trick: make it appear as if this node already matched!'.$check_preceding;
     }
-    my $sub = 'sub { my ($node)=@_; '."\n  ".
-                       '$node and !exists($have{$node})'
+    my $sub = 'sub { my ($node,$backref)=@_; '."\n  ".
+                       '$node and ($backref||!exists($have{$node}))'
 		       .($conditions=~/\S/ ? "\n  and ".$conditions : '')
 			 .(join '',map { "\n  and ".$_ } @relations )
 			 .(join '',map { "\n  and ".$_ } @subquery_conditions )
@@ -538,7 +649,7 @@ sub test {
 	$right =~s{^'|'$}{}g;
 	$right =~ s{\\}{\\\\}g;
 	$right =~ s{\}}{\\\}}g;
-	$right=q(m{\Q).$right.q(\E});
+	$right=q(m{^\Q).$right.q(\E$});
 	$right=~s{%}{\\E.*\\Q}g;
 	$right=~s{_}{\\E.\\Q}g;
 	$right=~s{\\Q\\E}{}g;
@@ -547,22 +658,37 @@ sub test {
       }
       my $last_dependency = TredMacro::max($opts->{query_pos},keys %depends_on);
       my $pos = $opts->{query_pos};
+      my $condition;
+      if ($operator eq '~*') {
+	$condition='do{ my $regexp='.$right.'; '.$left.'=~ /$regexp/i}';
+      } elsif ($operator eq 'in') {
+	# TODO: 'first' is actually pretty slow, we should use a disjunction
+	# but splitting may be somewhat non-trivial in such a case
+	# - postponing till we know exactly how a tree-query term may look like
+	$condition='do{ my $value='.$left.'; first { $_ eq '.$left.' } '.$right.'}';
+	# #$condition=$left.' =~ m{^(?:'.join('|',eval $right).')$}';
+	# 	$right=~s/^\s*\(//;
+	# 	$right=~s/\)\s*$//;
+	# 	my @right = split /,/,$right;
+	# 	$condition='do { my $value='.$left.'; ('.join(' or ',map { '$value eq '.$_ } @right).')}';
+      } else {
+	$condition='('.$left.' '.$operator.' '.$right.')';
+      }
       if ($last_dependency>$pos) {
 	$opts->{recompute_condition}[$_]{$pos}=1 for keys %depends_on;
 	my $truth_value = $opts->{negative_formula} ? 0 : 1;
 	$truth_value=!$truth_value if $value->{negate};
 	return ($value->{negate}==1 ? 'not' : '').
-	  ('( $$query_pos < '.$last_dependency.' ? '.$truth_value.'  : ('.$left.' '.$operator.' '.$right.'))');
+	  ('( $$query_pos < '.$last_dependency.' ? '.$truth_value.'  : '.$condition.')');
       } else {
-	return ($value->{negate}==1 ? 'not' : '').
-	  ('('.$left.' '.$operator.' '.$right.')');
+	return ($value->{negate}==1 ? 'not' : '').$condition;
       }
     } elsif ($name =~ /^(?:and|or)$/) {
       my $seq = $value->{'#content'};
       return () unless (UNIVERSAL::isa( $seq, 'Fslib::Seq') and @$seq);
       my $negative = $opts->{negative_formula} ? 1 : 0;
       $negative=!$negative if $value->{negate};
-      my $condition = join(' '.$name.' ',
+      my $condition = join("\n  ".$name.' ',
 			   grep { defined and length }
 			     map {
 			       my $n = $_->name;
@@ -610,7 +736,7 @@ sub test {
 	    # target node in the same sub-query
 	    $node='$matched_nodes->['.$target_match_pos.']';
 	    if ($target_pos>$pos) {
-	      $opts->{depends_on}{$pos}=1;
+	      $opts->{depends_on}{$target_pos}=1;
 	    }
 	  } elsif (defined $target_match_pos) {
 	    # this node is matched by some super-query
@@ -732,7 +858,7 @@ sub test {
 }
 #################################################
 {
-  package TreeIterator;
+  package FileTreeIterator;
   use base qw(Tree_Query::Iterator);
   BEGIN {
     import TredMacro qw($this $root);
@@ -742,7 +868,7 @@ sub test {
   sub start ($$) {
     my ($self)=@_;
     # TredMacro::GotoFileNo(0);
-#    TredMacro::GotoTree(0);
+    TredMacro::GotoTree(0);
     $this=$root;
     $self->[NODE]=$this;
     return $self->[CONDITIONS]->($this) ? $this : ($this && $self->next);
@@ -752,7 +878,40 @@ sub test {
     my $conditions=$self->[CONDITIONS];
     my $n=$self->[NODE];
     while ($n) {
-      $n = $n->following ; # || (TredMacro::NextTree() && $this);
+      $n = $n->following || (TredMacro::NextTree() && $this);
+      last if $conditions->($n);
+    }
+    return $self->[NODE]=$n;
+  }
+  sub node ($) {
+    return $_[0]->[NODE];
+  }
+  sub reset ($) {
+    my ($self)=@_;
+    $self->[NODE]=undef;
+  }
+}
+#################################################
+{
+  package TreeIterator;
+  use base qw(Tree_Query::Iterator);
+  BEGIN {
+    import TredMacro qw($this $root);
+  }
+  use constant CONDITIONS=>0;
+  use constant NODE=>1;
+  sub start ($$) {
+    my ($self)=@_;
+    $this=$root;
+    $self->[NODE]=$this;
+    return $self->[CONDITIONS]->($this) ? $this : ($this && $self->next);
+  }
+  sub next ($) {
+    my ($self)=@_;
+    my $conditions=$self->[CONDITIONS];
+    my $n=$self->[NODE];
+    while ($n) {
+      $n = $n->following;
       last if $conditions->($n);
     }
     return $self->[NODE]=$n;
