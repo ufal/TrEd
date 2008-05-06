@@ -70,13 +70,40 @@ sub GetANodeREFs {
 =item GetANodes($node?)
 
 Returns a list of analytical nodes referenced from a given
-tectogrammatical node. If no node is given, the function applies to
-C<$this>.
+tectogrammatical node. This combines references from a/tree.rf
+(root-node), a/aux.rf and a/lex.rf (non-root nodes). If no node is
+given, the function applies to C<$this>.
 
 =cut
 
 sub GetANodes {
   return grep defined, map { GetANodesHash()->{$_} } &GetANodeIDs;
+}
+
+=item GetALexNode($node?)
+
+Returns an analytical node referenced from a/lex.rf attribute of a
+given tectogrammatical node. If no node is given, the function applies
+to C<$this>.
+
+=cut
+
+sub GetALexNode {
+  my $node = @_ ? $_[0] : $this;
+  return GetANodeByID($node->attr('a/lex.rf'));
+}
+
+=item GetAAuxNodes($node?)
+
+Returns a list of analytical nodes referenced from a/aux.rf attribute
+of a given tectogrammatical node. If no node is given, the function
+applies to C<$this>.
+
+=cut
+
+sub GetAAuxNodes {
+  my $node = @_ ? $_[0] : $this;
+  return grep defined, map { GetANodeById($_) } ListV($node->attr('a/aux.rf'));
 }
 
 =item GetANodeByID($id_or_ref)
