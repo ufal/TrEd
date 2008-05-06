@@ -11188,7 +11188,11 @@ sub cleanup_tredmacro {
   foreach my $package ( sort { length($b)<=>length($a) } keys %packages ) {
     no strict qw(refs);
     print STDERR ("Cleaning package $package\n") if $tredDebug;
+    my $pkg_file = $package;
+    $pkg_file =~ s{::}{/}g;
+    $pkg_file .= '.pm';
     %{$package."::"}=();
+    delete $INC{$pkg_file};
     eval("package $package; use UNIVERSAL qw(isa can);");
     print STDERR $@ if $@;
   }
