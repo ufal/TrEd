@@ -81,21 +81,27 @@ sub ChooseValFrame {
     $node,
     -withdraw => 1,
     -assign_func => sub {
-      my ($n, $ids, undef, $current_fsfile, undef, $chooser)=@_;
+      my ($n, $ids, undef, $current_fsfile, $win, $chooser)=@_;
+      $grp=$win->{focusedWindow};
       if ($current_fsfile == $fsfile) {
-	$n->{'val_frame.rf'} = undef;
-	AddToAlt($n,'val_frame.rf',map { $refid."#".$_} split /\|/,$ids);
+	AssignValencyFrames($n,split /\|/,$ids);
       } else {
 	my $top = $chooser ? $chooser->widget->toplevel : TopLevelFrame();
-	$top->
-	  messageBox(-icon=> 'error',
-		     -message=> "Use Ctrl+Return to assign frame!",
-		     -title=> 'Error', -type=> 'ok');
+	$top-> messageBox(-icon=> 'error',
+			  -message=> "Use Ctrl+Return to assign frame!",
+			  -title=> 'Error', -type=> 'ok');
       }
     },
     %opts
    );
   ChangingFile(0);
+}
+
+sub AssignValencyFrames {
+  my ($node,@frames)=@_;
+  my $refid = FileMetaData('refnames')->{vallex};
+  $node->{'val_frame.rf'} = undef;
+  AddToAlt($node,'val_frame.rf',map { $refid."#".$_} @frames);
 }
 
 sub status_line_doubleclick_hook {
