@@ -229,7 +229,7 @@ looking for nodes which is what you usually want.
 =cut
 
 sub DiveAuxCP ($){
-  $_[0]->{afun}=~/x[CP]/
+  $_[0]->{afun}=~/^Aux[CP]/ ? 1 : 0;
 }#DiveAuxCP
 
 =item GetEParents($node,$through)
