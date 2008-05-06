@@ -945,20 +945,20 @@ sub recalculate_positions {
 
     $valign=$label_style->{'-valign'};
     if ($valign eq 'bottom') {
-      $valign_shift=-$nodeYSkip-$node_label_height;
+      $valign_shift=-$nodeYSkip/2-$node_label_height;
       $ypos+=$node_label_height;
     } elsif ($valign eq 'center') {
       $valign_shift=-$node_label_height/2;
       $ypos+=$node_label_height/2;
     } else {
-      $valign_shift=$nodeYSkip+$nodeHeight;
+      $valign_shift=$nodeYSkip/2+$nodeHeight;
     }
     $ypos+=$node_style->{'-yadj'};
     $NI->{"YPOS"}= $ypos;
     $NI->{"NodeLabel_YPOS"}=
-			    $ypos
-			    +$label_style->{'-yadj'}
-			    +$valign_shift;
+      $ypos
+	+$label_style->{'-yadj'}
+	+$valign_shift;
     if ($valign eq 'bottom') {
       $edge_ypos=$ypos
 	+ $valign_shift
