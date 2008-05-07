@@ -240,7 +240,7 @@ $match_actants = '(?:'.join('|',@actants).')';
     ]
    ],
    # 5.
-   [ # chce se mu riskovat prohra/prohru (zachtelo se mu zazpivat pisnicku, pisnicka se mu zachtela zazpivat)
+   [ # chce se mu riskovat prohra/prohru (zachtelo se mu stihnout pøestat zazpivat pisnicku, pisnicka se mu zachtela zazpivat)
     sub {
       my ($node) = @_;
       my $a_node = PML_T::GetALexNode($node);
@@ -250,6 +250,9 @@ $match_actants = '(?:'.join('|',@actants).')';
 	return 0 unless $a_node;
       }
       my ($p) = PML_A::GetEParents($a_node,\&PML_A::DiveAuxCP);
+      while ($p and $p->attr('m/tag')=~/^Vf/ and $p->attr('m/lemma') =~ /^(?:zaèít|zaèínat|konèit|pøestat|stihnout)(?:[-_].*|$)/) {
+	($p) = PML_A::GetEParents($p,\&PML_A::DiveAuxCP);
+      }
       return 0 unless $p and $p->attr('m/lemma') =~ /^(?:za)?chtít$/ and has_auxR($p);
     } =>
     [[ 'ACT(.1)', 'PAT(.4)' ] =>
@@ -332,7 +335,25 @@ $match_actants = '(?:'.join('|',@actants).')';
       [[ 'PAT(.4)','EFF(.4)' ] => [ '+EFF(.a2)' ],
        { LABEL => 'V_SHODA_EFF_DOPLNKU' }
       ]
-     ]
+     ],
+   # 10. verb test: verb treated as passive due to: nìco "se".AuxR má (stihnout zaèít pøestat) dìlat
+   [
+    sub {
+      my ($node) = @_;
+      my $a_node = PML_T::GetALexNode($node);
+      return 0 unless $a_node and $a_node->attr('m/tag')=~/^Vf/;
+      if ($node->{is_generated}) {
+	$a_node = first { $_->attr('m/tag')=~/^Vf/ } GetANodes($node);
+	return 0 unless $a_node;
+      }
+      my ($p) = PML_A::GetEParents($a_node,\&PML_A::DiveAuxCP);
+      while ($p and $p->attr('m/tag')=~/^Vf/ and $p->attr('m/lemma') =~ /^(?:zaèít|zaèínat|konèit|pøestat|stihnout)(?:[-_].*|$)/) {
+	($p) = PML_A::GetEParents($p,\&PML_A::DiveAuxCP);
+      }
+      return 0 unless $p and $p->attr('m/lemma') =~ /^(?:mít|moci)(?:$|_)/ and has_auxR($p);
+    } =>
+    @fv_passivization_rules
+   ],
   );
 
 
