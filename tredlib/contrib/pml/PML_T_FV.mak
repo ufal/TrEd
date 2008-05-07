@@ -24,7 +24,6 @@ sub start_hook {
 sub exit_hook { undef $V; }
 #endif
 
-
 sub init_vallex {
   $V_verbose = 0;
   $V_backend = 'JHXML';
@@ -78,9 +77,6 @@ sub validate_assigned_frames {
   shift if @_ and !ref($_[0]);
   my $node = $_[0] || $this;
   my $fix = $_[1];
-  foreach ($node->root->descendants) {
-    delete $_->{_light};
-  }
   init_vallex();
   eval {
     binmode STDOUT;
@@ -106,11 +102,11 @@ sub validate_assigned_frames {
   if ($sempos=~/^(?:n|adj|adv)/) {
     my $pj4 = hash_pj4($node->root);
     if (check_nounadj_frames($node,$pj4,{strict_subclause=>1,ExD_tolerant => $ExD_tolerant})==0) {
-      $node->{_light}='_LIGHT_';
+      $PML_T::show{$node->{id}}=1;
     }
   } elsif($sempos eq 'v') {
     if (check_verb_frames($node,$fix,{strict_subclause=>1,ExD_tolerant => $ExD_tolerant})==0) {
-      $node->{_light}='_LIGHT_';
+      $PML_T::show{$node->{id}}=1;
     }
   } else {
     questionQuery("Sorry!","Given word isn't a verb, nor noun, nor adjective, nor adverb\n".
@@ -168,19 +164,9 @@ sub get_value_line_hook {
 	       PRED => 'gray' );
    return [ map {
      push @$_, "-underline => 1, -background => cyan"
-       if (ref($_->[1]) eq 'FSNode' and $_->[1]->{_light} eq '_LIGHT_');
+       if (ref($_->[1]) eq 'FSNode' and $PML_T::show{$_->[1]->{id}});
      $_,
    } @$vl];
-}
-
-sub node_style_hook {
-  my ($node, $style)=@_;
-  my $ret = PML_T_View::node_style_hook(@_);
-  if ($node->{_light} eq '_LIGHT_') {
-    AddStyle($style,'Oval',-fill => 'cyan');
-    AddStyle($style,'Node',-addwidth => 7, -addheight => 7);
-  }
-  return $ret;
 }
 
 
