@@ -504,7 +504,7 @@ sub is_direct_subclause {
       return 1 if (first { $_->attr('m/lemma') =~ $obj_pronoun }
 		   grep {defined}
 		   map { PML_T::GetALexNode($_) } @c);
-      @c = uniq map { grep { same_clause_below($_) } PML_T::GetEChildren($_) } @c;
+      @c = uniq(map { grep { same_clause_below($_) } PML_T::GetEChildren($_) } @c);
     }
   }
   return 0;
@@ -530,8 +530,11 @@ sub check_node_case {
   return 1 if ($a_node->attr('m/tag')=~/^C=..\D/);
   print "   CASE: Checking 'kolem|okolo'+Num\n"  if $V_verbose;
   # kolem milionu (lidí)
-  return 1 if $a_node->attr('m/lemma') =~ /^(?:do1|kolem-1|okolo-1)$/ and $a_node->{afun}=~/^AuxP/ and
-    first { $_->attr('m/tag')=~/^C=/ or $_->attr('m/tag')=~/^....2/ and is_numeric_expression($_) } get_children_include_auxcp($a_node);
+  return 1 if $a_node->attr('m/lemma') =~ /^(?:do-1|kolem-1|okolo-1)$/ and $a_node->{afun}=~/^AuxP/ and
+    first { $_->attr('m/tag')=~/^C=/
+	    or $_->attr('m/tag')=~/^....2/
+	      and (is_numeric_expression($_) or first { $_->attr('m/tag')=~/^C=/ } get_children_include_auxcp($_))
+	  } get_children_include_auxcp($a_node);
   print "   CASE: Checking 'pres|na'+Num\n"  if $V_verbose;
   # pøes milion (lidí)
   return 1 if $a_node->attr('m/lemma') =~ /^(pøes-1|na-1|pod-1)$/ and $a_node->{afun}=~/^AuxP/ and
@@ -694,6 +697,8 @@ sub match_node {
 	  # and IsHidden($_) and $_->{functor} ne 'INTF'
       } PML_A::GetEParents($a_node,sub{0})
      ) {
+    # GAP: kdo/co-1 can be a one level below if the EChild is a modal verb or
+    # 'byt treba', etc.
     $kdo = first { $_->attr('m/lemma') eq 'kdo' or $_->attr('m/lemma') eq 'co-1' } 
       grep {defined}
       map { PML_T::GetALexNode($_) }
@@ -1278,7 +1283,10 @@ sub _node_info ($) {
 sub match_element ($$$$$$) {
   my ($V,$t_node,$e,$node,$flags,$quiet) = @_;
   my $info = _node_info($t_node);
-  print $V->func($e)."$info\n" if (!$quiet and $V_verbose);
+  if (!$quiet and $V_verbose) {
+    print "\n--------------------------\n";
+    print $V->func($e)."$info\n";
+  }
 
   my @forms = $V->forms($e);
   if (!$quiet and $V_verbose) {
@@ -1294,7 +1302,7 @@ sub match_element ($$$$$$) {
 	print "09 no form matches: $info\t";
 	Position($node);
       }
-      $t_node->{_light}='_LIGHT_' unless $quiet;
+      $PML_T::show{$t_node->{id}}=1 unless $quiet;
       return 0;
     }
   }
@@ -1352,7 +1360,7 @@ sub validate_frame_no_transform {
 	  print "EE invalid frame: repeated elements\t";
 	  Position($t_node);
 	}
-	$t_node->{_light}='_LIGHT_' unless $quiet;
+	$PML_T::show{$t_node->{id}}=1 unless $quiet;
 	return 0;
       }
       $all_elements{$func} = $el;
@@ -1365,8 +1373,8 @@ sub validate_frame_no_transform {
 	  print "EE invalid frame: non-obligatory element in alternation\t";
 	  Position($t_node);
 	}
-	$t_node->{_light}='_LIGHT_' unless $quiet;
-	  return 0;
+	$PML_T::show{$t_node->{id}}=1 unless $quiet;
+	return 0;
       }
     }
   }
@@ -1382,7 +1390,7 @@ sub validate_frame_no_transform {
 	  print "11 no word form matches: "._node_info($t_node)."\t";
 	  Position($t_node);
 	}
-	$t_node->{_light}='_LIGHT_' unless $quiet;
+	$PML_T::show{$t_node->{id}}=1 unless $quiet;
 	return 0;
       }
     }
@@ -1578,7 +1586,7 @@ sub validate_frame_no_transform {
 	return 0;
       } elsif (exists $c{$ac}) {
 	if (@{$c{$ac}} > 1) {
-	  my @ancestors = uniq map { _highest_coord($_) } @{$c{$ac}};
+	  my @ancestors = uniq(map { _highest_coord($_) } @{$c{$ac}});
 	  if (@ancestors > 1) {
 	    unless ($quiet) {
 	      print "08 multiple actants: $ac\t";
@@ -1780,6 +1788,7 @@ sub hash_pj4 {
 
 sub check_verb_frames {
   my ($t_node,$fix,$flags)=@_;
+  undef %PML_T::show;
   $flags = {} unless defined($flags);
   my $func = get_func($t_node);
 #  return -1 if
@@ -1950,6 +1959,7 @@ sub _assign_frames {
 
 sub check_nounadj_frames {
   my ($t_node,$pj4,$flags)=@_;
+  undef %PML_T::show;
   $flags = {} unless defined($flags);
 #  if (@$pj4) {
 #    Position($pj4->[0]);
