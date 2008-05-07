@@ -19,4 +19,7 @@
 #binding-context PML_T_Diff
 #include "PML_T_Diff.mak"
 
+#binding-context PML_T_FV
+#include "PML_T_FV.mak"
+
 #endif pml
