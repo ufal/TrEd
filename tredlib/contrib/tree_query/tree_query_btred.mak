@@ -120,7 +120,9 @@ our %reverse = (
   'user-defined:echild_of' => 'user-defined:eparent_of',
   'ancestor' => 'descendant-of',
   'ancestor-of' => 'descendant-of',
+  'descendant' => 'ancestor-of',
   'descendant-of' => 'ancestor-of',
+  'child' => 'parent-of',
   'child-of' => 'parent-of',
   'parent' => 'child-of',
   'parent-of' => 'child-of',
@@ -130,12 +132,65 @@ our %reverse = (
   'depth-first-follows' => 'depth-first-precedes',
 );
 
+
+  sub name_all_query_nodes {
+    my ($tree)=@_;
+    my @nodes = $tree->descendants;
+    my $max=0;
+    my %name2node = map {
+      my $n=lc($_->{name});
+      $max=$1+1 if $n=~/^n(\d+)$/ and $1>=$max;
+      (defined($n) and length($n)) ? ($n=>$_) : ()
+    } @nodes;
+    my $name = 'n0';
+    for my $node (@nodes) {
+      my $n=lc($node->{name});
+      unless (defined($n) and length($n)) {
+	$node->{name}= $n ='n'.($max++);
+	$name2node{$n}=$node;
+      }
+    }
+    return \%name2node;
+  }
+  sub weight {
+    my ($rel)=@_;
+    my $name = $rel->name;
+    if ($name eq 'user-defined') {
+      $name.=':'.$rel->value->{label};
+    }
+    return $weight{$name};
+  }
+  sub reversed_rel {
+    my ($rel)=@_;
+    my $name = $rel->name;
+    if ($name eq 'user-defined') {
+      $name.=':'.$rel->value->{label};
+    }
+    my $rname = $reverse{$name};
+    if (defined $rname) {
+      my $rev;
+      if ($rname =~s/^user-defined://) {
+	$rev = Fslib::Seq::Element->new('user-defined', Fslib::CloneValue($rel->value));
+	$rev->value->{label}=$rname;
+      } else {
+	$rev = Fslib::Seq::Element->new(
+	  $rname,
+	  Fslib::CloneValue($rel->value)
+	   );
+      }
+      $rev->value->{reversed}=$rel;
+      return $rev;
+    } else {
+      return;
+    }
+  }
   sub plan_query {
     my ($query_tree)=@_;
     $query_tree||=$TredMacro::root;
     require Graph;
     require Graph::ChuLiuEdmonds;
 
+    name_all_query_nodes($query_tree);
     my @query_nodes=map { Tree_Query::Evaluator::_filter_subqueries($_) } $query_tree->children;
     my %node2pos = map { $query_nodes[$_] => $_ } 0..$#query_nodes;
     my %name2pos = map {
@@ -146,37 +201,46 @@ our %reverse = (
     my @parent;
     for my $i (0..$#query_nodes) {
       my $n = $query_nodes[$i];
-      my $p = $node2pos{$n->parent};
+      my $parent = $n->parent;
+      my $p = $node2pos{$parent};
       $parent[$i]=$p;
+      # turn node's relation into parent's extra-relation
       if (defined $p) {
 	my ($rel) = TredMacro::SeqV($n->{relation});
-	my $relation = $rel && $rel->name;
-	$relation||='parent';
-	if ($relation eq 'user-defined') {
-	  $relation.=':'.$rel->value->{label};
+	delete $n->{relation};
+	if (!$rel) {
+	  $rel=Fslib::Seq::Element->new('parent-of', Fslib::Container->new(
+	    undef,{target=>$n->{name}}
+	   ));
+	} else {
+	  $rel->value->{target} = $n->{name};
+	  if ($rel->name eq 'parent' or
+		$rel->name eq 'ancestor') {
+	    $rel->set_name($rel->name.'-of');
+	  }
+	  if ($rel->name eq 'user-defined') {
+	    $rel->value->{label}=~s/^(eparent|echild)$/${1}_of/;
+	  }
 	}
-	push @edges,[$p,$i,$relation];
+	TredMacro::AddToSeq($parent,'extra-relations',$rel);
       }
+    }
+    for my $i (0..$#query_nodes) {
+      my $n = $query_nodes[$i];
+      my $parent = $n->parent;
+      my $p = $node2pos{$parent};
       for my $rel (TredMacro::SeqV($n->attr('extra-relations'))) {
 	next if $rel->value->{negate};
-	my $relation = $rel->name;
-	if ($relation eq 'user-defined') {
-	  $relation.=':'.$rel->value->{label};
-	}
 	my $target = lc( $rel->value->{target} );
 	my $t = $name2pos{$target};
 	if (defined $t and $t!=$i) {
-	  push @edges,[$i,$t,$relation];
+	  push @edges,[$i,$t,$rel,weight($rel)];
+	}
+	my $reversed = reversed_rel($rel);
+	if (defined $reversed) {
+	  push @edges,[$t,$i,$reversed,weight($reversed)];
 	}
       }
-      @edges = map {
-	my $e = $_;
-	if (my $reversed = $reverse{$e->[2]}) {
-	  ($e,[$e->[1],$e->[0],$reversed])
-	} else {
-	  ($e);
-	}
-      } @edges;
     }
     my $g=Graph->new(directed=>1);
     $g->add_vertex($_) for 0..$#query_nodes;
@@ -189,12 +253,11 @@ our %reverse = (
     my %edges;
     for my $e (@edges) {
       my $has = $g->has_edge($e->[0],$e->[1]);
-      my $w = $weight{$e->[2]}||100000;
+      my $w = $e->[3]||100000;
       if (!$has or $g->get_edge_weight($e->[0],$e->[1])>$w) {
-	$edges{$e->[0],$e->[1]}=$e->[2];
+	$edges{$e->[0]}{$e->[1]}=$e->[2];
 	$g->delete_edge($e->[0],$e->[1]) if $has;
 	$g->add_weighted_edge($e->[0],$e->[1], $w);
-	# $g->set_edge_attribute($e->[0],$e->[1],'type',$e->[2]);
       }
     }
 #ifdef TRED
@@ -233,49 +296,26 @@ our %reverse = (
 	$qn->paste_on($query_nodes[$p]);
       }
 
-      # turn relation into parent's extra-relation
-      my ($rel) = TredMacro::SeqV($qn->{relation});
-      if (defined $parent[$i]) {
-	my $parent = $query_nodes[$parent[$i]];
-	if (!defined($qn->{name})) {
-	  $last_ref++ while (exists $name2pos{"ref$last_ref"});
-	  $qn->set_attr('name',"ref$last_ref");
-	  $name2pos{"ref$last_ref"}=$i;
-	  $last_ref++;
-	}
-	if ($rel) {
-	  $qn->{relation}=undef;
-	  my $parent = $query_nodes[$parent[$i]];
-	  $rel->value->{target} = $qn->{name};
-	  if ($rel->name eq 'parent' or
-		$rel->name eq 'ancestor') {
-	    $rel->set_name($rel->name.'-of');
-	  }
-	  if ($rel->name eq 'user-defined') {
-	    if ($rel->value->{label} eq 'eparent') {
-	      $rel->value->{label}='eparent_of';
-	    }
-	  }
-	  TredMacro::AddToSeq($parent,'extra-relations',$rel->name,$rel->value);
-	} else {
-	  print "$i; $parent->{name} => $qn->{name}\n";
-	  TredMacro::AddToSeq($parent,'extra-relations','parent-of',
-			      Fslib::Container->new(undef,{
-				target => $qn->{name},
-			      },1));
-	}
-      }
-      # now turn the relevant extra-relation into relation
+      # now turn the selected extra-relation into relation
+      # of $qn
       if (defined $p) {
-# 	my $parent = $query_nodes->[$p];
-# 	if (defined $parent{$qn}) {
-# 	  # turn relation into extra-relation
-# 	  my ($rel) = TredMacro::SeqV($qn->{relation});
-# 	  $qn->{relation}=undef;
-# 	  my $target = $query_nodes[$parent{$qn}];
-# 	  $rel->{target} = $target->{name};
-# 	  TredMacro::AddToSeq($qn,'extra-relations',$rel);
-# 	}
+ 	my $parent = $query_nodes[$p];
+	my $rel = $edges{$p}{$i};
+	if ( my $reversed = $rel->value->{reversed} ) {
+	  $qn->{'extra-relations'}->delete_element($reversed)
+	} else {
+	  $parent->{'extra-relations'}->delete_element($rel)
+	}
+	delete $qn->{'relation'};
+	delete $rel->value->{target};
+	delete $rel->value->{reversed};
+	my $name=$rel->name;
+	if ($name=~s/^(parent|child|ancestor|descendant)-of$/$1/) {
+	  $rel->set_name($name);
+	} elsif ($rel->name eq 'user-defined') {
+	  $rel->value->{label} =~ s/^(eparent|echild)_of$/$1/;
+	}
+	TredMacro::AddToSeq($qn,'relation',$rel);
       }
     }
   }
@@ -504,7 +544,7 @@ sub test {
 	$iterator = ComplRFIterator->new($conditions);
       } elsif ($rel->value->{label} eq 'eparent') {
 	$iterator = EChildIterator->new($conditions);
-      } elsif ($rel->value->{label} eq 'echild_of') {
+      } elsif ($rel->value->{label} eq 'echild') {
 	$iterator = EParentIterator->new($conditions);
       } else {
 	die "user-defined relation ".$rel->value->{label}." not yet implemented\n"
@@ -678,10 +718,10 @@ sub test {
 	$opts->{recompute_condition}[$_]{$pos}=1 for keys %depends_on;
 	my $truth_value = $opts->{negative_formula} ? 0 : 1;
 	$truth_value=!$truth_value if $value->{negate};
-	return ($value->{negate}==1 ? 'not' : '').
+	return ($value->{negate}==1 ? 'not ' : '').
 	  ('( $$query_pos < '.$last_dependency.' ? '.$truth_value.'  : '.$condition.')');
       } else {
-	return ($value->{negate}==1 ? 'not' : '').$condition;
+	return ($value->{negate}==1 ? 'not ' : '').$condition;
       }
     } elsif ($name =~ /^(?:and|or)$/) {
       my $seq = $value->{'#content'};
@@ -749,7 +789,23 @@ sub test {
 	    die "Node '$target' does not exist or belongs to a sub-query and cannot be referred from here!\n";
 	  }
 	}
-	($attr=~m{/}) ? $node.qq{->attr(q($attr))} : $node.qq[->{q($attr)}];
+	## FIXME: hack: not needed once SQL db is fixed
+	if ($attr =~ /^(?:tag|lemma|form)/) {
+	  $attr='m/'.$attr;
+	}
+	if ($attr eq '_depth') {
+	  $node.qq{->level}
+	} elsif ($attr eq '#sons') {
+	  'scalar('.$node.qq{->children}.')'
+	} elsif ($attr eq '#descendants') {
+	  'scalar('.$node.qq{->descendants}.')'
+	} elsif ($attr eq '#lbrothers') {
+          q[ do { my $n = ].$node.q[; my $i=0; $i++ while ($n=$n->lbrother); $i } ]
+	} elsif ($attr eq '#rbrothers') {
+          q[ do { my $n = ].$node.q[; my $i=0; $i++ while ($n=$n->rbrother); $i } ]
+	} else {
+	  ($attr=~m{/}) ? $node.qq{->attr(q($attr))} : $node.qq[->{q($attr)}];
+        }
       }ge;
     }
     return $exp;

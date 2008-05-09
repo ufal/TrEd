@@ -876,7 +876,11 @@ sub relation {
   my $condition;
   if ($name eq 'parent') {
     $condition= qq{$id."parent_idx"=$parent_id."idx"};
+  } elsif ($name eq 'child') {
+    $condition= qq{$parent_id."parent_idx"=$id."idx"};
   } elsif ($name eq 'ancestor') {
+    $condition= extra_relation($parent_id,$rel,$id,$opts);
+  } elsif ($name eq 'descendant') {
     $condition= extra_relation($parent_id,$rel,$id,$opts);
   } elsif ($name eq 'user-defined') {
     $condition= user_defined_relation($id,$rel->value,$parent_id,$opts);
@@ -894,10 +898,10 @@ sub extra_relation {
   my ($id,$rel,$target,$opts)=@_;
   my $relation = $rel->name;
   my $params = $rel->value;
-  if ($relation eq 'descendant-of') {
+  if ($relation eq 'descendant-of' or $relation eq 'descendant') {
     $relation = 'ancestor-of';
     ($id,$target)=($target,$id);
-  } elsif ($relation eq 'child-of') {
+  } elsif ($relation eq 'child-of' or $relation eq 'child') {
     $relation = 'parent-of';
     ($id,$target)=($target,$id);
   } elsif ($relation eq 'order-follows') {
@@ -985,6 +989,14 @@ sub user_defined_relation {
 	join=>$opts->{join},
 	expression => qq{"eparents/eparent_idx"}
        }).qq{=$target."idx" };
+  } elsif ($relation eq 'echild') {
+    $cond =  qq{$id."root_idx"=$target."root_idx" AND }.
+      serialize_expression({
+	id=>$target,
+	type=>$type,
+	join=>$opts->{join},
+	expression => qq{"eparents/eparent_idx"}
+       }).qq{=$id."idx" };
   } elsif ($relation eq 'a/lex.rf') {
     unless ($opts->{extra_relation}) {
       # reverse
