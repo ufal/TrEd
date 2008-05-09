@@ -84,15 +84,12 @@ sub DrawArrows {
   foreach my $edge (@$edges) {
     my $raise = $edge->{-raise}||$opts->{-raise}||25;
     my $frac  = $edge->{-frac}||$opts->{-frac}||0.12;
-    for my $p (@opts) {
-      push @{$props{$p}}, $edge->{$p}||$opts->{$p}||'';
-    }
     my $target = $edge->{-target};
     my ($dx,$dy)=@$edge{qw(-deltax -deltay)};
     $dx||=0; $dy||=0;
     if ($node == $target) {
       # same node
-      push @{$props{-coords}},qq(&n,n,n+$raise+$dx,n,n+$raise+$dx,n+$raise+$dy,n,n+$raise+$dy,n-$raise+$dx,n+$raise+$dy,n-$raise+$dx,n,n,n);
+      push @{$props{-coords}},qq(n,n,n+$dx,n+$dy,n+$raise+$dx,n+$dy,n+$raise+$dx,n+$raise+$dy,n+$dx,n+$raise+$dy,n-$raise+$dx,n+$raise+$dy,n-$raise+$dx,n+$dy,n,n);
     } elsif ($displayed_nodes_hash{$target}) {
       # same sentence
       my $T="[! FileUserData('DrawArrows')->{\$this}[$i] !]";
@@ -112,6 +109,11 @@ COORDS
       push @{$props{-coords}},$c;
     } elsif ($dx||$dy) { # should be always the same document, if it exists at all
       push @{$props{-coords}},"n,n,n+$dx,n+$dy";
+    } else {
+      next;
+    }
+    for my $p (@opts) {
+      push @{$props{$p}}, $edge->{$p}||$opts->{$p}||'';
     }
   }
   if (defined($props{-coords}) and @{$props{-coords}}) {
