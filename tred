@@ -2091,7 +2091,7 @@ sub openFile {
 	    redraw_win($win);
 	    centerTo($win,$win->{currentNode});
 	  }
-	  addToRecent($grp,$f) unless ($opts{-norecent} or $fsfile->appData('norecent'));
+	  addToRecent($grp,$f) unless ($opts{-norecent} or $fsfile and $fsfile->appData('norecent'));
 	}
 	$win->toplevel->Unbusy() unless $insideEval;
 	return wantarray ? ($of,_new_status(ok=>1)) : $of
@@ -2271,7 +2271,7 @@ sub openFile {
   }
   $win->toplevel->Unbusy() unless $insideEval;
 
-  addToRecent($grp,$f) unless ($opts{-norecent} or $fsfile->appData('norecent'));
+  addToRecent($grp,$f) unless ($opts{-norecent} or $fsfile && $fsfile->appData('norecent'));
   return wantarray ? ($fsfile,$status) : $fsfile;
 }
 
