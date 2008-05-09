@@ -90,7 +90,10 @@ sub DrawArrows {
     my $target = $edge->{-target};
     my ($dx,$dy)=@$edge{qw(-deltax -deltay)};
     $dx||=0; $dy||=0;
-    if ($displayed_nodes_hash{$target}) {
+    if ($node == $target) {
+      # same node
+      push @{$props{-coords}},qq(&n,n,n+$raise+$dx,n,n+$raise+$dx,n+$raise+$dy,n,n+$raise+$dy,n-$raise+$dx,n+$raise+$dy,n-$raise+$dx,n,n,n);
+    } elsif ($displayed_nodes_hash{$target}) {
       # same sentence
       my $T="[! FileUserData('DrawArrows')->{\$this}[$i] !]";
       FileUserData('DrawArrows')->{$node}[$i]=$target;
