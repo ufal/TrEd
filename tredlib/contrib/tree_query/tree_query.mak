@@ -828,7 +828,7 @@ sub serialize_conditions {
       for my $child (@occ_child) {
 	my $occ = $child->{occurrences};
 	my $subquery = make_sql($child,{
-	  count=>1,
+	  count=>2,
 	  parent_id=>$opts->{id},
 	  join => $opts->{join},
 	  syntax=>$opts->{syntax},
@@ -1157,7 +1157,9 @@ sub make_sql {
     push @where, @conditions;
   }
   my @sql = (['SELECT ']);
-  if ($count) {
+  if ($count == 2) {
+    push @sql,['count(DISTINCT '.$id{$tree}.'."idx")','space'];
+  } elsif ($count) {
     push @sql,['count(1)','space'];
   } else {
     push @sql, (['DISTINCT '], map {
@@ -1480,7 +1482,7 @@ sub reduce_optional_node_chain {
     my $son = $node->firstson;
     CutPasteAfter($last,$node);
     DeleteSubtree($son);
-    AddOrRemoveRelations($node,$last,['ancestor'],{
+    AddOrRemoveRelations($node,$last,['ancestor-of'],{
       -add_only=>1
     });
     AddOrRemoveRelations($node,undef,['ancestor'],{
