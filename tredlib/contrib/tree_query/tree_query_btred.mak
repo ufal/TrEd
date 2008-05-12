@@ -41,13 +41,13 @@ TODO:
 - optional nodes
 - [X] lengths of descendant/ancestor axes
 - [X] plan subqueries
+- inequalities and in for occurrences
 
 - relational predicates: so that one can use them in boolean
   combinations like (parent-of(ref0) or order-precedes(ref1))
 
 - define exact syntax for a term in the tree-query
 
-- inequalities and in for occurrences
 
 - query options: one match per tree, output format
 
@@ -182,10 +182,15 @@ sub test {
     'compl' => q(first { $_ eq $end->{id} } TredMacro::ListV($start->{'compl.rf'})),
    );
 
+
+  sub _is_a_subquery {
+    my ($node)=@_;
+    (first { ref($_) and length($_->{min}) or length($_->{max}) } TredMacro::AltV($node->attr(q(occurrences))))
+      ? 1 : 0
+  }
   sub _filter_subqueries {
     my ($node)=@_;
-    return $node, map {
-      length($_->{occurrences}) ?  () : _filter_subqueries($_)
+    return $node, map { _is_a_subquery($_) ? () : _filter_subqueries($_)
     } $node->children;
   }
 
@@ -224,7 +229,7 @@ sub test {
       sub_queries => \@sub_queries,
       parent_query => $parent_query,
       parent_query_pos => $opts->{parent_query_pos},
-
+      parent_query_match_pos => $opts->{parent_query_match_pos},
 
       matched_nodes => $matched_nodes, # nodes matched so far (incl. nodes in subqueries; used for evaluation of cross-query relations)
 
@@ -423,7 +428,7 @@ sub test {
 	      'while ($n and $n!='.$END.(defined($max) ? ' and $l<'.$max : ''). ') { $n=$n->parent; '.
 		((defined($min) or defined($max)) ? '$l++;' : '').
 	      ' }'.
-	      ' ($n=='.$END.(defined($min) ? ' and '.$min.'<=$l' : '').') ? 1 : 0}';
+	      ' ($n and $n!='.$START.' and $n=='.$END.(defined($min) ? ' and '.$min.'<=$l' : '').') ? 1 : 0}';
 	} else {
 	  $expression = $test_relation{$relation};
 	}
@@ -448,7 +453,7 @@ sub test {
 	# this node is matched by some super-query
 	my $expr = q/do{ my ($start,$end)=($node,$matched_nodes->[/.$target_match_pos.q/]); /.$expression.q/ }/;
 	push @relations, $expr;
-	if ($target_match_pos > $match_pos) {
+	if ($target_match_pos > $self->{parent_query_match_pos}) {
 	  # we need to postpone the evaluation of the whole sub-query up-till $matched_nodes->[$target_pos] is known
 	  $self->{postpone_subquery_till}=$target_match_pos if ($self->{postpone_subquery_till}||0)<$target_match_pos;
 	}
@@ -457,25 +462,32 @@ sub test {
       }
     }
 
-    my @subquery_nodes = grep { length($_->{occurrences}) } $qnode->children;
+    my @subquery_nodes = grep { _is_a_subquery($_) } $qnode->children;
     my @subquery_conditions;
     for my $sqn (@subquery_nodes) {
       # TODO: cross-query dependencies
       my $subquery = ref($self)->new($sqn, {
 	parent_query => $self,
-	parent_query_pos => $opts->{query_pos},
+	parent_query_pos => $pos,
+	parent_query_match_pos => $match_pos,
       });
       push @{$self->{sub_queries}}, $subquery;
       my $sq_pos = $#{$self->{sub_queries}};
-      my $sq_condition = qq/\$sub_queries[$sq_pos]->test_occurrences(\$node,$sqn->{occurrences})/;
+      my $occ_list=
+	TredMacro::max(map { (int($_->{min}),int($_->{max})) } TredMacro::AltV($sqn->{occurrences})).
+	','.join(',',(map { (length($_->{min}) ? $_->{min} : 'undef').','.
+			     (length($_->{max}) ? $_->{max} : 'undef') } TredMacro::AltV($sqn->{occurrences})
+		)
+		);
+      my $sq_condition = qq/\$sub_queries[$sq_pos]->test_occurrences(\$node,$occ_list)/;
       my $postpone_subquery_till = $subquery->{postpone_subquery_till};
       if (defined $postpone_subquery_till) {
 	print "postponing subquery till: $postpone_subquery_till\n";
 	if ($postpone_subquery_till<=$self->{pos2match_pos}[-1]) {
 	  # same subquery, simply postpone, just like when recomputing conditions
-	  print "same subquery\n" if $DEBUG;
+	  print "same subquery @{$self->{pos2match_pos}}\n" if $DEBUG;
 	  push @{$opts->{recompute_subquery}[$postpone_subquery_till]},
-	    qq/\$sub_queries[$sq_pos]->test_occurrences(\$matched_nodes->[$match_pos],$sqn->{occurrences})/;
+	    qq/\$sub_queries[$sq_pos]->test_occurrences(\$matched_nodes->[$match_pos],$occ_list)/;
 	} else {
 	  print "other subquery\n" if $DEBUG;
 	  # otherwise postpone this subquery as well
@@ -632,7 +644,7 @@ sub test {
 	  } elsif (defined $target_match_pos) {
 	    # this node is matched by some super-query
 	    $node='$matched_nodes->['.$target_match_pos.']';
-	    if ($target_match_pos > $match_pos) {
+	    if ($target_match_pos > $self->{parent_query_match_pos}) {
 	      # we need to postpone the evaluation of the whole sub-query up-till $matched_nodes->[$target_pos] is known
 	      $self->{postpone_subquery_till}=$target_match_pos if ($self->{postpone_subquery_till}||0)<$target_match_pos;
 	    }
@@ -665,20 +677,30 @@ sub test {
   }
 
   sub test_occurrences {
-    my ($self,$seed,$test_count)=@_;
+    my ($self,$seed,$test_max) = (shift,shift,shift);
     $self->reset();
     my $count=0;
     print STDERR "<subquery>\n" if $DEBUG;
     while ($self->find_next_match({boolean => 1, seed=>$seed})) {
-      last unless $count<=$test_count;
+      last unless $count<=$test_max;
       $count++;
       $self->backtrack(0); # this is here to count on DISTINCT
       # roots of the subquery (i.e. the node with occurrences specified).
     }
+    my ($min,$max)=@_;
+    my $ret=0;
+    while (@_) {
+      ($min,$max)=(shift,shift);
+      if ((!defined($min) || $count>=$min) and
+	    (!defined($max) || $count<=$max)) {
+	$ret=1;
+	last;
+      }
+    }
     print "occurrences: >=$count\n" if $DEBUG;
     print STDERR "</subquery>\n" if $DEBUG;
     $self->reset() if $count;
-    return ($count==$test_count) ? 1 : 0;
+    return $ret;
   }
 
   sub backtrack {
