@@ -139,9 +139,15 @@ hint:
 rootstyleforbalanced:#{balance:1}#{Node-textalign:center}#{NodeLabel-halign:center}
 rootstyle: #{vertical:0}#{nodeXSkip:15}
 rootstyle: #{Node-addwidth:3}#{Node-addheight:3}#{CurrentOval-width:3}#{CurrentOval-outline:red}
-node: <?length($${node-type}) ? $${node-type}.': ' : '' ?><? length $${occurrences} ? ($${occurrences}."x")  : "" 
+node: <?length($${node-type}) ? $${node-type}.': ' : '' ?>#{darkgreen}<?
+  my $occ = join '|', grep { /\d/ } map {
+    if ($_->{min}==$_->{max}) {
+      $_->{max}
+    } else { $_->{min}.'-'.$_->{max} }
+  } AltV($this->{occurrences});
+  length $occ ? ('('.$occ.')x')  : "" 
 ?><? $${optional} ? '?'  : q()
-?><? Tree_Query::serialize_conditions_as_stylesheet($this) ?>
+?>#{black}<? Tree_Query::serialize_conditions_as_stylesheet($this) ?>
 node: #{darkblue}${name}#{brown}<? my$d=$${description}; $d=~s{^User .*?:}{}; $d ?>
 style: #{Line-tag:relation}<? 
   my ($rel) = map {
@@ -158,8 +164,8 @@ style:<?
       : '#{Oval-fill:yellow}' )
    : '#{Oval-fill:gray}' ?>
 style:<?
-   length $${occurrences}
-     ? '#{Node-addwidth:0}#{Node-addheight:0}' 
+   my $occ = join '|', map { $_->{min}.'-'.$_->{max} } AltV($this->{occurrences})
+   length $occ ? '#{Node-addwidth:0}#{Node-addheight:0}' 
      : q() ?>
 EOF
   }
@@ -810,6 +816,12 @@ use constant {
   GROUP    => 2,
 };
 
+  sub _is_a_subquery {
+    my ($node)=@_;
+    (first { ref($_) and length($_->{min}) or length($_->{max}) } AltV($node->attr(q(occurrences))))
+      ? 1 : 0
+  }
+
 my $occurrences_strategy = SUB_QUERY;
 # serialize to SQL (or SQL fragment)
 sub serialize_conditions {
@@ -824,16 +836,30 @@ sub serialize_conditions {
     my @sql;
     push @sql,[$el,$node] if defined($el) and length($el);
     if ($occurrences_strategy == SUB_QUERY) {
-      my @occ_child = grep { length($_->{occurrences}) } $node->children;
+      my @occ_child = grep { _is_a_subquery($_) } $node->children;
       for my $child (@occ_child) {
-	my $occ = $child->{occurrences};
 	my $subquery = make_sql($child,{
 	  count=>2,
 	  parent_id=>$opts->{id},
 	  join => $opts->{join},
 	  syntax=>$opts->{syntax},
 	});
-	push @sql,[qq{ $occ=($subquery)},$child];
+	my @occ;
+	for my $occ (AltV($child->{occurrences})) { # this is not optimal for @occ>1
+	  my ($min,$max)=($occ->{min},$occ->{max});
+	  if (length($min) and length($max)) {
+	    if ($min==$max) {
+	      push @occ,qq{($subquery)=$min};
+	    } else {
+	      push @occ,qq{($subquery) BETWEEN $min AND $max};
+	    }
+	  } elsif (length($min)) {
+	    push @occ,qq{($subquery)>=$min};
+	  } elsif (length($max)) {
+	    push @occ,qq{($subquery)<=$max};
+	  }
+	}
+	push @sql, [ '('.join(' OR ',@occ).')',$child ] if @occ;
       }
     }
     return wantarray ? @sql : join(' AND ',map { $_->[0] } @sql);
@@ -1066,7 +1092,7 @@ sub get_query_nodes {
     my $n = $tree;
     while ($n) {
       if ($n->parent) {
-	if (length($n->{occurrences}) and $n!=$tree) {
+	if (_is_a_subquery($n) and $n!=$tree) {
 	  $n = $n->following_right_or_up($tree);
 	  next;
 	} else {
@@ -1457,7 +1483,7 @@ sub __test_optional_chain {
     and (!$son->rbrother)
     and ($son->children<=1)
     and (!$son->{relation} or $son->{relation}->name_at(0) eq 'parent')
-    and !(defined($node->{occurrences}) and length($node->{occurrences}))
+    and !_is_a_subquery($node)
     and (!$node->{relation} or $node->{relation}->name_at(0) eq 'parent')
   )
   ? 1 : 0;
@@ -1489,7 +1515,9 @@ sub reduce_optional_node_chain {
       -attribute=>'relation',
       -add_only=>0
     });
-    $node->{occurrences}=0;
+    $node->{occurrences}=Fslib::Struct->new({
+      max => 0
+    });
     $node->{optional}=0;
     $node->set_attr('conditions/negate',!$node->attr('conditions/negate'));
     my ($rel) = AddOrRemoveRelations($last,undef,['ancestor'],{
