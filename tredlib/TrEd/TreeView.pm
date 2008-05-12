@@ -2415,6 +2415,28 @@ sub _present_attribute {
 	$val = $val->[0];
 	redo;
       }
+    } elsif (ref($val) eq 'Fslib::Seq') {
+      if ($step =~ /^\[([-+]?\d+)\](.*)/) {
+	$val =
+	  $1>0 ? $val->elements_list->[$1-1] :
+	  $1<0 ? $val->elements_list->[$1] : undef; # element
+	if (defined $2 and length $2) { # optional name test
+	  return if $val->[0] ne $2; # ERROR
+	}
+	$val = $val->[1]; # value
+      } elsif ($step =~ /^([^\[]+)(?:\[([-+]?\d+)\])?/) {
+	my $i = $2;
+	$val = $val->values($1);
+	if (length $i) {
+	  $val = $i>0 ? $val->[$i-1] :
+	         $i<0 ? $val->[$i] : undef;
+	} else {
+	  $append="*" if @$val > 1;
+	  $val = $val->[0];
+	}
+      } else {
+	return; # ERROR
+      }
     } elsif (UNIVERSAL::isa($val,'HASH')) {
       $val = $val->{$step};
     } elsif (defined($val)) {
