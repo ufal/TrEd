@@ -43,6 +43,10 @@ TODO:
 - [X] plan subqueries
 - inequalities and in for occurrences
 
+- definitions: the user draws a named query with one or two specified
+nodes (e.g. START,END). The query can then be used as an edge label or
+a node-test.
+
 - relational predicates: so that one can use them in boolean
   combinations like (parent-of(ref0) or order-precedes(ref1))
 
