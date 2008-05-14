@@ -8091,7 +8091,7 @@ sub MakeSentence {
 	    </row>
 	    <row id="get_nodelist_hook">
 	      <entry><literal moreinfo="none">get_nodelist_hook</literal></entry>
-	      <entry>no</entry> <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>fsfile</replaceable>,<replaceable>treeNo</replaceable>,<replaceable>show_hidden</replaceable></literal></para><para>This hook may be used to supply
+	      <entry>no</entry> <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>fsfile</replaceable>,<replaceable>treeNo</replaceable>,<replaceable>recentActiveNode</replaceable>,<replaceable>show_hidden</replaceable></literal></para><para>This hook may be used to supply
 	      custom node ordering given a fsfile, treeNo and hidden
 	      node visibility state.  If used, it should return a
 	      two-element array reference with the first element being
