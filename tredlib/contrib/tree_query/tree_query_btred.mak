@@ -39,7 +39,7 @@ TODO:
 (favor less specific nodes to become leafs)
 
 - optional nodes
-- [X] lengths of descendant/ancestor axes
+- [X] lengths of ancestor/descendant axes
 - [X] plan subqueries
 - inequalities and in for occurrences
 
@@ -48,7 +48,7 @@ nodes (e.g. START,END). The query can then be used as an edge label or
 a node-test.
 
 - relational predicates: so that one can use them in boolean
-  combinations like (parent-of(ref0) or order-precedes(ref1))
+  combinations like (child(ref0) or order-precedes(ref1))
 
 - define exact syntax for a term in the tree-query
 
@@ -61,6 +61,11 @@ a node-test.
 -   maybe use a separate table for every attribute?
 -   unify the PMLSchema to DB schema translation
 -   use test-data only
+- fix negations of mutli-match comparisons
+- make a/foo=1 and a/bar=2 independent searches in the list/alt a/
+- implement some form of (exists a (foo=1 and bar=2))
+  or (forall a (foo=1 and bar=2))
+ to be able to fix a/ and
 
 =cut
 
@@ -159,8 +164,8 @@ sub test {
   use List::Util qw(first);
 
   my %test_relation = (
-    'child-of' => q($start->parent == $end),
-    'parent-of' => q($end->parent == $start),
+    'parent' => q($start->parent == $end),
+    'child' => q($end->parent == $start),
 
     'order-precedes' => q($start->get_order < $end->get_order ), # not very effective !!
     'order-follows' => q($end->get_order < $start->get_order ), # not very effective !!
@@ -170,11 +175,11 @@ sub test {
    );
 
   my %test_user_defined_relation = (
-    'eparent_of' => q(do{ my $type = $node->type->get_base_type_name;
+    'echild' => q(do{ my $type = $node->type->get_base_type_name;
                         first { $_ == $start }
                         ($type eq 't-node.type' ? PML_T::GetEParents($end) :
                          $type eq 'a-node.type' ? PML_A::GetEParents($end,\\&PML_A::DiveAuxCP) : ()) }),
-    'echild_of' => q(do{ my $type = $node->type->get_base_type_name;
+    'eparent' => q(do{ my $type = $node->type->get_base_type_name;
                         first { $_ == $end }
                         ($type eq 't-node.type' ? PML_T::GetEParents($start) :
                          $type eq 'a-node.type' ? PML_A::GetEParents($start,\\&PML_A::DiveAuxCP) : ()) }),
@@ -342,13 +347,13 @@ sub test {
     	# TODO: deal with negative relations, etc.
     my ($rel) = TredMacro::SeqV($qn->{relation});
     my $relation = $rel && $rel->name;
-    $relation||='parent';
+    $relation||='child';
 
     print STDERR "iterator: $relation\n" if $DEBUG;
     my $iterator;
-    if ($relation eq 'parent') {
+    if ($relation eq 'child') {
       $iterator = ChildnodeIterator->new($conditions);
-    } elsif ($relation eq 'ancestor') {
+    } elsif ($relation eq 'descendant') {
       my ($min,$max)=
 	map { (defined($_) and length($_)) ? $_ : undef }
 	map { $rel->value->{$_} }
@@ -359,9 +364,9 @@ sub test {
       } else {
 	$iterator = DescendantIterator->new($conditions);
       }
-    } elsif ($relation eq 'child') {
+    } elsif ($relation eq 'parent') {
       $iterator = ParentIterator->new($conditions);
-    } elsif ($relation eq 'descendant') {
+    } elsif ($relation eq 'ancestor') {
       my ($min,$max)=
 	map { (defined($_) and length($_)) ? $_ : undef }
 	map { $rel->value->{$_} }
@@ -384,9 +389,9 @@ sub test {
 	$iterator = CorefGramRFIterator->new($conditions);
       } elsif ($rel->value->{label} eq 'compl') {
 	$iterator = ComplRFIterator->new($conditions);
-      } elsif ($rel->value->{label} eq 'eparent') {
-	$iterator = EChildIterator->new($conditions);
       } elsif ($rel->value->{label} eq 'echild') {
+	$iterator = EChildIterator->new($conditions);
+      } elsif ($rel->value->{label} eq 'eparent') {
 	$iterator = EParentIterator->new($conditions);
       } else {
 	die "user-defined relation ".$rel->value->{label}." not yet implemented\n"
@@ -394,7 +399,11 @@ sub test {
     } else {
       die "relation ".$relation." not yet implemented\n"
     }
-    return $iterator;
+    if ($qn->{optional}) {
+      return OptionalIterator->new($iterator);
+    } else {
+      return $iterator;
+    }
   }
 
   sub serialize_conditions {
@@ -421,12 +430,12 @@ sub test {
 	$expression = $test_user_defined_relation{$label};
 	die "User-defined relation '$label' not supported test!\n" unless defined $expression;
       } else {
-	if ($relation eq 'ancestor-of' or $relation eq 'descendant-of') {
+	if ($relation eq 'descendant' or $relation eq 'ancestor') {
 	  my ($min,$max)=
 	    map { (defined($_) and length($_)) ? $_ : undef }
 	    map { $rel->value->{$_} }
 	    qw(min_length max_length);
-	  my ($START,$END)=($relation eq 'descendant-of') ? ('$start','$end') : ('$end','$start');
+	  my ($START,$END)=($relation eq 'ancestor') ? ('$start','$end') : ('$end','$start');
 	  $expression = 'do { my $n='.$START.'; '.
 	    ((defined($min) or defined($max)) ? 'my $l=0; ' : '').
 	      'while ($n and $n!='.$END.(defined($max) ? ' and $l<'.$max : ''). ') { $n=$n->parent; '.
@@ -516,14 +525,24 @@ sub test {
       $check_preceding .= join('', map {"\n  and ".$_ } @$recompute_sq);
     }
     if (length $check_preceding) {
-      $check_preceding = "\n  and ".'($matched_nodes->['.$match_pos.']=$node) # a trick: make it appear as if this node already matched!'.$check_preceding;
+      $check_preceding = "\n".'  and ($backref || ($matched_nodes->['.$match_pos.']=$node) # a trick: make it appear as if this node already matched!'.$check_preceding.')';
     }
-    my $sub = 'sub { my ($node,$backref)=@_; '."\n  ".
-                       '$node and ($backref||!exists($have{$node}))'
-		       .($conditions=~/\S/ ? "\n  and ".$conditions : '')
-			 .(join '',map { "\n  and ".$_ } @relations )
-			 .(join '',map { "\n  and ".$_ } @subquery_conditions )
-			   .$check_preceding."\n}";
+    my $cond =
+      '$node and ($backref||!exists($have{$node}))'.
+      ($conditions=~/\S/ ? "\n  and ".$conditions : '')
+        .(join '',map { "\n  and ".$_ } @relations )
+	.(join '',map { "\n  and ".$_ } @subquery_conditions );
+    if ($qnode->{optional} and $cond=~/\S/) {
+      my $parent_pos = $self->{parent_pos}[$pos];
+      if (!defined $parent_pos) {
+	die "Optional node cannot at the same time be the head of a subquery!";
+      }
+      $cond = '($matched_nodes->['.$self->{pos2match_pos}[$parent_pos].']==$node or '.$cond.')'
+    }
+    my $sub = qq(#line 0 "query-node/${match_pos}"\n).
+      'sub { my ($node,$backref)=@_; '."\n  "
+      . $cond
+      . $check_preceding."\n}";
 
     print STDERR "SUB: $sub\n" if $DEBUG;
     return $sub;
@@ -583,10 +602,10 @@ sub test {
       if ($last_dependency>$pos) {
 	my $pos2match_pos = $self->{pos2match_pos};
 	$opts->{recompute_condition}[$pos2match_pos->[$_]]{$pos}=1 for keys %depends_on;
-	my $truth_value = $opts->{negative_formula} ? 0 : 1;
-	$truth_value=!$truth_value if $value->{negate};
+	my $truth_value = !$opts->{negative_formula};
+	$truth_value = !$truth_value if $value->{negate};
 	return ($value->{negate}==1 ? 'not ' : '').
-	  ('( $$query_pos < '.$last_dependency.' ? '.$truth_value.'  : '.$condition.')');
+	  ('( $$query_pos < '.$last_dependency.' ? '.int($truth_value).' : '.$condition.')');
       } else {
 	return ($value->{negate}==1 ? 'not ' : '').$condition;
       }
@@ -657,7 +676,9 @@ sub test {
 	  }
 	}
 	## FIXME: hack: not needed once SQL db is fixed
-	if ($attr =~ /^(?:tag|lemma|form)/) {
+	if ($attr eq 'idx') {
+	  $attr = 'id';
+	} elsif ($attr =~ /^(?:tag|lemma|form)/) {
 	  $attr='m/'.$attr; #FIXME: remove me
 	} else {
 	  $attr =~ s{^tfa/}{}; #FIXME: remove me
@@ -804,22 +825,18 @@ sub test {
 package Tree_Query_Btred::Planner;
 
 our %weight = (
-  'user-defined:eparent' => 5,
-  'user-defined:eparent_of' => 5,
-  'user-defined:echild' => 2,
-  'user-defined:echild_of' => 2,
+  'user-defined:echild' => 5,
+  'user-defined:eparent' => 2,
   'user-defined:a/lex.rf|a/aux.rf' => 2,
   'user-defined:a/lex.rf' => 1,
   'user-defined:a/aux.rf' => 2,
   'user-defined:coref_text' => 1,
   'user-defined:coref_gram' => 1,
   'user-defined:compl' => 1,
-  'ancestor' => 30,
-  'ancestor-of' => 30,
-  'descendant-of' => 8,
-  'child-of' => 0.5,
-  'parent' => 10,
-  'parent-of' => 10,
+  'descendant' => 30,
+  'ancestor' => 8,
+  'parent' => 0.5,
+  'child' => 10,
   'order-precedes' => 1000,
   'order-follows' => 1000,
   'depth-first-precedes' => 100,
@@ -827,17 +844,12 @@ our %weight = (
 );
 
 our %reverse = (
-  'user-defined:eparent' => 'user-defined:echild_of',
-  'user-defined:eparent_of' => 'user-defined:echild_of',
-  'user-defined:echild_of' => 'user-defined:eparent_of',
-  'ancestor' => 'descendant-of',
-  'ancestor-of' => 'descendant-of',
-  'descendant' => 'ancestor-of',
-  'descendant-of' => 'ancestor-of',
-  'child' => 'parent-of',
-  'child-of' => 'parent-of',
-  'parent' => 'child-of',
-  'parent-of' => 'child-of',
+  'user-defined:echild' => 'user-defined:eparent',
+  'user-defined:eparent' => 'user-defined:echild',
+  'descendant' => 'ancestor',
+  'ancestor' => 'descendant',
+  'parent' => 'child',
+  'child' => 'parent',
   'order-precedes' => 'order-follows',
   'order-follows' => 'order-precedes',
   'depth-first-precedes' => 'depth-first-follows',
@@ -919,43 +931,41 @@ our %reverse = (
     require Graph::ChuLiuEdmonds;
     my @edges;
     my @parent;
+    my @parent_edge;
     for my $i (0..$#$query_nodes) {
       my $n = $query_nodes->[$i];
+      print "$i: $n->{name}\n";
       my $parent = $n->parent;
       my $p = $node2pos{$parent};
       $parent[$i]=$p;
       # turn node's relation into parent's extra-relation
       if (defined $p) {
 	my ($rel) = TredMacro::SeqV($n->{relation});
+	$rel||=Fslib::Seq::Element->new('child', Fslib::Container->new());
+	$parent_edge[$i]=$rel;
 	delete $n->{relation};
-	if (!$rel) {
-	  $rel=Fslib::Seq::Element->new('parent-of', Fslib::Container->new(
-	    undef,{target=>$n->{name}}
-	   ));
-	} else {
-	  $rel->value->{target} = $n->{name};
-	  if ($rel->name eq 'parent' or
-		$rel->name eq 'ancestor') {
-	    $rel->set_name($rel->name.'-of');
-	  }
-	  if ($rel->name eq 'user-defined') {
-	    $rel->value->{label}=~s/^(eparent|echild)$/${1}_of/;
-	  }
-	}
+	$rel->value->{target} = $n->{name};
 	TredMacro::AddToSeq($parent,'extra-relations',$rel);
       }
     }
     for my $i (0..$#$query_nodes) {
       my $n = $query_nodes->[$i];
       my $parent = $n->parent;
-      my $p = $node2pos{$parent};
       for my $rel (TredMacro::SeqV($n->attr('extra-relations'))) {
 	next if $rel->value->{negate};
 	my $target = lc( $rel->value->{target} );
 	my $t = $name2pos{$target};
+	my $no_reverse;
+	my $tn = $query_nodes->[$t];
+	if ($n->{optional} or $tn->{optional} or ($tn->parent and $tn->parent->{optional})) {
+	  # only direct edges can go in and out of an optional node
+	  # and only direct edge can go to a child of an optional node
+	  next unless $rel==$parent_edge[$t];
+	  $no_reverse=1;
+	}
 	if (defined $t and $t!=$i) {
 	  push @edges,[$i,$t,$rel,weight($rel)] unless defined($root_pos) and $t==$root_pos;
-	  unless (defined($root_pos) and $i==$root_pos) {
+	  unless ($no_reverse or (defined($root_pos) and $i==$root_pos)) {
 	    my $reversed = reversed_rel($rel);
 	    if (defined $reversed) {
 	      push @edges,[$t,$i,$reversed,weight($reversed)];
@@ -964,14 +974,9 @@ our %reverse = (
 	}
       }
     }
+    undef @parent_edge; # not needed anymore
     my $g=Graph->new(directed=>1);
     $g->add_vertex($_) for 0..$#$query_nodes;
-    #    $g->set_vertex_attribute('0','label','root');
-#ifdef TRED
-    $Graph::ChuLiuEdmonds::DEBUG=1;
-#    use Data::Dumper;
-#    print Dumper(\@edges);
-#endif
     my %edges;
     for my $e (@edges) {
       my $has = $g->has_edge($e->[0],$e->[1]);
@@ -982,15 +987,6 @@ our %reverse = (
 	$g->add_weighted_edge($e->[0],$e->[1], $w);
       }
     }
-#ifdef TRED
-    print "############\n";
-    for my $x ($g->vertices) {
-      for my $e ($g->edges_from($x)) {
-	print #"$x $e->[1] ".
-	  $g->get_edge_weight($e->[0],$e->[1])."\n";# " # ".$g->get_edge_attribute($e->[0],$e->[1],'type')."\n";
-      }
-    }
-#endif
     my $mst=$g->MST_ChuLiuEdmonds();
 #ifdef TRED
     TredMacro::ChangingFile(1);
@@ -1025,12 +1021,6 @@ our %reverse = (
 	delete $qn->{'relation'};
 	delete $rel->value->{target};
 	delete $rel->value->{reversed};
-	my $name=$rel->name;
-	if ($name=~s/^(parent|child|ancestor|descendant)-of$/$1/) {
-	  $rel->set_name($name);
-	} elsif ($rel->name eq 'user-defined') {
-	  $rel->value->{label} =~ s/^(eparent|echild)_of$/$1/;
-	}
 	TredMacro::AddToSeq($qn,'relation',$rel);
       }
     }
@@ -1047,10 +1037,48 @@ our %reverse = (
     croak "usage: $class->new(sub{...})" unless ref($conditions) eq 'CODE';
     return bless [$conditions],$class;
   }
-  sub start ($$) {}
-  sub next ($) {}
-  sub node ($) {}
-  sub reset ($) {}
+  sub conditions { return $_[0]->[CONDITIONS]; }
+  sub start {}
+  sub next {}
+  sub node {}
+  sub reset {}
+}
+#################################################
+{
+  package OptionalIterator;
+  use base qw(Tree_Query::Iterator);
+  use constant CONDITIONS=>0;
+  use constant ITERATOR=>1;
+  use constant NODE=>2;
+  use Carp;
+  sub new ($$) {
+    my ($class,$iterator)=@_;
+    croak "usage: $class->new($iterator)" unless UNIVERSAL::isa($iterator,'Tree_Query::Iterator');
+    return bless [$iterator->conditions,$iterator],$class;
+  }
+  sub start  {
+    my ($self,$parent)=@_;
+    $self->[NODE]=$parent;
+    return $parent ? ($self->[CONDITIONS]->($parent) ? $parent : $self->next) : undef;
+  }
+  sub next {
+    my ($self)=@_;
+    my $n = $self->[NODE];
+    if ($n) {
+      $self->[NODE]=undef;
+      return $self->[ITERATOR]->start($n);
+    }
+    return $self->[ITERATOR]->next;
+  }
+  sub node {
+    my ($self)=@_;
+    return $self->[NODE] || $self->[ITERATOR]->node;
+  }
+  sub reset {
+    my ($self)=@_;
+    $self->[NODE]=undef;
+    $self->[ITERATOR]->reset;
+  }
 }
 #################################################
 {
@@ -1061,7 +1089,7 @@ our %reverse = (
   }
   use constant CONDITIONS=>0;
   use constant NODE=>1;
-  sub start ($$) {
+  sub start  {
     my ($self)=@_;
     # TredMacro::GotoFileNo(0);
     TredMacro::GotoTree(0);
@@ -1069,7 +1097,7 @@ our %reverse = (
     $self->[NODE]=$this;
     return ($this && $self->[CONDITIONS]->($this)) ? $this : ($this && $self->next);
   }
-  sub next ($) {
+  sub next {
     my ($self)=@_;
     my $conditions=$self->[CONDITIONS];
     my $n=$self->[NODE];
@@ -1079,10 +1107,10 @@ our %reverse = (
     }
     return $self->[NODE]=$n;
   }
-  sub node ($) {
+  sub node {
     return $_[0]->[NODE];
   }
-  sub reset ($) {
+  sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
   }
@@ -1096,13 +1124,13 @@ our %reverse = (
   }
   use constant CONDITIONS=>0;
   use constant NODE=>1;
-  sub start ($$) {
+  sub start  {
     my ($self)=@_;
     $this=$root;
     $self->[NODE]=$this;
     return ($this && $self->[CONDITIONS]->($this)) ? $this : ($this && $self->next);
   }
-  sub next ($) {
+  sub next {
     my ($self)=@_;
     my $conditions=$self->[CONDITIONS];
     my $n=$self->[NODE];
@@ -1112,10 +1140,10 @@ our %reverse = (
     }
     return $self->[NODE]=$n;
   }
-  sub node ($) {
+  sub node {
     return $_[0]->[NODE];
   }
-  sub reset ($) {
+  sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
   }
@@ -1126,22 +1154,22 @@ our %reverse = (
   use base qw(Tree_Query::Iterator);
   use constant CONDITIONS=>0;
   use constant NODE=>1;
-  sub start ($$) {
+  sub start  {
     my ($self,$parent)=@_;
     my $n = $self->[NODE]=$parent->firstson;
     return ($n && $self->[CONDITIONS]->($n)) ? $n : ($n && $self->next);
   }
-  sub next ($) {
+  sub next {
     my ($self)=@_;
     my $conditions=$self->[CONDITIONS];
     my $n=$self->[NODE]->rbrother;
     $n=$n->rbrother while ($n and !$conditions->($n));
     return $self->[NODE]=$n;
   }
-  sub node ($) {
+  sub node {
     return $_[0]->[NODE];
   }
-  sub reset ($) {
+  sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
   }
@@ -1154,14 +1182,14 @@ our %reverse = (
   use constant NODE=>1;
   use constant TOP=>2;
 
-  sub start ($$) {
+  sub start  {
     my ($self,$parent)=@_;
     my $n= $parent->firstson;
     $self->[NODE]=$n;
     $self->[TOP]=$parent;
     return ($n && $self->[CONDITIONS]->($n)) ? $n : ($n && $self->next);
   }
-  sub next ($) {
+  sub next {
     my ($self)=@_;
     my $conditions=$self->[CONDITIONS];
     my $top = $self->[TOP];
@@ -1169,10 +1197,10 @@ our %reverse = (
     $n=$n->following($top) while ($n and !$conditions->($n));
     return $self->[NODE]=$n;
   }
-  sub node ($) {
+  sub node {
     return $_[0]->[NODE];
   }
-  sub reset ($) {
+  sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
     $self->[TOP]=undef;
@@ -1190,20 +1218,20 @@ our %reverse = (
   use constant DEPTH=>3;
   use constant NODE=>4;
 
-  sub new ($$) {
+  sub new {
     my ($class,$conditions,$min,$max)=@_;
     croak "usage: $class->new(sub{...})" unless ref($conditions) eq 'CODE';
     $min||=0;
     return bless [$conditions,$min,$max],$class;
   }
-  sub start ($$) {
+  sub start  {
     my ($self,$parent)=@_;
     my $n=$parent->firstson;
     $self->[DEPTH]=1;
     $self->[NODE]=$n;
     return ($self->[MIN]<=1 and $self->[CONDITIONS]->($n)) ? $n : ($n && $self->next);
   }
-  sub next ($) {
+  sub next {
     my ($self)=@_;
     my $min = $self->[MIN];
     my $max = $self->[MAX];
@@ -1238,10 +1266,10 @@ our %reverse = (
     }
     return $self->[NODE]=undef;
   }
-  sub node ($) {
+  sub node {
     return $_[0]->[NODE];
   }
-  sub reset ($) {
+  sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
   }
@@ -1252,18 +1280,18 @@ our %reverse = (
   use base qw(Tree_Query::Iterator);
   use constant CONDITIONS=>0;
   use constant NODE=>1;
-  sub start ($$) {
+  sub start  {
     my ($self,$node)=@_;
     my $n = $node->parent;
     return $self->[NODE] = ($n && $self->[CONDITIONS]->($n)) ? $n : undef;
   }
-  sub next ($) {
+  sub next {
     return $_[0]->[NODE]=undef;
   }
-  sub node ($) {
+  sub node {
     return $_[0]->[NODE];
   }
-  sub reset ($) {
+  sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
   }
@@ -1274,23 +1302,23 @@ our %reverse = (
   use base qw(Tree_Query::Iterator);
   use constant CONDITIONS=>0;
   use constant NODE=>1;
-  sub start ($$) {
+  sub start  {
     my ($self,$node)=@_;
     my $n = $node->parent;
     $self->[NODE]=$n;
     return ($n && $self->[CONDITIONS]->($n)) ? $n : ($n && $self->next);
   }
-  sub next ($) {
+  sub next {
     my ($self)=@_;
     my $conditions=$self->[CONDITIONS];
     my $n=$self->[NODE]->parent;
     $n=$n->parent while ($n and !$conditions->($n));
     return $_[0]->[NODE]=$n;
   }
-  sub node ($) {
+  sub node {
     return $_[0]->[NODE];
   }
-  sub reset ($) {
+  sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
   }
@@ -1305,13 +1333,13 @@ our %reverse = (
   use constant MAX=>2;
   use constant NODE=>3;
   use constant DEPTH=>4;
-  sub new ($$) {
+  sub new  {
     my ($class,$conditions,$min,$max)=@_;
     croak "usage: $class->new(sub{...})" unless ref($conditions) eq 'CODE';
     $min||=0;
     return bless [$conditions,$min,$max],$class;
   }
-  sub start ($$) {
+  sub start  {
     my ($self,$node)=@_;
     my $min = $self->{MIN}||1;
     my $max = $self->{MAX};
@@ -1322,7 +1350,7 @@ our %reverse = (
     $self->[DEPTH]=$depth;
     return ($node && $self->[CONDITIONS]->($node)) ? $node : ($node && $self->next);
   }
-  sub next ($) {
+  sub next {
     my ($self)=@_;
     my $conditions=$self->[CONDITIONS];
     my $max = $self->{MAX};
@@ -1339,10 +1367,10 @@ our %reverse = (
     }
     return $_[0]->[NODE]=$n;
   }
-  sub node ($) {
+  sub node {
     return $_[0]->[NODE];
   }
-  sub reset ($) {
+  sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
   }
@@ -1354,7 +1382,7 @@ our %reverse = (
   use base qw(Tree_Query::Iterator);
   use constant CONDITIONS=>0;
   use constant NODE=>1;
-  sub start ($$) {
+  sub start  {
     my ($self,$node)=@_;
     my $lex_rf = $node->attr('a/lex.rf');
     my $refnode;
@@ -1364,13 +1392,13 @@ our %reverse = (
     }
     return $self->[NODE]= $self->[CONDITIONS]->($refnode) ? $refnode : undef;
   }
-  sub next ($) {
+  sub next {
     return $_[0]->[NODE]=undef;
   }
-  sub node ($) {
+  sub node {
     return $_[0]->[NODE];
   }
-  sub reset ($) {
+  sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
   }
@@ -1381,13 +1409,13 @@ our %reverse = (
   use base qw(Tree_Query::Iterator);
   use constant CONDITIONS=>0;
   use constant NODES=>1;
-  sub start ($$) {
+  sub start  {
     my ($self,$node)=@_;
     $self->[NODES] = $self->get_node_list($node);
     my $n = $self->[NODES]->[0];
     return $self->[CONDITIONS]->($n) ? $n : ($n && $self->next);
   }
-  sub next ($) {
+  sub next {
     my ($self)=@_;
     my $nodes = $self->[NODES];
     my $conditions=$self->[CONDITIONS];
@@ -1397,12 +1425,12 @@ our %reverse = (
     }
     return $nodes->[0];
   }
-  sub node ($) {
+  sub node {
     my ($self)=@_;
     return $self->[NODES]->[0];
   }
 
-  sub reset ($) {
+  sub reset {
     my ($self)=@_;
     $self->[NODES]=undef;
   }
@@ -1415,7 +1443,7 @@ our %reverse = (
 {
   package AAuxRFIterator;
   use base qw(SimpleListIterator);
-  sub get_node_list ($$) {
+  sub get_node_list  {
     my ($self,$node)=@_;
     return [grep defined, map {
       my $id = $_; $id=~s/^.*?#//;
@@ -1427,7 +1455,7 @@ our %reverse = (
 {
   package ALexOrAuxRFIterator;
   use base qw(SimpleListIterator);
-  sub get_node_list ($$) {
+  sub get_node_list  {
     my ($self,$node)=@_;
     return [PML_T::GetANodes($node)];
   }
@@ -1436,7 +1464,7 @@ our %reverse = (
 {
   package CorefTextRFIterator;
   use base qw(SimpleListIterator);
-  sub get_node_list ($$) {
+  sub get_node_list  {
     my ($self,$node)=@_;
     return [grep defined, map {
       PML::GetNodeByID($_)
@@ -1447,7 +1475,7 @@ our %reverse = (
 {
   package CorefGramRFIterator;
   use base qw(SimpleListIterator);
-  sub get_node_list ($$) {
+  sub get_node_list  {
     my ($self,$node)=@_;
     return [grep defined, map {
       PML::GetNodeByID($_)
@@ -1458,7 +1486,7 @@ our %reverse = (
 {
   package ComplRFIterator;
   use base qw(SimpleListIterator);
-  sub get_node_list ($$) {
+  sub get_node_list  {
     my ($self,$node)=@_;
     return [grep defined, map {
       PML::GetNodeByID($_)
@@ -1469,7 +1497,7 @@ our %reverse = (
 {
   package EParentIterator;
   use base qw(SimpleListIterator);
-  sub get_node_list ($$) {
+  sub get_node_list  {
     my ($self,$node)=@_;
     my $type = $node->type->get_base_type_name;
     return [$type eq 't-node.type' ?
@@ -1484,7 +1512,7 @@ our %reverse = (
 {
   package EChildIterator;
   use base qw(SimpleListIterator);
-  sub get_node_list ($$) {
+  sub get_node_list  {
     my ($self,$node)=@_;
     my $type = $node->type->get_base_type_name;
     return [$type eq 't-node.type' ?
