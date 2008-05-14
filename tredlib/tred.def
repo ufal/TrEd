@@ -1984,24 +1984,27 @@ See the description in the L<Printing trees> section.
 =cut
 
 
-=item C<Redraw($win?)>
+=item C<Redraw($win?.$ignoreThis)>
 
 Force TrEd to immediately redraw the current (or given) window. Hence
 TrEd redraws the tree right after an interactively invoked macro
 finishes, explicit calls to Redraw macro are needed rather rearly (for
-example from a hook).
+example from a hook). If the flag $ignoreThis is used, then current
+value of $this variable will not be used to determine the current node
+of the window (i.e. $win->{currentNode}).
 
 =cut
 
 sub Redraw {
   _croak("Cannot call Redraw without a GUI\n") unless GUI();
   my $win = shift() || $grp;
+  my $ignoreThis = shift;
   my $ie=$main::insideEval;
   $main::insideEval=0;
-  &main::setCurrent($win,$this) if ($this);
+  &main::setCurrent($win,$this) if (!$ignoreThis and $this);
   &main::get_nodes_win($win);
   &main::redraw_win($win);
-  &main::centerTo($win,$this) if ($this);
+  &main::centerTo($win,$this) if (!$ignoreThis and $this);
   $main::insideEval=$ie;
 }
 
