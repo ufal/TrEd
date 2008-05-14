@@ -214,6 +214,11 @@ EOF
   die $@ if $@;
 }
 
+sub RedrawAndUpdateThis {
+  Redraw($grp,1);
+  $Redraw='none';
+  $this=$grp->{currentNode};
+}
 
 #bind GotoTreeAsk to Alt+g menu Go to...
 sub GotoTreeAsk {
@@ -230,6 +235,7 @@ sub GotoTreeAsk {
   } else {
     GotoTree($to) if defined $to;
   }
+  RedrawAndUpdateThis();
   ChangingFile(0);
 }
 
@@ -239,6 +245,7 @@ sub GotoFileAsk {
   return unless $to=~/^\s*\d+\s*$/;
   if (GotoFileNo($to-1)) {
     $FileNotSaved = GetFileSaveStatus();
+    RedrawAndUpdateThis();
   } else {
     ChangingFile(0);
   }
@@ -259,6 +266,7 @@ sub TieGotoTreeAsk {
   } else {
     TieGotoTree($to) if defined $to;
   }
+  RedrawAndUpdateThis();
   ChangingFile(0);
 }
 
@@ -277,12 +285,14 @@ sub PerlSearchNext {
 sub TieLastTree {
   ChangingFile(0);
   TieGotoTree($grp->{FSFile}->lastTreeNo+1);
+  RedrawAndUpdateThis();
 }
 
 #bind TieFirstTree to Ctrl+Home menu Go to first tree (tied)
 sub TieFirstTree {
   ChangingFile(0);
   TieGotoTree(1);
+  RedrawAndUpdateThis();
 }
 
 
@@ -291,6 +301,7 @@ sub TieFirstTree {
 sub LastTree {
   ChangingFile(0);
   GotoTree($grp->{FSFile}->lastTreeNo+1);
+  RedrawAndUpdateThis();
 }
 
 #bind FirstTree to Home menu Go to first tree
@@ -298,6 +309,7 @@ sub LastTree {
 sub FirstTree {
   ChangingFile(0);
   GotoTree(1);
+  RedrawAndUpdateThis();
 }
 
 #bind GotoNextNodeLin to Ctrl+greater menu Next node linearly
@@ -408,11 +420,13 @@ sub critical_node_menu_items {
 }
 
 sub enable_node_menu_items {
+  return unless $grp == $grp->{framegroup}{focusedWindow}; # we refuse to reconfigure this from non-focused window
   my $items = ref($_[0]) ? $_[0] : critical_node_menu_items();
   configure_node_menu_items($items,
 			    [-state => 'normal']);
 }
 sub disable_node_menu_items {
+  return unless $grp == $grp->{framegroup}{focusedWindow}; # we refuse to reconfigure this from non-focused window
   my $items = ref($_[0]) ? $_[0] : critical_node_menu_items();
   configure_node_menu_items($items,
 			    [-state => 'disabled']);
