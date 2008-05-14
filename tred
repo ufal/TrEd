@@ -10183,7 +10183,11 @@ sub ensureCurrentIsDisplayed {
     $node = $node->parent;
   }
   if (!$node) {
-    $node = $win->{Nodes}->[0];
+    if ($win->treeView->get_reverseNodeOrder) {
+      $node = $win->{Nodes}->[-1];
+    } else {
+      $node = $win->{Nodes}->[0];
+    }
   }
   if ($node and $node != $win->{currentNode}) {
     setCurrent($win,$node);
