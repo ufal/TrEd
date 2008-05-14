@@ -145,8 +145,8 @@ node: <?length($${node-type}) ? $${node-type}.': ' : '' ?>#{darkgreen}<?
       $_->{max}
     } else { $_->{min}.'-'.$_->{max} }
   } AltV($this->{occurrences});
-  length $occ ? ('('.$occ.')x')  : "" 
-?><? $${optional} ? '?'  : q()
+  length $occ ? ('${occurrences=('.$occ.')x}')  : ""
+?><? $${optional} ? '${optional=?}'  : q()
 ?>#{black}<? Tree_Query::serialize_conditions_as_stylesheet($this) ?>
 node: #{darkblue}${name}#{brown}<? my$d=$${description}; $d=~s{^User .*?:}{}; $d ?>
 style: #{Line-tag:relation}<? 
@@ -155,7 +155,9 @@ style: #{Line-tag:relation}<?
     $name eq 'user-defined' ? $_->value->{label} : $name
   } SeqV($this->{relation});
   my $color = Tree_Query::arrow_color($rel);
-  defined($color) ? "#{Line-fill:$color}" : ()
+  my $arrow = Tree_Query::arrow($rel);
+  (defined($arrow) ? "#{Line-arrow:$arrow}" : '').
+  (defined($color) ? "#{Line-fill:$color}" : '')
 ?>
 style:<?
    $this->parent 
@@ -164,9 +166,8 @@ style:<?
       : '#{Oval-fill:yellow}' )
    : '#{Oval-fill:gray}' ?>
 style:<?
-   my $occ = join '|', map { $_->{min}.'-'.$_->{max} } AltV($this->{occurrences})
-   length $occ ? '#{Node-addwidth:0}#{Node-addheight:0}' 
-     : q() ?>
+   my $occ = join '', map { $_->{min}.$_->{max} } AltV($this->{occurrences});
+   length $occ ? '#{Node-addwidth:0}#{Node-addheight:0}' : q() ?>
 EOF
   }
 }
@@ -212,20 +213,34 @@ my %color = (
   'coref_text' => '#4C509F',
   'coref_gram' => '#C05633',
   'compl' => '#629F52',
-  'ancestor' => 'blue',
-  'ancestor-of' => 'blue',
-  'descendant-of' => 'lightblue',
-  'parent-of' => 'black',
-  'parent' => 'black',
-  'child-of' => 'lightgray',
+  'descendant' => 'blue',
+  'ancestor' => 'lightblue',
+  'child' => 'black',
+  'parent' => 'lightgray',
+  'echild' => 'darkgreen',
   'eparent' => 'green',
-  'eparent-of' => 'green',
-  'echild-of' => 'darkgreen',
-
+);
+my %arrow = (
+  'a/lex.rf' => 'first',
+  'a/aux.rf' => 'first',
+  'a/lex.rf|a/aux.rf' => 'first',
+  'coref_text' => 'first',
+  'coref_gram' => 'first',
+  'compl' => 'first',
+  'descendant' => 'first',
+  'ancestor' => 'first',
+  'child' => 'first',
+  'parent' => 'first',
+  'echild' => 'first',
+  'eparent' => 'first',
 );
 sub arrow_color {
   my $rel = shift;
   return $color{$rel};
+}
+sub arrow {
+  my $rel = shift;
+  return $arrow{$rel};
 }
 
 sub node_style_hook {
@@ -898,18 +913,18 @@ sub relation {
   my ($n,$opts)=@_;
   my ($id,$parent_id)=@$opts{qw(id parent_id)};
   my ($rel) = SeqV($n->{relation});
-  my $name = $rel ? $rel->name : 'parent';
+  my $name = $rel ? $rel->name : 'child';
   my $condition;
-  if ($name eq 'parent') {
+  if ($name eq 'child') {
     $condition= qq{$id."parent_idx"=$parent_id."idx"};
-  } elsif ($name eq 'child') {
+  } elsif ($name eq 'parent') {
     $condition= qq{$parent_id."parent_idx"=$id."idx"};
-  } elsif ($name eq 'ancestor') {
-    $condition= extra_relation($parent_id,$rel,$id,$opts);
   } elsif ($name eq 'descendant') {
     $condition= extra_relation($parent_id,$rel,$id,$opts);
+  } elsif ($name eq 'ancestor') {
+    $condition= extra_relation($parent_id,$rel,$id,$opts);
   } elsif ($name eq 'user-defined') {
-    $condition= user_defined_relation($id,$rel->value,$parent_id,$opts);
+    $condition= user_defined_relation($parent_id,$rel->value,$id,$opts);
   }
   if ($n->{optional}) {
     # identify with parent
@@ -924,11 +939,11 @@ sub extra_relation {
   my ($id,$rel,$target,$opts)=@_;
   my $relation = $rel->name;
   my $params = $rel->value;
-  if ($relation eq 'descendant-of' or $relation eq 'descendant') {
-    $relation = 'ancestor-of';
+  if ($relation eq 'ancestor') {
+    $relation = 'descendant';
     ($id,$target)=($target,$id);
-  } elsif ($relation eq 'child-of' or $relation eq 'child') {
-    $relation = 'parent-of';
+  } elsif ($relation eq 'parent') {
+    $relation = 'child';
     ($id,$target)=($target,$id);
   } elsif ($relation eq 'order-follows') {
     $relation = 'order-precedes';
@@ -940,7 +955,7 @@ sub extra_relation {
 
   if ($relation eq 'user-defined') {
     return user_defined_relation($id,$params,$target,{%$opts,extra_relation=>1});
-  } elsif ($relation eq 'ancestor' or $relation eq 'ancestor-of' ) {
+  } elsif ($relation eq 'descendant') {
     my $cond = qq{$id."root_idx"=$target."root_idx" AND $id."idx"!=$target."idx" AND }.
       qq{$target."idx" BETWEEN $id."idx" AND $id."r"};
     my $min = int($params->{min_length});
@@ -956,7 +971,7 @@ sub extra_relation {
       $cond=qq{NOT($cond)};
     }
     return $cond;
-  } elsif ($relation eq 'parent-of') {
+  } elsif ($relation eq 'child') {
     if ($params->{negate}) {
       return qq{$id."idx"!=$target."parent_idx"};
     } else {
@@ -964,22 +979,6 @@ sub extra_relation {
     }
   } elsif ($relation eq 'depth-first-precedes') {
     return qq{$id."idx"<$target."idx"};
-  } elsif ($relation eq 'eparent_of') {
-    return qq{$id."root_idx"=$target."root_idx" AND }.
-      serialize_expression({
-	id=>$id,
-	type=>$opts->{type},
-	join=>$opts->{join},
-	expression => qq{"eparents/eparent_idx"}
-       }).qq{=$target."idx" };
-  } elsif ($relation eq 'echild_of') {
-    return qq{$id."root_idx"=$target."root_idx" AND }.
-      serialize_expression({
-	id=>$id,
-	type=>$opts->{type},
-	join=>$opts->{join},
-	expression => qq{$target."eparents/eparent_idx"}
-       }).qq{=$id."idx" };
   } elsif ($relation eq 'order-precedes') {
     my $order; # FIXME: get the ordering attribute from the database
     if ($opts->{type} eq 'a') {
@@ -1002,10 +1001,9 @@ sub extra_relation {
 }
 
 sub user_defined_relation {
-  my ($id,$rel,$target,$opts)=@_;
-  my $relation=$rel->{label};
+  my ($id,$params,$target,$opts)=@_;
+  my $relation=$params->{label};
   my $type = $opts->{type};
-  my $params = $rel->value;
   my $cond;
   if ($relation eq 'eparent') {
     $cond =  qq{$id."root_idx"=$target."root_idx" AND }.
@@ -1024,16 +1022,8 @@ sub user_defined_relation {
 	expression => qq{"eparents/eparent_idx"}
        }).qq{=$id."idx" };
   } elsif ($relation eq 'a/lex.rf') {
-    unless ($opts->{extra_relation}) {
-      # reverse
-      ($id,$target)=($target,$id);
-    }
     $cond =  qq{$id."a_lex_idx"=$target."idx"}
   } elsif ($relation eq 'a/aux.rf') {
-    unless ($opts->{extra_relation}) {
-      # reverse
-      ($id,$target,$type)=($target,$id,$opts->{parent_type});
-    }
     $cond =  serialize_expression({
       id=>$id,
       type=>$type,
@@ -1041,10 +1031,6 @@ sub user_defined_relation {
       expression => qq{"a_aux/a_idx"},
     }).qq(=$target."idx");
   } elsif ($relation eq 'a/lex.rf|a/aux.rf') {
-    unless ($opts->{extra_relation}) {
-      # reverse
-      ($id,$target,$type)=($target,$id,$opts->{parent_type});
-    }
     $cond = 
       qq{($id."a_lex_idx"=$target."idx" OR }.
       serialize_expression({
@@ -1078,7 +1064,6 @@ sub user_defined_relation {
       expression => qq{"compl/compl_idx"}
      }).qq{=$target."idx"};
   }
-
   if ($params->{negate}) {
     $cond=qq{NOT($cond)};
   }
@@ -1482,9 +1467,9 @@ sub __test_optional_chain {
     $son
     and (!$son->rbrother)
     and ($son->children<=1)
-    and (!$son->{relation} or $son->{relation}->name_at(0) eq 'parent')
+    and (!$son->{relation} or $son->{relation}->name_at(0) eq 'child')
     and !_is_a_subquery($node)
-    and (!$node->{relation} or $node->{relation}->name_at(0) eq 'parent')
+    and (!$node->{relation} or $node->{relation}->name_at(0) eq 'child')
   )
   ? 1 : 0;
 }
@@ -1508,10 +1493,10 @@ sub reduce_optional_node_chain {
     my $son = $node->firstson;
     CutPasteAfter($last,$node);
     DeleteSubtree($son);
-    AddOrRemoveRelations($node,$last,['ancestor-of'],{
+    AddOrRemoveRelations($node,$last,['descendant'],{
       -add_only=>1
     });
-    AddOrRemoveRelations($node,undef,['ancestor'],{
+    AddOrRemoveRelations($node,undef,['descendant'],{
       -attribute=>'relation',
       -add_only=>0
     });
@@ -1520,7 +1505,7 @@ sub reduce_optional_node_chain {
     });
     $node->{optional}=0;
     $node->set_attr('conditions/negate',!$node->attr('conditions/negate'));
-    my ($rel) = AddOrRemoveRelations($last,undef,['ancestor'],{
+    my ($rel) = AddOrRemoveRelations($last,undef,['descendant'],{
       -attribute=>'relation',
       -add_only=>0,
     });
