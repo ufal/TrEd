@@ -282,6 +282,8 @@ sub node_release_hook {
       } else {
 	$name
       }
+    } grep {
+      $_->value->{target} eq $target->{name}
     } SeqV($node->attr('extra-relations'));
     ListQuery('Select treebase connections to add or preserve',
 	      'multiple',
@@ -952,11 +954,11 @@ sub extra_relation {
     $relation = 'depth-first-precedes';
     ($id,$target)=($target,$id);
   }
-
+  my $cond;
   if ($relation eq 'user-defined') {
     return user_defined_relation($id,$params,$target,{%$opts,extra_relation=>1});
   } elsif ($relation eq 'descendant') {
-    my $cond = qq{$id."root_idx"=$target."root_idx" AND $id."idx"!=$target."idx" AND }.
+    $cond = qq{$id."root_idx"=$target."root_idx" AND $id."idx"!=$target."idx" AND }.
       qq{$target."idx" BETWEEN $id."idx" AND $id."r"};
     my $min = int($params->{min_length});
     my $max = int($params->{max_length});
@@ -967,18 +969,10 @@ sub extra_relation {
     } elsif ($max>0) {
       $cond.=qq{ AND $target."lvl"-$id."lvl"<=$max}
     }
-    if ($params->{negate}) {
-      $cond=qq{NOT($cond)};
-    }
-    return $cond;
   } elsif ($relation eq 'child') {
-    if ($params->{negate}) {
-      return qq{$id."idx"!=$target."parent_idx"};
-    } else {
-      return qq{$id."idx"=$target."parent_idx"};
-    }
+    $cond = qq{$id."idx"=$target."parent_idx"};
   } elsif ($relation eq 'depth-first-precedes') {
-    return qq{$id."idx"<$target."idx"};
+    $cond = qq{$id."idx"<$target."idx"};
   } elsif ($relation eq 'order-precedes') {
     my $order; # FIXME: get the ordering attribute from the database
     if ($opts->{type} eq 'a') {
@@ -986,18 +980,29 @@ sub extra_relation {
     } else {
       $order = q("tfa/deepord");
     }
-    return serialize_expression({
-      id=>$id,
-      type=>$opts->{type},
-      join=>$opts->{join},
-      expression => $order
-    }).qq(<).serialize_expression({
-      id=>$target,
-      type=>$opts->{type},
-      join=>$opts->{join},
-      expression => qq{$target.$order},
-    });
+    $cond =
+      serialize_test(
+	{
+	  id=>$id,
+	  type=>$opts->{type},
+	  join=>$opts->{join},
+	  expression => $order,
+	},
+	{
+	  id=>$target,
+	  type=>$opts->{type},
+	  join=>$opts->{join},
+	  expression => qq{$target.$order},
+	},
+	'<',0,$opts # there should be no ambiguity here, treat expressoins as positive
+       );
+  } else {
+    die "Unsupported relation: $relation between nodes $id and $target\n";
   }
+  if ($params->{negate}) {
+    $cond=qq{NOT($cond)};
+  }
+  return $cond;
 }
 
 sub user_defined_relation {
@@ -1006,63 +1011,98 @@ sub user_defined_relation {
   my $type = $opts->{type};
   my $cond;
   if ($relation eq 'eparent') {
-    $cond =  qq{$id."root_idx"=$target."root_idx" AND }.
-      serialize_expression({
-	id=>$id,
-	type=>$type,
-	join=>$opts->{join},
-	expression => qq{"eparents/eparent_idx"}
-       }).qq{=$target."idx" };
+    $cond = qq{$id."root_idx"=$target."root_idx" AND }.
+      serialize_test(
+	{
+	  id=>$id,
+	  type=>$type,
+	  join=>$opts->{join},
+	  expression => qq{"eparents/eparent_idx"},
+	  negative=> $params->{negate},
+	},
+	qq{$target."idx"},
+	q(=),0,$opts,
+       );
   } elsif ($relation eq 'echild') {
-    $cond =  qq{$id."root_idx"=$target."root_idx" AND }.
-      serialize_expression({
-	id=>$target,
-	type=>$type,
-	join=>$opts->{join},
-	expression => qq{"eparents/eparent_idx"}
-       }).qq{=$id."idx" };
+    $cond = qq{$id."root_idx"=$target."root_idx" AND }.
+      serialize_test(
+	{
+	  id=>$target,
+	  type=>$type,
+	  join=>$opts->{join},
+	  expression => qq{"eparents/eparent_idx"},
+	  negative=>$params->{negate},
+	},
+	qq{$id."idx"},
+	q(=), 0, $opts,
+       )
   } elsif ($relation eq 'a/lex.rf') {
     $cond =  qq{$id."a_lex_idx"=$target."idx"}
   } elsif ($relation eq 'a/aux.rf') {
-    $cond =  serialize_expression({
-      id=>$id,
-      type=>$type,
-      join=>$opts->{join},
-      expression => qq{"a_aux/a_idx"},
-    }).qq(=$target."idx");
+    $cond = serialize_test(
+      {
+	id=>$id,
+	type=>$type,
+	join=>$opts->{join},
+	expression => qq{"a_aux/a_idx"},
+	negative=>$params->{negate},
+      },
+      qq{$target."idx"},
+      qq(=),0,$opts,
+     )
   } elsif ($relation eq 'a/lex.rf|a/aux.rf') {
-    $cond = 
+    $cond =
       qq{($id."a_lex_idx"=$target."idx" OR }.
-      serialize_expression({
-      id=>$id,
-      type=>$type,
-      join=>$opts->{join},
-      expression => qq{"a_aux/a_idx"},
-    }).qq{=$target."idx")};
+	serialize_test(
+	  {
+	    id=>$id,
+	    type=>$type,
+	    join=>$opts->{join},
+	    expression => qq{"a_aux/a_idx"},
+	    negative=>$params->{negate},
+	  },
+	  qq{$target."idx"},
+	  qq(=),0,$opts,
+	 ).')';
   } elsif ($relation eq 'coref_gram') {
     $cond = 
-      serialize_expression({
-      id=>$id,
-      type=>$type,
-      join=>$opts->{join},
-      expression => qq{"coref_gram/corg_idx"}
-     }).qq{=$target."idx"};
+      serialize_test(
+	{
+	  id=>$id,
+	  type=>$type,
+	  join=>$opts->{join},
+	  expression => qq{"coref_gram/corg_idx"},
+	  negative=>$params->{negate},
+	},
+	qq{$target."idx"},
+	q(=),0,$opts,
+       );
   } elsif ($relation eq 'coref_text') {
     $cond = 
-      serialize_expression({
-      id=>$id,
-      type=>$type,
-      join=>$opts->{join},
-      expression => qq{"coref_text/cort_idx"}
-     }).qq{=$target."idx"};
+      serialize_test(
+	{
+	  id=>$id,
+	  type=>$type,
+	  join=>$opts->{join},
+	  expression => qq{"coref_text/cort_idx"},
+	  negative=>$params->{negate},
+	},
+	qq{$target."idx"},
+	q(=),0,$opts,
+       );
   } elsif ($relation eq 'compl') {
     $cond = 
-      serialize_expression({
-      id=>$id,
-      type=>$type,
-      join=>$opts->{join},
-      expression => qq{"compl/compl_idx"}
-     }).qq{=$target."idx"};
+      serialize_test(
+	{
+	  id=>$id,
+	  type=>$type,
+	  join=>$opts->{join},
+	  expression => qq{"compl/compl_idx"},
+	  negative=>$params->{negate},
+	},
+	qq{$target."idx"},
+	q(=),0,$opts,
+       );
   }
   if ($params->{negate}) {
     $cond=qq{NOT($cond)};
@@ -1192,8 +1232,8 @@ sub make_sql {
       push @sql, ($i++)==0 ? ["\nFROM\n  ",'space'] : [",\n  ",'space'];
       push @sql, ["$tab $name",$node];
       if ($extra_joins->{$name}) {
-	for my $join_as (sort { length($a)<=>length($b) } keys %{$extra_joins->{$name}}) {
-	  my ($join_tab,$join_on,$join_type)=@{$extra_joins->{$name}{$join_as}};
+	for my $join_spec (@{$extra_joins->{$name}}) {
+	  my ($join_as,$join_tab,$join_on,$join_type)=@{$join_spec};
 	  $join_type||='';
 	  push @sql, [' ','space'], [qq($join_type JOIN $join_tab $join_as ON $join_on),$node]
 	}
@@ -1231,6 +1271,12 @@ sub serialize_expression {
     s/"_[#]sons"/"chld"/g;
     s/"_depth"/"lvl"/g;
   }
+  my ($extra_joins,$wrap);
+  if ($opts->{negative}) {
+    $extra_joins={};
+  } else {
+    $extra_joins = $opts->{join};
+  }
   $exp=~s{(?:(\w+)\.)?"([^"]+)"}{
     my $id = defined($1) ? lc($1) : $opts->{id};
     my @ref = split m{/}, $2;
@@ -1239,30 +1285,80 @@ sub serialize_expression {
     my $node_id = $id;
     for my $tab (@ref) {
       my $prev = $id;
-      $id.="_$tab";
+      $extra_joins->{$node_id}||=[];
+      my $i = @{$extra_joins->{$node_id}};
+      $id.="_${tab}_$i";
       $table.="_$tab";
-      $opts->{join}{$node_id}{$id}=[$table => qq($id."idx" = $prev."idx"), 'LEFT'];# should be qq($prev."$tab")
+      push @{$extra_joins->{$node_id}},[$id,$table, qq($id."idx" = $prev."idx"), 'LEFT']; # should be qq($prev."$tab")
     }
     qq($id."$column");
   }ge;
-  return $exp;
+  if ($opts->{negative}) {
+    my @from;
+    my @where;
+    for my $name (keys (%$extra_joins)) {
+      if ($extra_joins->{$name}) {
+	my $table;
+	for my $join_spec (@{$extra_joins->{$name}}) {
+	  my ($join_as,$join_tab,$join_on,$join_type)=@{$join_spec};
+	  $join_type||='';
+	  if (defined $table) {
+	    $table.=qq( $join_type JOIN $join_tab $join_as ON $join_on);
+	  } else {
+	    $table=qq($join_tab $join_as);
+	    push @where, $join_on;
+	  }
+	}
+	push @from,$table;
+      }
+    }
+    if (@from) {
+      $wrap='EXISTS (SELECT *'
+	.' FROM '.join(', ',@from)
+	.' WHERE '.join(' AND ',@where);
+      $wrap=~s/%/%%/g;
+      $wrap.=' AND ' if @where;
+      $wrap.='%s )';
+    }
+  }
+  return ($exp,$wrap);
+}
+
+sub serialize_test {
+  my ($L,$R,$operator,$negate,$opts)=@_;
+  my ($left,$wrap_left) = ref($L) ? serialize_expression($L) : ($L);
+  my ($right,$wrap_right) = ref($R) ? serialize_expression($R) : ($R);
+  my $res;
+  if ($operator eq '~' and $opts->{syntax} eq 'Oracle') {
+    $res = qq{REGEXP_LIKE($left,$right)};
+  } elsif ($operator eq '~*' and $opts->{syntax} eq 'Oracle') {
+    $res = qq{REGEXP_LIKE($left,$right,'i')};
+  } else {
+    $res = $left.' '.uc($operator).' '.$right;
+  }
+  if (defined $wrap_right) {
+    $res=sprintf($wrap_right,$res);
+  }
+  if (defined $wrap_left) {
+    $res=sprintf($wrap_left,$res);
+  }
+  if ($negate) {
+    $res='NOT '.$res;
+  }
+  return $res;
 }
 
 sub serialize_element {
   my ($opts)=@_;
   my ($name,$value,$as_id,$parent_as_id)=map {$opts->{$_}} qw(name condition id parent_id);
+  my $negative = $opts->{negative};
+  $negative!=$negative if ref($value) and $value->{negate};
   if ($name eq 'test') {
-    my $left = serialize_expression({%$opts,expression=>$value->{a}});
-    my $right = serialize_expression({%$opts,expression=>$value->{b}});
-    my $operator = $value->{operator};
-    if ($operator eq '~' and $opts->{syntax} eq 'Oracle') {
-      return ($value->{negate}==1 ? 'NOT ' : '').qq{REGEXP_LIKE($left,$right)};
-    } elsif ($operator eq '~*' and $opts->{syntax} eq 'Oracle') {
-      return ($value->{negate}==1 ? 'NOT ' : '').qq{REGEXP_LIKE($left,$right,'i')};
-    } else {
-      return ($value->{negate}==1 ? 'NOT ' : '').
-	($left.' '.uc($operator).' '.$right);
-    }
+    serialize_test({%$opts,expression=>$value->{a},negative=>$negative},
+		   {%$opts,expression=>$value->{b},negative=>$negative},
+		   $value->{operator},
+		   $value->{negate},
+		   $opts);
   } elsif ($name =~ /^(?:and|or)$/) {
    my $seq = $value->{'#content'};
    return () unless (
@@ -1279,6 +1375,7 @@ sub serialize_element {
 			    condition => $_->value,
 			    id => $as_id,
 			    parent_id => $parent_as_id,
+			    negative=>$negative
 			   }) } $seq->elements);
    return () unless length $condition;
    return ($value->{negate} ? "NOT ($condition)" :

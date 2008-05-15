@@ -38,31 +38,55 @@ TODO:
 - planner weights based on attribute tests
 (favor less specific nodes to become leafs)
 
-- optional nodes
+- [X] optional nodes
 - [X] lengths of ancestor/descendant axes
 - [X] plan subqueries
-- inequalities and in for occurrences
+- [X] inequalities for occurrences (implemented using alternatives of min/max)
 
-- definitions: the user draws a named query with one or two specified
-nodes (e.g. START,END). The query can then be used as an edge label or
-a node-test.
+- definitions: the user draws a named query with zero or one specified
+node (e.g. TARGET). The definition can be then used as a user-defined
+relation which identifies the root node of the definition with the
+query node in which the relation arrow starts and the TARGET node with
+the query node in which the relation arrow ends. If no TARGET is used,
+the definition can be used as a predicate (meaning: this node also
+matches the root of the defined query).
 
-- relational predicates: so that one can use them in boolean
+- define text-format (syntax) for tree queries (possibly inspire in
+  TigerSearch and TGrep, but use relation names instead of cryptic symbols)
+
+       $n1 has is_member=1 and nodetype!='coap'
+          and (gram/sempos!='v'
+            or has child [is_member=1 and nodetype!='coap']) 
+          and
+            has child $2;
+       $n2 has is_member!=1;
+       $n2 has gram/(sempos='v' and number ~ 'sg') and 0 x child [is_member=1])
+
+       $n1 has child $n2
+       $n2 has not eparent $n1
+       ### or just: $n1 child $n2
+       $n1 order-precedes $n2
+
+- easier query editing:
+  - edit conditions in text editor (with highlighting)
+    (or graphically in TrEd? - in that way we could add and/or nodes that we could
+     also use for subqueries and conditional extra-relations)
+  - this latter could be implemented simply using roles and get_nodelist_hook;-)
+
+- relational predicates that one can use in boolean
   combinations like (child(ref0) or order-precedes(ref1))
 
 - define exact syntax for a term in the tree-query
 
-
 - query options: one match per tree, output format
-
 
 - Database:
 -   use tables for m/, m/w/, remove tables for tfa/,
 -   maybe use a separate table for every attribute?
 -   unify the PMLSchema to DB schema translation
 -   use test-data only
-- fix negations of mutli-match comparisons
-- make a/foo=1 and a/bar=2 independent searches in the list/alt a/
+- [X] fix negations of mutli-match comparisons
+- [X] make a/foo=1 and a/bar=2 independent searches in the list/alt a/
 - implement some form of (exists a (foo=1 and bar=2))
   or (forall a (foo=1 and bar=2))
  to be able to fix a/ and
@@ -105,16 +129,16 @@ sub start_hook {
 sub test_btred {
   my $match;
   while ($match = $evaluator->find_next_match()) {
-    print join(",",map { $_->{id}.": ".$_->{functor} } @$match)."\n";
+    print join(" ",map { $_->{id} } @$match)."\n";
   }
   $evaluator->reset(); # prepare for next file
 }
 sub test_btred_count {
   my $limit = @_ ? int(shift()) : 100;
   my $count=0;
-  $count++ while $evaluator->find_next_match({boolean => 1}) and $count<=$limit;
+  $count++ while $evaluator->find_next_match({boolean => 1}) and (!$limit or $count<=$limit);
   $evaluator->reset(); # prepare for next file
-  if ($count>$limit) {
+  if ($limit and $count>$limit) {
     print ">$count matches\n";
   } else {
     print "$count match(es)\n";
@@ -527,7 +551,6 @@ sub test {
       } else {
 	push @subquery_conditions,$sq_condition;
       }
-
     }
 
     print STDERR "CONDITIONS[$pos/$match_pos]: $conditions\n" if $DEBUG;
