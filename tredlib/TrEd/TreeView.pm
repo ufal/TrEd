@@ -2491,9 +2491,10 @@ sub prepare_raw_text_field {
   if ($atr=~/^.*?=(.*)$/s) {
     return $1;
   } else {
-    my $text=_present_attribute($node,$atr);
-    $text=$1."*" if ($text =~/^([^\|]*)\|/);
-    return $text;
+    return _present_attribute($node,$atr);
+#    my $text=
+#    $text=$1."*" if ($text =~/^([^\|]*)\|/);
+#    return $text;
   }
 }
 
