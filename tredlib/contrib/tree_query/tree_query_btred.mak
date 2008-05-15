@@ -94,9 +94,9 @@ sub start_hook {
   }
   my $query_tree = $query_file->appData('id-hash')->{$query_id};
   #  print STDERR "$query_file\n";
-  plan_query($query_tree) if $opts{plan};
+  #plan_query($query_tree) if $opts{plan};
   die "Query tree $query_fn#$query_id not found\n" unless ref $query_tree;
-  $evaluator = Tree_Query::Evaluator->new($query_tree,{all_trees=>1});
+  $evaluator = Tree_Query::Evaluator->new($query_tree,{all_trees=>1,plan=>$opts{plan}});
 
   # print STDERR "initialized @iterators, $query_pos\n";
   # print $query_node,",",$query_tree->{id},"\n";
@@ -131,7 +131,6 @@ sub test {
     my $fl = GetCurrentFileList($_);
     ($fl and $fl->name eq 'Tree_Query')
   } TrEdWindows();
-  print STDERR "$win\n" if $DEBUG;
   return unless $win;
   my $cur_win=$grp;
   SetCurrentWindow($win);
@@ -416,6 +415,21 @@ sub test {
 
     my $pos = $opts->{query_pos};
     my $match_pos = $self->{pos2match_pos}[$pos];
+    my $optional;
+    if ($qnode->{optional}) {
+      my $parent_pos = $self->{parent_pos}[$pos];
+      if (!defined $parent_pos) {
+	die "Optional node cannot at the same time be the head of a subquery!";
+      }
+      $optional = '$matched_nodes->['.$self->{pos2match_pos}[$parent_pos].']';
+    }
+    if ($conditions=~/\S/) {
+      if (defined $optional) {
+	$conditions='('.$optional.'==$node or '.$conditions.')';
+      }
+    } else {
+      $conditions=undef
+    }
 
     # extra-relations:
     # relations aiming forward will be evaluated on the target node
@@ -425,8 +439,9 @@ sub test {
       my $relation = $rel->name;
       my $target = lc( $rel->value->{target} );
       my $expression;
+      my $label='';
       if ($relation eq 'user-defined') {
-	my $label = $rel->value->{label};
+	$label = $rel->value->{label};
 	$expression = $test_user_defined_relation{$label};
 	die "User-defined relation '$label' not supported test!\n" unless defined $expression;
       } else {
@@ -447,6 +462,7 @@ sub test {
 	}
 	die "Relation '$relation' not supported test!\n" unless defined $expression;
       }
+      $expression = $optional.'==$start or '.$expression if defined $optional;
       $expression = $rel->value->{negate} ? 'not('.$expression.')' : '('.$expression.')';
 
       my $target_pos = $self->{name2pos}{$target};
@@ -471,7 +487,7 @@ sub test {
 	  $self->{postpone_subquery_till}=$target_match_pos if ($self->{postpone_subquery_till}||0)<$target_match_pos;
 	}
       } else {
-	die "Node '$target' does not exist or belongs to a sub-query and cannot be referred from here!\n";
+	die "Node '$target' does not exist or belongs to a sub-query and cannot be referred from relation $relation $label at node no. $match_pos!\n";
       }
     }
 
@@ -493,14 +509,15 @@ sub test {
 		)
 		);
       my $sq_condition = qq/\$sub_queries[$sq_pos]->test_occurrences(\$node,$occ_list)/;
+      $sq_condition = '('.$optional.'==$node or '.$sq_condition.')' if defined $optional;
       my $postpone_subquery_till = $subquery->{postpone_subquery_till};
       if (defined $postpone_subquery_till) {
-	print "postponing subquery till: $postpone_subquery_till\n";
+	print "postponing subquery till: $postpone_subquery_till\n" if $DEBUG;
 	if ($postpone_subquery_till<=$self->{pos2match_pos}[-1]) {
 	  # same subquery, simply postpone, just like when recomputing conditions
 	  print "same subquery @{$self->{pos2match_pos}}\n" if $DEBUG;
-	  push @{$opts->{recompute_subquery}[$postpone_subquery_till]},
-	    qq/\$sub_queries[$sq_pos]->test_occurrences(\$matched_nodes->[$match_pos],$occ_list)/;
+	  $sq_condition =~ s/\$node\b/\$matched_nodes->[$match_pos]/g;
+	  push @{$opts->{recompute_subquery}[$postpone_subquery_till]},$sq_condition;
 	} else {
 	  print "other subquery\n" if $DEBUG;
 	  # otherwise postpone this subquery as well
@@ -525,25 +542,23 @@ sub test {
       $check_preceding .= join('', map {"\n  and ".$_ } @$recompute_sq);
     }
     if (length $check_preceding) {
-      $check_preceding = "\n".'  and ($backref || ($matched_nodes->['.$match_pos.']=$node) # a trick: make it appear as if this node already matched!'.$check_preceding.')';
+      $check_preceding = "\n".
+	'  and ($backref or '.
+	  '($matched_nodes->['.$match_pos.']=$node) # a trick: make it appear as if this node already matched!'.
+	    $check_preceding.
+	')';
     }
-    my $cond =
-      '$node and ($backref||!exists($have{$node}))'.
-      ($conditions=~/\S/ ? "\n  and ".$conditions : '')
-        .(join '',map { "\n  and ".$_ } @relations )
-	.(join '',map { "\n  and ".$_ } @subquery_conditions );
-    if ($qnode->{optional} and $cond=~/\S/) {
-      my $parent_pos = $self->{parent_pos}[$pos];
-      if (!defined $parent_pos) {
-	die "Optional node cannot at the same time be the head of a subquery!";
-      }
-      $cond = '($matched_nodes->['.$self->{pos2match_pos}[$parent_pos].']==$node or '.$cond.')'
-    }
-    my $sub = qq(#line 0 "query-node/${match_pos}"\n).
-      'sub { my ($node,$backref)=@_; '."\n  "
-      . $cond
-      . $check_preceding."\n}";
-
+    my $nodetest = '$node and ($backref or '
+      .(defined($optional) ? $optional.'==$node or ' : '')
+      .'!exists($have{$node}))';
+    my $sub = qq(#line 0 "query-node/${match_pos}"\n)
+      . 'sub { my ($node,$backref)=@_; '."\n  "
+       .$nodetest
+       .(defined($conditions) ? "\n  and ".$conditions : '')
+       .(join '',map { "\n  and ".$_ } @relations )
+       .(join '',map { "\n  and ".$_ } @subquery_conditions )
+       . $check_preceding
+       ."\n}";
     print STDERR "SUB: $sub\n" if $DEBUG;
     return $sub;
   }
@@ -672,7 +687,7 @@ sub test {
 	      $self->{postpone_subquery_till}=$target_match_pos if ($self->{postpone_subquery_till}||0)<$target_match_pos;
 	    }
 	  } else {
-	    die "Node '$target' does not exist or belongs to a sub-query and cannot be referred from here!\n";
+	    die "Node '$target' does not exist or belongs to a sub-query and cannot be referred from expression $exp of node no. $match_pos!\n";
 	  }
 	}
 	## FIXME: hack: not needed once SQL db is fixed
@@ -934,7 +949,7 @@ our %reverse = (
     my @parent_edge;
     for my $i (0..$#$query_nodes) {
       my $n = $query_nodes->[$i];
-      print "$i: $n->{name}\n";
+      print "$i: $n->{name}\n" if $DEBUG;
       my $parent = $n->parent;
       my $p = $node2pos{$parent};
       $parent[$i]=$p;
