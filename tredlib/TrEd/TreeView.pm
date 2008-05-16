@@ -523,6 +523,7 @@ sub getTextWidth {
     $self->canvas->fontMeasure($self->get_font,$text);
 }
 
+# this is a 2nd pass for balancing nodes
 sub balance_xfix_node {
   my ($self, $xfix, $node) = @_;
   my $node_info = $self->{node_info};
@@ -538,23 +539,26 @@ sub balance_xfix_node {
 
 # this routine computes node XPos in balanced mode
 sub balance_node {
-  my ($self, $baseX, $node, $balanceOpts) = @_;
-  my $last_baseX = $baseX;
-  my $xskip = $balanceOpts->[2];
+  my ($self, $level, $baseX, $node, $balanceOpts) = @_;
+  my $xskip = $balanceOpts->[3];
+  my $spread = $balanceOpts->[2];
   my $node_info = $self->{node_info};
   my $i=0;
   my $before = $node_info->{$node}{"Before"};
 #  $last_baseX+=$node_info->{$node}{"Before"};
   my $CH = $node_info->{$node}{"CH"};
   my @c = $CH ? @$CH : ();
+  my $prev_baseX=$baseX->[$level];
+  my $next_level = $spread ? 0 : $level+1;
+  my $max_level = $spread ? 0 : $#$baseX;
   foreach my $c (@c) {
-    $last_baseX = $self->balance_node($last_baseX,$c,$balanceOpts);
-    $last_baseX += $xskip;
+    $baseX->[$next_level] = $self->balance_node($next_level,$baseX,$c,$balanceOpts);
+    $baseX->[$next_level] += $xskip;
   }
-  $last_baseX -= $xskip if @c;
+  $baseX->[$next_level]-=$xskip if $spread and @c;
   my $xpos;
   if (!@c) {
-    $xpos = $last_baseX+$node_info->{$node}{"XPOS"};
+    $xpos = $baseX->[$level]+$node_info->{$node}{"XPOS"};
   } else {
     if (scalar(@c) % 2 == 1) { # odd number of nodes
       if ($balanceOpts->[0]) { # balance on middle node
@@ -574,9 +578,11 @@ sub balance_node {
       }
     }
   }
-  my $xfix = $before-$xpos+$baseX;
+  my $xfix = $prev_baseX+$before-$xpos;
   if ($xfix > 0) {
-    $last_baseX += $xfix;
+    if (@c) {
+      $baseX->[$_]+=$xfix for $next_level..$max_level;
+    }
     $xpos += $xfix;
   } else {
     $xfix = 0;
@@ -588,7 +594,7 @@ sub balance_node {
   $node_info->{$node}{"NodeLabel_XPOS"} =
 			  $node_info->{$node}{"NodeLabel_XPOS"} +
 			  $add;
-  return max2($last_baseX,$xpos+$node_info->{$node}{"After"});
+  return max2($baseX->[$level],$xpos+$node_info->{$node}{"After"});
 }
 
 
@@ -633,7 +639,9 @@ sub compute_level {
   }
   $level=0;
   my $style = $self->{style_info}{$node};
-  my $parent=$node->parent;
+  my $parent= $style->{'Node'}{'-parent'};
+  $parent = $node_info->{$parent}{"E"} if $parent;
+  $parent ||= $node->parent;
   if ($parent) {
     my $plevel = $self->compute_level($parent, $Opts, $skipHiddenLevels);
     if ($skipHiddenLevels) {
@@ -702,13 +710,8 @@ sub recalculate_positions_vert {
 
   my $skipHiddenLevels= exists($Opts->{skipHiddenLevels}) ? $Opts->{skipHiddenLevels} : $self->get_skipHiddenLevels;
 
-  my $balanceOpts = [$balance =~ /^aboveMiddleChild(Odd$|$)/ ? 1 : 0,
-		     $balance =~ /^aboveMiddleChild(Even$|$)?/ ? 1 : 0,
-		     $nodeXSkip
-		    ];
-
   foreach $node (@{$nodes}) {
-    $node_info->{$node}{"E"}=1;
+    $node_info->{$node}{"E"}=$node;
   }
   foreach $node (@{$nodes}) {
     $self->compute_level($node,$Opts,$skipHiddenLevels);
@@ -862,13 +865,14 @@ sub recalculate_positions {
 
   my $skipHiddenLevels= exists($Opts->{skipHiddenLevels}) ? $Opts->{skipHiddenLevels} : $self->get_skipHiddenLevels;
 
-  my $balanceOpts = [$balance =~ /^aboveMiddleChild(Odd$|$)/ ? 1 : 0,
-		     $balance =~ /^aboveMiddleChild(Even$|$)?/ ? 1 : 0,
+  my $balanceOpts = [$balance =~ /aboveMiddleChild(Odd$|$)/i ? 1 : 0,
+		     $balance =~ /aboveMiddleChild(Even$|$)?/i ? 1 : 0,
+		     $balance =~ /spread/i ? 1 : 0,
 		     $nodeXSkip
 		    ];
 
   foreach $node (@{$nodes}) {
-    $node_info->{$node}{"E"}=1;
+    $node_info->{$node}{"E"}=$node;
   }
   my $style_info = $self->{style_info};
   foreach $node (@{$nodes}) {
@@ -1078,7 +1082,7 @@ sub recalculate_positions {
   if ($balance) {
     my $baseX = $baseXPos;
     foreach my $c (@zero_level) {
-      $baseX = $self->balance_node($baseX,$c,$balanceOpts);
+      $baseX = $self->balance_node(0,[map $baseX, 0..$maxlevel],$c,$balanceOpts);
     }
     foreach my $c (@zero_level) {
       $self->balance_xfix_node(0,$c);
