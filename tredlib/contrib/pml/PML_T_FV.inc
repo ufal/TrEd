@@ -142,9 +142,10 @@ $match_actants = '(?:'.join('|',@actants).')';
     sub { my ($node) = @_;
 	  my $a_node = PML_T::GetALexNode($node);
 	  ($a_node and $a_node->attr('m/tag')=~/^Vs/ and
-	     
 	   (first { my $a_lex=PML_T::GetALexNode($_);
-		   $_->{functor} eq 'ACT' and (!$a_lex or $a_lex->attr('m/tag')!~/^....1/) } PML_T::GetEChildren($node))
+		   $_->{functor} eq 'ACT' and (!$a_lex or $a_lex->attr('m/tag')!~/^....1/) 
+		  }
+	      PML_T::GetEChildren($node))
 	   and
 	   (first { $_->attr('m/lemma') =~ /^mít$|^mívat_/ } PML_T::GetANodes($node))
 	  ) ? 1:0; # STOP
@@ -195,7 +196,7 @@ $match_actants = '(?:'.join('|',@actants).')';
 	  my $a_lex = PML_T::GetALexNode($node);
 	  ($a_lex->attr('m/tag')=~/^Vs/ and
 	   not (
-	     # eliminate "ma", "bude mit" or even "mel by mit" or "chtel by mit"
+	     # eliminate "ma", "bude mit" or even "mel by mit"
 	     # Here is what we eliminate:
 	     # -------------------------
 	     # there is some "mit"
