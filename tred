@@ -5926,12 +5926,14 @@ sub startMain {
 			    -command=> [sub {
 					  read_config();
 					  reconfigure($_[0]);
+					  get_nodes_all($_[0]);
 					  redraw_all($_[0]);
 					},\%group]);
   $group{FileMenu}->command(-label=>'Reload stylesheets ...',
 			    -underline=> 9,
 			    -command=> [sub {
 					  readStyleSheets($_[0],$stylesheetFile);
+					  get_nodes_all($_[0]);
 					  redraw_all($_[0]);
 					},\%group]);
   $group{FileMenu}->separator();
@@ -5960,16 +5962,20 @@ sub startMain {
 	  -command => [sub {
 			 my ($grp)=@_;
 			 # vice versa setting should be done when focus changes
-			 $grp->{focusedWindow}->{treeView}->set_drawBoxes($treeViewOpts->{drawBoxes});
-			 redraw_win($grp->{focusedWindow});
+			 my $win = $grp->{focusedWindow};
+			 $win->{treeView}->set_drawBoxes($treeViewOpts->{drawBoxes});
+			 get_nodes_win($win);
+			 redraw_win($win);
 		       },\%group]],
 	 [Checkbutton=> 'Draw boxes around edge labels', -underline=> 1,
 	  -variable=> \$treeViewOpts->{drawEdgeBoxes},
 	  -command => [sub {
 			 my ($grp)=@_;
+			 my $win = $grp->{focusedWindow};
 			 # vice versa setting should be done when focus changes
-			 $grp->{focusedWindow}->{treeView}->set_drawEdgeBoxes($treeViewOpts->{drawEdgeBoxes});
-			 redraw_win($grp->{focusedWindow});
+			 $win->{treeView}->set_drawEdgeBoxes($treeViewOpts->{drawEdgeBoxes});
+			 get_nodes_win($win);
+			 redraw_win($win);
 		       },\%group]],
 	 [Checkbutton=> 'Show Hidden Nodes', -underline=> 0,
 	  -underline=> 5,
@@ -5984,8 +5990,9 @@ sub startMain {
 	 [Checkbutton=> 'Clear Text Background', -underline=> 0,
 	  -variable=> \$treeViewOpts->{clearTextBackground},
 	  -command => [sub {
-			   my ($grp)=@_;
-			   $grp->{focusedWindow}->{treeView}->set_clearTextBackground($treeViewOpts->{clearTextBackground});
+			   my $win=$_[0]->{focusedWindow};
+			   $win->treeView->set_clearTextBackground($treeViewOpts->{clearTextBackground});
+			   get_nodes_win($win);
 			   redraw_win($grp->{focusedWindow});
 			 },\%group]],
 ## obsolete
@@ -6262,6 +6269,7 @@ sub startMain {
                          }
 			 update_macrolist_view($grp);
 			 doEvalHook($grp->{focusedWindow},"macros_reloaded_hook");
+			 get_nodes_all($grp);
 			 redraw_all($grp);
 		       },\%group]],
 	 [
@@ -7714,6 +7722,7 @@ sub editConfig {
 			  saveConfig($d,[$t->get("0.0","end")]);
 			  apply_config(split(/\n/,$t->get("0.0","end")));
 			  reconfigure($grp);
+			  get_nodes_all($grp);
 			  redraw_all($grp);
 			},$grp,$d,$t])
       ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
@@ -7723,6 +7732,7 @@ sub editConfig {
 				 my ($grp,$w)=@_;
 				 apply_config(split(/\n/,$w->get("0.0","end")));
 				 reconfigure($grp);
+				 get_nodes_all($grp);
 				 redraw_all($grp);
 			       },$grp,$t])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
@@ -9358,6 +9368,7 @@ EOF
     } else {
       saveStyleSheets($grp,$stylesheetFile);
     }
+    get_nodes_fsfile($grp,$win->{FSFile});
     update_value_line($grp);
     if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
       redraw_fsfile($grp,$win->{FSFile});
@@ -9365,6 +9376,7 @@ EOF
       redraw_stylesheet($grp,$win->{stylesheet});
     }
   } elsif ($preview_applied) {
+    get_nodes_fsfile($grp,$win->{FSFile});
     if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
       redraw_fsfile($grp,$win->{FSFile});
     } else {
@@ -10577,8 +10589,8 @@ sub doEvalMacro {
   ### ??? 4kb/50 runs memory leaks in redraw (probably in Tk)
   #------------------------------------------------------------
   if (get_macro_variable("Redraw") eq 'all') {
-    redraw_all($win->{framegroup});
     get_nodes_all($win->{framegroup});
+    redraw_all($win->{framegroup});
   } elsif (get_macro_variable("Redraw") eq 'win') {
     get_nodes_win($win);
     redraw_win($win);
@@ -10937,6 +10949,7 @@ sub node_release {
 	    $win->{FSFile}->notSaved(1);
 	    doEvalHook($win,"node_moved_hook",$node,$oldparent);
 	    lastActionBookmark($grp);
+	    get_nodes_fsfile($grp,$win->{FSFile});
 	    redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
 	    centerTo($win,$win->{currentNode});
 	    return;
