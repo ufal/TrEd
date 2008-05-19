@@ -283,6 +283,8 @@ sub parseFileSuffix {
   my ($filename)=@_;
   if ($filename=~s/(##?[0-9A-Z]+(?:-?\.[0-9]+)?)$// ) {
     return ($filename,$1);
+  } elsif ($filename=~/^(.*)(##[0-9]+\.)([^0-9#][^#]*)$/ and PMLSchema::CDATA->check_string_format($3,'ID')) {
+    return ($1,$2.$3);
   } elsif ($filename=~/^(.*)#([^#]+)$/ and PMLSchema::CDATA->check_string_format($2,'ID')) {
     return ($1,'#'.$2);
   } else {
@@ -327,6 +329,14 @@ sub applyFileSuffix {
     my $root=getNodeByNo($win,$1);
     if ($root) {
       $win->{currentNode}=$root;
+    }
+  } elsif ($goto=~/\.([^0-9#][^#]*)$/) {
+    my $id = $1;
+    if (PMLSchema::CDATA->check_string_format($id,'ID')) {
+      my $id_hash = $fsfile->appData('id-hash');
+      if (UNIVERSAL::isa($id_hash,'HASH') and exists($id_hash->{$id})) {
+	$win->{currentNode}=$id_hash->{$id};
+      }
     }
   }
   # hey, caller, you should redraw after this!
