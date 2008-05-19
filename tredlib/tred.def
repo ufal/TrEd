@@ -2304,7 +2304,7 @@ they display.
 
 sub DeleteStylesheet {
   my ($stylesheet) = @_;
-  main::deleteStylesheet($grp->{framegroup},$stylesheet) unless GUI();
+  main::deleteStylesheet($grp->{framegroup},$stylesheet) if GUI();
 }
 
 =item C<SaveStylesheets()>
@@ -2315,7 +2315,7 @@ Save all TrEd's stylesheets (to ~/.tred-stylesheets).
 
 sub SaveStylesheets {
   my ($patterns,$stylesheet) = @_;
-  main::saveStyleSheets($grp->{framegroup}) unless GUI();
+  main::saveStyleSheets($grp->{framegroup}) if GUI();
 }
 
 =item C<ReloadStyleseets(filename?)>
@@ -2328,7 +2328,7 @@ default path "~/.tred-stylesheets" is used.
 sub ReloadStylesheets {
   my ($filename) = @_;
   $filename = $main::stylesheetFile unless defined $filename;
-  main::readStyleSheets($grp->{framegroup},$filename) unless GUI();
+  main::readStyleSheets($grp->{framegroup},$filename) if GUI();
 }
 
 =item C<GetStylesheetPatterns(stylesheet)>
