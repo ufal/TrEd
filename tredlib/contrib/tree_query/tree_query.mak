@@ -79,6 +79,11 @@ Bind sub { next_match('backward') } => {
   menu => 'Show Previous Match',
   changing_file => 0,
 };
+Bind sub { RenewStylesheets(); $Redraw='stylesheet'; } => {
+  key => 's',
+  menu => 'Renew Tree_query Stylesheet',
+  changing_file => 0,
+};
 
 
 Bind 'fix_netgraph_query' => {
@@ -131,6 +136,12 @@ sub file_reloaded_hook {
   FileAppData('noautosave',1);
 }
 
+sub RenewStylesheets {
+  DeleteStylesheet('Tree_Query');
+  CreateStylesheets();
+  SetCurrentStylesheet('Tree_Query');
+}
+
 sub CreateStylesheets{
   unless(StylesheetExists('Tree_Query')){
     SetStylesheetPatterns(<<'EOF','Tree_Query',1);
@@ -140,45 +151,58 @@ rootstyle:#{balance:1}#{Node-textalign:center}#{NodeLabel-halign:center}
 xrootstyle: #{vertical:0}#{nodeXSkip:15}
 rootstyle: #{NodeLabel-skipempty:1}#{CurrentOval-width:3}#{CurrentOval-outline:red}
 node: <?length($${node-type}) ? $${node-type}.': ' : '' ?>#{darkgreen}<?
-  my $occ = join '|', grep { /\d/ } map {
-    if ($_->{min}==$_->{max}) {
-      $_->{max}
-    } else { $_->{min}.'-'.$_->{max} }
-  } AltV($this->{occurrences});
+  my $occ = Tree_Query::occ_as_text($this);
   length $occ ? ('${occurrences=('.$occ.')x}')  : ""
 ?><? $${optional} ? '${optional=?}'  : q()
 ?>#{black}<? Tree_Query::serialize_conditions_as_stylesheet($this) ?>
 node: #{darkblue}${name}#{brown}<? my$d=$${description}; $d=~s{^User .*?:}{}; $d ?>
 node:<?
-  ($this->{'#name'} =~ /^(?:and|or)$/) ? ($${negate} ? '${negate=NOT} ' : '').$this->{'#name'} : '' ?>${a}
+  ($this->{'#name'} =~ /^(?:and|or|not)$/) ? uc($this->{'#name'}) : '' 
+?>${a}${target}
+node:<?
+  if (($this->{'#name'}=~/^(?:node|subquery)$/) and !TredMacro::HiddenVisible()) {
+    join("\n",map { Tree_Query::as_text($_) } grep { $_->{'#name'} !~ /^(?:node|subquery|ref)$/ } $this->children)
+  }
+?>
 node:<? $this->{'#name'} eq 'test' ? ($${negate} ? '${negate=!} ' : '').'${operator}' : ''?>
 node:${b}
-style: <?   $this->{'#name'} eq 'node' ? '#{Line-tag:relation}' : '' ?><? 
-  my ($rel) = map {
-    my $name = $_->name;
-    $name eq 'user-defined' ? $_->value->{label} : $name
-  } SeqV($this->{relation});
-  my $color = Tree_Query::arrow_color($rel);
-  my $arrow = Tree_Query::arrow($rel);
-  (defined($arrow) ? "#{Line-arrow:$arrow}" : '').
-  (defined($color) ? "#{Line-fill:$color}" : '')
+style: <? 
+  my $name = $this->{'#name'};
+  if ($name =~ /^(?:node|subquery|ref)$/) {
+    my ($rel) = map {
+      my $name = $_->name;
+      $name eq 'user-defined' ? $_->value->{label} : $name
+    } SeqV($this->{relation});
+    my $color = Tree_Query::arrow_color($rel);
+    my $arrow = Tree_Query::arrow($rel);
+    (defined($arrow) ? "#{Line-arrow:$arrow}" : '').
+    (defined($color) ? "#{Line-fill:$color}" : '').
+    ($name eq 'ref' and defined($color) ? "#{Oval-outline:$color}#{Oval-fill:$color}" : '').
+    '#{Line-tag:relation}'
+  }
+?>
+style: <? if ($this->parent and $this->parent->{'#name'} eq 'or') {
+    '#{Line-dash:-}'
+  }
 ?>
 style:<?
-   $this->{'#name'} eq 'node' ?
+   my $name = $this->{'#name'};
+   $name eq 'node' ?
    (($${node-type}||$root->{'node-type'}) eq 't'
       ? '#{Oval-fill:pink}' 
       : '#{Oval-fill:yellow}' ).'#{Node-addwidth:7}#{Node-addheight:7}#{Line-width:3}#{Line-arrowshape:14,18,4}'
-   : $this->{'#name'} eq 'test' ? '#{Line-fill:lightgray}#{Node-shape:rectangle}#{Oval-fill:gray}' 
-   : $this->{'#name'} eq 'subquery' ? '#{Oval-fill:green}'
-   : $this->{'#name'} =~ /^(?:or|and)$/ ? '#{Node-shape:rectangle}#{Oval-fill:cyan}'
+   : $name eq 'test' ? '#{NodeLabel-dodrawbox:yes}#{Line-fill:lightgray}#{Node-shape:rectangle}#{Oval-fill:gray}' 
+   : $name eq 'subquery' ? '#{Oval-fill:green}'
+   : $name eq 'ref' ? '#{Node-shape:oval}'
+   : $name =~ /^(?:or|and|not)$/ ? '#{Node-shape:rectangle}#{Node-surroundtext:1}#{NodeLabel-valign:center}#{Oval-fill:cyan}'
    : '${Oval-fill:black}'
 ?>
-style:<?
-   my $occ = join '', map { $_->{min}.$_->{max} } AltV($this->{occurrences});
-   length $occ ? '#{Node-addwidth:0}#{Node-addheight:0}' : q() ?>
 EOF
   }
 }
+
+
+
 
 my %id;
 my %name2node_hash;
@@ -204,6 +228,47 @@ sub init_id_map {
   };
 }
 
+sub occ_as_text {
+  my ($node)=@_;
+  return join '|', grep { /\d/ } map {
+    if ($_->{min}==$_->{max}) {
+      $_->{max}
+    } else {
+      length($_->{max}) ?
+	$_->{min}.'-'.$_->{max}
+      : $_->{min}.'+'
+    }
+  } AltV($node->{occurrences});
+}
+
+sub as_text {
+  my ($node,$indent)=@_;
+  my $name = $node->{'#name'};
+  $indent||='';
+  if ($name eq 'not') {
+    return 'not('.join("\n${indent}and ",map { as_text($_,$indent."     ") } $node->children).')'
+  } elsif ($name eq 'not') {
+    return '('.join("\n${indent}and ",map as_text($_,$indent."     "), $node->children).')';
+  } elsif ($name eq 'or') {
+    return '('.join("\n${indent}or ",map as_text($_,$indent."     "), $node->children).')';
+  } elsif ($name eq 'ref') {
+    my ($rel) = SeqV($node->{relation});
+    $rel = $rel ? $rel->name : '???';
+    my $ref = $node->{target} || '???';
+    return "has $rel($ref)";
+  } elsif ($name eq 'test') {
+    return $node->{a}.' '.$node->{operator}.' '.$node->{b};
+   } elsif ($name eq 'subquery' or $name eq 'node') {
+     my $occ = $name eq 'subquery' ? '('.occ_as_text($node).') x ' : '';
+     my ($rel) = SeqV($node->{relation});
+     $rel = $rel ? $rel->name : '???';
+     return $occ.$rel."[\n${indent}"
+       .join(",\n${indent}",map as_text($_,$indent."     "), $node->children)
+       .']';
+  } else {
+    return '{'.$name.'}'
+  }
+}
 
 sub root_style_hook {
   DrawArrows_init();
@@ -279,28 +344,37 @@ sub node_style_hook {
   my ($node,$styles) = @_;
   my $i=0;
 #  AddStyle($styles,'Node',-parent => $cond_parent{$node}) if $cond_parent{$node};
-  DrawArrows($node,$styles,
-	     [
-	       map {
-		 my $name = $_->name;
-		 $name = $_->value->{label} if $name eq 'user-defined';
-		 my $target = $_->value->{target};
-		 my $negate = $_->value->{negate};
-		 scalar {
-		   -target => $name2node_hash{lc($target)},
-		   -fill   => arrow_color($name),
-		   (-dash   => $negate ? '-' : ''),
-		   -raise => 8+8*(++$i),
-		   -tag => 'extra_relation',
-		 }
-	       } SeqV($node->attr('extra-relations'))
-	     ],
-	     {
-	       -arrow => 'last',
-	       -arrowshape => '14,18,4',
-	       -width => 2,
-	       -smooth => 1,
-	     });
+  my @refs;
+  my $showHidden = HiddenVisible();
+  if ($showHidden) {
+    @refs=($node) if $node->{'#name'} eq 'ref';
+  } else {
+    @refs=grep { $_->{'#name'} eq 'ref' } $node->children;
+  }
+  for my $ref (@refs) {
+    DrawArrows($node,$styles,
+	       [
+		 map {
+		   my $name = $_->name;
+		   $name = $_->value->{label} if $name eq 'user-defined';
+		   my $target = $ref->{target};
+		   my $negate = $_->value->{negate};
+		   scalar {
+		     -target => $name2node_hash{lc($target)},
+		     -fill   => $showHidden ? 'gray' : arrow_color($name),
+		     (-dash   => $negate ? '-' : ''),
+		     -raise => 8+8*(++$i),
+		     -tag => 'extra_relation',
+		   }
+		 } SeqV($node->attr('relation'))
+		],
+	       {
+		 -arrow => 'last',
+		 -arrowshape => '14,18,4',
+		 -width => $showHidden ? 1 : 2,
+		 -smooth => 1,
+	       });
+  }
 }
 
 
