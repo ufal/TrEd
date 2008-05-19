@@ -522,6 +522,13 @@ sub getTextWidth {
   return $wrap ? max(map { $self->canvas->fontMeasure($self->get_font,$_) } split /\n/,$text) :
     $self->canvas->fontMeasure($self->get_font,$text);
 }
+sub getTextWidthAndHeight {
+  my ($self,$text)=@_;
+  my @l=split /\n/,$text;
+  return @l>1 ? (max(map { $self->canvas->fontMeasure($self->get_font,$_) } @l),$#l+1) :
+    ($self->canvas->fontMeasure($self->get_font,$l[0]),1);
+}
+
 
 # this is a 2nd pass for balancing nodes
 sub balance_xfix_node {
@@ -810,7 +817,7 @@ sub recalculate_positions {
   my ($nodeWidth,$nodeHeight)=($self->get_nodeWidth,$self->get_nodeHeight);
   my $nodeXSkip = exists($Opts->{nodeXSkip}) ? $Opts->{nodeXSkip} : $self->get_nodeXSkip;
   my $nodeYSkip = exists($Opts->{nodeYSkip}) ? $Opts->{nodeYSkip} : $self->get_nodeYSkip;
-  my $m;
+  my ($m,$h);
 
   my ($patterns,$pattern_count,$node_pattern_count,$edge_pattern_count);
   {
@@ -823,7 +830,7 @@ sub recalculate_positions {
 
   my $fontHeight=$self->getFontHeight()*$lineSpacing;
   my $edge_label_height=2*$self->get_ymargin + $edge_pattern_count*$fontHeight;
-  my $levelHeight=$nodeHeight;
+  my $levelHeight=0;
 
   if ($edge_pattern_count) {
     $levelHeight +=
@@ -888,15 +895,15 @@ sub recalculate_positions {
       if ($pat_style eq "edge") {
 	# this does not actually make
 	# the edge label not to overwrap, but helps a little
-	$m=$self->getTextWidth($self->prepare_text($node,$pat,$grp));
+	($m,$h)=$self->getTextWidthAndHeight($self->prepare_text($node,$pat,$grp));
 	$NI->{"X[$i]"}=$m;
 	$edgeLabelWidth=$m if $m>$edgeLabelWidth;
-	$e_nonempty++ if (!$skip_empty_elabels or $m>0);
+	$e_nonempty+=$h if (!$skip_empty_elabels or $m>0);
       } elsif ($pat_style eq "node") {
-	$m=$self->getTextWidth($self->prepare_text($node,$pat,$grp));
+	($m,$h)=$self->getTextWidthAndHeight($self->prepare_text($node,$pat,$grp));
 	$NI->{"X[$i]"}=$m;
 	$nodeLabelWidth=$m if $m>$nodeLabelWidth;
-	$n_nonempty++ if (!$skip_empty_nlabels or $m>0);
+	$n_nonempty+=$h if (!$skip_empty_nlabels or $m>0);
 
       }
     }
@@ -905,6 +912,10 @@ sub recalculate_positions {
     $NI->{"NodeLabel_nonempty"}=$n_nonempty;
     $NI->{"EdgeLabel_nonempty"}=$e_nonempty;
     $gen_info->{"MaxNodeLabelsOnLevel[$level]"}=$n_nonempty if $gen_info->{"MaxNodeLabelsOnLevel[$level]"}<$n_nonempty;
+    my $h1 = 2*$nodeHeight + $style->{Node}{'-addheight'} + $style->{Oval}{'-width'};
+    my $h2 = 2*$nodeHeight + $style->{CurrentNode}{'-addheight'} + $style->{CurrentOval}{'-width'};
+    my $h = $h1 < $h2 ? $h2 : $h1;
+    $gen_info->{"MaxNodeHeightOnLevel[$level]"}=$h if $gen_info->{"MaxNodeLabelsOnLevel[$level]"}<$h;
     $maxlevel=$level if $maxlevel<$level;
   }
   if ($balance) {
@@ -917,7 +928,7 @@ sub recalculate_positions {
   {
     my $ypos = $baseYPos;
     for my $level (0..$maxlevel) {
-      my $thisLevelHeight = $levelHeight;
+      my $thisLevelHeight = $levelHeight+ $gen_info->{"MaxNodeHeightOnLevel[$level]"};
       my $node_pattern_count_on_level = $gen_info->{"MaxNodeLabelsOnLevel[$level]"};
       if ($node_pattern_count_on_level) {
 	$thisLevelHeight += $nodeYSkip + 2*$ymargin +$node_pattern_count_on_level*$fontHeight;
