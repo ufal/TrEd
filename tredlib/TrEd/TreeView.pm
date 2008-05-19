@@ -1706,7 +1706,8 @@ sub redraw {
 	  || !$drawBoxes
 	    && ($valign_edge=$label_style->{'-dodrawbox'} eq "yes");
     $NI->{"NodeHasBox"}=$node_has_box;
-    if ($node_has_box or $node_style->{'-surroundtext'}) {
+    my $surround = $node_style->{'-surroundtext'};
+    if ($node_has_box or $surround) {
       my $count =$NI->{"NodeLabel_nonempty"}; # : scalar(@$node_patterns);
       $NI->{"TextBoxCoords"} =
 	$vertical_tree
@@ -1933,7 +1934,7 @@ sub redraw {
 	}
 	$n_i++;
 	$n_y=$self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$n_x,$n_y,
-			      !$node_has_box,
+			      !$node_has_box && !$surround,
 			      \%Opts,$grp,'Node') unless $empty;
       }
     }
