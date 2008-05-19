@@ -136,9 +136,9 @@ sub CreateStylesheets{
     SetStylesheetPatterns(<<'EOF','Tree_Query',1);
 context:   Tree_Query
 hint: 
-rootstyleforbalanced:#{balance:1}#{Node-textalign:center}#{NodeLabel-halign:center}
-rootstyle: #{vertical:0}#{nodeXSkip:15}
-rootstyle: #{Node-addwidth:3}#{Node-addheight:3}#{CurrentOval-width:3}#{CurrentOval-outline:red}
+rootstyle:#{balance:1}#{Node-textalign:center}#{NodeLabel-halign:center}
+xrootstyle: #{vertical:0}#{nodeXSkip:15}
+rootstyle: #{NodeLabel-skipempty:1}#{CurrentOval-width:3}#{CurrentOval-outline:red}
 node: <?length($${node-type}) ? $${node-type}.': ' : '' ?>#{darkgreen}<?
   my $occ = join '|', grep { /\d/ } map {
     if ($_->{min}==$_->{max}) {
@@ -149,7 +149,11 @@ node: <?length($${node-type}) ? $${node-type}.': ' : '' ?>#{darkgreen}<?
 ?><? $${optional} ? '${optional=?}'  : q()
 ?>#{black}<? Tree_Query::serialize_conditions_as_stylesheet($this) ?>
 node: #{darkblue}${name}#{brown}<? my$d=$${description}; $d=~s{^User .*?:}{}; $d ?>
-style: #{Line-tag:relation}<? 
+node:<?
+  ($this->{'#name'} =~ /^(?:and|or)$/) ? ($${negate} ? '${negate=NOT} ' : '').$this->{'#name'} : '' ?>${a}
+node:<? $this->{'#name'} eq 'test' ? ($${negate} ? '${negate=!} ' : '').'${operator}' : ''?>
+node:${b}
+style: <?   $this->{'#name'} eq 'node' ? '#{Line-tag:relation}' : '' ?><? 
   my ($rel) = map {
     my $name = $_->name;
     $name eq 'user-defined' ? $_->value->{label} : $name
@@ -160,11 +164,15 @@ style: #{Line-tag:relation}<?
   (defined($color) ? "#{Line-fill:$color}" : '')
 ?>
 style:<?
-   $this->parent 
-   ? (($${node-type}||$root->{'node-type'}) eq 't'
-      ? '#{Node-shape:rectangle}#{Oval-fill:pink}' 
-      : '#{Oval-fill:yellow}' )
-   : '#{Oval-fill:gray}' ?>
+   $this->{'#name'} eq 'node' ?
+   (($${node-type}||$root->{'node-type'}) eq 't'
+      ? '#{Oval-fill:pink}' 
+      : '#{Oval-fill:yellow}' ).'#{Node-addwidth:7}#{Node-addheight:7}#{Line-width:3}#{Line-arrowshape:14,18,4}'
+   : $this->{'#name'} eq 'test' ? '#{Line-fill:lightgray}#{Node-shape:rectangle}#{Oval-fill:gray}' 
+   : $this->{'#name'} eq 'subquery' ? '#{Oval-fill:green}'
+   : $this->{'#name'} =~ /^(?:or|and)$/ ? '#{Node-shape:rectangle}#{Oval-fill:cyan}'
+   : '${Oval-fill:black}'
+?>
 style:<?
    my $occ = join '', map { $_->{min}.$_->{max} } AltV($this->{occurrences});
    length $occ ? '#{Node-addwidth:0}#{Node-addheight:0}' : q() ?>
@@ -243,9 +251,34 @@ sub arrow {
   return $arrow{$rel};
 }
 
+# my %cond_parent;
+# sub root_style_hook {
+#   my ($tree)=@_;
+#   %cond_parent=();
+#   for my $node ($tree->descendants) {
+#     my $cond = $node->{conditions};
+#     if ($cond) {
+# #      if ($cond->{negate}) {
+# 	$cond_parent{$cond}="$node";
+# #      } else {
+# #	$cond_parent{$_}="$node" for $cond->children;
+# #      }
+#     }
+#   }
+# }
+sub get_nodelist_hook {
+  my ($fsfile,$tree_no,$prevcurrent,$show_hidden)=@_;
+  my $tree = $fsfile->tree($tree_no);
+  my @nodes = ($tree, grep {
+    $show_hidden || ($_->{'#name'} =~ /^(?:node|subquery)$/)
+  } $tree->descendants);
+  return [\@nodes,$prevcurrent];
+}
+
 sub node_style_hook {
   my ($node,$styles) = @_;
   my $i=0;
+#  AddStyle($styles,'Node',-parent => $cond_parent{$node}) if $cond_parent{$node};
   DrawArrows($node,$styles,
 	     [
 	       map {
@@ -265,10 +298,11 @@ sub node_style_hook {
 	     {
 	       -arrow => 'last',
 	       -arrowshape => '14,18,4',
-	       -width => 1,
+	       -width => 2,
 	       -smooth => 1,
 	     });
 }
+
 
 sub node_release_hook {
   my ($node,$target,$mod)=@_;
@@ -922,11 +956,11 @@ sub relation {
   } elsif ($name eq 'parent') {
     $condition= qq{$parent_id."parent_idx"=$id."idx"};
   } elsif ($name eq 'descendant') {
-    $condition= extra_relation($parent_id,$rel,$id,$opts);
+    $condition= extra_relation($parent_id,$rel,$id,{%$opts,type=>$opts->{parent_type}});
   } elsif ($name eq 'ancestor') {
-    $condition= extra_relation($parent_id,$rel,$id,$opts);
+    $condition= extra_relation($parent_id,$rel,$id,{%$opts,type=>$opts->{parent_type}});
   } elsif ($name eq 'user-defined') {
-    $condition= user_defined_relation($parent_id,$rel->value,$id,$opts);
+    $condition= user_defined_relation($parent_id,$rel->value,$id,{%$opts,type=>$opts->{parent_type}});
   }
   if ($n->{optional}) {
     # identify with parent
@@ -1270,6 +1304,7 @@ sub serialize_expression {
     s/(?:(\w+)\.)?"_[#]rbrothers"/$1$parent_id."chld"-$1"chord"-1/g;
     s/"_[#]sons"/"chld"/g;
     s/"_depth"/"lvl"/g;
+    s{"m(?:/w)?/}{"}g; # FIXME: a hack
   }
   my ($extra_joins,$wrap);
   if ($opts->{negative}) {

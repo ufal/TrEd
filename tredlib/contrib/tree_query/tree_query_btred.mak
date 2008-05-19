@@ -35,6 +35,29 @@ Bind \&test => {
 
 TODO:
 
+- simplify query editing:
+
+  - edit conditions as text in a text editor (with highlighting)
+    (or graphically in TrEd? - in that way we could add and/or nodes that we could
+     also use for subqueries and conditional extra-relations)
+
+  - this latter could be probably implemented simply using roles and hiding with get_nodelist_hook
+
+- make Ctrl|Ctrl+insert macros schema aware
+
+- support for multi-line attributes in TreeView
+
+- support for macro-definable toolbars
+
+- support for custom cdata- selections in TredNodeEdit from a combo box
+
+- fully define attribute tests and simplify syntax (n1.gram/sempos instead of n1.'gram/sempos')
+
+- and/or/extra-relation/condition/subquery nodes for combining tests with sub-queries
+(displayed as sub-trees).  Maybe conditions should be subtrees anyway,
+only hidden. Condition node is a conjunction of tests, and there are
+furhter and/or/extra-relation/subquery nodes.
+
 - planner weights based on attribute tests
 (favor less specific nodes to become leafs)
 
@@ -52,31 +75,27 @@ the definition can be used as a predicate (meaning: this node also
 matches the root of the defined query).
 
 - define text-format (syntax) for tree queries (possibly inspire in
-  TigerSearch and TGrep, but use relation names instead of cryptic symbols)
+    TigerSearch and TGrep, but use relation names instead of cryptic symbols)
+  write serialization/parser
 
-       $n1 has is_member=1 and nodetype!='coap'
+       $n1: is_member=1 and nodetype!='coap'
           and (gram/sempos!='v'
-            or has child [is_member=1 and nodetype!='coap']) 
+            or has child n3:[is_member=1 and nodetype!='coap'])
           and
-            has child $2;
-       $n2 has is_member!=1;
-       $n2 has gram/(sempos='v' and number ~ 'sg') and 0 x child [is_member=1])
+            has optional child $n2;
+       $n2: is_member!=1;
+       $n2: gram/(sempos='v' and number ~ 'sg') and has 0x child [is_member=1])
 
        $n1 has child $n2
        $n2 has not eparent $n1
        ### or just: $n1 child $n2
        $n1 order-precedes $n2
 
-- easier query editing:
-  - edit conditions in text editor (with highlighting)
-    (or graphically in TrEd? - in that way we could add and/or nodes that we could
-     also use for subqueries and conditional extra-relations)
-  - this latter could be implemented simply using roles and get_nodelist_hook;-)
-
 - relational predicates that one can use in boolean
   combinations like (child(ref0) or order-precedes(ref1))
 
 - define exact syntax for a term in the tree-query
+  (make a specific list of available functions and predicates)
 
 - query options: one match per tree, output format
 
@@ -84,12 +103,17 @@ matches the root of the defined query).
 -   use tables for m/, m/w/, remove tables for tfa/,
 -   maybe use a separate table for every attribute?
 -   unify the PMLSchema to DB schema translation
+-   this will require PMLSchema and node-type to be known for each query node
+    so that attribute paths are translated correctly
 -   use test-data only
 - [X] fix negations of mutli-match comparisons
 - [X] make a/foo=1 and a/bar=2 independent searches in the list/alt a/
 - implement some form of (exists a (foo=1 and bar=2))
   or (forall a (foo=1 and bar=2))
- to be able to fix a/ and
+  to be able to fix a/ and constraint a/foo and a/bar
+
+- generalize the sql data model so that it can capture lists, alts and sequences
+  (the query translation engine will require PMLSchema)
 
 =cut
 
@@ -199,25 +223,25 @@ sub test {
 
   my %test_user_defined_relation = (
     'echild' => q(do{ my $type = $node->type->get_base_type_name;
-                        first { $_ == $start }
+                        grep $_ == $start,
                         ($type eq 't-node.type' ? PML_T::GetEParents($end) :
                          $type eq 'a-node.type' ? PML_A::GetEParents($end,\\&PML_A::DiveAuxCP) : ()) }),
     'eparent' => q(do{ my $type = $node->type->get_base_type_name;
-                        first { $_ == $end }
+                        grep $_ == $end,
                         ($type eq 't-node.type' ? PML_T::GetEParents($start) :
                          $type eq 'a-node.type' ? PML_A::GetEParents($start,\\&PML_A::DiveAuxCP) : ()) }),
-    'a/lex.rf|a/aux.rf' => q(first { $_ eq $end->{id} } GetANodeIDs()),
+    'a/lex.rf|a/aux.rf' => q(grep $_ eq $end->{id}, GetANodeIDs()),
     'a/lex.rf' => q(do { my $id=$start->attr('a/lex.rf'); $id=~s/^.*?#//; $id  eq $end->{id} } ),
-    'a/aux.rf' => q(first { my $id=$_; $id=~s/^.*?#//; $id eq $end->{id} } TredMacro::ListV($start->attr('a/lex.rf'))),
-    'coref_text' => q(first { $_ eq $end->{id} } TredMacro::ListV($start->{'coref_text.rf'})),
-    'coref_gram' => q(first { $_ eq $end->{id} } TredMacro::ListV($start->{'coref_gram.rf'})),
-    'compl' => q(first { $_ eq $end->{id} } TredMacro::ListV($start->{'compl.rf'})),
+    'a/aux.rf' => q(grep { my $id=$_; $id=~s/^.*?#//; $id eq $end->{id} } TredMacro::ListV($start->attr('a/lex.rf'))),
+    'coref_text' => q(grep $_ eq $end->{id}, TredMacro::ListV($start->{'coref_text.rf'})),
+    'coref_gram' => q(grep $_ eq $end->{id}, TredMacro::ListV($start->{'coref_gram.rf'})),
+    'compl' => q(grep $_ eq $end->{id}, TredMacro::ListV($start->{'compl.rf'})),
    );
 
 
   sub _is_a_subquery {
     my ($node)=@_;
-    (first { ref($_) and length($_->{min}) or length($_->{max}) } TredMacro::AltV($node->attr(q(occurrences))))
+    (grep {ref($_) and (length($_->{min}) or length($_->{max}))} (TredMacro::AltV($node->attr(q(occurrences)))))
       ? 1 : 0
   }
   sub _filter_subqueries {
@@ -515,7 +539,7 @@ sub test {
       }
     }
 
-    my @subquery_nodes = grep { _is_a_subquery($_) } $qnode->children;
+    my @subquery_nodes = grep _is_a_subquery($_), $qnode->children;
     my @subquery_conditions;
     for my $sqn (@subquery_nodes) {
       # TODO: cross-query dependencies
@@ -628,7 +652,7 @@ sub test {
 	# TODO: 'first' is actually pretty slow, we should use a disjunction
 	# but splitting may be somewhat non-trivial in such a case
 	# - postponing till we know exactly how a tree-query term may look like
-	$condition='do{ my $value='.$left.'; first { $_ eq '.$left.' } '.$right.'}';
+	$condition='do{ my $value='.$left.'; grep $_ eq '.$left.', '.$right.'}';
 	# #$condition=$left.' =~ m{^(?:'.join('|',eval $right).')$}';
 	# 	$right=~s/^\s*\(//;
 	# 	$right=~s/\)\s*$//;
@@ -653,7 +677,7 @@ sub test {
       my $negative = $opts->{negative_formula} ? 1 : 0;
       $negative=!$negative if $value->{negate};
       my $condition = join("\n  ".$name.' ',
-			   grep { defined and length }
+			   grep {defined and length}
 			     map {
 			       my $n = $_->name;
 			       $self->serialize_element({
