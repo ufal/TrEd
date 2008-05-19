@@ -17,6 +17,8 @@ import TrEd::MinMax 'sum';
 use TrEd::Convert;
 import TrEd::Convert;
 
+use constant NoHash => {};
+
 use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_get_node_style $on_get_nodes %PATTERN_CODE_CACHE %COORD_CODE_CACHE %COORD_SPEC_CACHE);
 
 @Options = qw(CanvasBalloon backgroundColor
@@ -689,7 +691,7 @@ sub recalculate_positions_vert {
   my ($nodeWidth,$nodeHeight)=($self->get_nodeWidth,$self->get_nodeHeight);
   my $nodeXSkip = exists($Opts->{nodeXSkip}) ? $Opts->{nodeXSkip} : $self->get_nodeXSkip;
   my $nodeYSkip = exists($Opts->{nodeYSkip}) ? $Opts->{nodeYSkip} : $self->get_nodeYSkip;
-  my $m;
+  my ($m,$h);
   my ($patterns,$pattern_count,$node_pattern_count,$edge_pattern_count);
   {
     my $pl = $self->get_pattern_lists($fsfile);
@@ -701,11 +703,8 @@ sub recalculate_positions_vert {
   # May change with line attached labels
 
   my $fontHeight=$self->getFontHeight() * $lineSpacing;
-  my $node_label_height=2*$self->get_ymargin + $fontHeight;
-  my $levelHeight=max2($nodeHeight,$node_label_height) + $nodeYSkip;
 
   my $xpos;
-  my $ypos = $baseYPos;
   my ($pat_style,$pat);
 
   if (exists($Opts->{ballance})) {
@@ -735,15 +734,12 @@ sub recalculate_positions_vert {
 
     $xpos = $baseXPos + $level * (15+$nodeXSkip);
     $NI->{"XPOS"}= $xpos;
-    $NI->{"YPOS"}= $ypos;
-    $NI->{"NodeLabel_YPOS"}= $ypos-$nodeHeight;
-    $NI->{"EdgeLabel_YPOS"}= $ypos-$nodeHeight;
     my $label_xpos = $xpos + $nodeWidth + $labelsep;
-    $ypos += $levelHeight;
-    $self->{canvasHeight} += $levelHeight;
+    my $lines=0;
     if ($pattern_count) {
       ($pat_style,$pat)=@{$patterns->[0]};
-      $m=$self->getTextWidth($self->prepare_text($node,$pat,$grp));
+      ($m,$h)=$self->getTextWidthAndHeight($self->prepare_text($node,$pat,$grp));
+      $lines=$h if $lines<$h;
       if ($pat_style eq 'node') {
 	$NI->{"NodeLabelWidth"}=$m;
 	#$gen_info->{"NodeLabelWidth[0]"}=0;
@@ -755,6 +751,7 @@ sub recalculate_positions_vert {
 	$gen_info->{"EdgeLabel_XPOS[0]"}= $label_xpos;
 	$NI->{"EdgeLabel_XPOS"}= $label_xpos; #compat
       }
+      $NI->{"NodeLabelLines"}=$lines;
       $NI->{"X[0]"}=$m;
       $canvasWidth = max2($canvasWidth, $label_xpos + $m);
       $NI->{"After"}=0;
@@ -771,10 +768,11 @@ sub recalculate_positions_vert {
     my $sep = $Opts->{'columnsep['.$i.']'};
     $sep = $columnsep unless defined $sep;
     $canvasWidth+=$sep;
-    
     foreach $node (@{$nodes}) {
-      $m=$self->getTextWidth( $self->prepare_text($node,$pat,$grp) );
-      $node_info->{$node}{"X[$i]"}=$m;
+      my $NI = $node_info->{$node};
+      ($m,$h)=$self->getTextWidthAndHeight( $self->prepare_text($node,$pat,$grp) );
+      $NI->{"NodeLabelLines"}=$h if $NI->{"NodeLabelLines"}<$h;
+      $NI->{"X[$i]"}=$m;
       $max = max2($max,$m);
     }
     if ($pat_style eq 'node') {
@@ -785,6 +783,17 @@ sub recalculate_positions_vert {
       $gen_info->{"EdgeLabelWidth[$e_i]"}=$max;
     }
     $canvasWidth+=$max;
+  }
+  my $ypos = $baseYPos;
+  my $ymargin = $self->get_ymargin;
+  foreach $node (@{$nodes}) {
+    my $NI = $node_info->{$node};
+    $NI->{"YPOS"}= $ypos;
+    $NI->{"NodeLabel_YPOS"}= $ypos-$nodeHeight;
+    $NI->{"EdgeLabel_YPOS"}= $ypos-$nodeHeight;
+    my $levelHeight=max2($nodeHeight,2*$ymargin + $fontHeight*$NI->{"NodeLabelLines"}) + $nodeYSkip;
+    $ypos += $levelHeight;
+    $self->{canvasHeight} += $levelHeight;
   }
   $gen_info->{"NodeLabel_XMAX"}=$canvasWidth;
   $self->{canvasWidth} = $canvasWidth+$self->get_xmargin;
@@ -904,7 +913,6 @@ sub recalculate_positions {
 	$NI->{"X[$i]"}=$m;
 	$nodeLabelWidth=$m if $m>$nodeLabelWidth;
 	$n_nonempty+=$h if (!$skip_empty_nlabels or $m>0);
-
       }
     }
     $NI->{"NodeLabelWidth"}=$nodeLabelWidth;
@@ -1699,13 +1707,13 @@ sub redraw {
 	    && ($valign_edge=$label_style->{'-dodrawbox'} eq "yes");
     $NI->{"NodeHasBox"}=$node_has_box;
     if ($node_has_box or $node_style->{'-surroundtext'}) {
-      my $count = $skip_empty_nlabels ? $NI->{"NodeLabel_nonempty"} : scalar(@$node_patterns);
+      my $count =$NI->{"NodeLabel_nonempty"}; # : scalar(@$node_patterns);
       $NI->{"TextBoxCoords"} =
 	$vertical_tree
 	  ? [ 0+$gen_info->{"NodeLabel_XMIN"}-$xmargin,
 	      0+$NI->{"NodeLabel_YPOS"}-$ymargin,
 	      0+$gen_info->{"NodeLabel_XMAX"}+$xmargin,
-	      0+$NI->{"NodeLabel_YPOS"}+$ymargin+$lineHeight ]
+	      0+$NI->{"NodeLabel_YPOS"}+$ymargin+$NI->{"NodeLabelLines"}*$lineHeight ]
 	  : [ 0+$NI->{"NodeLabel_XPOS"}-$xmargin,
 	      0+$NI->{"NodeLabel_YPOS"}-$ymargin,
 	      0+$NI->{"NodeLabel_XPOS"}+
@@ -1906,7 +1914,7 @@ sub redraw {
 	    }
 	  }
 	  $e_i++;
-	  $self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$e_x,$e_y,
+	  $e_y=$self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$e_x,$e_y,
 				!$edge_has_box,
 				\%Opts,$grp,'Edge') unless $empty;
 	}
@@ -1924,7 +1932,7 @@ sub redraw {
 	  }
 	}
 	$n_i++;
-	$self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$n_x,$n_y,
+	$n_y=$self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$n_x,$n_y,
 			      !$node_has_box,
 			      \%Opts,$grp,'Node') unless $empty;
       }
@@ -2195,6 +2203,8 @@ sub draw_text_line {
   ##              and would refer only to $attribute variable, if any such
   ##              exists.
 
+  $x+=$textdelta;
+
   my $xskip=0;
   my $txt;
   my $at_text;
@@ -2203,6 +2213,8 @@ sub draw_text_line {
   my @color_stack;
   my %inline_opts;
   my $use_fs_colors = $self->get_useFSColors;
+  my $line;
+  my $font = $self->get_font;
   foreach (grep {length} split(m/([#\$]${bblock})/,$msg)) {
     if (/^\$${block}$/) {
       my $c=$1;
@@ -2213,32 +2225,37 @@ sub draw_text_line {
       } else {
 	$at_text=$self->prepare_text_field($node,$c,$grp);
       }
-      next if ($at_text) eq "";
-#      $objectno++;
-#      $txt="text_$objectno";
-      my $bid=$canvas->
-	createText($x+$xskip+$textdelta, $y,
-		   -anchor => 'nw',
-		   -text => $at_text,
-		   ($use_fs_colors ? (-fill => $self->which_text_color($fsfile,$c)) : ()),
-		   -font => $self->get_font,
-		   -tags => ['text','text_item', "text[$node]", "text[$node][$i]" ]
-		  );
-      # $self->store_id_pinfo($bid,$txt);
-      eval { #apply_style_opts
-	$canvas->itemconfigure($bid,
-		   %{$style->{"Text"}},
-		   %{$style->{"Text[$c]"}},
-		   %{$style->{"Text[$c][$i]"}},
-		   %{$style->{"Text[$c][$i][$j]"}},
-		   %inline_opts,
-		   (defined($color) ? (-fill => $color) : ())
-		  );
-      }; print STDERR $@ if $@;
-      $xskip+=$self->getTextWidth($at_text);
-      $self->store_obj_pinfo($bid,$node);
-      $node_info->{$node}{"Text[$c][$i][$j]"}=$bid;
-      $gen_info->{"attr:$bid"}=$c;
+      next unless length ($at_text);
+      my @opts=( -anchor => 'nw',
+		 ($use_fs_colors ? (-fill => $self->which_text_color($fsfile,$c)) : ()),
+		 -font => $font,
+		 -tags => ['text','text_item', "text[$node]", "text[$node][$i]","text[$node][$i][$j]" ]
+		);
+      my @opts2= (%{$style->{"Text"}||NoHash},
+		  %{$style->{"Text[$c]"}||NoHash},
+		  %{$style->{"Text[$c][$i]"}||NoHash},
+		  %{$style->{"Text[$c][$i][$j]"}||NoHash},
+		  %inline_opts,
+		  (defined($color) ? (-fill => $color) : ()));
+      my $last;
+      my $lines=0;
+      for $line (split /\n/,$at_text,-1) {
+	if ($lines++) {
+	  $xskip=0;
+	  $y+=$lineHeight;
+	}
+	$last=$line;
+	next unless length $line;
+	my $bid=$canvas->createText($x+$xskip, $y, -text => $line, @opts );
+	# $self->store_id_pinfo($bid,$txt);
+	eval { #apply_style_opts
+	  $canvas->itemconfigure($bid,@opts2);
+	}; print STDERR $@ if $@;
+	$self->store_obj_pinfo($bid,$node);
+	$gen_info->{"attr:$bid"}=$c;
+      }
+      $xskip+=$self->getTextWidth($last);
+      $node_info->{$node}{"Text[$c][$i][$j]"}="text[$c][$i][$j]";
     } elsif (/^\#${block}$/) {
       unless ($self->get_noColor) {
 	my $c=$1;
@@ -2272,25 +2289,32 @@ sub draw_text_line {
       }
     } else {
       if ($_ ne "") {
-#	$objectno++;
-#	$txt="text_$objectno";
-	my $bid=$canvas->
-	  createText($x+$xskip+$textdelta,
-		     $y,
-		     -text => encode($_),
-		     -anchor => 'nw',
-		     -font => $self->get_font,
-		     -tags => ['plaintext','text_item',"text[$node]", "text[$node][$i]"]
-		    );
-	#$self->store_id_pinfo($bid,$txt);
-	eval { #apply_style_opts
-	  $canvas->itemconfigure($bid,
-				%{$style->{Text}},
-				%inline_opts,
-				(defined($color) ? (-fill => $color) : ())
-			       );
-	}; print STDERR $@ if $@;
-	$xskip+=$self->getTextWidth($_);
+	my @opts = (%{$style->{Text}},
+		    %inline_opts,
+		    (defined($color) ? (-fill => $color) : ()));
+	my $lines=0;
+	my $last;
+	my $tags = ['plaintext','text_item',"text[$node]", "text[$node][$i]"];
+	for $line (split /\n/,$_,-1) {
+	  if ($lines++) {
+	    $xskip=0;
+	    $y+=$lineHeight;
+	  }
+	  $last=$line;
+	  next unless length $line;
+	  my $bid = $canvas->
+	    createText($x+$xskip,
+		       $y,
+		       -text => encode($line),
+		       -anchor => 'nw',
+		       -font => $font,
+		       -tags => $tags,
+		      );
+	  eval { #apply_style_opts
+	    $canvas->itemconfigure($bid, @opts);
+	  }; print STDERR $@ if $@;
+	}
+	$xskip+=$self->getTextWidth($last);
       }
     }
   }
@@ -2317,6 +2341,7 @@ sub draw_text_line {
       $self->store_obj_pinfo($bid,$node);
     }
   }
+  return $y;
 }
 
 sub parse_pattern {
