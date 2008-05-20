@@ -79,8 +79,9 @@ sub DrawArrows_cleanup {
 my @opts = qw(-tag -arrow -arrowshape -width -smooth -fill -dash);
 sub DrawArrows {
   my ($node,$styles,$edges,$opts)=@_;
-  my $i = 0;
+  my $i;
   my %props;
+  my $arrows = FileUserData('DrawArrows');
   foreach my $edge (@$edges) {
     my $raise = $edge->{-raise}||$opts->{-raise}||25;
     my $frac  = $edge->{-frac}||$opts->{-frac}||0.12;
@@ -92,8 +93,10 @@ sub DrawArrows {
       push @{$props{-coords}},qq(n,n,n+$dx,n+$dy,n+$raise+$dx,n+$dy,n+$raise+$dx,n+$raise+$dy,n+$dx,n+$raise+$dy,n-$raise+$dx,n+$raise+$dy,n-$raise+$dx,n+$dy,n,n);
     } elsif ($displayed_nodes_hash{$target}) {
       # same sentence
+      my $arr = $arrows->{$node}||=[];
+      $i=@{$arr};
       my $T="[! FileUserData('DrawArrows')->{\$this}[$i] !]";
-      FileUserData('DrawArrows')->{$node}[$i]=$target;
+      push @$arr,$target;
       $i++;
       my $X="(x$T-xn)";
       my $Y="(y$T-yn)";
