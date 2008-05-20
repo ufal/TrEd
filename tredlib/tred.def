@@ -634,6 +634,7 @@ the node as a child node of the new parent.
 
 sub CutPasteAfter {
   my($cutted,$ref_node)=@_;
+  _croak("CutPasteAfter: ref-node not given at ".ThisAddress($cutted)) unless $ref_node;
   my $p = $ref_node->parent;
   while ($p) {
     if( $p == $cutted ) {
@@ -962,17 +963,20 @@ sub DeleteLeafNode {
   my $n = $_[0] || $this;
   return unless ($n);
   my $ord=_node_ord($n);
-  my $order=$n->{$ord};
-
-  my $node = $n->root;
-  if (DeleteLeaf($n)) {
-    while ($node) {
-      $node->{$ord}-- if ($node->{$ord}>$order);
-      $node=$node->following;
+  if (length $ord) {
+    my $order=$n->{$ord};
+    my $node = $n->root;
+    if (DeleteLeaf($n)) {
+      while ($node) {
+	$node->{$ord}-- if ($node->{$ord}>$order);
+	$node=$node->following;
+      }
+      return 1;
+    } else {
+      return 0;
     }
-    return 1;
   } else {
-    return 0;
+    return DeleteLeaf($n) ? 1 : 0;
   }
 }
 
@@ -1291,7 +1295,7 @@ sub ShiftNodeRight {
     RepasteNode($node);
   } elsif ($node->parent) {
     my $rb = $node->rbrother;
-    CutPasteAfter($node) if $rb;
+    CutPasteAfter($node,$rb) if $rb;
   }
 }
 
@@ -2315,7 +2319,7 @@ Save all TrEd's stylesheets (to ~/.tred-stylesheets).
 
 sub SaveStylesheets {
   my ($patterns,$stylesheet) = @_;
-  main::saveStyleSheets($grp->{framegroup}) if GUI();
+  main::saveStyleSheets($grp->{framegroup},$main::stylesheetFile) if GUI();
 }
 
 =item C<ReloadStyleseets(filename?)>
