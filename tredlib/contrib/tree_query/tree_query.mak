@@ -140,6 +140,7 @@ sub RenewStylesheets {
   DeleteStylesheet('Tree_Query');
   CreateStylesheets();
   SetCurrentStylesheet('Tree_Query');
+  SaveStylesheets();
 }
 
 sub CreateStylesheets{
@@ -154,7 +155,7 @@ node: <?length($${node-type}) ? $${node-type}.': ' : '' ?>#{darkgreen}<?
   my $occ = Tree_Query::occ_as_text($this);
   length $occ ? ('${occurrences=('.$occ.')x}')  : ""
 ?><? $${optional} ? '${optional=?}'  : q()
-?>#{black}<? Tree_Query::serialize_conditions_as_stylesheet($this) ?>
+?>
 node: #{darkblue}${name}#{brown}<? my$d=$${description}; $d=~s{^User .*?:}{}; $d ?>
 node:<?
   ($this->{'#name'} =~ /^(?:and|or|not)$/) ? uc($this->{'#name'}) : '' 
@@ -164,7 +165,6 @@ node:<?
     join("\n",map { Tree_Query::as_text($_) } grep { $_->{'#name'} !~ /^(?:node|subquery|ref)$/ } $this->children)
   }
 ?>
-node:<? $this->{'#name'} eq 'test' ? ($${negate} ? '${negate=!} ' : '').'${operator}' : ''?>
 node:${b}
 style: <? 
   my $name = $this->{'#name'};
@@ -208,7 +208,7 @@ my %id;
 my %name2node_hash;
 sub init_id_map {
   my ($tree)=@_;
-  my @nodes = $tree->descendants;
+  my @nodes = grep { $_->{'#name'} =~ /^(?:node|subquery)$/ } $tree->descendants;
   %id = map {
     my $n=lc($_->{name});
     (defined($n) and length($n)) ? ($_=>$n) : ()
@@ -246,7 +246,7 @@ sub as_text {
   my $name = $node->{'#name'};
   $indent||='';
   if ($name eq 'not') {
-    return 'not('.join("\n${indent}and ",map { as_text($_,$indent."     ") } $node->children).')'
+    return 'NOT('.join("\n${indent}and ",map { as_text($_,$indent."     ") } $node->children).')'
   } elsif ($name eq 'not') {
     return '('.join("\n${indent}and ",map as_text($_,$indent."     "), $node->children).')';
   } elsif ($name eq 'or') {
@@ -316,21 +316,6 @@ sub arrow {
   return $arrow{$rel};
 }
 
-# my %cond_parent;
-# sub root_style_hook {
-#   my ($tree)=@_;
-#   %cond_parent=();
-#   for my $node ($tree->descendants) {
-#     my $cond = $node->{conditions};
-#     if ($cond) {
-# #      if ($cond->{negate}) {
-# 	$cond_parent{$cond}="$node";
-# #      } else {
-# #	$cond_parent{$_}="$node" for $cond->children;
-# #      }
-#     }
-#   }
-# }
 sub get_nodelist_hook {
   my ($fsfile,$tree_no,$prevcurrent,$show_hidden)=@_;
   my $tree = $fsfile->tree($tree_no);
@@ -343,125 +328,149 @@ sub get_nodelist_hook {
 sub node_style_hook {
   my ($node,$styles) = @_;
   my $i=0;
-#  AddStyle($styles,'Node',-parent => $cond_parent{$node}) if $cond_parent{$node};
   my @refs;
   my $showHidden = HiddenVisible();
   if ($showHidden) {
     @refs=($node) if $node->{'#name'} eq 'ref';
   } else {
-    @refs=grep { $_->{'#name'} eq 'ref' } $node->children;
+    @refs=grep { $_->{'#name'} eq 'ref' }
+      map { $_->{'#name'} eq 'not' ? $_->children : $_ }
+      $node->children;
   }
   for my $ref (@refs) {
-    DrawArrows($node,$styles,
-	       [
-		 map {
-		   my $name = $_->name;
-		   $name = $_->value->{label} if $name eq 'user-defined';
-		   my $target = $ref->{target};
-		   my $negate = $_->value->{negate};
-		   scalar {
-		     -target => $name2node_hash{lc($target)},
-		     -fill   => $showHidden ? 'gray' : arrow_color($name),
-		     (-dash   => $negate ? '-' : ''),
-		     -raise => 8+8*(++$i),
-		     -tag => 'extra_relation',
-		   }
-		 } SeqV($node->attr('relation'))
-		],
-	       {
-		 -arrow => 'last',
-		 -arrowshape => '14,18,4',
-		 -width => $showHidden ? 1 : 2,
-		 -smooth => 1,
-	       });
+    DrawArrows($node,$styles, [
+      map {
+	my $name = $_->name;
+	$name = $_->value->{label} if $name eq 'user-defined';
+	my $target = $ref->{target};
+	my $negate = ($node!=$ref && $ref->parent->{'#name'} eq 'NOT') ? 1 : 0;
+	scalar {
+	  -target => $name2node_hash{lc($target)},
+	  -fill   => $showHidden ? 'gray' : arrow_color($name),
+	  (-dash   => $negate ? '-' : ''),
+	  -raise => 8+8*(++$i),
+	  -tag => 'relation',
+	}
+      } SeqV($ref->attr('relation'))
+     ], {
+       -arrow => 'last',
+       -arrowshape => '14,18,4',
+       -width => $showHidden ? 1 : 2,
+       -smooth => 1,
+     });
   }
 }
 
+sub node_name {
+  my ($node)=@_;
+  die "#name!='node'" unless defined($node) and $node->{'#name'} eq 'node';
+  if (defined($node->{name})) {
+    return $node->{name}
+  } else {
+    my $i=0;
+    $i++ while (exists $name2node_hash{"ref$i"});
+    my $name = "ref$i";
+    $node->set_attr('name',$name);
+    $name2node_hash{$name}=$node;
+    return $name;
+  }
+}
 
 sub node_release_hook {
   my ($node,$target,$mod)=@_;
   return unless $target and $mod;
-  return 'stop' unless $target->parent and $node->parent;
   if ($mod eq 'Control') {
-    my @sel = map {
-      my $name = $_->name;
-      if ($name eq 'user-defined') {
-	qq{$name: }.$_->value->{label}
-      } else {
-	$name
-      }
-    } grep {
-      $_->value->{target} eq $target->{name}
-    } SeqV($node->attr('extra-relations'));
-    ListQuery('Select treebase connections to add or preserve',
-	      'multiple',
-	      [
-		map {
-		  my $name = $_->get_name;
-		  if ($name eq 'user-defined') {
-		    (map { qq{$name: $_} } $_->get_content_decl->get_attribute_by_name('label')->get_content_decl->get_values())
-		  } else {
-		    $name;
-		  }
-		} $node->type->schema->get_type_by_name('q-extra-relation.type')->get_content_decl->get_elements(),
-	      ],
-	      \@sel) || return;
-    init_id_map($node->root);
-    AddOrRemoveRelations($node,$target,\@sel,{-add_only=>0});
-    TredMacro::Redraw_FSFile_Tree();
-    ChangingFile(1);
+    my $type = $node->{'#name'};
+    my $target_type = $target->{'#name'};
+    return 'stop' unless $target_type =~/^(?:node|subquery)$/;
+    my $sq = first { $_->{'#name'} eq 'subquery' } ($node,$node->ancestors);
+    my $target_sq = first { $_->{'#name'} eq 'subquery' } ($target,$target->ancestors);
+    return 'stop' unless 
+      !defined($target_sq) or
+      (defined($sq) and first { $_==$target_sq } ($sq,$sq->ancestors));
+
+    if ($type eq 'node' or $type eq 'subquery') {
+      my @sel = map {
+	my $name = $_->name;
+	if ($name eq 'user-defined') {
+	  qq{$name: }.$_->value->{label}
+	} else {
+	  $name
+	}
+      } map { SeqV($_->{relation}) }
+        grep { $_->{target} eq $target->{name} }
+        grep { $_->{'#name'} eq 'ref' } $node->children;
+      ListQuery('Select query-node relations to add/preserve',
+		'multiple',
+		[
+		  map {
+		    my $name = $_->get_name;
+		    if ($name eq 'user-defined') {
+		      (map { qq{$name: $_} } $_->get_content_decl->get_attribute_by_name('label')->get_content_decl->get_values())
+		    } else {
+		      $name;
+		    }
+		  } $node->type->schema->get_type_by_name('q-extra-relation.type')->get_content_decl->get_elements(),
+		 ],
+		\@sel) || return;
+      init_id_map($node->root);
+      AddOrRemoveRelations($node,$target,\@sel,{-add_only=>0});
+      TredMacro::Redraw_FSFile_Tree();
+      ChangingFile(1);
+    } elsif ($type eq 'ref') {
+      init_id_map($node->root);
+      $node->{target}=node_name($target);
+    }
   }
   return;
+}
+
+sub SetRelation {
+  my ($node,$type,$opts)=@_;
+  my $rel = Fslib::Seq::Element->new( 
+    $type => Fslib::Container->new(undef,$opts) 
+  );
+  $node->{relation}||=Fslib::Seq->new();
+  @{$node->{relation}->elements_list}=( $rel );
+  return $rel;
 }
 
 # note: you have to call init_id_map($root); first!
 sub AddOrRemoveRelations {
   my ($node,$target,$types,$opts)=@_;
-  if (defined($target) and !defined($target->{name})) {
-    my $i=0;
-    $i++ while (exists $name2node_hash{"ref$i"});
-    $target->set_attr('name',"ref$i");
-    $name2node_hash{"ref$i"}=$target;
-  }
+  my $target_name = node_name($target);
   my %types = map { $_=> 1 } @$types;
-  my $attr = $opts->{-attribute} || 'extra-relations';
-  my $relations = $node->attr($attr);
-  my %have;
-  my @keep = grep {
-    my $rel_name = $_->name;
-    my $val = $_->value;
-    my $t = defined($val) && defined($target) && $val->{target};
-    if ($rel_name eq 'user-defined') {
-      $rel_name = $val->{label};
+  my @refs =
+    grep { lc($_->{target}) eq lc($target_name) }
+    grep { $_->{'#name'} eq 'ref' } $node->children;
+  for my $ref (@refs) {
+    my ($rel)=SeqV($ref->{relation});
+    if ($rel) {
+      my $rel_name = $rel->name;
+      my $val = $rel->value;
+      if ($rel_name eq 'user-defined') {
+	$rel_name = "$rel_name: ".$val->{label};
+      }
+      if ($opts->{-add_only}) {
+	delete $types{$rel_name}; # already have it
+      } elsif (!$types{$rel_name}) {
+	DeleteLeafNode($ref);
+      }
     }
-    if (defined($target) and lc($target->{name}) eq $t) {
-      $have{$rel_name}=1;
-      $opts->{-add_only} || $types{$rel_name}
-    } else {
-      1
-    }
-  } SeqV($relations);
+  }
   my @new;
-  for my $type (grep { !$have{$_} } @$types) {
+  for my $type (grep { $types{$_} } @$types) {
+    my $ref = NewSon($node);
+    $ref->{'#name'}='ref';
+    DetermineNodeType($ref);
+    $ref->{target}=$target_name;
     my ($name,$value);
     if ($type=~s/^(user-defined): //) {
-      $name=$1;
-      $value = Fslib::Container->new(undef,{
-	(defined($target) ? (target => lc($target->{name})) : ()),
-	label => $type
-       },1)
+      SetRelation($ref,'user-defined' => { label => $type });
     } else {
-      $name = $type;
-      $value = Fslib::Container->new(undef,{
-	(defined($target) ? (target => lc($target->{name})) : ()),
-      },1);
+      SetRelation($ref,$type);
     }
-    push @new,Fslib::Seq::Element->new($name=>$value);
-  }
-  if (!$relations) {
-    AddToSeq($node,$attr, @keep,@new);
-  } else {
-    @{$node->{$attr}->elements_list}=(@keep,@new);
+    push @new,$ref;
   }
   return @new;
 }
@@ -941,53 +950,17 @@ use constant {
   GROUP    => 2,
 };
 
-  sub _is_a_subquery {
-    my ($node)=@_;
-    (first { ref($_) and length($_->{min}) or length($_->{max}) } AltV($node->attr(q(occurrences))))
-      ? 1 : 0
-  }
-
 my $occurrences_strategy = SUB_QUERY;
 # serialize to SQL (or SQL fragment)
 sub serialize_conditions {
   my ($node,$opts)=@_;
   $opts||={};
   if ($node->parent) {
-    my $el = serialize_element({
+    return [serialize_element({
       %$opts,
       name => 'and',
-      condition => $node->{conditions},
-    });
-    my @sql;
-    push @sql,[$el,$node] if defined($el) and length($el);
-    if ($occurrences_strategy == SUB_QUERY) {
-      my @occ_child = grep { _is_a_subquery($_) } $node->children;
-      for my $child (@occ_child) {
-	my $subquery = make_sql($child,{
-	  count=>2,
-	  parent_id=>$opts->{id},
-	  join => $opts->{join},
-	  syntax=>$opts->{syntax},
-	});
-	my @occ;
-	for my $occ (AltV($child->{occurrences})) { # this is not optimal for @occ>1
-	  my ($min,$max)=($occ->{min},$occ->{max});
-	  if (length($min) and length($max)) {
-	    if ($min==$max) {
-	      push @occ,qq{($subquery)=$min};
-	    } else {
-	      push @occ,qq{($subquery) BETWEEN $min AND $max};
-	    }
-	  } elsif (length($min)) {
-	    push @occ,qq{($subquery)>=$min};
-	  } elsif (length($max)) {
-	    push @occ,qq{($subquery)<=$max};
-	  }
-	}
-	push @sql, [ '('.join(' OR ',@occ).')',$child ] if @occ;
-      }
-    }
-    return wantarray ? @sql : join(' AND ',map { $_->[0] } @sql);
+      condition => $node,
+    })];
   } else {
     init_id_map($root);
     return make_sql($root,{
@@ -997,6 +970,8 @@ sub serialize_conditions {
     });
   }
 }
+
+
 sub get_value_line_hook {
   my ($fsfile,$treeNo)=@_;
   return unless $fsfile;
@@ -1012,37 +987,8 @@ sub line_click_hook {
     if ($tag eq 'relation') {
       EditAttribute($node,'relation');
       Redraw();
-    } elsif ($tag eq 'extra_relation') {
-      EditAttribute($node,'extra-relations');
-      Redraw();
     }
   }
-}
-
-sub relation {
-  my ($n,$opts)=@_;
-  my ($id,$parent_id)=@$opts{qw(id parent_id)};
-  my ($rel) = SeqV($n->{relation});
-  my $name = $rel ? $rel->name : 'child';
-  my $condition;
-  if ($name eq 'child') {
-    $condition= qq{$id."parent_idx"=$parent_id."idx"};
-  } elsif ($name eq 'parent') {
-    $condition= qq{$parent_id."parent_idx"=$id."idx"};
-  } elsif ($name eq 'descendant') {
-    $condition= extra_relation($parent_id,$rel,$id,{%$opts,type=>$opts->{parent_type}});
-  } elsif ($name eq 'ancestor') {
-    $condition= extra_relation($parent_id,$rel,$id,{%$opts,type=>$opts->{parent_type}});
-  } elsif ($name eq 'user-defined') {
-    $condition= user_defined_relation($parent_id,$rel->value,$id,{%$opts,type=>$opts->{parent_type}});
-  }
-  if ($n->{optional}) {
-    # identify with parent
-    if (length($condition)) {
-      $condition = qq{(($condition) OR $id."idx"=$parent_id."idx")};
-    }
-  }
-  return $condition;
 }
 
 sub extra_relation {
@@ -1102,13 +1048,10 @@ sub extra_relation {
 	  join=>$opts->{join},
 	  expression => qq{$target.$order},
 	},
-	'<',0,$opts # there should be no ambiguity here, treat expressoins as positive
+	'<',$opts # there should be no ambiguity here, treat expressoins as positive
        );
   } else {
     die "Unsupported relation: $relation between nodes $id and $target\n";
-  }
-  if ($params->{negate}) {
-    $cond=qq{NOT($cond)};
   }
   return $cond;
 }
@@ -1126,10 +1069,10 @@ sub user_defined_relation {
 	  type=>$type,
 	  join=>$opts->{join},
 	  expression => qq{"eparents/eparent_idx"},
-	  negative=> $params->{negate},
+	  negative=> $opts->{negative},
 	},
 	qq{$target."idx"},
-	q(=),0,$opts,
+	q(=),$opts,
        );
   } elsif ($relation eq 'echild') {
     $cond = qq{$id."root_idx"=$target."root_idx" AND }.
@@ -1139,10 +1082,10 @@ sub user_defined_relation {
 	  type=>$type,
 	  join=>$opts->{join},
 	  expression => qq{"eparents/eparent_idx"},
-	  negative=>$params->{negate},
+	  negative=>$opts->{negative},
 	},
 	qq{$id."idx"},
-	q(=), 0, $opts,
+	q(=),$opts,
        )
   } elsif ($relation eq 'a/lex.rf') {
     $cond =  qq{$id."a_lex_idx"=$target."idx"}
@@ -1153,10 +1096,10 @@ sub user_defined_relation {
 	type=>$type,
 	join=>$opts->{join},
 	expression => qq{"a_aux/a_idx"},
-	negative=>$params->{negate},
+	negative=>$opts->{negative},
       },
       qq{$target."idx"},
-      qq(=),0,$opts,
+      qq(=),$opts,
      )
   } elsif ($relation eq 'a/lex.rf|a/aux.rf') {
     $cond =
@@ -1167,10 +1110,10 @@ sub user_defined_relation {
 	    type=>$type,
 	    join=>$opts->{join},
 	    expression => qq{"a_aux/a_idx"},
-	    negative=>$params->{negate},
+	    negative=>$opts->{negative},
 	  },
 	  qq{$target."idx"},
-	  qq(=),0,$opts,
+	  qq(=),$opts,
 	 ).')';
   } elsif ($relation eq 'coref_gram') {
     $cond = 
@@ -1180,10 +1123,10 @@ sub user_defined_relation {
 	  type=>$type,
 	  join=>$opts->{join},
 	  expression => qq{"coref_gram/corg_idx"},
-	  negative=>$params->{negate},
+	  negative=>$opts->{negative},
 	},
 	qq{$target."idx"},
-	q(=),0,$opts,
+	q(=),$opts,
        );
   } elsif ($relation eq 'coref_text') {
     $cond = 
@@ -1193,10 +1136,10 @@ sub user_defined_relation {
 	  type=>$type,
 	  join=>$opts->{join},
 	  expression => qq{"coref_text/cort_idx"},
-	  negative=>$params->{negate},
+	  negative=>$opts->{negative},
 	},
 	qq{$target."idx"},
-	q(=),0,$opts,
+	q(=),$opts,
        );
   } elsif ($relation eq 'compl') {
     $cond = 
@@ -1206,14 +1149,11 @@ sub user_defined_relation {
 	  type=>$type,
 	  join=>$opts->{join},
 	  expression => qq{"compl/compl_idx"},
-	  negative=>$params->{negate},
+	  negative=>$opts->{negative},
 	},
 	qq{$target."idx"},
-	q(=),0,$opts,
+	q(=),$opts,
        );
-  }
-  if ($params->{negate}) {
-    $cond=qq{NOT($cond)};
   }
   return $cond;
 }
@@ -1224,18 +1164,17 @@ sub get_query_nodes {
   if ($occurrences_strategy == SUB_QUERY) {
     my $n = $tree;
     while ($n) {
-      if ($n->parent) {
-	if (_is_a_subquery($n) and $n!=$tree) {
-	  $n = $n->following_right_or_up($tree);
-	  next;
-	} else {
-	  push @nodes, $n;
-	}
+      if ($n->{'#name'} eq 'node' or
+	  ($n==$tree and $n->{'#name'} eq 'subquery')) {
+	push @nodes, $n;
+      } elsif ($n->parent) {
+	$n = $n->following_right_or_up($tree);
+	next;
       }
       $n = $n->following($tree);
     }
   } else {
-    @nodes =  grep { $_->parent }  ($tree, $tree->descendants);
+    @nodes =  grep { $_->{'#name'} =~ /^(?:node|subquery)/ }  ($tree, $tree->descendants);
   }
   return @nodes;
 }
@@ -1252,42 +1191,40 @@ sub make_sql {
   my @where;
   my %conditions;
   my $extra_joins = $opts->{join} || {};
+  my $default_type = $tree->root->{'node-type'}||'a';
   for (my $i=0; $i<@nodes; $i++) {
     my $n = $nodes[$i];
-    my $table = $n->{'node-type'}||$tree->{'node-type'}||'a';
+    my $table = $n->{'node-type'}||$default_type;
     my $id = $id{$n};
     push @select, $id;
     my $parent = $n->parent;
     my $parent_id = $id{$parent};
     $conditions{$id} =
-      join(' AND ',
-	   sort grep { defined and length }
-	     (
-	       scalar(serialize_conditions($n,{
-		 type=>$table,
-		 id=>'___SELF___',
-		 parent_id=>$parent_id,
-		})),
-	       map { extra_relation('___SELF___',$_,$_->value->{target},{type=>$table}) } SeqV($n->attr('extra-relations'))
-	      ));
+      serialize_to_string(serialize_conditions($n,{
+	type=>$table,
+	id=>'___SELF___',
+	parent_id=>$parent_id,
+      }));
+
     my @conditions;
     if ($parent->parent) {
-      my $condition=q();
-      $condition.=relation($n,{%$opts,
-			       id=>$id,
-			       type => $table,
-			       parent_id=>$parent_id,
-			       parent_type=>($n->parent->{'node-type'}||$tree->{'node-type'}),
-			       join => $extra_joins,
-			      });
-      push @table,[$table,$id,$n,$condition];
+      my ($rel) = SeqV($n->{relation});
+      $rel ||= SetRelation($n,'child');
+      push @conditions,
+	[extra_relation($parent_id,$rel,$id, {
+	  %$opts,
+	  id=>$id,
+	  join => $extra_joins,
+	  type=>($n->parent->{'node-type'}||$default_type)
+	 }),$n];
+      push @table,[$table,$id,$n];
       push @conditions,
 	(map { [qq{$id{$_}."idx"}.
 		  ($conditions{$id} eq $conditions{$id{$_}} ? '<' : '!=' ).
 		    qq{${id}."idx"},$n] }
 	   grep { #$_->parent == $n->parent
 	     #  or
-	     my $type=$_->{'node-type'}||$tree->{'node-type'}||'a';
+	     my $type=$_->{'node-type'}||$default_type;
 	     $type eq $table and
 	       (first { !$_->{optional} } $_->ancestors)==(first { !$_->{optional} } $n->ancestors)
 	     }
@@ -1295,23 +1232,22 @@ sub make_sql {
     } else {
       push @table,[$table,$id,$n];
     }
-    push @conditions,
-    serialize_conditions($n,{
-      type=>$table,
-      id=>$id,
-      parent_id=>$parent_id,
-      join => $extra_joins,
-      syntax=>$opts->{syntax},
-    });
+    {
+      my $conditions = serialize_conditions($n,{
+	type=>$table,
+	id=>$id,
+	parent_id=>$parent_id,
+	join => $extra_joins,
+	syntax=>$opts->{syntax},
+      });
+      push @conditions, [$conditions,$n] if @$conditions;
+    }
     # where could also be obtained by replacing ___SELF___ with $id
     if ($n->{optional}) {
       # identify with parent
       if (@conditions) {
-	@conditions = ([ ['((',$n], AND_Group(@conditions), [qq{) OR $id."idx"=$parent_id."idx")},$n] ]);
+	@conditions = ( [ [['(('], @{_group(\@conditions,[' AND '])}, [qq{) OR $id."idx"=$parent_id."idx")}]], $n] );
       }
-    }
-    for my $rel (SeqV($n->attr('extra-relations'))) {
-      push @conditions,['('.extra_relation($id,$rel,$rel->value->{target},{type=>$table,join => $extra_joins,syntax=>$opts->{syntax}}).')',$n];
     }
     push @where, @conditions;
   }
@@ -1326,17 +1262,16 @@ sub make_sql {
       (($_==0 ? () : [', ','space']),
        [$select[$_].'."idx"',$n],
        [' AS "'.$select[$_].'.idx"',$n],
-       [q(, ').($nodes[$_]->{'node-type'}||$tree->{'node-type'}||'a').q('),$n],
+       [q(, ').($nodes[$_]->{'node-type'}||$default_type).q('),$n],
        [' AS "'.$select[$_].'.type"',$n]
       )
     } 0..$#nodes);
   }
   # joins
-  my @WHERE;
   {
     my $i=0;
     for my $t (@table) {
-      my ($tab, $name, $node, $condition)=@$t;
+      my ($tab, $name, $node)=@$t;
       push @sql, ($i++)==0 ? ["\nFROM\n  ",'space'] : [",\n  ",'space'];
       push @sql, ["$tab $name",$node];
       if ($extra_joins->{$name}) {
@@ -1346,18 +1281,24 @@ sub make_sql {
 	  push @sql, [' ','space'], [qq($join_type JOIN $join_tab $join_as ON $join_on),$node]
 	}
       }
-      push @WHERE, [$condition,$node] if defined($condition) and $condition=~/\S/;
     }
   }
-  push @sql, [ "\nWHERE\n     ",'space'],AND_Group(@WHERE,@where);
+  push @sql, [ "\nWHERE\n     ",'space'],@{_group(\@where,[' AND '])};
   unless (defined($tree_parent_id) and defined($id{$tree}) 
 	  or !defined($opts->{limit})) {
     push @sql, ["\n".limit($opts->{limit})."\n",'space']
   }
   if ($format) {
-    return \@sql;
+    return serialize_with_tags(\@sql,[$tree]);
   } else {
-    return join '',map { $_->[0] } @sql;
+#   use Data::Dumper;
+#   my $dump = Data::Dumper->new([\@sql,serialize_with_tags(\@sql,[$tree])],['sql','with_tags']);
+#   my $n=0;
+#   $dump->Seen({
+#     map { '$n'.($n++) => $_ } ($tree,$tree->descendants)
+#   });
+#   print $dump->Dump;
+    return serialize_to_string(\@sql);
   }
 }
 
@@ -1366,6 +1307,29 @@ sub AND_Group {
 	     map { ($_, ["\n AND ",'space']) } @_);
   pop @res; # pop the last AND
   return @res;
+}
+
+sub _group {
+  my ($array,$and_or) = @_;
+  return [ map {
+    ($_==0) ? ($array->[$_]) : ($and_or,$array->[$_])
+  } 0..$#$array ];
+}
+
+
+sub serialize_to_string {
+  my ($array) = @_;
+  Carp::cluck "not an array" unless ref($array) eq 'ARRAY';
+  return join '', map {
+    ref($_->[0]) ? serialize_to_string($_->[0]) : $_->[0]
+  } @$array;
+}
+
+sub serialize_with_tags {
+  my ($array,$tags) = @_;
+  return [map {
+    ref($_->[0]) ? @{serialize_with_tags($_->[0],[uniq(@$tags,@{$_}[1..$#$_])])} : [$_->[0], uniq(@$tags,@{$_}[1..$#$_])]
+  } @$array];
 }
 
 sub serialize_expression {
@@ -1434,7 +1398,7 @@ sub serialize_expression {
 }
 
 sub serialize_test {
-  my ($L,$R,$operator,$negate,$opts)=@_;
+  my ($L,$R,$operator,$opts)=@_;
   my ($left,$wrap_left) = ref($L) ? serialize_expression($L) : ($L);
   my ($right,$wrap_right) = ref($R) ? serialize_expression($R) : ($R);
   my $res;
@@ -1451,230 +1415,163 @@ sub serialize_test {
   if (defined $wrap_left) {
     $res=sprintf($wrap_left,$res);
   }
-  if ($negate) {
-    $res='NOT '.$res;
-  }
   return $res;
 }
 
 sub serialize_element {
   my ($opts)=@_;
-  my ($name,$value,$as_id,$parent_as_id)=map {$opts->{$_}} qw(name condition id parent_id);
+  my ($name,$node,$as_id,$parent_as_id)=map {$opts->{$_}} qw(name condition id parent_id);
   my $negative = $opts->{negative};
-  $negative!=$negative if ref($value) and $value->{negate};
+  $negative=!$negative if $name eq 'not';
   if ($name eq 'test') {
-    serialize_test({%$opts,expression=>$value->{a},negative=>$negative},
-		   {%$opts,expression=>$value->{b},negative=>$negative},
-		   $value->{operator},
-		   $value->{negate},
-		   $opts);
-  } elsif ($name =~ /^(?:and|or)$/) {
-   my $seq = $value->{'#content'};
-   return () unless (
-     UNIVERSAL::isa( $seq, 'Fslib::Seq') and
-     @$seq
-   );
-   my $condition = join(' '.uc($name).' ',
-			grep { defined and length }
-			map {
-			  my $n = $_->name;
-			  serialize_element({
-			    %$opts,
-			    name => $n,
-			    condition => $_->value,
-			    id => $as_id,
-			    parent_id => $parent_as_id,
-			    negative=>$negative
-			   }) } $seq->elements);
-   return () unless length $condition;
-   return ($value->{negate} ? "NOT ($condition)" :
-	   @$seq > 1 ? "($condition)" : $condition);
+    return
+      [serialize_test({%$opts,expression=>$node->{a},negative=>$negative},
+		      {%$opts,expression=>$node->{b},negative=>$negative},
+		      $node->{operator},
+		      $opts),$node];
+  } elsif ($name =~ /^(?:and|or|not)$/) {
+    my @c =
+      grep { @$_ }
+      map {
+	my $n = $_->{'#name'};
+	serialize_element({
+	  %$opts,
+	  name => $n,
+	  condition => $_,
+	  id => $as_id,
+	  parent_id => $parent_as_id,
+	  negative=>$negative
+	 })
+      } grep { $_->{'#name'} ne 'node' } $node->children;
+   return unless @c;
+   return
+     $name eq 'not' ? [[['NOT('],@{_group(\@c,[' AND '])},[')']],$node] :
+     $name eq 'and' ? [[['('],@{_group(\@c,[' AND '])},[')']],$node] :
+     $name eq 'or' ? [[['('],@{_group(\@c,[' OR '])},[')']],$node] : ();
+  } elsif ($name eq 'subquery') {
+    my $subquery = make_sql($node,{
+      format => 1,
+      count=>2,
+      parent_id=>$opts->{id},
+      join => $opts->{join},
+      syntax=>$opts->{syntax},
+    });
+    my @sql;
+    my @occ;
+    for my $occ (AltV($node->{occurrences})) { # this is not optimal for @occ>1
+      my ($min,$max)=($occ->{min},$occ->{max});
+      if (length($min) and length($max)) {
+	if ($min==$max) {
+	  push @occ,[[['('],@$subquery,[qq')=$min']],$node];
+	} else {
+	  push @occ,[[['('],@$subquery,[qq') BETWEEN $min AND $max']],$node];
+	}
+      } elsif (length($min)) {
+	push @occ,[[['('],@$subquery,[qq')>=$min']],$node];
+      } elsif (length($max)) {
+	push @occ,[[['('],@$subquery,[qq')<=$max']],$node];
+      }
+    }
+    return (@occ ? [[ ['('],@{_group(\@occ,[' OR '])},[')'] ],$node] : ());
+  } elsif ($name eq 'ref') {
+    my $target = $node->{target};
+    my ($rel) = SeqV($node->{relation});
+    if ($rel) {
+      return ['('.extra_relation($as_id,$rel,$target,$opts).')',$node];
+    } else {
+      return;
+    }
   } else {
-    warn "Unknown element $name ";
-  }
-}
-
-# serialize to stylesheet
-sub serialize_conditions_as_stylesheet {
-  my ($node)=@_;
-  if ($node->parent) {
-    return serialize_element_as_stylesheet( $node, 'conditions', 'and', $node->{conditions} );
-  } else {
+    Carp::cluck "Unknown element $name ";
     return;
   }
 }
 
-sub serialize_element_as_stylesheet {
-  my ($node,$path,$name,$value)=@_;
-  if ($name eq 'test') {
-    return ($value->{negate} ? "#{darkred(}\${$path/negate=NOT}#{)} " : '').
-           (
-	     "\${$path/a=".$value->{a}."} ".
-	     "#{darkblue(}\${$path/operator=".uc($value->{operator})."}#{)} ".
-	     "\${$path/b=".$value->{b}."} "
-	   );
-  } elsif ($name =~ /^(?:and|or)$/) {
-   my $seq = $value->{'#content'};
-   return () unless (
-     UNIVERSAL::isa( $seq, 'Fslib::Seq') and
-     @$seq
-   );
-   my $i=1;
-   return ($value->{negate} ? "#{darkred(}\${$path/negate=NOT}#{)} " : '').
-         "#{darkviolet(}\${$path=(}#{)}".
-       	  join(' #{darkviolet(}${'.$path.'/#content='.uc($name).'}#{)} ',map {
-	    my $n = $_->name;
-	    serialize_element_as_stylesheet($node,
-			      $path.'/#content/['.($i++).']'.$n,
-			      $n,
-			      $_->value) } $seq->elements
-	  ).
-	  "#{darkviolet(}\${$path=)}#{)}";
-  }
-}
-
 sub fix_netgraph_ord_to_precedes {
-  my ($node,$group) = @_;
-  if (ref($group)) {
-    my $seq = $group->{'#content'};
-    if (ref($seq)) {
-      my $elements_list=$seq->elements_list;
-      @$elements_list = map {
-	my @res=($_);
-	if ($_->name eq 'test') {
-	  my $val = $_->value;
-          if ($val->{operator}=~/[<>]/) {
-	    my ($x,$y)=($val->{a},$val->{b});
-	    if ($val->{operator} =~/>/) {
-	      ($x,$y)=($y,$x);
-	    }
-	    # we now assume $x < $y (we ignore the = in $x <= $y)
-	    my ($start,$end);
-	    my $ord = (($node->{'node-type'}||$node->root->{'node-type'}) eq 't') ? 'tfa/deepord' : 'ord';
-	    if ($x eq qq("$ord") and $y=~/^([[:alnum:]]+)\."\Q$ord\E"$/) {
-	      $end = $name2node_hash{lc($1)};
-	      $start=$node;
-	    } elsif ($y eq qq("$ord") and $x=~/^([[:alnum:]]+)\."\Q$ord\E"$/) {
-	      $start=$name2node_hash{lc($1)};
-	      $end=$node;
-	    }
-	    if ($start && $end) {
-	      AddOrRemoveRelations($start,$end,['order-precedes'],{-add_only=>1});
-	      @res=(); # remove the element
-	      ChangingFile(1);
-	    }
-	  }
-	} elsif ($_->name =~ /^(?:and|or)$/) {
-	  fix_netgraph_ord_to_precedes($node,$_->value);
-	}
-	@res;
-      } @$elements_list;
-    }
+  my ($test) = @_;
+  return unless $test->{'#name'} eq 'test' and $test->{operator}=~/[<>]/;
+  my ($x,$y)=($test->{a},$test->{b});
+  if ($test->{operator} =~/>/) {
+    ($x,$y)=($y,$x);
   }
-  return $group;
+  my $node = first { $_->{'#name'}=~/^(?:node|subquery)$/ } $test->ancestors;
+  return unless $node;
+  my $ord = (($node->{'node-type'}||$node->root->{'node-type'}) eq 't') ? 'tfa/deepord' : 'ord';
+  my $end;
+  my $rel;
+  if ($x eq qq("$ord") and $y=~/^([[:alnum:]]+)\."\Q$ord\E"$/) {
+    $end = $name2node_hash{lc($1)};
+    $rel  = 'order-precedes';
+  } elsif ($y eq qq("$ord") and $x=~/^([[:alnum:]]+)\."\Q$ord\E"$/) {
+    $end=$name2node_hash{lc($1)};
+    $rel  = 'order-follows';
+  }
+  if ($end) {
+    my $ref = NewRBrother($test);
+    $ref->{'#name'}='ref';
+    DetermineNodeType($ref);
+    $ref->{target}=$end->{name};
+    SetRelation($ref,$rel);
+    DeleteLeafNode($test);
+    ChangingFile(1);
+    return $ref
+  }
 }
 
 sub fix_tecto_coap {
-  my ($node,$group) = @_;
-  if (ref($group)) {
-    my $seq = $group->{'#content'};
-    if (ref($seq)) {
-      my $elements_list=$seq->elements_list;
-      @$elements_list = map {
-	my @res=($_);
-	if ($_->name eq 'test') {
-	  my $val = $_->value;
-	  if ($val->{operator} eq 'in'
-		and $val->{a} eq q("functor")) {
-	    my $y = $val->{b};
-	    $y=~s/\s//g;
-	    $y=~s/^\(|\)$//g;
-	    if (join(',',uniq sort split(/,/,$y)) eq q('ADVS','APPS','CONFR','CONJ','CONTRA','CSQ','DISJ','GRAD','OPER','REAS')) {
-	      $val->{a} = q("nodetype");
-	      $val->{b} = q('coap');
-	      $val->{operator} = '=';
-	      ChangingFile(1);
-	    }
-	  }
-	} elsif ($_->name =~ /^(?:and|or)$/) {
-	  fix_tecto_coap($node,$_->value);
-	}
-	@res;
-      } @$elements_list;
+  my ($node) = @_;
+  return unless $node->{'#name'} eq 'test';
+  if ($node->{operator} eq 'in'
+      and $node->{a} eq q("functor")) {
+    my $y = $node->{b};
+    $y=~s/\s//g;
+    $y=~s/^\(|\)$//g;
+    if (join(',',uniq sort split(/,/,$y)) eq q('ADVS','APPS','CONFR','CONJ','CONTRA','CSQ','DISJ','GRAD','OPER','REAS')) {
+      $node->{a} = q("nodetype");
+      $node->{b} = q('coap');
+      $node->{operator} = '=';
+      ChangingFile(1);
     }
   }
-  return $group;
 }
 
 sub fix_or2in {
-  my ($node,$group) = @_;
-  if (ref($group)) {
-    my $seq = $group->{'#content'};
-    if (ref($seq)) {
-      my $elements_list=$seq->elements_list;
-      @$elements_list = map {
-	my $el = $_;
-	my @res=($el);
-	my $name = $el->name;
-	if ($name eq 'or' or $name eq 'and') {
-	  my $or = $el->value->{'#content'};
-	  if (ref($or)) {
-	    my $tests=$or->elements_list;
-	    if (@$tests>3
-		and !(first { !($_->name eq 'test' and $_->value ->{operator} eq '=') } @$tests) # all are tests with =
-		and !($name eq 'and' and first { !($_->value->{negate}) } @$tests)            # all have the same a
-		and !(first { !($_->value->{a} eq $tests->[0]->value->{a}) } @$tests)            # all have the same a
-	       ) { 
-	      ChangingFile(1);
-	      @res = (
-		Fslib::Seq::Element->new(
-		  'test',
-		  Fslib::Struct->new({
-		    negate => $name eq 'or' ? $el->value->{negate} : !$el->value->{negate},
-		    a => $tests->[0]->value->{a},
-		    operator => 'in',
-		    b => '('.join(',', sort map { $_->value->{b} } @$tests) .')',
-		  },1)
-		)
-	      );
-	    } else {
-	      fix_or2in($node,$el->value);
-	    }
-	  }
-	}
-	@res;
-      } @$elements_list;
-    }
+  my ($or) = @_;
+  return unless $or->{'#name'} eq 'or';
+  my @tests = $or->childnodes;
+  if (@tests>3
+      and !(first { !($_->{'#name'} eq 'test' and $_->{operator} eq '=') } @tests) # all are tests with =
+      and !(first { !($_->{a} eq $tests[0]->{a}) } @tests)            # all have the same a
+     ) {
+    ChangingFile(1);
+    $tests[0]->{operator}='in';
+    $tests[0]->{b}='('.join(',', sort map { $_->{b} } @tests) .')';
+    DeleteLeafNode($_) for (@tests[1..$#tests]);
   }
-  return $group;
 }
 
 
 sub __serialize_node {
   my ($n)=@_;
   my $type=$n->{'node-type'} || $n->root->{'node-type'};
-  return join(' AND ',
-       sort grep { defined and length }
-	 (
-	   scalar(serialize_conditions($n,{
-	     type=>$type,
-	     id=>'___SELF___',
-	     parent_id=>'___PARENT___',
-	   })),
-	   map { extra_relation('___SELF___', $_,$_->value->{target},{type=>$type}) } SeqV($n->attr('extra-relations'))
-	  ));
+  return serialize_to_string(
+    serialize_conditions($n,{
+      type=>$type,
+      id=>'___SELF___',
+      parent_id=>'___PARENT___',
+    }));
 }
 
 sub __test_optional_chain {
   my ($node)=@_;
   return unless $node;
-  my $son = $node->firstson;
+  my @kids = grep { $_->{'#name'} eq 'node' } $node->children;
+  my $son = $kids[0];
   return (
-    $son
-    and (!$son->rbrother)
-    and ($son->children<=1)
+    @kids==1
+    and ((grep { $_->{'#name'} eq 'node' } $son->children)<=1)
     and (!$son->{relation} or $son->{relation}->name_at(0) eq 'child')
-    and !_is_a_subquery($node)
+    and $node->{'#name'} ne 'subquery'
     and (!$node->{relation} or $node->{relation}->name_at(0) eq 'child')
   )
   ? 1 : 0;
@@ -1682,6 +1579,7 @@ sub __test_optional_chain {
 
 sub reduce_optional_node_chain {
   my ($node)=@_;
+  return unless $node->{'#name'} eq 'node';
   my $parent = $node->parent;
   return unless $parent and $parent->parent;
   my $conditions = __serialize_node($node);
@@ -1691,32 +1589,32 @@ sub reduce_optional_node_chain {
   while (__test_optional_chain($last) and ($last==$node or $conditions eq __serialize_node($last))) {
     $max_length++;
     $min_length++ unless $last->{optional};
-    $last=$last->firstson;
+    ($last) = grep { $_->{'#name'} eq 'node' } $node->children;
   }
   if ($max_length>1) {
     ChangingFile(1);
     # trim the chain between $node and $last
-    my $son = $node->firstson;
-    CutPasteAfter($last,$node);
-    DeleteSubtree($son);
-    AddOrRemoveRelations($node,$last,['descendant'],{
-      -add_only=>1
-    });
-    AddOrRemoveRelations($node,undef,['descendant'],{
-      -attribute=>'relation',
-      -add_only=>0
-    });
-    $node->{occurrences}=Fslib::Struct->new({
+    my $subquery = NewRBrother($node);
+    $subquery->{'#name'} = 'subquery';
+    DetermineNodeType($subquery);
+    CutPasteAfter($last,$subquery);
+    AddOrRemoveRelations($subquery,$last,['descendant'],{ -add_only=>1 });
+    SetRelation($subquery,'descendant');
+    $subquery->{occurrences}=Fslib::Struct->new({
       max => 0
     });
-    $node->{optional}=0;
-    $node->set_attr('conditions/negate',!$node->attr('conditions/negate'));
-    my ($rel) = AddOrRemoveRelations($last,undef,['descendant'],{
-      -attribute=>'relation',
-      -add_only=>0,
+    my $not = NewChild($subquery);
+    $not->{'#name'}='not';
+    DetermineNodeType($not);
+    for my $child (reverse grep { $_->{'#name'} ne 'node' } $node->children) {
+      CutPaste($child,$not)
+    }
+    DeleteSubtree($node);
+    SetRelation($last,'descendant', {
+      $min_length ? (min_length => $min_length) : (),
+      max_length => $max_length,
     });
-    $rel->value->{min_length}=$min_length if $min_length;
-    $rel->value->{max_length}=$max_length;
+    return $subquery;
   }
 }
 
@@ -1725,30 +1623,29 @@ sub fix_netgraph_query {
   ChangingFile(0);
   {
     my $node = $root;
+    my $next;
     while ($node) {
-      fix_or2in($node,$node->{conditions});
+      fix_or2in($node);
       $node=$node->following;
     }
   }
   {
     my $node = $root;
     while ($node) {
-      fix_tecto_coap($node,$node->{conditions});
+      fix_tecto_coap($node);
       $node=$node->following;
     }
   }
   {
     my $node = $root;
     while ($node) {
-      reduce_optional_node_chain($node);
-      $node=$node->following;
+      $node = reduce_optional_node_chain($node) || $node->following;
     }
   }
   {
     my $node = $root;
     while ($node) {
-      fix_netgraph_ord_to_precedes($node,$node->{conditions});
-      $node=$node->following;
+      $node = fix_netgraph_ord_to_precedes($node)||$node->following;
     }
   }
 }
