@@ -249,6 +249,11 @@ sub scale {
   for my $item ($c->find(withtag=>'scale_width')) {
     $c->itemconfigure($item, -width => $factor*$c->itemcget($item,'-width'));
   }
+  for my $item ($c->find(withtag=>'scale_arrow')) {
+    my $shape=$c->itemcget($item,'-arrowshape');
+    next unless $shape;
+    $c->itemconfigure($item, -arrowshape => [ map {$_*$factor} @$shape ]);
+  }
 
 
   $c->xviewCoord($x*$factor,$xview);
@@ -786,7 +791,7 @@ sub recalculate_positions_vert {
   }
   my $ypos = $baseYPos;
   my $ymargin = $self->get_ymargin;
-  foreach $node (@{$nodes}) {
+  foreach $node ($self->get_reverseNodeOrder ? reverse @{$nodes} : @{$nodes}) {
     my $NI = $node_info->{$node};
     $NI->{"YPOS"}= $ypos;
     $NI->{"NodeLabel_YPOS"}= $ypos-$nodeHeight;
@@ -1663,7 +1668,7 @@ sub redraw {
       my $l;
       my $arrow_shape = $arrowshape[$lin] || $self->get_lineArrowShape;
       my @opts = ($self->line_options($node,$fsfile->FS,$can_dash),
-		     -tags => ['line','scale_width'],
+		     -tags => ['line','scale_width','scale_arrow'],
 		     -arrow =>  $arrow[$lin] || $self->get_lineArrow,
                      (defined($arrow_shape) ? (-arrowshape => $arrow_shape) : ()),
 		     -width =>  $width[$lin] || $self->get_lineWidth,
