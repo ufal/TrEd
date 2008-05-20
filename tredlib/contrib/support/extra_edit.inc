@@ -181,8 +181,15 @@ sub delete_node_keep_children {
   my $node=shift()||$this;
   my $parent = $node->parent;
   return unless $parent;
-  for my $child ($node->children) {
-    CutPaste($child,$parent);
+  my $ordering=TredMacro::_node_ord($node);
+  if (defined($ordering) and length($ordering)) {
+    for my $child ($node->children) {
+      CutPaste($child,$parent);
+    }
+  } else {
+    for my $child ($node->children) {
+      CutPasteBefore($child,$node);
+    }
   }
   DeleteLeafNode($node);
   if ($this==$node) {
