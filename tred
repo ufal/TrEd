@@ -8516,6 +8516,10 @@ sub determineNodeType {
 	  @ntypes = grep { $_->[1]->get_role eq '#NODE' }
 	    map { [ $_->get_name, $_->get_content_decl ] }
 	      $member_decl->get_elements;
+	  if (defined $node->{'#name'}) {
+	    $ntype = first { $_->[0] eq $node->{'#name'} } @ntypes;
+	    $ntype=$ntype->[1] if $ntype;
+	  }
 	} else {
 	  warn "I'm confused - found role #CHILDNODES on a ".$member_decl->get_decl_type_str().", which is neither a list nor a sequence...\n".
 	    Dumper($member_decl);
@@ -8547,6 +8551,10 @@ sub determineNodeType {
 	  @ntypes = grep { $_->[1]->get_role eq '#NODE' }
 	    map { [ $_->get_name, $_->get_content_decl ] }
 	    $tt->get_elements;
+	  if (defined $node->{'#name'}) {
+	    $ntype = first { $_->[0] eq $node->{'#name'} } @ntypes;
+	    $ntype=$ntype->[1] if $ntype;
+	  }
       } else {
 	warn "I'm confused - found role #CHILDNODES on something which is neither a list nor a sequence...\n".
 	  Dumper($tt);
