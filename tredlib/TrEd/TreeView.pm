@@ -2319,6 +2319,7 @@ sub draw_text_line {
 	  eval { #apply_style_opts
 	    $canvas->itemconfigure($bid, @opts);
 	  }; print STDERR $@ if $@;
+	  $self->store_obj_pinfo($bid,$node);
 	}
 	$xskip+=$self->getTextWidth($last);
       }
