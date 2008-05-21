@@ -1,3 +1,4 @@
+ne_tree
 # -*- cperl -*-
 
 {
@@ -9,17 +10,17 @@ BEGIN {
   import TredMacro;
 }
 
-Bind sub { test(1); ChangingFile(0) } => {
+Bind sub { test(1,{one_tree=>1}); ChangingFile(0) } => {
   key => 't',
   menu => 'TrEd-based search (one tree)',
   context=>'Tree_Query',
 };
-Bind sub { test(1,{plan=>1}); ChangingFile(0) } => {
-  key => 'p',
-  menu => 'TrEd-based search with planner',
+Bind sub { test(1,{plan=>1, one_tree=>1}); ChangingFile(0) } => {
+  key => 'P',
+  menu => 'TrEd-based search with planner (one tree)',
   context=>'Tree_Query',
 };
-Bind sub { test(1,{all_trees=>1}); ChangingFile(0) } => {
+Bind sub { test(1); ChangingFile(0) } => {
   key => 'Ctrl+t',
   menu => 'TrEd-based search (all trees)',
   context=>'Tree_Query',
@@ -38,14 +39,13 @@ TODO:
 - simplify query editing:
 
   - edit conditions as text in a text editor (with highlighting)
-    (or graphically in TrEd? - in that way we could add and/or nodes that we could
-     also use for subqueries and conditional extra-relations)
 
-  - this latter could be probably implemented simply using roles and hiding with get_nodelist_hook
+  - graphically in TrEd - in that way we could add and/or nodes that we can
+    also use for subqueries and conditional extra-relations)
 
 - make Ctrl|Ctrl+insert macros schema aware
 
-- support for multi-line attributes in TreeView
+- [X] support for multi-line attributes in TreeView
 
 - support for macro-definable toolbars
 
@@ -53,7 +53,7 @@ TODO:
 
 - fully define attribute tests and simplify syntax (n1.gram/sempos instead of n1.'gram/sempos')
 
-- and/or/extra-relation/condition/subquery nodes for combining tests with sub-queries
+- [X] and/or/extra-relation/condition/subquery nodes for combining tests with sub-queries
 (displayed as sub-trees).  Maybe conditions should be subtrees anyway,
 only hidden. Condition node is a conjunction of tests, and there are
 furhter and/or/extra-relation/subquery nodes.
@@ -91,7 +91,7 @@ matches the root of the defined query).
        ### or just: $n1 child $n2
        $n1 order-precedes $n2
 
-- relational predicates that one can use in boolean
+- [X] relational predicates that one can use in boolean
   combinations like (child(ref0) or order-precedes(ref1))
 
 - define exact syntax for a term in the tree-query
@@ -144,7 +144,7 @@ sub start_hook {
   #  print STDERR "$query_file\n";
   #plan_query($query_tree) if $opts{plan};
   die "Query tree $query_fn#$query_id not found\n" unless ref $query_tree;
-  $evaluator = Tree_Query::Evaluator->new($query_tree,{all_trees=>1,plan=>$opts{plan}});
+  $evaluator = Tree_Query::Evaluator->new($query_tree,{plan=>$opts{plan}});
 
   # print STDERR "initialized @iterators, $query_pos\n";
   # print $query_node,",",$query_tree->{id},"\n";
@@ -180,26 +180,31 @@ sub test {
     ($fl and $fl->name eq 'Tree_Query')
   } TrEdWindows();
   return unless $win;
-  my $cur_win=$grp;
-  SetCurrentWindow($win);
-  print STDERR "Searching...\n" if $DEBUG;
+  my $fsfile = CurrentFile($win);
+  return unless $fsfile;
+  eval {
+    print STDERR "Searching...\n" if $DEBUG;
+    $Tree_Query::btred_results=1;
+    %Tree_Query::is_match=();
+    my $one_tree = delete $opts->{one_tree};
+    if ($one_tree) {
+      $opts->{tree}=$fsfile->tree(CurrentTreeNumber($win));
+    }
+    $opts->{fsfile} = $fsfile;
+    $evaluator = Tree_Query::Evaluator->new($query_tree,$opts) if !$evaluator or $restart;
+    #  return;
+    my $match = $evaluator->find_next_match();
+    if ($match) {
+      %Tree_Query::is_match = map { $_ => 1 } @$match;
+      print join(",",map { $_->{id}.": ".$_->{functor} } @$match)."\n";
+      SetCurrentNodeInOtherWindow($win,$match->[0]);
+    }
+    print STDERR "Searching done!\n" if $DEBUG;
 
-  $Tree_Query::btred_results=1;
-  %Tree_Query::is_match=();
-
-  $evaluator = Tree_Query::Evaluator->new($query_tree,$opts) if !$evaluator or $restart;
-#  return;
-  my $match = $evaluator->find_next_match();
-  if ($match) {
-    %Tree_Query::is_match = map { $_ => 1 } @$match;
-    print join(",",map { $_->{id}.": ".$_->{functor} } @$match)."\n";
-    $this = $match->[0];
-  }
-
-  print STDERR "Searching done!\n" if $DEBUG;
-
-  Redraw();
-  SetCurrentWindow($cur_win);
+    $Redraw='all';
+  };
+  my $err = $@;
+  die $err if $err;
 }
 
 
@@ -237,18 +242,6 @@ sub test {
     'coref_gram' => q(grep $_ eq $end->{id}, TredMacro::ListV($start->{'coref_gram.rf'})),
     'compl' => q(grep $_ eq $end->{id}, TredMacro::ListV($start->{'compl.rf'})),
    );
-
-
-  sub _is_a_subquery {
-    my ($node)=@_;
-    (grep {ref($_) and (length($_->{min}) or length($_->{max}))} (TredMacro::AltV($node->attr(q(occurrences)))))
-      ? 1 : 0
-  }
-  sub _filter_subqueries {
-    my ($node)=@_;
-    return $node, map { _is_a_subquery($_) ? () : _filter_subqueries($_)
-    } $node->children;
-  }
 
 
   sub new {
@@ -299,21 +292,21 @@ sub test {
 
     my $type = $query_tree->type->get_base_type_name;
     unless ($type eq 'q-query.type' or
-	      $type eq 'q-node.type') {
-      die "Not a query tree!\n";
+	    $type eq 'q-subquery.type') {
+      die "Not a query tree: $type!\n";
     }
     my $roots;
     if ($opts->{plan}) {
       if ($self->{parent_query}) {
 	$roots = Tree_Query_Btred::Planner::plan(
-	  [ _filter_subqueries($query_tree) ],
+	  [ Tree_Query::get_query_nodes($query_tree) ],
 	  $query_tree->parent,
 	  $query_tree
 	 );
       } else {
 	Tree_Query_Btred::Planner::name_all_query_nodes($query_tree);
 	$roots = Tree_Query_Btred::Planner::plan([
-	  map { _filter_subqueries($_) } ($type eq 'q-query.type' ? ($query_tree->children) : ($query_tree))
+	  Tree_Query::get_query_nodes($query_tree)
 	 ],$query_tree);
       }
     } else {
@@ -327,7 +320,7 @@ sub test {
     } else {
       ($query_node)=@$roots;
     }
-    my @query_nodes=_filter_subqueries($query_node);
+    my @query_nodes=Tree_Query::get_query_nodes($query_tree);
     %name2pos = map {
       my $name = lc($query_nodes[$_]->{name});
       (defined($name) and length($name)) ? ($name=>$_) : ()
@@ -338,7 +331,7 @@ sub test {
     }
 
     {
-      my @all_query_nodes = ($query_node->root->descendants);
+      my @all_query_nodes = grep {$_->{'#name'} =~ /^(node|subquery)$/ } ($query_node->root->descendants);
       {
 	my %node2match_pos = map { $all_query_nodes[$_] => $_ } 0..$#all_query_nodes;
 	$self->{pos2match_pos} = [
@@ -369,10 +362,14 @@ sub test {
       my $iterator;
       if (!$self->{parent_query} and $qn==$query_node) {
 	# top-level node iterates throguh all nodes
-	if ($opts->{all_trees}) {
-	  $iterator = FileTreeIterator->new($conditions);
+	if ($opts->{iterator}) {
+	  $iterator = $opts->{iterator};
+	} elsif ($opts->{tree}) {
+	  $iterator = TreeIterator->new($conditions,$opts->{tree});
+	} elsif ($opts->{fsfile}) {
+	  $iterator = FSFileIterator->new($conditions,$opts->{fsfile});
 	} else {
-	  $iterator = TreeIterator->new($conditions);
+	  $iterator = CurrentFileIterator->new($conditions);
 	}
       } else {
 	$iterator = $self->create_iterator($qn,$conditions);
@@ -458,7 +455,7 @@ sub test {
     my $conditions = $self->serialize_element({
       %$opts,
       name => 'and',
-      condition => $qnode->{conditions},
+      condition => $qnode,
     });
 
     my $pos = $opts->{query_pos};
@@ -479,13 +476,159 @@ sub test {
       $conditions=undef
     }
 
-    # extra-relations:
-    # relations aiming forward will be evaluated on the target node
-    my $reverted=$opts->{reverted_relations};
-    my @relations = defined($reverted->[$pos]) ? @{$reverted->[$pos]} : (); # won't be needed when we plan the query
-    for my $rel (TredMacro::SeqV($qnode->attr('extra-relations'))) {
+    print STDERR "CONDITIONS[$pos/$match_pos]: $conditions\n" if $DEBUG;
+    my $check_preceding = '';
+
+    my $recompute_cond = $opts->{recompute_condition}[$match_pos];
+    if (defined $recompute_cond) {
+      $check_preceding = join('', map {"\n   and ".'$conditions['.$_.']->($matched_nodes->['.$self->{pos2match_pos}[$_].'],1) '} sort { $a<=>$b } keys %$recompute_cond);
+    }
+    if (length $check_preceding) {
+      $check_preceding = "\n".
+	'  and ($backref or '.
+	  '($matched_nodes->['.$match_pos.']=$node) # a trick: make it appear as if this node already matched!'.
+	    $check_preceding.
+	')';
+    }
+    my $nodetest = '$node and ($backref or '
+      .(defined($optional) ? $optional.'==$node or ' : '')
+      .'!exists($have{$node}))';
+    my $sub = qq(#line 0 "query-node/${match_pos}"\n)
+      . 'sub { my ($node,$backref)=@_; '."\n  "
+       .$nodetest
+       .(defined($conditions) ? "\n  and ".$conditions : '')
+       . $check_preceding
+       ."\n}";
+    print STDERR "SUB: $sub\n" if $DEBUG;
+    return $sub;
+  }
+
+  sub serialize_element {
+    my ($self,$opts)=@_;
+    my ($name,$node)=map {$opts->{$_}} qw(name condition);
+    my $pos = $opts->{query_pos};
+    my $match_pos = $self->{pos2match_pos}[$pos];
+    if ($name eq 'test') {
+      my %depends_on;
+      my $left = $self->serialize_expression({%$opts,
+					      depends_on => \%depends_on,
+					      expression=>$node->{a}
+					     }); # FIXME: quoting
+      my $right = $self->serialize_expression({%$opts,
+					       depends_on => \%depends_on,
+					       expression=>$node->{b}
+					      }); # FIXME: quoting
+      my $operator = $node->{operator};
+      if ($operator eq '=') {
+	if ($right=~/^(?:\d*\.)?\d+$/ or $left=~/^(?:\d*\.)?\d+$/) {
+	  $operator = '==';
+	} else {
+	  $operator = 'eq';
+	}
+      } elsif ($operator eq 'like') {
+	# FIXME, this is ugly
+	$operator = '=~';
+	$right =~s{^'|'$}{}g;
+	$right =~ s{\\}{\\\\}g;
+	$right =~ s{\}}{\\\}}g;
+	$right=q(m{^\Q).$right.q(\E$});
+	$right=~s{%}{\\E.*\\Q}g;
+	$right=~s{_}{\\E.\\Q}g;
+	$right=~s{\\Q\\E}{}g;
+      } elsif ($operator eq '~') {
+	$operator = '=~';
+      }
+      my $condition;
+      if ($operator eq '~*') {
+	$condition='do{ my $regexp='.$right.'; '.$left.'=~ /$regexp/i}';
+      } elsif ($operator eq 'in') {
+	# TODO: 'first' is actually pretty slow, we should use a disjunction
+	# but splitting may be somewhat non-trivial in such a case
+	# - postponing till we know exactly how a tree-query term may look like
+	$condition='do{ my $node='.$left.'; grep $_ eq '.$left.', '.$right.'}';
+	# #$condition=$left.' =~ m{^(?:'.join('|',eval $right).')$}';
+	# 	$right=~s/^\s*\(//;
+	# 	$right=~s/\)\s*$//;
+	# 	my @right = split /,/,$right;
+	# 	$condition='do { my $node='.$left.'; ('.join(' or ',map { '$node eq '.$_ } @right).')}';
+      } else {
+	$condition='('.$left.' '.$operator.' '.$right.')';
+      }
+      my $target_match_pos = TredMacro::max($match_pos,keys %depends_on);
+      my $target_pos = TredMacro::Index($self->{pos2match_pos},$target_match_pos);
+      if (defined $target_pos) {
+	# target node in the same sub-query
+	if ($target_pos<=$pos) {
+	  return $condition;
+	} elsif ($target_pos>$pos) {
+	  $opts->{recompute_condition}[$target_match_pos]{$pos}=1;
+	  return ('( $$query_pos < '.$target_pos.' ? '.int(!$opts->{negative}).' : '.$condition.')');
+	}
+      } else {
+	# this node is matched by some super-query
+	if ($target_match_pos > $self->{parent_query_match_pos}) {
+	  # we need to postpone the evaluation of the whole sub-query up-till $matched_nodes->[$target_pos] is known
+	  $self->{postpone_subquery_till}=$target_match_pos if ($self->{postpone_subquery_till}||0)<$target_match_pos;
+	}
+	return $condition;
+      }
+    } elsif ($name =~ /^(?:and|or|not)$/) {
+      my $negative = $opts->{negative} ? 1 : 0;
+      if ($name eq 'not') {
+	$negative=!$negative;
+      }
+      my @c =grep {defined and length}
+	map {
+	  $self->serialize_element({
+	    %$opts,
+	    negative => $negative,
+	    name => $_->{'#name'},
+	    condition => $_,
+	  })
+	} grep { $_->{'#name'} ne 'node' } $node->children;
+      return () unless @c;
+      if ($name eq 'not') {
+	return 'not('.join("\n  and ",@c).')';
+      } else {
+	return '('.join("\n  $name ",@c).')';
+      }
+    } elsif ($name eq 'subquery') {
+      my $subquery = ref($self)->new($node, {
+	parent_query => $self,
+	parent_query_pos => $pos,
+	parent_query_match_pos => $match_pos,
+      });
+      push @{$self->{sub_queries}}, $subquery;
+      my $sq_pos = $#{$self->{sub_queries}};
+      my @occ = map {
+	(length($_->{min}) || length($_->{max})) ?
+	  ((length($_->{min}) ? $_->{min} : undef),
+	   (length($_->{max}) ? $_->{max} : undef)) : (1,undef)
+      } TredMacro::AltV($node->{occurrences});
+      my $occ_list=
+	TredMacro::max(map {int($_)} @occ).','.join(',',(map { defined($_) ? $_ : 'undef' } @occ));
+      my $condition = qq/\$sub_queries[$sq_pos]->test_occurrences(\$node,$occ_list)/;
+      my $postpone_subquery_till = $subquery->{postpone_subquery_till};
+      if (defined $postpone_subquery_till) {
+	print "postponing subquery till: $postpone_subquery_till\n" if $DEBUG;
+	my $target_pos = TredMacro::Index($self->{pos2match_pos},$postpone_subquery_till);
+	if (defined $target_pos) {
+	  # same subquery, simply postpone, just like when recomputing conditions
+	  my $postpone_pos = $postpone_subquery_till;
+	  return ('( $$query_pos < '.$target_pos.' ? '.int(!$opts->{negative}).' : '.$condition.')');
+	} else {
+	  print "other subquery\n" if $DEBUG;
+	  # otherwise postpone this subquery as well
+	  $self->{postpone_subquery_till}=$postpone_subquery_till if $postpone_subquery_till>($self->{postpone_subquery_till}||0);
+	  return $condition;
+	}
+      } else {
+	return $condition;
+      }
+    } elsif ($name eq 'ref') {
+      my ($rel) = TredMacro::SeqV($node->{relation});
+      my $target = lc( $node->{target} );
       my $relation = $rel->name;
-      my $target = lc( $rel->value->{target} );
       my $expression;
       my $label='';
       if ($relation eq 'user-defined') {
@@ -510,185 +653,30 @@ sub test {
 	}
 	die "Relation '$relation' not supported test!\n" unless defined $expression;
       }
-      $expression = $optional.'==$start or '.$expression if defined $optional;
-      $expression = $rel->value->{negate} ? 'not('.$expression.')' : '('.$expression.')';
-
       my $target_pos = $self->{name2pos}{$target};
       my $target_match_pos = $self->{name2match_pos}{$target};
+      my $condition = q/ do{ my ($start,$end)=($node,$matched_nodes->[/.$target_match_pos.q/]); /.$expression.q/ } /;
       if (defined $target_pos) {
 	# target node in the same sub-query
 	if ($target_pos<$pos) {
-	  push @relations, q/ do{ my ($start,$end)=($node,$matched_nodes->[/.$target_match_pos.q/]); /.$expression.q/ } /;
+	  return $condition;
 	} elsif ($target_pos>$pos) {
-	  # evaluate at target node
-	  push @{$reverted->[$target_pos]}, q/ do{ my ($end,$start)=($node,$matched_nodes->[/.$match_pos.q/]); /.$expression.q/ } /;
+	  $opts->{recompute_condition}[$target_match_pos]{$pos}=1;
+	  return ('( $$query_pos < '.$target_pos.' ? '.int(!$opts->{negative}).' : '.$condition.')');
 	} else {
 	  # huh, really?
-	  push @relations, q/ do{ my ($start,$end)=($node,$node); /.$expression.q/ } /;
+	  return q/ do{ my ($start,$end)=($node,$node); /.$expression.q/ } /;
 	}
       } elsif (defined $target_match_pos) {
 	# this node is matched by some super-query
-	my $expr = q/do{ my ($start,$end)=($node,$matched_nodes->[/.$target_match_pos.q/]); /.$expression.q/ }/;
-	push @relations, $expr;
 	if ($target_match_pos > $self->{parent_query_match_pos}) {
 	  # we need to postpone the evaluation of the whole sub-query up-till $matched_nodes->[$target_pos] is known
 	  $self->{postpone_subquery_till}=$target_match_pos if ($self->{postpone_subquery_till}||0)<$target_match_pos;
 	}
+	return $condition;
       } else {
 	die "Node '$target' does not exist or belongs to a sub-query and cannot be referred from relation $relation $label at node no. $match_pos!\n";
       }
-    }
-
-    my @subquery_nodes = grep _is_a_subquery($_), $qnode->children;
-    my @subquery_conditions;
-    for my $sqn (@subquery_nodes) {
-      # TODO: cross-query dependencies
-      my $subquery = ref($self)->new($sqn, {
-	parent_query => $self,
-	parent_query_pos => $pos,
-	parent_query_match_pos => $match_pos,
-      });
-      push @{$self->{sub_queries}}, $subquery;
-      my $sq_pos = $#{$self->{sub_queries}};
-      my $occ_list=
-	TredMacro::max(map { (int($_->{min}),int($_->{max})) } TredMacro::AltV($sqn->{occurrences})).
-	','.join(',',(map { (length($_->{min}) ? $_->{min} : 'undef').','.
-			     (length($_->{max}) ? $_->{max} : 'undef') } TredMacro::AltV($sqn->{occurrences})
-		)
-		);
-      my $sq_condition = qq/\$sub_queries[$sq_pos]->test_occurrences(\$node,$occ_list)/;
-      $sq_condition = '('.$optional.'==$node or '.$sq_condition.')' if defined $optional;
-      my $postpone_subquery_till = $subquery->{postpone_subquery_till};
-      if (defined $postpone_subquery_till) {
-	print "postponing subquery till: $postpone_subquery_till\n" if $DEBUG;
-	if ($postpone_subquery_till<=$self->{pos2match_pos}[-1]) {
-	  # same subquery, simply postpone, just like when recomputing conditions
-	  print "same subquery @{$self->{pos2match_pos}}\n" if $DEBUG;
-	  $sq_condition =~ s/\$node\b/\$matched_nodes->[$match_pos]/g;
-	  push @{$opts->{recompute_subquery}[$postpone_subquery_till]},$sq_condition;
-	} else {
-	  print "other subquery\n" if $DEBUG;
-	  # otherwise postpone this subquery as well
-	  $self->{postpone_subquery_till}=$postpone_subquery_till if $postpone_subquery_till>($self->{postpone_subquery_till}||0);
-	  push @subquery_conditions,$sq_condition;
-	}
-      } else {
-	push @subquery_conditions,$sq_condition;
-      }
-    }
-
-    print STDERR "CONDITIONS[$pos/$match_pos]: $conditions\n" if $DEBUG;
-    my $check_preceding = '';
-
-    my $recompute_cond = $opts->{recompute_condition}[$match_pos];
-    if (defined $recompute_cond) {
-      $check_preceding = join('', map {"\n   and ".'$conditions['.$_.']->($matched_nodes->['.$self->{pos2match_pos}[$_].'],1) '} sort { $a<=>$b } keys %$recompute_cond);
-    }
-    my $recompute_sq = $opts->{recompute_subquery}[$match_pos];
-    if (defined $recompute_sq) {
-      $check_preceding .= join('', map {"\n  and ".$_ } @$recompute_sq);
-    }
-    if (length $check_preceding) {
-      $check_preceding = "\n".
-	'  and ($backref or '.
-	  '($matched_nodes->['.$match_pos.']=$node) # a trick: make it appear as if this node already matched!'.
-	    $check_preceding.
-	')';
-    }
-    my $nodetest = '$node and ($backref or '
-      .(defined($optional) ? $optional.'==$node or ' : '')
-      .'!exists($have{$node}))';
-    my $sub = qq(#line 0 "query-node/${match_pos}"\n)
-      . 'sub { my ($node,$backref)=@_; '."\n  "
-       .$nodetest
-       .(defined($conditions) ? "\n  and ".$conditions : '')
-       .(join '',map { "\n  and ".$_ } @relations )
-       .(join '',map { "\n  and ".$_ } @subquery_conditions )
-       . $check_preceding
-       ."\n}";
-    print STDERR "SUB: $sub\n" if $DEBUG;
-    return $sub;
-  }
-
-  sub serialize_element {
-    my ($self,$opts)=@_;
-    my ($name,$value)=map {$opts->{$_}} qw(name condition);
-    if ($name eq 'test') {
-      my %depends_on;
-      my $left = $self->serialize_expression({%$opts,
-					      depends_on => \%depends_on,
-					      expression=>$value->{a}
-					     }); # FIXME: quoting
-      my $right = $self->serialize_expression({%$opts,
-					       depends_on => \%depends_on,
-					       expression=>$value->{b}
-					      }); # FIXME: quoting
-      my $operator = $value->{operator};
-      if ($operator eq '=') {
-	if ($right=~/^(?:\d*\.)?\d+$/ or $left=~/^(?:\d*\.)?\d+$/) {
-	  $operator = '==';
-	} else {
-	  $operator = 'eq';
-	}
-      } elsif ($operator eq 'like') {
-	# FIXME, this is ugly
-	$operator = '=~';
-	$right =~s{^'|'$}{}g;
-	$right =~ s{\\}{\\\\}g;
-	$right =~ s{\}}{\\\}}g;
-	$right=q(m{^\Q).$right.q(\E$});
-	$right=~s{%}{\\E.*\\Q}g;
-	$right=~s{_}{\\E.\\Q}g;
-	$right=~s{\\Q\\E}{}g;
-      } elsif ($operator eq '~') {
-	$operator = '=~';
-      }
-      my $last_dependency = TredMacro::max($opts->{query_pos},keys %depends_on);
-      my $pos = $opts->{query_pos};
-      my $condition;
-      if ($operator eq '~*') {
-	$condition='do{ my $regexp='.$right.'; '.$left.'=~ /$regexp/i}';
-      } elsif ($operator eq 'in') {
-	# TODO: 'first' is actually pretty slow, we should use a disjunction
-	# but splitting may be somewhat non-trivial in such a case
-	# - postponing till we know exactly how a tree-query term may look like
-	$condition='do{ my $value='.$left.'; grep $_ eq '.$left.', '.$right.'}';
-	# #$condition=$left.' =~ m{^(?:'.join('|',eval $right).')$}';
-	# 	$right=~s/^\s*\(//;
-	# 	$right=~s/\)\s*$//;
-	# 	my @right = split /,/,$right;
-	# 	$condition='do { my $value='.$left.'; ('.join(' or ',map { '$value eq '.$_ } @right).')}';
-      } else {
-	$condition='('.$left.' '.$operator.' '.$right.')';
-      }
-      if ($last_dependency>$pos) {
-	my $pos2match_pos = $self->{pos2match_pos};
-	$opts->{recompute_condition}[$pos2match_pos->[$_]]{$pos}=1 for keys %depends_on;
-	my $truth_value = !$opts->{negative_formula};
-	$truth_value = !$truth_value if $value->{negate};
-	return ($value->{negate}==1 ? 'not ' : '').
-	  ('( $$query_pos < '.$last_dependency.' ? '.int($truth_value).' : '.$condition.')');
-      } else {
-	return ($value->{negate}==1 ? 'not ' : '').$condition;
-      }
-    } elsif ($name =~ /^(?:and|or)$/) {
-      my $seq = $value->{'#content'};
-      return () unless (UNIVERSAL::isa( $seq, 'Fslib::Seq') and @$seq);
-      my $negative = $opts->{negative_formula} ? 1 : 0;
-      $negative=!$negative if $value->{negate};
-      my $condition = join("\n  ".$name.' ',
-			   grep {defined and length}
-			     map {
-			       my $n = $_->name;
-			       $self->serialize_element({
-				 %$opts,
-				 negative_formula => $negative,
-				 name => $n,
-				 condition => $_->value,
-			       })
-			     } $seq->elements);
-      return () unless length $condition;
-      return ($value->{negate} ? "not($condition)" : "($condition)");
     } else {
       die "Unknown element $name ";
     }
@@ -697,8 +685,6 @@ sub test {
   sub serialize_expression {
     my ($self,$opts)=@_;
     my $parent_id = $opts->{parent_id};
-    my $pos = $opts->{query_pos};
-    my $match_pos = $self->{pos2match_pos}[$pos];
 
     my $exp = $opts->{expression};
     # TODO
@@ -718,22 +704,13 @@ sub test {
 	my $node='$node';
 	if (defined $target) {
 	  $target = lc($target);
-	  my $target_pos = $self->{name2pos}{$target};
 	  my $target_match_pos = $self->{name2match_pos}{$target};
-	  if (defined $target_pos) {
-	    # target node in the same sub-query
-	    $node='$matched_nodes->['.$target_match_pos.']';
-	    if ($target_pos>$pos) {
-	      $opts->{depends_on}{$target_pos}=1;
-	    }
-	  } elsif (defined $target_match_pos) {
-	    # this node is matched by some super-query
-	    $node='$matched_nodes->['.$target_match_pos.']';
-	    if ($target_match_pos > $self->{parent_query_match_pos}) {
-	      # we need to postpone the evaluation of the whole sub-query up-till $matched_nodes->[$target_pos] is known
-	      $self->{postpone_subquery_till}=$target_match_pos if ($self->{postpone_subquery_till}||0)<$target_match_pos;
-	    }
+	  $node='$matched_nodes->['.$target_match_pos.']';
+	  if (defined $target_match_pos) {
+	    $opts->{depends_on}{$target_match_pos}=1;
 	  } else {
+	    my $pos = $opts->{query_pos};
+	    my $match_pos = $self->{pos2match_pos}[$pos];
 	    die "Node '$target' does not exist or belongs to a sub-query and cannot be referred from expression $exp of node no. $match_pos!\n";
 	  }
 	}
@@ -921,7 +898,7 @@ our %reverse = (
 
   sub name_all_query_nodes {
     my ($tree)=@_;
-    my @nodes = $tree->descendants;
+    my @nodes = grep { $_->{'#name'} =~ /^(?:node|subquery)$/ } $tree->descendants;
     my $max=0;
     my %name2node = map {
       my $n=lc($_->{name});
@@ -947,7 +924,8 @@ our %reverse = (
     return $weight{$name};
   }
   sub reversed_rel {
-    my ($rel)=@_;
+    my ($ref)=@_;
+    my ($rel)=TredMacro::SeqV($ref->{relation});
     my $name = $rel->name;
     if ($name eq 'user-defined') {
       $name.=':'.$rel->value->{label};
@@ -964,7 +942,7 @@ our %reverse = (
 	  Fslib::CloneValue($rel->value)
 	   );
       }
-      $rev->value->{reversed}=$rel;
+      $rev->value->{reversed}=$ref;
       return $rev;
     } else {
       return;
@@ -974,7 +952,7 @@ our %reverse = (
     my ($query_tree)=@_;
     $query_tree||=$TredMacro::root;
     name_all_query_nodes($query_tree);
-    my @query_nodes=map { Tree_Query::Evaluator::_filter_subqueries($_) } $query_tree->children;
+    my @query_nodes=Tree_Query::get_query_nodes($query_tree);
     plan(\@query_nodes,$query_tree);
   }
 
@@ -1006,29 +984,33 @@ our %reverse = (
 	$rel||=Fslib::Seq::Element->new('child', Fslib::Container->new());
 	$parent_edge[$i]=$rel;
 	delete $n->{relation};
-	$rel->value->{target} = $n->{name};
-	TredMacro::AddToSeq($parent,'extra-relations',$rel);
+	my $ref = TredMacro::NewSon($parent);
+	$ref->{'#name'} = 'ref';
+	TredMacro::DetermineNodeType($ref);
+	$ref->{relation}=Fslib::Seq->new([$rel]);
+	$ref->{target} = $n->{name};
       }
     }
     for my $i (0..$#$query_nodes) {
       my $n = $query_nodes->[$i];
-      my $parent = $n->parent;
-      for my $rel (TredMacro::SeqV($n->attr('extra-relations'))) {
-	next if $rel->value->{negate};
-	my $target = lc( $rel->value->{target} );
+      for my $ref (grep { $_->{'#name'} eq 'ref' } $n->children) {
+	my $target = lc( $ref->{target} );
+	my ($rel)=TredMacro::SeqV($ref->{relation});
+	next unless $rel;
 	my $t = $name2pos{$target};
 	my $no_reverse;
 	my $tn = $query_nodes->[$t];
-	if ($n->{optional} or $tn->{optional} or ($tn->parent and $tn->parent->{optional})) {
+	my $tnp=$tn->parent;
+	if ($n->{optional} or $tn->{optional} or ($tnp and $tnp->{optional})) {
 	  # only direct edges can go in and out of an optional node
 	  # and only direct edge can go to a child of an optional node
 	  next unless $rel==$parent_edge[$t];
 	  $no_reverse=1;
 	}
 	if (defined $t and $t!=$i) {
-	  push @edges,[$i,$t,$rel,weight($rel)] unless defined($root_pos) and $t==$root_pos;
+	  push @edges,[$i,$t,$ref,weight($rel)] unless defined($root_pos) and $t==$root_pos;
 	  unless ($no_reverse or (defined($root_pos) and $i==$root_pos)) {
-	    my $reversed = reversed_rel($rel);
+	    my $reversed = reversed_rel($ref);
 	    if (defined $reversed) {
 	      push @edges,[$t,$i,$reversed,weight($reversed)];
 	    }
@@ -1074,15 +1056,16 @@ our %reverse = (
       # of $qn
       if (defined $p) {
  	my $parent = $query_nodes->[$p];
-	my $rel = $edges{$p}{$i};
-	if ( my $reversed = $rel->value->{reversed} ) {
-	  $qn->{'extra-relations'}->delete_element($reversed)
+	my $ref = $edges{$p}{$i};
+	my $rel;
+	if (UNIVERSAL::isa($ref,'Fslib::Seq::Element')) {
+	  $rel = $ref;
+	  $ref = delete $rel->value->{reversed};
 	} else {
-	  $parent->{'extra-relations'}->delete_element($rel)
+	  ($rel) = TredMacro::SeqV($ref->{relation});
 	}
+	TredMacro::DeleteLeafNode($ref);
 	delete $qn->{'relation'};
-	delete $rel->value->{target};
-	delete $rel->value->{reversed};
 	TredMacro::AddToSeq($qn,'relation',$rel);
       }
     }
@@ -1094,7 +1077,7 @@ our %reverse = (
   package Tree_Query::Iterator;
   use constant CONDITIONS=>0;
   use Carp;
-  sub new ($$) {
+  sub new {
     my ($class,$conditions)=@_;
     croak "usage: $class->new(sub{...})" unless ref($conditions) eq 'CODE';
     return bless [$conditions],$class;
@@ -1113,7 +1096,7 @@ our %reverse = (
   use constant ITERATOR=>1;
   use constant NODE=>2;
   use Carp;
-  sub new ($$) {
+  sub new {
     my ($class,$iterator)=@_;
     croak "usage: $class->new($iterator)" unless UNIVERSAL::isa($iterator,'Tree_Query::Iterator');
     return bless [$iterator->conditions,$iterator],$class;
@@ -1144,7 +1127,45 @@ our %reverse = (
 }
 #################################################
 {
-  package FileTreeIterator;
+  package FSFileIterator;
+  use Carp;
+  use base qw(Tree_Query::Iterator);
+  use constant CONDITIONS=>0;
+  use constant FILE=>1;
+  use constant TREE_NO=>2;
+  use constant NODE=>3;
+  sub new {
+    my ($class,$conditions,$fsfile)=@_;
+    croak "usage: $class->new(sub{...})" unless ref($conditions) eq 'CODE';
+    return bless [$conditions,$fsfile],$class;
+  }
+  sub start  {
+    my ($self)=@_;
+    $self->[TREE_NO]=0;
+    my $n = $self->[NODE] = $self->[FILE]->tree(0);
+    return ($n && $self->[CONDITIONS]->($n)) ? $n : ($n && $self->next);
+  }
+  sub next {
+    my ($self)=@_;
+    my $conditions=$self->[CONDITIONS];
+    my $n=$self->[NODE];
+    while ($n) {
+      $n = $n->following || $self->[FILE]->tree(++$self->[TREE_NO]);
+      last if $conditions->($n);
+    }
+    return $self->[NODE]=$n;
+  }
+  sub node {
+    return $_[0]->[NODE];
+  }
+  sub reset {
+    my ($self)=@_;
+    $self->[NODE]=undef;
+  }
+}
+#################################################
+{
+  package CurrentFileIterator;
   use base qw(Tree_Query::Iterator);
   BEGIN {
     import TredMacro qw($this $root);
@@ -1180,17 +1201,20 @@ our %reverse = (
 #################################################
 {
   package TreeIterator;
+  use Carp;
   use base qw(Tree_Query::Iterator);
-  BEGIN {
-    import TredMacro qw($this $root);
-  }
   use constant CONDITIONS=>0;
-  use constant NODE=>1;
+  use constant TREE=>1;
+  use constant NODE=>2;
+  sub new  {
+    my ($class,$conditions,$root)=@_;
+    croak "usage: $class->new(sub{...})" unless ref($conditions) eq 'CODE';
+    return bless [$conditions,$root],$class;
+  }
   sub start  {
     my ($self)=@_;
-    $this=$root;
-    $self->[NODE]=$this;
-    return ($this && $self->[CONDITIONS]->($this)) ? $this : ($this && $self->next);
+    my $root = $self->[NODE] = $self->[TREE];
+    return ($root && $self->[CONDITIONS]->($root)) ? $root : ($root && $self->next);
   }
   sub next {
     my ($self)=@_;
