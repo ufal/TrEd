@@ -283,45 +283,58 @@ sub rel_as_text {
 }
 
 sub as_text {
-  my ($node,$indent,$wrap)=@_;
+  my ($node,$indent,$do_wrap)=@_;
   my $name = $node->{'#name'};
   $indent||='';
-  $wrap=int($wrap) ? "\n$indent" : " ";
-  if ($name eq 'not') {
-    return '!('.join("${wrap}and ",map { as_text($_,$indent."     ") } sort_by_node_type($node)).')'
-  } elsif ($name eq 'not') {
-    return '('.join("${wrap}and ",map as_text($_,$indent."     "), sort_by_node_type($node)).')';
-  } elsif ($name eq 'or') {
-    return '('.join("${wrap}or ",map as_text($_,$indent."     "), sort_by_node_type($node)).')';
-  } elsif ($name eq 'ref') {
-    my $rel = rel_as_text($node).' ';
-    my $ref = $node->{target} || '???';
-    return "$rel\$$ref";
-  } elsif ($name eq 'test') {
-    my $test=  $node->{a}.' '.$node->{operator}.' '.$node->{b};
-    $test=~s/"//g; # FIXME
-    return $test;
-   } elsif ($name eq 'subquery' or $name eq 'node') {
-     my $occ = $name eq 'subquery' ? occ_as_text($node).'x ' : '';
-     my $rel='';
-     if ($node->parent and $node->parent->parent) {
-       $rel=rel_as_text($node).' '
-     }
-     my $name = $node->{name} || '';
-     $name='$'.$name.' := ' if $name;
-     my @c= map as_text($_,$indent."  "), sort_by_node_type($node);
-     my $type=$node->{'node-type'}||$node->root->{'node-type'};
-     $type=$type.': ';
-     $name=$occ.($node->{optional} ? '?' : '').$rel.$type.$name;
-     return $name."[ ]" unless @c;
-     return $name."[ $c[0] ]" if @c==1 and $c[0]!~/]$/;
-     return $name."[\n${indent}  ".join(",\n${indent}  ",@c)."\n${indent}]";
-  } elsif ($name eq '' and !$node->parent) {
-     my $desc = $node->{description};
-     return (length($desc) ? '#  '.$desc."\n" : '')
-       .join(";\n", map { as_text($_,'') }  $node->children);
+  my $wrap=int($do_wrap) ? "\n$indent" : " ";
+  my @c=map as_text($_,$indent."     "), sort_by_node_type($node);
+  if ($name eq '' and !$node->parent) {
+    my $desc = $node->{description};
+    return (length($desc) ? '#  '.$desc." " : '')
+      .join(";\n", map { as_text($_,'') }  $node->children);
   } else {
-    return '{'.$name.'}'
+    if ($name eq 'not') {
+      return if @c==0;
+      return '!'.$c[0] if @c==1;
+      return '!('.join("${wrap}and ",@c).')'
+    } elsif ($name eq 'and') {
+      return if @c==0;
+      return $c[0] if @c==1;
+      return '('.join("${wrap}and ",@c).')';
+    } elsif ($name eq 'or') {
+      return if @c==0;
+      return $c[0] if @c==1;
+      return '('.join("${wrap}or ",map as_text($_,$indent."     "), sort_by_node_type($node)).')';
+    } elsif ($name eq 'ref') {
+      my $rel = rel_as_text($node).' ';
+      my $ref = $node->{target} || '???';
+      return "$rel\$$ref";
+    } elsif ($name eq 'test') {
+      my $test=  $node->{a}.' '.$node->{operator}.' '.$node->{b};
+      $test=~s/"//g;		# FIXME
+      return $test;
+    } elsif ($name eq 'subquery' or $name eq 'node') {
+      my $occ = $name eq 'subquery' ? occ_as_text($node).'x ' : '';
+      my $rel='';
+      if ($node->parent and $node->parent->parent) {
+	$rel=rel_as_text($node).' '
+      }
+      my $name = $node->{name} || '';
+      $name='$'.$name.' := ' if $name;
+      my $type=$node->{'node-type'}||$node->root->{'node-type'};
+      $type=$type.'-node: '; #FIXME: 
+      $name=$occ.($node->{optional} ? '?' : '').$rel.$type.$name;
+     
+      return $name."[ ]" unless @c;
+      return $name."[ $c[0] ]" if @c==1 and $c[0]!~/]$/;
+      if ($do_wrap) {
+	return $name."[${wrap}  ".join(",${wrap}  ",@c)."${wrap}]";
+      } else {
+	return "\n${indent}".$name."\n${indent}[".join(", ",@c)."]";
+      }
+    } else {
+      return '{'.$name.'}'
+    }
   }
 }
 
@@ -398,7 +411,7 @@ sub node_style_hook {
 	my $name = $_->name;
 	$name = $_->value->{label} if $name eq 'user-defined';
 	my $target = $ref->{target};
-	my $negate = ($node!=$ref && $ref->parent->{'#name'} eq 'NOT') ? 1 : 0;
+	my $negate = ($node!=$ref && $ref->parent->{'#name'} eq 'not') ? 1 : 0;
 	scalar {
 	  -target => $name2node_hash{lc($target)},
 	  -fill   => $showHidden ? 'gray' : arrow_color($name),

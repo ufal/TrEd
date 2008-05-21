@@ -1,4 +1,3 @@
-ne_tree
 # -*- cperl -*-
 
 {
@@ -863,7 +862,9 @@ sub test {
 #################################################
 package Tree_Query_Btred::Planner;
 
-our %weight = (
+use vars qw(%weight %reverse);
+
+%weight = (
   'user-defined:echild' => 5,
   'user-defined:eparent' => 2,
   'user-defined:a/lex.rf|a/aux.rf' => 2,
@@ -876,13 +877,13 @@ our %weight = (
   'ancestor' => 8,
   'parent' => 0.5,
   'child' => 10,
-  'order-precedes' => 1000,
-  'order-follows' => 1000,
-  'depth-first-precedes' => 100,
-  'depth-first-follows' => 100,
+  'order-precedes' => 10000,
+  'order-follows' => 10000,
+  'depth-first-precedes' => 1000,
+  'depth-first-follows' => 1000,
 );
 
-our %reverse = (
+%reverse = (
   'user-defined:echild' => 'user-defined:eparent',
   'user-defined:eparent' => 'user-defined:echild',
   'descendant' => 'ancestor',
@@ -921,7 +922,12 @@ our %reverse = (
     if ($name eq 'user-defined') {
       $name.=':'.$rel->value->{label};
     }
-    return $weight{$name};
+    my $w = $weight{$name};
+    return $w if defined $w;
+    warn "do not have weight for edge: '$name'\n";
+    use Data::Dumper;
+    print Dumper(\%weight);
+    return;
   }
   sub reversed_rel {
     my ($ref)=@_;
