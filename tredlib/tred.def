@@ -447,14 +447,17 @@ sub NextNodeLinear {
   return $best;
 }
 
-=item C<CurrentTreeNumber()>
+=item C<CurrentTreeNumber( $win? )>
 
-Return current tree number.
+Return current tree number. If used in TrEd, optional argument win can
+be used to specify TrEd window (defaults to the current window).
 
 =cut
 
 sub CurrentTreeNumber {
-  return $grp->{treeNo};
+  shift if @_ and !ref($_[0]);
+  my $win = $_[0] || $grp;
+  return $win->{treeNo};
 }
 
 =item C<GetNodeIndex()>
@@ -1622,8 +1625,9 @@ sub uniq { my %a; grep { !($a{$_}++) } @_ }
 
 =item C<Index(array-ref,item)>
 
-A helper function which returns the first occurence of the item in the
-array.
+A helper function which returns the index of the first occurence of a
+given item in an array. Returns nothing (empty list) if the item is
+not found. Note: 'eq' is used for comparison.
 
 =cut
 
