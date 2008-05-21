@@ -151,7 +151,7 @@ xrootstyle: #{vertical:0}#{nodeXSkip:15}
 rootstyle: #{NodeLabel-skipempty:1}#{CurrentOval-width:3}#{CurrentOval-outline:red}
 node: <?length($${node-type}) ? $${node-type}.': ' : '' ?>#{darkgreen}<?
   my $occ = Tree_Query::occ_as_text($this);
-  length $occ ? ('${occurrences=('.$occ.')x}')  : ""
+  length $occ ? '${occurrences='.$occ.'x}' : ""
 ?><? $${optional} ? '${optional=?}'  : q()
 ?>
 node: #{darkblue}${name}#{brown}<? my$d=$${description}; $d=~s{^User .*?:}{}; $d ?>
@@ -160,7 +160,7 @@ node:<?
 ?>${a}${target}
 node:<?
   if (($this->{'#name'}=~/^(?:node|subquery)$/) and !TredMacro::HiddenVisible()) {
-    join("\n",map { Tree_Query::as_text($_) } grep { $_->{'#name'} !~ /^(?:node|subquery|ref)$/ } $this->children)
+    join("\n",map { Tree_Query::as_text($_,'  ',1) } grep { $_->{'#name'} !~ /^(?:node|subquery|ref)$/ } $this->children)
   }
 ?>
 node:${b}
@@ -228,41 +228,98 @@ sub init_id_map {
 
 sub occ_as_text {
   my ($node)=@_;
-  return join '|', grep { /\d/ } map {
-    if ($_->{min}==$_->{max}) {
-      $_->{max}
+  return '' unless $node->{'#name'} eq 'subquery';
+  return '('.join('|', grep { /\d/ } map {
+    my ($min,$max)=($_->{min},$_->{max});
+    if (length($min) and length($max)) {
+      if (int($min)==int($max)) {
+	int($min)
+      } else {
+	int($min).'..'.int($max)
+      }
+    } elsif (length($min)) {
+      int($min).'+'
+    } elsif (length($max)) {
+      int($max).'-'
     } else {
-      length($_->{max}) ?
-	$_->{min}.'-'.$_->{max}
-      : $_->{min}.'+'
+      '1+'
     }
-  } AltV($node->{occurrences});
+  } AltV($node->{occurrences})).')';
+}
+
+
+my %child_order = (
+  test=>1,
+  not=>2,
+  or=>3,
+  and=>4,
+  ref=>5,
+  subquery=>6,
+  node=>7,
+);
+sub sort_by_node_type {
+  my ($node)=@_;
+  return map { $_->[0] }
+         sort { $a->[1]<=>$b->[1] }
+         map { [$_,int($child_order{$_->{'#name'}})] } $node->children;
+}
+
+sub rel_as_text {
+  my ($node)=@_;
+  my ($rel) = SeqV($node->{relation});
+  if ($rel) {
+    my ($rn,$rv)=($rel->name,$rel->value);
+    if ($rn eq 'user-defined') {
+      return $rv->{label};
+    } elsif ($rn =~ /^(?:ancestor|descendant)/
+	       and length($rv->{min_length})||length($rv->{max_length})) {
+      return $rn.'{'.$rv->{min_length}.','.$rv->{max_length}.'}'
+    } else {
+      return $rn;
+    }
+  } else {
+    return 'child';
+  }
 }
 
 sub as_text {
-  my ($node,$indent)=@_;
+  my ($node,$indent,$wrap)=@_;
   my $name = $node->{'#name'};
   $indent||='';
+  $wrap=int($wrap) ? "\n$indent" : " ";
   if ($name eq 'not') {
-    return 'NOT('.join("\n${indent}and ",map { as_text($_,$indent."     ") } $node->children).')'
+    return '!('.join("${wrap}and ",map { as_text($_,$indent."     ") } sort_by_node_type($node)).')'
   } elsif ($name eq 'not') {
-    return '('.join("\n${indent}and ",map as_text($_,$indent."     "), $node->children).')';
+    return '('.join("${wrap}and ",map as_text($_,$indent."     "), sort_by_node_type($node)).')';
   } elsif ($name eq 'or') {
-    return '('.join("\n${indent}or ",map as_text($_,$indent."     "), $node->children).')';
+    return '('.join("${wrap}or ",map as_text($_,$indent."     "), sort_by_node_type($node)).')';
   } elsif ($name eq 'ref') {
-    my ($rel) = SeqV($node->{relation});
-    $rel = $rel ? $rel->name : '???';
+    my $rel = rel_as_text($node).' ';
     my $ref = $node->{target} || '???';
-    return "has $rel($ref)";
+    return "$rel\$$ref";
   } elsif ($name eq 'test') {
-    return $node->{a}.' '.$node->{operator}.' '.$node->{b};
+    my $test=  $node->{a}.' '.$node->{operator}.' '.$node->{b};
+    $test=~s/"//g; # FIXME
+    return $test;
    } elsif ($name eq 'subquery' or $name eq 'node') {
-     my $occ = $name eq 'subquery' ? '('.occ_as_text($node).') x ' : '';
-     my ($rel) = SeqV($node->{relation});
-     $rel = $rel ? $rel->name : '???';
-     return $occ.$rel."[\n${indent}"
-       .join(",\n${indent}",map as_text($_,$indent."     "), $node->children)
-       .']';
+     my $occ = $name eq 'subquery' ? occ_as_text($node).'x ' : '';
+     my $rel='';
+     if ($node->parent and $node->parent->parent) {
+       $rel=rel_as_text($node).' '
+     }
+     my $name = $node->{name} || '';
+     $name='$'.$name.' := ' if $name;
+     my @c= map as_text($_,$indent."  "), sort_by_node_type($node);
+     my $type=$node->{'node-type'}||$node->root->{'node-type'};
+     $type=$type.': ';
+     $name=$occ.($node->{optional} ? '?' : '').$rel.$type.$name;
+     return $name."[ ]" unless @c;
+     return $name."[ $c[0] ]" if @c==1 and $c[0]!~/]$/;
+     return $name."[\n${indent}  ".join(",\n${indent}  ",@c)."\n${indent}]";
+  } elsif ($name eq '' and !$node->parent) {
+     my $desc = $node->{description};
+     return (length($desc) ? '#  '.$desc."\n" : '')
+       .join(";\n", map { as_text($_,'') }  $node->children);
   } else {
     return '{'.$name.'}'
   }
@@ -970,6 +1027,7 @@ sub get_value_line_hook {
   my $tree = $fsfile->tree($treeNo);
   return unless $tree;
   init_id_map($tree);
+  return as_text($tree);
   return make_sql($tree,{format=>1});
 }
 
