@@ -5589,7 +5589,7 @@ sub createCanvasBindings {
   }
 
   # Text 1
-  for my $tag (qw(text textbg textbox edgebox stripe)) {
+  for my $tag (qw(plaintext text textbg textbox edgebox stripe)) {
     $canvas->bind($tag, '<1>'=> [sub {node_down(@_) },$grp,0]);
     $canvas->bind($tag, '<B1-Motion>'=> [sub {node_move(@_) },$grp,0]);
     $canvas->bind($tag, '<ButtonRelease-1>'=> [sub {node_release(@_)},$grp,0]);
@@ -9910,8 +9910,7 @@ sub editAttr {
   setCurrent($win,$node);
   ensureCurrentIsDisplayed($win);
   my $attr=$tv->get_gen_pinfo("attr:$t");
-
-  doEditAttr($win,$node,$attr);
+  doEditAttr($win,$node,$attr) if defined $attr;
 }
 
 
