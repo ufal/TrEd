@@ -84,8 +84,6 @@ Bind sub { RenewStylesheets(); $Redraw='stylesheet'; } => {
   menu => 'Renew Tree_query Stylesheet',
   changing_file => 0,
 };
-
-
 Bind 'fix_netgraph_query' => {
   key => 'f',
   menu => 'Attempt to fix a NetGraph query',
@@ -945,12 +943,6 @@ sub run_query {
   return $sth->fetchall_arrayref(undef,$opts->{MaxRows});
 }
 
-use constant {
-  SUB_QUERY => 1,
-  GROUP    => 2,
-};
-
-my $occurrences_strategy = SUB_QUERY;
 # serialize to SQL (or SQL fragment)
 sub serialize_conditions {
   my ($node,$opts)=@_;
@@ -1161,20 +1153,16 @@ sub user_defined_relation {
 sub get_query_nodes {
   my ($tree)=@_;
   my @nodes;
-  if ($occurrences_strategy == SUB_QUERY) {
-    my $n = $tree;
-    while ($n) {
-      if ($n->{'#name'} eq 'node' or
+  my $n = $tree;
+  while ($n) {
+    if ($n->{'#name'} eq 'node' or
 	  ($n==$tree and $n->{'#name'} eq 'subquery')) {
-	push @nodes, $n;
-      } elsif ($n->parent) {
+      push @nodes, $n;
+    } elsif ($n->parent) {
 	$n = $n->following_right_or_up($tree);
 	next;
       }
-      $n = $n->following($tree);
-    }
-  } else {
-    @nodes =  grep { $_->{'#name'} =~ /^(?:node|subquery)/ }  ($tree, $tree->descendants);
+    $n = $n->following($tree);
   }
   return @nodes;
 }
@@ -1586,10 +1574,10 @@ sub reduce_optional_node_chain {
   my $last = $node;
   my $max_length=0;
   my $min_length=0;
-  while (__test_optional_chain($last) and ($last==$node or $conditions eq __serialize_node($last))) {
+  while ( $last and __test_optional_chain($last) and ($last==$node or $conditions eq __serialize_node($last))) {
     $max_length++;
     $min_length++ unless $last->{optional};
-    ($last) = grep { $_->{'#name'} eq 'node' } $node->children;
+    ($last) = grep { $_->{'#name'} eq 'node' } $last->children;
   }
   if ($max_length>1) {
     ChangingFile(1);
@@ -1603,7 +1591,7 @@ sub reduce_optional_node_chain {
     $subquery->{occurrences}=Fslib::Struct->new({
       max => 0
     });
-    my $not = NewChild($subquery);
+    my $not = NewSon($subquery);
     $not->{'#name'}='not';
     DetermineNodeType($not);
     for my $child (reverse grep { $_->{'#name'} ne 'node' } $node->children) {
@@ -1616,6 +1604,7 @@ sub reduce_optional_node_chain {
     });
     return $subquery;
   }
+  return;
 }
 
 sub fix_netgraph_query {
@@ -1639,13 +1628,14 @@ sub fix_netgraph_query {
   {
     my $node = $root;
     while ($node) {
-      $node = reduce_optional_node_chain($node) || $node->following;
+      FPosition($node);
+      $node = (reduce_optional_node_chain($node) || $node->following);
     }
   }
   {
     my $node = $root;
     while ($node) {
-      $node = fix_netgraph_ord_to_precedes($node)||$node->following;
+      $node = (fix_netgraph_ord_to_precedes($node)||$node->following);
     }
   }
 }
