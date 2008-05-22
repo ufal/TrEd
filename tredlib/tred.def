@@ -2250,6 +2250,19 @@ sub HiddenVisible {
   return (ref($win->{treeView}) and $win->{treeView}->get_showHidden());
 }
 
+=item C<ToggleHiding($win?)>
+
+If TrEd displays hidden nodes (or the currently focused window if
+called without an argument), hide them and vice versa.
+
+=cut
+
+sub ToggleHiding {
+  shift unless ref($_[0]);
+  my $win = shift || $grp;
+  $win->{treeView}->set_showHidden(int(!$win->{treeView}->get_showHidden));
+}
+
 =back
 
 =cut
