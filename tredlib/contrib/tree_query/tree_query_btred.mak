@@ -1,5 +1,4 @@
 # -*- cperl -*-
-
 {
 package Tree_Query_Btred;
 use strict;
@@ -206,10 +205,10 @@ sub test {
   die $err if $err;
 }
 
-
 ###########################################
 {
   package Tree_Query::Evaluator;
+
   use strict;
   use Scalar::Util qw(weaken);
   use List::Util qw(first);
@@ -801,14 +800,14 @@ sub test {
       # print STDERR ("iterate $$query_pos $iterator: $self->{debug}[$$query_pos]\n") if $DEBUG;
       $node
 	= $matched_nodes->[$pos2match_pos->[$$query_pos]]
-	= $iterator->next;
+	  = $iterator->next;
       $have->{$node}=1 if $node;
     } elsif ($$query_pos==0) {
       # first
       # print "Starting subquery on $opts->{seed}->{id} $opts->{seed}->{t_lemma}.$opts->{seed}->{functor}\n" if $opts->{seed} and $DEBUG;
       $node
 	= $matched_nodes->[$pos2match_pos->[$$query_pos]]
-	= $iterator->start( $opts->{seed} );
+	  = $iterator->start( $opts->{seed} );
       $have->{$node}=1 if $node;
     }
     while (1) {
@@ -826,7 +825,7 @@ sub test {
 	  #print STDERR ("iterate $$query_pos $iterator: $self->{debug}[$$query_pos]\n") if $DEBUG;
 	  $node
 	    = $matched_nodes->[$pos2match_pos->[$$query_pos]]
-	    = $iterator->next;
+	      = $iterator->next;
 	  $have->{$node}=1 if $node;
 	  next;
 	} else {
@@ -842,7 +841,7 @@ sub test {
 	  $iterator = $iterators->[$$query_pos];
 	  $node
 	    = $matched_nodes->[$pos2match_pos->[$$query_pos]]
-	    = $iterator->start($seed);
+	      = $iterator->start($seed);
 	  #print STDERR ("restart $$query_pos $iterator from $seed->{t_lemma}.$seed->{functor} $self->{debug}[$$query_pos]\n") if $DEBUG;
 	  $have->{$node}=1 if $node;
 	  next;
@@ -854,48 +853,48 @@ sub test {
 	}
       }
     }
-  }				# search
-  return;
+    return;
+  }
+
+
 }
-
-
 #################################################
-package Tree_Query_Btred::Planner;
+{
+  package Tree_Query_Btred::Planner;
 
-use vars qw(%weight %reverse);
+  use vars qw(%weight %reverse);
 
-%weight = (
-  'user-defined:echild' => 5,
-  'user-defined:eparent' => 2,
-  'user-defined:a/lex.rf|a/aux.rf' => 2,
-  'user-defined:a/lex.rf' => 1,
-  'user-defined:a/aux.rf' => 2,
-  'user-defined:coref_text' => 1,
-  'user-defined:coref_gram' => 1,
-  'user-defined:compl' => 1,
-  'descendant' => 30,
-  'ancestor' => 8,
-  'parent' => 0.5,
-  'child' => 10,
-  'order-precedes' => 10000,
-  'order-follows' => 10000,
-  'depth-first-precedes' => 1000,
-  'depth-first-follows' => 1000,
-);
+  %weight = (
+    'user-defined:echild' => 5,
+    'user-defined:eparent' => 2,
+    'user-defined:a/lex.rf|a/aux.rf' => 2,
+    'user-defined:a/lex.rf' => 1,
+    'user-defined:a/aux.rf' => 2,
+    'user-defined:coref_text' => 1,
+    'user-defined:coref_gram' => 1,
+    'user-defined:compl' => 1,
+    'descendant' => 30,
+    'ancestor' => 8,
+    'parent' => 0.5,
+    'child' => 10,
+    'order-precedes' => 10000,
+    'order-follows' => 10000,
+    'depth-first-precedes' => 1000,
+    'depth-first-follows' => 1000,
+   );
 
-%reverse = (
-  'user-defined:echild' => 'user-defined:eparent',
-  'user-defined:eparent' => 'user-defined:echild',
-  'descendant' => 'ancestor',
-  'ancestor' => 'descendant',
-  'parent' => 'child',
-  'child' => 'parent',
-  'order-precedes' => 'order-follows',
-  'order-follows' => 'order-precedes',
-  'depth-first-precedes' => 'depth-first-follows',
-  'depth-first-follows' => 'depth-first-precedes',
-);
-
+  %reverse = (
+    'user-defined:echild' => 'user-defined:eparent',
+    'user-defined:eparent' => 'user-defined:echild',
+    'descendant' => 'ancestor',
+    'ancestor' => 'descendant',
+    'parent' => 'child',
+    'child' => 'parent',
+    'order-precedes' => 'order-follows',
+    'order-follows' => 'order-precedes',
+    'depth-first-precedes' => 'depth-first-follows',
+    'depth-first-follows' => 'depth-first-precedes',
+   );
 
   sub name_all_query_nodes {
     my ($tree)=@_;
@@ -1077,7 +1076,7 @@ use vars qw(%weight %reverse);
     }
     return \@roots;
   }
-
+}
 #################################################
 {
   package Tree_Query::Iterator;
@@ -1686,8 +1685,5 @@ resolved as soon as all required query nodes are matched.
 
 =cut
 
-
-
 }
 1;
-
