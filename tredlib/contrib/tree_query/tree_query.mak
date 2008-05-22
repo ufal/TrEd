@@ -4,8 +4,6 @@
 
 #TODO
 #
-# - new netgraph _optional semantics?
-
 # - _transitive=exclusive (in NG by default, a query node can lay on
 # the transitive edge of other query node; if =exclusive, than no query
 # node can lay on the transitive edge and also, the transitive edge
@@ -17,14 +15,8 @@
 # allow the user to mark the nodes with colours and recognize the
 # colored nodes in the result tree
 
-# - _#lbrothers   - works
-# - _#rbrothers   - does not yet work if relation is not 'parent'
-# - _#sons        - works
-# - _#descendants - works
 # - modify type of the default relation: parent/ancestor/effective_parent/...)
 #   (parent and ancestor implemented, TODO: effective_parent)
-# - additional relations to existing nodes (of any type except parent and possibly descendant)
-#   with possibility to negate them or maybe even using them in propositional formulae
 # non-projective edge search
 
 # relations/attributes from external tables:
@@ -40,10 +32,10 @@
 # - T_EPARENTS   (relation to T_ (list))
 
 # warn if optional=1 for a relation that implies a different type
-
+#
 # some helpful predicates:
 #  - is_leaf
-#
+# relations of tgrep2
 
 package Tree_Query;
 {
@@ -80,7 +72,7 @@ Bind sub { next_match('backward') } => {
   changing_file => 0,
 };
 Bind sub { RenewStylesheets(); $Redraw='stylesheet'; } => {
-  key => 's',
+  key => 'r',
   menu => 'Renew Tree_query Stylesheet',
   changing_file => 0,
 };
@@ -92,6 +84,109 @@ Bind sub { $VALUE_LINE_MODE=!$VALUE_LINE_MODE } => {
   key => 'v',
   menu => 'Toggle value line mode (TreeQuery/SQL)',
   changing_file => 0,
+};
+Bind sub {
+  my $node=$this;
+  ChangingFile(0);
+  return unless $node->parent and
+    $node->{'#name'} ne 'node';
+  if ($node->parent->{'#name'} eq 'not' and
+	!$node->lbrother and !$node->rbrother) {
+    delete_node_keep_children($node->parent);
+  } else {
+    my $not = NewParent();
+    $not->{'#name'}='not';
+    DetermineNodeType($not);
+    $this=$node;
+    ChangingFile(1);
+  }
+} => {
+  key => '!',
+  menu => 'Negate a condition',
+};
+Bind sub {
+  my $node=$this;
+  ChangingFile(0);
+  return if !$node->parent or
+    $node->parent->{'#name'} !~ /^(?:not|or)$/;
+  my $and = NewParent();
+  $and->{'#name'}='and';
+  DetermineNodeType($and);
+  $this=$node;
+  ChangingFile(1);
+} => {
+  key => '&',
+  menu => 'Create And',
+};
+Bind sub {
+  my $node=$this;
+  ChangingFile(0);
+  return unless $node->parent and
+    $node->{'#name'}!~/^(?:node|or)$/
+    and $node->parent->{'#name'} ne 'or';
+  my $or = NewParent();
+  $or->{'#name'}='or';
+  DetermineNodeType($or);
+  $this=$node;
+  ChangingFile(1);
+} => {
+  key => '|',
+  menu => 'Create Or',
+};
+Bind sub {
+  ChangingFile(0);
+  return unless $this->{'#name'}=~/^(?:node|subquery)$/;
+  EditAttribute($this,'name') && ChangingFile(1);
+
+} => {
+  key => '$',
+  menu => 'Edit node name',
+};
+Bind sub {
+  ChangingFile(0);
+  return unless $this->{'#name'}=~/^(?:node|subquery)$/;
+  EditAttribute($this,'node-type') && ChangingFile(1);
+
+ } => {
+  key => 't',
+  menu => 'Edit node type',
+};
+Bind sub {
+  ChangingFile(0);
+  return unless $this->{'#name'} eq 'node';
+  $this->{optional}=!$this->{optional};
+  ChangingFile(1);
+} => {
+  key => '?',
+  menu => 'Toggle optional',
+};
+Bind sub {
+  my $new;
+  my $node=$this;
+  ChangingFile(0);
+  if ($node->{'#name'}=~/^(?:node|subquery|and|or|not)$/) {
+    $new=NewSon();
+  } elsif ($node->{'#name'}=~/^(?:test|ref)$/) {
+    $new=NewRBrother();
+  } else {
+    return;
+  }
+  $new->{'#name'}='test';
+  $new->{operator}='=';
+  DetermineNodeType($new);
+  unless (EditAttribute($new,undef,undef,'a')) {
+    DeleteLeafNode($new);
+    $this=$node;
+    return;
+  }
+  ChangingFile(1);
+} => {
+  key => '=',
+  menu => 'Add a constraint test',
+};
+Bind ToggleHiding => {
+  key => 'h',
+  menu => 'Toggle hiding of logical nodes',
 };
 
 my $default_dbi_config; # see below
@@ -166,6 +261,8 @@ node:<?
 node:<?
   if (($this->{'#name'}=~/^(?:node|subquery)$/) and !TredMacro::HiddenVisible()) {
     join("\n",map { Tree_Query::as_text($_,'  ',1) } grep { $_->{'#name'} !~ /^(?:node|subquery|ref)$/ } $this->children)
+  } elsif ($this->{'#name'} eq 'test') {
+    '${operator}'
   }
 ?>
 node:${b}
