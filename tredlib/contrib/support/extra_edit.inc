@@ -38,17 +38,37 @@ sub new_tree_after {
   DetermineNodeType(NewTreeAfter());
 }
 sub new_rbrother {
-  DetermineNodeType(NewRBrother());
+  my $save = $this;
+  my $new = NewRBrother();
+  unless (DetermineNodeType($new)) {
+    DeleteLeafNode($new);
+    $this=$save;
+  }
 }
 sub new_lbrother {
-  DetermineNodeType(NewLBrother());
+  my $save = $this;
+  my $new = NewLBrother();
+  unless (DetermineNodeType($new)) {
+    DeleteLeafNode($new);
+    $this=$save;
+  }
 }
 sub new_son {
-  DetermineNodeType(NewSon());
+  my $save = $this;
+  my $new = NewSon();
+  unless (DetermineNodeType($new)) {
+    DeleteLeafNode($new);
+    $this=$save;
+  }
 }
 sub new_parent {
   return unless $this->parent;
-  DetermineNodeType(NewParent());
+  my $save = $this;
+  my $new = NewSon();
+  unless (DetermineNodeType($new)) {
+    delete_node_keep_children();
+    $this=$save;
+  }
 }
 
 sub cut_to_firstson {
