@@ -9,7 +9,7 @@ BEGIN {
 }
 
 Bind sub { test(1,{one_tree=>1}); ChangingFile(0) } => {
-  key => 't',
+  key => 's',
   menu => 'TrEd-based search (one tree)',
   context=>'Tree_Query',
 };
@@ -19,12 +19,12 @@ Bind sub { test(1,{plan=>1, one_tree=>1}); ChangingFile(0) } => {
   context=>'Tree_Query',
 };
 Bind sub { test(1); ChangingFile(0) } => {
-  key => 'Ctrl+t',
+  key => 'Ctrl+s',
   menu => 'TrEd-based search (all trees)',
   context=>'Tree_Query',
 };
 Bind \&test => {
-  key => 'T',
+  key => 'S',
   menu => 'TrEd-based search (next match)',
   changing_file => 0,
   context=>'Tree_Query',
@@ -33,6 +33,13 @@ Bind \&test => {
 =comment
 
 TODO:
+
+- limitations: ID-based iterators such a/lex.rf and coref 
+  require the current FSFile
+  to be known. Currently we use $grp to keep this context. But that can
+  in general break if we have relations that need to follow ID-references
+  from an ID-referenced layer. The correct solution is to know the FSFile of
+  of each matched node, i.e. keep that information in the iterator.
 
 - simplify query editing:
 
@@ -180,27 +187,32 @@ sub test {
   return unless $win;
   my $fsfile = CurrentFile($win);
   return unless $fsfile;
-  eval {
-    print STDERR "Searching...\n" if $DEBUG;
-    $Tree_Query::btred_results=1;
-    %Tree_Query::is_match=();
-    my $one_tree = delete $opts->{one_tree};
-    if ($one_tree) {
-      $opts->{tree}=$fsfile->tree(CurrentTreeNumber($win));
-    }
-    $opts->{fsfile} = $fsfile;
-    $evaluator = Tree_Query::Evaluator->new($query_tree,$opts) if !$evaluator or $restart;
-    #  return;
-    my $match = $evaluator->find_next_match();
-    if ($match) {
-      %Tree_Query::is_match = map { $_ => 1 } @$match;
-      print join(",",map { $_->{id}.": ".$_->{functor} } @$match)."\n";
-      SetCurrentNodeInOtherWindow($win,$match->[0]);
-    }
-    print STDERR "Searching done!\n" if $DEBUG;
-
-    $Redraw='all';
-  };
+  {
+    my $cur_win = $grp;
+    $grp=$win;
+    eval {
+      print STDERR "Searching...\n" if $DEBUG;
+      $Tree_Query::btred_results=1;
+      %Tree_Query::is_match=();
+      my $one_tree = delete $opts->{one_tree};
+      if ($one_tree) {
+	$opts->{tree}=$fsfile->tree(CurrentTreeNumber($win));
+      }
+      # $opts->{fsfile} = $fsfile;
+      $evaluator = Tree_Query::Evaluator->new($query_tree,$opts) if !$evaluator or $restart;
+      #  return;
+      my $match = $evaluator->find_next_match();
+      if ($match) {
+	%Tree_Query::is_match = map { $_ => 1 } @$match;
+	print join(",",map { $_->{id}.": ".$_->{functor} } @$match)."\n";
+	SetCurrentNodeInOtherWindow($win,$match->[0]);
+      }
+      print STDERR "Searching done!\n" if $DEBUG;
+      
+      $Redraw='all';
+    };
+    $grp=$cur_win;
+  }
   my $err = $@;
   die $err if $err;
 }
@@ -364,8 +376,8 @@ sub test {
 	  $iterator = $opts->{iterator};
 	} elsif ($opts->{tree}) {
 	  $iterator = TreeIterator->new($conditions,$opts->{tree});
-	} elsif ($opts->{fsfile}) {
-	  $iterator = FSFileIterator->new($conditions,$opts->{fsfile});
+# 	} elsif ($opts->{fsfile}) {
+# 	  $iterator = FSFileIterator->new($conditions,$opts->{fsfile});
 	} else {
 	  $iterator = CurrentFileIterator->new($conditions);
 	}
