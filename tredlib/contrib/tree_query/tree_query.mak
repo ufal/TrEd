@@ -57,7 +57,7 @@ BEGIN {
   use Benchmark ':hireswallclock';
 }
 
-our ($DEFAULT_LIMIT,$DEFAULT_TIMEOUT)=(100, 30);
+our ($DEFAULT_LIMIT,$DEFAULT_TIMEOUT,$VALUE_LINE_MODE)=(100, 30,0);
 
 Bind 'query_sql' => {
   key => 'space',
@@ -87,6 +87,11 @@ Bind sub { RenewStylesheets(); $Redraw='stylesheet'; } => {
 Bind 'fix_netgraph_query' => {
   key => 'f',
   menu => 'Attempt to fix a NetGraph query',
+};
+Bind sub { $VALUE_LINE_MODE=!$VALUE_LINE_MODE } => {
+  key => 'v',
+  menu => 'Toggle value line mode (TreeQuery/SQL)',
+  changing_file => 0,
 };
 
 my $default_dbi_config; # see below
@@ -257,6 +262,7 @@ my %child_order = (
   subquery=>6,
   node=>7,
 );
+
 sub sort_by_node_type {
   my ($node)=@_;
   return map { $_->[0] }
@@ -280,6 +286,134 @@ sub rel_as_text {
   } else {
     return 'child';
   }
+}
+
+sub root_style_hook {
+  DrawArrows_init();
+  init_id_map($root);
+}
+sub after_redraw_hook {
+  DrawArrows_cleanup();
+}
+my %color = (
+  'depth-first-precedes' => 'green',
+  'order-precedes' => 'orange',
+  'a/lex.rf' => 'violet',
+  'a/aux.rf' => 'thistle',
+  'a/lex.rf|a/aux.rf' => 'tan',
+  'coref_text' => '#4C509F',
+  'coref_gram' => '#C05633',
+  'compl' => '#629F52',
+  'descendant' => 'blue',
+  'ancestor' => 'lightblue',
+  'child' => 'black',
+  'parent' => 'lightgray',
+  'echild' => 'darkgreen',
+  'eparent' => 'green',
+);
+my %arrow = (
+  'a/lex.rf' => 'first',
+  'a/aux.rf' => 'first',
+  'a/lex.rf|a/aux.rf' => 'first',
+  'coref_text' => 'first',
+  'coref_gram' => 'first',
+  'compl' => 'first',
+  'descendant' => 'first',
+  'ancestor' => 'first',
+  'child' => 'first',
+  'parent' => 'first',
+  'echild' => 'first',
+  'eparent' => 'first',
+);
+sub arrow_color {
+  my $rel = shift;
+  return $color{$rel};
+}
+sub arrow {
+  my $rel = shift;
+  return $arrow{$rel};
+}
+
+sub tq_serialize {
+  my ($node,$opts)=@_;
+  my $indent = $opts->{indent};
+  my $do_wrap = $opts->{wrap};
+  my $query_node = $opts->{query_node};
+  my $name = $node->{'#name'};
+  $indent||='';
+  my @ret;
+  my $wrap=int($do_wrap) ? "\n$indent" : " ";
+  if ($name eq '' and !$node->parent) {
+    my $desc = $node->{description};
+    return [
+      [(length($desc) ? '#  '.$desc."\n" : ''),$node],
+      map { (@{tq_serialize($_,$opts)},[";\n"]) } $node->children
+     ]
+  } else {
+    my $copts = {%$opts,indent=>$indent."     "};
+    if ($name eq 'subquery' or $name eq 'node') {
+      $copts->{query_node}=$node;
+    }
+    my @r = map [tq_serialize($_,$copts)], sort_by_node_type($node);
+    if ($name=~/^(?:not|or|and)$/) {
+      if ($name eq 'not') {
+	push @ret,['!',$node,$query_node,'-foreground=>darkcyan'];
+	$name='and';
+      }
+      if (@r) {
+	push @ret,( @r==1 ? $r[0] : (['(',$node,$query_node,'-foreground=>darkcyan'],
+				     @{_group(\@r,["${wrap}$name ",$node,$query_node,'-foreground=>darkcyan'])},
+				     [')',$node,$query_node,'-foreground=>darkcyan']) );
+      }
+    } elsif ($name eq 'ref') {
+      my $rel=rel_as_text($node);
+      my $arrow = $rel;
+      $arrow=~s/{.*//;
+      push @ret,['has ',$node,$query_node],
+	[$rel.' ',$node,$query_node,'-foreground=>'.arrow_color($arrow)];
+      my $ref = $node->{target} || '???';
+      push @ret,["\$$ref",$node,$query_node,'-foreground=>darkblue'];
+    } elsif ($name eq 'test') {
+      my $test=  $node->{a}.' '.$node->{operator}.' '.$node->{b};
+      $test=~s/"//g;		# FIXME
+      @ret = ( [$test,$node,$query_node] );
+    } elsif ($name eq 'subquery' or $name eq 'node') {
+      if ($name eq 'subquery') {
+	push @ret, [occ_as_text($node).'x ',$node,'-foreground=>darkgreen'];
+      } elsif ($node->{optional}) {
+	push @ret, ['?',$node,'-foreground=>darkgreen'];
+      }
+      my $rel='';
+      if ($node->parent and $node->parent->parent) {
+	$rel=rel_as_text($node);
+	my $arrow = $rel;
+	$arrow=~s/{.*//;
+	push @ret,[$rel.' ',$node,'-foreground=>'.arrow_color($arrow)];
+      }
+      my $type=$node->{'node-type'}||$node->root->{'node-type'};
+      push @ret,[$type.'-node ',$node]; #FIXME: 
+      if ($node->{name}) {
+	push @ret,['$'.$node->{name},$node,'-foreground=>darkblue'],[' := ',$node];
+      }
+      if ($do_wrap) {
+	push @ret, (["[ ",$node],["${wrap}  "],
+		    @{_group(\@r,[",${wrap}  "])},
+		    ["${wrap}"],[" ]",$node]);
+      } else {
+	unshift @ret,["\n${indent}"] if $node->lbrother;
+	if (@r) {
+	  push @ret,["\n${indent}[ "],
+	    @{_group(\@r,[", ",$node])},
+	      [" ]",$node];
+	} else {
+	  push @ret, (["[ ]",$node]);
+	}
+      }
+    } else {
+      @ret = (['## unknown: '.$name,$node]);
+    }
+  }
+  return \@ret;
 }
 
 sub as_text {
@@ -324,7 +458,6 @@ sub as_text {
       my $type=$node->{'node-type'}||$node->root->{'node-type'};
       $type=$type.'-node: '; #FIXME: 
       $name=$occ.($node->{optional} ? '?' : '').$rel.$type.$name;
-     
       return $name."[ ]" unless @c;
       return $name."[ $c[0] ]" if @c==1 and $c[0]!~/]$/;
       if ($do_wrap) {
@@ -338,51 +471,7 @@ sub as_text {
   }
 }
 
-sub root_style_hook {
-  DrawArrows_init();
-  init_id_map($root);
-}
-sub after_redraw_hook {
-  DrawArrows_cleanup();
-}
-my %color = (
-  'depth-first-precedes' => 'green',
-  'order-precedes' => 'yellow',
-  'a/lex.rf' => 'violet',
-  'a/aux.rf' => 'thistle',
-  'a/lex.rf|a/aux.rf' => 'tan',
-  'coref_text' => '#4C509F',
-  'coref_gram' => '#C05633',
-  'compl' => '#629F52',
-  'descendant' => 'blue',
-  'ancestor' => 'lightblue',
-  'child' => 'black',
-  'parent' => 'lightgray',
-  'echild' => 'darkgreen',
-  'eparent' => 'green',
-);
-my %arrow = (
-  'a/lex.rf' => 'first',
-  'a/aux.rf' => 'first',
-  'a/lex.rf|a/aux.rf' => 'first',
-  'coref_text' => 'first',
-  'coref_gram' => 'first',
-  'compl' => 'first',
-  'descendant' => 'first',
-  'ancestor' => 'first',
-  'child' => 'first',
-  'parent' => 'first',
-  'echild' => 'first',
-  'eparent' => 'first',
-);
-sub arrow_color {
-  my $rel = shift;
-  return $color{$rel};
-}
-sub arrow {
-  my $rel = shift;
-  return $arrow{$rel};
-}
+
 
 sub get_nodelist_hook {
   my ($fsfile,$tree_no,$prevcurrent,$show_hidden)=@_;
@@ -674,7 +763,7 @@ sub query_sql {
   $timeout||=$DEFAULT_TIMEOUT;
   my $driver_name = $dbi->{Driver}->{Name};
   my $tree = $opts->{root}||$root;
-  my $sql = serialize_conditions($tree,{%$opts,syntax=>$driver_name,limit=>$limit});
+  my $sql = sql_serialize_conditions($tree,{%$opts,syntax=>$driver_name,limit=>$limit});
 
   #  my @text_opt = eval { require Tk::CodeText; } ? (qw(CodeText -syntax SQL)) : qw(Text);
   if (GUI()) {
@@ -1014,11 +1103,11 @@ sub run_query {
 }
 
 # serialize to SQL (or SQL fragment)
-sub serialize_conditions {
+sub sql_serialize_conditions {
   my ($node,$opts)=@_;
   $opts||={};
   if ($node->parent) {
-    return [serialize_element({
+    return [sql_serialize_element({
       %$opts,
       name => 'and',
       condition => $node,
@@ -1040,8 +1129,9 @@ sub get_value_line_hook {
   my $tree = $fsfile->tree($treeNo);
   return unless $tree;
   init_id_map($tree);
-  return as_text($tree);
-  return make_sql($tree,{format=>1});
+  return $VALUE_LINE_MODE == 0 ?
+    make_string_with_tags(tq_serialize($tree),[]) :
+    make_sql($tree,{format=>1});
 }
 
 sub line_click_hook {
@@ -1098,7 +1188,7 @@ sub extra_relation {
       $order = q("tfa/deepord");
     }
     $cond =
-      serialize_test(
+      sql_serialize_test(
 	{
 	  id=>$id,
 	  type=>$opts->{type},
@@ -1126,7 +1216,7 @@ sub user_defined_relation {
   my $cond;
   if ($relation eq 'eparent') {
     $cond = qq{$id."root_idx"=$target."root_idx" AND }.
-      serialize_test(
+      sql_serialize_test(
 	{
 	  id=>$id,
 	  type=>$type,
@@ -1139,7 +1229,7 @@ sub user_defined_relation {
        );
   } elsif ($relation eq 'echild') {
     $cond = qq{$id."root_idx"=$target."root_idx" AND }.
-      serialize_test(
+      sql_serialize_test(
 	{
 	  id=>$target,
 	  type=>$type,
@@ -1153,7 +1243,7 @@ sub user_defined_relation {
   } elsif ($relation eq 'a/lex.rf') {
     $cond =  qq{$id."a_lex_idx"=$target."idx"}
   } elsif ($relation eq 'a/aux.rf') {
-    $cond = serialize_test(
+    $cond = sql_serialize_test(
       {
 	id=>$id,
 	type=>$type,
@@ -1167,7 +1257,7 @@ sub user_defined_relation {
   } elsif ($relation eq 'a/lex.rf|a/aux.rf') {
     $cond =
       qq{($id."a_lex_idx"=$target."idx" OR }.
-	serialize_test(
+	sql_serialize_test(
 	  {
 	    id=>$id,
 	    type=>$type,
@@ -1180,7 +1270,7 @@ sub user_defined_relation {
 	 ).')';
   } elsif ($relation eq 'coref_gram') {
     $cond = 
-      serialize_test(
+      sql_serialize_test(
 	{
 	  id=>$id,
 	  type=>$type,
@@ -1193,7 +1283,7 @@ sub user_defined_relation {
        );
   } elsif ($relation eq 'coref_text') {
     $cond = 
-      serialize_test(
+      sql_serialize_test(
 	{
 	  id=>$id,
 	  type=>$type,
@@ -1206,7 +1296,7 @@ sub user_defined_relation {
        );
   } elsif ($relation eq 'compl') {
     $cond = 
-      serialize_test(
+      sql_serialize_test(
 	{
 	  id=>$id,
 	  type=>$type,
@@ -1250,21 +1340,16 @@ sub make_sql {
   my @where;
   my %conditions;
   my $extra_joins = $opts->{join} || {};
-  my $default_type = $tree->root->{'node-type'}||'a';
+  my $default_type = $opts->{type}||$tree->root->{'node-type'}||'a';
   for (my $i=0; $i<@nodes; $i++) {
     my $n = $nodes[$i];
     my $table = $n->{'node-type'}||$default_type;
     my $id = $id{$n};
+
     push @select, $id;
     my $parent = $n->parent;
     my $parent_id = $id{$parent};
-    $conditions{$id} =
-      serialize_to_string(serialize_conditions($n,{
-	type=>$table,
-	id=>'___SELF___',
-	parent_id=>$parent_id,
-      }));
-
+    $conditions{$id} = as_text($n);
     my @conditions;
     if ($parent->parent) {
       my ($rel) = SeqV($n->{relation});
@@ -1277,22 +1362,23 @@ sub make_sql {
 	  type=>($n->parent->{'node-type'}||$default_type)
 	 }),$n];
       push @table,[$table,$id,$n];
-      push @conditions,
-	(map { [qq{$id{$_}."idx"}.
-		  ($conditions{$id} eq $conditions{$id{$_}} ? '<' : '!=' ).
-		    qq{${id}."idx"},$n] }
-	   grep { #$_->parent == $n->parent
-	     #  or
-	     my $type=$_->{'node-type'}||$default_type;
-	     $type eq $table and
-	       (first { !$_->{optional} } $_->ancestors)==(first { !$_->{optional} } $n->ancestors)
-	     }
-	     map { $nodes[$_] } 0..($i-1));
     } else {
       push @table,[$table,$id,$n];
     }
+    push @conditions,
+      (map {
+	[qq{$id{$_}."idx"}.
+	   ($conditions{$id} eq $conditions{$id{$_}} ? '<' : '!=' ).
+	     qq{${id}."idx"},$n] }
+	 grep { #$_->parent == $n->parent
+	   #  or
+	   my $type=$_->{'node-type'}||$default_type;
+	   $type eq $table and
+	     (first { !$_->{optional} } $_->ancestors)==(first { !$_->{optional} } $n->ancestors)
+	   }
+	   map { $nodes[$_] } 0..($i-1));
     {
-      my $conditions = serialize_conditions($n,{
+      my $conditions = sql_serialize_conditions($n,{
 	type=>$table,
 	id=>$id,
 	parent_id=>$parent_id,
@@ -1348,7 +1434,7 @@ sub make_sql {
     push @sql, ["\n".limit($opts->{limit})."\n",'space']
   }
   if ($format) {
-    return serialize_with_tags(\@sql,[$tree]);
+    return make_string_with_tags(\@sql,[$tree]);
   } else {
 #   use Data::Dumper;
 #   my $dump = Data::Dumper->new([\@sql,serialize_with_tags(\@sql,[$tree])],['sql','with_tags']);
@@ -1357,7 +1443,7 @@ sub make_sql {
 #     map { '$n'.($n++) => $_ } ($tree,$tree->descendants)
 #   });
 #   print $dump->Dump;
-    return serialize_to_string(\@sql);
+    return make_string(\@sql);
   }
 }
 
@@ -1376,22 +1462,22 @@ sub _group {
 }
 
 
-sub serialize_to_string {
+sub make_string {
   my ($array) = @_;
   Carp::cluck "not an array" unless ref($array) eq 'ARRAY';
   return join '', map {
-    ref($_->[0]) ? serialize_to_string($_->[0]) : $_->[0]
+    ref($_->[0]) ? make_string($_->[0]) : $_->[0]
   } @$array;
 }
 
-sub serialize_with_tags {
+sub make_string_with_tags {
   my ($array,$tags) = @_;
   return [map {
-    ref($_->[0]) ? @{serialize_with_tags($_->[0],[uniq(@$tags,@{$_}[1..$#$_])])} : [$_->[0], uniq(@$tags,@{$_}[1..$#$_])]
+    ref($_->[0]) ? @{make_string_with_tags($_->[0],[uniq(@$tags,@{$_}[1..$#$_])])} : [$_->[0], uniq(@$tags,@{$_}[1..$#$_])]
   } @$array];
 }
 
-sub serialize_expression {
+sub sql_serialize_expression {
   my ($opts)=@_;
   my $parent_id = $opts->{parent_id};
   my $exp = $opts->{expression};
@@ -1456,10 +1542,10 @@ sub serialize_expression {
   return ($exp,$wrap);
 }
 
-sub serialize_test {
+sub sql_serialize_test {
   my ($L,$R,$operator,$opts)=@_;
-  my ($left,$wrap_left) = ref($L) ? serialize_expression($L) : ($L);
-  my ($right,$wrap_right) = ref($R) ? serialize_expression($R) : ($R);
+  my ($left,$wrap_left) = ref($L) ? sql_serialize_expression($L) : ($L);
+  my ($right,$wrap_right) = ref($R) ? sql_serialize_expression($R) : ($R);
   my $res;
   if ($operator eq '~' and $opts->{syntax} eq 'Oracle') {
     $res = qq{REGEXP_LIKE($left,$right)};
@@ -1477,14 +1563,14 @@ sub serialize_test {
   return $res;
 }
 
-sub serialize_element {
+sub sql_serialize_element {
   my ($opts)=@_;
   my ($name,$node,$as_id,$parent_as_id)=map {$opts->{$_}} qw(name condition id parent_id);
   my $negative = $opts->{negative};
   $negative=!$negative if $name eq 'not';
   if ($name eq 'test') {
     return
-      [serialize_test({%$opts,expression=>$node->{a},negative=>$negative},
+      [sql_serialize_test({%$opts,expression=>$node->{a},negative=>$negative},
 		      {%$opts,expression=>$node->{b},negative=>$negative},
 		      $node->{operator},
 		      $opts),$node];
@@ -1493,7 +1579,7 @@ sub serialize_element {
       grep { @$_ }
       map {
 	my $n = $_->{'#name'};
-	serialize_element({
+	sql_serialize_element({
 	  %$opts,
 	  name => $n,
 	  condition => $_,
@@ -1610,11 +1696,11 @@ sub fix_or2in {
 }
 
 
-sub __serialize_node {
+sub __sql_serialize_node {
   my ($n)=@_;
   my $type=$n->{'node-type'} || $n->root->{'node-type'};
-  return serialize_to_string(
-    serialize_conditions($n,{
+  return make_string(
+    sql_serialize_conditions($n,{
       type=>$type,
       id=>'___SELF___',
       parent_id=>'___PARENT___',
@@ -1641,11 +1727,11 @@ sub reduce_optional_node_chain {
   return unless $node->{'#name'} eq 'node';
   my $parent = $node->parent;
   return unless $parent and $parent->parent;
-  my $conditions = __serialize_node($node);
+  my $conditions = __sql_serialize_node($node);
   my $last = $node;
   my $max_length=0;
   my $min_length=0;
-  while ( $last and __test_optional_chain($last) and ($last==$node or $conditions eq __serialize_node($last))) {
+  while ( $last and __test_optional_chain($last) and ($last==$node or $conditions eq __sql_serialize_node($last))) {
     $max_length++;
     $min_length++ unless $last->{optional};
     ($last) = grep { $_->{'#name'} eq 'node' } $last->children;
