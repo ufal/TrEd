@@ -1938,9 +1938,10 @@ sub redraw {
 	  }
 	}
 	$n_i++;
-	$n_y=$self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$n_x,$n_y,
+	my $ret = $self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$n_x,$n_y,
 			      !$node_has_box && !$surround,
 			      \%Opts,$grp,'Node') unless $empty;
+	$n_y=$ret unless $vertical_tree;
       }
     }
     for my $pat (@$label_patterns) {
