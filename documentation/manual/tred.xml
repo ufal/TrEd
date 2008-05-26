@@ -7796,7 +7796,7 @@ sub MakeSentence {
 	    <row id="enable_attr_hook">
 	      <entry><literal moreinfo="none">enable_attr_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>attr</replaceable>,<replaceable>type</replaceable></literal></para><para>
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>attr</replaceable>,<replaceable>type</replaceable>,<replaceable>node</replaceable></literal></para><para>
 		Executed before any text field for an attribute value
 		modification or list of possible values
 		is created. If the hook returns
@@ -7808,11 +7808,13 @@ sub MakeSentence {
 		of multiple values or an attribute with
 		a given list of possible values) or
 		<literal moreinfo="none">normal</literal>.
+		The argument <replaceable>node</replaceable>
+		is the node whose attribute is to be edited.
 		If this hook returns <literal moreinfo="none">stop</literal>, the 
 		corresponding edit fields in a displayed dialog are
-		disabled (read-only) and if the dialog only displays
-		the particular attribute, then the confirmation 
-		<guibutton moreinfo="none">OK</guibutton> button is removed from it.
+		disabled (read-only); for a dialog that only displays
+		the particular attribute, this means that the confirmation 
+		<guibutton moreinfo="none">OK</guibutton> button is removed.
 	      </para></entry>
 	    </row>
 	    <row id="goto_file_hook">
