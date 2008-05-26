@@ -56,35 +56,42 @@ Bind 'query_sql' => {
   menu => 'Query SQL server',
   changing_file => 0,
 };
+
 Bind sub { next_match('this') } => {
   key => 'm',
   menu => 'Show Match',
   changing_file => 0,
 };
+
 Bind sub { next_match('forward') } => {
   key => 'n',
   menu => 'Show Next Match',
   changing_file => 0,
 };
+
 Bind sub { next_match('backward') } => {
   key => 'p',
   menu => 'Show Previous Match',
   changing_file => 0,
 };
+
 Bind sub { RenewStylesheets(); $Redraw='stylesheet'; } => {
-  key => 'r',
+  key => 'y',
   menu => 'Renew Tree_query Stylesheet',
   changing_file => 0,
 };
+
 Bind 'fix_netgraph_query' => {
   key => 'f',
   menu => 'Attempt to fix a NetGraph query',
 };
+
 Bind sub { $VALUE_LINE_MODE=!$VALUE_LINE_MODE } => {
   key => 'v',
   menu => 'Toggle value line mode (TreeQuery/SQL)',
   changing_file => 0,
 };
+
 Bind sub {
   my $node=$this;
   ChangingFile(0);
@@ -104,6 +111,7 @@ Bind sub {
   key => '!',
   menu => 'Negate a condition',
 };
+
 Bind sub {
   my $node=$this;
   ChangingFile(0);
@@ -118,6 +126,7 @@ Bind sub {
   key => '&',
   menu => 'Create And',
 };
+
 Bind sub {
   my $node=$this;
   ChangingFile(0);
@@ -133,6 +142,7 @@ Bind sub {
   key => '|',
   menu => 'Create Or',
 };
+
 Bind sub {
   ChangingFile(0);
   return unless $this->{'#name'}=~/^(?:node|subquery)$/;
@@ -142,6 +152,7 @@ Bind sub {
   key => '$',
   menu => 'Edit node name',
 };
+
 Bind sub {
   ChangingFile(0);
   return unless $this->{'#name'}=~/^(?:node|subquery)$/;
@@ -151,6 +162,7 @@ Bind sub {
   key => 't',
   menu => 'Edit node type',
 };
+
 Bind sub {
   ChangingFile(0);
   return unless $this->{'#name'} eq 'node';
@@ -160,6 +172,7 @@ Bind sub {
   key => '?',
   menu => 'Toggle optional',
 };
+
 Bind sub {
   my $new;
   my $node=$this;
@@ -184,9 +197,58 @@ Bind sub {
   key => '=',
   menu => 'Add a constraint test',
 };
+
+Bind sub {
+  ChangingFile(0);
+  return unless $this->{'#name'} =~ /^(node|subquery|ref)$/;
+  unless (SeqV($this->{relation})) {
+    my @sel='child';
+    ListQuery('Select relation of the current node to its parent',
+	      'browse',
+	      GetRelationTypes($this),
+	      \@sel) || return;
+    SetRelation($this,$sel[0]) if @sel;
+  } elsif (EditAttribute($this,'relation')) {
+    ChangingFile(1);
+  }
+} => {
+  key => 'r',
+  menu => 'Edit relation of the current node to its parent',
+};
+
+Bind sub {
+  ChangingFile(0);
+  return unless $this->{'#name'} eq 'subquery';
+  if (not (AltV($this->{'occurrences'}))) {
+    $this->{occurrences}=Fslib::Struct->new({min=>1});
+  }
+  if (EditAttribute($this,'occurrences')) {
+    ChangingFile(1);
+  }
+} => {
+  key => 'x',
+  menu => 'Edit occurrences on a subquery-node',
+};
+
 Bind ToggleHiding => {
   key => 'h',
   menu => 'Toggle hiding of logical nodes',
+};
+
+
+Bind sub {
+  my $node=$this;
+  return unless $node;
+  my $p=$node->parent && $node->parent->parent;
+  if ($node->{'#name'} =~ /^(?:node|subquery)/) {
+    DeleteSubtree($_) for grep { !($_->{'#name'} eq 'node'
+				     or ($p && $_->{'#name'} eq 'subquery')) }
+      $node->children;
+  }
+  delete_node_keep_children($node);
+} => {
+  key => 'Delete',
+  menu => 'Delete current node (pasting its children on its parent)'
 };
 
 my $default_dbi_config; # see below
@@ -202,6 +264,7 @@ Bind sub {
   menu => 'Connect to SQL server',
   changing_file => 0,
 };
+
 Bind sub {
   edit_config();
 } => {
@@ -656,16 +719,7 @@ sub node_release_hook {
         grep { $_->{'#name'} eq 'ref' } $node->children;
       ListQuery('Select query-node relations to add/preserve',
 		'multiple',
-		[
-		  map {
-		    my $name = $_->get_name;
-		    if ($name eq 'user-defined') {
-		      (map { qq{$name: $_} } $_->get_content_decl->get_attribute_by_name('label')->get_content_decl->get_values())
-		    } else {
-		      $name;
-		    }
-		  } $node->type->schema->get_type_by_name('q-extra-relation.type')->get_content_decl->get_elements(),
-		 ],
+		GetRelationTypes($node),
 		\@sel) || return;
       init_id_map($node->root);
       AddOrRemoveRelations($node,$target,\@sel,{-add_only=>0});
@@ -681,12 +735,31 @@ sub node_release_hook {
 
 sub SetRelation {
   my ($node,$type,$opts)=@_;
+  if ($type=~s/^(user-defined): // and !($opts and $opts->{label})) {
+    $opts||={};
+    $opts->{label}=$type;
+    $type = 'user-defined';
+  }
   my $rel = Fslib::Seq::Element->new( 
     $type => Fslib::Container->new(undef,$opts) 
   );
   $node->{relation}||=Fslib::Seq->new();
   @{$node->{relation}->elements_list}=( $rel );
   return $rel;
+}
+
+sub GetRelationTypes {
+  my $node=@_ ? $_[0] : $this;
+  [
+    map {
+      my $name = $_->get_name;
+      if ($name eq 'user-defined') {
+	(map { qq{$name: $_} } $_->get_content_decl->get_attribute_by_name('label')->get_content_decl->get_values())
+      } else {
+	$name;
+      }
+    } $node->type->schema->get_type_by_name('q-extra-relation.type')->get_content_decl->get_elements(),
+   ],
 }
 
 # note: you have to call init_id_map($root); first!
@@ -719,11 +792,7 @@ sub AddOrRemoveRelations {
     DetermineNodeType($ref);
     $ref->{target}=$target_name;
     my ($name,$value);
-    if ($type=~s/^(user-defined): //) {
-      SetRelation($ref,'user-defined' => { label => $type });
-    } else {
-      SetRelation($ref,$type);
-    }
+    SetRelation($ref,$type);
     push @new,$ref;
   }
   return @new;
@@ -1166,7 +1235,7 @@ sub run_query {
 				 sub {
 				   if (!GUI() or QuestionQuery('Query Timeout',
 						     'The evaluation of the query seems to take too long',
-						     'Wait another '.$opts->{Timeout}.' seconds','Abort') eq 'Abort') {
+						     'Wait another '.$opts->{Timeout}.' seconds','Abort') !~ /Wait/) {
 				     $canceled = 1;
 				     my $res = $sth->cancel();
 				     warn "Canceled: ".(defined($res) ? $res : 'undef');
@@ -1346,7 +1415,7 @@ sub user_defined_relation {
 	type=>$type,
 	join=>$opts->{join},
 	expression => qq{"a_aux/a_idx"},
-	negative=>$opts->{negative},
+	negative=>1,#$opts->{negative},
       },
       qq{$target."idx"},
       qq(=),$opts,
@@ -1445,10 +1514,13 @@ sub make_sql {
 
     push @select, $id;
     my $parent = $n->parent;
+    while ($parent and $parent->{'#name'} !~/^(?:node|subquery)$/) {
+      $parent=$parent->parent 
+    }
     my $parent_id = $id{$parent};
     $conditions{$id} = as_text($n);
     my @conditions;
-    if ($parent->parent) {
+    if ($parent && $parent->parent) {
       my ($rel) = SeqV($n->{relation});
       $rel ||= SetRelation($n,'child');
       push @conditions,
@@ -1456,7 +1528,7 @@ sub make_sql {
 	  %$opts,
 	  id=>$id,
 	  join => $extra_joins,
-	  type=>($n->parent->{'node-type'}||$default_type)
+	  type=>($parent->{'node-type'}||$default_type)
 	 }),$n];
       push @table,[$table,$id,$n];
     } else {
@@ -1493,6 +1565,7 @@ sub make_sql {
     }
     push @where, @conditions;
   }
+
   my @sql = (['SELECT ']);
   if ($count == 2) {
     push @sql,['count(DISTINCT '.$id{$tree}.'."idx")','space'];
@@ -1526,10 +1599,12 @@ sub make_sql {
     }
   }
   push @sql, [ "\nWHERE\n     ",'space'],@{_group(\@where,[' AND '])};
+
   unless (defined($tree_parent_id) and defined($id{$tree}) 
 	  or !defined($opts->{limit})) {
     push @sql, ["\n".limit($opts->{limit})."\n",'space']
   }
+
   if ($format) {
     return make_string_with_tags(\@sql,[$tree]);
   } else {
@@ -1700,7 +1775,9 @@ sub sql_serialize_element {
     });
     my @sql;
     my @occ;
-    for my $occ (AltV($node->{occurrences})) { # this is not optimal for @occ>1
+    my @vals = grep ref, AltV($node->{occurrences});
+    @vals=(Fslib::Struct->new({min=>1})) unless @vals;
+    for my $occ (@vals) { # this is not optimal for @occ>1
       my ($min,$max)=($occ->{min},$occ->{max});
       if (length($min) and length($max)) {
 	if ($min==$max) {
