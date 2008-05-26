@@ -64,9 +64,9 @@ sub new_son {
 sub new_parent {
   return unless $this->parent;
   my $save = $this;
-  my $new = NewSon();
+  my $new = NewParent();
   unless (DetermineNodeType($new)) {
-    delete_node_keep_children();
+    delete_node_keep_children($new);
     $this=$save;
   }
 }
