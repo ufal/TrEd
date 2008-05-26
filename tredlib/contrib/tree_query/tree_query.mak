@@ -251,6 +251,23 @@ Bind sub {
   menu => 'Delete current node (pasting its children on its parent)'
 };
 
+Bind sub {
+  my $node=$this;
+  return unless $node;
+  if (!$node->parent or $node->{'#name'} =~ /^(?:node|subquery)/) {
+    my $new = NewSon();
+    $new->{'#name'}='node';
+    DetermineNodeType($new);
+  } elsif ($node->{'$name'}=~/^(?:test|ref)/) {
+    my $new = NewRBrother();
+    $new->{'#name'}=$node->{'#name'};
+    DetermineNodeType($new);
+  }
+} => {
+  key => 'Insert',
+  menu => 'Create a new query node'
+};
+
 my $default_dbi_config; # see below
 my $dbi_config;
 my $dbi_configuration;
@@ -387,8 +404,31 @@ sub init_id_map {
       $id++ while exists $occup{$id}; # just for sure
       $id{$n}=$id; # generate id;
       $occup{$id}=1;
+      $name2node_hash{$id}=$n;
     }
   };
+}
+
+# given to nodes or their IDs ($id and $ref)
+# returns 0 if both belong to the same subquery
+# returns 1 if $id is in a subquery nested in a subtree of $ref
+# (and hence $ref can be referred to from $id)
+# returns -1 otherwise
+
+sub cmp_subquery_scope {
+  my ($id,$ref) = @_;
+  return 0 if $id eq $ref;
+  my $node = ref($id) ? $id : $name2node_hash{$id};
+  my $ref_node = ref($ref) ? $ref : $name2node_hash{$ref};
+  while ($node->parent and $node->{'#name'} ne 'subquery') {
+    $node=$node->parent;
+  }
+  while ($ref_node->parent and $ref_node->{'#name'} ne 'subquery') {
+    $ref_node=$ref_node->parent;
+  }
+  return 0 if $node==$ref_node;
+  return 1 if first { $_==$ref_node } $node->ancestors;
+  return -1;
 }
 
 sub occ_as_text {
@@ -700,11 +740,7 @@ sub node_release_hook {
     my $type = $node->{'#name'};
     my $target_type = $target->{'#name'};
     return 'stop' unless $target_type =~/^(?:node|subquery)$/;
-    my $sq = first { $_->{'#name'} eq 'subquery' } ($node,$node->ancestors);
-    my $target_sq = first { $_->{'#name'} eq 'subquery' } ($target,$target->ancestors);
-    return 'stop' unless 
-      !defined($target_sq) or
-      (defined($sq) and first { $_==$target_sq } ($sq,$sq->ancestors));
+    return 'stop' if cmp_subquery_scope($node,$target)<0;
 
     if ($type eq 'node' or $type eq 'subquery') {
       my @sel = map {
@@ -727,7 +763,9 @@ sub node_release_hook {
       ChangingFile(1);
     } elsif ($type eq 'ref') {
       init_id_map($node->root);
+      return 'stop' if cmp_subquery_scope($node,$target)<0;
       $node->{target}=node_name($target);
+      ChangingFile(1);
     }
   }
   return;
@@ -1310,7 +1348,7 @@ sub line_click_hook {
   }
 }
 
-sub extra_relation {
+sub relation {
   my ($id,$rel,$target,$opts)=@_;
   my $relation = $rel->name;
   my $params = $rel->value;
@@ -1329,7 +1367,7 @@ sub extra_relation {
   }
   my $cond;
   if ($relation eq 'user-defined') {
-    return user_defined_relation($id,$params,$target,{%$opts,extra_relation=>1});
+    return user_defined_relation($id,$params,$target,$opts);
   } elsif ($relation eq 'descendant') {
     $cond = qq{$id."root_idx"=$target."root_idx" AND $id."idx"!=$target."idx" AND }.
       qq{$target."idx" BETWEEN $id."idx" AND $id."r"};
@@ -1356,13 +1394,13 @@ sub extra_relation {
     $cond =
       sql_serialize_test(
 	{
-	  id=>$id,
+	  id=>$opts->{id},
 	  type=>$opts->{type},
 	  join=>$opts->{join},
-	  expression => $order,
+	  expression => qq{$id.$order},
 	},
 	{
-	  id=>$target,
+	  id=>$opts->{id},
 	  type=>$opts->{type},
 	  join=>$opts->{join},
 	  expression => qq{$target.$order},
@@ -1380,14 +1418,15 @@ sub user_defined_relation {
   my $relation=$params->{label};
   my $type = $opts->{type};
   my $cond;
+  my $from_id = $opts->{id}; # view point
   if ($relation eq 'eparent') {
     $cond = qq{$id."root_idx"=$target."root_idx" AND }.
       sql_serialize_test(
 	{
-	  id=>$id,
+	  id=>$from_id,
 	  type=>$type,
 	  join=>$opts->{join},
-	  expression => qq{"eparents/eparent_idx"},
+	  expression => qq{$id."eparents/eparent_idx"},
 	  negative=> $opts->{negative},
 	},
 	qq{$target."idx"},
@@ -1397,10 +1436,10 @@ sub user_defined_relation {
     $cond = qq{$id."root_idx"=$target."root_idx" AND }.
       sql_serialize_test(
 	{
-	  id=>$target,
+	  id=>$from_id,
 	  type=>$type,
 	  join=>$opts->{join},
-	  expression => qq{"eparents/eparent_idx"},
+	  expression => qq{$target."eparents/eparent_idx"},
 	  negative=>$opts->{negative},
 	},
 	qq{$id."idx"},
@@ -1411,11 +1450,11 @@ sub user_defined_relation {
   } elsif ($relation eq 'a/aux.rf') {
     $cond = sql_serialize_test(
       {
-	id=>$id,
+	id=>$from_id,
 	type=>$type,
 	join=>$opts->{join},
-	expression => qq{"a_aux/a_idx"},
-	negative=>1,#$opts->{negative},
+	expression => qq{$id."a_aux/a_idx"},
+	negative=>$opts->{negative},
       },
       qq{$target."idx"},
       qq(=),$opts,
@@ -1425,10 +1464,10 @@ sub user_defined_relation {
       qq{($id."a_lex_idx"=$target."idx" OR }.
 	sql_serialize_test(
 	  {
-	    id=>$id,
+	    id=>$from_id,
 	    type=>$type,
 	    join=>$opts->{join},
-	    expression => qq{"a_aux/a_idx"},
+	    expression => qq{$id."a_aux/a_idx"},
 	    negative=>$opts->{negative},
 	  },
 	  qq{$target."idx"},
@@ -1438,10 +1477,10 @@ sub user_defined_relation {
     $cond = 
       sql_serialize_test(
 	{
-	  id=>$id,
+	  id=>$from_id,
 	  type=>$type,
 	  join=>$opts->{join},
-	  expression => qq{"coref_gram/corg_idx"},
+	  expression => qq{$id."coref_gram/corg_idx"},
 	  negative=>$opts->{negative},
 	},
 	qq{$target."idx"},
@@ -1451,10 +1490,10 @@ sub user_defined_relation {
     $cond = 
       sql_serialize_test(
 	{
-	  id=>$id,
+	  id=>$from_id,
 	  type=>$type,
 	  join=>$opts->{join},
-	  expression => qq{"coref_text/cort_idx"},
+	  expression => qq{$id."coref_text/cort_idx"},
 	  negative=>$opts->{negative},
 	},
 	qq{$target."idx"},
@@ -1464,10 +1503,10 @@ sub user_defined_relation {
     $cond = 
       sql_serialize_test(
 	{
-	  id=>$id,
+	  id=>$from_id,
 	  type=>$type,
 	  join=>$opts->{join},
-	  expression => qq{"compl/compl_idx"},
+	  expression => qq{$id."compl/compl_idx"},
 	  negative=>$opts->{negative},
 	},
 	qq{$target."idx"},
@@ -1524,7 +1563,7 @@ sub make_sql {
       my ($rel) = SeqV($n->{relation});
       $rel ||= SetRelation($n,'child');
       push @conditions,
-	[extra_relation($parent_id,$rel,$id, {
+	[relation($parent_id,$rel,$id, {
 	  %$opts,
 	  id=>$id,
 	  join => $extra_joins,
@@ -1661,29 +1700,44 @@ sub sql_serialize_expression {
     s/"_depth"/"lvl"/g;
     s{"m(?:/w)?/}{"}g; # FIXME: a hack
   }
-  my ($extra_joins,$wrap);
+  my ($wrap);
+  my $extra_joins={};
+  my $joins = $opts->{join};
+  my $use_exists;
   if ($opts->{negative}) {
-    $extra_joins={};
-  } else {
-    $extra_joins = $opts->{join};
   }
+  my $this_node_id = $opts->{id};
+  my $negative = $opts->{negative};
+  print "$exp\n";
   $exp=~s{(?:(\w+)\.)?"([^"]+)"}{
-    my $id = defined($1) ? lc($1) : $opts->{id};
+    my $id = defined($1) ? lc($1) : $this_node_id;
     my @ref = split m{/}, $2;
     my $column = pop @ref;
     my $table = $opts->{type};
     my $node_id = $id;
     for my $tab (@ref) {
       my $prev = $id;
-      $extra_joins->{$node_id}||=[];
-      my $i = @{$extra_joins->{$node_id}};
+      my $cmp = cmp_subquery_scope($this_node_id,$id);
+      if ($cmp<0) {
+	die "Node '$id' belongs to a sub-query and cannot be referred from the scope of node '$this_node_id' ($opts->{expression})\n";
+      }
+      print "$this_node_id => $id: $cmp\n";
+      my $j;
+      if ($negative or $cmp) {
+	$use_exists=1;
+	$j=$extra_joins;
+      } else {
+	$j=$joins;
+      }
+      $j->{$node_id}||=[];
+      my $i = @{$j->{$node_id}};
       $id.="_${tab}_$i";
       $table.="_$tab";
-      push @{$extra_joins->{$node_id}},[$id,$table, qq($id."idx" = $prev."idx"), 'LEFT']; # should be qq($prev."$tab")
+      push @{$j->{$node_id}},[$id,$table, qq($id."idx" = $prev."idx"), 'LEFT']; # should be qq($prev."$tab")
     }
     qq($id."$column");
   }ge;
-  if ($opts->{negative}) {
+  if ($use_exists) {
     my @from;
     my @where;
     for my $name (keys (%$extra_joins)) {
@@ -1794,9 +1848,12 @@ sub sql_serialize_element {
     return (@occ ? [[ ['('],@{_group(\@occ,[' OR '])},[')'] ],$node] : ());
   } elsif ($name eq 'ref') {
     my $target = $node->{target};
+    if (cmp_subquery_scope($node,$target)<0) {
+      die "Node '$as_id' belongs to a sub-query and cannot be referred from the scope of node '$target'\n";
+    }
     my ($rel) = SeqV($node->{relation});
     if ($rel) {
-      return ['('.extra_relation($as_id,$rel,$target,$opts).')',$node];
+      return ['('.relation($as_id,$rel,$target,$opts).')',$node];
     } else {
       return;
     }
