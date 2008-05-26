@@ -8603,7 +8603,7 @@ sub editAttrsDialog_schema {
   if ($attr_path ne EMPTY) {
     $node_type = $base_type->find($attr_path,1);
     croak("Unknown attribute $attr_path") unless $node_type;
-    $enabled = 0 if doEvalHook($win,'enable_attr_hook',$attr_path,"normal") eq 'stop';
+    $enabled = 0 if doEvalHook($win,'enable_attr_hook',$attr_path,"normal",$node) eq 'stop';
   } else {
     $enabled= 0 if (doEvalHook($win,'enable_edit_node_hook',$node) eq 'stop');
     $node_type = $base_type;
@@ -8625,11 +8625,17 @@ sub editAttrsDialog_schema {
 		   }]
 	      ]},
     enable_callback => [ sub {
-			   my ($win,$base_path,$path)=@_;
+			   my ($win,$base_path,$node,$path)=@_;
 			   # __debug("enable_attr_hook: $base_path, $path\n");
 			   $path = $base_path.$path if $base_path ne EMPTY;
-			   doEvalHook($win,'enable_attr_hook',$path,"normal") eq 'stop' ? 0 : 1
-			 }, $win,$base_path ],
+			   doEvalHook($win,'enable_attr_hook',$path,"normal",$node) eq 'stop' ? 0 : 1
+			 }, $win,$base_path,$node ],
+    choices_callback => [ sub {
+			   my ($win,$base_path,$node,$path,$mtype,$editor)=@_;
+			   $path = $base_path.$path if $base_path ne EMPTY;
+			   return doEvalHook($win,'attr_choices_hook',$path,$node,$mtype,$editor);
+			 }, $win,$base_path,$node ],
+
     search_field => length $attr_path ? 0 : 1,
     knit_support => 1,
     validate_flags => PML_VALIDATE_NO_CHILDNODES(),
