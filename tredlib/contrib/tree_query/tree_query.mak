@@ -272,6 +272,10 @@ my $default_dbi_config; # see below
 my $dbi_config;
 my $dbi_configuration;
 my $dbi;
+my %schema_map = (
+  t => PMLSchema->new({filename => 'tdata_schema.xml',use_resources=>1}),
+  a => PMLSchema->new({filename => 'adata_schema.xml',use_resources=>1}),
+);
 
 Bind sub {
   undef $dbi;
@@ -381,6 +385,21 @@ EOF
   }
 }
 
+sub get_query_node_type {
+  my ($node)=@_;
+  my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } $node->ancestors;
+  my $table = ($qn && $qn->{'node-type'})||$node->root->{'node-type'};
+  return $table;
+}
+
+sub get_query_node_schema {
+  my ($node)=@_;
+  my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } $node->ancestors;
+  my $table = ($qn && $qn->{'node-type'})||$node->root->{'node-type'};
+  return unless $table;
+  return $schema_map{$table};
+}
+
 sub attr_choices_hook {
   my ($attr_path,$node,undef,$editor)=@_;
   if ($node->{'#name'} eq 'ref' and $attr_path eq 'target') {
@@ -389,26 +408,42 @@ sub attr_choices_hook {
       map $_->{name},
       grep $_->{'#name'} =~ /^(?:node|subquery)$/, $node->root->descendants
     ];
+  } elsif (!$node->parent or $node->{'#name'} =~ /^(?:node|subquery)$/) {
+    if ($attr_path eq 'node-type') {
+      return [sort keys %schema_map];
+    }
   } elsif ($node->{'#name'} eq 'test') {
-    print "here $attr_path\n";
-    if ($attr_path eq 'b') {
+    if ($attr_path eq 'a') {
+      my $schema = get_query_node_schema($node);
+      if ($schema) {
+	return [
+	  $schema->get_paths_to_atoms(undef, { no_childnodes => 1 })
+	];
+      }
+    } elsif ($attr_path eq 'b') {
       if ($dbi) {
 	my $name = $editor->get_current_value('a');
-	print "here: $name\n";
 	if ($name and $name=~m{^(?:\$[[:alpha:]_][[:alnum:]_/\-]*\.)?"?([[:alpha:]_][[:alnum:]_/\-]*)"?$}) {
 	  my $attr = $1;
-	  my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } $node->ancestors;
-	  my $table = ($qn && $qn->{'node-type'})||$node->root->{'node-type'};
-	  print "table: $table\n";
+	  my $table = get_query_node_type($node);
 	  return unless $table=~m{^[[:alpha:]_][[:alnum:]_/\-]*$};
 	  if ($attr=~s{^(.*)/}{}) {
 	    my $t=$1;
 	    $t=~s{/}{_}g;
 	    $table=$table.'_'.$t;
 	  }
-	  my $sql = qq(SELECT DISTINCT "$attr" FROM ${table} ORDER BY "$attr");
+	  my $sql = <<SQL;
+SELECT * FROM (
+  SELECT "$attr" FROM ${table} 
+  WHERE "$attr" IS NOT NULL
+  GROUP BY "$attr"
+  ORDER BY count(1) DESC
+) WHERE ROWNUM<100
+ORDER BY "$attr"
+SQL
+	  #my $sql = qq(SELECT DISTINCT "$attr" FROM ${table} ORDER BY "$attr");
 	  print "$sql\n";
-	  my $results = eval { run_query($sql,{ MaxRows=>50, RaiseError=>1, Timeout => 10 }) };
+	  my $results = eval { run_query($sql,{ MaxRows=>100, RaiseError=>1, Timeout => 10 }) };
 	  print $@;
 	  return if $@;
 	  my @res= map qq('$_->[0]'),@$results;
@@ -627,7 +662,7 @@ sub tq_serialize {
 	$arrow=~s/{.*//;
 	push @ret,[$rel.' ',$node,'-foreground=>'.arrow_color($arrow)];
       }
-      my $type=$node->{'node-type'}||$node->root->{'node-type'};
+      my $type=get_query_node_type($node);
       push @ret,[$type.'-node ',$node]; #FIXME: 
       if ($node->{name}) {
 	push @ret,['$'.$node->{name},$node,'-foreground=>darkblue'],[' := ',$node];
@@ -654,61 +689,49 @@ sub tq_serialize {
 }
 
 sub as_text {
-  my ($node,$indent,$do_wrap)=@_;
-  my $name = $node->{'#name'};
-  $indent||='';
-  my $wrap=int($do_wrap) ? "\n$indent" : " ";
-  my @c=map as_text($_,$indent."     "), sort_by_node_type($node);
-  if ($name eq '' and !$node->parent) {
-    my $desc = $node->{description};
-    return (length($desc) ? '#  '.$desc." " : '')
-      .join(";\n", map { as_text($_,'') }  $node->children);
-  } else {
-    if ($name eq 'not') {
-      return if @c==0;
-      return '!'.$c[0] if @c==1;
-      return '!('.join("${wrap}and ",@c).')'
-    } elsif ($name eq 'and') {
-      return if @c==0;
-      return $c[0] if @c==1;
-      return '('.join("${wrap}and ",@c).')';
-    } elsif ($name eq 'or') {
-      return if @c==0;
-      return $c[0] if @c==1;
-      return '('.join("${wrap}or ",map as_text($_,$indent."     "), sort_by_node_type($node)).')';
-    } elsif ($name eq 'ref') {
-      my $rel = rel_as_text($node).' ';
-      my $ref = $node->{target} || '???';
-      return "$rel\$$ref";
-    } elsif ($name eq 'test') {
-      my $test=  $node->{a}.' '.$node->{operator}.' '.$node->{b};
-      $test=~s/"//g;		# FIXME
-      return $test;
-    } elsif ($name eq 'subquery' or $name eq 'node') {
-      my $occ = $name eq 'subquery' ? occ_as_text($node).'x ' : '';
-      my $rel='';
-      if ($node->parent and $node->parent->parent) {
-	$rel=rel_as_text($node).' '
-      }
-      my $name = $node->{name} || '';
-      $name='$'.$name.' := ' if $name;
-      my $type=$node->{'node-type'}||$node->root->{'node-type'};
-      $type=$type.'-node: '; #FIXME: 
-      $name=$occ.($node->{optional} ? '?' : '').$rel.$type.$name;
-      return $name."[ ]" unless @c;
-      return $name."[ $c[0] ]" if @c==1 and $c[0]!~/]$/;
-      if ($do_wrap) {
-	return $name."[${wrap}  ".join(",${wrap}  ",@c)."${wrap}]";
-      } else {
-	return "\n${indent}".$name."\n${indent}[".join(", ",@c)."]";
-      }
-    } else {
-      return '{'.$name.'}'
-    }
-  }
+  my ($node,$indent,$wrap)=@_;
+  make_string(tq_serialize($node,{indent=>$indent,wrap=>$wrap}));
 }
 
+use constant {
+  LEX_REF    => 1,
+  LEX_ATTR   => 2,
+  LEX_STRING => 3,
+  LEX_FUNC   => 4,
+  LEX_SPACE  => 5,
+  LEX_COMMA  => 6,
+  LEX_DOT  => 7,
+  LEX_CLOSE_FUNC  => 8,
+  LEX_OP  => 9,
+  LEX_CMP  => 10,
+  LEX_NUMBER  => 11,
+};
 
+sub lex_expression {
+  my ($exp)=@_;
+  my @tokens;
+  local $_=$exp;
+  my $NameChar=$PMLSchema::CDATA::NameChar;
+  my $Name=$PMLSchema::CDATA::Name;
+ LOOP:
+  {
+    push(@tokens,[$1,LEX_REF],$2 ? [$2,LEX_DOT] : ()), redo LOOP 
+                                           if /\G(\$${Name})(\.)?/gco;
+    push(@tokens,[$1,LEX_FUNC]), redo LOOP if /\G(${Name}\()/gco;
+    push(@tokens,[$1,LEX_ATTR]), redo LOOP if /\G(${Name}(?:\/${Name})*)/gco;
+    push(@tokens,[$1,LEX_STRING]), redo LOOP if /\G('[^']*')/gc;
+    push(@tokens,[$1,LEX_NUMBER]), redo LOOP if /\G(\d+(?:\.\d+)?)/gc;
+    push(@tokens,[$1,LEX_OP]), redo LOOP if /\G([-+*]|\bdiv\b)/gc;
+    push(@tokens,[$1,LEX_CMP]), redo LOOP if /\G([=<>~]|\bin\b|\blike\b)/gc;
+    push(@tokens,[$1,LEX_CLOSE_FUNC]), redo LOOP if /\G(\s*\)\s*)/gc;
+    push (@tokens,[$1,LEX_COMMA]), redo LOOP if /\G(\s*,\s*)/gc;
+    push (@tokens,[$1,LEX_SPACE]), redo LOOP if /\G(\s+)/gc;
+    if (/\G(.)/gc) {
+      warn "Expression parse error near:\n    ".$exp."\n    ".(pos() x ' ').'^'."\n";
+    }
+  }
+  return @tokens;
+}
 
 sub get_nodelist_hook {
   my ($fsfile,$tree_no,$prevcurrent,$show_hidden)=@_;
@@ -962,6 +985,8 @@ sub connect_dbi {
       require DBD::Pg;
       import DBD::Pg qw(:async);
     }
+    $::ENV{NLS_LANG}='CZECH_CZECH REPUBLIC.AL32UTF8';
+    $::ENV{NLS_NCHAR}='AL32UTF8';
     $dbi = DBI->connect('dbi:'.$cfg->{driver}.':'.
 			  ($cfg->{driver} eq 'Oracle' ? "sid=" : "database=").$cfg->{database}.';'.
 			    "host=".$cfg->{host}.';'.
@@ -1729,12 +1754,16 @@ sub sql_serialize_expression {
   my ($opts)=@_;
   my $parent_id = $opts->{parent_id};
   my $exp = $opts->{expression};
+
+  my @tokens = lex_expression($exp);
+
+  # FIXME: ng2xml needs to be fixed to use functions for the following:
   for ($exp) {
-    s/(?:(\w+)\.)?"_[#]descendants"/$1"r"-$1"idx"/g;
-    s/"_[#]lbrothers"/"chord"/g;
-    s/(?:(\w+)\.)?"_[#]rbrothers"/$1$parent_id."chld"-$1"chord"-1/g;
-    s/"_[#]sons"/"chld"/g;
-    s/"_depth"/"lvl"/g;
+    s/\bdescendants\((\$\w+)\)/my $v=$1; $v.='.' if $v=~s{^\$}{}; qq{$v"r"-$v"idx"}/eg;
+    s/\blbrothers\((\$\w+)\)/my $v=$1; $v.='.' if $v=~s{^\$}{}; qq{$v"chord"}/eg;
+    s/\brbrothers\((\$\w+)\)/my $v=$1; $v.='.' if $v=~s{^\$}{}; qq{$parent_id."chld"-$v"chord"-1}/eg;
+    s/\bsons\((\$\w+)\)/my $v=$1; $v.='.' if $v=~s{^\$}{}; qq{$v"chld"}/eg;
+    s/\bdepth\((\$\w+)\)/my $v=$1; $v.='.' if $v=~s{^\$}{}; qq{$v"lvl"}/eg;
     s{"m(?:/w)?/}{"}g; # FIXME: a hack
   }
   my ($wrap);
@@ -1745,7 +1774,13 @@ sub sql_serialize_expression {
   }
   my $this_node_id = $opts->{id};
   my $negative = $opts->{negative};
-  print "$exp\n";
+
+  for my $tok (@tokens) {
+    if ($tok->[1]==LEX_FUNC) {
+      # ... etc
+    }
+  }
+
   $exp=~s{(?:(\w+)\.)?"([^"]+)"}{
     my $id = defined($1) ? lc($1) : $this_node_id;
     my @ref = split m{/}, $2;
@@ -1909,7 +1944,7 @@ sub fix_netgraph_ord_to_precedes {
   }
   my $node = first { $_->{'#name'}=~/^(?:node|subquery)$/ } $test->ancestors;
   return unless $node;
-  my $ord = (($node->{'node-type'}||$node->root->{'node-type'}) eq 't') ? 'tfa/deepord' : 'ord';
+  my $ord = (get_query_node_type($node) eq 't') ? 'tfa/deepord' : 'ord';
   my $end;
   my $rel;
   if ($x eq qq("$ord") and $y=~/^([[:alnum:]]+)\."\Q$ord\E"$/) {
@@ -1966,7 +2001,7 @@ sub fix_or2in {
 
 sub __sql_serialize_node {
   my ($n)=@_;
-  my $type=$n->{'node-type'} || $n->root->{'node-type'};
+  my $type=get_query_node_type($n);
   return make_string(
     sql_serialize_conditions($n,{
       type=>$type,
