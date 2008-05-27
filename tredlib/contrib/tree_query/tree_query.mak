@@ -381,7 +381,44 @@ EOF
   }
 }
 
-
+sub attr_choices_hook {
+  my ($attr_path,$node,undef,$editor)=@_;
+  if ($node->{'#name'} eq 'ref' and $attr_path eq 'target') {
+    return [
+      grep { defined && length }
+      map $_->{name},
+      grep $_->{'#name'} =~ /^(?:node|subquery)$/, $node->root->descendants
+    ];
+  } elsif ($node->{'#name'} eq 'test') {
+    print "here $attr_path\n";
+    if ($attr_path eq 'b') {
+      if ($dbi) {
+	my $name = $editor->get_current_value('a');
+	print "here: $name\n";
+	if ($name and $name=~m{^(?:\$[[:alpha:]_][[:alnum:]_/\-]*\.)?"?([[:alpha:]_][[:alnum:]_/\-]*)"?$}) {
+	  my $attr = $1;
+	  my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } $node->ancestors;
+	  my $table = ($qn && $qn->{'node-type'})||$node->root->{'node-type'};
+	  print "table: $table\n";
+	  return unless $table=~m{^[[:alpha:]_][[:alnum:]_/\-]*$};
+	  if ($attr=~s{^(.*)/}{}) {
+	    my $t=$1;
+	    $t=~s{/}{_}g;
+	    $table=$table.'_'.$t;
+	  }
+	  my $sql = qq(SELECT DISTINCT "$attr" FROM ${table} ORDER BY "$attr");
+	  print "$sql\n";
+	  my $results = eval { run_query($sql,{ MaxRows=>50, RaiseError=>1, Timeout => 10 }) };
+	  print $@;
+	  return if $@;
+	  my @res= map qq('$_->[0]'),@$results;
+	  return @res ? \@res : ();
+	}
+      }
+    }
+  }
+  return;
+}
 
 
 my %id;
