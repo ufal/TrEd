@@ -41,22 +41,25 @@ TODO:
   from an ID-referenced layer. The correct solution is to know the FSFile of
   of each matched node, i.e. keep that information in the iterator.
 
+- implement correct expression parserx
+
 - simplify query editing:
 
-  - edit conditions as text in a text editor (with highlighting)
+  - [X] edit conditions as text in a text editor
+    - [ ] syntax highlighting
 
-  - graphically in TrEd - in that way we could add and/or nodes that we can
+  - [X] graphically in TrEd - in that way we could add and/or nodes that we can
     also use for subqueries and conditional extra-relations)
 
-- make Ctrl|Ctrl+insert macros schema aware
+- [X] make Ctrl+insert macros schema aware
 
 - [X] support for multi-line attributes in TreeView
 
 - support for macro-definable toolbars
 
-- support for custom cdata- selections in TredNodeEdit from a combo box
+- [X] support for custom cdata- selections in TredNodeEdit from a combo box
 
-- fully define attribute tests and simplify syntax (n1.gram/sempos instead of n1.'gram/sempos')
+- [X] fully define attribute tests and simplify syntax (n1.gram/sempos instead of n1.'gram/sempos')
 
 - [X] and/or/extra-relation/condition/subquery nodes for combining tests with sub-queries
 (displayed as sub-trees).  Maybe conditions should be subtrees anyway,
@@ -79,30 +82,19 @@ the query node in which the relation arrow ends. If no TARGET is used,
 the definition can be used as a predicate (meaning: this node also
 matches the root of the defined query).
 
-- define text-format (syntax) for tree queries (possibly inspire in
+- [X] define text-format (syntax) for tree queries (possibly inspire in
     TigerSearch and TGrep, but use relation names instead of cryptic symbols)
   write serialization/parser
-
-       $n1: is_member=1 and nodetype!='coap'
-          and (gram/sempos!='v'
-            or has child n3:[is_member=1 and nodetype!='coap'])
-          and
-            has optional child $n2;
-       $n2: is_member!=1;
-       $n2: gram/(sempos='v' and number ~ 'sg') and has 0x child [is_member=1])
-
-       $n1 has child $n2
-       $n2 has not eparent $n1
-       ### or just: $n1 child $n2
-       $n1 order-precedes $n2
 
 - [X] relational predicates that one can use in boolean
   combinations like (child(ref0) or order-precedes(ref1))
 
-- define exact syntax for a term in the tree-query
+- [X] define exact syntax for a term in the tree-query
   (make a specific list of available functions and predicates)
 
 - query options: one match per tree, output format
+
+- generalize subqueries: aggregating functions: count/min/max/....
 
 - Database:
 -   use tables for m/, m/w/, remove tables for tfa/,
@@ -687,14 +679,6 @@ sub test {
     my $parent_id = $opts->{parent_id};
 
     my $exp = $opts->{expression};
-    # TODO
-    #    for ($exp) {
-    #      s/(?:(\w+)\.)?"_[#]descendants"/$1"r"-$1"idx"/g;
-    #      s/"_[#]lbrothers"/"chord"/g;
-    #      s/(?:(\w+)\.)?"_[#]rbrothers"/$1$parent_id."chld"-$1"chord"-1/g;
-    #      s/"_[#]sons"/"chld"/g;
-    #      s/"_depth"/"lvl"/g;
-    #    }
     if ($exp=~/^'((?:\d*\.)?\d+)'$/) {
       $exp=$1;
     } else {
