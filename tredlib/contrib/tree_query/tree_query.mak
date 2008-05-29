@@ -51,6 +51,53 @@ BEGIN {
 
 our ($DEFAULT_LIMIT,$DEFAULT_TIMEOUT,$VALUE_LINE_MODE)=(100, 30,0);
 
+Bind sub {
+  my $string = as_text($this);
+  my $result;
+  my $opts={};
+  while ( defined ($string = EditBoxQuery('Edit query node', $string, '',$opts)) ) {
+    my $parser = parser();
+    eval {
+      if (!$this->parent) {
+	$result=$parser->parse_query($string);
+      } elsif ($this->{'#name'} eq 'node') {
+	$result=$parser->parse_node($string);
+      } else {
+	$result=$parser->parse_test($string);
+      }
+    };
+    last unless $@;
+    if (ref($@) eq 'Tree_Query::ParserError' ) {
+      $opts->{-cursor} = $@->line.'.end';
+    }
+    ErrorMessage("$@");
+  }
+  return unless $string;
+  if ($this->parent) {
+    $result->paste_after($this);
+    DeleteSubtree($this);
+    $this=$result;
+    DetermineNodeType($this);
+  } else {
+    DeleteSubtree($_) for $root->children;
+    CutPaste($_,$root) for reverse $result->children;
+  }
+  DetermineNodeType($_) for ($this->descendants);
+
+} => {
+  key => 'e',
+  menu => 'Edit node'
+};
+
+Bind sub {
+  for (reverse sort_children_by_node_type($this)) {
+    CutPaste($_,$this);
+  }
+} => {
+  key => 'o',
+  menu => "Sort node's children by type"
+};
+
 Bind 'query_sql' => {
   key => 'space',
   menu => 'Query SQL server',
@@ -231,6 +278,17 @@ Bind sub {
 };
 
 Bind ToggleHiding => {
+  key => 'H',
+  menu => 'Toggle hiding of logical nodes',
+};
+
+Bind sub {
+  my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } ($this,$this->ancestors);
+  if ($qn->{'#name'}=~/^(?:node|subquery)$/) {
+    $qn->{'.unhide'}=!$qn->{'.unhide'};
+    $this=$qn;
+  }
+} => {
   key => 'h',
   menu => 'Toggle hiding of logical nodes',
 };
@@ -289,7 +347,7 @@ Bind sub {
 Bind sub {
   edit_config();
 } => {
-  key => 'e',
+  key => 'C',
   menu => 'Edit Connection Configuration',
   changing_file => 0,
 };
@@ -343,7 +401,7 @@ node:<?
   ($this->{'#name'} =~ /^(?:and|or|not)$/) ? uc($this->{'#name'}) : '' 
 ?>${a}${target}
 node:<?
-  if (($this->{'#name'}=~/^(?:node|subquery)$/) and !TredMacro::HiddenVisible()) {
+  if (($this->{'#name'}=~/^(?:node|subquery)$/) and !$this->{'.unhide'} and !TredMacro::HiddenVisible() ) {
     join("\n",map { Tree_Query::as_text($_,'  ',1) } grep { $_->{'#name'} !~ /^(?:node|subquery|ref)$/ } $this->children)
   } elsif ($this->{'#name'} eq 'test') {
     '${operator}'
@@ -352,11 +410,12 @@ node:<?
 node:${b}
 style: <? 
   my $name = $this->{'#name'};
-  if ($name =~ /^(?:node|subquery|ref)$/) {
+  if ($name =~ /^(?:node|subquery|ref)$/ and $this->parent->parent ) {
     my ($rel) = map {
       my $name = $_->name;
       $name eq 'user-defined' ? $_->value->{label} : $name
     } SeqV($this->{relation});
+    $rel||='child';
     my $color = Tree_Query::arrow_color($rel);
     my $arrow = Tree_Query::arrow($rel);
     (defined($arrow) ? "#{Line-arrow:$arrow}" : '').
@@ -387,14 +446,14 @@ EOF
 
 sub get_query_node_type {
   my ($node)=@_;
-  my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } $node->ancestors;
+  my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } ($node,$node->ancestors);
   my $table = ($qn && $qn->{'node-type'})||$node->root->{'node-type'};
   return $table;
 }
 
 sub get_query_node_schema {
   my ($node)=@_;
-  my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } $node->ancestors;
+  my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } ($node,$node->ancestors);
   my $table = ($qn && $qn->{'node-type'})||$node->root->{'node-type'};
   return unless $table;
   return $schema_map{$table};
@@ -492,6 +551,9 @@ sub cmp_subquery_scope {
   return 0 if $id eq $ref;
   my $node = ref($id) ? $id : $name2node_hash{$id};
   my $ref_node = ref($ref) ? $ref : $name2node_hash{$ref};
+  $ref_node || die "didn't find node $ref\n";
+  $node || die "didn't find node $id\n";
+
   while ($node->parent and $node->{'#name'} ne 'subquery') {
     $node=$node->parent;
   }
@@ -506,7 +568,7 @@ sub cmp_subquery_scope {
 sub occ_as_text {
   my ($node)=@_;
   return '' unless $node->{'#name'} eq 'subquery';
-  return '('.join('|', grep { /\d/ } map {
+  return join('|', grep { /\d/ } map {
     my ($min,$max)=($_->{min},$_->{max});
     if (length($min) and length($max)) {
       if (int($min)==int($max)) {
@@ -521,7 +583,7 @@ sub occ_as_text {
     } else {
       '1+'
     }
-  } AltV($node->{occurrences})).')';
+  } AltV($node->{occurrences}));
 }
 
 
@@ -535,7 +597,7 @@ my %child_order = (
   node=>7,
 );
 
-sub sort_by_node_type {
+sub sort_children_by_node_type {
   my ($node)=@_;
   return map { $_->[0] }
          sort { $a->[1]<=>$b->[1] }
@@ -626,7 +688,7 @@ sub tq_serialize {
     if ($name eq 'subquery' or $name eq 'node') {
       $copts->{query_node}=$node;
     }
-    my @r = map [tq_serialize($_,$copts)], sort_by_node_type($node);
+    my @r = map [tq_serialize($_,$copts)], $node->children;
     if ($name=~/^(?:not|or|and)$/) {
       if ($name eq 'not') {
 	push @ret,['!',$node,$query_node,'-foreground=>darkcyan'];
@@ -641,13 +703,13 @@ sub tq_serialize {
       my $rel=rel_as_text($node);
       my $arrow = $rel;
       $arrow=~s/{.*//;
-      push @ret,['has ',$node,$query_node],
+      push @ret,
 	[$rel.' ',$node,$query_node,'-foreground=>'.arrow_color($arrow)];
       my $ref = $node->{target} || '???';
       push @ret,["\$$ref",$node,$query_node,'-foreground=>darkblue'];
     } elsif ($name eq 'test') {
       my $test=  $node->{a}.' '.$node->{operator}.' '.$node->{b};
-      $test=~s/"//g;		# FIXME
+      #$test=~s/"//g;		# FIXME
       @ret = ( [$test,$node,$query_node] );
     } elsif ($name eq 'subquery' or $name eq 'node') {
       if ($name eq 'subquery') {
@@ -663,14 +725,18 @@ sub tq_serialize {
 	push @ret,[$rel.' ',$node,'-foreground=>'.arrow_color($arrow)];
       }
       my $type=get_query_node_type($node);
-      push @ret,[$type.'-node ',$node]; #FIXME: 
+      push @ret,[$type.' ',$node] if $type; #FIXME: 
       if ($node->{name}) {
 	push @ret,['$'.$node->{name},$node,'-foreground=>darkblue'],[' := ',$node];
       }
       if ($do_wrap) {
-	push @ret, (["[ ",$node],["${wrap}  "],
-		    @{_group(\@r,[",${wrap}  "])},
-		    ["${wrap}"],[" ]",$node]);
+	if (@r) {
+	  push @ret, (["[ ",$node],["${wrap}  "],
+		      @{_group(\@r,[",${wrap}  "])},
+		      ["${wrap}"],[" ]",$node]);
+	} else {
+	  push @ret, (["[ ]",$node]);
+	}
       } else {
 	unshift @ret,["\n${indent}"] if $node->lbrother;
 	if (@r) {
@@ -693,6 +759,208 @@ sub as_text {
   make_string(tq_serialize($node,{indent=>$indent,wrap=>$wrap}));
 }
 
+my $parser;
+our $user_defined = 'echild|eparent|a/lex.rf\|a/aux.rf|a/lex.rf|a/aux.rf|coref_text|coref_gram|compl';
+
+{
+  package Tree_Query::ParserError;
+  use overload '""' => \&as_text;
+  sub new {
+    my $class=shift;
+    my $array_ref = shift;
+    bless $array_ref, $class;
+  }
+  sub as_text {
+    my $self = shift;
+    return 'Parse error at line '.$self->line.': '.$self->message;
+  }
+  sub message { return $_[0]->[0] }
+  sub line    { return $_[0]->[1] }
+}
+
+sub parser {
+  return $parser if defined $parser;
+  require Parse::RecDescent;
+  local $Parse::RecDescent::skip;
+  $Parse::RecDescent::skip='\s*(?:[#][^\n]*\s*)?';
+  my $parser = Parse::RecDescent->new(<<'EOF') or die "Bad grammar\n";
+    {
+      sub report_error {
+        my $thisparser = shift;
+        die Tree_Query::ParserError->new($thisparser->{errors}[0]);
+      }
+      sub new_node {
+        my ($hash,$children)=@_;
+        my $new = FSNode->new($hash,1);
+        if ($children) {
+          if (ref($children) eq 'ARRAY') {
+             for (reverse @$children) {
+                if (ref($_) eq 'FSNode') {
+                  $_->paste_on($new)
+                } else {
+                   warn "new_node: child of $hash->{'#name'} is not a node:\n".
+                        Data::Dumper::Dumper([$_]);
+                }
+             }
+          } else {
+            warn "new_node: 2nd argument of constructor to $hash->{'#name'} is not an ARRAYref:\n".
+            Data::Dumper::Dumper([$children]);
+          }
+        }
+        return $new;
+      }
+      sub new_struct {
+        return Fslib::Struct->new($_[0],1);
+      }
+      sub new_relation {
+        my ($type,$opts)=@_;
+	return Fslib::Seq->new([
+          Fslib::Seq::Element->new( 
+            $type => Fslib::Container->new(undef,$opts)
+          )
+        ]);
+      }
+    }
+
+    parse_query: <leftop: node ';' node> (';')(?) /\Z/ 
+           { $return=new_node({},$item[1]); 1 }
+         | { report_error($thisparser); }
+
+    parse_node: (child|opt_child) /\Z/ { $item[1] }
+         | { report_error($thisparser); }
+
+    parse_test: test /\Z/ { $item[1] }
+         | { report_error($thisparser); }
+
+    parse_expression: expression /\Z/ { $item[1] }
+         | { report_error($thisparser); }
+
+    node: type(?) var_def(?) '[' <commit> conditions(?) /,?\s*]/ 
+          { new_node({ '#name' => 'node', 'node-type' => $item[1][0], name => $item[2][0]}, $item[5][0]) }
+        | <error>
+
+    type: XMLNAME .../\$|\[/
+          { $return = $item[1] }
+
+    var_def: VARIABLE ':=' <commit> ...'['
+             { $return = $item[1] }
+
+    conditions: condition .../,?\s*]/ <commit>         { $return = [$item[1]] }
+              | condition /and|,/ <commit> conditions  { $return = [$item[1],@{$item[4]}] }
+              | <error>
+
+    condition: simple_test { $return = $item[1] }
+             | opt_child   { $return = $item[1] }
+             | subquery    { $return = $item[1] }
+             | child    { $return = $item[1] }
+             | ref
+
+    child: RELATION(?) node { $return = $item[2]; $return->{relation}=$item[1][0]; 1 }
+
+    ref: (RELATION|EXTRA_RELATION)(?) VARIABLE
+         { $return = new_node({ '#name' => 'ref', target=>$item[2], relation=>$item[1][0] });
+         }
+
+    opt_child: '?' <commit> RELATION(?) node
+             { $return=$item[4]; $return->{optional}=1; $return->{relation}=$item[3][0]; 1 }
+
+    simple_test: predicate | or_clause | not_clause | and_clause
+
+    test: simple_test 
+        | subquery 
+        | ref
+
+    or_clause: '(' <leftop: test 'or' test> ')'
+               { new_node({ '#name' => 'or' }, $item[2]) }
+
+    and_clause: '(' <leftop: test /,|and/ test> ')'
+              { new_node({ '#name' => 'and'}, $item[2]) }
+
+    not_clause: '!' ( test | or_clause | and_clause )
+              {  $return = $item[2];
+                 if ($return->{'#name'} eq 'and') {
+                   $return->{'#name'} = 'not';
+                 } else {
+                   $return = new_node({ '#name' => 'not'}, [$return])
+                 }
+              }
+
+    predicate: expression CMP <commit> expression
+               { new_node({ '#name' => 'test', a=>$item[1], operator=>$item[2], b=>$item[4] }) }
+
+    expression: <rulevar: ($start,$t)> 
+              | { ($start,$t)=($thisoffset,$text) } <leftop: term OP term>
+                { $return=substr($t,0,$thisoffset-$start); $return=~s/^\s*//; 1 }
+
+    term: simple_attribute { $return=$item[1] }
+        | ref_attribute    { $return=$item[1] }
+        | function         { $return=$item[1] }
+        | literal          { $return=$item[1] }
+
+    simple_attribute: XMLNAME ('/' XMLNAME)(s?)
+                      { join('',$item[1],@{$item[2]}) }
+
+    ref_attribute: VARIABLE <skip: ''> '.'  XMLNAME ('/' XMLNAME)(s?)
+
+    function: FUNC <skip: ''> '(' <skip: '\s*(?:[#][^\n]*\s*)?'> arguments(?) ')'
+
+    arguments: expression ( ',' expression )(s?)
+
+    subquery: occurrences RELATION(?) node
+              { $return=$item[3]; 
+                $return->{'#name'}='subquery';
+                $return->{relation}=$item[2][0];
+                $return->{occurrences}=$item[1];
+                1;
+              }
+
+    occurrences: NUMBER 'x' <commit> 
+                 { $return = new_struct({ min=>$item[1], max=>$item[1] }) }
+               | NUMBER /[-+]/ <commit> 'x'
+                 { $return = new_struct({ ($item[2] eq '-' ? 'max' : 'min') =>$item[1] }) }
+               | NUMBER '..' <commit> NUMBER 'x' 
+                 { $return = new_struct({ min=>$item[1], max=>$item[4] }) }
+               | <error?> <reject>
+
+    literal: NUMBER | STRING
+
+    VARIABLE: /\$[[:alpha:]_][[:alnum:]_]*/
+              { $return=$item[1]; $return=~s/^\$//; 1 }
+
+    RELATION: /descendant|ancestor/ <skip:''> '{' 
+              <commit> <skip:'\s*(?:[#][^\n]*\s*)?'> NUMBER ',' NUMBER '}'
+              { new_relation($item[1],{min_length=>$item[6],max_length=>$item[8]}) }
+            | /child|parent|descendant|ancestor/ 
+              { new_relation($item[1]) }
+            | /${Tree_Query::user_defined}/o
+              { new_relation('user-defined',{label => $item[1]}) }
+    EXTRA_RELATION: /depth-first-precedes|depth-first-follows|order-precedes|order-follows/
+              { new_relation($item[1]) }
+
+    FUNC: /descendants|lbrother|rbrother|sons|depth|lower|upper|length|substr/
+
+    CMP: /=|~\*?|[<>]=?|in/
+
+    OP: /[-+*]|div/
+
+    STRING: /'([^'\\]+|\\.)*'/
+
+    NUMBER: /-?[0-9]+(\.[0-9]+)?/
+
+    XMLNAME: /${PMLSchema::CDATA::Name}/o
+
+EOF
+
+  return $parser;
+}
+
+sub parse {
+  my ($string)=@_;
+  my $p = parser() || return;
+  $p->parse_query($string);
+}
+
+
 use constant {
   LEX_REF    => 1,
   LEX_ATTR   => 2,
@@ -705,6 +973,7 @@ use constant {
   LEX_OP  => 9,
   LEX_CMP  => 10,
   LEX_NUMBER  => 11,
+  LEX_ATTR_REF  => 12,
 };
 
 sub lex_expression {
@@ -715,19 +984,22 @@ sub lex_expression {
   my $Name=$PMLSchema::CDATA::Name;
  LOOP:
   {
-    push(@tokens,[$1,LEX_REF],$2 ? [$2,LEX_DOT] : ()), redo LOOP 
-                                           if /\G(\$${Name})(\.)?/gco;
-    push(@tokens,[$1,LEX_FUNC]), redo LOOP if /\G(${Name}\()/gco;
+    push(@tokens,[$1, length($2) ? LEX_ATTR_REF : LEX_REF], length($2) ? [$2,LEX_DOT] : ()), redo LOOP 
+                                           if /\G(\$[[:alpha:]_][[:alnum:]_]*)(\.)?/gco;
+    push(@tokens,[$1,LEX_FUNC]), redo LOOP if /\G(${Name}\(\s*)/gco;
     push(@tokens,[$1,LEX_ATTR]), redo LOOP if /\G(${Name}(?:\/${Name})*)/gco;
     push(@tokens,[$1,LEX_STRING]), redo LOOP if /\G('[^']*')/gc;
     push(@tokens,[$1,LEX_NUMBER]), redo LOOP if /\G(\d+(?:\.\d+)?)/gc;
     push(@tokens,[$1,LEX_OP]), redo LOOP if /\G([-+*]|\bdiv\b)/gc;
-    push(@tokens,[$1,LEX_CMP]), redo LOOP if /\G([=<>~]|\bin\b|\blike\b)/gc;
+    push(@tokens,[$1,LEX_CMP]), redo LOOP if /\G(=|~\*?|[<>]=?|\bin\b)/gc;
     push(@tokens,[$1,LEX_CLOSE_FUNC]), redo LOOP if /\G(\s*\)\s*)/gc;
     push (@tokens,[$1,LEX_COMMA]), redo LOOP if /\G(\s*,\s*)/gc;
     push (@tokens,[$1,LEX_SPACE]), redo LOOP if /\G(\s+)/gc;
     if (/\G(.)/gc) {
-      warn "Expression parse error near:\n    ".$exp."\n    ".(pos() x ' ').'^'."\n";
+      warn "Expression parse error near:\n    ".$exp.
+	                               "\n    ".(pos() x ' ').'^'.
+				       "\n    ($1)";
+      print STDERR ((map { "[$_->[0],$_->[1]]" } @tokens),"\n");
     }
   }
   return @tokens;
@@ -737,7 +1009,8 @@ sub get_nodelist_hook {
   my ($fsfile,$tree_no,$prevcurrent,$show_hidden)=@_;
   my $tree = $fsfile->tree($tree_no);
   my @nodes = ($tree, grep {
-    $show_hidden || ($_->{'#name'} =~ /^(?:node|subquery)$/)
+    my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } ($_,$_->ancestors);
+    ($qn->{'.unhide'} || $show_hidden) || ($_->{'#name'} =~ /^(?:node|subquery)$/)
   } $tree->descendants);
   return [\@nodes,$prevcurrent];
 }
@@ -746,7 +1019,7 @@ sub node_style_hook {
   my ($node,$styles) = @_;
   my $i=0;
   my @refs;
-  my $showHidden = HiddenVisible();
+  my $showHidden = $this->{'.unhide'} or HiddenVisible();
   if ($showHidden) {
     @refs=($node) if $node->{'#name'} eq 'ref';
   } else {
@@ -1449,9 +1722,9 @@ sub relation {
   } elsif ($relation eq 'order-precedes') {
     my $order; # FIXME: get the ordering attribute from the database
     if ($opts->{type} eq 'a') {
-      $order = q("ord");
+      $order = q(ord);
     } else {
-      $order = q("tfa/deepord");
+      $order = q(tfa/deepord);
     }
     $cond =
       sql_serialize_test(
@@ -1459,13 +1732,13 @@ sub relation {
 	  id=>$opts->{id},
 	  type=>$opts->{type},
 	  join=>$opts->{join},
-	  expression => qq{$id.$order},
+	  expression => qq{\$$id.$order},
 	},
 	{
 	  id=>$opts->{id},
 	  type=>$opts->{type},
 	  join=>$opts->{join},
-	  expression => qq{$target.$order},
+	  expression => qq{\$$target.$order},
 	},
 	'<',$opts # there should be no ambiguity here, treat expressoins as positive
        );
@@ -1488,7 +1761,7 @@ sub user_defined_relation {
 	  id=>$from_id,
 	  type=>$type,
 	  join=>$opts->{join},
-	  expression => qq{$id."eparents/eparent_idx"},
+	  expression => qq{\$$id.eparents/eparent_idx},
 	  negative=> $opts->{negative},
 	},
 	qq{$target."idx"},
@@ -1501,7 +1774,7 @@ sub user_defined_relation {
 	  id=>$from_id,
 	  type=>$type,
 	  join=>$opts->{join},
-	  expression => qq{$target."eparents/eparent_idx"},
+	  expression => qq{\$$target.eparents/eparent_idx},
 	  negative=>$opts->{negative},
 	},
 	qq{$id."idx"},
@@ -1515,7 +1788,7 @@ sub user_defined_relation {
 	id=>$from_id,
 	type=>$type,
 	join=>$opts->{join},
-	expression => qq{$id."a_aux/a_idx"},
+	expression => qq{\$$id.a_aux/a_idx},
 	negative=>$opts->{negative},
       },
       qq{$target."idx"},
@@ -1529,7 +1802,7 @@ sub user_defined_relation {
 	    id=>$from_id,
 	    type=>$type,
 	    join=>$opts->{join},
-	    expression => qq{$id."a_aux/a_idx"},
+	    expression => qq{\$$id.a_aux/a_idx},
 	    negative=>$opts->{negative},
 	  },
 	  qq{$target."idx"},
@@ -1542,7 +1815,7 @@ sub user_defined_relation {
 	  id=>$from_id,
 	  type=>$type,
 	  join=>$opts->{join},
-	  expression => qq{$id."coref_gram/corg_idx"},
+	  expression => qq{\$$id.coref_gram/corg_idx},
 	  negative=>$opts->{negative},
 	},
 	qq{$target."idx"},
@@ -1555,7 +1828,7 @@ sub user_defined_relation {
 	  id=>$from_id,
 	  type=>$type,
 	  join=>$opts->{join},
-	  expression => qq{$id."coref_text/cort_idx"},
+	  expression => qq{\$$id.coref_text/cort_idx},
 	  negative=>$opts->{negative},
 	},
 	qq{$target."idx"},
@@ -1568,7 +1841,7 @@ sub user_defined_relation {
 	  id=>$from_id,
 	  type=>$type,
 	  join=>$opts->{join},
-	  expression => qq{$id."compl/compl_idx"},
+	  expression => qq{\$$id.compl/compl_idx},
 	  negative=>$opts->{negative},
 	},
 	qq{$target."idx"},
@@ -1750,22 +2023,21 @@ sub make_string_with_tags {
   } @$array];
 }
 
+sub _dump_error_pos {
+  my ($tokens,$pos)=@_;
+  my $out = join '',map { $_->[0] } @$tokens[0..$pos];
+  my $length=length($out);
+  $out.=join '',map { $_->[0] } @$tokens[($pos+1)..$#$tokens];
+  print("     ",$out,"\n");
+  print("     ",$length x ' ',"^\n");
+}
+
 sub sql_serialize_expression {
   my ($opts)=@_;
   my $parent_id = $opts->{parent_id};
   my $exp = $opts->{expression};
 
   my @tokens = lex_expression($exp);
-
-  # FIXME: ng2xml needs to be fixed to use functions for the following:
-  for ($exp) {
-    s/\bdescendants\((\$\w+)\)/my $v=$1; $v.='.' if $v=~s{^\$}{}; qq{$v"r"-$v"idx"}/eg;
-    s/\blbrothers\((\$\w+)\)/my $v=$1; $v.='.' if $v=~s{^\$}{}; qq{$v"chord"}/eg;
-    s/\brbrothers\((\$\w+)\)/my $v=$1; $v.='.' if $v=~s{^\$}{}; qq{$parent_id."chld"-$v"chord"-1}/eg;
-    s/\bsons\((\$\w+)\)/my $v=$1; $v.='.' if $v=~s{^\$}{}; qq{$v"chld"}/eg;
-    s/\bdepth\((\$\w+)\)/my $v=$1; $v.='.' if $v=~s{^\$}{}; qq{$v"lvl"}/eg;
-    s{"m(?:/w)?/}{"}g; # FIXME: a hack
-  }
   my ($wrap);
   my $extra_joins={};
   my $joins = $opts->{join};
@@ -1775,40 +2047,109 @@ sub sql_serialize_expression {
   my $this_node_id = $opts->{id};
   my $negative = $opts->{negative};
 
-  for my $tok (@tokens) {
-    if ($tok->[1]==LEX_FUNC) {
-      # ... etc
-    }
-  }
-
-  $exp=~s{(?:(\w+)\.)?"([^"]+)"}{
-    my $id = defined($1) ? lc($1) : $this_node_id;
-    my @ref = split m{/}, $2;
-    my $column = pop @ref;
-    my $table = $opts->{type};
-    my $node_id = $id;
-    for my $tab (@ref) {
-      my $prev = $id;
-      my $cmp = cmp_subquery_scope($this_node_id,$id);
-      if ($cmp<0) {
-	die "Node '$id' belongs to a sub-query and cannot be referred from the scope of node '$this_node_id' ($opts->{expression})\n";
-      }
-      print "$this_node_id => $id: $cmp\n";
-      my $j;
-      if ($negative or $cmp) {
-	$use_exists=1;
-	$j=$extra_joins;
+  my ($out,$tok,$lex);
+  my $i=0;
+  while ($i<@tokens) {
+    $tok=$tokens[$i];
+    $lex=$tok->[1];
+    if ($lex==LEX_FUNC) {
+      # FIXME: ng2xml needs to be fixed to produce the following functions:
+      if ($tok->[0]=~/^(descendants|lbrother|rbrother|sons|depth)\(\s*/) {
+	my $next = $tokens[$i+1];
+	my $v='';
+	if ($next->[1]==LEX_REF) {
+	  $v=$next->[0];
+	  $v=~s{^\$}{};
+	  $v.='.';
+	  $i++;
+	  $next = $tokens[$i+1];
+	}
+	if ($tok->[0] eq 'descendants') {
+	  $out.=qq{$v"r"-$v"idx"}
+	} elsif ($tok->[0] eq 'lbrothers') {
+	  $out.=qq{$v"chord"};
+	} elsif ($tok->[0] eq 'rbrothers') {
+	  $out.=qq{$parent_id."chld"-$v"chord"-1};
+	} elsif ($tok->[0] eq 'sons') {
+	  qq{$v"chld"}
+	} elsif ($tok->[0] eq 'depth') {
+	  qq{$v"lvl"}
+	}
+	if ($next->[1]==LEX_CLOSE_FUNC) {
+	  $i++
+	} else {
+	  warn "Expected closing bracket near:",
+	    _dump_error_pos(\@tokens,$i+1);
+	}
+      } elsif ($tok->[0]=~/^(lower|upper|length|substr)\(\s*/) { # in the future, also replace and regexp_replace
+	# note for perl implementation: substr starts from position 1 and treats 0 as 1. It does negative positions too.
+	$out.=$tok->[0]
       } else {
-	$j=$joins;
+	warn "Undefined function: ".
+	  _dump_error_pos(\@tokens,$i+1);
       }
-      $j->{$node_id}||=[];
-      my $i = @{$j->{$node_id}};
-      $id.="_${tab}_$i";
-      $table.="_$tab";
-      push @{$j->{$node_id}},[$id,$table, qq($id."idx" = $prev."idx"), 'LEFT']; # should be qq($prev."$tab")
+      # ... etc
+    } elsif ($lex==LEX_ATTR_REF or $lex==LEX_ATTR) {
+      my ($id,$attr);
+      if ($lex==LEX_ATTR_REF) {
+	my $next = $tokens[$i+1];
+	if ($next->[1]==LEX_DOT) {
+	  print "eating dot: $next->[0]\n";
+	  $i++;
+	  $next = $tokens[$i+1];
+	} else {
+	  warn "Expected dot near:",
+	    _dump_error_pos(\@tokens,$i+1);
+	}
+	if ($next->[1]==LEX_ATTR) {
+	  $id = lc($tok->[0]);
+	  $id=~s/^\$//;
+	  $attr=$next->[0];
+	} else {
+	  warn "Expected attribute path near:",
+	    _dump_error_pos(\@tokens,$i+1);
+	}
+      } else {
+	$id=$this_node_id;
+	$attr=$tok->[0];
+      }
+      my @ref = split m{/}, $attr;
+      my $column = pop @ref;
+      my $table = $opts->{type};
+      my $node_id = $id;
+      for my $tab (@ref) {
+	my $prev = $id;
+	my $cmp = cmp_subquery_scope($this_node_id,$id);
+	if ($cmp<0) {
+	  die "Node '$id' belongs to a sub-query and cannot be referred from the scope of node '$this_node_id' ($opts->{expression})\n";
+	}
+	my $j;
+	if ($negative or $cmp) {
+	  $use_exists=1;
+	$j=$extra_joins;
+	} else {
+	  $j=$joins;
+	}
+	$j->{$node_id}||=[];
+	my $i = @{$j->{$node_id}};
+	$id.="_${tab}_$i";
+	$table.="_$tab";
+	push @{$j->{$node_id}},[$id,$table, qq($id."idx" = $prev."idx"), 'LEFT']; # should be qq($prev."$tab")
+      }
+      $out.=qq($id."$column");
+    } elsif (   $lex==LEX_STRING
+	     or $lex==LEX_SPACE
+	     or $lex==LEX_COMMA
+	     or $lex==LEX_OP
+	     or $lex==LEX_NUMBER) {
+      $out.=$tok->[0];
+    } else {
+      warn "Unexpected token (type $lex):",
+	_dump_error_pos(\@tokens,$i+1);
     }
-    qq($id."$column");
-  }ge;
+  } continue {
+    $i++;
+  }
   if ($use_exists) {
     my @from;
     my @where;
@@ -1837,7 +2178,7 @@ sub sql_serialize_expression {
       $wrap.='%s )';
     }
   }
-  return ($exp,$wrap);
+  return ($out,$wrap);
 }
 
 sub sql_serialize_test {
