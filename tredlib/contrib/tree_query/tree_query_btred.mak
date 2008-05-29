@@ -535,16 +535,6 @@ sub test {
 	} else {
 	  $operator = 'eq';
 	}
-      } elsif ($operator eq 'like') {
-	# FIXME, this is ugly
-	$operator = '=~';
-	$right =~s{^'|'$}{}g;
-	$right =~ s{\\}{\\\\}g;
-	$right =~ s{\}}{\\\}}g;
-	$right=q(m{^\Q).$right.q(\E$});
-	$right=~s{%}{\\E.*\\Q}g;
-	$right=~s{_}{\\E.\\Q}g;
-	$right=~s{\\Q\\E}{}g;
       } elsif ($operator eq '~') {
 	$operator = '=~';
       }
