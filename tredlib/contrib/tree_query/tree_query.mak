@@ -15,25 +15,17 @@
 # allow the user to mark the nodes with colours and recognize the
 # colored nodes in the result tree
 
-# - modify type of the default relation: parent/ancestor/effective_parent/...)
-#   (parent and ancestor implemented, TODO: effective_parent)
-# non-projective edge search
+# check if we can search for non-projective edges
 
 # relations/attributes from external tables:
 # tables:
 # - T            (tree structure)
 # - T_FILEINFO   (currently T_POS)
 # - T_ATTRS      (attribute structure, not yet used)
-# - T_QUOT       (quot (list))
-# - T_GRAM       (grammatemes)
-# - T_COREF_GRAM (attribute structure (list))
-# - T_COMPL      (attribute structure (list))
-# - T_A_AUX      (relation to A_ (list))
-# - T_EPARENTS   (relation to T_ (list))
 
 # warn if optional=1 for a relation that implies a different type
 #
-# some helpful predicates:
+# some helpful atomic predicates:
 #  - is_leaf
 # relations of tgrep2
 
@@ -55,8 +47,17 @@ Bind sub {
   my $string = as_text($this);
   my $result;
   my $opts={};
+  my $parser;
+  {
+    my $t0 = new Benchmark;
+    $parser = parser();
+    my $t1 = new Benchmark;
+    my $time = timestr(timediff($t1,$t0));
+    print "creating parser took: $time\n";
+
+  }
   while ( defined ($string = EditBoxQuery('Edit query node', $string, '',$opts)) ) {
-    my $parser = parser();
+    my $t0 = new Benchmark;
     eval {
       if (!$this->parent) {
 	$result=$parser->parse_query($string);
@@ -66,6 +67,9 @@ Bind sub {
 	$result=$parser->parse_test($string);
       }
     };
+    my $t1 = new Benchmark;
+    my $time = timestr(timediff($t1,$t0));
+    print "parsing query took: $time\n";
     last unless $@;
     if (ref($@) eq 'Tree_Query::ParserError' ) {
       $opts->{-cursor} = $@->line.'.end';
@@ -73,17 +77,22 @@ Bind sub {
     ErrorMessage("$@");
   }
   return unless $string;
-  if ($this->parent) {
-    $result->paste_after($this);
-    DeleteSubtree($this);
-    $this=$result;
-    DetermineNodeType($this);
-  } else {
-    DeleteSubtree($_) for $root->children;
-    CutPaste($_,$root) for reverse $result->children;
+  {
+    my $t0 = new Benchmark;
+    if ($this->parent) {
+      $result->paste_after($this);
+      DeleteSubtree($this);
+      $this=$result;
+      DetermineNodeType($this);
+    } else {
+      DeleteSubtree($_) for $root->children;
+      CutPaste($_,$root) for reverse $result->children;
+    }
+    DetermineNodeType($_) for ($this->descendants);
+    my $t1 = new Benchmark;
+    my $time = timestr(timediff($t1,$t0));
+    print "postprocessing took: $time\n";
   }
-  DetermineNodeType($_) for ($this->descendants);
-
 } => {
   key => 'e',
   menu => 'Edit node'
@@ -740,7 +749,7 @@ sub tq_serialize {
       } else {
 	unshift @ret,["\n${indent}"] if $node->lbrother;
 	if (@r) {
-	  push @ret,["\n${indent}[ "],
+	  push @ret,["\n${indent}"],["[ ",$node],
 	    @{_group(\@r,[", ",$node])},
 	      [" ]",$node];
 	} else {
@@ -759,9 +768,6 @@ sub as_text {
   make_string(tq_serialize($node,{indent=>$indent,wrap=>$wrap}));
 }
 
-my $parser;
-our $user_defined = 'echild|eparent|a/lex.rf\|a/aux.rf|a/lex.rf|a/aux.rf|coref_text|coref_gram|compl';
-
 {
   package Tree_Query::ParserError;
   use overload '""' => \&as_text;
@@ -778,12 +784,14 @@ our $user_defined = 'echild|eparent|a/lex.rf\|a/aux.rf|a/lex.rf|a/aux.rf|coref_t
   sub line    { return $_[0]->[1] }
 }
 
+our $user_defined = 'echild|eparent|a/lex.rf\|a/aux.rf|a/lex.rf|a/aux.rf|coref_text|coref_gram|compl';
+my $parser;
 sub parser {
   return $parser if defined $parser;
   require Parse::RecDescent;
   local $Parse::RecDescent::skip;
   $Parse::RecDescent::skip='\s*(?:[#][^\n]*\s*)?';
-  my $parser = Parse::RecDescent->new(<<'EOF') or die "Bad grammar\n";
+  $parser = Parse::RecDescent->new(<<'EOF') or die "Bad grammar\n";
     {
       sub report_error {
         my $thisparser = shift;
@@ -885,26 +893,37 @@ sub parser {
                  }
               }
 
-    predicate: expression CMP <commit> expression
+    predicate: flat_expression CMP <commit> flat_expression
                { new_node({ '#name' => 'test', a=>$item[1], operator=>$item[2], b=>$item[4] }) }
 
-    expression: <rulevar: ($start,$t)> 
+    flat_expression: <rulevar: ($start,$t)> 
               | { ($start,$t)=($thisoffset,$text) } <leftop: term OP term>
                 { $return=substr($t,0,$thisoffset-$start); $return=~s/^\s*//; 1 }
 
-    term: simple_attribute { $return=$item[1] }
-        | ref_attribute    { $return=$item[1] }
+    expression: <leftop: term OP term>
+                { ['EXP',@{$item[1]}] }
+
+    term: '(' <commit> expression ')' { $return=$item[3] }
         | function         { $return=$item[1] }
+        | simple_attribute { $return=$item[1] }
+        | ref_attribute    { $return=$item[1] }
         | literal          { $return=$item[1] }
+        | <error>
 
     simple_attribute: XMLNAME ('/' XMLNAME)(s?)
-                      { join('',$item[1],@{$item[2]}) }
+                      { join('/',$item[1],@{$item[2]}) }
 
-    ref_attribute: VARIABLE <skip: ''> '.'  XMLNAME ('/' XMLNAME)(s?)
+    ref_attribute: VARIABLE <skip: ''> '.'  simple_attribute
+                   { ['REF_ATTR',$item[1],$item[4]] }
 
     function: FUNC <skip: ''> '(' <skip: '\s*(?:[#][^\n]*\s*)?'> arguments(?) ')'
+              { ['FUNC', $item[1],$item[5][0] ] }
 
-    arguments: expression ( ',' expression )(s?)
+    arguments: <leftop: argument ',' argument>
+              { $item[1] }
+
+    argument: expression { $item[1] }
+            | VARIABLE { '$'.$item[1] }
 
     subquery: occurrences RELATION(?) node
               { $return=$item[3]; 
@@ -922,7 +941,8 @@ sub parser {
                  { $return = new_struct({ min=>$item[1], max=>$item[4] }) }
                | <error?> <reject>
 
-    literal: NUMBER | STRING
+    literal: NUMBER | 
+             STRING
 
     VARIABLE: /\$[[:alpha:]_][[:alnum:]_]*/
               { $return=$item[1]; $return=~s/^\$//; 1 }
@@ -941,14 +961,13 @@ sub parser {
 
     CMP: /=|~\*?|[<>]=?|in/
 
-    OP: /[-+*]|div/
+    OP: /[-+*]|div|mod/
 
     STRING: /'([^'\\]+|\\.)*'/
 
     NUMBER: /-?[0-9]+(\.[0-9]+)?/
 
     XMLNAME: /${PMLSchema::CDATA::Name}/o
-
 EOF
 
   return $parser;
