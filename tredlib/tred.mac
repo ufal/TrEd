@@ -103,6 +103,7 @@ sub EditBoxQuery {
   }
   $ed->insert('0.0',$var);
   $ed->update;
+  $ed->SetCursor($opts->{-cursor}) if $opts->{-cursor};
   eval { $ed->highlight('0.0','end') if $opts->{-highlight} };
   $ed->pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
   $d->bind(ref($ed->Subwidget('scrolled')),'<Control-Return>' => sub {1;});
