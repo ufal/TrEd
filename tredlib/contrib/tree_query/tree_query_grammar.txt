@@ -1,0 +1,196 @@
+    {
+      $skip = '\s*(?:[#][^\n]*\s*)?';
+
+      {
+	package Tree_Query::ParserError;
+	use overload '""' => \&as_text;
+	sub new {
+	  my $class=shift;
+	  my $array_ref = shift;
+	  bless $array_ref, $class;
+	}
+	sub as_text {
+	  my $self = shift;
+	  return 'Parse error at line '.$self->line.': '.$self->message;
+	}
+	sub message { return $_[0]->[0] }
+	sub line    { return $_[0]->[1] }
+      }
+
+      sub report_error {
+        my $thisparser = shift;
+        die Tree_Query::ParserError->new($thisparser->{errors}[0]);
+      }
+      sub new_node {
+        my ($hash,$children)=@_;
+        my $new = FSNode->new($hash,1);
+        if ($children) {
+          if (ref($children) eq 'ARRAY') {
+             for (reverse @$children) {
+                if (ref($_) eq 'FSNode') {
+                  $_->paste_on($new)
+                } else {
+                   warn "new_node: child of $hash->{'#name'} is not a node:\n".
+                        Data::Dumper::Dumper([$_]);
+                }
+             }
+          } else {
+            warn "new_node: 2nd argument of constructor to $hash->{'#name'} is not an ARRAYref:\n".
+            Data::Dumper::Dumper([$children]);
+          }
+        }
+        return $new;
+      }
+      sub new_struct {
+        return Fslib::Struct->new($_[0],1);
+      }
+      sub new_relation {
+        my ($type,$opts)=@_;
+	return Fslib::Seq->new([
+          Fslib::Seq::Element->new( 
+            $type => Fslib::Container->new(undef,$opts)
+          )
+        ]);
+      }
+    }
+
+    parse_query: <leftop: node ';' node> (';')(?) /\Z/ 
+           { $return=new_node({},$item[1]); 1 }
+         | { report_error($thisparser); }
+
+    parse_node: (child|opt_child) /\Z/ { $item[1] }
+         | { report_error($thisparser); }
+
+    parse_test: test /\Z/ { $item[1] }
+         | { report_error($thisparser); }
+
+    parse_expression: expression /\Z/ { $item[1] }
+         | { report_error($thisparser); }
+
+    node: type(?) var_def(?) '[' <commit> conditions(?) /,?\s*]/ 
+          { new_node({ '#name' => 'node', 'node-type' => $item[1][0], name => $item[2][0]}, $item[5][0]) }
+        | <error>
+
+    type: XMLNAME .../\$|\[/
+          { $return = $item[1] }
+
+    var_def: VARIABLE ':=' <commit> ...'['
+             { $return = $item[1] }
+
+    conditions: condition .../,?\s*]/ <commit>         { $return = [$item[1]] }
+              | condition /and|,/ <commit> conditions  { $return = [$item[1],@{$item[4]}] }
+              | <error>
+
+    condition: simple_test { $return = $item[1] }
+             | opt_child   { $return = $item[1] }
+             | subquery    { $return = $item[1] }
+             | child    { $return = $item[1] }
+             | ref
+
+    child: RELATION(?) node { $return = $item[2]; $return->{relation}=$item[1][0]; 1 }
+
+    ref: (RELATION|EXTRA_RELATION)(?) VARIABLE
+         { $return = new_node({ '#name' => 'ref', target=>$item[2], relation=>$item[1][0] });
+         }
+
+    opt_child: '?' <commit> RELATION(?) node
+             { $return=$item[4]; $return->{optional}=1; $return->{relation}=$item[3][0]; 1 }
+
+    simple_test: predicate | or_clause | not_clause | and_clause
+
+    test: simple_test 
+        | subquery 
+        | ref
+
+    or_clause: '(' <leftop: test 'or' test> ')'
+               { new_node({ '#name' => 'or' }, $item[2]) }
+
+    and_clause: '(' <leftop: test /,|and/ test> ')'
+              { new_node({ '#name' => 'and'}, $item[2]) }
+
+    not_clause: '!' ( test | or_clause | and_clause )
+              {  $return = $item[2];
+                 if ($return->{'#name'} eq 'and') {
+                   $return->{'#name'} = 'not';
+                 } else {
+                   $return = new_node({ '#name' => 'not'}, [$return])
+                 }
+              }
+
+    predicate: VARIABLE '=' <commit> VARIABLE
+               { new_node({ '#name' => 'test', a=>$item[1], operator=>$item[2], b=>$item[4] }) }
+             | flat_expression CMP <commit> flat_expression
+               { new_node({ '#name' => 'test', a=>$item[1], operator=>$item[2], b=>$item[4] }) }
+
+    flat_expression: <rulevar: ($start,$t)> 
+              | { ($start,$t)=($thisoffset,$text) } <leftop: term OP term>
+                { $return=substr($t,0,$thisoffset-$start); $return=~s/^\s*//; 1 }
+
+    expression: <leftop: term OP term>
+                { @{$item[1]}>1 ? ['EXP',@{$item[1]}] : $item[1][0] }
+
+    term: '(' <commit> expression ')' { $return=$item[3] }
+        | function         { $return=$item[1] }
+        | simple_attribute { $return=$item[1] }
+        | ref_attribute    { $return=$item[1] }
+        | literal          { $return=$item[1] }
+        | <error>
+
+    simple_attribute: XMLNAME ('/' XMLNAME)(s?)
+                      { ['ATTR',$item[1],@{$item[2]}] }
+
+    ref_attribute: VARIABLE <skip: ''> '.'  simple_attribute
+                   { ['REF_ATTR',$item[1],$item[4]] }
+
+    function: FUNC <skip: ''> '(' <skip: '\s*(?:[#][^\n]*\s*)?'> arguments(?) ')'
+              { ['FUNC', $item[1],$item[5][0] ] }
+
+    arguments: <leftop: argument ',' argument>
+              { $item[1] }
+
+    argument: expression { $item[1] }
+            | VARIABLE { '$'.$item[1] }
+
+    subquery: occurrences RELATION(?) node
+              { $return=$item[3]; 
+                $return->{'#name'}='subquery';
+                $return->{relation}=$item[2][0];
+                $return->{occurrences}=$item[1];
+                1;
+              }
+
+    occurrences: NUMBER 'x' <commit> 
+                 { $return = new_struct({ min=>$item[1], max=>$item[1] }) }
+               | NUMBER /[-+]/ <commit> 'x'
+                 { $return = new_struct({ ($item[2] eq '-' ? 'max' : 'min') =>$item[1] }) }
+               | NUMBER '..' <commit> NUMBER 'x' 
+                 { $return = new_struct({ min=>$item[1], max=>$item[4] }) }
+               | <error?> <reject>
+
+    literal: NUMBER | 
+             STRING
+
+    VARIABLE: /\$[[:alpha:]_][[:alnum:]_]*/
+              { $return=$item[1]; $return=~s/^\$//; 1 }
+
+    RELATION: /descendant|ancestor/ <skip:''> '{' 
+              <commit> <skip:'\s*(?:[#][^\n]*\s*)?'> NUMBER ',' NUMBER '}'
+              { new_relation($item[1],{min_length=>$item[6],max_length=>$item[8]}) }
+            | /child|parent|descendant|ancestor/ 
+              { new_relation($item[1]) }
+            | /${Tree_Query::user_defined}/o
+              { new_relation('user-defined',{label => $item[1]}) }
+    EXTRA_RELATION: /depth-first-precedes|depth-first-follows|order-precedes|order-follows/
+              { new_relation($item[1]) }
+
+    FUNC: /descendants|lbrother|rbrother|sons|depth|lower|upper|length|substr/
+
+    CMP: /=|~\*?|[<>]=?|in/
+
+    OP: /[-+*~]|div|mod/
+
+    STRING: /'([^'\\]+|\\.)*'/
+
+    NUMBER: /-?[0-9]+(\.[0-9]+)?/
+
+    XMLNAME: /${PMLSchema::CDATA::Name}/o

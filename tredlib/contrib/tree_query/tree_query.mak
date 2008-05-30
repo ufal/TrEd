@@ -50,11 +50,10 @@ Bind sub {
   my $parser;
   {
     my $t0 = new Benchmark;
-    $parser = parser();
+    $parser = query_parser();
     my $t1 = new Benchmark;
     my $time = timestr(timediff($t1,$t0));
     print "creating parser took: $time\n";
-
   }
   while ( defined ($string = EditBoxQuery('Edit query node', $string, '',$opts)) ) {
     my $t0 = new Benchmark;
@@ -293,7 +292,7 @@ Bind ToggleHiding => {
 
 Bind sub {
   my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } ($this,$this->ancestors);
-  if ($qn->{'#name'}=~/^(?:node|subquery)$/) {
+  if ($qn) {
     $qn->{'.unhide'}=!$qn->{'.unhide'};
     $this=$qn;
   }
@@ -560,8 +559,8 @@ sub cmp_subquery_scope {
   return 0 if $id eq $ref;
   my $node = ref($id) ? $id : $name2node_hash{$id};
   my $ref_node = ref($ref) ? $ref : $name2node_hash{$ref};
-  $ref_node || die "didn't find node $ref\n";
-  $node || die "didn't find node $id\n";
+  $ref_node || croak "didn't find node $ref";
+  $node || croak "didn't find node $id";
 
   while ($node->parent and $node->{'#name'} ne 'subquery') {
     $node=$node->parent;
@@ -768,260 +767,15 @@ sub as_text {
   make_string(tq_serialize($node,{indent=>$indent,wrap=>$wrap}));
 }
 
-{
-  package Tree_Query::ParserError;
-  use overload '""' => \&as_text;
-  sub new {
-    my $class=shift;
-    my $array_ref = shift;
-    bless $array_ref, $class;
-  }
-  sub as_text {
-    my $self = shift;
-    return 'Parse error at line '.$self->line.': '.$self->message;
-  }
-  sub message { return $_[0]->[0] }
-  sub line    { return $_[0]->[1] }
-}
-
-our $user_defined = 'echild|eparent|a/lex.rf\|a/aux.rf|a/lex.rf|a/aux.rf|coref_text|coref_gram|compl';
 my $parser;
-sub parser {
+sub query_parser {
   return $parser if defined $parser;
-  require Parse::RecDescent;
-  local $Parse::RecDescent::skip;
-  $Parse::RecDescent::skip='\s*(?:[#][^\n]*\s*)?';
-  $parser = Parse::RecDescent->new(<<'EOF') or die "Bad grammar\n";
-    {
-      sub report_error {
-        my $thisparser = shift;
-        die Tree_Query::ParserError->new($thisparser->{errors}[0]);
-      }
-      sub new_node {
-        my ($hash,$children)=@_;
-        my $new = FSNode->new($hash,1);
-        if ($children) {
-          if (ref($children) eq 'ARRAY') {
-             for (reverse @$children) {
-                if (ref($_) eq 'FSNode') {
-                  $_->paste_on($new)
-                } else {
-                   warn "new_node: child of $hash->{'#name'} is not a node:\n".
-                        Data::Dumper::Dumper([$_]);
-                }
-             }
-          } else {
-            warn "new_node: 2nd argument of constructor to $hash->{'#name'} is not an ARRAYref:\n".
-            Data::Dumper::Dumper([$children]);
-          }
-        }
-        return $new;
-      }
-      sub new_struct {
-        return Fslib::Struct->new($_[0],1);
-      }
-      sub new_relation {
-        my ($type,$opts)=@_;
-	return Fslib::Seq->new([
-          Fslib::Seq::Element->new( 
-            $type => Fslib::Container->new(undef,$opts)
-          )
-        ]);
-      }
-    }
-
-    parse_query: <leftop: node ';' node> (';')(?) /\Z/ 
-           { $return=new_node({},$item[1]); 1 }
-         | { report_error($thisparser); }
-
-    parse_node: (child|opt_child) /\Z/ { $item[1] }
-         | { report_error($thisparser); }
-
-    parse_test: test /\Z/ { $item[1] }
-         | { report_error($thisparser); }
-
-    parse_expression: expression /\Z/ { $item[1] }
-         | { report_error($thisparser); }
-
-    node: type(?) var_def(?) '[' <commit> conditions(?) /,?\s*]/ 
-          { new_node({ '#name' => 'node', 'node-type' => $item[1][0], name => $item[2][0]}, $item[5][0]) }
-        | <error>
-
-    type: XMLNAME .../\$|\[/
-          { $return = $item[1] }
-
-    var_def: VARIABLE ':=' <commit> ...'['
-             { $return = $item[1] }
-
-    conditions: condition .../,?\s*]/ <commit>         { $return = [$item[1]] }
-              | condition /and|,/ <commit> conditions  { $return = [$item[1],@{$item[4]}] }
-              | <error>
-
-    condition: simple_test { $return = $item[1] }
-             | opt_child   { $return = $item[1] }
-             | subquery    { $return = $item[1] }
-             | child    { $return = $item[1] }
-             | ref
-
-    child: RELATION(?) node { $return = $item[2]; $return->{relation}=$item[1][0]; 1 }
-
-    ref: (RELATION|EXTRA_RELATION)(?) VARIABLE
-         { $return = new_node({ '#name' => 'ref', target=>$item[2], relation=>$item[1][0] });
-         }
-
-    opt_child: '?' <commit> RELATION(?) node
-             { $return=$item[4]; $return->{optional}=1; $return->{relation}=$item[3][0]; 1 }
-
-    simple_test: predicate | or_clause | not_clause | and_clause
-
-    test: simple_test 
-        | subquery 
-        | ref
-
-    or_clause: '(' <leftop: test 'or' test> ')'
-               { new_node({ '#name' => 'or' }, $item[2]) }
-
-    and_clause: '(' <leftop: test /,|and/ test> ')'
-              { new_node({ '#name' => 'and'}, $item[2]) }
-
-    not_clause: '!' ( test | or_clause | and_clause )
-              {  $return = $item[2];
-                 if ($return->{'#name'} eq 'and') {
-                   $return->{'#name'} = 'not';
-                 } else {
-                   $return = new_node({ '#name' => 'not'}, [$return])
-                 }
-              }
-
-    predicate: flat_expression CMP <commit> flat_expression
-               { new_node({ '#name' => 'test', a=>$item[1], operator=>$item[2], b=>$item[4] }) }
-
-    flat_expression: <rulevar: ($start,$t)> 
-              | { ($start,$t)=($thisoffset,$text) } <leftop: term OP term>
-                { $return=substr($t,0,$thisoffset-$start); $return=~s/^\s*//; 1 }
-
-    expression: <leftop: term OP term>
-                { ['EXP',@{$item[1]}] }
-
-    term: '(' <commit> expression ')' { $return=$item[3] }
-        | function         { $return=$item[1] }
-        | simple_attribute { $return=$item[1] }
-        | ref_attribute    { $return=$item[1] }
-        | literal          { $return=$item[1] }
-        | <error>
-
-    simple_attribute: XMLNAME ('/' XMLNAME)(s?)
-                      { join('/',$item[1],@{$item[2]}) }
-
-    ref_attribute: VARIABLE <skip: ''> '.'  simple_attribute
-                   { ['REF_ATTR',$item[1],$item[4]] }
-
-    function: FUNC <skip: ''> '(' <skip: '\s*(?:[#][^\n]*\s*)?'> arguments(?) ')'
-              { ['FUNC', $item[1],$item[5][0] ] }
-
-    arguments: <leftop: argument ',' argument>
-              { $item[1] }
-
-    argument: expression { $item[1] }
-            | VARIABLE { '$'.$item[1] }
-
-    subquery: occurrences RELATION(?) node
-              { $return=$item[3]; 
-                $return->{'#name'}='subquery';
-                $return->{relation}=$item[2][0];
-                $return->{occurrences}=$item[1];
-                1;
-              }
-
-    occurrences: NUMBER 'x' <commit> 
-                 { $return = new_struct({ min=>$item[1], max=>$item[1] }) }
-               | NUMBER /[-+]/ <commit> 'x'
-                 { $return = new_struct({ ($item[2] eq '-' ? 'max' : 'min') =>$item[1] }) }
-               | NUMBER '..' <commit> NUMBER 'x' 
-                 { $return = new_struct({ min=>$item[1], max=>$item[4] }) }
-               | <error?> <reject>
-
-    literal: NUMBER | 
-             STRING
-
-    VARIABLE: /\$[[:alpha:]_][[:alnum:]_]*/
-              { $return=$item[1]; $return=~s/^\$//; 1 }
-
-    RELATION: /descendant|ancestor/ <skip:''> '{' 
-              <commit> <skip:'\s*(?:[#][^\n]*\s*)?'> NUMBER ',' NUMBER '}'
-              { new_relation($item[1],{min_length=>$item[6],max_length=>$item[8]}) }
-            | /child|parent|descendant|ancestor/ 
-              { new_relation($item[1]) }
-            | /${Tree_Query::user_defined}/o
-              { new_relation('user-defined',{label => $item[1]}) }
-    EXTRA_RELATION: /depth-first-precedes|depth-first-follows|order-precedes|order-follows/
-              { new_relation($item[1]) }
-
-    FUNC: /descendants|lbrother|rbrother|sons|depth|lower|upper|length|substr/
-
-    CMP: /=|~\*?|[<>]=?|in/
-
-    OP: /[-+*]|div|mod/
-
-    STRING: /'([^'\\]+|\\.)*'/
-
-    NUMBER: /-?[0-9]+(\.[0-9]+)?/
-
-    XMLNAME: /${PMLSchema::CDATA::Name}/o
-EOF
-
+  my $Grammar = $libDir."/contrib/tree_query/Grammar.pm";
+  delete $INC{$Grammar};
+  require $Grammar;
+  $Tree_Query::user_defined = 'echild|eparent|a/lex.rf\|a/aux.rf|a/lex.rf|a/aux.rf|coref_text|coref_gram|compl';
+  $parser = Tree_Query::Grammar->new() or die "Could not create parser for Tree_Query grammar\n";
   return $parser;
-}
-
-sub parse {
-  my ($string)=@_;
-  my $p = parser() || return;
-  $p->parse_query($string);
-}
-
-
-use constant {
-  LEX_REF    => 1,
-  LEX_ATTR   => 2,
-  LEX_STRING => 3,
-  LEX_FUNC   => 4,
-  LEX_SPACE  => 5,
-  LEX_COMMA  => 6,
-  LEX_DOT  => 7,
-  LEX_CLOSE_FUNC  => 8,
-  LEX_OP  => 9,
-  LEX_CMP  => 10,
-  LEX_NUMBER  => 11,
-  LEX_ATTR_REF  => 12,
-};
-
-sub lex_expression {
-  my ($exp)=@_;
-  my @tokens;
-  local $_=$exp;
-  my $NameChar=$PMLSchema::CDATA::NameChar;
-  my $Name=$PMLSchema::CDATA::Name;
- LOOP:
-  {
-    push(@tokens,[$1, length($2) ? LEX_ATTR_REF : LEX_REF], length($2) ? [$2,LEX_DOT] : ()), redo LOOP 
-                                           if /\G(\$[[:alpha:]_][[:alnum:]_]*)(\.)?/gco;
-    push(@tokens,[$1,LEX_FUNC]), redo LOOP if /\G(${Name}\(\s*)/gco;
-    push(@tokens,[$1,LEX_ATTR]), redo LOOP if /\G(${Name}(?:\/${Name})*)/gco;
-    push(@tokens,[$1,LEX_STRING]), redo LOOP if /\G('[^']*')/gc;
-    push(@tokens,[$1,LEX_NUMBER]), redo LOOP if /\G(\d+(?:\.\d+)?)/gc;
-    push(@tokens,[$1,LEX_OP]), redo LOOP if /\G([-+*]|\bdiv\b)/gc;
-    push(@tokens,[$1,LEX_CMP]), redo LOOP if /\G(=|~\*?|[<>]=?|\bin\b)/gc;
-    push(@tokens,[$1,LEX_CLOSE_FUNC]), redo LOOP if /\G(\s*\)\s*)/gc;
-    push (@tokens,[$1,LEX_COMMA]), redo LOOP if /\G(\s*,\s*)/gc;
-    push (@tokens,[$1,LEX_SPACE]), redo LOOP if /\G(\s+)/gc;
-    if (/\G(.)/gc) {
-      warn "Expression parse error near:\n    ".$exp.
-	                               "\n    ".(pos() x ' ').'^'.
-				       "\n    ($1)";
-      print STDERR ((map { "[$_->[0],$_->[1]]" } @tokens),"\n");
-    }
-  }
-  return @tokens;
 }
 
 sub get_nodelist_hook {
@@ -1038,7 +792,8 @@ sub node_style_hook {
   my ($node,$styles) = @_;
   my $i=0;
   my @refs;
-  my $showHidden = $this->{'.unhide'} or HiddenVisible();
+  my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } ($node,$node->ancestors);
+  my $showHidden = $qn->{'.unhide'} or HiddenVisible();
   if ($showHidden) {
     @refs=($node) if $node->{'#name'} eq 'ref';
   } else {
@@ -2051,103 +1806,38 @@ sub _dump_error_pos {
   print("     ",$length x ' ',"^\n");
 }
 
-sub sql_serialize_expression {
-  my ($opts)=@_;
-  my $parent_id = $opts->{parent_id};
-  my $exp = $opts->{expression};
 
-  my @tokens = lex_expression($exp);
-  my ($wrap);
-  my $extra_joins={};
-  my $joins = $opts->{join};
-  my $use_exists;
-  if ($opts->{negative}) {
-  }
+sub sql_serialize_expression_pt {# pt stands for parse tree
+  my ($pt,$opts,$extra_joins)=@_;
   my $this_node_id = $opts->{id};
-  my $negative = $opts->{negative};
-
-  my ($out,$tok,$lex);
-  my $i=0;
-  while ($i<@tokens) {
-    $tok=$tokens[$i];
-    $lex=$tok->[1];
-    if ($lex==LEX_FUNC) {
-      # FIXME: ng2xml needs to be fixed to produce the following functions:
-      if ($tok->[0]=~/^(descendants|lbrother|rbrother|sons|depth)\(\s*/) {
-	my $next = $tokens[$i+1];
-	my $v='';
-	if ($next->[1]==LEX_REF) {
-	  $v=$next->[0];
-	  $v=~s{^\$}{};
-	  $v.='.';
-	  $i++;
-	  $next = $tokens[$i+1];
-	}
-	if ($tok->[0] eq 'descendants') {
-	  $out.=qq{$v"r"-$v"idx"}
-	} elsif ($tok->[0] eq 'lbrothers') {
-	  $out.=qq{$v"chord"};
-	} elsif ($tok->[0] eq 'rbrothers') {
-	  $out.=qq{$parent_id."chld"-$v"chord"-1};
-	} elsif ($tok->[0] eq 'sons') {
-	  qq{$v"chld"}
-	} elsif ($tok->[0] eq 'depth') {
-	  qq{$v"lvl"}
-	}
-	if ($next->[1]==LEX_CLOSE_FUNC) {
-	  $i++
-	} else {
-	  warn "Expected closing bracket near:",
-	    _dump_error_pos(\@tokens,$i+1);
-	}
-      } elsif ($tok->[0]=~/^(lower|upper|length|substr)\(\s*/) { # in the future, also replace and regexp_replace
-	# note for perl implementation: substr starts from position 1 and treats 0 as 1. It does negative positions too.
-	$out.=$tok->[0]
-      } else {
-	warn "Undefined function: ".
-	  _dump_error_pos(\@tokens,$i+1);
-      }
-      # ... etc
-    } elsif ($lex==LEX_ATTR_REF or $lex==LEX_ATTR) {
-      my ($id,$attr);
-      if ($lex==LEX_ATTR_REF) {
-	my $next = $tokens[$i+1];
-	if ($next->[1]==LEX_DOT) {
-	  print "eating dot: $next->[0]\n";
-	  $i++;
-	  $next = $tokens[$i+1];
-	} else {
-	  warn "Expected dot near:",
-	    _dump_error_pos(\@tokens,$i+1);
-	}
-	if ($next->[1]==LEX_ATTR) {
-	  $id = lc($tok->[0]);
-	  $id=~s/^\$//;
-	  $attr=$next->[0];
-	} else {
-	  warn "Expected attribute path near:",
-	    _dump_error_pos(\@tokens,$i+1);
-	}
-      } else {
-	$id=$this_node_id;
-	$attr=$tok->[0];
-      }
-      my @ref = split m{/}, $attr;
-      my $column = pop @ref;
-      my $table = $opts->{type};
-      my $node_id = $id;
-      for my $tab (@ref) {
-	my $prev = $id;
-	my $cmp = cmp_subquery_scope($this_node_id,$id);
+  if (ref($pt)) {
+    my $type = shift @$pt;
+    if ($type eq 'ATTR' or $type eq 'REF_ATTR') {
+      my ($id,$attr,$cmp);
+      if ($type eq 'REF_ATTR') {
+	$id = lc($pt->[0]);
+	$pt=$pt->[1];
+	die "Error in attribute reference of node $id in expression $opts->{expression} of node '$this_node_id'" 
+	  unless shift(@$pt) eq 'ATTR'; # not likely
+	$cmp = cmp_subquery_scope($this_node_id,$id);
 	if ($cmp<0) {
 	  die "Node '$id' belongs to a sub-query and cannot be referred from the scope of node '$this_node_id' ($opts->{expression})\n";
 	}
+      } else {
+	$id=$this_node_id;
+      }
+      my $column = pop @$pt;
+      my $table = $opts->{type};
+      my $node_id = $id;
+      for my $tab (@$pt) {
+	next if $tab =~ /^[mw]$/;  # FIXME: hack
+	my $prev = $id;
 	my $j;
-	if ($negative or $cmp) {
-	  $use_exists=1;
-	$j=$extra_joins;
+	if ($opts->{negative} or $cmp) {
+	  $opts->{use_exists}=1;
+	  $j=$extra_joins;
 	} else {
-	  $j=$joins;
+	  $j=$opts->{join};
 	}
 	$j->{$node_id}||=[];
 	my $i = @{$j->{$node_id}};
@@ -2155,21 +1845,93 @@ sub sql_serialize_expression {
 	$table.="_$tab";
 	push @{$j->{$node_id}},[$id,$table, qq($id."idx" = $prev."idx"), 'LEFT']; # should be qq($prev."$tab")
       }
-      $out.=qq($id."$column");
-    } elsif (   $lex==LEX_STRING
-	     or $lex==LEX_SPACE
-	     or $lex==LEX_COMMA
-	     or $lex==LEX_OP
-	     or $lex==LEX_NUMBER) {
-      $out.=$tok->[0];
-    } else {
-      warn "Unexpected token (type $lex):",
-	_dump_error_pos(\@tokens,$i+1);
+      return qq( $id."$column" );
+    } elsif ($type eq 'FUNC') {
+      my $name = $pt->[0];
+      my $args = $pt->[1];
+      my $id;
+      if ($name=~/^(?:descendants|lbrothers|rbrothers|sons|depth)$/) {
+	if ($args and @$args==1 and !ref($args->[0]) and $args->[0]=~s/^\$//) {
+	  $id = $args->[0];
+	  if (cmp_subquery_scope($this_node_id,$id)<0) {
+	    die "Node '$id' belongs to a sub-query and cannot be referred from the scope of node '$this_node_id' ($opts->{expression})\n";
+	  }
+	} elsif ($args and @$args) {
+	  die "Wrong arguments for function ${name}() in expression $opts->{expression} of node '$this_node_id'!\nUsage: ${name}(\$node?)\n";
+	} else {
+	  $id=$this_node_id;
+	}
+	return ($name eq 'descendants') ? qq{$id."r"-$id."idx"}
+	     : ($name eq 'lbrothers')   ? qq{$id."chord"}
+	     : ($name eq 'rbrothers')   ? qq{$opts->{parent_id}."chld"-$id."chord"-1}
+             : ($name eq 'sons')        ? qq{$id."chld"}
+             : ($name eq 'depth')       ? qq{$id."lvl"}
+             : die "Tree_Query internal error while compiling expression: should never get here!";
+      } elsif ($name=~/^(?:lower|upper|length)$/) {
+	if ($args and @$args==1) {
+	  return uc($name).'('
+	         .  sql_serialize_expression_pt($args->[0],$opts,$extra_joins)
+	         . ')';
+	} else {
+	  die "Wrong arguments for function ${name}() in expression $opts->{expression} of node '$this_node_id'!\nUsage: ${name}(string)\n";
+	}
+      } elsif ($name eq 'substr') {
+	if ($args and @$args>1 and @$args<4) {
+	  my @args = map { sql_serialize_expression_pt($_,$opts,$extra_joins) } @$args;
+	  $args[1].='+1';
+	  return 'SUBSTR('
+	         .  join(',', @args)
+	         . ')';
+	} else {
+	  die "Wrong arguments for function substr() in expression $opts->{expression} of node '$this_node_id'!\nUsage: substr(string,from,length?)\n";
+	}
+      }
+    } elsif ($type eq 'EXP') {
+      my $out.='(';
+      while (@$pt) {
+	$out.=sql_serialize_expression_pt(shift @$pt,$opts,$extra_joins);
+	if (@$pt) { # op
+	  my $op = shift @$pt;
+	  if ($op eq 'div') {
+	    $op='/'
+	  } elsif ($op eq 'mod') {
+	    $op='%'
+	  } elsif ($op eq '~') {
+	    $op='||'
+	  } elsif ($op !~ /[-+*]/) {
+	    die "Urecognized operator '$op' in expression $opts->{expression} of node '$this_node_id'\n";
+	  }
+	  $out.=$op;
+	}
+      }
+      $out.=')';
+      return $out;
     }
-  } continue {
-    $i++;
+  } else {
+    if ($pt=~/^[-0-9']/) { # literal
+      return qq( $pt );
+    } elsif ($pt=~s/\$//) { # a plain variable
+      if (cmp_subquery_scope($this_node_id,$pt)<0) {
+	die "Node '$pt' belongs to a sub-query and cannot be referred from the scope of node '$this_node_id' ($opts->{expression})\n";
+      }
+      return qq( $pt."idx" );
+    } else { # unrecognized token
+      die "Token '$pt' not recognized in expression $opts->{expression} of node '$this_node_id'\n";
+    }
   }
-  if ($use_exists) {
+}
+
+sub sql_serialize_expression {
+  my ($opts)=@_;
+
+  my $pt = query_parser()->parse_expression($opts->{expression}); # $pt stands for parse tree
+  die "Invalid expression '$opts->{expression}' on node '$opts->{id}'" unless defined $pt;
+
+  my $extra_joins={};
+  my $out = sql_serialize_expression_pt($pt,$opts,$extra_joins); # do not copy $opts here!
+
+  my $wrap;
+  if ($opts->{use_exists}) {
     my @from;
     my @where;
     for my $name (keys (%$extra_joins)) {
