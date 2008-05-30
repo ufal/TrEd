@@ -41,7 +41,7 @@ TODO:
   from an ID-referenced layer. The correct solution is to know the FSFile of
   of each matched node, i.e. keep that information in the iterator.
 
-- implement correct expression parserx
+- [X] implement correct expression parser
 
 - simplify query editing:
 
@@ -674,54 +674,123 @@ sub test {
     }
   }
 
-  sub serialize_expression {
-    my ($self,$opts)=@_;
-    my $parent_id = $opts->{parent_id};
-
-    my $exp = $opts->{expression};
-    if ($exp=~/^'((?:\d*\.)?\d+)'$/) {
-      $exp=$1;
+  sub serialize_target {
+    my ($self,$target,$opts)=@_;
+    if ($target eq $opts->{id}) {
+      return '$node';
+    }
+    my $target_match_pos = $self->{name2match_pos}{$target};
+    if (defined $target_match_pos) {
+      $opts->{depends_on}{$target_match_pos}=1;
+      return '$matched_nodes->['.$target_match_pos.']';
     } else {
-      $exp=~s{(?:(\w+)\.)?"([^"]+)"}{
-	my $target = $1;
-	my $attr = $2;
-	my $node='$node';
-	if (defined $target) {
-	  $target = lc($target);
-	  my $target_match_pos = $self->{name2match_pos}{$target};
-	  $node='$matched_nodes->['.$target_match_pos.']';
-	  if (defined $target_match_pos) {
-	    $opts->{depends_on}{$target_match_pos}=1;
-	  } else {
-	    my $pos = $opts->{query_pos};
-	    my $match_pos = $self->{pos2match_pos}[$pos];
-	    die "Node '$target' does not exist or belongs to a sub-query and cannot be referred from expression $exp of node no. $match_pos!\n";
-	  }
+      my $pos = $opts->{query_pos};
+      my $match_pos = $self->{pos2match_pos}[$pos];
+      die "Node '$target' does not exist or belongs to a sub-query and cannot be referred from expression $opts->{expression} of node no. $match_pos!\n";
+    }
+  }
+
+  sub serialize_expression_pt { # pt stands for parse tree
+    my ($self,$pt,$opts)=@_;
+    my $this_node_id = $opts->{id};
+    if (ref($pt)) {
+      my $type = shift @$pt;
+      if ($type eq 'ATTR' or $type eq 'REF_ATTR') {
+	my ($node);
+	if ($type eq 'REF_ATTR') {
+	  my $target = lc($pt->[0]);
+	  $pt=$pt->[1];
+	  die "Error in attribute reference of node $target in expression $opts->{expression} of node '$this_node_id'"
+	    unless shift(@$pt) eq 'ATTR'; # not likely
+	  $node=$self->serialize_target($target,$opts);
+	} else {
+	  $node='$node';
 	}
-	## FIXME: hack: not needed once SQL db is fixed
-	if ($attr eq 'idx') {
-	  $attr = 'id';
-	} elsif ($attr =~ /^(?:tag|lemma|form)/) {
+	my $attr=join('/',@$pt);
+	## FIXME: hack: not needed once we have equality for nodes
+	if ($attr =~ /^(?:tag|lemma|form)/) {
 	  $attr='m/'.$attr; #FIXME: remove me
 	} else {
 	  $attr =~ s{^tfa/}{}; #FIXME: remove me
 	}
-	if ($attr eq '_depth') {
-	  $node.qq{->level}
-	} elsif ($attr eq '_#sons') {
-	  'scalar('.$node.qq{->children}.')'
-	} elsif ($attr eq '_#descendants') {
-	  'scalar('.$node.qq{->descendants}.')'
-	} elsif ($attr eq '_#lbrothers') {
-          q[ do { my $n = ].$node.q[; my $i=0; $i++ while ($n=$n->lbrother); $i } ]
-	} elsif ($attr eq '_#rbrothers') {
-          q[ do { my $n = ].$node.q[; my $i=0; $i++ while ($n=$n->rbrother); $i } ]
-	} else {
-	  ($attr=~m{/}) ? $node.qq{->attr(q($attr))} : $node.qq[->{q($attr)}];
-        }
-      }ge;
+	$attr = (($attr=~m{/}) ? $node.qq{->attr(q($attr))} : $node.qq[->{q($attr)}]);
+	return qq{ $attr };
+      } elsif ($type eq 'FUNC') {
+	my $name = $pt->[0];
+	my $args = $pt->[1];
+	my $id;
+	if ($name=~/^(?:descendants|lbrothers|rbrothers|sons|depth)$/) {
+	  my $node;
+	  if ($args and @$args==1 and !ref($args->[0]) and $args->[0]=~s/^\$//) {
+	    $node=$self->serialize_target($args->[0],$opts);
+	  } elsif ($args and @$args) {
+	    die "Wrong arguments for function ${name}() in expression $opts->{expression} of node '$this_node_id'!\nUsage: ${name}(\$node?)\n";
+	  } else {
+	    $node='$node';
+	  }
+	  return ($name eq 'descendants') ? qq{ scalar(${node}->descendants) }
+	       : ($name eq 'lbrothers')   ? q[ do { my $n = ].$node.q[; my $i=0; $i++ while ($n=$n->lbrother); $i } ]
+	       : ($name eq 'rbrothers')   ? q[ do { my $n = ].$node.q[; my $i=0; $i++ while ($n=$n->rbrother); $i } ]
+	       : ($name eq 'sons')        ? qq{ scalar(${node}->children) }
+    	       : ($name eq 'depth')       ? qq{ ${node}->level }
+	       : die "Tree_Query internal error while compiling expression: should never get here!";
+	} elsif ($name=~/^(?:lower|upper|length)$/) {
+	  if ($args and @$args==1) {
+	    my $func = $name eq 'lower' ? 'lc'
+	             : $name eq 'upper' ? 'uc'
+		     : 'length';
+	    return $func.'('
+	      .  $self->serialize_expression_pt($args->[0],$opts)
+		. ')';
+	  } else {
+	    die "Wrong arguments for function ${name}() in expression $opts->{expression} of node '$this_node_id'!\nUsage: ${name}(string)\n";
+	  }
+	} elsif ($name eq 'substr') {
+	  if ($args and @$args>1 and @$args<4) {
+	    return 'substr('
+	      .  join(',', map { $self->serialize_expression_pt($_,$opts) } @$args)
+	      . ')';
+	  } else {
+	    die "Wrong arguments for function substr() in expression $opts->{expression} of node '$this_node_id'!\nUsage: substr(string,from,length?)\n";
+	  }
+	}
+      } elsif ($type eq 'EXP') {
+	my $out.='(';
+	while (@$pt) {
+	  $out.=$self->serialize_expression_pt(shift @$pt,$opts);
+	  if (@$pt) {		# op
+	    my $op = shift @$pt;
+	    if ($op eq 'div') {
+	      $op='/'
+	    } elsif ($op eq 'mod') {
+	      $op='%'
+	    } elsif ($op eq '~') {
+	      $op=' . '
+	    } elsif ($op !~ /[-+*]/) {
+	      die "Urecognized operator '$op' in expression $opts->{expression} of node '$this_node_id'\n";
+	    }
+	    $out.=$op;
+	  }
+	}
+	$out.=')';
+	return $out;
+      }
+    } else {
+      if ($pt=~/^[-0-9']/) {	# literal
+	return qq( $pt );
+      } elsif ($pt=~s/\$//) {	# a plain variable
+	return $self->serialize_target($pt,$opts);
+      } else {			# unrecognized token
+	die "Token '$pt' not recognized in expression $opts->{expression} of node '$this_node_id'\n";
+      }
     }
-    return $exp;
+  }
+
+  sub serialize_expression {
+    my ($self,$opts)=@_;
+    my $pt = Tree_Query::query_parser()->parse_expression($opts->{expression}); # $pt stands for parse tree
+    die "Invalid expression '$opts->{expression}' on node '$opts->{id}'" unless defined $pt;
+    return $self->serialize_expression_pt($pt,$opts);
   }
 
   sub test_occurrences {
