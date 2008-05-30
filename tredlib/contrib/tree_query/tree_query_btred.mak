@@ -141,7 +141,7 @@ sub start_hook {
   #  print STDERR "$query_file\n";
   #plan_query($query_tree) if $opts{plan};
   die "Query tree $query_fn#$query_id not found\n" unless ref $query_tree;
-  $evaluator = Tree_Query::Evaluator->new($query_tree,{plan=>$opts{plan}});
+  $evaluator = Tree_Query::BtredEvaluator->new($query_tree,{plan=>$opts{plan}});
 
   # print STDERR "initialized @iterators, $query_pos\n";
   # print $query_node,",",$query_tree->{id},"\n";
@@ -191,7 +191,7 @@ sub test {
 	$opts->{tree}=$fsfile->tree(CurrentTreeNumber($win));
       }
       # $opts->{fsfile} = $fsfile;
-      $evaluator = Tree_Query::Evaluator->new($query_tree,$opts) if !$evaluator or $restart;
+      $evaluator = Tree_Query::BtredEvaluator->new($query_tree,$opts) if !$evaluator or $restart;
       #  return;
       my $match = $evaluator->find_next_match();
       if ($match) {
@@ -211,7 +211,7 @@ sub test {
 
 ###########################################
 {
-  package Tree_Query::Evaluator;
+  package Tree_Query::BtredEvaluator;
 
   use strict;
   use Scalar::Util qw(weaken);
@@ -249,6 +249,12 @@ sub test {
   sub new {
     my ($class,$query_tree,$opts)=@_;
 
+    unless (ref($query_tree)) {
+      $query_tree = Tree_Query->parse_query($query_tree);
+    }
+
+    $opts ||= {};
+
     #######################
     # The following lexical variables may be used directly by the
     # condition subroutines
@@ -261,7 +267,6 @@ sub test {
     my $query_pos;
     #######################
 
-    $opts ||= {};
 
     my @debug;
     my %name2pos;
@@ -288,6 +293,8 @@ sub test {
       parent_pos => undef,
       pos2match_pos => undef,
       name2match_pos => undef,
+      query_nodes => [],
+      results => [],
     }, $class;
     weaken($self->{parent_query}) if $self->{parent_query};
     $query_pos = \$self->{query_pos};
@@ -323,6 +330,7 @@ sub test {
       ($query_node)=@$roots;
     }
     my @query_nodes=Tree_Query::get_query_nodes($query_tree);
+    @{$self->{query_nodes}}=@query_nodes;
     %name2pos = map {
       my $name = lc($query_nodes[$_]->{name});
       (defined($name) and length($name)) ? ($name=>$_) : ()
@@ -379,6 +387,15 @@ sub test {
       push @iterators, $iterator;
     }
     return $self;
+  }
+
+  sub get_results {
+    my $self = shift;
+    return $self->{results}
+  }
+  sub get_query_nodes {
+    my $self = shift;
+    return $self->{query_nodes};
   }
 
   sub reset {
@@ -904,7 +921,7 @@ sub test {
 	} else {
 	  print STDERR ("complete match [bool: $opts->{boolean}]\n") if $DEBUG;
 	  # complete match:
-	  return $opts->{boolean} ? 1 : [map { $_->node } @$iterators];
+	  return $opts->{boolean} ? 1 : ($self->{results}=[map { $_->node } @$iterators]);
 	}
       }
     }
