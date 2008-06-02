@@ -7,6 +7,7 @@
 
 #include "tree_query.mak"
 
+#include "tree_query_sql.mak"
 #include "tree_query_btred.mak"
 
 #endif tree_query
