@@ -200,13 +200,192 @@ sub test {
 	SetCurrentNodeInOtherWindow($win,$match->[0]);
       }
       print STDERR "Searching done!\n" if $DEBUG;
-      
       $Redraw='all';
     };
     $grp=$cur_win;
   }
   my $err = $@;
   die $err if $err;
+}
+
+{
+
+package Tree_Query::TrEdSearch;
+use Benchmark;
+use Carp;
+use strict;
+use warnings;
+BEGIN { import TredMacro  }
+
+sub new {
+  my ($class,$opts)=@_;
+  $opts||={};
+  my $what = ($opts->{file}?0:1) +
+             ($opts->{filelist}?0:1);
+  die "Neither fsfile, nor filelist were specified!" unless $what;
+  die "Options fsfile, filelist are exclusive!" if $what>1;
+  my $self = bless {
+    file => $opts->{file},
+    filelist => $opts->{filelist},
+    evaluator => undef,
+    query_nodes => undef,
+    results => undef,
+  }, $class;
+  return $self;
+}
+
+sub DESTROY {
+  my ($self)=@_;
+  warn "DESTROING $self\n";
+  unregister_open_file_hook($self->{callback});
+}
+
+sub identify {
+  my ($self)=@_;
+  return 'TrEdSearch '.
+    ($self->{filelist} ? 'Filelist: '.$self->{filelist} :
+     $self->{file}   ? 'File: '.$self->{file} : '');
+}
+
+sub configure {
+  # nothing to configure here, yet
+  # in the future we could set file/filelist/one tree only,
+  # non-tred filelist etc.
+  return;
+}
+
+sub search_first {
+  my ($self, $opts)=@_;
+  $opts||={};
+  my $query = $opts->{query} || $root;
+  $self->{evaluator} = Tree_Query::BtredEvaluator->new($query);
+  $self->{current_result} = undef;
+  $self->{past_results}=[];
+  $self->{next_results}=[];
+  return $self->show_next_result;
+}
+
+sub show_next_result {
+  my ($self)=@_;
+  if ($self->{current_result}) {
+    push @{$self->{past_results}},
+      $self->{current_result};
+  }
+  if (@{$self->{next_results}}) {
+    $self->{current_result} = pop @{$self->{next_results}};
+    return $self->show_current_result;
+  }
+  my @save = ($grp,$root,$this);
+  $grp=$self->claim_search_win;
+  $this = $grp->{currentNode};
+  $root = $this->root if $this;
+  my $result;
+  eval {
+    $result = $self->{evaluator}->find_next_match();
+    if ($result) {
+      $self->{current_result} = [
+	map ThisAddress($_), @$result
+      ];
+    }
+  };
+  $Redraw='all';
+  ($grp,$root,$this)=@save;
+  die $@ if $@;
+  if ($result) {
+    $self->select_matching_node($this);
+  } else {
+    QuestionQuery('TrEdSearch','No more matches','OK');
+  }
+  return $self->{current_result};
+}
+
+sub show_prev_result {
+  my ($self)=@_;
+  if ($self->{current_result}) {
+    push @{$self->{next_results}},
+      $self->{current_result};
+  }
+  if (@{$self->{past_results}}) {
+    $self->{current_result} = pop @{$self->{past_results}};
+    return $self->show_current_result;
+  }
+  return;
+}
+
+sub show_current_result {
+  my ($self)=@_;
+  return unless $self->{current_result};
+  my $cur_win = $grp;
+  $grp=$self->claim_search_win;
+  Open($self->{current_result}->[0]);
+  $Redraw='all';
+  $grp=$cur_win;
+}
+
+sub matching_nodes {
+  my ($self,$filename,$tree_number,$tree)=@_;
+  return unless $self->{current_result};
+  my @matching;
+  my $fn = $filename.'##'.($tree_number+1);
+  my @nodes = ($tree,$tree->descendants);
+  my @positions = map { /^\Q$fn\E\.(\d+)$/ ? $1 : () } @{$self->{current_result}};
+  return @nodes[@positions];
+}
+
+sub select_matching_node {
+  my ($self,$query_node)=@_;
+  return unless $self->{current_result} and $self->{evaluator};
+  my $idx = Index($self->{evaluator}->get_query_nodes,$query_node);
+  return if !defined($idx);
+  my $result = $self->{current_result}->[$idx];
+  print "result: $result\n";
+  foreach my $win (TrEdWindows()) {
+    my $fsfile = $win->{FSFile};
+    next unless $fsfile;
+    my $fn = $fsfile->filename.'##'.($win->{treeNo}+1);
+    next unless $result =~ /\Q$fn\E\.(\d+)$/;
+    print "here: $fn\n";
+    my $pos = $1;
+    my $r=$fsfile->tree($win->{treeNo});
+    for (1..$pos) {
+      $r=$r->following();
+    }
+    if ($r) {
+      SetCurrentNodeInOtherWin($win,$r);
+      CenterOtherWinTo($win,$r);
+    }
+  }
+  return;
+}
+
+######## Private
+
+sub claim_search_win {
+  my ($self)=@_;
+  my $win;
+  if ($self->{file}) {
+    ($win) = map { $_->[0] } grep { $_->[1]->filename eq $self->{file} } grep ref($_->[1]), map [$_,CurrentFile($_)], TrEdWindows();
+  } else {
+    ($win) = map { $_->[0] } grep { $_->[1]->name eq $self->{filelist} } grep ref($_->[1]), map [$_,GetCurrentFileList($_)], TrEdWindows();
+  }
+  unless ($win) {
+    $win = SplitWindowVertically();
+    my $cur_win = $grp;
+    $grp=$win;
+    eval {
+      if ($self->{file}) {
+	Open($self->{file});
+      } elsif ($self->{filelist}) {
+	SetCurrentFileList($self->{filelist});
+      }
+    };
+    $grp=$cur_win;
+    die $@ if $@;
+  }
+  return $win;
+}
+
+
 }
 
 ###########################################
@@ -307,15 +486,15 @@ sub test {
     my $roots;
     if ($opts->{plan}) {
       if ($self->{parent_query}) {
-	$roots = Tree_Query_Btred::Planner::plan(
-	  [ Tree_Query::get_query_nodes($query_tree) ],
+	$roots = Tree_Query::BtredPlanner::plan(
+	  [ Tree_Query::FilterQueryNodes($query_tree) ],
 	  $query_tree->parent,
 	  $query_tree
 	 );
       } else {
-	Tree_Query_Btred::Planner::name_all_query_nodes($query_tree);
-	$roots = Tree_Query_Btred::Planner::plan([
-	  Tree_Query::get_query_nodes($query_tree)
+	Tree_Query::BtredPlanner::name_all_query_nodes($query_tree);
+	$roots = Tree_Query::BtredPlanner::plan([
+	  Tree_Query::FilterQueryNodes($query_tree)
 	 ],$query_tree);
       }
     } else {
@@ -329,7 +508,7 @@ sub test {
     } else {
       ($query_node)=@$roots;
     }
-    my @query_nodes=Tree_Query::get_query_nodes($query_tree);
+    my @query_nodes=Tree_Query::FilterQueryNodes($query_tree);
     @{$self->{query_nodes}}=@query_nodes;
     %name2pos = map {
       my $name = lc($query_nodes[$_]->{name});
@@ -932,7 +1111,7 @@ sub test {
 }
 #################################################
 {
-  package Tree_Query_Btred::Planner;
+  package Tree_Query::BtredPlanner;
 
   use vars qw(%weight %reverse);
 
@@ -1029,7 +1208,7 @@ sub test {
     my ($query_tree)=@_;
     $query_tree||=$TredMacro::root;
     name_all_query_nodes($query_tree);
-    my @query_nodes=Tree_Query::get_query_nodes($query_tree);
+    my @query_nodes=Tree_Query::FilterQueryNodes($query_tree);
     plan(\@query_nodes,$query_tree);
   }
 

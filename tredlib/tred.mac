@@ -350,8 +350,8 @@ sub GotoPrevNodeLin {
   sub __callback {
     my $sub = shift;
     if (ref($sub) eq 'ARRAY') {
-      my $realsub=shift @$sub;
-      &{$realsub}(@$sub,@_);
+      my ($realsub,@args)=@$sub;
+      &{$realsub}(@args,@_);
     } else {
       &$sub(@_);
     }

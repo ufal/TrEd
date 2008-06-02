@@ -28,7 +28,24 @@
 # some helpful atomic predicates:
 #  - is_leaf
 # relations of tgrep2
-
+#
+#
+# - turn current EVALUATOR to a wrapper 
+#   called e.g. ResultBrowser. Then Evaluator does not need
+# ResultBrowser classes will implement a common interface 
+#
+#   - Configure
+#   - SearchFirst
+#   - ShowNextResult
+#   - ShowPrevResult
+#   - ShowCurrentNode
+#   - HighlightCurrentNode
+#
+#  one class for SQLEavaluator, one for BtredEvaluator. In the future,
+#  one for NtredEvaluator. I might also atttempt some day to write a
+#  pure DOM/XPath-based PMLEvaluator using the same algorithm as
+#  in BtredEvaluator, only reimplementing iterators, relations and attr().
+#
 package Tree_Query;
 {
 use strict;
@@ -40,8 +57,13 @@ BEGIN {
   use File::Spec;
   use Benchmark ':hireswallclock';
 }
+
 our $VALUE_LINE_MODE = 0;
-our $EVALUATOR;
+our @SEARCHES;
+our $SEARCH;
+
+
+# Edit node:
 Bind sub {
   my $string = as_text($this);
   my $result;
@@ -105,25 +127,25 @@ Bind sub {
   menu => "Sort node's children by type"
 };
 
-Bind 'query_sql' => {
+Bind 'Search' => {
   key => 'space',
   menu => 'Query SQL server',
   changing_file => 0,
 };
 
-Bind sub { next_match('this') } => {
+Bind sub {  $SEARCH && $SEARCH->show_current_result } => {
   key => 'm',
   menu => 'Show Match',
   changing_file => 0,
 };
 
-Bind sub { next_match('forward') } => {
+Bind sub { $SEARCH && $SEARCH->show_next_result } => {
   key => 'n',
   menu => 'Show Next Match',
   changing_file => 0,
 };
 
-Bind sub { next_match('backward') } => {
+Bind sub { $SEARCH && $SEARCH->show_prev_result } => {
   key => 'p',
   menu => 'Show Previous Match',
   changing_file => 0,
@@ -339,24 +361,28 @@ my %schema_map = (
 );
 
 Bind sub {
-  connect_dbi()
+  SelectSearch()
 } => {
   key => 'c',
-  menu => 'Connect to SQL server',
+  menu => 'Select search engine',
   changing_file => 0,
 };
 
 Bind sub {
-  edit_config();
+  unless ($SEARCH) {
+    SelectSearch()||return;
+  }
+  $SEARCH->configure;
 } => {
   key => 'C',
-  menu => 'Edit Connection Configuration',
+  menu => 'Configure search engine',
   changing_file => 0,
 };
 
 
 #include <contrib/support/extra_edit.inc>
 #include <contrib/support/arrows.inc>
+
 
 # Setup context
 unshift @TredMacro::AUTO_CONTEXT_GUESSING,
@@ -483,7 +509,7 @@ sub attr_choices_hook {
 	];
       }
     } elsif ($attr_path eq 'b') {
-      if (UNIVERSAL::isa($EVALUATOR,'Tree_Query::SQLEvaluator')) {
+      if (UNIVERSAL::isa($SEARCH,'Tree_Query::SQLSearch')) {
 	my $name = $editor->get_current_value('a');
 	if ($name and $name=~m{^(?:\$[[:alpha:]_][[:alnum:]_/\-]*\.)?"?([[:alpha:]_][[:alnum:]_/\-]*)"?$}) {
 	  my $attr = $1;
@@ -505,7 +531,7 @@ ORDER BY "$attr"
 SQL
 	  #my $sql = qq(SELECT DISTINCT "$attr" FROM ${table} ORDER BY "$attr");
 	  print "$sql\n";
-	  my $results = eval { $EVALUATOR->run_sql_query($sql,{ MaxRows=>100, RaiseError=>1, Timeout => 10 }) };
+	  my $results = eval { $SEARCH->{evaluator}->run_sql_query($sql,{ MaxRows=>100, RaiseError=>1, Timeout => 10 }) };
 	  print $@;
 	  return if $@;
 	  my @res= map qq('$_->[0]'),@$results;
@@ -541,6 +567,8 @@ sub init_id_map {
     }
   };
 }
+
+#include "ng.inc"
 
 # given to nodes or their IDs ($id and $ref)
 # returns 0 if both belong to the same subquery
@@ -908,47 +936,11 @@ sub node_release_hook {
   return;
 }
 
-our %is_match;
-our $btred_results;
-sub map_results {
-  my ($tree)=@_;
-  return if $btred_results;
-  $tree||=$root;
-  %is_match=();
-  my @last_results = @{$EVALUATOR->get_results};
-  my $fn = FileName().'##'.(CurrentTreeNumber()+1);
-  eval {
-    my @nodes = ($tree,$tree->descendants);
-    my @matches = map { /^\Q$fn\E\.(\d+)$/ ? $1 : () } @last_results;
-    for my $node (@nodes[@matches]) {
-      $is_match{$node}=1;
-    }
-  };
-  warn $@ if $@;
-}
 
 sub current_node_change_hook {
   my ($node,$prev)=@_;
-  return unless $EVALUATOR;
-  my $idx = Index($EVALUATOR->get_query_nodes,$node);
-  return if !defined($idx);
-  my $result = $EVALUATOR->get_results->[$idx];
-  foreach my $win (TrEdWindows()) {
-    my $fsfile = $win->{FSFile};
-    next unless $fsfile;
-    my $fn = $fsfile->filename.'##'.($win->{treeNo}+1);
-    next unless $result =~ /\Q$fn\E\.(\d+)$/;
-    my $pos = $1;
-    my $r=$fsfile->tree($win->{treeNo});
-    for (1..$pos) {
-      $r=$r->following();
-    }
-    if ($r) {
-      SetCurrentNodeInOtherWin($win,$r);
-      CenterOtherWinTo($win,$r);
-    }
-  }
-  return;
+  return unless $SEARCH;
+  return $SEARCH->select_matching_node($node);
 }
 
 sub GetNodeName {
@@ -1031,356 +1023,67 @@ sub AddOrRemoveRelations {
   return @new;
 }
 
-sub open_pmltq {
-  my ($filename,$opts)=@_;
-  return unless $filename=~s{pmltq://}{};
-  return 'stop' unless UNIVERSAL::isa($EVALUATOR,'Tree_Query::SQLEvaluator');
-  $btred_results=0;
-  my @last_results = idx_to_pos([split m{/}, $filename]);
-  my ($node) = map { CurrentNodeInOtherWindow($_) } grep { CurrentContextForWindow($_) eq __PACKAGE__ } TrEdWindows();
-  my $idx = Index($EVALUATOR->get_results,$node);
-  my $first = $last_results[$idx||0];
-  if (defined $first and length $first) {
-    my $treebase_sources; # FIXME = $dbi_configuration->{sources};
-    $opts->{-norecent}=1;
-    my $fsfile = Open($treebase_sources.'/'.$first,$opts);
-    if (ref $fsfile) {
-      $fsfile->changeAppData('tree_query_url',$filename);
-      $fsfile->changeAppData('norecent',1);
-      for my $req_fs (GetSecondaryFiles($fsfile)) {
-	$req_fs->changeAppData('norecent',1);
-      }
+
+sub FilterQueryNodes {
+  my ($tree)=@_;
+  my @nodes;
+  my $n = $tree;
+  while ($n) {
+    if ($n->{'#name'} eq 'node' or
+	  ($n==$tree and $n->{'#name'} eq 'subquery')) {
+      push @nodes, $n;
+    } elsif ($n->parent) {
+      $n = $n->following_right_or_up($tree);
+      next;
     }
-    Redraw();
+    $n = $n->following($tree);
   }
-  return 'stop';
-}
-
-BEGIN {
-  register_open_file_hook(\&open_pmltq);
-}
-
-sub next_match {
-  my $dir=shift;
-  $btred_results=0;
-  return unless $EVALUATOR;
-  my $prev_grp = $grp;
-  my @save = ($this,$root,$grp);
-  for my $win (TrEdWindows()) {
-    my $fl = GetCurrentFileList($win);
-    if ($fl and $fl->name eq __PACKAGE__) {
-      eval {
-	if ($dir eq 'backward') {
-	  $grp=$win;
-	  PrevFile();
-	} elsif ($dir eq 'forward') {
-	  $grp=$win;
-	  NextFile()
-	} elsif ($dir eq 'this') {
-	  my $last_results = $EVALUATOR->get_results;
-	  my $idx = Index($last_results,$this);
-	  print "idx:$idx\n";
-	  if (defined($idx)) {
-	    $grp=$win;
-	    my $treebase_sources; # FIXME = $dbi_configuration->{sources};
-	    print $treebase_sources.'/'.$last_results->[$idx],"\n";
-	    Open($treebase_sources.'/'.$last_results->[$idx]);
-	    Redraw($win);
-	  }
-	}
-      };
-      ($this,$root,$grp)=@save;
-      current_node_change_hook($this,undef);
-      die $@ if $@;
-      return;
-    }
-  }
-  return;
-}
-
-sub fix_netgraph_ord_to_precedes {
-  my ($test) = @_;
-  return unless $test->{'#name'} eq 'test' and $test->{operator}=~/[<>]/;
-  my ($x,$y)=($test->{a},$test->{b});
-  if ($test->{operator} =~/>/) {
-    ($x,$y)=($y,$x);
-  }
-  my $node = first { $_->{'#name'}=~/^(?:node|subquery)$/ } $test->ancestors;
-  return unless $node;
-  my $ord = (get_query_node_type($node) eq 't') ? 'tfa/deepord' : 'ord';
-  my $end;
-  my $rel;
-  if ($x eq qq("$ord") and $y=~/^([[:alnum:]]+)\."\Q$ord\E"$/) {
-    $end = $name2node_hash{lc($1)};
-    $rel  = 'order-precedes';
-  } elsif ($y eq qq("$ord") and $x=~/^([[:alnum:]]+)\."\Q$ord\E"$/) {
-    $end=$name2node_hash{lc($1)};
-    $rel  = 'order-follows';
-  }
-  if ($end) {
-    my $ref = NewRBrother($test);
-    $ref->{'#name'}='ref';
-    DetermineNodeType($ref);
-    $ref->{target}=$end->{name};
-    SetRelation($ref,$rel);
-    DeleteLeafNode($test);
-    ChangingFile(1);
-    return $ref
-  }
-}
-
-sub fix_tecto_coap {
-  my ($node) = @_;
-  return unless $node->{'#name'} eq 'test';
-  if ($node->{operator} eq 'in'
-      and $node->{a} eq q("functor")) {
-    my $y = $node->{b};
-    $y=~s/\s//g;
-    $y=~s/^\(|\)$//g;
-    if (join(',',uniq sort split(/,/,$y)) eq q('ADVS','APPS','CONFR','CONJ','CONTRA','CSQ','DISJ','GRAD','OPER','REAS')) {
-      $node->{a} = q("nodetype");
-      $node->{b} = q('coap');
-      $node->{operator} = '=';
-      ChangingFile(1);
-    }
-  }
-}
-
-sub fix_or2in {
-  my ($or) = @_;
-  return unless $or->{'#name'} eq 'or';
-  my @tests = $or->childnodes;
-  if (@tests>3
-      and !(first { !($_->{'#name'} eq 'test' and $_->{operator} eq '=') } @tests) # all are tests with =
-      and !(first { !($_->{a} eq $tests[0]->{a}) } @tests)            # all have the same a
-     ) {
-    ChangingFile(1);
-    $tests[0]->{operator}='in';
-    $tests[0]->{b}='('.join(',', sort map { $_->{b} } @tests) .')';
-    DeleteLeafNode($_) for (@tests[1..$#tests]);
-  }
+  return @nodes;
 }
 
 
-sub __test_optional_chain {
-  my ($node)=@_;
-  return unless $node;
-  my @kids = grep { $_->{'#name'} eq 'node' } $node->children;
-  my $son = $kids[0];
-  return (
-    @kids==1
-    and ((grep { $_->{'#name'} eq 'node' } $son->children)<=1)
-    and (!$son->{relation} or $son->{relation}->name_at(0) eq 'child')
-    and $node->{'#name'} ne 'subquery'
-    and (!$node->{relation} or $node->{relation}->name_at(0) eq 'child')
-  )
-  ? 1 : 0;
+our %is_match;
+our $btred_results;
+our @last_results;
+
+# determine which nodes are part of the current result
+sub map_results {
 }
 
-sub reduce_optional_node_chain {
-  my ($node)=@_;
-  return unless $node->{'#name'} eq 'node';
-  my $parent = $node->parent;
-  return unless $parent and $parent->parent;
-  my $conditions = as_text($node);
-  my $last = $node;
-  my $max_length=0;
-  my $min_length=0;
-  while ( $last and __test_optional_chain($last) and ($last==$node or $conditions eq as_text($last))) {
-    $max_length++;
-    $min_length++ unless $last->{optional};
-    ($last) = grep { $_->{'#name'} eq 'node' } $last->children;
+sub Search {
+  unless ($SEARCH) {
+    SelectSearch();
   }
-  if ($max_length>1) {
-    ChangingFile(1);
-    # trim the chain between $node and $last
-    my $subquery = NewRBrother($node);
-    $subquery->{'#name'} = 'subquery';
-    DetermineNodeType($subquery);
-    CutPasteAfter($last,$subquery);
-    AddOrRemoveRelations($subquery,$last,['descendant'],{ -add_only=>1 });
-    SetRelation($subquery,'descendant');
-    $subquery->{occurrences}=Fslib::Struct->new({
-      max => 0
-    });
-    my $not = NewSon($subquery);
-    $not->{'#name'}='not';
-    DetermineNodeType($not);
-    for my $child (reverse grep { $_->{'#name'} ne 'node' } $node->children) {
-      CutPaste($child,$not)
-    }
-    DeleteSubtree($node);
-    SetRelation($last,'descendant', {
-      $min_length ? (min_length => $min_length) : (),
-      max_length => $max_length,
-    });
-    return $subquery;
-  }
-  return;
+  $SEARCH->search_first();
 }
 
-sub fix_netgraph_query {
-  init_id_map($root);
-  ChangingFile(0);
-  {
-    my $node = $root;
-    my $next;
-    while ($node) {
-      fix_or2in($node);
-      $node=$node->following;
-    }
+sub SelectSearch {
+  my @sel;
+  ListQuery('Search',
+	    'browse',
+	    [
+	      (map { $_->identify } @SEARCHES),
+	      (map { 'Search File list: '.$_->name } TrEdFileLists()),
+	      (map { 'Search File: '.$_->filename } grep ref, map CurrentFile($_), TrEdWindows()),
+	      'Search Remote Treebank Database',
+	    ],
+	    \@sel
+	   ) || return;
+  return unless @sel;
+  my $sel = $sel[0];
+  if ($sel eq 'Search Remote Treebank Database') {
+    $SEARCH=Tree_Query::SQLSearch->new();
+  } elsif ($sel =~ /Search File: (.*)/) {
+    $SEARCH=Tree_Query::TrEdSearch->new({file => $1});
+  } elsif ($sel =~ /Search File list: (.*)/) {
+    $SEARCH=Tree_Query::TrEdSearch->new({filelist => $1});
   }
-  {
-    my $node = $root;
-    while ($node) {
-      fix_tecto_coap($node);
-      $node=$node->following;
-    }
-  }
-  {
-    my $node = $root;
-    while ($node) {
-      FPosition($node);
-      $node = (reduce_optional_node_chain($node) || $node->following);
-    }
-  }
-  {
-    my $node = $root;
-    while ($node) {
-      $node = (fix_netgraph_ord_to_precedes($node)||$node->following);
-    }
-  }
+
+  push @SEARCHES, $SEARCH if $SEARCH;
+  # TODO
+  #
+  return $SEARCH;
 }
-
-sub query_sql {
-#   shift unless ref($_[0]); # shift-away package name
-#   my $opts = shift;
-#   $opts||={};
-#   my $xml = $opts->{xml};
-
-#   unless ($dbi) {
-#     connect_dbi()||die "Connection to DBI failed\n";
-#   }
-#   my ($limit,$timeout) = map { int($opts->{$_}||$dbi_config->get_root->get_member($_)) } qw(limit timeout);
-#   my $driver_name = $dbi->{Driver}->{Name};
-#   my $tree = $opts->{root}||$root;
-#   my $sql = sql_serialize_conditions($tree,{%$opts,syntax=>$driver_name,limit=>$limit});
-
-#   #  my @text_opt = eval { require Tk::CodeText; } ? (qw(CodeText -syntax SQL)) : qw(Text);
-#   if (GUI()) {
-#     $sql = EditBoxQuery(
-#       "SQL Query",
-#       $sql,
-#       qq{Confirm or Edit the generated SQL Query (results limit: $limit, timeout $timeout)},
-#       #    { -widget => \@text_opt },
-#      );
-#   }
-#   if (defined $sql and length $sql) {
-#     print qq(\n<query-result query.rf="$tree->{id}" nodes=").$tree->descendants.qq(" driver="$driver_name">\n<sql>\n<![CDATA[$sql]]></sql>\n) if $xml;
-#     STDOUT->flush;
-#     my $t0 = new Benchmark;
-#     my $results = eval { run_query($sql,{ MaxRows=>$limit, RaiseError=>1, Timeout => $timeout }) };
-#     if ($@) {
-#       if (GUI()) {
-# 	ErrorMessage($@);
-# 	return;
-#       } elsif ($xml) {
-# 	print qq(  <error><![CDATA[\n);
-# 	print $@;
-# 	print qq(]]></error>\n);
-# 	print qq(</query>\n);
-#       } else {
-# 	my $err = $@;
-# 	$err=~s/\n/ /g;
-# 	if ($err =~ /^Query evaluation takes too long:/) {
-# 	  print "$tree->{id}\tTIMEOUT\t".($timeout)."s\n";
-# 	} else {
-# 	  print "$tree->{id}\tFAIL\t$err\n";
-# 	}
-#       }
-#       return;
-#     }
-#     my $t1 = new Benchmark;
-#     my $time = timestr(timediff($t1,$t0));
-#     my $no_results = $opts->{count} ? $results->[0][0]  : scalar(@$results);
-#     if ($xml) {
-#       print qq(  <ok query.rf="$tree->{id}" returned_rows="$no_results" time=").$time.qq("/>\n) if $xml;
-#       print qq(</query-result>\n) if $xml;
-#     } else {
-#       my $driver_name = $dbi->{Driver}->{Name};
-#       print "$tree->{id}\tOK\t$driver_name\t$no_results\t$time\n";
-#     }
-#     if (GUI()) {
-# #      my $sel = [];
-# #       if (ListQuery("Results",
-# # 		    'browse',
-# # 		    [map { join '/',@$_ } @$results],
-# # 		    $sel,
-# # 		    {buttons=>[qw(Ok)]})) {
-#       my $matches = @$results;
-#       if ($matches) {
-# 	return $results unless QuestionQuery('Results',
-# 					     ((defined($limit) and $matches==$limit) ? '>=' : '').
-# 					       $matches.' match'.($matches>1?'(es)':''),
-# 					     'Display','Cancel') eq 'Display';
-# 	my $treebase_sources = $dbi_configuration->{sources};
-# 	unless (defined($treebase_sources) and
-# 		  length($treebase_sources)) {
-# 	  EditAttribute($dbi_configuration,'sources',
-# 			$dbi_config->schema->
-# 			  find_type_by_path('/configurations/[1]'),
-# 		       ) || return;
-# 	  $dbi_config->save();
-# 	  $treebase_sources = $dbi_configuration->{sources};
-# 	}
-# 	if ($treebase_sources) {
-# 	  @last_query_nodes = get_query_nodes($tree);
-# 	  my @wins = TrEdWindows();
-# 	  my $res_win;
-# 	  if (@wins>1) {
-# 	    ($res_win) = grep { 
-# 	      my $f = GetCurrentFileList($_);
-# 	      ($f and $f->name eq __PACKAGE__)
-# 	    } @wins;
-# 	    unless ($res_win) {
-# 	      ($res_win) = grep { $_ ne $grp } @wins;
-# 	    }
-# 	  } else {
-# 	    $res_win = SplitWindowVertically();
-# 	  }
-# 	  {
-# 	    my $fl = Filelist->new(__PACKAGE__);
-# 	    my @files = map {
-# 	      'pmltq://'.join('/',@$_)
-# 		#		my @pos=@$_;
-# 		#		my ($first) = idx_to_pos([$pos[0],$pos[1]]);
-# 		#		(defined $first and length $first) ?
-# 		# ('pmltq://'.$treebase_sources.'/'.$first) : ()
-# 	    } @$results;
-# 	    $fl->add(0, @files);
-
-# 	    my @context=($this,$tree,$grp);
-# 	    #SetCurrentWindow($res_win);
-# 	    CloseFileInWindow($res_win);
-# 	    $grp=$res_win;
-# 	    SetCurrentStylesheet(STYLESHEET_FROM_FILE);
-# 	    AddNewFileList($fl);
-# 	    SetCurrentFileList($fl->name);
-# 	    GotoFileNo(0);
-# 	    ($this,$tree,$grp)=@context;
-# 	    # SetCurrentWindow($grp);
-# 	    current_node_change_hook($this,undef);
-# 	  }
-# 	}
-#       } else {
-# 	QuestionQuery('Results','No results','OK');
-#       }
-#     }
-#     return $results;
-#   }
-}
-
-
 
 ################
 ### SQL compiler and evaluator
@@ -1388,35 +1091,27 @@ sub query_sql {
 {
 
 package Tree_Query::SQLEvaluator;
+use Benchmark;
 use Carp;
 use strict;
 use warnings;
-BEGIN { import TredMacro qw(first) }
-
-our %DEFAULTS = {
-  limit => 100,
-  timeout => 30,
-};
+BEGIN { import TredMacro qw(first SeqV AltV ListV GUI ErrorMessage QuestionQuery) }
 
 sub new {
   my ($class,$query_tree,$opts)=@_;
   my $self = bless {
     dbi => $opts->{dbi},
-    config => $opts->{config},
-    config_file => $opts->{config_file},
-    configuration => $opts->{configuration},
-    results => [],
+    connect => $opts->{connect},
+    results => undef,
+    query_nodes=>undef,
   }, $class;
-
-  my $dbi_config = $self->{config} || die "Must be given a DBI config PML!";
-  $self->{$_} = int($opts->{$_}||$dbi_config->get_root->get_member($_))||$DEFAULTS{$_} for qw(limit timeout);
   $self->prepare_query($query_tree,$opts) if $query_tree;
   return $self;
 }
 
 sub get_results {
   my $self = shift;
-  return $self->{results}
+  return $self->{results} || [];
 }
 
 sub get_query_nodes {
@@ -1424,11 +1119,16 @@ sub get_query_nodes {
   return $self->{query_nodes};
 }
 
+sub get_sql {
+  my $self = shift;
+  return $self->{sql};
+}
+
 sub prepare_sql {
   my ($self,$sql)=@_;
   $self->{sth} = undef;
   $self->{sql} = $sql;
-  my $dbi = $self->{dbi} || $self->connect_dbi();
+  my $dbi = $self->{dbi} || $self->connect();
   if ($self->sql_driver eq 'Pg') {
     $self->{sth} = $dbi->prepare( $sql, { pg_async => 1 } );
   } else {
@@ -1443,7 +1143,7 @@ sub prepare_query {
     $query_tree = Tree_Query::parse_query($query_tree);
   }
   $self->{id} = $query_tree->{id} || 'no_ID';
-  $self->{query_nodes} = $self->get_query_nodes($query_tree);
+  $self->{query_nodes} = [Tree_Query::FilterQueryNodes($query_tree)];
   {
     my %id;
     my %name2node_hash;
@@ -1477,100 +1177,16 @@ sub prepare_query {
 						      }));
 }
 
-sub get_query_nodes {
-  my ($self,$tree)=@_;
-  my @nodes;
-  my $n = $tree;
-  while ($n) {
-    if ($n->{'#name'} eq 'node' or
-	  ($n==$tree and $n->{'#name'} eq 'subquery')) {
-      push @nodes, $n;
-    } elsif ($n->parent) {
-	$n = $n->following_right_or_up($tree);
-	next;
-      }
-    $n = $n->following($tree);
-  }
-  return @nodes;
-}
-
 sub sql_driver {
   my ($self)=@_;
-  $self->connect_dbi() unless $self->{dbi};
-  return $self->{dbi}{Driver}{Name};
+  return $self->{connect}{driver};
 }
 
-sub load_config {
-  my ($self,$config_file)=@_;
-  unless ($self->{config} or ($config_file and $config_file ne $self->{config_file})) {
-    if ($config_file) {
-      die "Configuration file '$config_file' does not exist!" unless -f $config_file;
-      $self->{config_file} = $config_file;
-      $self->{config} = PMLInstance->load({ filename=>$config_file });
-    } else {
-      $config_file = $self->{config_file} ||= FindInResources('treebase.conf');
-      if (-f $config_file) {
-	$self->{config} = PMLInstance->load({ filename=>$config_file });
-      } else {
-	my $tred_d = File::Spec->catfile($ENV{HOME},'.tred.d');
-      mkdir $tred_d unless -d $tred_d;
-	$config_file = $self->{config_file} ||= File::Spec->catfile($tred_d,'treebase.conf');
-	$self->{config} = PMLInstance->load({ string => $DEFAULTS{dbi_config},
-					      filename=> $config_file});
-	$self->{config}->save();
-      }
-    }
-  }
-  return $self->{config};
-}
-
-sub edit_config {
-  my ($self,$config_file)=@_;
-  my $dbi_config = $self->load_config($config_file);
-  TredMacro::GUI() && TredMacro::EditAttribute($dbi_config->get_root,'',
-					       $dbi_config->get_schema->get_root_decl->get_content_decl) || return;
-  $dbi_config->save();
-}
-
-sub connect_dbi {
-  my ($self,$id,$force_edit)=@_;
+sub connect {
+  my ($self)=@_;
   return $self->{dbi} if $self->{dbi};
+  my $cfg = $self->{connect};
   require DBI;
-  my $dbi_config = $self->load_config() || return;
-  my $dbi_configuration = $self->{configuration};
-  my $cfgs = $dbi_config->get_root->{configurations};
-  my $cfg_type = $dbi_config->get_schema->get_type_by_name('dbi-config.type')->get_content_decl;
-  if (!defined($id) or TredMacro::GUI()) {
-    my @opts = ((map { $_->{id} } TredMacro::ListV($cfgs)),' CREATE NEW ');
-    my @sel= $dbi_configuration ? $dbi_configuration->{id} : @opts ? $opts[0] : ();
-    TredMacro::ListQuery('Select treebase connection',
-			 'browse',
-			 \@opts,
-			 \@sel) || return;
-    ($id) = @sel;
-  }
-  return unless defined $id;
-  my $cfg;
-  if ($id eq ' CREATE NEW ') {
-    $cfg = Fslib::Struct->new();
-    TrEdMacro::GUI() && TrEdMacro::EditAttribute($cfg,'',$cfg_type) || return;
-    $cfgs->append($cfg);
-    $dbi_config->save();
-    $id = $cfg->{id};
-  } else {
-    $cfg = first { $_->{id} eq $id } TrEdMacro::ListV($cfgs);
-    die "Didn't find configuration '$id'" unless $cfg;
-  }
-  unless (defined($cfg->{username}) and defined($cfg->{password})) {
-    if (TrEdMacro::GUI()) {
-       TrEdMacro::EditAttribute($cfg,'',$cfg_type,'password') || return;
-    } else {
-      die "The configuration $id does not specify username or password\n";
-    }
-    $dbi_config->save();
-  }
-  $self->{configuration} = $cfg;
-
   require Sys::SigAction;
   # this is taken from http://search.cpan.org/~lbaxter/Sys-SigAction/dbd-oracle-timeout.POD
   eval {
@@ -1602,15 +1218,7 @@ sub connect_dbi {
     die "Connection failed" if not $self->{dbi};
   };
   alarm(0);
-  if ($@) {
-    TredMacro::ErrorMessage($@);
-    if ($@ =~ /timed out/) {
-      return;
-    }
-    TredMacro::GUI() && TredMacro::EditAttribute($cfg,'',$cfg_type,'password') || return;
-    $dbi_config->save();
-    return $self->connect_dbi($id);
-  }
+  die $@ if $@;
   return $self->{dbi};
 }
 
@@ -1619,13 +1227,17 @@ sub run {
   delete $self->{results};
   $opts||={};
   my $dbi  = $self->{dbi} || die "Not connected to DBI!\n";
-  my $timeout = int($opts->{$_})||$self->{timeout};
-  my $driver_name = $dbi->{Driver}->{Name};
+  my $timeout = $opts->{timeout};
+  my $driver_name = $self->sql_driver;
   my $t0 = new Benchmark;
-  my $results = eval { $self->run_sql_query($self->{sth},{ MaxRows=>$self->{limit}, RaiseError=>1, Timeout => $timeout }) };
+  my $results = eval { $self->run_sql_query($self->{sth},{
+    limit=>$opts->{limit},
+    timeout => $timeout,
+    raise_error =>1,
+  }) };
   if ($@) {
-    if (TredMacro::GUI()) {
-      TredMacro::ErrorMessage($@);
+    if (GUI()) {
+      ErrorMessage($@);
       return;
     } else {
       my $err = $@;
@@ -1668,7 +1280,7 @@ sub run_sql_query {
   local $dbi->{RaiseError} = $opts->{RaiseError};
   require Time::HiRes;
   my $canceled = 0;
-  my $driver_name = $self->driver_name;
+  my $driver_name = $self->sql_driver;
   my $sth = ref($sql_or_sth) ? $sql_or_sth : $dbi->prepare( $sql_or_sth,
 							    $driver_name eq 'Pg' ? { pg_async => 1 } : ());
   if ($driver_name eq 'Pg') {
@@ -1676,14 +1288,14 @@ sub run_sql_query {
     my $time=0;
     eval {
       $sth->execute();
-      if (defined $opts->{Timeout}) {
+      if (defined $opts->{timeout}) {
 	while (!$sth->pg_ready) {
 	  $time+=$step;
 	  Time::HiRes::sleep($step);
-	  if ($time>=$opts->{Timeout}) {
-	    if (!GUI() or TredMacro::QuestionQuery('Query Timeout',
+	  if ($time>=$opts->{timeout}) {
+	    if (!GUI() or QuestionQuery('Query Timeout',
 						   'The evaluation of the query seems to take too long',
-						   'Wait another '.$opts->{Timeout}.' seconds','Abort') eq 'Abort') {
+						   'Wait another '.$opts->{timeout}.' seconds','Abort') eq 'Abort') {
 	      $sth->pg_cancel();
 	      die "Query evaluation takes too long: cancelled.\n"
 	    } else {
@@ -1700,22 +1312,23 @@ sub run_sql_query {
     }
   } else {
     eval {
-      if (defined $opts->{Timeout}) {
-	my $h = set_sig_handler( 'ALRM',
+      if (defined $opts->{timeout}) {
+	require Sys::SigAction;
+	my $h = Sys::SigAction::set_sig_handler( 'ALRM',
 				 sub {
-				   if (!TredMacro::GUI() or TredMacro::QuestionQuery('Query Timeout',
-										     'The evaluation of the query seems to take too long',
-										     'Wait another '.$opts->{Timeout}.' seconds','Abort') !~ /Wait/) {
+				   if (!GUI() or QuestionQuery('Query Timeout',
+							       'The evaluation of the query seems to take too long',
+							       'Wait another '.$opts->{timeout}.' seconds','Abort') !~ /Wait/) {
 				     $canceled = 1;
 				     my $res = $sth->cancel();
 				     warn "Canceled: ".(defined($res) ? $res : 'undef');
 				   } else {
-				     alarm($opts->{Timeout});
+				     alarm($opts->{timeout});
 				   }
 				 }, #dont die (oracle spills its guts)
 				 { mask=>[ qw( INT ALRM ) ] ,safe => 0 }
 				);
-	alarm($opts->{Timeout});
+	alarm($opts->{timeout});
 	$sth->execute();
 	alarm(0);
       } else {
@@ -1732,7 +1345,7 @@ sub run_sql_query {
       }
     }
   }
-  return $sth->fetchall_arrayref(undef,$opts->{MaxRows});
+  return $sth->fetchall_arrayref(undef,$opts->{limit});
 }
 
 sub serialize_limit {
@@ -1938,7 +1551,7 @@ sub build_sql {
   $opts||={};
   my ($format,$count,$tree_parent_id) = map {$opts->{$_}} qw(format count parent_id limit);
   # we rely on depth first order!
-  my @nodes = $self->get_query_nodes($tree);
+  my @nodes = Tree_Query::FilterQueryNodes($tree);
   my @select;
   my @table;
   my @where;
@@ -1959,7 +1572,7 @@ sub build_sql {
     $conditions{$id} = Tree_Query::as_text($n);
     my @conditions;
     if ($parent && $parent->parent) {
-      my ($rel) = TredMacro::SeqV($n->{relation});
+      my ($rel) = SeqV($n->{relation});
       $rel ||= Tree_Query::SetRelation($n,'child');
       push @conditions,
 	[$self->relation($parent_id,$rel,$id, {
@@ -2266,7 +1879,7 @@ sub sql_serialize_element {
     });
     my @sql;
     my @occ;
-    my @vals = grep ref, TredMacro::AltV($node->{occurrences});
+    my @vals = grep ref, AltV($node->{occurrences});
     @vals=(Fslib::Struct->new({min=>1})) unless @vals;
     for my $occ (@vals) { # this is not optimal for @occ>1
       my ($min,$max)=($occ->{min},$occ->{max});
@@ -2288,7 +1901,7 @@ sub sql_serialize_element {
     if ($self->cmp_subquery_scope($node,$target)<0) {
       die "Node '$as_id' belongs to a sub-query and cannot be referred from the scope of node '$target'\n";
     }
-    my ($rel) = TredMacro::SeqV($node->{relation});
+    my ($rel) = SeqV($node->{relation});
     if ($rel) {
       return ['('.$self->relation($as_id,$rel,$target,$opts).')',$node];
     } else {
@@ -2306,6 +1919,365 @@ sub cmp_subquery_scope {
     for $src,$target;
   return Tree_Query::cmp_subquery_scope($src,$target);
 }
+
+}
+
+{
+
+package Tree_Query::SQLSearch;
+use Benchmark;
+use Carp;
+use strict;
+use warnings;
+use Scalar::Util qw(weaken);
+BEGIN { import TredMacro  }
+
+our %DEFAULTS = (
+  limit => 100,
+  timeout => 30,
+);
+
+$Tree_Query::SQLSearchPreserve::object_id=0; # different NS so that TrEd's reload-macros doesn't clear it
+
+sub new {
+  my ($class,$opts)=@_;
+  $opts||={};
+  my $self = bless {
+    object_id =>  $Tree_Query::SQLSearchPreserve::object_id++,
+    evaluator => undef,
+    config => {
+      pml => $opts->{config_pml},
+    },
+    query_nodes => undef,
+    results => undef,
+  }, $class;
+  $self->configure($opts->{config_file},$opts->{config_id}) || return;
+  $self->{callback} = [\&open_pmltq,$self];
+  weaken($self->{callback}[1]);
+  register_open_file_hook($self->{callback});
+  return $self;
+}
+
+sub DESTROY {
+  my ($self)=@_;
+  warn "DESTROING $self\n";
+  unregister_open_file_hook($self->{callback});
+}
+
+sub identify {
+  my ($self)=@_;
+  return "SQLSearch" unless $self->{config}{data};
+  my $cfg = $self->{config}{data};
+  return "SQLSearch $cfg->{driver}:$cfg->{username}\@$cfg->{host}:$cfg->{port}/$cfg->{database}";
+}
+
+sub configure {
+  my ($self,$config_file,$id)=@_;
+  $self->load_config_file($config_file) || return;
+  my $configuration = $self->{config}{data};
+  my $cfgs = $self->{config}{pml}->get_root->{configurations};
+  my $cfg_type = $self->{config}{type};
+  if (!$id) {
+    my @opts = ((map { $_->{id} } ListV($cfgs)),' CREATE NEW ');
+    my @sel= $configuration ? $configuration->{id} : @opts ? $opts[0] : ();
+    ListQuery('Select treebase connection',
+			 'browse',
+			 \@opts,
+			 \@sel) || return;
+    ($id) = @sel;
+  }
+  return unless $id;
+  my $cfg;
+  if ($id eq ' CREATE NEW ') {
+    $cfg = Fslib::Struct->new();
+    GUI() && EditAttribute($cfg,'',$cfg_type) || return;
+    $cfgs->append($cfg);
+    $self->{config}{pml}->save();
+    $id = $cfg->{id};
+  } else {
+    $cfg = first { $_->{id} eq $id } ListV($cfgs);
+    die "Didn't find configuration '$id'" unless $cfg;
+  }
+  $self->{config}{id} = $id;
+  unless (defined($cfg->{username}) and defined($cfg->{password})) {
+    if (GUI()) {
+       EditAttribute($cfg,'',$cfg_type,'password') || return;
+    } else {
+      die "The configuration $id does not specify username or password\n";
+    }
+    $self->{config}{pml}->save();
+  }
+  $self->{config}{data} = $cfg;
+}
+
+sub search_first {
+  my ($self, $opts)=@_;
+  $opts||={};
+  my $query = $opts->{query} || $root;
+  unless ($self->{evaluator}) {
+    $self->{evaluator} = Tree_Query::SQLEvaluator->new($query,{connect => $self->{config}{data}});
+  CONNECT: {
+      eval {
+	$self->{evaluator}->connect;
+      };
+      if ($@) {
+	ErrorMessage($@);
+	if ($@ =~ /timed out/) {
+	  return;
+	}
+	GUI() && EditAttribute($self->{config}{data},'',$self->{config}{type},'password') || return;
+	$self->{config}{pml}->save();
+	redo CONNECT;
+      }
+    }
+  } else {
+    $self->{evaluator}->prepare_query($query);
+  }
+  if (GUI() and $opts->{edit_sql}) {
+    my $sql = EditBoxQuery(
+      "SQL Query",
+      $self->{evaluator}->get_sql,
+      qq{Confirm or Edit the generated SQL Query},
+     );
+    return unless defined($sql) and length($sql);
+    $self->{evaluator}->prepare_sql($sql);
+  }
+  $self->{last_query_nodes} = $self->{evaluator}->get_query_nodes;
+  my ($limit, $timeout) = map { int($opts->{$_}||$self->{config}{pml}->get_root->get_member($_))||$DEFAULTS{$_} }
+    qw(limit timeout);
+
+  my $results = $self->{evaluator}->run({
+    limit => $limit,
+    timeout => $timeout,
+  });
+  $self->{results} = $results;
+  my $matches = @$results;
+  if ($matches) {
+    return $results unless QuestionQuery('Results',
+					 ((defined($limit) and $matches==$limit) ? '>=' : '').
+					   $matches.' match'.($matches>1?'(es)':''),
+					 'Display','Cancel') eq 'Display';
+    my @wins = TrEdWindows();
+    my $res_win;
+    my $fn = $self->filelist_name;
+    if (@wins>1) {
+      ($res_win) = grep { 
+	my $f = GetCurrentFileList($_);
+	($f and $f->name eq $fn)
+      } @wins;
+      unless ($res_win) {
+	($res_win) = grep { $_ ne $grp } @wins;
+      }
+    } else {
+      $res_win = SplitWindowVertically();
+    }
+    {
+      my $fl = Filelist->new($fn);
+      my @files = map {
+	'pmltq://'.join('/',$self->{object_id},@$_)
+      } @$results;
+      $fl->add(0, @files);
+      my @context=($this,$root,$grp);
+      CloseFileInWindow($res_win);
+      $grp=$res_win;
+      SetCurrentStylesheet(STYLESHEET_FROM_FILE);
+      AddNewFileList($fl);
+      SetCurrentFileList($fl->name);
+      GotoFileNo(0);
+      ($this,$root,$grp)=@context;
+      select_matching_node($this);
+    }
+  } else {
+    QuestionQuery('Results','No results','OK');
+  }
+  return $results;
+}
+
+sub show_next_result {
+  my ($self)=@_;
+  return $self->show_result('next');
+}
+
+sub show_prev_result {
+  my ($self)=@_;
+  return $self->show_result('prev');
+}
+
+sub show_current_result {
+  my ($self)=@_;
+  return $self->show_result('current');
+}
+
+sub matching_nodes {
+  my ($self,$filename,$tree_number,$tree)=@_;
+  return unless $self->{current_result};
+  my @matching;
+  my $fn = $filename.'##'.($tree_number+1);
+  my @nodes = ($tree,$tree->descendants);
+  my @positions = map { /^\Q$fn\E\.(\d+)$/ ? $1 : () } @{$self->{current_result}};
+  return @nodes[@positions];
+}
+
+sub select_matching_node {
+  my ($self,$query_node)=@_;
+  return unless $self->{current_result};
+  my $idx = Index($self->{last_query_nodes},$query_node);
+  return if !defined($idx);
+  my $result = $self->{current_result}->[$idx];
+  foreach my $win (TrEdWindows()) {
+    my $fsfile = $win->{FSFile};
+    next unless $fsfile;
+    my $fn = $fsfile->filename.'##'.($win->{treeNo}+1);
+    next unless $result =~ /\Q$fn\E\.(\d+)$/;
+    my $pos = $1;
+    my $r=$fsfile->tree($win->{treeNo});
+    for (1..$pos) {
+      $r=$r->following();
+    }
+    if ($r) {
+      SetCurrentNodeInOtherWin($win,$r);
+      CenterOtherWinTo($win,$r);
+    }
+  }
+  return;
+}
+
+
+#########################################
+#### Private API
+
+sub filelist_name {
+  my $self=shift;
+  return ref($self).":".$self->{object_id};
+}
+
+sub show_result {
+  my ($self,$dir)=@_;
+  return unless $self->{evaluator};
+  my $prev_grp = $grp;
+  my @save = ($this,$root,$grp);
+  my $fn = $self->filelist_name;
+  for my $win (TrEdWindows()) {
+    my $fl = GetCurrentFileList($win);
+    if ($fl and $fl->name eq $fn) {
+      eval {
+	if ($dir eq 'prev') {
+	  $grp=$win;
+	  PrevFile();
+	} elsif ($dir eq 'next') {
+	  $grp=$win;
+	  NextFile()
+	} elsif ($dir eq 'current') {
+	  return unless $self->{current_result};
+	  my $idx = Index($self->{current_result},$this);
+	  if (defined($idx)) {
+	    $grp=$win;
+	    my $source_dir = $self->get_source_dir;
+	    Open($source_dir.'/'.$self->{current_result}[$idx]);
+	    Redraw($win);
+	  }
+	}
+      };
+      ($this,$root,$grp)=@save;
+      $self->select_matching_node($this);
+      die $@ if $@;
+      return;
+    }
+  }
+  return;
+}
+
+# registered open_file_hook
+# called by Open to translate URLs of the
+# form pmltq//table/idx/table/idx ....  to a list of file positions
+# and opens the first of the them
+sub open_pmltq {
+  my ($self,$filename,$opts)=@_;
+  my $object_id=$self->{object_id};
+  return unless $filename=~s{pmltq://$object_id/}{};
+  my @positions = $self->{evaluator}->idx_to_pos([split m{/}, $filename]);
+  $self->{current_result}=\@positions;
+  my $fn = $self->filelist_name;
+  my ($node) = map { CurrentNodeInOtherWindow($_) }
+              grep { CurrentContextForWindow($_) eq $fn } TrEdWindows();
+  my $idx = Index($self->{last_query_nodes},$node);
+  my $first = $positions[$idx||0];
+  print "$first\n";
+  if (defined $first and length $first) {
+    my $source_dir = $self->get_source_dir;
+    $opts->{-norecent}=1;
+    my $fsfile = Open($source_dir.'/'.$first,$opts);
+    if (ref $fsfile) {
+      $fsfile->changeAppData('tree_query_url',$filename);
+      $fsfile->changeAppData('norecent',1);
+      for my $req_fs (GetSecondaryFiles($fsfile)) {
+	$req_fs->changeAppData('norecent',1);
+      }
+    }
+    Redraw();
+  }
+  return 'stop';
+}
+
+sub get_source_dir {
+  my ($self)=@_;
+  my $conf = $self->{config}{data};
+  my $source_dir = $conf->{sources};
+  unless ($source_dir) {
+    if (GUI()) {
+      EditAttribute($conf,'sources',
+		    $self->{config}{type},
+		   ) || return;
+      $self->{config}{pml}->save();
+      $source_dir = $conf->{sources};
+    }
+  }
+  return $source_dir;
+}
+
+sub load_config_file {
+  my ($self,$config_file)=@_;
+  if (!$self->{config}{pml} or ($config_file and
+				$config_file ne $self->{config}{pml}->filename)) {
+    if ($config_file) {
+      die "Configuration file '$config_file' does not exist!" unless -f $config_file;
+      $self->{config}{pml} = PMLInstance->load({ filename=>$config_file });
+    } else {
+      $config_file ||= FindInResources('treebase.conf');
+      if (-f $config_file) {
+	$self->{config}{pml} = PMLInstance->load({ filename=>$config_file });
+      } else {
+	my $tred_d = File::Spec->catfile($ENV{HOME},'.tred.d');
+	mkdir $tred_d unless -d $tred_d;
+	$config_file = File::Spec->catfile($tred_d,'treebase.conf');
+	$self->{config}{pml} = PMLInstance->load({ string => $DEFAULTS{dbi_config},
+					      filename=> $config_file});
+	$self->{config}{pml}->save();
+      }
+    }
+  }
+  $self->{config}{type} = $self->{config}{pml}->get_schema->get_type_by_name('dbi-config.type')->get_content_decl;
+  return $self->{config}{pml};
+}
+
+sub get_results {
+  my $self = shift;
+  return $self->{results} || [];
+}
+
+sub get_query_nodes {
+  my $self = shift;
+  return $self->{query_nodes};
+}
+
+sub edit_configuration {
+  my ($self)=@_;
+  my $config = $self->{config}{pml};
+  GUI() && EditAttribute($config->get_root,'',
+			 $config->get_schema->get_root_decl->get_content_decl) || return;
+  $config->save();
+}
+
 
 my ($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown');
 $DEFAULTS{dbi_config} = <<"EOF";
