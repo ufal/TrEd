@@ -53,13 +53,13 @@ sub init_vallex {
   %{$V->user_cache}=() if defined($V) and defined($V->user_cache()); # clear cache
 }
 
-sub reload_macros_hook {
+register_reload_macros_hook(sub {
   if ($V) {
     $V->doc_free();
     $V = undef;
     $ValLex::GUI::ValencyLexicon = undef;
   }
-}
+});
 
 sub AssignValencyFrames {
   PML_T::AssignValencyFrames(@_);
