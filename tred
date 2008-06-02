@@ -1277,7 +1277,7 @@ sub setWindowFile {
   my ($win,$fsfile)=@_;
   $win->{FSFile}=$fsfile;
   if ($fsfile) {
-    $win->{treeNo}=$fsfile->currentTreeNo;
+    $win->{treeNo}=$fsfile->currentTreeNo||0;
     $win->{currentNode}=$fsfile->currentNode;
   } else {
     $win->{treeNo}=undef;
@@ -2641,7 +2641,7 @@ sub initSidePanel {
 	    update_attribute_view($grp->{focusedWindow});
 	  }
 	})->pack(-side=>'top',-fill=>'x');
-    $grp->{frame}->bind('my',"<Alt-d>", [sub{
+    $grp->{top}->bind('my',"<Alt-d>", [sub{
 					   my ($w,$grp)=@_;
 					   if (defined(evalMacro($w,$grp,'ALT+'))) {
 					     Tk->break;
@@ -5801,7 +5801,7 @@ sub startMain {
 				      );
   $group{Balloon}->Subwidget('message')->configure(-foreground=> $toolbarBalloonForeground);
   $group{Balloon}->Tk::Toplevel::configure(-background=> $toolbarBalloonBackground);
-  $group{frame}=$top->Frame;
+  $group{Toolbar}=$top->Frame;
 
   print STDERR "Creating menubar.\n" if $tredDebug;
 
@@ -6236,7 +6236,7 @@ sub startMain {
   }
   $group{UserMenu}=MenubarItem($group{Menubar},qw/-label ~Macros -menuitems/=> $cM);
 
-  addBindTags($group{frame},'my');
+  addBindTags($group{Toolbar},'my');
 
   $group{HelpMenu}= MenubarItem($group{Menubar},
 				qw/-label ~Help -menuitems/=>
@@ -6425,7 +6425,7 @@ sub startMain {
   print STDERR "Creating buttons.\n" if $tredDebug;
 
   $group{nextButton}=
-    $group{frame}->Button(-takefocus=>0,
+    $group{Toolbar}->Button(-takefocus=>0,
 			  -text=> "Next",
 			  -relief=> $buttonsRelief,
 			  -image=> icon(\%group,"1rightarrow"),
@@ -6438,7 +6438,7 @@ sub startMain {
   addBindTags($group{nextButton},'my');
 
   $group{prevButton}=
-    $group{frame}->Button(-takefocus=>0, -text=> "Prev",
+    $group{Toolbar}->Button(-takefocus=>0, -text=> "Prev",
 			  -relief=> $buttonsRelief,
 			  -image=> icon(\%group,"1leftarrow"),
 			  -state=> 'disabled',
@@ -6450,7 +6450,7 @@ sub startMain {
   addBindTags($group{prevButton},'my');
 
   $group{openButton}=
-    $group{frame}->Button(-takefocus=>0, -text=> "Open",
+    $group{Toolbar}->Button(-takefocus=>0, -text=> "Open",
 			  -relief=> $buttonsRelief,
 			  -image=>
 			  icon(\%group,"fileopen"),
@@ -6464,7 +6464,7 @@ sub startMain {
   $normalSavePixmap=icon(\%group,"filesave");
   $savedSavePixmap=icon(\%group,"filesaved");
   $group{saveButton}=
-    $group{frame}->Button(-takefocus=>0, -text=> "Save",
+    $group{Toolbar}->Button(-takefocus=>0, -text=> "Save",
 			  -relief=> $buttonsRelief,
 			  -image=> $normalSavePixmap,
 			  -state => 'disabled',
@@ -6476,7 +6476,7 @@ sub startMain {
   addBindTags($group{saveButton},'my');
 
   $group{reloadButton}=
-    $group{frame}->Button(-takefocus=>0, -text=> "Reload",
+    $group{Toolbar}->Button(-takefocus=>0, -text=> "Reload",
 			  -relief=> $buttonsRelief,
 			  -image=> icon(\%group,"reload"),
 			  -borderwidth=> $buttonBorderWidth,
@@ -6490,7 +6490,7 @@ sub startMain {
   ###################
 
   $group{prevFileButton}=
-    $group{frame}->Button(-takefocus=>0, -text=> "Prev file",
+    $group{Toolbar}->Button(-takefocus=>0, -text=> "Prev file",
 			  -relief=> $buttonsRelief,
 			  -image=> icon(\%group,"start"),
 			  -borderwidth=> $buttonBorderWidth,
@@ -6500,7 +6500,7 @@ sub startMain {
   addBindTags($group{prevFileButton},'my');
 
   $group{nextFileButton}=
-    $group{frame}->Button(-takefocus=>0, -text=> "Next file",
+    $group{Toolbar}->Button(-takefocus=>0, -text=> "Next file",
 			  -relief=> $buttonsRelief,
 			  -image=> icon(\%group,"finish"),
 			  -borderwidth=> $buttonBorderWidth,
@@ -6523,7 +6523,7 @@ sub startMain {
   }
 
   $group{printButton}=
-    $group{frame}->Button(-takefocus=>0, -text=> "Print",
+    $group{Toolbar}->Button(-takefocus=>0, -text=> "Print",
 			  -relief=> $buttonsRelief,
 			  -image      => icon(\%group,"fileprint"),
 			  -borderwidth=> $buttonBorderWidth,
@@ -6534,13 +6534,13 @@ sub startMain {
 
 
   #####################
-  $group{frame}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+  $group{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
     ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
 
   # Undo button
 
   $group{undoButton}=
-    $group{frame}->Button(-takefocus=>0, -text=> "Undo",
+    $group{Toolbar}->Button(-takefocus=>0, -text=> "Undo",
 			  -relief=> $buttonsRelief,
 			  -image=> icon(\%group,"undo"),
 			  -state=> 'disabled',
@@ -6553,7 +6553,7 @@ sub startMain {
   # Redo button
 
   $group{redoButton}=
-    $group{frame}->Button(-takefocus=>0, -text=> "Redo",
+    $group{Toolbar}->Button(-takefocus=>0, -text=> "Redo",
 			  -relief=> $buttonsRelief,
 			  -image=> icon(\%group,"redo"),
 			  -state=> 'disabled',
@@ -6565,12 +6565,12 @@ sub startMain {
   addBindTags($group{redoButton},'my');
 
   #####################
-  $group{frame}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+  $group{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
     ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
 
 
   $group{findButton}=
-    $group{frame}->Button(-takefocus=>0, -text=> "Find",
+    $group{Toolbar}->Button(-takefocus=>0, -text=> "Find",
 			  -relief=> $buttonsRelief,
 			  -image      => icon(\%group,"find"),
 			  -borderwidth=> $buttonBorderWidth,
@@ -6584,7 +6584,7 @@ sub startMain {
   addBindTags($group{findButton},'my');
 
   $group{findNextButton}=
-    $group{frame}->Button(-takefocus=>0, -text=> "Find Next",
+    $group{Toolbar}->Button(-takefocus=>0, -text=> "Find Next",
 			  -relief=> $buttonsRelief,
 			  -image      => icon(\%group,"viewmag+"),
 			  -borderwidth=> $buttonBorderWidth,
@@ -6596,7 +6596,7 @@ sub startMain {
 
 
   $group{findPrevButton}=
-    $group{frame}->Button(-takefocus=>0, -text=> "Find Previous",
+    $group{Toolbar}->Button(-takefocus=>0, -text=> "Find Previous",
 			  -relief=> $buttonsRelief,
 			  -image=> icon(\%group,"viewmag-"),
 			  -borderwidth=> $buttonBorderWidth,
@@ -6606,18 +6606,18 @@ sub startMain {
 			  -balloonmsg=> "Find previous ...");
   addBindTags($group{findPrevButton},'my');
 
-  $group{frame}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+  $group{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
     ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
 
   $group{prevButton}->pack(-side=> 'left');
   $group{nextButton}->pack(-side=> 'left');
 
   #####################
-  $group{frame}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+  $group{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
     ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
 
   $group{vsplitButton}=
-    $group{frame}->Button(-takefocus=>0, 
+    $group{Toolbar}->Button(-takefocus=>0, 
 			  -text=> "Split View Vertically",
 			  -relief=> $buttonsRelief,
 			  -image=> icon(\%group,"view_left_right"),
@@ -6627,7 +6627,7 @@ sub startMain {
 			  -balloonmsg=> "split view vertically");
 
   $group{hsplitButton}=
-    $group{frame}->Button(-takefocus=>0, 
+    $group{Toolbar}->Button(-takefocus=>0, 
 			  -text=> "Split View Horizontally",
 			  -relief=> $buttonsRelief,
 			  -image=> icon(\%group,"view_top_bottom"),
@@ -6639,7 +6639,7 @@ sub startMain {
 			  -balloonmsg=> "split view horizontally");
 
   $group{rmsplitButton}=
-    $group{frame}->Button(-takefocus=>0, 
+    $group{Toolbar}->Button(-takefocus=>0, 
 			  -text=> "Remove Current View",
 			  -relief=> $buttonsRelief,
 			  -state => 'disabled',
@@ -6651,7 +6651,7 @@ sub startMain {
 
 
   $group{tieWinddowsButton}=
-    $group{frame}->Checkbutton(-takefocus=>0,
+    $group{Toolbar}->Checkbutton(-takefocus=>0,
 			      -text=> "Tie Displayed Windows",
 			      -variable=> \$group{tieWindows},
 			       -relief=> $buttonsRelief,
@@ -6665,7 +6665,7 @@ sub startMain {
 
 
 
-  $group{StylesheetMenu}=$group{frame}->
+  $group{StylesheetMenu}=$group{Toolbar}->
     Optionmenu(-options => [],
 	       -textvariable=> \$group{selectedStylesheet},
 	       -command=> [sub { my ($grp,$stylesheet) = @_;
@@ -6674,7 +6674,7 @@ sub startMain {
 	       -relief=> 'groove', #$menubarRelief,
 	       -borderwidth=> 2)->pack(qw/-side right -padx 3/);
   $group{attrButton}=
-    $group{frame}->Button(-takefocus=>0, -text=> "Edit Stylesheet",
+    $group{Toolbar}->Button(-takefocus=>0, -text=> "Edit Stylesheet",
 			  -relief=> $buttonsRelief,
 			  -image=> icon(\%group,"wizard"),
 			  -borderwidth=> $buttonBorderWidth,
@@ -6682,7 +6682,7 @@ sub startMain {
   $group{Balloon}->attach($group{attrButton},
 			  -balloonmsg=> "customize display patterns\nof the selected stylesheet\n(e.g. change tree appearance, labels etc.)");
   $group{StylesheetMenu}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
-  $group{StylesheetMenuLabel}=$group{frame}->Label(qw/-text Style: -underline 2/)->pack(qw/-side right/);
+  $group{StylesheetMenuLabel}=$group{Toolbar}->Label(qw/-text Style: -underline 2/)->pack(qw/-side right/);
   updateStylesheetMenu(\%group);
   $group{Balloon}->attach($group{StylesheetMenu},
 			  -balloonmsg=> "stylesheet (tree appearance)");
@@ -6690,7 +6690,11 @@ sub startMain {
 
   print STDERR "Packing widgets.\n" if $tredDebug;
 
-  $group{frame}->pack(-fill=> 'x', -padx=> '1', -pady=> 1);
+  $group{Toolbar}->pack(-fill=> 'x', -padx=> '1', -pady=> 1);
+
+  $group{UserToolbarSep}=$group{top}->Frame(qw/-relief sunken -height 2 -borderwidth 2/);
+  $group{UserToolbars}=$group{top}->Frame();
+  addBindTags($group{UserToolbars},'my');
   my $vlsubframe=$group{vLineFrame}->Frame();
   $group{vLineNumLabel}=$vlsubframe->Label(-text => '-/-')->pack(qw/-side top -fill x/);
   $group{Balloon}->attach($group{vLineNumLabel},
@@ -6734,7 +6738,7 @@ sub startMain {
   $group{Menubar}->bind('<Escape>', [sub { shift->menu->Leave(); Tk->break; }] );
 
   foreach my $prefix ('Alt','Meta') {
-    $group{frame}->
+    $group{top}->
       bind('my',"<$prefix-KeyPress>"=>
 	   [sub {
 	      if (defined(evalMacro(@_))) {
@@ -6758,7 +6762,7 @@ sub startMain {
 	    }, \%group,uc($prefix).'+']);
   }
   foreach my $prefix ('Alt','Meta') {
-    $group{frame}->
+    $group{top}->
       bind('my',"<$prefix-x>"=>
 	   [sub {
 	      if (defined(evalMacro(@_))) {
@@ -6779,7 +6783,7 @@ sub startMain {
 	    }, \%group,uc($prefix).'+']);
   }
   foreach my $prefix ('Alt','Meta') {
-    $group{frame}->
+    $group{top}->
       bind('my',"<$prefix-y>"=>
 	   [sub {
 	      if (defined(evalMacro(@_))) {
@@ -6800,10 +6804,10 @@ sub startMain {
 	    }, \%group,uc($prefix).'+']);
   }
 
-  #  $group{frame}->bind('my','<Control-x><KeyPress>'=>
+  #  $group{top}->bind('my','<Control-x><KeyPress>'=>
   #			[sub { evalMacro(@_); Tk->break; }, \%group, 'CTRL-X+' ]);
 
-  $group{frame}->bind('my','<KeyPress>'=>
+  $group{top}->bind('my','<KeyPress>'=>
 			[sub {
 			   evalMacro(@_); Tk->break;
 			 }, \%group, EMPTY ]);
@@ -6812,7 +6816,7 @@ sub startMain {
               Control-Meta Alt-Shift Meta-Shift)) {
     foreach my $event (qw(KeyPress Right Left Up Down
                           Return comma period Next Prior greater less)) {
-      $group{frame}->bind('my',"<$_-$event>"=>
+      $group{top}->bind('my',"<$_-$event>"=>
 			    [sub { evalMacro(@_); Tk->break; },
 			     \%group, keyBind($_)."+"])
 	unless ("$_-$event" eq "Alt-KeyPress" or "$_-$event" eq "Meta-KeyPress")
@@ -6822,7 +6826,7 @@ sub startMain {
 #  $top->bind('all','<Tab>',undef);
 
   # New Busy window bindings
-  $group{frame}->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
+  $group{top}->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
   $top->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
   $top->Tk::bind('Busy','<Any-KeyPress>',[\&Tk::Widget::_busy => 1]);
   $top->Tk::bind('Busy','<Any-KeyRelease>',[\&Tk::Widget::_busy => 0]);
@@ -6833,14 +6837,13 @@ sub startMain {
 
   # setup default binding
   while (my ($key, $def) = each %default_binding) {
-    $group{ $def->[2] || 'frame' }->bind('my', $key => [ $def->[0], \%group ]);
+    $group{ $def->[2] || 'Toolbar' }->bind('my', $key => [ $def->[0], \%group ]);
   }
 
   $group{focusedWindow}->canvas->focus;
 
   print STDERR "Binding canvas destroy...\n" if $tredDebug;
-  $top->bind($group{frame},
-		    '<Destroy>',
+  $top->bind( '<Destroy>',
 		      [ sub {
 			  shift;
 			  my $grp=shift;
@@ -6958,6 +6961,36 @@ sub startMain {
   $top=undef;
   $group{top} = undef;
   print STDERR "Done.\n" if $tredDebug;
+}
+
+sub newUserToolbar {
+  my ($grp_or_win,
+      $name,
+      $opts
+     )=@_;
+  my $grp=cast_to_grp($grp_or_win);
+  unless (keys %{$grp->{UserToolbarHash}}) {
+    $grp->{UserToolbarSep}->pack(-after => $grp->{Toolbar},-fill=> 'x');
+    $grp->{UserToolbars}->pack(-after => $grp->{UserToolbarSep},-fill=> 'x');
+  }
+  if (exists $grp->{UserToolbarHash}{$name}) {
+    die "User Toolbar named $name already exists!";
+  } else {
+    return  $grp->{UserToolbarHash}{$name}=$grp->{UserToolbars}->Frame->pack(-fill => 'x');
+  }
+}
+
+sub removeUserToolbar {
+  my ($grp_or_win,$name)=@_;
+  my $grp=cast_to_grp($grp_or_win);
+  my $tb = delete $grp->{UserToolbarHash}{$name};
+  return unless $tb;
+  $tb->packForget;
+  unless (keys %{$grp->{UserToolbarHash}}) {
+    $grp->{UserToolbars}->packForget;
+    $grp->{UserToolbarSep}->packForget;
+  }
+  return $tb;
 }
 
 sub quit {
