@@ -1801,7 +1801,7 @@ sub UnbindBuiltin {
   $key=~s/\+/-/g;	# convert ctrl-x to ctrl+x
   $key=~s/([^-]+-)/ucfirst($1)/eg;
   $key=~s/Ctrl-/Control-/g;
-  $grp->{framegroup}{frame}->bind('my',"<$key>",undef);
+  $grp->{framegroup}{top}->bind('my',"<$key>",undef);
 #endif
 }
 
