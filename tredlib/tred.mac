@@ -341,21 +341,22 @@ sub GotoPrevNodeLin {
   $this=$next if $next;
 }
 
+sub RunCallback {
+  my $sub = shift;
+  if (ref($sub) eq 'ARRAY') {
+    my ($realsub,@args)=@$sub;
+    &{$realsub}(@args,@_);
+  } else {
+    &$sub(@_);
+  }
+}
+
 {
   my (@exit_hooks,@open_file_hooks);
 
   # the hook may be either a sub name, CODE ref or ARRAY ref, where
   # the first element of the array is the name/CODE-ref to execute
   # and the rest are arguments to be passed to it
-  sub __callback {
-    my $sub = shift;
-    if (ref($sub) eq 'ARRAY') {
-      my ($realsub,@args)=@$sub;
-      &{$realsub}(@args,@_);
-    } else {
-      &$sub(@_);
-    }
-  }
 
   sub register_exit_hook ($) {
     my ($hook)=@_;
@@ -373,17 +374,33 @@ sub GotoPrevNodeLin {
     my ($hook)=@_;
     @open_file_hooks=grep { $_ ne $hook } @open_file_hooks;
   }
+  sub register_reload_macros_hook ($) {
+    my ($hook)=@_;
+    push @reload_macros_hooks,$hook;
+  }
+  sub unregister_reload_macros_hook ($) {
+    my ($hook)=@_;
+    @reload_macros_hooks=grep { $_ ne $hook } @reload_macros_hooks;
+  }
+
   sub open_file_hook {
     my @args = @_;
     foreach my $sub (@open_file_hooks) {
-      return 'stop' if __callback($sub,@args) eq 'stop';
+      return 'stop' if RunCallback($sub,@args) eq 'stop';
     }
     return;
   }
   sub exit_hook {
     my @args = @_;
     foreach my $sub (@exit_hooks) {
-      eval { __callback($sub,@args) };
+      eval { RunCallback($sub,@args) };
+      stderr($@) if $@;
+    }
+  }
+  sub reload_macros_hook {
+    my @args = @_;
+    foreach my $sub (@reload_macros_hooks) {
+      eval { RunCallback($sub,@args) };
       stderr($@) if $@;
     }
   }
@@ -431,6 +448,33 @@ sub disable_node_menu_items {
   my $items = ref($_[0]) ? $_[0] : critical_node_menu_items();
   configure_node_menu_items($items,
 			    [-state => 'disabled']);
+}
+
+sub NewUserToolbar {
+  my ($name,$opts)=@_;
+  return main::newUserToolbar($grp->{framegroup},$name,$opts);
+}
+sub GetUserToolbar {
+  my ($name)=@_;
+  return $grp->{framegroup}{UserToolbarHash}{$name};
+}
+sub RemoveUserToolbar {
+  my ($name)=@_;
+  return main::removeUserToolbar($grp->{framegroup},$name);
+}
+sub DestroyUserToolbar {
+  my ($name)=@_;
+  my $tb =  RemoveUserToolbar($name);
+  $tb->destroy if $tb;
+  return;
+}
+
+sub MacroCallback {
+  my ($sub)=@_;
+  return [sub {
+	    my ($tred)=@_;
+	    main::doEvalMacro($tred->{focusedWindow},$sub);
+	  },$grp->{framegroup}];
 }
 
 
