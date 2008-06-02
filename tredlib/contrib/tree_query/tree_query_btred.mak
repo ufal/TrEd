@@ -8,27 +8,27 @@ BEGIN {
   import TredMacro;
 }
 
-Bind sub { test(1,{one_tree=>1}); ChangingFile(0) } => {
-  key => 's',
-  menu => 'TrEd-based search (one tree)',
-  context=>'Tree_Query',
-};
-Bind sub { test(1,{plan=>1, one_tree=>1}); ChangingFile(0) } => {
-  key => 'P',
-  menu => 'TrEd-based search with planner (one tree)',
-  context=>'Tree_Query',
-};
-Bind sub { test(1); ChangingFile(0) } => {
-  key => 'Ctrl+s',
-  menu => 'TrEd-based search (all trees)',
-  context=>'Tree_Query',
-};
-Bind \&test => {
-  key => 'S',
-  menu => 'TrEd-based search (next match)',
-  changing_file => 0,
-  context=>'Tree_Query',
-};
+# Bind sub { test(1,{one_tree=>1}); ChangingFile(0) } => {
+#   key => 's',
+#   menu => 'TrEd-based search (one tree)',
+#   context=>'Tree_Query',
+# };
+# Bind sub { test(1,{plan=>1, one_tree=>1}); ChangingFile(0) } => {
+#   key => 'P',
+#   menu => 'TrEd-based search with planner (one tree)',
+#   context=>'Tree_Query',
+# };
+# Bind sub { test(1); ChangingFile(0) } => {
+#   key => 'Ctrl+s',
+#   menu => 'TrEd-based search (all trees)',
+#   context=>'Tree_Query',
+# };
+# Bind \&test => {
+#   key => 'S',
+#   menu => 'TrEd-based search (next match)',
+#   changing_file => 0,
+#   context=>'Tree_Query',
+# };
 
 =comment
 
@@ -231,12 +231,19 @@ sub new {
     query_nodes => undef,
     results => undef,
   }, $class;
+  my $ident = $self->identify;
+  Tree_Query::CreateSearchToolbar($ident);
+  $self->{on_destroy} = MacroCallback(sub {
+					DestroyUserToolbar($ident);
+					ChangingFile(0);
+				      });
   return $self;
 }
 
 sub DESTROY {
   my ($self)=@_;
   warn "DESTROING $self\n";
+  RunCallback($self->{on_destroy}) if $self->{on_destroy};
   unregister_open_file_hook($self->{callback});
 }
 
@@ -267,11 +274,12 @@ sub search_first {
 
 sub show_next_result {
   my ($self)=@_;
+  return unless $self->{evaluator};
   if ($self->{current_result}) {
     push @{$self->{past_results}},
       $self->{current_result};
   }
-  if (@{$self->{next_results}}) {
+  if ($self->{next_results} and @{$self->{next_results}}) {
     $self->{current_result} = pop @{$self->{next_results}};
     return $self->show_current_result;
   }
@@ -305,7 +313,7 @@ sub show_prev_result {
     push @{$self->{next_results}},
       $self->{current_result};
   }
-  if (@{$self->{past_results}}) {
+  if ($self->{past_results} and @{$self->{past_results}}) {
     $self->{current_result} = pop @{$self->{past_results}};
     return $self->show_current_result;
   }
