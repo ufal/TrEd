@@ -67,6 +67,11 @@ register_reload_macros_hook(sub{
   undef $SEARCH;
 });
 
+Bind 'Tree_Query->NewQuery' => {
+  context => 'TredMacro',
+  key => 'Shift+F3',
+  menu => 'New Tree Query',
+};
 
 # Edit node:
 Bind sub {
@@ -478,6 +483,34 @@ EOF
   }
 }
 
+sub NewQuery {
+  use POSIX;
+  my $id = POSIX::strftime('q-%y-%m-%d_%H%M%S', localtime());
+  my $fsfile = PMLInstance->load({
+    filename => 'tree_query.pml',
+    config   => $PMLBackend::config,
+    string   => <<"END" })->convert_to_fsfile();
+<?xml version="1.0" encoding="utf-8"?>
+<tree_query xmlns="http://ufal.mff.cuni.cz/pdt/pml/">
+ <head>
+  <schema href="tree_query_schema.xml" />
+ </head>
+ <q-trees>
+  <LM id="$id"/>
+ </q-trees>
+</tree_query>
+END
+  ChangingFile(0);
+  if (CurrentFile()) {
+    #    local $main::insideEval=0;
+    SplitWindowVertically();
+    $Redraw='all';
+  }
+  push @main::openfiles, $fsfile;
+  ResumeFile($fsfile);
+  SelectSearch();
+}
+
 sub get_query_node_type {
   my ($node)=@_;
   my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } ($node,$node->ancestors);
@@ -507,12 +540,17 @@ sub attr_choices_hook {
     }
   } elsif ($node->{'#name'} eq 'test') {
     if ($attr_path eq 'a') {
-      my $schema = get_query_node_schema($node);
-      if ($schema) {
-	return [
-	  $schema->get_paths_to_atoms(undef, { no_childnodes => 1 })
-	];
+      my $schema;
+      unless ($schema = get_query_node_schema($node)) {
+	if (UNIVERSAL::isa($SEARCH,'Tree_Query::TrEdSearch')) {
+	  my $file = $SEARCH->{file} || return;
+	  my $fsfile = (first { $_->filename eq $file } GetOpenFiles()) || return;
+	  $schema = PML::Schema($fsfile);
+	}
       }
+      return unless $schema;
+      my @res = $schema->get_paths_to_atoms(undef,{ no_childnodes => 1 });
+      return @res ? \@res : ();
     } elsif ($attr_path eq 'b') {
       if (UNIVERSAL::isa($SEARCH,'Tree_Query::SQLSearch')) {
 	my $name = $editor->get_current_value('a');
@@ -975,7 +1013,7 @@ sub CreateSearchToolbar {
   my ($ident)=@_;
   RemoveUserToolbar($ident);
   my $tb = NewUserToolbar($ident);
-  for my $but ([Search =>
+  for my $but (['(Re)start Search' =>
 		  MacroCallback(
 		    sub{
 		      my $s = GetSearch($ident);
@@ -1042,7 +1080,9 @@ sub CreateSearchToolbar {
 					  ChangingFile(0);
 					})
 	     )->pack(-side=>'right');
-  return $tb;
+  my $label;
+  $tb->Label(-textvariable=>\$label,-font=>'C_small')->pack(-side=>'right');
+  return ($tb,\$label);
 }
 
 ### Query serialization
