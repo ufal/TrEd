@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pml_schema
+  xmlns="http://ufal.mff.cuni.cz/pdt/pml/schema/" version="1.2">
+  <revision>0.0.7</revision>
+  <description>A simple schema for query trees</description>
+
+  <type name="q-user-relation-choice.type">
+    <choice>
+      <value>echild</value> <!-- PDT specific -->
+      <value>eparent</value> <!-- PDT specific -->
+      <value>a/lex.rf|a/aux.rf</value> <!-- PDT specific -->
+      <value>a/lex.rf</value> <!-- PDT specific -->
+      <value>a/aux.rf</value> <!-- PDT specific -->
+      <value>coref_text</value> <!-- PDT specific -->
+      <value>coref_gram</value> <!-- PDT specific -->
+      <value>compl</value> <!-- PDT specific -->
+    </choice>
+  </type>
+  <derive name="q-extra-user-relation-choice.type" type="q-user-relation-choice.type">
+    <choice>
+    </choice>
+  </derive>
+  <derive name="q-subquery.type" type="q-node.type">
+    <structure>    
+      <member name="occurrences">
+	<alt>
+	  <structure>
+	    <member name="min">
+	      <cdata format="nonNegativeInteger"/>
+	    </member>
+	    <member name="max">
+	      <cdata format="nonNegativeInteger"/>
+	    </member>
+	  </structure>
+	</alt>
+      </member>
+      <delete>optional</delete>
+    </structure>
+  </derive>
+
+  <root name="tree_query" type="q-tree_query.type"/>
+
+  <type name="q-relation-base.type">
+    <container/>
+  </type>
+
+  <derive type="q-relation-base.type" 
+	  name="q-extra-relation-base.type" >
+    <container>
+    </container>
+  </derive>
+  
+  <derive name="q-descendant-relation.type" type="q-relation-base.type">
+    <container>
+      <attribute name="min_length">
+	<cdata format="positiveInteger"/>
+      </attribute>
+      <attribute name="max_length">
+	<cdata format="positiveInteger"/>
+      </attribute>
+    </container>
+  </derive>
+  <derive name="q-user-relation.type" type="q-relation-base.type">
+    <container>
+      <attribute required="1" name="label" type="q-user-relation-choice.type"/>
+    </container>
+  </derive>
+  <derive name="q-extra-descendant-relation.type" type="q-extra-relation-base.type" >
+    <container>
+      <attribute name="min_length">
+	<cdata format="positiveInteger"/>
+      </attribute>
+      <attribute name="max_length">
+	<cdata format="positiveInteger"/>
+      </attribute>
+      <attribute name="negate" type="bool"/>            
+    </container>
+  </derive>
+  <derive name="q-extra-child-relation.type" type="q-extra-relation-base.type">
+    <container>
+      <attribute name="negate" type="bool"/>      
+    </container>
+  </derive>
+  <derive name="q-extra-user-relation.type" type="q-extra-relation-base.type">
+    <container>
+      <attribute required="1" name="label" type="q-extra-user-relation-choice.type"/>
+      <attribute name="negate" type="bool"/>      
+    </container>
+  </derive>
+
+  <type name="q-relation.type">
+    <sequence content_pattern="(child|parent|descendant|ancestor|user-defined)?">
+      <element name="child" type="q-relation-base.type"/>
+      <element name="parent" type="q-relation-base.type"/>
+      <element name="descendant" type="q-descendant-relation.type"/>
+      <element name="ancestor" type="q-descendant-relation.type"/>
+      <element name="user-defined" type="q-user-relation.type"/> 
+    </sequence>
+  </type>
+
+  <type name="q-extra-relation.type">
+    <sequence content_pattern="(descendant|ancestor|parent|child|depth-first-precedes|depth-first-follows|order-precedes|order-follows|user-defined)?">
+      <element name="descendant" type="q-extra-descendant-relation.type"/>
+      <element name="ancestor" type="q-extra-descendant-relation.type"/>
+      <element name="parent" type="q-extra-child-relation.type"/>
+      <element name="child" type="q-extra-child-relation.type"/>
+      <element name="depth-first-precedes" type="q-extra-relation-base.type"/>
+      <element name="depth-first-follows" type="q-extra-relation-base.type"/>
+      <element name="order-precedes" type="q-extra-relation-base.type"/>
+      <element name="order-follows" type="q-extra-relation-base.type"/>
+      <element name="user-defined" type="q-extra-user-relation.type"/> 
+    </sequence>
+  </type>
+
+  <type name="q-tree_query.type">
+    <structure>
+      <member name="q-trees" role="#TREES" required="1">
+	<list type="q-query.type" ordered="1"/>
+      </member>
+    </structure>
+  </type>
+
+  <type name="q-query.type">
+    <structure role="#NODE" name="q-root">
+      <member name="id" role="#ID" as_attribute="1">
+	<cdata format="ID"/>
+      </member>
+      <member name="description"><cdata format="any"/></member>
+      <member name="node-type"><cdata format="NMTOKEN"/></member>
+      <member name="q-nodes" role="#CHILDNODES">
+	<sequence>
+	  <element name="node" type="q-node.type"/>
+	</sequence>
+      </member>
+      <member name="comments"><list ordered="1"><cdata format="any"/></list></member>
+    </structure>
+  </type>
+
+  <type name="q-node.type">
+    <structure role="#NODE" name="q-node">
+      <member name="name">
+	<cdata format="NMTOKEN"/>
+      </member>
+      <member name="description"><cdata format="any"/></member>
+      <member name="node-type"><cdata format="NMTOKEN"/></member>
+      <member name="optional" type="bool"/>
+      <member name="relation" type="q-relation.type"/>
+<!--      <member name="edge-transitive" type="bool"/> -->
+      <member name="conditions" type="q-group.type"/>
+      <member name="q-children" role="#CHILDNODES">
+	<sequence>
+	  <element name="node" type="q-node.type"/>
+	  <element name="ref" type="q-ref.type"/>
+	  <element name="subquery" type="q-subquery.type"/>
+	  <element name="test" type="q-test.type"/>
+	  <element name="or" type="q-group.type"/>
+	  <element name="not" type="q-group.type"/>
+	</sequence>
+      </member>
+    </structure>
+  </type>
+
+  <type name="q-ref.type">
+    <structure role="#NODE">
+      <member name="relation" type="q-extra-relation.type"/>
+      <member name="target">
+	<cdata format="PMLREF"/>
+      </member>
+    </structure>
+  </type>
+
+  <type name="expr-seq.type">
+    <sequence role="#CHILDNODES">
+      <element name="subquery" type="q-subquery.type"/>
+      <element name="test" type="q-test.type"/>
+      <element name="not" type="q-group.type"/>
+      <element name="or" type="q-group.type"/>
+      <element name="and" type="q-group.type"/>
+    </sequence>
+  </type>
+  <type name="q-test.type">
+    <structure role="#NODE">
+      <member name="a" required="1">
+	<cdata format="string"/>
+      </member>
+      <member name="operator" required="1" as_attribute="1" type="operator.type"/>
+      <member name="b" required="1">
+	<cdata format="string"/>
+      </member>
+    </structure>
+  </type>
+  <type name="num.operator.type">
+    <choice>
+      <value>=</value>
+      <value>&lt;</value>
+      <value>&gt;</value>
+      <value>&lt;=</value>
+      <value>&gt;=</value>
+    </choice>
+  </type>
+  <derive name="operator.type" type="num.operator.type">
+    <choice>
+      <value>in</value>
+      <value>~</value>
+      <value>~*</value>
+    </choice>
+  </derive>
+
+  <type name="q-group.type">
+    <container type="expr-seq.type" role="#NODE">
+    </container>
+  </type>
+  <type name="bool">
+    <choice>
+      <value>0</value>
+      <value>1</value>
+    </choice>    
+  </type>
+</pml_schema>
