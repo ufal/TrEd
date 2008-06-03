@@ -233,6 +233,7 @@ sub new {
   }, $class;
   my $ident = $self->identify;
   Tree_Query::CreateSearchToolbar($ident);
+  (undef, $self->{label}) = Tree_Query::CreateSearchToolbar($ident);
   $self->{on_destroy} = MacroCallback(sub {
 					DestroyUserToolbar($ident);
 					ChangingFile(0);
@@ -304,16 +305,25 @@ sub show_next_result {
   } else {
     QuestionQuery('TrEdSearch','No more matches','OK');
   }
+  $self->update_label;
   return $self->{current_result};
+}
+
+sub update_label {
+  my ($self)=@_;
+  my $past = (($self->{past_results} ? int(@{$self->{past_results}}) : 0)
+		+ ($self->{current_result} ? 1 : 0));
+  ${$self->{label}} = $past.' of '.
+	 ($self->{next_results} ? $past+int(@{$self->{next_results}}) : $past).'+';
 }
 
 sub show_prev_result {
   my ($self)=@_;
-  if ($self->{current_result}) {
-    push @{$self->{next_results}},
-      $self->{current_result};
-  }
   if ($self->{past_results} and @{$self->{past_results}}) {
+    if ($self->{current_result}) {
+      push @{$self->{next_results}},
+	$self->{current_result};
+    }
     $self->{current_result} = pop @{$self->{past_results}};
     return $self->show_current_result;
   }
@@ -322,6 +332,7 @@ sub show_prev_result {
 
 sub show_current_result {
   my ($self)=@_;
+  $self->update_label;
   return unless $self->{current_result};
   my $cur_win = $grp;
   $grp=$self->claim_search_win;
