@@ -1501,6 +1501,7 @@ sub closeFile {
     $w->{Nodes}=undef;
     #  undef $NodeClipboard;
     $w->{root}=undef;
+    $w->{stylesheet}=STYLESHEET_FROM_FILE();
     setWindowFile($w,undef);
     delete $w->{currentNode} if (exists $w->{currentNode});
     $w->{treeView}->clear_pinfo();
@@ -8570,7 +8571,7 @@ sub determineNodeType {
     if (ref $pml_trees_type) {
       @tree_types = ($pml_trees_type);
     } else {
-      @tree_types = map { $schema->find_type_by_path($_) } $schema->find_role('#TREES');
+      @tree_types = $schema->find_types_by_role('#TREES');
     }
     foreach my $tt (map { $_->get_content_decl } @tree_types) {
       if (!ref($tt)) {
