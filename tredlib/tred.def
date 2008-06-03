@@ -2809,6 +2809,20 @@ sub Open {
   return $ret;
 }
 
+=item C<Resume($fsfile)>
+
+Resume a previously open fsfile a given window in TrEd.
+
+=cut
+
+sub ResumeFile {
+  my ($fsfile)=@_;
+  local $main::insideEval = 0;
+  my $ret = main::resumeFile($grp,$fsfile,1);
+  main::doEvalHook($grp,"file_resumed_hook");
+  return $ret;
+}
+
 =item C<CloseFile(file?)>
 
 Close a given FSFile.
@@ -2920,6 +2934,22 @@ sub SaveAs {
   _croak("SaveAs(): Not yet implemented!");
 #endif
 }
+
+=item C<GetOpenFiles()>
+
+Return a list of FSFile objects currently open in TrEd (including
+postponed files).
+
+=cut
+
+sub GetOpenFiles {
+#ifdef TRED
+  return @main::openfiles;
+#else
+  return grep defined, ($grp->{fsfile}, values %{$grp->{preloaded}});
+#end
+}
+
 
 =item C<Backends()>
 
@@ -3187,24 +3217,28 @@ sub GotoFileNo {
   return $result;
 }
 
-=item C<LastFileNo()>
+=item C<LastFileNo($win?)>
 
 Return the index of the last file in the current filelist.
 
 =cut
 
 sub LastFileNo {
-  main::lastFileNo($grp);
+  shift if @_ and !ref($_[0]);
+  my $win = ref($_[0]) ? $_[0] : $grp;
+  main::lastFileNo($win);
 }
 
-=item C<CurrentFileNo()>
+=item C<CurrentFileNo($win?)>
 
 Return the index of the current file in the current filelist.
 
 =cut
 
 sub CurrentFileNo {
-  main::currentFileNo($grp);
+  shift if @_ and !ref($_[0]);
+  my $win = ref($_[0]) ? $_[0] : $grp;
+  main::currentFileNo($win);
 }
 
 =item C<SaveAndNextFile()>
