@@ -858,12 +858,12 @@ sub new {
     query_nodes => undef,
     results => undef,
   }, $class;
-  $self->configure($opts->{config_file},$opts->{config_id}) || return;
+  $self->init($opts->{config_file},$opts->{config_id}) || return;
   $self->{callback} = [\&open_pmltq,$self];
   weaken($self->{callback}[1]);
   register_open_file_hook($self->{callback});
   my $ident = $self->identify;
-  Tree_Query::CreateSearchToolbar($ident);
+  (undef, $self->{label}) = Tree_Query::CreateSearchToolbar($ident);
   $self->{on_destroy} = MacroCallback(sub {
 					DestroyUserToolbar($ident);
 					ChangingFile(0);
@@ -883,45 +883,6 @@ sub identify {
   return "SQLSearch" unless $self->{config}{data};
   my $cfg = $self->{config}{data};
   return "SQLSearch $cfg->{driver}:$cfg->{username}\@$cfg->{host}:$cfg->{port}/$cfg->{database}";
-}
-
-sub configure {
-  my ($self,$config_file,$id)=@_;
-  $self->load_config_file($config_file) || return;
-  my $configuration = $self->{config}{data};
-  my $cfgs = $self->{config}{pml}->get_root->{configurations};
-  my $cfg_type = $self->{config}{type};
-  if (!$id) {
-    my @opts = ((map { $_->{id} } ListV($cfgs)),' CREATE NEW ');
-    my @sel= $configuration ? $configuration->{id} : @opts ? $opts[0] : ();
-    ListQuery('Select treebase connection',
-			 'browse',
-			 \@opts,
-			 \@sel) || return;
-    ($id) = @sel;
-  }
-  return unless $id;
-  my $cfg;
-  if ($id eq ' CREATE NEW ') {
-    $cfg = Fslib::Struct->new();
-    GUI() && EditAttribute($cfg,'',$cfg_type) || return;
-    $cfgs->append($cfg);
-    $self->{config}{pml}->save();
-    $id = $cfg->{id};
-  } else {
-    $cfg = first { $_->{id} eq $id } ListV($cfgs);
-    die "Didn't find configuration '$id'" unless $cfg;
-  }
-  $self->{config}{id} = $id;
-  unless (defined($cfg->{username}) and defined($cfg->{password})) {
-    if (GUI()) {
-       EditAttribute($cfg,'',$cfg_type,'password') || return;
-    } else {
-      die "The configuration $id does not specify username or password\n";
-    }
-    $self->{config}{pml}->save();
-  }
-  $self->{config}{data} = $cfg;
 }
 
 sub search_first {
@@ -1004,6 +965,8 @@ sub search_first {
       SetCurrentFileList($fl->name);
       GotoFileNo(0);
       ($this,$root,$grp)=@context;
+      ${$self->{label}} = (CurrentFileNo($res_win)+1).' of '.(LastFileNo($res_win)+1).
+	($limit == $matches ? '+' : '');
       select_matching_node($this);
     }
   } else {
@@ -1065,9 +1028,56 @@ sub select_matching_node {
   return;
 }
 
+sub configure {
+  my ($self)=@_;
+  my $config = $self->{config}{pml};
+  GUI() && EditAttribute($config->get_root,'',
+			 $config->get_schema->get_root_decl->get_content_decl) || return;
+  $config->save();
+}
 
 #########################################
 #### Private API
+
+sub init {
+  my ($self,$config_file,$id)=@_;
+  $self->load_config_file($config_file) || return;
+  my $configuration = $self->{config}{data};
+  my $cfgs = $self->{config}{pml}->get_root->{configurations};
+  my $cfg_type = $self->{config}{type};
+  if (!$id) {
+    my @opts = ((map { $_->{id} } ListV($cfgs)),' CREATE NEW ');
+    my @sel= $configuration ? $configuration->{id} : @opts ? $opts[0] : ();
+    ListQuery('Select treebase connection',
+			 'browse',
+			 \@opts,
+			 \@sel) || return;
+    ($id) = @sel;
+  }
+  return unless $id;
+  my $cfg;
+  if ($id eq ' CREATE NEW ') {
+    $cfg = Fslib::Struct->new();
+    GUI() && EditAttribute($cfg,'',$cfg_type) || return;
+    $cfgs->append($cfg);
+    $self->{config}{pml}->save();
+    $id = $cfg->{id};
+  } else {
+    $cfg = first { $_->{id} eq $id } ListV($cfgs);
+    die "Didn't find configuration '$id'" unless $cfg;
+  }
+  $self->{config}{id} = $id;
+  unless (defined($cfg->{username}) and defined($cfg->{password})) {
+    if (GUI()) {
+       EditAttribute($cfg,'',$cfg_type,'password') || return;
+    } else {
+      die "The configuration $id does not specify username or password\n";
+    }
+    $self->{config}{pml}->save();
+  }
+  $self->{config}{data} = $cfg;
+}
+
 
 sub filelist_name {
   my $self=shift;
@@ -1101,6 +1111,9 @@ sub show_result {
 	  }
 	}
       };
+      my $plus = ${$self->{label}}=~/\+/;
+      ${$self->{label}} = (CurrentFileNo($win)+1).' of '.(LastFileNo($win)+1).
+	($plus ? '+' : '');
       ($this,$root,$grp)=@save;
       $self->select_matching_node($this);
       die $@ if $@;
@@ -1108,6 +1121,14 @@ sub show_result {
     }
   }
   return;
+}
+
+sub update_label {
+  my ($self)=@_;
+  my $past = (($self->{past_results} ? int(@{$self->{past_results}}) : 0)
+		+ ($self->{current_result} ? 1 : 0));
+  ${$self->{label}} = $past.' of '.
+	 ($self->{next_results} ? $past+int(@{$self->{next_results}}) : $past).'+';
 }
 
 # registered open_file_hook
@@ -1190,14 +1211,6 @@ sub get_results {
 sub get_query_nodes {
   my $self = shift;
   return $self->{query_nodes};
-}
-
-sub edit_configuration {
-  my ($self)=@_;
-  my $config = $self->{config}{pml};
-  GUI() && EditAttribute($config->get_root,'',
-			 $config->get_schema->get_root_decl->get_content_decl) || return;
-  $config->save();
 }
 
 
