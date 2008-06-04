@@ -4983,7 +4983,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::OP
 	my %arg =        ($#arg & 01) ? @arg : (@arg, undef);
 	my $text;
 	my $lastsep="";
-    my $expectation = new Parse::RecDescent::Expectation(q{/[-+*~]|div|mod/});
+    my $expectation = new Parse::RecDescent::Expectation(q{/[-+*^]|div|mod/});
 	$expectation->at($_[1]);
 	
 	my $thisoffset;
@@ -4997,7 +4997,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::OP
 	while (!$_matched && !$commit)
 	{
 		
-		Parse::RecDescent::_trace(q{Trying production: [/[-+*~]|div|mod/]},
+		Parse::RecDescent::_trace(q{Trying production: [/[-+*^]|div|mod/]},
 					  Parse::RecDescent::_tracefirst($_[1]),
 					  q{OP},
 					  $tracelevel)
@@ -5010,7 +5010,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::OP
 		my $repcount = 0;
 
 
-		Parse::RecDescent::_trace(q{Trying terminal: [/[-+*~]|div|mod/]}, Parse::RecDescent::_tracefirst($text),
+		Parse::RecDescent::_trace(q{Trying terminal: [/[-+*^]|div|mod/]}, Parse::RecDescent::_tracefirst($text),
 					  q{OP},
 					  $tracelevel)
 						if defined $::RD_TRACE;
@@ -5018,7 +5018,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::OP
 		$expectation->is(q{})->at($text);
 		
 
-		unless ($text =~ s/\A($skip)/$lastsep=$1 and ""/e and   $text =~ s/\A(?:[-+*~]|div|mod)//)
+		unless ($text =~ s/\A($skip)/$lastsep=$1 and ""/e and   $text =~ s/\A(?:[-+*^]|div|mod)//)
 		{
 			
 			$expectation->failed();
@@ -5036,7 +5036,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::OP
 		
 
 
-		Parse::RecDescent::_trace(q{>>Matched production: [/[-+*~]|div|mod/]<<},
+		Parse::RecDescent::_trace(q{>>Matched production: [/[-+*^]|div|mod/]<<},
 					  Parse::RecDescent::_tracefirst($text),
 					  q{OP},
 					  $tracelevel)
@@ -12667,9 +12667,9 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                      'actcount' => 0,
                                                                      'items' => [
                                                                                   bless( {
-                                                                                           'pattern' => '[-+*~]|div|mod',
+                                                                                           'pattern' => '[-+*^]|div|mod',
                                                                                            'hashname' => '__PATTERN1__',
-                                                                                           'description' => '/[-+*~]|div|mod/',
+                                                                                           'description' => '/[-+*^]|div|mod/',
                                                                                            'lookahead' => 0,
                                                                                            'rdelim' => '/',
                                                                                            'line' => -6,

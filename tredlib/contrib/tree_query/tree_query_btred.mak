@@ -995,7 +995,7 @@ sub claim_search_win {
 	      $op='/'
 	    } elsif ($op eq 'mod') {
 	      $op='%'
-	    } elsif ($op eq '~') {
+	    } elsif ($op eq '&') {
 	      $op=' . '
 	    } elsif ($op !~ /[-+*]/) {
 	      die "Urecognized operator '$op' in expression $opts->{expression} of node '$this_node_id'\n";
