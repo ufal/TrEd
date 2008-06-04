@@ -658,7 +658,7 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
 	    $op='/'
 	  } elsif ($op eq 'mod') {
 	    $op='%'
-	  } elsif ($op eq '~') {
+	  } elsif ($op eq '&') {
 	    $op='||'
 	  } elsif ($op !~ /[-+*]/) {
 	    die "Urecognized operator '$op' in expression $opts->{expression} of node '$this_node_id'\n";
