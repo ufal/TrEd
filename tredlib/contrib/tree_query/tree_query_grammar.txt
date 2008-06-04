@@ -46,6 +46,8 @@
       }
       sub new_relation {
         my ($type,$opts)=@_;
+	$opts||={};
+	$opts->{label}||=$type;
 	return Fslib::Seq->new([
           Fslib::Seq::Element->new( 
             $type => Fslib::Container->new(undef,$opts)

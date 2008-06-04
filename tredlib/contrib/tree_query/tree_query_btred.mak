@@ -266,10 +266,12 @@ sub search_first {
   my ($self, $opts)=@_;
   $opts||={};
   my $query = $opts->{query} || $root;
-  $self->{evaluator} = Tree_Query::BtredEvaluator->new($query);
+  $self->{evaluator} = Tree_Query::BtredEvaluator->new($query,
+						      {current_filelist => $self->{filelist} ? 1 : 0});
   $self->{current_result} = undef;
   $self->{past_results}=[];
   $self->{next_results}=[];
+  $self->{have_all_results}=undef;
   return $self->show_next_result;
 }
 
@@ -284,10 +286,21 @@ sub show_next_result {
     $self->{current_result} = pop @{$self->{next_results}};
     return $self->show_current_result;
   }
+  if ($self->{have_all_results}) {
+    QuestionQuery('TrEdSearch','No more matches','OK');
+    return;
+  }
   my @save = ($grp,$root,$this);
   $grp=$self->claim_search_win;
-  $this = $grp->{currentNode};
-  $root = $this->root if $this;
+  if ($self->{current_result}) {
+    Open($self->{current_result}->[0]);
+  } else {
+    if ($self->{filelist}) {
+      GotoFileNo(0);
+    } else {
+      GotoTree(0);
+    }
+  }
   my $result;
   eval {
     $result = $self->{evaluator}->find_next_match();
@@ -295,6 +308,8 @@ sub show_next_result {
       $self->{current_result} = [
 	map ThisAddress($_), @$result
       ];
+    } else {
+      $self->{have_all_results}=1;
     }
   };
   $Redraw='all';
@@ -313,8 +328,10 @@ sub update_label {
   my ($self)=@_;
   my $past = (($self->{past_results} ? int(@{$self->{past_results}}) : 0)
 		+ ($self->{current_result} ? 1 : 0));
-  ${$self->{label}} = $past.' of '.
-	 ($self->{next_results} ? $past+int(@{$self->{next_results}}) : $past).'+';
+  ${$self->{label}} = $past
+    .' of '
+    .($self->{next_results} ? $past+int(@{$self->{next_results}}) : $past)
+    .($self->{have_all_results} ? '' : '+');
 }
 
 sub show_prev_result {
@@ -334,11 +351,12 @@ sub show_current_result {
   my ($self)=@_;
   $self->update_label;
   return unless $self->{current_result};
-  my $cur_win = $grp;
+  my @save = ($grp,$root,$this);
   $grp=$self->claim_search_win;
   Open($self->{current_result}->[0]);
   $Redraw='all';
-  $grp=$cur_win;
+  ($grp,$root,$this)=@save;
+  return $self->{current_result};
 }
 
 sub matching_nodes {
@@ -357,13 +375,11 @@ sub select_matching_node {
   my $idx = Index($self->{evaluator}->get_query_nodes,$query_node);
   return if !defined($idx);
   my $result = $self->{current_result}->[$idx];
-  print "result: $result\n";
   foreach my $win (TrEdWindows()) {
     my $fsfile = $win->{FSFile};
     next unless $fsfile;
     my $fn = $fsfile->filename.'##'.($win->{treeNo}+1);
     next unless $result =~ /\Q$fn\E\.(\d+)$/;
-    print "here: $fn\n";
     my $pos = $1;
     my $r=$fsfile->tree($win->{treeNo});
     for (1..$pos) {
@@ -574,8 +590,8 @@ sub claim_search_win {
 	  $iterator = $opts->{iterator};
 	} elsif ($opts->{tree}) {
 	  $iterator = TreeIterator->new($conditions,$opts->{tree});
-# 	} elsif ($opts->{fsfile}) {
-# 	  $iterator = FSFileIterator->new($conditions,$opts->{fsfile});
+ 	} elsif ($opts->{current_filelist}) {
+ 	  $iterator = CurrentFilelistIterator->new($conditions);
 	} else {
 	  $iterator = CurrentFileIterator->new($conditions);
 	}
@@ -1461,6 +1477,41 @@ sub claim_search_win {
     my $n=$self->[NODE];
     while ($n) {
       $n = $n->following || (TredMacro::NextTree() && $this);
+      last if $conditions->($n);
+    }
+    return $self->[NODE]=$n;
+  }
+  sub node {
+    return $_[0]->[NODE];
+  }
+  sub reset {
+    my ($self)=@_;
+    $self->[NODE]=undef;
+  }
+}
+#################################################
+{
+  package CurrentFilelistIterator;
+  use base qw(Tree_Query::Iterator);
+  BEGIN {
+    import TredMacro qw($this $root);
+  }
+  use constant CONDITIONS=>0;
+  use constant NODE=>1;
+  sub start  {
+    my ($self)=@_;
+    # TredMacro::GotoFileNo(0);
+    TredMacro::GotoTree(0);
+    $this=$root;
+    $self->[NODE]=$this;
+    return ($this && $self->[CONDITIONS]->($this)) ? $this : ($this && $self->next);
+  }
+  sub next {
+    my ($self)=@_;
+    my $conditions=$self->[CONDITIONS];
+    my $n=$self->[NODE];
+    while ($n) {
+      $n = $n->following || (TredMacro::NextTree() && $this) ||  (TredMacro::NextFile() && $this);
       last if $conditions->($n);
     }
     return $self->[NODE]=$n;
