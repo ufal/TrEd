@@ -304,7 +304,14 @@ Bind sub {
 
 Bind sub {
   ChangingFile(0);
-  return unless $this->{'#name'} eq 'subquery';
+  if ($this->{'#name'} eq 'node' and 
+      $this->parent and $this->parent->{'#name'} =~ /^(?:node|subquery)$/) {
+    $this->set_type(undef);
+    $this->{'#name'}='subquery';
+    DetermineNodeType($this);
+  } elsif (!$this->{'#name'} eq 'subquery') {
+    return;
+  }
   if (not (AltV($this->{'occurrences'}))) {
     $this->{occurrences}=Fslib::Struct->new({min=>1});
   }
@@ -319,9 +326,11 @@ Bind sub {
 Bind ToggleHiding => {
   key => 'H',
   menu => 'Toggle hiding of logical nodes for all nodes',
+  changing_file => 0,
 };
 
 Bind sub {
+  ChangingFile(0);
   my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } ($this,$this->ancestors);
   if ($qn) {
     $qn->{'.unhide'}=!$qn->{'.unhide'};
@@ -441,7 +450,7 @@ node:<?
 ?>${a}${target}
 node:<?
   if (($this->{'#name'}=~/^(?:node|subquery)$/) and !$this->{'.unhide'} and !TredMacro::HiddenVisible() ) {
-    join("\n",map { Tree_Query::as_text($_,'  ',1) } grep { $_->{'#name'} !~ /^(?:node|subquery|ref)$/ } $this->children)
+    join("\n",map { Tree_Query::as_text($_,{indent=>'  ',wrap =>1}) } grep { $_->{'#name'} !~ /^(?:node|subquery|ref)$/ } $this->children)
   } elsif ($this->{'#name'} eq 'test') {
     '${operator}'
   }
@@ -483,13 +492,33 @@ EOF
   }
 }
 
+sub DefaultQueryFile {
+  return $ENV{HOME}.'/.tred.d/queries.pml';
+}
+
 sub NewQuery {
   use POSIX;
   my $id = POSIX::strftime('q-%y-%m-%d_%H%M%S', localtime());
-  my $fsfile = PMLInstance->load({
-    filename => 'tree_query.pml',
-    config   => $PMLBackend::config,
-    string   => <<"END" })->convert_to_fsfile();
+  my $filename = DefaultQueryFile();
+  ChangingFile(0);
+  my $fl = first { $_->name eq 'Tree Queries' } TrEdFileLists();
+  unless ($fl) {
+    $fl = Filelist->new('Tree Queries');
+    AddNewFileList($fl);
+    $fl->add($filename);
+  }
+  if (CurrentFile()) {
+    SplitWindowVertically();
+    $Redraw='all';
+  }
+  unless (-f $filename) {
+    unless (-d main::dirname($filename)) {
+      mkdir main::dirname($filename);
+    }
+    my $fsfile = PMLInstance->load({
+      filename => $filename,
+      config   => $PMLBackend::config,
+      string   => <<"END" })->convert_to_fsfile();
 <?xml version="1.0" encoding="utf-8"?>
 <tree_query xmlns="http://ufal.mff.cuni.cz/pdt/pml/">
  <head>
@@ -500,14 +529,13 @@ sub NewQuery {
  </q-trees>
 </tree_query>
 END
-  ChangingFile(0);
-  if (CurrentFile()) {
-    #    local $main::insideEval=0;
-    SplitWindowVertically();
-    $Redraw='all';
+    push @main::openfiles, $fsfile;
+    SetCurrentFileList($fl->name);
+    ResumeFile($fsfile);
+  } else {
+    SetCurrentFileList($fl->name);
+    Open($filename);
   }
-  push @main::openfiles, $fsfile;
-  ResumeFile($fsfile);
   SelectSearch();
 }
 
@@ -715,7 +743,7 @@ my %color = (
   'ancestor' => 'lightblue',
   'child' => 'black',
   'parent' => 'lightgray',
-  'echild' => 'darkgreen',
+  'echild' => '#22aa22',
   'eparent' => 'green',
 );
 my %arrow = (
@@ -814,32 +842,32 @@ sub node_release_hook {
   if ($mod eq 'Control') {
     my $type = $node->{'#name'};
     my $target_type = $target->{'#name'};
-    return 'stop' unless $target_type =~/^(?:node|subquery)$/;
+    return 'stop' unless $target_type =~/^(?:node|subquery)$/
+      and $type =~/^(?:node|subquery|ref)$/;
     return 'stop' if cmp_subquery_scope($node,$target)<0;
-
-    if ($type eq 'node' or $type eq 'subquery') {
-      my @sel = map {
-	my $name = $_->name;
-	if ($name eq 'user-defined') {
-	  qq{$name: }.$_->value->{label}
-	} else {
-	  $name
+    my @sel = map {
+      my $name = $_->name;
+      if ($name eq 'user-defined') {
+	qq{$name: }.$_->value->{label}
+      } else {
+	$name
 	}
-      } map { SeqV($_->{relation}) }
-        grep { $_->{target} eq $target->{name} }
+    } map { SeqV($_->{relation}) }
+      grep { $_->{target} eq $target->{name} }
         grep { $_->{'#name'} eq 'ref' } $node->children;
-      ListQuery('Select query-node relations to add/preserve',
-		'multiple',
-		GetRelationTypes($node),
-		\@sel) || return;
+    ListQuery('Select query-node relations to add/preserve',
+	      'multiple',
+	      GetRelationTypes($node),
+	      \@sel) || return;
+    if ($type eq 'node' or $type eq 'subquery') {
       init_id_map($node->root);
       AddOrRemoveRelations($node,$target,\@sel,{-add_only=>0});
       TredMacro::Redraw_FSFile_Tree();
       ChangingFile(1);
     } elsif ($type eq 'ref') {
       init_id_map($node->root);
-      return 'stop' if cmp_subquery_scope($node,$target)<0;
       $node->{target}=GetNodeName($target);
+      SetRelation($node,$sel[0]) if @sel;
       ChangingFile(1);
     }
   }
@@ -894,7 +922,7 @@ sub GetRelationTypes {
       } else {
 	$name;
       }
-    } $node->type->schema->get_type_by_name('q-extra-relation.type')->get_content_decl->get_elements(),
+    } $node->type->schema->get_type_by_name('q-ref-relation.type')->get_content_decl->get_elements(),
    ],
 }
 
@@ -1050,16 +1078,19 @@ sub CreateSearchToolbar {
 		'up',
 	       ],
 	      ) {
-    $tb->Button(-text    => $but->[0],
-		-command => $but->[1],
-		-font    =>'C_small',
-		-height => 16,
-		-borderwidth => 0,
-		-takefocus=>0,
-		-relief => $main::buttonsRelief,
-		-image => main::icon($grp->{framegroup},'16x16/'.$but->[2]),
-		-compound => 'left',
-	       )->pack(-side=>'left');
+    $tb->ImgButton(-text    => $but->[0],
+		   -padleft => 15,
+		   -padright => 15,
+		   -padmiddle => 10,
+		   -height => 32,
+		   -command => $but->[1],
+		   -font    =>'C_small',
+		   -borderwidth => 0,
+		   -takefocus=>0,
+		   -relief => $main::buttonsRelief,
+		   -image => main::icon($grp->{framegroup},'16x16/'.$but->[2]),
+		   #		-compound => 'left',
+		  )->pack(-side=>'left');
   }
   $tb->Label(-text=>$ident,-font=>'C_small')->pack(-side=>'left');
   $tb->Button(-text=>'x',
@@ -1075,8 +1106,6 @@ sub CreateSearchToolbar {
 					  print "$s";
 					  @SEARCHES = grep { $_ != $s } @SEARCHES;
 					  $SEARCH = undef if $SEARCH and $SEARCH == $s;
-					  use Devel::Peek;
-					  Dump($s);
 					  ChangingFile(0);
 					})
 	     )->pack(-side=>'right');
@@ -1103,11 +1132,12 @@ sub tq_serialize {
       map { (@{tq_serialize($_,$opts)},[";\n"]) } $node->children
      ]
   } else {
-    my $copts = {%$opts,indent=>$indent."     "};
+    my $copts = {%$opts,no_childnodes=>0,indent=>$indent."     "};
     if ($name eq 'subquery' or $name eq 'node') {
       $copts->{query_node}=$node;
     }
-    my @r = map [tq_serialize($_,$copts)], $node->children;
+    my @r = map [tq_serialize($_,$copts)], 
+      $opts->{no_childnodes} ? (grep { $_->{'#name'} ne 'node' } $node->children) : $node->children;
     if ($name=~/^(?:not|or|and)$/) {
       if ($name eq 'not') {
 	push @ret,['!',$node,$query_node,'-foreground=>darkcyan'];
@@ -1174,8 +1204,8 @@ sub tq_serialize {
 }
 
 sub as_text {
-  my ($node,$indent,$wrap)=@_;
-  make_string(tq_serialize($node,{indent=>$indent,wrap=>$wrap}));
+  my ($node,$opts)=@_;
+  make_string(tq_serialize($node,$opts));
 }
 
 sub _group {

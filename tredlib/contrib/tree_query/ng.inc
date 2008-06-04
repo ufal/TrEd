@@ -1,4 +1,6 @@
+# -*- cperl -*-
 ## Macros that postprocess netgraph queries converted to Tree_Query
+
 
 sub fix_netgraph_ord_to_precedes {
   my ($test) = @_;
@@ -63,6 +65,33 @@ sub fix_or2in {
   }
 }
 
+sub reduce_similar_siblings {
+  my ($node)=@_;
+  my $name = $node->{'#name'}||'';
+  return if $name eq 'test' or $name eq 'ref'; # atoms
+  for my $c ($node->children) {
+    reduce_similar_siblings($c);
+  }
+  my %c;
+  for my $c (grep { $_->{'#name'} eq 'node' } $node->children) {
+    # TODO: the nodes should not be referred to from anywhere
+    # or, if so, from the same node in the exact same way,
+    # which may be hard to verify
+    my $k = as_text($c);
+    $k=~s/^\s*|\s*$//g;
+    push @{$c{$k}}, $c;
+  }
+  for my $k (keys %c) {
+    next unless @{$c{$k}}>1;
+    my $first = shift @{$c{$k}};
+    ChangingFile(1);
+    $first->set_type(undef);
+    $first->{'#name'} = 'subquery';
+    $first->{occurrences}=Fslib::Struct->new({min => @{$c{$k}}+1});
+    DetermineNodeType($first);
+    DeleteSubtree($_) for @{$c{$k}};
+  }
+}
 
 sub __test_optional_chain {
   my ($node)=@_;
@@ -84,11 +113,11 @@ sub reduce_optional_node_chain {
   return unless $node->{'#name'} eq 'node';
   my $parent = $node->parent;
   return unless $parent and $parent->parent;
-  my $conditions = as_text($node);
+  my $conditions = as_text($node,{no_childnodes=>1});
   my $last = $node;
   my $max_length=0;
   my $min_length=0;
-  while ( $last and __test_optional_chain($last) and ($last==$node or $conditions eq as_text($last))) {
+  while ( $last and __test_optional_chain($last) and ($last==$node or $conditions eq as_text($last,{no_childnodes=>1}))) {
     $max_length++;
     $min_length++ unless $last->{optional};
     ($last) = grep { $_->{'#name'} eq 'node' } $last->children;
@@ -96,27 +125,33 @@ sub reduce_optional_node_chain {
   if ($max_length>1) {
     ChangingFile(1);
     # trim the chain between $node and $last
-    my $subquery = NewRBrother($node);
-    $subquery->{'#name'} = 'subquery';
-    DetermineNodeType($subquery);
-    CutPasteAfter($last,$subquery);
-    AddOrRemoveRelations($subquery,$last,['descendant'],{ -add_only=>1 });
-    SetRelation($subquery,'descendant');
-    $subquery->{occurrences}=Fslib::Struct->new({
-      max => 0
-    });
-    my $not = NewSon($subquery);
-    $not->{'#name'}='not';
-    DetermineNodeType($not);
-    for my $child (reverse grep { $_->{'#name'} ne 'node' } $node->children) {
-      CutPaste($child,$not)
+    my @kids = reverse grep { $_->{'#name'} ne 'node' } $node->children;
+    my $subquery;
+    if (@kids) {
+      $subquery = NewRBrother($node);
+      $subquery->{'#name'} = 'subquery';
+      DetermineNodeType($subquery);
+      CutPasteAfter($last,$subquery);
+      AddOrRemoveRelations($subquery,$last,['descendant'],{ -add_only=>1 });
+      SetRelation($subquery,'descendant');
+      $subquery->{occurrences}=Fslib::Struct->new({
+	max => 0
+       });
+      my $not = NewSon($subquery);
+      $not->{'#name'}='not';
+      DetermineNodeType($not);
+      for my $child (@kids) {
+	CutPaste($child,$not)
+      }
+    } else {
+      CutPaste($last,$node->parent);
     }
     DeleteSubtree($node);
     SetRelation($last,'descendant', {
       $min_length ? (min_length => $min_length) : (),
       max_length => $max_length,
     });
-    return $subquery;
+    return $subquery||$last;
   }
   return;
 }
@@ -124,32 +159,35 @@ sub reduce_optional_node_chain {
 sub fix_netgraph_query {
   init_id_map($root);
   ChangingFile(0);
+#   {
+#     my $node = $root;
+#     my $next;
+#     while ($node) {
+#       fix_or2in($node);
+#       $node=$node->following;
+#     }
+#   }
+#   {
+#     my $node = $root;
+#     while ($node) {
+#       fix_tecto_coap($node);
+#       $node=$node->following;
+#     }
+#   }
+#   {
+#     my $node = $root;
+#     while ($node) {
+#       FPosition($node);
+#       $node = (reduce_optional_node_chain($node) || $node->following);
+#     }
+#   }
   {
-    my $node = $root;
-    my $next;
-    while ($node) {
-      fix_or2in($node);
-      $node=$node->following;
-    }
+    reduce_similar_siblings($root);
   }
-  {
-    my $node = $root;
-    while ($node) {
-      fix_tecto_coap($node);
-      $node=$node->following;
-    }
-  }
-  {
-    my $node = $root;
-    while ($node) {
-      FPosition($node);
-      $node = (reduce_optional_node_chain($node) || $node->following);
-    }
-  }
-  {
-    my $node = $root;
-    while ($node) {
-      $node = (fix_netgraph_ord_to_precedes($node)||$node->following);
-    }
-  }
+#   {
+#     my $node = $root;
+#     while ($node) {
+#       $node = (fix_netgraph_ord_to_precedes($node)||$node->following);
+#     }
+#   }
 }
