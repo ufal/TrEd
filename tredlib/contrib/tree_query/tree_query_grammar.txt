@@ -69,6 +69,9 @@
     parse_expression: expression /\Z/ { $item[1] }
          | { report_error($thisparser); }
 
+    parse_conditions: lone_conditions(?) /,?\s*\Z/ { $item[1][0] }
+         |   { report_error($thisparser); }
+
     node: type(?) var_def(?) '[' <commit> conditions(?) /,?\s*]/ 
           { new_node({ '#name' => 'node', 'node-type' => $item[1][0], name => $item[2][0]}, $item[5][0]) }
         | <error>
@@ -78,6 +81,10 @@
 
     var_def: VARIABLE ':=' <commit> ...'['
              { $return = $item[1] }
+
+    lone_conditions: condition .../,?\s*\Z/ <commit>         { $return = [$item[1]] }
+              | condition /and|,/ <commit> conditions  { $return = [$item[1],@{$item[4]}] }
+              | <error>
 
     conditions: condition .../,?\s*]/ <commit>         { $return = [$item[1]] }
               | condition /and|,/ <commit> conditions  { $return = [$item[1],@{$item[4]}] }
@@ -101,7 +108,7 @@
     simple_test: predicate | or_clause | not_clause | and_clause
 
     test: simple_test 
-        | subquery 
+        | subquery_test
         | ref
 
     or_clause: '(' <leftop: test 'or' test> ')'
@@ -152,6 +159,13 @@
 
     argument: expression { $item[1] }
             | VARIABLE { '$'.$item[1] }
+
+    subquery_test: subquery { $item[1] }
+                 | RELATION(?) node { $return=$item[2];
+                          $return->{'#name'}='subquery';
+                          $return->{relation}=$item[1][0];
+                          $return->{occurrences}=new_struct({ min=>1 });
+			  1; }
 
     subquery: occurrences RELATION(?) node
               { $return=$item[3]; 
