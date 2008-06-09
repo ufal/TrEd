@@ -55,7 +55,7 @@ TODO:
 
 - [X] support for multi-line attributes in TreeView
 
-- support for macro-definable toolbars
+- [X] support for macro-definable toolbars
 
 - [X] support for custom cdata- selections in TredNodeEdit from a combo box
 

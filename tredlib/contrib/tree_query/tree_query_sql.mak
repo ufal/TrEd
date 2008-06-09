@@ -307,8 +307,8 @@ sub relation {
   } elsif ($relation eq 'descendant') {
     $cond = qq{$id."root_idx"=$target."root_idx" AND $id."idx"!=$target."idx" AND }.
       qq{$target."idx" BETWEEN $id."idx" AND $id."r"};
-    my $min = int($params->{min_length});
-    my $max = int($params->{max_length});
+    my $min = $params->{min_length}||0;
+    my $max = $params->{max_length}||0;
     if ($min>0 and $max>0) {
       $cond.=qq{ AND $target."lvl"-$id."lvl" BETWEEN $min AND $max};
     } elsif ($min>0) {
@@ -918,7 +918,7 @@ sub search_first {
     $self->{evaluator}->prepare_sql($sql);
   }
   $self->{last_query_nodes} = $self->{evaluator}->get_query_nodes;
-  my ($limit, $timeout) = map { int($opts->{$_}||$self->{config}{pml}->get_root->get_member($_))||$DEFAULTS{$_} }
+  my ($limit, $timeout) = map { int($opts->{$_}||$self->{config}{pml}->get_root->get_member($_)||0)||$DEFAULTS{$_} }
     qw(limit timeout);
   my $results = $self->{evaluator}->run({
     limit => $limit,
