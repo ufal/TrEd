@@ -23,14 +23,15 @@ sub InitObject
  $opts{$_} = delete $args->{$_}
    for grep { exists $args->{$_} }
      qw(-image -text -padleft -padmiddle -padright
-	-balloon -balloonmsg -underline);
+	-balloon -balloonmsg -underline -font);
  $cw->SUPER::InitObject($args);
- # Advertised subwidgets:  entry.
+
  my $c = $cw->Compound();
  $c->Space(-width => $opts{-padleft}) if exists $opts{-padleft};
  $c->Image(-image => $opts{-image}) if exists $opts{-image};
  $c->Space(-width => $opts{-padmiddle}) if exists $opts{-image} and exists $opts{-padmiddle};
  $c->Text(-text => $opts{-text},
+	  (exists($opts{-font}) ? (-font => $opts{-font}) : ()),
 	   (exists($opts{-underline}) ? (-underline => $opts{-underline}) : ())
 	  ) if exists $opts{-text};
  $c->Space(-width => $opts{-padright}) if exists $opts{-padright};
