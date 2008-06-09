@@ -74,58 +74,14 @@ Bind 'Tree_Query->NewQuery' => {
 };
 
 # Edit node:
-Bind sub {
-  my $string = as_text($this);
-  my $result;
-  my $opts={};
-  my $parser;
-  {
-    my $t0 = new Benchmark;
-    $parser = query_parser();
-    my $t1 = new Benchmark;
-    my $time = timestr(timediff($t1,$t0));
-    print "creating parser took: $time\n";
-  }
-  while ( defined ($string = EditBoxQuery('Edit query node', $string, '',$opts)) ) {
-    my $t0 = new Benchmark;
-    eval {
-      if (!$this->parent) {
-	$result=$parser->parse_query($string);
-      } elsif ($this->{'#name'} eq 'node') {
-	$result=$parser->parse_node($string);
-      } else {
-	$result=$parser->parse_test($string);
-      }
-    };
-    my $t1 = new Benchmark;
-    my $time = timestr(timediff($t1,$t0));
-    print "parsing query took: $time\n";
-    last unless $@;
-    if (ref($@) eq 'Tree_Query::ParserError' ) {
-      $opts->{-cursor} = $@->line.'.end';
-    }
-    ErrorMessage("$@");
-  }
-  return unless $string;
-  {
-    my $t0 = new Benchmark;
-    if ($this->parent) {
-      $result->paste_after($this);
-      DeleteSubtree($this);
-      $this=$result;
-      DetermineNodeType($this);
-    } else {
-      DeleteSubtree($_) for $root->children;
-      CutPaste($_,$root) for reverse $result->children;
-    }
-    DetermineNodeType($_) for ($this->descendants);
-    my $t1 = new Benchmark;
-    my $time = timestr(timediff($t1,$t0));
-    print "postprocessing took: $time\n";
-  }
-} => {
+Bind 'EditNodeConditions' => {
   key => 'e',
-  menu => 'Edit node'
+  menu => 'Edit node conditions'
+};
+# Edit node:
+Bind 'EditSubtree' => {
+  key => 'E',
+  menu => 'Edit subtree'
 };
 
 Bind sub {
@@ -181,9 +137,14 @@ Bind sub { $VALUE_LINE_MODE=!$VALUE_LINE_MODE } => {
 Bind sub {
   my $node=$this;
   ChangingFile(0);
-  return unless $node->parent and
-    $node->{'#name'} ne 'node';
-  if ($node->parent->{'#name'} eq 'not' and
+  return unless $node->parent;
+  if ($node->{'#name'} eq 'node') {
+    my $not = NewSon();
+    $not->{'#name'}='not';
+    DetermineNodeType($not);
+    $this=$not;
+    $node->{'.unhide'}=1;
+  } elsif ($node->parent->{'#name'} eq 'not' and
 	!$node->lbrother and !$node->rbrother) {
     delete_node_keep_children($node->parent);
   } else {
@@ -216,13 +177,18 @@ Bind sub {
 Bind sub {
   my $node=$this;
   ChangingFile(0);
-  return unless $node->parent and
-    $node->{'#name'}!~/^(?:node|or)$/
-    and $node->parent->{'#name'} ne 'or';
-  my $or = NewParent();
+  return unless $node->parent and $node->{'#name'} ne 'or';
+  my $or;
+  if ($node->{'#name'} eq 'node') {
+    $or=NewSon();
+    $this=$or;
+    $node->{'.unhide'}=1;
+  } else {
+    $or = NewParent();
+    $this=$node;
+  }
   $or->{'#name'}='or';
   DetermineNodeType($or);
-  $this=$node;
   ChangingFile(1);
 } => {
   key => '|',
@@ -241,7 +207,7 @@ Bind sub {
 
 Bind sub {
   ChangingFile(0);
-  return unless $this->{'#name'}=~/^(?:node|subquery)$/;
+  return unless !$this->parent || $this->{'#name'}=~/^(?:node|subquery)$/;
   EditAttribute($this,'node-type') && ChangingFile(1);
 
  } => {
@@ -273,7 +239,10 @@ Bind sub {
   $new->{'#name'}='test';
   $new->{operator}='=';
   DetermineNodeType($new);
-  unless (EditAttribute($new,undef,undef,'a')) {
+  if (EditAttribute($new,undef,undef,'a')) {
+#     $node->{'.unhide'}=1;
+    $this=$new;
+  } else {
     DeleteLeafNode($new);
     $this=$node;
     return;
@@ -437,11 +406,12 @@ sub CreateStylesheets{
 context:   Tree_Query
 hint: 
 rootstyle:#{balance:1}#{Node-textalign:center}#{NodeLabel-halign:center}
-xrootstyle: #{vertical:0}#{nodeXSkip:15}
+rootstyle: #{vertical:0}#{nodeXSkip:40}
 rootstyle: #{NodeLabel-skipempty:1}#{CurrentOval-width:3}#{CurrentOval-outline:red}
-node: #{blue(}<?length($${id}) ? $${id}.' ' : '' ?>#{)}<?length($${node-type}) ? $${node-type}.': ' : '' ?>#{darkgreen}<?
+node: #{blue(}<?length($${id}) ? $${id}.' ' : '' ?>#{)}<?length($${node-type}) ? $${node-type}.': ' : '' ?>
+label:#{darkgreen}<?
   my $occ = Tree_Query::occ_as_text($this);
-  length $occ ? '${occurrences='.$occ.'x}' : ""
+  length $occ ? '#{-coords:n-10,n}#{-anchor:e}${occurrences='.$occ.'x}' : ""
 ?><? $${optional} ? '${optional=?}'  : q()
 ?>
 node: #{darkblue}${name}#{brown}<? my$d=$${description}; $d=~s{^User .*?:}{}; $d ?>
@@ -989,7 +959,6 @@ our @last_results;
 sub map_results {
   return unless $SEARCH;
   %is_match = map { $_=>1 } $SEARCH->matching_nodes(FileName(),CurrentTreeNumber(),$root);
-  print "map_results:",%is_match,"\n";
 }
 
 sub GetSearch {
@@ -1112,6 +1081,81 @@ sub CreateSearchToolbar {
   my $label;
   $tb->Label(-textvariable=>\$label,-font=>'C_small')->pack(-side=>'right');
   return ($tb,\$label);
+}
+
+sub EditNodeConditions {
+  EditQuery($this,{no_childnodes=>1})
+}
+sub EditSubtree {
+  EditQuery($this)
+}
+
+sub EditQuery {
+  my ($node,$opts)=@_;
+
+  $opts||={};
+
+  my $no_childnodes = ($node->{'#name'} eq 'node' and $opts->{no_childnodes}) ? 1 : 0;
+  my $string = as_text($node,{no_childnodes=>$no_childnodes});
+  my $result;
+  my $parser;
+  {
+    my $t0 = new Benchmark;
+    $parser = query_parser();
+    my $t1 = new Benchmark;
+    my $time = timestr(timediff($t1,$t0));
+    print "creating parser took: $time\n";
+  }
+  my $qopts={};
+  while ( defined ($string = EditBoxQuery('Edit query node', $string, '',$qopts)) ) {
+    my $t0 = new Benchmark;
+    eval {
+      if (!$node->parent) {
+	$result=$parser->parse_query($string);
+      } elsif ($node->{'#name'} eq 'node') {
+	$result=$parser->parse_node($string);
+      } else {
+	$result=$parser->parse_conditions($string); # returns ARRAY
+      }
+    };
+    my $t1 = new Benchmark;
+    my $time = timestr(timediff($t1,$t0));
+    print "parsing query took: $time\n";
+    last unless $@;
+    if (ref($@) eq 'Tree_Query::ParserError' ) {
+      $qopts->{-cursor} = $@->line.'.end';
+    }
+    ErrorMessage("$@");
+  }
+  return unless $string;
+  {
+    my $t0 = new Benchmark;
+    if ($node->parent) {
+      my @c;
+      if ($no_childnodes) {
+	@c=map CutNode($_), grep { $_->{'#name'} eq 'node' } $node->children;
+      }
+      if (ref($result) eq 'ARRAY') {
+	$_->paste_after($node) for @$result;
+	DetermineNodeType($_) for @$result;
+	$result=$result->[0];
+      } else {
+	$result->paste_after($node);
+	DetermineNodeType($result);
+	$result->{'.unhide'}=1 if $node->{'.unhide'};
+      }
+      $this=$result if $node==$this;
+      DeleteSubtree($node);
+      PasteNode($_,$result) for @c;
+    } else {
+      DeleteSubtree($_) for $node->children;
+      CutPaste($_,$node) for reverse $result->children;
+      DetermineNodeType($_) for ($node->descendants);
+    }
+    my $t1 = new Benchmark;
+    my $time = timestr(timediff($t1,$t0));
+    print "postprocessing took: $time\n";
+  }
 }
 
 ### Query serialization
