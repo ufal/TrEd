@@ -946,6 +946,8 @@ sub recalculate_positions {
       if ($node_pattern_count_on_level) {
 	$thisLevelHeight += $nodeYSkip + 2*$ymargin +$node_pattern_count_on_level*$fontHeight;
 	$thisLevelHeight += $nodeYSkip unless ($edge_pattern_count);
+      } else {
+	$thisLevelHeight += 2*$nodeYSkip + 2*$ymargin
       }
       $gen_info->{"LevelYPos[$level]"}=$ypos;
       $ypos += $thisLevelHeight;
@@ -1952,7 +1954,7 @@ sub redraw {
       if ($msg=~s/\#{-coords:([^}]*)}//g) {
 	$coords = $1;
       }
-      $coords = 'n,n' unless defined($coords) and length($coords);
+      $coords = 'n,n' unless (defined($coords) and length($coords));
       $coords = $self->parse_coords_spec($node,$coords,$nodes,\%nodehash,$grp);
       if (my @c = $self->eval_coords_spec($node,$parent,$coords)) {
 	$self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$c[0],$c[1],1,\%Opts,$grp,'Label');
