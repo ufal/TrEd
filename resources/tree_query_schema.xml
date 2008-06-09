@@ -4,6 +4,8 @@
   <revision>0.0.7</revision>
   <description>A simple schema for query trees</description>
 
+  <root name="tree_query" type="q-tree_query.type"/>
+
   <type name="q-user-relation-choice.type">
     <choice>
       <value>echild</value> <!-- PDT specific -->
@@ -16,10 +18,15 @@
       <value>compl</value> <!-- PDT specific -->
     </choice>
   </type>
-  <derive name="q-extra-user-relation-choice.type" type="q-user-relation-choice.type">
+  <derive name="q-ref-user-relation-choice.type" type="q-user-relation-choice.type">
     <choice>
     </choice>
   </derive>
+
+  <type name="q-base-relation.type">
+    <container/>
+  </type>
+
   <derive name="q-subquery.type" type="q-node.type">
     <structure>    
       <member name="occurrences">
@@ -38,19 +45,7 @@
     </structure>
   </derive>
 
-  <root name="tree_query" type="q-tree_query.type"/>
-
-  <type name="q-relation-base.type">
-    <container/>
-  </type>
-
-  <derive type="q-relation-base.type" 
-	  name="q-extra-relation-base.type" >
-    <container>
-    </container>
-  </derive>
-  
-  <derive name="q-descendant-relation.type" type="q-relation-base.type">
+  <derive name="q-descendant-relation.type" type="q-base-relation.type">
     <container>
       <attribute name="min_length">
 	<cdata format="positiveInteger"/>
@@ -58,57 +53,88 @@
       <attribute name="max_length">
 	<cdata format="positiveInteger"/>
       </attribute>
+      <attribute name="label">
+	<constant>descendant</constant>
+      </attribute>
     </container>
   </derive>
-  <derive name="q-user-relation.type" type="q-relation-base.type">
+  <derive name="q-ancestor-relation.type" type="q-descendant-relation.type">
+    <container>
+      <attribute name="label">
+	<constant>ancestor</constant>
+      </attribute>
+    </container>
+  </derive>
+  <derive name="q-child-relation.type" type="q-base-relation.type">
+    <container>
+      <attribute name="label">
+	<constant>child</constant>
+      </attribute>
+    </container>
+  </derive>
+  <derive name="q-parent-relation.type" type="q-child-relation.type">
+    <container>
+      <attribute name="label">
+	<constant>parent</constant>
+      </attribute>
+    </container>
+  </derive>
+  <derive name="q-user-relation.type" type="q-base-relation.type">
     <container>
       <attribute required="1" name="label" type="q-user-relation-choice.type"/>
     </container>
   </derive>
-  <derive name="q-extra-descendant-relation.type" type="q-extra-relation-base.type" >
+  <derive name="q-depth-first-precedes.type" type="q-base-relation.type">
     <container>
-      <attribute name="min_length">
-	<cdata format="positiveInteger"/>
+      <attribute name="label">
+	<constant>depth-first-precedes</constant>
       </attribute>
-      <attribute name="max_length">
-	<cdata format="positiveInteger"/>
-      </attribute>
-      <attribute name="negate" type="bool"/>            
     </container>
   </derive>
-  <derive name="q-extra-child-relation.type" type="q-extra-relation-base.type">
+  <derive name="q-depth-first-follows.type" type="q-base-relation.type">
     <container>
-      <attribute name="negate" type="bool"/>      
+      <attribute name="label">
+	<constant>depth-first-follows</constant>
+      </attribute>
     </container>
   </derive>
-  <derive name="q-extra-user-relation.type" type="q-extra-relation-base.type">
+  <derive name="q-order-precedes.type" type="q-base-relation.type">
     <container>
-      <attribute required="1" name="label" type="q-extra-user-relation-choice.type"/>
-      <attribute name="negate" type="bool"/>      
+      <attribute name="label">
+	<constant>depth-first-precedes</constant>
+      </attribute>
+    </container>
+  </derive>
+  <derive name="q-order-follows.type" type="q-base-relation.type">
+    <container>
+      <attribute name="label">
+	<constant>depth-first-follows</constant>
+      </attribute>
     </container>
   </derive>
 
+
   <type name="q-relation.type">
     <sequence content_pattern="(child|parent|descendant|ancestor|user-defined)?">
-      <element name="child" type="q-relation-base.type"/>
-      <element name="parent" type="q-relation-base.type"/>
+      <element name="child" type="q-child-relation.type"/>
+      <element name="parent" type="q-parent-relation.type"/>
       <element name="descendant" type="q-descendant-relation.type"/>
-      <element name="ancestor" type="q-descendant-relation.type"/>
+      <element name="ancestor" type="q-ancestor-relation.type"/>
       <element name="user-defined" type="q-user-relation.type"/> 
     </sequence>
   </type>
 
-  <type name="q-extra-relation.type">
+  <type name="q-ref-relation.type">
     <sequence content_pattern="(descendant|ancestor|parent|child|depth-first-precedes|depth-first-follows|order-precedes|order-follows|user-defined)?">
-      <element name="descendant" type="q-extra-descendant-relation.type"/>
-      <element name="ancestor" type="q-extra-descendant-relation.type"/>
-      <element name="parent" type="q-extra-child-relation.type"/>
-      <element name="child" type="q-extra-child-relation.type"/>
-      <element name="depth-first-precedes" type="q-extra-relation-base.type"/>
-      <element name="depth-first-follows" type="q-extra-relation-base.type"/>
-      <element name="order-precedes" type="q-extra-relation-base.type"/>
-      <element name="order-follows" type="q-extra-relation-base.type"/>
-      <element name="user-defined" type="q-extra-user-relation.type"/> 
+      <element name="descendant" type="q-descendant-relation.type"/>
+      <element name="ancestor" type="q-ancestor-relation.type"/>
+      <element name="parent" type="q-parent-relation.type"/>
+      <element name="child" type="q-child-relation.type"/>
+      <element name="depth-first-precedes" type="q-depth-first-precedes.type"/>
+      <element name="depth-first-follows" type="q-depth-first-follows.type"/>
+      <element name="order-precedes" type="q-order-precedes.type"/>
+      <element name="order-follows" type="q-order-follows.type"/>
+      <element name="user-defined" type="q-user-relation.type"/> 
     </sequence>
   </type>
 
@@ -162,7 +188,7 @@
 
   <type name="q-ref.type">
     <structure role="#NODE">
-      <member name="relation" type="q-extra-relation.type"/>
+      <member name="relation" type="q-ref-relation.type"/>
       <member name="target">
 	<cdata format="PMLREF"/>
       </member>
@@ -172,6 +198,7 @@
   <type name="expr-seq.type">
     <sequence role="#CHILDNODES">
       <element name="subquery" type="q-subquery.type"/>
+      <element name="ref" type="q-ref.type"/>
       <element name="test" type="q-test.type"/>
       <element name="not" type="q-group.type"/>
       <element name="or" type="q-group.type"/>
