@@ -1526,7 +1526,8 @@ sub openFile {
     }
   }
   $grp->{treeNo}=0;
-  $grp->{currentNode}=undef;
+  $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
+  $grp->{currentNode}=$grp->{root};
   applyFileSuffix($grp,$goto);
   unless ($opts{-justpreloaded}) {
     my $hook_result = doEvalHook($grp,"file_opened_hook");
