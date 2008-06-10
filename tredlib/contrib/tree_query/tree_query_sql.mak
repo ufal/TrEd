@@ -9,6 +9,8 @@ use Benchmark;
 use Carp;
 use strict;
 use warnings;
+use PMLSchema;
+
 BEGIN { import TredMacro qw(first SeqV AltV ListV) }
 
 sub new {
@@ -18,6 +20,9 @@ sub new {
     connect => $opts->{connect},
     results => undef,
     query_nodes=>undef,
+    type_decls => {},
+    schema_types => {},
+    schemas => {},
   }, $class;
   $self->prepare_query($query_tree,$opts) if $query_tree;
   return $self;
@@ -175,7 +180,7 @@ sub idx_to_pos {
   my @res;
   my @list=@$idx_list;
   while (@list) {
-    my ($idx,$type)=(shift@list, shift@list);
+    my ($idx,$type)=(shift @list, shift @list);
     my $result = $self->run_sql_query(qq(SELECT "file", "sent_num", "pos" FROM ${type}_pos WHERE "idx" = $idx ).$self->serialize_limit(1),
 			   { MaxRows=>1, RaiseError=>1 });
     $result = $result->[0];
@@ -545,7 +550,7 @@ sub build_sql {
     for my $t (@table) {
       my ($tab, $name, $node)=@$t;
       push @sql, ($i++)==0 ? ["\nFROM\n  ",'space'] : [",\n  ",'space'];
-      push @sql, ["$tab $name",$node];
+      push @sql, [qq{"$tab" "$name"},$node];
       if ($extra_joins->{$name}) {
 	for my $join_spec (@{$extra_joins->{$name}}) {
 	  my ($join_as,$join_tab,$join_on,$join_type)=@{$join_spec};
@@ -569,6 +574,46 @@ sub build_sql {
   }
 }
 
+sub get_schema_for {
+  my ($self,$type)=@_;
+  if ($self->{schema_types}{$type}) {
+    return $self->{schema_types}{$type};
+  }
+  my $t=$type; $t=~s/'/''/g;
+  my $results = $self->run_sql_query(qq(SELECT "root" FROM "#PMLTYPES" WHERE "type" = '$t' ),{ MaxRows=>1, RaiseError=>1 });
+  return $self->{schema_types}{$type} = $self->get_schema($results->[0][0]);
+}
+sub get_schema {
+  my ($self,$name)=@_;
+  return unless $name;
+  if ($self->{schemas}{$name}) {
+    return $self->{schemas}{$name};
+  }
+  my $n=$name; $n=~s/'/''/g;
+  my $results = $self->run_sql_query(qq(SELECT "schema" FROM "#PML" WHERE "root" = '$n' ),{ MaxRows=>1, RaiseError=>1 });
+  return $self->{schemas}{$name} = PMLSchema->new({string => $results->[0][0]});
+}
+sub get_decl_for {
+  my ($self,$type)=@_;
+  if ($self->{type_decls}{$type}) {
+    return $self->{type_decls}{$type};
+  }
+  my $schema = $self->get_schema_for($type);
+  $type=~s{/}{.type/};
+  return $self->{type_decls}{$type}=$schema->find_type_by_path('!'.$type);
+}
+
+sub _table_name {
+  my ($path) = @_;
+  return unless defined $path;
+  $path=~s/\[LIST\]/LM/;
+  $path=~s/\[ALT\]/AM/;
+  $path=~s{^!([^/]+)\.type\b}{$1};
+  return $path;
+}
+
+
+
 sub sql_serialize_expression_pt {# pt stands for parse tree
   my ($self,$pt,$opts,$extra_joins)=@_;
   my $this_node_id = $opts->{id};
@@ -588,26 +633,91 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
       } else {
 	$id=$this_node_id;
       }
-      my $column = pop @$pt;
-      my $table = $opts->{type};
       my $node_id = $id;
-      for my $tab (@$pt) {
-	next if $tab =~ /^[mw]$/;  # FIXME: hack
-	my $prev = $id;
+      if ($self->{connect} and $self->{connect}{username} eq 'treebase2') {
+	my $decl = $self->get_decl_for($opts->{type});
+	my $column;
 	my $j;
 	if ($opts->{negative} or $cmp) {
-	  $opts->{use_exists}=1;
 	  $j=$extra_joins;
 	} else {
 	  $j=$opts->{join};
 	}
 	$j->{$node_id}||=[];
+
 	my $i = @{$j->{$node_id}};
-	$id.="_${tab}_$i";
-	$table.="_$tab";
-	push @{$j->{$node_id}},[$id,$table, qq($id."idx" = $prev."idx"), 'LEFT']; # should be qq($prev."$tab")
+	$id=$node_id.":$i";
+	my $table=_table_name($decl->get_decl_path);
+	push @{$j->{$node_id}},[$id,$table, qq("$id"."#idx" = "$node_id"."data")]; # should be qq($prev."$tab")
+	my @t = @$pt;
+	while (@t) {
+	  my $prev = $id;
+	  my $mdecl;
+	  my $left_join = 0;
+	  my $decl_is = $decl->get_decl_type;
+	  if ($decl_is == PML_STRUCTURE_DECL or
+              $decl_is == PML_CONTAINER_DECL) {
+	    $column= shift @t;
+	    $mdecl = $decl->get_member_by_name($column);
+	    if (!$mdecl and $decl_is == PML_STRUCTURE_DECL) {
+	      $mdecl=$decl->get_member_by_name($column.'.rf');
+	      $mdecl=undef unless $mdecl->get_knit_name eq $column;
+	    }
+	    $mdecl = $mdecl->get_knit_content_decl if $mdecl;
+	  } elsif ($decl_is == PML_LIST_DECL or $decl_is == PML_ALT_DECL) {
+	    $mdecl=$decl->get_knit_content_decl;
+	    $column='#value';
+	    $left_join=1;
+	  } elsif ($decl_is == PML_SEQUENCE_DECL) {
+	    $column= shift @t;
+	    $mdecl = $decl->get_element_by_name($column);
+	    $left_join=1;
+	  } elsif ($decl_is == PML_ELEMENT_DECL) {
+	    $mdecl=$decl->get_knit_content_decl;
+	    $column='#value';
+	  } else {
+	    die ref($self)." internal error: Didn't expect $decl_is type\n";
+	  }
+	  die "Didn't find member '$column' on '$table' while compiling expression $opts->{expression} of node '$this_node_id'" unless $mdecl;
+	  if ($left_join and ($opts->{negative} or $cmp)) {
+	    $opts->{use_exists}=1;
+	  }
+	  if ($mdecl->is_atom) {
+	    if (@t) {
+	      die "Cannot follow attribute path past atomic type while compiling expression $opts->{expression} of node '$this_node_id': "
+		.join('/',@t);
+	    }
+	    return qq( "$prev"."$column" );
+	  } else {
+	    $i = @{$j->{$node_id}};
+	    $id=$node_id.":$i";
+	    $table=_table_name($mdecl->get_decl_path);
+	    push @{$j->{$node_id}},[$id,$table, qq("$id"."#idx" = "$prev"."$column"), ($left_join and !$opts->{use_exists}) ? 'LEFT' : ()];
+	  }
+	  $decl=$mdecl;
+	}
+      } else {
+	my $table = $opts->{type};
+
+	my $column = pop @$pt;
+	for my $tab (@$pt) {
+	  next if $tab =~ /^[mw]$/; # FIXME: hack
+	  my $prev = $id;
+	  my $j;
+	  if ($opts->{negative} or $cmp) {
+	    $opts->{use_exists}=1;
+	    $j=$extra_joins;
+	  } else {
+	    $j=$opts->{join};
+	  }
+	  $j->{$node_id}||=[];
+	  my $i = @{$j->{$node_id}};
+	  $id.="_${tab}_$i";
+	  $table.="_$tab";
+	  push @{$j->{$node_id}},[$id,$table, qq($id."idx" = $prev."idx"), $opts->{use_exists} ? 'LEFT' : ()]; # should be qq($prev."$tab")
+	}
+	return qq( $id."$column" );
       }
-      return qq( $id."$column" );
     } elsif ($type eq 'FUNC') {
       my $name = $pt->[0];
       my $args = $pt->[1];
@@ -714,7 +824,7 @@ sub sql_serialize_expression {
     }
     if (@from) {
       $wrap='EXISTS (SELECT *'
-	.' FROM '.join(', ',@from)
+	.' FROM '.join(', ',map qq{"$_"}, @from)
 	.' WHERE '.join(' AND ',@where);
       $wrap=~s/%/%%/g;
       $wrap.=' AND ' if @where;
