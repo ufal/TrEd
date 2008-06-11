@@ -794,7 +794,10 @@ sub get_value_line_hook {
   init_id_map($tree);
   return $VALUE_LINE_MODE == 0 ?
     make_string_with_tags(tq_serialize($tree),[]) :
-    build_sql($tree,{format=>1});
+      UNIVERSAL::isa($SEARCH,'Tree_Query::SQLSearch') ? 
+	  ($SEARCH->{evaluator} ? $SEARCH->{evaluator}->build_sql($tree,{format=>1})
+	     : 'NO EVALUATOR')
+	     : 'PLEASE SELECT SQL SEARCH';
 }
 
 sub line_click_hook {
@@ -970,7 +973,11 @@ sub Search {
   unless ($SEARCH) {
     SelectSearch();
   }
-  $SEARCH->search_first();
+  if (UNIVERSAL::isa($SEARCH,'Tree_Query::SQLSearch')) {
+    $SEARCH->search_first({edit_sql=>1});
+  } else {
+    $SEARCH->search_first();
+  }
 }
 
 sub SelectSearch {
