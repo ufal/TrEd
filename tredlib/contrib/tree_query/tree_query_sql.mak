@@ -89,6 +89,7 @@ sub prepare_query {
     $self->{id_map}=\%id;
     $self->{name2node}=\%name2node_hash;
   }
+  $self->{sql}=undef;
   $self->prepare_sql($self->sql_serialize_conditions($query_tree,
 						     { %$opts,
 						       syntax=>$self->sql_driver,
@@ -181,16 +182,17 @@ sub idx_to_pos {
   my @list=@$idx_list;
   while (@list) {
     my ($idx,$type)=(shift @list, shift @list);
-    my $main = $self->get_schema_name_for($type).'__trees';
+    my $basename = $self->get_schema_name_for($type);
     my $result = $self->run_sql_query(<<"EOF".$self->serialize_limit(1),{ MaxRows=>1, RaiseError=>1 });
 SELECT "f"."file", "f"."tree_no", "n"."#idx"-"n"."root_idx"
-FROM "${main}" "n" JOIN "${main}__files" "f" ON "n"."root_idx"="f"."#idx"
+FROM "${basename}__trees" "n" JOIN "${basename}__files" "f" ON "n"."root_idx"="f"."#idx"
 WHERE "n"."#idx" = ${idx}
 EOF
     $result = $result->[0];
-    my $fn = $result->[0];
+    my ($fn,$tn,$nn) = @$result;
     $fn=~s{/net/projects/pdt/pdt20/data/}{}; # FIXME
-    push @res, $fn.'##'.($result->[1]+1).'.'.$result->[2];
+    print "$type/$idx = [$fn, $tn, $nn]\n";
+    push @res, $fn.'##'.($tn+1).'.'.$nn;
   }
   return @res;
 }
@@ -334,27 +336,31 @@ sub relation {
     $cond = qq{"$id"."#idx"<"$target"."#idx"};
   } elsif ($relation eq 'order-precedes') {
     my $order; # FIXME: get the ordering attribute from the database
-    if ($opts->{type} eq 'a') {
-      $order = q(ord);
-    } else {
-      $order = q(tfa/deepord);
+    my $decl = $self->get_decl_for($opts->{type});
+    if ($decl->get_decl_type == PML_ELEMENT_DECL) {
+      $decl = $decl->get_content_decl;
     }
-    $cond =
-      $self->sql_serialize_predicate(
-	{
-	  id=>$opts->{id},
-	  type=>$opts->{type},
-	  join=>$opts->{join},
-	  expression => qq{\$$id.$order},
-	},
-	{
-	  id=>$opts->{id},
-	  type=>$opts->{type},
-	  join=>$opts->{join},
-	  expression => qq{\$$target.$order},
-	},
-	'<',$opts # there should be no ambiguity here, treat expressoins as positive
-       );
+    my ($order) = map { $_->get_name } $decl->find_members_by_role('#ORDER');
+    if ($order) {
+      $cond =
+	$self->sql_serialize_predicate(
+	  {
+	    id=>$opts->{id},
+	    type=>$opts->{type},
+	    join=>$opts->{join},
+	    expression => qq{\$$id.$order},
+	  },
+	  {
+	    id=>$opts->{id},
+	    type=>$opts->{type},
+	    join=>$opts->{join},
+	    expression => qq{\$$target.$order},
+	  },
+	  '<',$opts # there should be no ambiguity here, treat expressoins as positive
+	 );
+    } else {
+      die "Node-type $opts->{type} has no ordering attribute; use depth-first-precedes instead!\n";
+    }
   } else {
     die "Unsupported relation: $relation between nodes $id and $target\n";
   }
@@ -394,14 +400,25 @@ sub user_defined_relation {
 	q(=),$opts,
        )
   } elsif ($relation eq 'a/lex.rf') {
-    $cond =  qq{"$id"."a_lex_idx"="$target"."#idx"}
+#    $cond =  qq{"$id"."a_lex_idx"="$target"."#idx"}
+    $cond =
+      $self->sql_serialize_predicate(
+	{
+	  id=>$opts->{id},
+	  type=>$opts->{type},
+	  join=>$opts->{join},
+	  expression => qq{\$$id.a/lex},
+	},
+	qq{"$target"."#idx"},
+	'=',$opts
+       );
   } elsif ($relation eq 'a/aux.rf') {
     $cond = $self->sql_serialize_predicate(
       {
 	id=>$from_id,
 	type=>$type,
 	join=>$opts->{join},
-	expression => qq{\$$id.a_aux/a_idx},
+	expression => qq{\$$id.a/aux.rf},
 	negative=>$opts->{negative},
       },
       qq{"$target"."#idx"},
@@ -409,18 +426,26 @@ sub user_defined_relation {
      )
   } elsif ($relation eq 'a/lex.rf|a/aux.rf') {
     $cond =
-      qq{("$id"."a_lex_idx"="$target"."#idx" OR }.
-	$self->sql_serialize_predicate(
-	  {
-	    id=>$from_id,
-	    type=>$type,
-	    join=>$opts->{join},
-	    expression => qq{\$$id.a_aux/a_idx},
-	    negative=>$opts->{negative},
-	  },
-	  qq{"$target"."#idx"},
-	  qq(=),$opts,
-	 ).')';
+      '('.$self->sql_serialize_predicate(
+	{
+	  id=>$opts->{id},
+	  type=>$opts->{type},
+	  join=>$opts->{join},
+	  expression => qq{\$$id.a/lex},
+	},
+	qq{"$target"."#idx"},
+	'=',$opts
+       ). qq{ OR }. $self->sql_serialize_predicate(
+	 {
+	   id=>$from_id,
+	   type=>$type,
+	   join=>$opts->{join},
+	   expression => qq{\$$id.a/aux.rf},
+	   negative=>$opts->{negative},
+	 },
+	 qq{"$target"."#idx"},
+	 qq(=),$opts,
+	).')';
   } elsif ($relation eq 'coref_gram') {
     $cond = 
       $self->sql_serialize_predicate(
@@ -428,7 +453,7 @@ sub user_defined_relation {
 	  id=>$from_id,
 	  type=>$type,
 	  join=>$opts->{join},
-	  expression => qq{\$$id.coref_gram/corg_idx},
+	  expression => qq{\$$id.coref_gram.rf},
 	  negative=>$opts->{negative},
 	},
 	qq{"$target"."#idx"},
@@ -441,7 +466,7 @@ sub user_defined_relation {
 	  id=>$from_id,
 	  type=>$type,
 	  join=>$opts->{join},
-	  expression => qq{\$$id.coref_text/cort_idx},
+	  expression => qq{\$$id.coref_text.rf},
 	  negative=>$opts->{negative},
 	},
 	qq{"$target"."#idx"},
@@ -454,7 +479,7 @@ sub user_defined_relation {
 	  id=>$from_id,
 	  type=>$type,
 	  join=>$opts->{join},
-	  expression => qq{\$$id.compl/compl_idx},
+	  expression => qq{\$$id.compl.rf},
 	  negative=>$opts->{negative},
 	},
 	qq{"$target"."#idx"},
@@ -530,7 +555,7 @@ sub build_sql {
     if ($n->{optional}) {
       # identify with parent
       if (@conditions) {
-	@conditions = ( [ [['(('], @{Tree_Query::_group(\@conditions,[' AND '])}, [qq{) OR "$id"."#idx"="$parent_id"."#idx")}]], $n] );
+	@conditions = ( [ [['(('], @{Tree_Query::_group(\@conditions,["\n    AND "])}, [qq{) OR "$id"."#idx"="$parent_id"."#idx")}]], $n] );
       }
     }
     push @where, @conditions;
@@ -562,6 +587,7 @@ sub build_sql {
       if ($extra_joins->{$name}) {
 	for my $join_spec (@{$extra_joins->{$name}}) {
 	  my ($join_as,$join_tab,$join_on,$join_type)=@{$join_spec};
+	  print "JOIN: $join_as,$join_tab,$join_on,$join_type\n";
 	  $join_type||='';
 	  push @sql, [' ','space'], [qq($join_type JOIN "$join_tab" "$join_as" ON $join_on),$node]
 	}
@@ -569,7 +595,7 @@ sub build_sql {
     }
   }
   {
-    my @w=@{Tree_Query::_group(\@where,[' AND '])};
+    my @w=@{Tree_Query::_group(\@where,["\n  AND "])};
     push @sql, [ "\nWHERE\n     ",'space'],@w if @w;
   }
   unless (defined($tree_parent_id) and defined($self->{id_map}{$tree}) 
@@ -591,7 +617,7 @@ sub get_schema_name_for {
   }
   my $t=$type; $t=~s/'/''/g;
   my $results = $self->run_sql_query(qq(SELECT "root" FROM "#PMLTYPES" WHERE "type" = '$t' ),{ MaxRows=>1, RaiseError=>1 });
-  return $self->{schema_types}{$type} = $results->[0][0];
+  return $self->{schema_types}{$type} = $results->[0][0] || die "Did not find schema name for type $type\n";
 }
 sub get_schema {
   my ($self,$name)=@_;
@@ -602,6 +628,9 @@ sub get_schema {
   my $n=$name; $n=~s/'/''/g;
   my $results = $self->run_sql_query(qq(SELECT "schema" FROM "#PML" WHERE "root" = '$n' ),
 				     { MaxRows=>1, RaiseError=>1, LongReadLen=> 512*1024 });
+  unless (ref($results) and ref($results->[0]) and $results->[0][0]) {
+    die "Failed to obtain PML schema $name\n";
+  }
   return $self->{schemas}{$name} = PMLSchema->new({string => $results->[0][0]});
 }
 sub get_decl_for {
@@ -612,7 +641,7 @@ sub get_decl_for {
   }
   my $schema = $self->get_schema($self->get_schema_name_for($type));
   $type=~s{(/)|$}{.type$1};
-  my $decl = $self->{type_decls}{$type}=$schema->find_type_by_path('!'.$type);
+  my $decl = $self->{type_decls}{$type} = $schema->find_type_by_path('!'.$type);
   $decl or die "Did not find type '!$type'";
   return $decl;
 }
@@ -650,11 +679,13 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
       my $node_id = $id;
       if ($self->{connect} and $self->{connect}{username} eq 'treebase2') {
 	my $decl = $self->get_decl_for($opts->{type});
-	my $column;
 	my $j;
 	if ($opts->{negative} or $cmp) {
+	  print "extra joins\n";
+	  $opts->{use_exists}=1;
 	  $j=$extra_joins;
 	} else {
+	  print "normal joins\n";
 	  $j=$opts->{join};
 	}
 	$j->{$node_id}||=[];
@@ -662,39 +693,50 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
 	my $i = @{$j->{$node_id}};
 	$id=$node_id."/$i";
 	my $table=_table_name($decl->get_decl_path);
+	print "table: $table\n";
 	push @{$j->{$node_id}},[$id,$table, qq("$id"."#idx" = "$node_id"."data")]; # should be qq($prev."$tab")
+	print qq{join: [$id,$table, qq("$id"."#idx" = "$node_id"."data")]\n};
 	my @t = @$pt;
-	while (@t) {
+	my $column;
+	my $iter=0;
+	while ($iter++ < 100) {
 	  my $prev = $id;
 	  my $mdecl;
 	  my $left_join = 0;
 	  my $decl_is = $decl->get_decl_type;
 	  if ($decl_is == PML_STRUCTURE_DECL or
               $decl_is == PML_CONTAINER_DECL) {
+	    last unless @t;
 	    $column= shift @t;
+	    print "struct/container, column $column\n";
 	    $mdecl = $decl->get_member_by_name($column);
 	    if (!$mdecl and $decl_is == PML_STRUCTURE_DECL) {
 	      $mdecl=$decl->get_member_by_name($column.'.rf');
-	      $mdecl=undef unless $mdecl->get_knit_name eq $column;
+	      $mdecl=undef unless $mdecl; # and $mdecl->get_knit_name eq $column;
 	    }
 	    $mdecl = $mdecl->get_knit_content_decl if $mdecl;
 	  } elsif ($decl_is == PML_LIST_DECL or $decl_is == PML_ALT_DECL) {
 	    $mdecl=$decl->get_knit_content_decl;
 	    $column='#value';
 	    $left_join=1;
+	    print "list/alt, column $column\n";
 	  } elsif ($decl_is == PML_SEQUENCE_DECL) {
+	    last unless @t;
 	    $column= shift @t;
 	    $mdecl = $decl->get_element_by_name($column);
 	    $left_join=1;
+	    print "seq, column $column\n";
 	  } elsif ($decl_is == PML_ELEMENT_DECL) {
 	    $mdecl=$decl->get_knit_content_decl;
 	    $column='#value';
+	    print "seqelement, column $column\n";
 	  } else {
 	    die ref($self)." internal error: Didn't expect $decl_is type\n";
 	  }
 	  die "Didn't find member '$column' on '$table' while compiling expression $opts->{expression} of node '$this_node_id'" unless $mdecl;
 	  if ($left_join and ($opts->{negative} or $cmp)) {
 	    $opts->{use_exists}=1;
+	    $j=$extra_joins;
 	  }
 	  if ($mdecl->is_atomic) {
 	    if (@t) {
@@ -703,6 +745,7 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
 	    }
 	    return qq( "$prev"."$column" );
 	  } else {
+	    print "non-atomic: $mdecl\n";
 	    $i = @{$j->{$node_id}};
 	    $id=$node_id."/$i";
 	    $table=_table_name($mdecl->get_decl_path);
@@ -710,6 +753,10 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
 	  }
 	  $decl=$mdecl;
 	}
+	if ($iter=>100) {
+	  die "Deep recursion while compiling $opts->{expression} of node '$this_node_id'";
+	}
+	die "Expression $opts->{expression} of node '$this_node_id' does not lead to an attomic value";
       } else {
 	my $table = $opts->{type};
 
@@ -796,11 +843,12 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
   } else {
     if ($pt=~/^[-0-9']/) { # literal
       return qq( $pt );
-    } elsif ($pt=~s/\$//) { # a plain variable
+    } elsif ($pt=~s/^\$//) { # a plain variable
+      return qq{ "$this_node_id"."#idx" } if $pt eq '$';
       if ($self->cmp_subquery_scope($this_node_id,$pt)<0) {
 	die "Node '$pt' belongs to a sub-query and cannot be referred from the scope of node '$this_node_id' ($opts->{expression})\n";
       }
-      return qq( $pt."#idx" );
+      return qq( "$pt"."#idx" );
     } else { # unrecognized token
       die "Token '$pt' not recognized in expression $opts->{expression} of node '$this_node_id'\n";
     }
@@ -809,7 +857,7 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
 
 sub sql_serialize_expression {
   my ($self,$opts)=@_;
-
+  print "$opts->{expression}\n";
   my $pt = Tree_Query::parse_expression($opts->{expression}); # $pt stands for parse tree
   die "Invalid expression '$opts->{expression}' on node '$opts->{id}'" unless defined $pt;
 
@@ -829,7 +877,7 @@ sub sql_serialize_expression {
 	  if (defined $table) {
 	    $table.=qq( $join_type JOIN "$join_tab" "$join_as" ON $join_on);
 	  } else {
-	    $table=qq($join_tab $join_as);
+	    $table=qq("$join_tab" "$join_as");
 	    push @where, $join_on;
 	  }
 	}
@@ -838,10 +886,10 @@ sub sql_serialize_expression {
     }
     if (@from) {
       $wrap='EXISTS (SELECT *'
-	.' FROM '.join(', ',map qq{"$_"}, @from)
-	.' WHERE '.join(' AND ',@where);
+	.' FROM '.join(', ',@from)
+	.' WHERE '.join("\n   AND ",@where);
       $wrap=~s/%/%%/g;
-      $wrap.=' AND ' if @where;
+      $wrap.="\n  AND " if @where;
       $wrap.='%s )';
     }
   }
@@ -896,9 +944,9 @@ sub sql_serialize_element {
       } grep { $_->{'#name'} ne 'node' } $node->children;
    return unless @c;
    return
-     $name eq 'not' ? [[['NOT('],@{Tree_Query::_group(\@c,[' AND '])},[')']],$node] :
-     $name eq 'and' ? [[['('],@{Tree_Query::_group(\@c,[' AND '])},[')']],$node] :
-     $name eq 'or' ? [[['('],@{Tree_Query::_group(\@c,[' OR '])},[')']],$node] : ();
+     $name eq 'not' ? [[['NOT('],@{Tree_Query::_group(\@c,["\n      AND "])},[')']],$node] :
+     $name eq 'and' ? [[['('],@{Tree_Query::_group(\@c,["\n    AND "])},[')']],$node] :
+     $name eq 'or' ? [[['('],@{Tree_Query::_group(\@c,["\n    OR "])},[')']],$node] : ();
   } elsif ($name eq 'subquery') {
     my $subquery = $self->build_sql($node,{
       format => 1,
@@ -913,7 +961,7 @@ sub sql_serialize_element {
     @vals=(Fslib::Struct->new({min=>1})) unless @vals;
     for my $occ (@vals) { # this is not optimal for @occ>1
       my ($min,$max)=($occ->{min},$occ->{max});
-      if (length($min) and length($max)) {
+      if (defined($min) and length($min) and defined($max) and length($max)) {
 	if ($min==$max) {
 	  push @occ,[[['('],@$subquery,[qq')=$min']],$node];
 	} else {

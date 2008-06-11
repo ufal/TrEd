@@ -1209,7 +1209,6 @@ sub tq_serialize {
       push @ret,["\$$ref",$node,$query_node,'-foreground=>darkblue'];
     } elsif ($name eq 'test') {
       my $test=  $node->{a}.' '.$node->{operator}.' '.$node->{b};
-      #$test=~s/"//g;		# FIXME
       @ret = ( [$test,$node,$query_node] );
     } elsif ($name eq 'subquery' or $name eq 'node') {
       if ($name eq 'subquery') {
@@ -1295,11 +1294,15 @@ sub query_parser {
 }
 sub parse_query {
   shift if @_>1;
-  return query_parser()->parse_query($_[0]);
+  my $ret = eval {query_parser()->parse_query($_[0])};
+  confess($@) if $@;
+  return $ret;
 }
 sub parse_expression {
   shift if @_>1;
-  return query_parser()->parse_expression($_[0]);
+  my $ret = eval { query_parser()->parse_expression($_[0]) };
+  confess($@) if $@;
+  return $ret;
 }
 
 
