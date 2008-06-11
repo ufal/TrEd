@@ -1009,8 +1009,12 @@ sub claim_search_win {
     } else {
       if ($pt=~/^[-0-9']/) {	# literal
 	return qq( $pt );
-      } elsif ($pt=~s/\$//) {	# a plain variable
-	return $self->serialize_target($pt,$opts);
+      } elsif ($pt=~s/^\$//) {	# a plain variable
+	if ($pt eq '$') {
+	  return $self->serialize_target($this_node_id,$opts);
+	} else {
+	  return $self->serialize_target($pt,$opts);
+	}
       } else {			# unrecognized token
 	die "Token '$pt' not recognized in expression $opts->{expression} of node '$this_node_id'\n";
       }
