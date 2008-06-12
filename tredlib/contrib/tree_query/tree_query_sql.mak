@@ -335,7 +335,6 @@ sub relation {
   } elsif ($relation eq 'depth-first-precedes') {
     $cond = qq{"$id"."#idx"<"$target"."#idx"};
   } elsif ($relation eq 'order-precedes') {
-    my $order; # FIXME: get the ordering attribute from the database
     my $decl = $self->get_decl_for($opts->{type});
     if ($decl->get_decl_type == PML_ELEMENT_DECL) {
       $decl = $decl->get_content_decl;
@@ -501,7 +500,7 @@ sub build_sql {
   my @where;
   my %conditions;
   my $extra_joins = $opts->{join} || {};
-  my $default_type = $opts->{type}||$tree->root->{'node-type'}||'a';
+  my $default_type = $opts->{type}||$tree->root->{'node-type'}||'UNKNOWN';
   for (my $i=0; $i<@nodes; $i++) {
     my $n = $nodes[$i];
     my $table = $n->{'node-type'}||$default_type;
@@ -587,8 +586,8 @@ sub build_sql {
       if ($extra_joins->{$name}) {
 	for my $join_spec (@{$extra_joins->{$name}}) {
 	  my ($join_as,$join_tab,$join_on,$join_type)=@{$join_spec};
-	  print "JOIN: $join_as,$join_tab,$join_on,$join_type\n";
 	  $join_type||='';
+	  print "JOIN: $join_as,$join_tab,$join_on,$join_type\n";
 	  push @sql, [' ','space'], [qq($join_type JOIN "$join_tab" "$join_as" ON $join_on),$node]
 	}
       }
@@ -640,7 +639,7 @@ sub get_decl_for {
     return $self->{type_decls}{$type};
   }
   my $schema = $self->get_schema($self->get_schema_name_for($type));
-  $type=~s{(/)|$}{.type$1};
+  $type=~s{(/|$)}{.type$1};
   my $decl = $self->{type_decls}{$type} = $schema->find_type_by_path('!'.$type);
   $decl or die "Did not find type '!$type'";
   return $decl;
@@ -677,25 +676,27 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
 	$id=$this_node_id;
       }
       my $node_id = $id;
-      if ($self->{connect} and $self->{connect}{username} eq 'treebase2') {
 	my $decl = $self->get_decl_for($opts->{type});
 	my $j;
-	if ($opts->{negative} or $cmp) {
-	  print "extra joins\n";
-	  $opts->{use_exists}=1;
-	  $j=$extra_joins;
-	} else {
-	  print "normal joins\n";
-	  $j=$opts->{join};
-	}
+# 	if ($opts->{negative} or $cmp) {
+# 	  print "extra joins\n";
+# 	  $opts->{use_exists}=1;
+# 	  $j=$extra_joins;
+# 	} else {
+# 	  print "normal joins\n";
+	$j=$opts->{join};
+	#	}
+	$extra_joins->{$node_id}||=[];
 	$j->{$node_id}||=[];
-
-	my $i = @{$j->{$node_id}};
+	
+	my $i = 0;
 	$id=$node_id."/$i";
 	my $table=_table_name($decl->get_decl_path);
 	print "table: $table\n";
-	push @{$j->{$node_id}},[$id,$table, qq("$id"."#idx" = "$node_id"."data")]; # should be qq($prev."$tab")
-	print qq{join: [$id,$table, qq("$id"."#idx" = "$node_id"."data")]\n};
+	unless (@{$j->{$node_id}} or @{$extra_joins->{$node_id}}) {
+	  push @{$j->{$node_id}},[$id,$table, qq("$id"."#idx" = "$node_id"."data")]; # should be qq($prev."$tab")
+	  print qq{join: [$id,$table, qq("$id"."#idx" = "$node_id"."data")]\n};
+	}
 	my @t = @$pt;
 	my $column;
 	my $iter=0;
@@ -734,10 +735,6 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
 	    die ref($self)." internal error: Didn't expect $decl_is type\n";
 	  }
 	  die "Didn't find member '$column' on '$table' while compiling expression $opts->{expression} of node '$this_node_id'" unless $mdecl;
-	  if ($left_join and ($opts->{negative} or $cmp)) {
-	    $opts->{use_exists}=1;
-	    $j=$extra_joins;
-	  }
 	  if ($mdecl->is_atomic) {
 	    if (@t) {
 	      die "Cannot follow attribute path past atomic type while compiling expression $opts->{expression} of node '$this_node_id': "
@@ -745,8 +742,13 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
 	    }
 	    return qq( "$prev"."$column" );
 	  } else {
+	    if ($left_join and ($opts->{negative} or $cmp)) {
+	      $opts->{use_exists}=1;
+	      $j=$extra_joins;
+	    }
 	    print "non-atomic: $mdecl\n";
-	    $i = @{$j->{$node_id}};
+	    $i = @{$j->{$node_id}}+@{$extra_joins->{$node_id}};
+	    #$i = @{$j->{$node_id}};
 	    $id=$node_id."/$i";
 	    $table=_table_name($mdecl->get_decl_path);
 	    push @{$j->{$node_id}},[$id,$table, qq("$id"."#idx" = "$prev"."$column"), ($left_join and !$opts->{use_exists}) ? 'LEFT' : ()];
@@ -757,28 +759,6 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
 	  die "Deep recursion while compiling $opts->{expression} of node '$this_node_id'";
 	}
 	die "Expression $opts->{expression} of node '$this_node_id' does not lead to an attomic value";
-      } else {
-	my $table = $opts->{type};
-
-	my $column = pop @$pt;
-	for my $tab (@$pt) {
-	  next if $tab =~ /^[mw]$/; # FIXME: hack
-	  my $prev = $id;
-	  my $j;
-	  if ($opts->{negative} or $cmp) {
-	    $opts->{use_exists}=1;
-	    $j=$extra_joins;
-	  } else {
-	    $j=$opts->{join};
-	  }
-	  $j->{$node_id}||=[];
-	  my $i = @{$j->{$node_id}};
-	  $id.="_${tab}_$i";
-	  $table.="_$tab";
-	  push @{$j->{$node_id}},[$id,$table, qq("$id"."#idx" = "$prev"."#idx"), $opts->{use_exists} ? 'LEFT' : ()]; # should be qq($prev."$tab")
-	}
-	return qq( $id."$column" );
-      }
     } elsif ($type eq 'FUNC') {
       my $name = $pt->[0];
       my $args = $pt->[1];
@@ -902,11 +882,12 @@ sub sql_serialize_predicate {
   my ($right,$wrap_right) = ref($R) ? $self->sql_serialize_expression($R) : ($R);
   my $res;
   if ($operator eq '~' and $opts->{syntax} eq 'Oracle') {
-    $res = qq{REGEXP_LIKE($left,$right)};
+    $res = qq{REGEXP_LIKE($left,$right) AND $left IS NOT NULL};
   } elsif ($operator eq '~*' and $opts->{syntax} eq 'Oracle') {
-    $res = qq{REGEXP_LIKE($left,$right,'i')};
+    $res = qq{REGEXP_LIKE($left,$right,'i') AND $left IS NOT NULL};
   } else {
-    $res = $left.' '.uc($operator).' '.$right;
+    $res = qq{($left }.uc($operator).qq{ $right AND $left IS NOT NULL AND $right IS NOT NULL}.
+      ($operator eq '=' ? qq{ OR $left IS NULL AND $right IS NULL} : '').')';
   }
   if (defined $wrap_right) {
     $res=sprintf($wrap_right,$res);
@@ -1283,7 +1264,7 @@ sub show_result {
 	  if (defined($idx)) {
 	    $grp=$win;
 	    my $source_dir = $self->get_source_dir;
-	    Open($source_dir.'/'.$self->{current_result}[$idx]);
+	    Open($source_dir.'/'.$self->{current_result}[$idx],{-keep_related=>1});
 	    Redraw($win);
 	  }
 	}
@@ -1325,6 +1306,7 @@ sub open_pmltq {
   if (defined $first and length $first) {
     my $source_dir = $self->get_source_dir;
     $opts->{-norecent}=1;
+    $opts->{-keep_related}=1;
     my $fsfile = Open($source_dir.'/'.$first,$opts);
     if (ref $fsfile) {
       $fsfile->changeAppData('tree_query_url',$filename);
