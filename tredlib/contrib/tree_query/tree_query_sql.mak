@@ -690,7 +690,7 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
 	$id=$node_id."/$i";
 	my $table=_table_name($decl->get_decl_path);
 	print "table: $table\n";
-	unless (@{$j->{$node_id}} or @{$extra_joins->{$node_id}}) {
+	unless (first {$_->[0] eq $id} (@{$j->{$node_id}}, @{$extra_joins->{$node_id}})) {
 	  push @{$j->{$node_id}},[$id,$table, qq("$id"."#idx" = "$node_id"."data")]; # should be qq($prev."$tab")
 	  print qq{join: [$id,$table, qq("$id"."#idx" = "$node_id"."data")]\n};
 	}
