@@ -344,8 +344,8 @@ Bind sub {
 };
 
 my %schema_map = (
-  t => PMLSchema->new({filename => 'tdata_schema.xml',use_resources=>1}),
-  a => PMLSchema->new({filename => 'adata_schema.xml',use_resources=>1}),
+  't-node' => PMLSchema->new({filename => 'tdata_schema.xml',use_resources=>1}),
+  'a-node' => PMLSchema->new({filename => 'adata_schema.xml',use_resources=>1}),
 );
 
 Bind sub {
