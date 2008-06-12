@@ -2232,7 +2232,7 @@ sub draw_text_line {
       $j++;
       if ($c=~/^(.*?)=(.*)$/s) {
 	$c=$1;
-	$at_text=$2;
+	$at_text=encode($2);
       } else {
 	$at_text=$self->prepare_text_field($node,$c,$grp);
       }
