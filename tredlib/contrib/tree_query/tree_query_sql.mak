@@ -371,33 +371,30 @@ sub user_defined_relation {
   my $relation=$params->{label};
   my $type = $opts->{type};
   my $cond;
+  my $join=$opts->{join};
   my $from_id = $opts->{id}; # view point
   if ($relation eq 'eparent') {
-    $cond = qq{"$id"."root_idx"="$target"."root_idx" AND }.
-      $self->sql_serialize_predicate(
-	{
-	  id=>$from_id,
-	  type=>$type,
-	  join=>$opts->{join},
-	  expression => qq{\$$id.eparents/eparent_idx},
-	  negative=> $opts->{negative},
-	},
+    $join->{$from_id}||=[];
+    my $i = @{$join->{$from_id}};
+    my $eid=$from_id."/e-$i";
+    my $table = $self->get_schema_name_for($type).'__eparents';
+    push @{$join->{$from_id}},[$eid,$table, qq("$eid"."#idx" = "$id"."#idx"),'LEFT'];
+    $cond = $self->sql_serialize_predicate(
+	qq{"$eid"."eparent"},
 	qq{"$target"."#idx"},
 	q(=),$opts,
        );
   } elsif ($relation eq 'echild') {
-    $cond = qq{"$id"."root_idx"="$target"."root_idx" AND }.
-      $self->sql_serialize_predicate(
-	{
-	  id=>$from_id,
-	  type=>$type,
-	  join=>$opts->{join},
-	  expression => qq{\$$target.eparents/eparent_idx},
-	  negative=>$opts->{negative},
-	},
+    $join->{$from_id}||=[];
+    my $i = @{$join->{$from_id}};
+    my $eid=$from_id."/e-$i";
+    my $table = $self->get_schema_name_for($type).'__eparents';
+    push @{$join->{$from_id}},[$eid,$table, qq("$eid"."#idx" = "$target"."#idx"),'LEFT'];
+    $cond = $self->sql_serialize_predicate(
+	qq{"$eid"."eparent"},
 	qq{"$id"."#idx"},
 	q(=),$opts,
-       )
+       );
   } elsif ($relation eq 'a/lex.rf') {
 #    $cond =  qq{"$id"."a_lex_idx"="$target"."#idx"}
     $cond =
@@ -755,7 +752,7 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
 	  }
 	  $decl=$mdecl;
 	}
-	if ($iter=>100) {
+	if ($iter>=100) {
 	  die "Deep recursion while compiling $opts->{expression} of node '$this_node_id'";
 	}
 	die "Expression $opts->{expression} of node '$this_node_id' does not lead to an attomic value";
