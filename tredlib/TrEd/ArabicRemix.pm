@@ -7,12 +7,28 @@ package TrEd::ArabicRemix;
 
 sub remix ($;$) {
 
-    my @data = split /((?:\p{Arabic}|[\x{064B}-\x{0652}\x{0670}\x{0657}\x{0656}\x{0640}]|\p{InArabicPresentationFormsA}|\p{InArabicPresentationFormsB})+)/, $_[0];
+    my @data = split /(  \s* (?:
+                         (?:\p{Arabic}|[\x{064B}-\x{0652}\x{0670}\x{0657}\x{0656}\x{0640}]|
+                            \p{InArabicPresentationFormsA}|\p{InArabicPresentationFormsB})+ |
+                         [\x{0660}-\x{0669}]+(?:[.,\x{060C}\x{066B}\x{066C}][\x{0660}-\x{0669}]+)? )
+                      (?:\s+ (?:
+                         (?:\p{Arabic}|[\x{064B}-\x{0652}\x{0670}\x{0657}\x{0656}\x{0640}]|
+                            \p{InArabicPresentationFormsA}|\p{InArabicPresentationFormsB})+ |
+                         [0-9]+(?:[.,\x{060C}\x{066B}\x{066C}][0-9]+)? |
+                         [\x{0660}-\x{0669}]+(?:[.,\x{060C}\x{066B}\x{066C}][\x{0660}-\x{0669}]+)? ) )*
+                         \s* )/x, $_[0];
 
-    for (my $i = 0; $i < @data; $i++) {
+    for (my $i = 1; $i < @data; $i += 2) {
 
+        my @atad = split /([0-9]+(?:[.,\x{060C}\x{066B}\x{066C}][0-9]+)? |
+                           [\x{0660}-\x{0669}]+(?:[.,\x{060C}\x{066B}\x{066C}][\x{0660}-\x{0669}]+)?)/x, $data[$i];
 
-	$data[$i] = reverse $data[$i] if $i % 2;
+        for (my $j = 0; $j < @atad; $j += 2) {
+
+            $atad[$j] = reverse $atad[$j];
+        }
+
+        $data[$i] = join "", reverse @atad;
     }
 
     return join "", reverse @data;
