@@ -379,22 +379,30 @@ sub user_defined_relation {
     my $eid=$from_id."/e-$i";
     my $table = $self->get_schema_name_for($type).'__eparents';
     push @{$join->{$from_id}},[$eid,$table, qq("$eid"."#idx" = "$id"."#idx"),'LEFT'];
-    $cond = $self->sql_serialize_predicate(
+    if ($opts->{negative}) {
+      $cond = $self->sql_serialize_predicate(
 	qq{"$eid"."eparent"},
 	qq{"$target"."#idx"},
 	q(=),$opts,
        );
+    } else {
+      $cond = qq{"$eid"."eparent"="$target"."#idx"};
+    }
   } elsif ($relation eq 'echild') {
     $join->{$from_id}||=[];
     my $i = @{$join->{$from_id}};
     my $eid=$from_id."/e-$i";
     my $table = $self->get_schema_name_for($type).'__eparents';
     push @{$join->{$from_id}},[$eid,$table, qq("$eid"."#idx" = "$target"."#idx"),'LEFT'];
-    $cond = $self->sql_serialize_predicate(
+    if ($opts->{negative}) {
+      $cond = $self->sql_serialize_predicate(
 	qq{"$eid"."eparent"},
 	qq{"$id"."#idx"},
 	q(=),$opts,
        );
+    } else {
+      $cond = qq{"$eid"."eparent"="$id"."#idx"};
+    }
   } elsif ($relation eq 'a/lex.rf') {
 #    $cond =  qq{"$id"."a_lex_idx"="$target"."#idx"}
     $cond =
