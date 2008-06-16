@@ -607,6 +607,15 @@ sub claim_search_win {
     my $self = shift;
     return $self->{results}
   }
+  sub r {
+    my ($self,$name)=@_;
+    return unless $self->{results};
+    my $pos =  $self->{name2pos}{$name};
+    return unless $pos;
+    return $self->{results}[$pos];
+  }
+  *get_result_node = \&r;
+
   sub get_query_nodes {
     my $self = shift;
     return $self->{query_nodes};
