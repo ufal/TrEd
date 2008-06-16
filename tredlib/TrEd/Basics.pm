@@ -4,6 +4,7 @@ BEGIN {
   use Fslib;
   require TrEd::MinMax;
   import TrEd::MinMax;
+  import TrEd::MinMax qw(first);
 
   use Exporter  ();
   use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
@@ -29,8 +30,10 @@ BEGIN {
     &absolutize
     &absolutize_path
     &uniq
+    &chooseNodeType
   );
   use strict;
+  use PMLSchema;
 }
 
 sub uniq { my %a; grep { !($a{$_}++) } @_ }
@@ -240,6 +243,110 @@ sub absolutize_path {
 sub absolutize {
   return map { m(^[[:alnum:]]+:/|^\s*\||^\s*/) ? $_ : rel2abs($_) } grep { !/^\s*$/ } @_;
 }
+
+sub chooseNodeType {
+  my ($fsfile,$node,$opts)=@_;
+  my $type = $node->type;
+  return $type if $type;
+  my $ntype;
+  my @ntypes;
+  if ($node->parent) {
+    # is parent's type known?
+    my $parent_decl = $node->parent->type;
+    if (ref($parent_decl)) {
+      # ok, find #CHILDNODES
+      my $parent_decl_type = $parent_decl->get_decl_type;
+      my $member_decl;
+      if ($parent_decl_type == PML_STRUCTURE_DECL()) {
+	($member_decl) = map { $_->get_content_decl } 
+	  $parent_decl->find_members_by_role('#CHILDNODES');
+      } elsif ($parent_decl_type == PML_CONTAINER_DECL()) {
+	$member_decl = $parent_decl->get_content_decl;
+	undef $member_decl unless $member_decl and $member_decl->get_role eq '#CHILDNODES';
+      }
+      if ($member_decl) {
+	my $member_decl_type = $member_decl->get_decl_type;
+	if ($member_decl_type == PML_LIST_DECL()) {
+	  $ntype = $member_decl->get_content_decl;
+	  undef $ntype unless $ntype and $ntype->get_role eq '#NODE';
+	} elsif ($member_decl_type == PML_SEQUENCE_DECL()) {
+	  my $elements = 
+	  @ntypes = grep { $_->[1]->get_role eq '#NODE' }
+	    map { [ $_->get_name, $_->get_content_decl ] }
+	      $member_decl->get_elements;
+	  if (defined $node->{'#name'}) {
+	    $ntype = first { $_->[0] eq $node->{'#name'} } @ntypes;
+	    $ntype=$ntype->[1] if $ntype;
+	  }
+	} else {
+	  die "I'm confused - found role #CHILDNODES on a ".$member_decl->get_decl_type_str().", which is neither a list nor a sequence...\n".
+	    Dumper($member_decl);
+	}
+      }
+    } else {
+      # ask the user to set the type of the parent first
+      die("Parent node type is unknown.\nYou must assign node-type to the parent node first!");
+      return;
+    }
+  } else {
+    # find #TREES sequence representing the tree list
+    my @tree_types;
+    my $pml_trees_type = $fsfile->metaData('pml_trees_type');
+    if (ref $pml_trees_type) {
+      @tree_types = ($pml_trees_type);
+    } else {
+      my $schema = fileSchema($fsfile);
+      @tree_types = $schema->find_types_by_role('#TREES');
+    }
+    foreach my $tt (map { $_->get_content_decl } @tree_types) {
+      if (!ref($tt)) {
+	die("I'm confused - found role #TREES on something which is neither a list nor a sequence...\n".
+	  Dumper($tt));
+      } elsif ($tt->get_decl_type == PML_LIST_DECL()) {
+	$ntype = $tt->get_content_decl;
+	undef $ntype unless $ntype and $ntype->get_role eq '#NODE';
+      } elsif ($tt->get_decl_type == PML_SEQUENCE_DECL()) {
+	my $elements = 
+	  @ntypes = grep { $_->[1]->get_role eq '#NODE' }
+	    map { [ $_->get_name, $_->get_content_decl ] }
+	    $tt->get_elements;
+	  if (defined $node->{'#name'}) {
+	    $ntype = first { $_->[0] eq $node->{'#name'} } @ntypes;
+	    $ntype=$ntype->[1] if $ntype;
+	  }
+      } else {
+	die ("I'm confused - found role #CHILDNODES on something which is neither a list nor a sequence...\n".
+	  Dumper($tt));
+      }
+    }
+  }
+  my $base_type;
+  if ($ntype) {
+    $base_type = $ntype;
+    $node->set_type($base_type);
+  } elsif (@ntypes == 1) {
+    $node->{'#name'} = $ntypes[0][0];
+    $base_type = $ntypes[0][1];
+    $node->set_type($base_type);
+  } elsif (@ntypes > 1) {
+    my $i = 1;
+    if (ref($opts) and $opts->{choose_command}) {
+      my $type = $opts->{choose_command}->($fsfile,$node,[@ntypes]);
+      if ($type and first { $_==$type } @ntypes) {
+	$node->set_type($type->[1]);
+	$node->{'#name'} = $type->[0];
+	$base_type=$node->type;
+      } else {
+	return;
+      }
+    }
+  } else {
+    die("Cannot determine node type: schema does not allow nodes on this level...\n");
+    return;
+  }
+  return $node->type;
+}
+
 
 
 1;
