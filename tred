@@ -1050,11 +1050,6 @@ sub update_treeviews {
   }
 }
 
-sub fileSchema {
-  my ($fsfile)=@_;
-  return $fsfile->metaData('schema');
-}
-
 sub lastFileNo {
   my ($win)=@_;
   return $win->{currentFilelist} ? $win->{currentFilelist}->file_count()-1 : -1;
@@ -8526,107 +8521,24 @@ sub determineNodeType {
   my ($win,$node)=@_;
   my $type = $node->type;
   return $type if $type;
-
   doEvalHook($win,'determine_node_type_hook',$node);
-
-  $schema = fileSchema($win->{FSFile});
-  my $ntype;
-  my @ntypes;
+  return $type if $type;
   __debug("Determining node type for $node\n");
-  if ($node->parent) {
-    # is parent's type known?
-    my $parent_decl = $node->parent->type;
-    if (ref($parent_decl)) {
-      # ok, find #CHILDNODES
-      my $parent_decl_type = $parent_decl->get_decl_type;
-      my $member_decl;
-      if ($parent_decl_type == PML_STRUCTURE_DECL()) {
-	($member_decl) = map { $_->get_content_decl } 
-	  $parent_decl->find_members_by_role('#CHILDNODES');
-      } elsif ($parent_decl_type == PML_CONTAINER_DECL()) {
-	$member_decl = $parent_decl->get_content_decl;
-	undef $member_decl unless $member_decl and $member_decl->get_role eq '#CHILDNODES';
-      }
-      if ($member_decl) {
-	my $member_decl_type = $member_decl->get_decl_type;
-	if ($member_decl_type == PML_LIST_DECL()) {
-	  $ntype = $member_decl->get_content_decl;
-	  undef $ntype unless $ntype and $ntype->get_role eq '#NODE';
-	} elsif ($member_decl_type == PML_SEQUENCE_DECL()) {
-	  my $elements = 
-	  @ntypes = grep { $_->[1]->get_role eq '#NODE' }
-	    map { [ $_->get_name, $_->get_content_decl ] }
-	      $member_decl->get_elements;
-	  if (defined $node->{'#name'}) {
-	    $ntype = first { $_->[0] eq $node->{'#name'} } @ntypes;
-	    $ntype=$ntype->[1] if $ntype;
-	  }
-	} else {
-	  warn "I'm confused - found role #CHILDNODES on a ".$member_decl->get_decl_type_str().", which is neither a list nor a sequence...\n".
-	    Dumper($member_decl);
-	}
-      }
-    } else {
-      # ask the user to set the type of the parent first
-      plainErrorMessage($win,"Parent node type is unknown.\nYou must assign node-type to the parent node first!");
-      return;
-    }
-  } else {
-    # find #TREES sequence representing the tree list
-    my @tree_types;
-    my $pml_trees_type = $win->{FSFile}->metaData('pml_trees_type');
-    if (ref $pml_trees_type) {
-      @tree_types = ($pml_trees_type);
-    } else {
-      @tree_types = $schema->find_types_by_role('#TREES');
-    }
-    foreach my $tt (map { $_->get_content_decl } @tree_types) {
-      if (!ref($tt)) {
-	warn "I'm confused - found role #TREES on something which is neither a list nor a sequence...\n".
-	  Dumper($member_decl);
-      } elsif ($tt->get_decl_type == PML_LIST_DECL()) {
-	$ntype = $tt->get_content_decl;
-	undef $ntype unless $ntype and $ntype->get_role eq '#NODE';
-      } elsif ($tt->get_decl_type == PML_SEQUENCE_DECL()) {
-	my $elements = 
-	  @ntypes = grep { $_->[1]->get_role eq '#NODE' }
-	    map { [ $_->get_name, $_->get_content_decl ] }
-	    $tt->get_elements;
-	  if (defined $node->{'#name'}) {
-	    $ntype = first { $_->[0] eq $node->{'#name'} } @ntypes;
-	    $ntype=$ntype->[1] if $ntype;
-	  }
-      } else {
-	warn "I'm confused - found role #CHILDNODES on something which is neither a list nor a sequence...\n".
-	  Dumper($tt);
-      }
-    }
-  }
-  if ($ntype) {
-    $base_type = $ntype;
-    $node->set_type($base_type);
-  } elsif (@ntypes == 1) {
-    $node->{'#name'} = $ntypes[0][0];
-    $base_type = $ntypes[0][1];
-    $node->set_type($base_type);
-  } elsif (@ntypes > 1) {
-    my $i = 1;
-    my @types = map {($i++)." ".($_->[0])} @ntypes;
-    my $selection = [$types[0]];
-    listQuery($win->toplevel,'Untyped node: select node-type','browse',
-	      \@types,$selection) || return;
-    if ($selection->[0]=~/^(\d+) /) {
-      my $type = $ntypes[$1-1];
-      $node->set_type($type->[1]);
-      $node->{'#name'} = $type->[0];
-      $base_type=$node->type;
-    } else {
-      return;
-    }
-  } else {
-    plainErrorMessage($win,"Cannot determine node type: schema does not allow nodes on this level...\n");
-    return;
-  }
+  eval {
+    chooseNodeType($win->{FSFile},$node => {
+      choose_command => sub {
+	my (undef,undef,$ntypes)=@_;
+	my $i = 1;
+	my @types = map {($i++)." ".($_->[0])} @ntypes;
+	my $selection = [$types[0]];
+	listQuery($win->toplevel,'Untyped node: select node-type','browse',
+		  \@types,$selection) || return;
+	return $ntypes[$1-1] if $selection->[0]=~/^(\d+) /;
+	return;
+      }				       
+    });
+  };
+  plainErrorMessage($win,$@) if $@;
   return $node->type;
 }
 
