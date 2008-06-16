@@ -611,7 +611,7 @@ sub claim_search_win {
     my ($self,$name)=@_;
     return unless $self->{results};
     my $pos =  $self->{name2pos}{$name};
-    return unless $pos;
+    return unless defined $pos;
     return $self->{results}[$pos];
   }
   *get_result_node = \&r;
