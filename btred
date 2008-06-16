@@ -1965,6 +1965,21 @@ sub updateTredMacroGlobals {
 		     this => $grp->{currentNode});
 }
 
+sub determineNodeType {
+  my ($grp,$node)=@_;
+  my $type = $node->type;
+  return $type if $type;
+  doEvalHook($grp,'determine_node_type_hook',$node);
+  return $type if $type;
+  chooseNodeType($grp->{FSFile},$node => {
+     choose_command => sub {
+       my (undef,undef,$ntypes)=@_;
+       die "Could not determine node type, there were the following possibilities: ".
+	 join(",",map { $_->[1] } @$ntypes);
+     },
+  });
+  return $node->type;
+}
 
 sub _set_encoding {
   my ($fh, $enc, $what)=@_;
