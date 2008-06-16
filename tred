@@ -2040,14 +2040,12 @@ sub openFile {
   print "Goto suffix is $goto\n" if defined($goto) and $tredDebug;
 
   $opts{-keep} ||= $grp->{keepfiles};
-  print "keep related: ",$opts{-keep_related}," $f\n";
   if (!$opts{-keep} and $opts{-keep_related}) {
     print map { $_->filename."\n" } getSecondaryFiles($win,$fsfile), @{$fsfile->appData('fs-part-of')}
       if $fsfile;
     $opts{-keep}=1 if
       $fsfile and
 	first { $_->filename eq $f } getSecondaryFiles($win,$fsfile), @{$fsfile->appData('fs-part-of')};
-    print "keep: $opts{-keep}\n";
   }
 
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
