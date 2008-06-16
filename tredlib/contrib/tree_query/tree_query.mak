@@ -343,6 +343,7 @@ Bind sub {
   menu => 'Create a new query node'
 };
 
+my $query_schema = PMLSchema->new({filename => 'tree_query_schema.xml',use_resources=>1});
 my %schema_map = (
   't-node' => PMLSchema->new({filename => 'tdata_schema.xml',use_resources=>1}),
   'a-node' => PMLSchema->new({filename => 'adata_schema.xml',use_resources=>1}),
@@ -1296,6 +1297,8 @@ sub parse_query {
   shift if @_>1;
   my $ret = eval {query_parser()->parse_query($_[0])};
   confess($@) if $@;
+  $ret->set_type($query_schema->find_type_by_path('!q-query.type'));
+  DetermineNodeType($_) for ($ret->descendants);
   return $ret;
 }
 sub parse_expression {
