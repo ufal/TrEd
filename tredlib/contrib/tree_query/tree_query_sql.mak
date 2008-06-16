@@ -730,20 +730,26 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
 	      $mdecl=$decl->get_member_by_name($column.'.rf');
 	      $mdecl=undef unless $mdecl; # and $mdecl->get_knit_name eq $column;
 	    }
-	    $mdecl = $mdecl->get_knit_content_decl if $mdecl;
+	    if ($mdecl) {
+	      $opts->{can_be_null}=1 unless $mdecl->is_required;
+	      $mdecl = $mdecl->get_knit_content_decl;
+	    }
 	  } elsif ($decl_is == PML_LIST_DECL or $decl_is == PML_ALT_DECL) {
 	    $mdecl=$decl->get_knit_content_decl;
 	    $column='#value';
 	    $left_join=1;
+	    $opts->{can_be_null}=1;
 	  } elsif ($decl_is == PML_SEQUENCE_DECL) {
 	    last unless @t;
 	    $column= shift @t;
 	    $mdecl = $decl->get_element_by_name($column);
 	    $mtable='#e_'.table_name($mdecl->get_knit_content_decl->get_decl_path);
 	    $left_join=1;
+	    $opts->{can_be_null}=1;
 	  } elsif ($decl_is == PML_ELEMENT_DECL) {
 	    $mdecl=$decl->get_knit_content_decl;
 	    $column='#value';
+	    $opts->{can_be_null}=1;
 	  } else {
 	    die ref($self)." internal error: Didn't expect $decl_is type\n";
 	  }
@@ -855,6 +861,8 @@ sub sql_serialize_expression {
   die "Invalid expression '$opts->{expression}' on node '$opts->{id}'" unless defined $pt;
 
   my $extra_joins={};
+  $opts->{use_exists}=0;
+  $opts->{can_be_null}=0;
   my $out = $self->sql_serialize_expression_pt($pt,$opts,$extra_joins); # do not copy $opts here!
 
   my $wrap;
@@ -886,24 +894,27 @@ sub sql_serialize_expression {
       $wrap.='%s )';
     }
   }
-  return ($out,$wrap);
+  return ($out,$wrap,$opts->{can_be_null});
 }
 
 sub sql_serialize_predicate {
   my ($self,$L,$R,$operator,$opts)=@_;
-  my ($left,$wrap_left) = ref($L) ? $self->sql_serialize_expression($L) : ($L);
-  my ($right,$wrap_right) = ref($R) ? $self->sql_serialize_expression($R) : ($R);
+  my ($left,$wrap_left,$left_can_be_null) = ref($L) ? $self->sql_serialize_expression($L) : ($L);
+  my ($right,$wrap_right,$right_can_be_null) = ref($R) ? $self->sql_serialize_expression($R) : ($R);
   my $res;
+  my $negative = $opts->{negative};
   if ($operator eq '~' and $opts->{syntax} eq 'Oracle') {
-    $res = qq{REGEXP_LIKE($left,$right) AND $left IS NOT NULL};
+    $res = qq{REGEXP_LIKE($left,$right)};
+    $res .= qq{ AND $left IS NOT NULL} if $left_can_be_null and $negative;
   } elsif ($operator eq '~*' and $opts->{syntax} eq 'Oracle') {
-    $res = qq{REGEXP_LIKE($left,$right,'i') AND $left IS NOT NULL};
+    $res = qq{REGEXP_LIKE($left,$right,'i')};
+    $res .= qq{ AND $left IS NOT NULL} if $left_can_be_null and $negative;
   } else {
     $res = qq{($left }.uc($operator).qq{ $right}
-      .($left=~/\./ ? qq{ AND $left IS NOT NULL} : '')
-      .($right=~/\./ ? qq{ AND $right IS NOT NULL} : '')
+      .($left_can_be_null && $negative ? qq{ AND $left IS NOT NULL} : '')
+      .($right_can_be_null && $negative ? qq{ AND $right IS NOT NULL} : '')
       .(($opts->{syntax} eq 'Oracle' and $operator eq '='
-	   and $right=~/\./ and $left=~/\./
+	   and $left_can_be_null and $right_can_be_null
 	  ) ? qq{ OR $left IS NULL AND $right IS NULL} : '').')';
   }
   if (defined $wrap_right) {
