@@ -134,6 +134,27 @@ Bind sub { $VALUE_LINE_MODE=!$VALUE_LINE_MODE } => {
   changing_file => 0,
 };
 
+our @colors = qw(
+  5f5
+  55f
+  f5f
+  df3
+  5ff
+  f77
+  77f
+  f7f
+  ff7
+  7ff
+  777
+  d55
+  5d5
+  55d
+  dd5
+  d5d
+  5dd
+  ddd
+);
+
 Bind sub {
   my $node=$this;
   ChangingFile(0);
@@ -401,6 +422,7 @@ sub RenewStylesheets {
   SaveStylesheets();
 }
 
+our $__color_idx;
 sub CreateStylesheets{
   unless(StylesheetExists('Tree_Query')){
     SetStylesheetPatterns(<<'EOF','Tree_Query',1);
@@ -409,11 +431,12 @@ hint:
 rootstyle:#{balance:1}#{Node-textalign:center}#{NodeLabel-halign:center}
 rootstyle: #{vertical:0}#{nodeXSkip:40}
 rootstyle: #{NodeLabel-skipempty:1}#{CurrentOval-width:3}#{CurrentOval-outline:red}
+rootstyle: <? $Tree_Query::__color_idx=0;$Tree_Query::__color_idx2=1 ?>
 node: #{blue(}<?length($${id}) ? $${id}.' ' : '' ?>#{)}<?length($${node-type}) ? $${node-type}.': ' : '' ?>
 label:#{darkgreen}<?
   my $occ = Tree_Query::occ_as_text($this);
   length $occ ? '#{-coords:n-10,n}#{-anchor:e}${occurrences='.$occ.'x}' : ""
-?><? $${optional} ? '${optional=?}'  : q()
+?><? $${optional} ? '#{-coords:n-10,n}#{-anchor:e}${optional=?}'  : q()
 ?>
 node: #{darkblue}${name}#{brown}<? my$d=$${description}; $d=~s{^User .*?:}{}; $d ?>
 node:<?
@@ -447,17 +470,31 @@ style: <? if ($this->parent and $this->parent->{'#name'} eq 'or') {
     '#{Line-dash:-}'
   }
 ?>
+xlabel:<?
+   if ($this->{'#name'} eq 'node'
+      and !(grep { ($_->{'#name'}||'node') ne 'node' } $this->ancestors)) {
+      '#{-clear:0}#{-coords:n,n}#{-anchor:center}'.($Tree_Query::__color_idx2++)
+   }
+?>
 style:<?
    my $name = $this->{'#name'};
-   $name eq 'node' ?
-   (($${node-type}||$root->{'node-type'}) eq 't'
-      ? '#{Oval-fill:pink}' 
-      : '#{Oval-fill:yellow}' ).'#{Node-addwidth:7}#{Node-addheight:7}#{Line-width:3}#{Line-arrowshape:14,18,4}'
-   : $name eq 'test' ? '#{NodeLabel-dodrawbox:yes}#{Line-fill:lightgray}#{Node-shape:rectangle}#{Oval-fill:gray}' 
-   : $name eq 'subquery' ? '#{Oval-fill:green}'
-   : $name eq 'ref' ? '#{Node-shape:oval}'
-   : $name =~ /^(?:or|and|not)$/ ? '#{Node-shape:rectangle}#{Node-surroundtext:1}#{NodeLabel-valign:center}#{Oval-fill:cyan}'
-   : '${Oval-fill:black}'
+   if ($name eq 'node'
+      and !(grep { ($_->{'#name'}||'node') ne 'node' } $this->ancestors)) {
+     '#{Oval-fill:#'.$Tree_Query::colors[($Tree_Query::__color_idx++)%@Tree_Query::colors].'}'.
+     '#{Node-addwidth:12}#{Node-addheight:12}#{Line-width:3}#{Line-arrowshape:14,18,4}'
+   } elsif ($name eq 'node') {
+     '#{Node-fill:brown}#{Node-addwidth:7}#{Node-addheight:7}#{Line-width:3}#{Line-arrowshape:14,18,4}'
+   } elsif ($name eq 'test') {
+    '#{NodeLabel-dodrawbox:yes}#{Line-fill:lightgray}#{Node-shape:rectangle}#{Oval-fill:gray}'
+   } elsif ($name eq 'subquery') {
+     '#{Node-shape:oval}'
+   } elsif ($name eq 'ref') {
+      '#{Node-shape:rectangle}'
+   } elsif ($name =~ /^(?:or|and|not)$/) {
+      '#{Node-shape:rectangle}#{Node-surroundtext:1}#{NodeLabel-valign:center}#{Oval-fill:cyan}'
+   } else {
+     '${Oval-fill:black}'
+   }
 ?>
 EOF
   }
