@@ -1948,16 +1948,21 @@ sub redraw {
 	}
       }
     }
+    my $clear;
     for my $pat (@$label_patterns) {
       $i++;
       $msg=$self->interpolate_text_field($node,$pat,$grp);
       if ($msg=~s/\#{-coords:([^}]*)}//g) {
 	$coords = $1;
       }
+      $clear=1;
+      if ($msg=~s/\#{-clear:([01])}//g) {
+	$clear=$1;
+      }
       $coords = 'n,n' unless (defined($coords) and length($coords));
       $coords = $self->parse_coords_spec($node,$coords,$nodes,\%nodehash,$grp);
       if (my @c = $self->eval_coords_spec($node,$parent,$coords)) {
-	$self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$c[0],$c[1],1,\%Opts,$grp,'Label');
+	$self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$c[0],$c[1],$clear,\%Opts,$grp,'Label');
       }
     }
   }
