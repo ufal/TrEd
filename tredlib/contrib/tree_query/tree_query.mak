@@ -135,24 +135,14 @@ Bind sub { $VALUE_LINE_MODE=!$VALUE_LINE_MODE } => {
 };
 
 our @colors = qw(
-  5f5
-  55f
-  f5f
-  df3
-  5ff
-  f77
-  77f
-  f7f
-  ff7
-  7ff
-  777
-  d55
-  5d5
-  55d
-  dd5
-  d5d
-  5dd
-  ddd
+66B032 ffff93740000 4a6d0133c830 b9f30175f2f0 0392CE ffffe1c90000
+9655c9b94496 fef866282da3 007FFF C154C1 CC7722 FBFB00
+00A86B fef8b3ca5b88 CCCCFF 8844AA 987654 F0E68C
+BFFF00 E68FAC 00FFFF FFAAFF 996515 f3f6bdcb15f4
+ADDFAD FFCBA4 007BA7 CC99CC B1A171 dddd00
+6B8E23 FF8855 9BDDFF FF00FF 654321 FFFACD
+00FF00 FF2400 1560BD 997A8D cd0da2373d4f FFFF77
+D0EA2B b7ce1c6b0d0c E2F9FF  c1881d075743  0247FE 
 );
 
 Bind sub {
@@ -473,15 +463,16 @@ style: <? if ($this->parent and $this->parent->{'#name'} eq 'or') {
 xlabel:<?
    if ($this->{'#name'} eq 'node'
       and !(grep { ($_->{'#name'}||'node') ne 'node' } $this->ancestors)) {
-      '#{-clear:0}#{-coords:n,n}#{-anchor:center}'.($Tree_Query::__color_idx2++)
+      '#{-clear:0}#{-coords:n,n}#{-anchor:center}'.$${color}
    }
 ?>
 style:<?
    my $name = $this->{'#name'};
    if ($name eq 'node'
       and !(grep { ($_->{'#name'}||'node') ne 'node' } $this->ancestors)) {
-     '#{Oval-fill:#'.$Tree_Query::colors[($Tree_Query::__color_idx++)%@Tree_Query::colors].'}'.
-     '#{Node-addwidth:12}#{Node-addheight:12}#{Line-width:3}#{Line-arrowshape:14,18,4}'
+     my $color = Tree_Query::NodeIndexInLastQuery($this);
+     (defined($color) ? '#{Oval-fill:#'.$Tree_Query::colors[$color].'}' : '').
+     '#{Node-addwidth:7}#{Node-addheight:7}#{Line-width:3}#{Line-arrowshape:14,18,4}'
    } elsif ($name eq 'node') {
      '#{Node-fill:brown}#{Node-addwidth:7}#{Node-addheight:7}#{Line-width:3}#{Line-arrowshape:14,18,4}'
    } elsif ($name eq 'test') {
@@ -999,7 +990,14 @@ our @last_results;
 # determine which nodes are part of the current result
 sub map_results {
   return unless $SEARCH;
-  %is_match = map { $_=>1 } $SEARCH->matching_nodes(FileName(),CurrentTreeNumber(),$root);
+  %is_match = %{$SEARCH->map_nodes_to_query_pos(FileName(),CurrentTreeNumber(),$root)};
+}
+
+sub NodeIndexInLastQuery {
+  if ($SEARCH) {
+    return $SEARCH->node_index_in_last_query(@_);
+  }
+  return;
 }
 
 sub GetSearch {

@@ -1179,13 +1179,30 @@ sub show_current_result {
 sub matching_nodes {
   my ($self,$filename,$tree_number,$tree)=@_;
   return unless $self->{current_result};
-  my @matching;
   my $fn = $filename.'##'.($tree_number+1);
   my $source_dir = $self->get_source_dir;
   my @nodes = ($tree,$tree->descendants);
   my @positions = map { /^\Q$fn\E\.(\d+)$/ ? $1 : () }
     map { $source_dir.'/'.$_ } @{$self->{current_result}};
   return @nodes[@positions];
+}
+
+sub map_nodes_to_query_pos {
+  my ($self,$filename,$tree_number,$tree)=@_;
+  return unless $self->{current_result};
+  my $fn = $filename.'##'.($tree_number+1);
+  my $source_dir = $self->get_source_dir;
+  my @nodes = ($tree,$tree->descendants);
+  my $r = $self->{current_result};
+  return {
+    map { $_->[1]=~/^\Q$fn\E\.(\d+)$/ ? ($nodes[$1] => $_->[0]) : () } map { [$_,$source_dir.'/'.$r->[$_]] } 0..$#$r 
+  };
+}
+
+sub node_index_in_last_query {
+  my ($self,$query_node)=@_;
+  return unless $self->{current_result};
+  return Index($self->{last_query_nodes},$query_node);
 }
 
 sub select_matching_node {
