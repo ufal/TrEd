@@ -369,6 +369,23 @@ sub matching_nodes {
   return @nodes[@positions];
 }
 
+sub map_nodes_to_query_pos {
+  my ($self,$filename,$tree_number,$tree)=@_;
+  return unless $self->{current_result};
+  my $fn = $filename.'##'.($tree_number+1);
+  my @nodes = ($tree,$tree->descendants);
+  my $r = $self->{current_result};
+  return {
+    map { $_->[1]=~/^\Q$fn\E\.(\d+)$/ ? ($nodes[$1] => $_->[0]) : () } map { [$_,$r->[$_]] } 0..$#$r
+  };
+}
+
+sub node_index_in_last_query {
+  my ($self,$query_node)=@_;
+  return unless $self->{current_result};
+  return Index($self->{evaluator}->get_query_nodes,$query_node);
+}
+
 sub select_matching_node {
   my ($self,$query_node)=@_;
   return unless $self->{current_result} and $self->{evaluator};
