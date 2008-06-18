@@ -90,7 +90,7 @@ sub prepare_query {
     $self->{name2node}=\%name2node_hash;
   }
   $self->{sql}=undef;
-  $self->prepare_sql($self->sql_serialize_conditions($query_tree,
+  $self->prepare_sql($self->serialize_conditions($query_tree,
 						     { %$opts,
 						       syntax=>$self->sql_driver,
 						       limit=>$self->{limit}
@@ -282,11 +282,11 @@ sub serialize_limit {
 
 
 # serialize to SQL (or SQL fragment)
-sub sql_serialize_conditions {
+sub serialize_conditions {
   my ($self,$node,$opts)=@_;
   $opts||={};
   if ($node->parent) {
-    return [$self->sql_serialize_element({
+    return [$self->serialize_element({
       %$opts,
       name => 'and',
       condition => $node,
@@ -344,7 +344,7 @@ sub relation {
     my ($order) = map { $_->get_name } $decl->find_members_by_role('#ORDER');
     if ($order) {
       $cond =
-	$self->sql_serialize_predicate(
+	$self->serialize_predicate(
 	  {
 	    id=>$opts->{id},
 	    type=>$opts->{type},
@@ -384,7 +384,7 @@ sub user_defined_relation {
 			       $opts->{negative} ? 'LEFT' : ()
 			      ];
     if ($opts->{negative}) {
-      $cond = $self->sql_serialize_predicate(
+      $cond = $self->serialize_predicate(
 	qq{"$eid"."eparent"},
 	qq{"$target"."#idx"},
 	q(=),$opts,
@@ -401,7 +401,7 @@ sub user_defined_relation {
 			       $opts->{negative} ? 'LEFT' : ()
 			      ];
     if ($opts->{negative}) {
-      $cond = $self->sql_serialize_predicate(
+      $cond = $self->serialize_predicate(
 	qq{"$eid"."eparent"},
 	qq{"$id"."#idx"},
 	q(=),$opts,
@@ -412,7 +412,7 @@ sub user_defined_relation {
   } elsif ($relation eq 'a/lex.rf') {
 #    $cond =  qq{"$id"."a_lex_idx"="$target"."#idx"}
     $cond =
-      $self->sql_serialize_predicate(
+      $self->serialize_predicate(
 	{
 	  id=>$from_id,
 	  type=>$opts->{type},
@@ -423,7 +423,7 @@ sub user_defined_relation {
 	'=',$opts
        );
   } elsif ($relation eq 'a/aux.rf') {
-    $cond = $self->sql_serialize_predicate(
+    $cond = $self->serialize_predicate(
       {
 	id=>$from_id,
 	type=>$type,
@@ -436,7 +436,7 @@ sub user_defined_relation {
      )
   } elsif ($relation eq 'a/lex.rf|a/aux.rf') {
     $cond =
-      '('.$self->sql_serialize_predicate(
+      '('.$self->serialize_predicate(
 	{
 	  id=>$opts->{id},
 	  type=>$opts->{type},
@@ -445,7 +445,7 @@ sub user_defined_relation {
 	},
 	qq{"$target"."#idx"},
 	'=',$opts
-       ). qq{ OR }. $self->sql_serialize_predicate(
+       ). qq{ OR }. $self->serialize_predicate(
 	 {
 	   id=>$from_id,
 	   type=>$type,
@@ -458,7 +458,7 @@ sub user_defined_relation {
 	).')';
   } elsif ($relation eq 'coref_gram') {
     $cond = 
-      $self->sql_serialize_predicate(
+      $self->serialize_predicate(
 	{
 	  id=>$from_id,
 	  type=>$type,
@@ -471,7 +471,7 @@ sub user_defined_relation {
        );
   } elsif ($relation eq 'coref_text') {
     $cond = 
-      $self->sql_serialize_predicate(
+      $self->serialize_predicate(
 	{
 	  id=>$from_id,
 	  type=>$type,
@@ -484,7 +484,7 @@ sub user_defined_relation {
        );
   } elsif ($relation eq 'compl') {
     $cond = 
-      $self->sql_serialize_predicate(
+      $self->serialize_predicate(
 	{
 	  id=>$from_id,
 	  type=>$type,
@@ -555,7 +555,7 @@ sub build_sql {
 	   }
 	   map { $nodes[$_] } 0..($i-1));
     {
-      my $conditions = $self->sql_serialize_conditions($n,{
+      my $conditions = $self->serialize_conditions($n,{
 	type=>$table,
 	id=>$id,
 	parent_id=>$parent_id,
@@ -674,7 +674,7 @@ sub _table_name {
 
 
 
-sub sql_serialize_expression_pt {# pt stands for parse tree
+sub serialize_expression_pt {# pt stands for parse tree
   my ($self,$pt,$opts,$extra_joins)=@_;
   my $this_node_id = $opts->{id};
   if (ref($pt)) {
@@ -799,18 +799,19 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
 	     : ($name eq 'rbrothers')   ? qq{$opts->{parent_id}."#chld"-$id."#chord"-1}
              : ($name eq 'sons')        ? qq{$id."#chld"}
              : ($name eq 'depth')       ? qq{$id."#lvl"}
+             : ($name eq 'name')       ? qq{$id."#name"}
              : die "Tree_Query internal error while compiling expression: should never get here!";
       } elsif ($name=~/^(?:lower|upper|length)$/) {
 	if ($args and @$args==1) {
 	  return uc($name).'('
-	         .  $self->sql_serialize_expression_pt($args->[0],$opts,$extra_joins)
+	         .  $self->serialize_expression_pt($args->[0],$opts,$extra_joins)
 	         . ')';
 	} else {
 	  die "Wrong arguments for function ${name}() in expression $opts->{expression} of node '$this_node_id'!\nUsage: ${name}(string)\n";
 	}
       } elsif ($name eq 'substr') {
 	if ($args and @$args>1 and @$args<4) {
-	  my @args = map { $self->sql_serialize_expression_pt($_,$opts,$extra_joins) } @$args;
+	  my @args = map { $self->serialize_expression_pt($_,$opts,$extra_joins) } @$args;
 	  $args[1].='+1';
 	  return 'SUBSTR('
 	         .  join(',', @args)
@@ -822,7 +823,7 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
     } elsif ($type eq 'EXP') {
       my $out.='(';
       while (@$pt) {
-	$out.=$self->sql_serialize_expression_pt(shift @$pt,$opts,$extra_joins);
+	$out.=$self->serialize_expression_pt(shift @$pt,$opts,$extra_joins);
 	if (@$pt) { # op
 	  my $op = shift @$pt;
 	  if ($op eq 'div') {
@@ -839,6 +840,12 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
       }
       $out.=')';
       return $out;
+    } elsif ($type eq 'SET') {
+      my $res= '('
+	.  join(',', map { $self->serialize_expression_pt($_,$opts,$extra_joins) } @$pt)
+	. ')';
+      $opts->{can_be_null}=0;
+      return $res;
     }
   } else {
     if ($pt=~/^[-0-9']/) { # literal
@@ -855,7 +862,7 @@ sub sql_serialize_expression_pt {# pt stands for parse tree
   }
 }
 
-sub sql_serialize_expression {
+sub serialize_expression {
   my ($self,$opts)=@_;
   my $pt = Tree_Query::parse_expression($opts->{expression}); # $pt stands for parse tree
   die "Invalid expression '$opts->{expression}' on node '$opts->{id}'" unless defined $pt;
@@ -863,7 +870,7 @@ sub sql_serialize_expression {
   my $extra_joins={};
   $opts->{use_exists}=0;
   $opts->{can_be_null}=0;
-  my $out = $self->sql_serialize_expression_pt($pt,$opts,$extra_joins); # do not copy $opts here!
+  my $out = $self->serialize_expression_pt($pt,$opts,$extra_joins); # do not copy $opts here!
 
   my $wrap;
   if ($opts->{use_exists}) {
@@ -897,10 +904,10 @@ sub sql_serialize_expression {
   return ($out,$wrap,$opts->{can_be_null});
 }
 
-sub sql_serialize_predicate {
+sub serialize_predicate {
   my ($self,$L,$R,$operator,$opts)=@_;
-  my ($left,$wrap_left,$left_can_be_null) = ref($L) ? $self->sql_serialize_expression($L) : ($L);
-  my ($right,$wrap_right,$right_can_be_null) = ref($R) ? $self->sql_serialize_expression($R) : ($R);
+  my ($left,$wrap_left,$left_can_be_null) = ref($L) ? $self->serialize_expression($L) : ($L);
+  my ($right,$wrap_right,$right_can_be_null) = ref($R) ? $self->serialize_expression($R) : ($R);
   my $res;
   my $negative = $opts->{negative};
   if ($operator eq '~' and $opts->{syntax} eq 'Oracle') {
@@ -926,14 +933,14 @@ sub sql_serialize_predicate {
   return $res;
 }
 
-sub sql_serialize_element {
+sub serialize_element {
   my ($self,$opts)=@_;
   my ($name,$node,$as_id,$parent_as_id)=map {$opts->{$_}} qw(name condition id parent_id);
   my $negative = $opts->{negative};
   $negative=!$negative if $name eq 'not';
   if ($name eq 'test') {
     return
-      [$self->sql_serialize_predicate({%$opts,expression=>$node->{a},negative=>$negative},
+      [$self->serialize_predicate({%$opts,expression=>$node->{a},negative=>$negative},
 				      {%$opts,expression=>$node->{b},negative=>$negative},
 				      $node->{operator},
 				      $opts),$node];
@@ -942,7 +949,7 @@ sub sql_serialize_element {
       grep { @$_ }
       map {
 	my $n = $_->{'#name'};
-	$self->sql_serialize_element({
+	$self->serialize_element({
 	  %$opts,
 	  name => $n,
 	  condition => $_,
@@ -1036,6 +1043,7 @@ sub new {
     config => {
       pml => $opts->{config_pml},
     },
+    query => undef,
     query_nodes => undef,
     results => undef,
   }, $class;
@@ -1045,10 +1053,17 @@ sub new {
   register_open_file_hook($self->{callback});
   my $ident = $self->identify;
   (undef, $self->{label}) = Tree_Query::CreateSearchToolbar($ident);
-  $self->{on_destroy} = MacroCallback(sub {
-					DestroyUserToolbar($ident);
-					ChangingFile(0);
-				      });
+  my $fn = $self->filelist_name;
+  $self->{on_destroy} = MacroCallback(
+    sub {
+      DestroyUserToolbar($ident);
+      for my $win (map { $_->[0] } grep { $_->[1]->name eq $fn } grep ref($_->[1]), map [$_,GetCurrentFileList($_)], TrEdWindows()) {
+	CloseFileInWindow($win);
+	CloseWindow($win);
+      }
+      RemoveFileList($fn);
+      ChangingFile(0);
+    });
   return $self;
 }
 
@@ -1061,15 +1076,19 @@ sub DESTROY {
 
 sub identify {
   my ($self)=@_;
-  return "SQLSearch" unless $self->{config}{data};
-  my $cfg = $self->{config}{data};
-  return "SQLSearch $cfg->{driver}:$cfg->{username}\@$cfg->{host}:$cfg->{port}/$cfg->{database}";
+  my $ident= "SQLSearch-".$self->{object_id};
+  if ($self->{config}{data}) {
+    my $cfg = $self->{config}{data};
+    $ident.=" $cfg->{driver}:$cfg->{username}\@$cfg->{host}:$cfg->{port}/$cfg->{database}";
+  }
+  return $ident;
 }
 
 sub search_first {
   my ($self, $opts)=@_;
   $opts||={};
   my $query = $opts->{query} || $root;
+  $self->{query}=$query;
   unless ($self->{evaluator}) {
     $self->{evaluator} = Tree_Query::SQLEvaluator->new(undef,{connect => $self->{config}{data}});
   CONNECT: {
@@ -1159,6 +1178,11 @@ sub search_first {
     QuestionQuery('Results','No results','OK');
   }
   return $results;
+}
+
+sub current_query {
+  my ($self)=@_;
+  return $self->{query};
 }
 
 sub show_next_result {
@@ -1290,40 +1314,55 @@ sub filelist_name {
 sub show_result {
   my ($self,$dir)=@_;
   return unless $self->{evaluator};
-  my $prev_grp = $grp;
   my @save = ($this,$root,$grp);
-  my $fn = $self->filelist_name;
-  for my $win (TrEdWindows()) {
-    my $fl = GetCurrentFileList($win);
-    if ($fl and $fl->name eq $fn) {
-      eval {
-	if ($dir eq 'prev') {
-	  $grp=$win;
-	  PrevFile();
-	} elsif ($dir eq 'next') {
-	  $grp=$win;
-	  NextFile()
-	} elsif ($dir eq 'current') {
-	  return unless $self->{current_result};
-	  my $idx = Index($self->{last_query_nodes},$this);
-	  if (defined($idx)) {
-	    $grp=$win;
-	    my $source_dir = $self->get_source_dir;
-	    Open($source_dir.'/'.$self->{current_result}[$idx],{-keep_related=>1});
-	    Redraw($win);
-	  }
-	}
-      };
-      my $plus = ${$self->{label}}=~/\+/;
-      ${$self->{label}} = (CurrentFileNo($win)+1).' of '.(LastFileNo($win)+1).
-	($plus ? '+' : '');
-      ($this,$root,$grp)=@save;
-      $self->select_matching_node($this);
-      die $@ if $@;
-      return;
+  my $win=$self->claim_search_win();
+  eval {
+    if ($dir eq 'prev') {
+      $grp=$win;
+      PrevFile();
+    } elsif ($dir eq 'next') {
+      $grp=$win;
+      NextFile()
+    } elsif ($dir eq 'current') {
+      return unless $self->{current_result};
+      my $idx = Index($self->{last_query_nodes},$this);
+      if (defined($idx)) {
+	$grp=$win;
+	my $source_dir = $self->get_source_dir;
+	Open($source_dir.'/'.$self->{current_result}[$idx],{-keep_related=>1});
+	Redraw($win);
+      }
     }
-  }
+  };
+  my $plus = ${$self->{label}}=~/\+/;
+  ${$self->{label}} = (CurrentFileNo($win)+1).' of '.(LastFileNo($win)+1).
+    ($plus ? '+' : '');
+  ($this,$root,$grp)=@save;
+  $self->select_matching_node($this);
+  die $@ if $@;
   return;
+}
+
+
+sub claim_search_win {
+  my ($self)=@_;
+  my $fn = $self->filelist_name;
+  my ($win) = map { $_->[0] } grep { $_->[1]->name eq $fn } grep ref($_->[1]), map [$_,GetCurrentFileList($_)], TrEdWindows();
+  unless ($win) {
+    $win = SplitWindowVertically();
+    my $cur_win = $grp;
+    $grp=$win;
+    eval {
+      if ($self->{file}) {
+	Open($self->{file});
+      } elsif ($self->{filelist}) {
+	SetCurrentFileList($self->{filelist});
+      }
+    };
+    $grp=$cur_win;
+    die $@ if $@;
+  }
+  return $win;
 }
 
 sub update_label {

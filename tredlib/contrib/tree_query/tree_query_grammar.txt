@@ -129,14 +129,22 @@
 
     predicate: VAR_OR_SELF '=' <commit> VAR_OR_SELF
                { new_node({ '#name' => 'test', a=>'$'.$item[1], operator=>$item[2], b=>'$'.$item[4] }) }
+             | flat_expression 'in' <commit> flat_set_expression
              | flat_expression CMP <commit> flat_expression
                { new_node({ '#name' => 'test', a=>$item[1], operator=>$item[2], b=>$item[4] }) }
+
+    flat_set_expression: <rulevar: ($start,$t)> 
+                       | { ($start,$t)=($thisoffset,$text) } 
+                         '{' <leftop: flat_expression ',' flat_expression> '}'
+                         { $return=substr($t,0,$thisoffset-$start); $return=~s/^\s*//; 1 }
 
     flat_expression: <rulevar: ($start,$t)> 
               | { ($start,$t)=($thisoffset,$text) } <leftop: term OP term>
                 { $return=substr($t,0,$thisoffset-$start); $return=~s/^\s*//; 1 }
 
-    expression: <leftop: term OP term>
+    expression: '{' <commit> <leftop: expression ',' expression> '}'
+                { ['SET',@{$item[3]}] }
+              | <leftop: term OP term>
                 { @{$item[1]}>1 ? ['EXP',@{$item[1]}] : $item[1][0] }
               | VAR_OR_SELF { '$'.$item[1] }
 
@@ -204,7 +212,7 @@
     EXTRA_RELATION: /depth-first-precedes|depth-first-follows|order-precedes|order-follows/
               { new_relation($item[1]) }
 
-    FUNC: /descendants|lbrother|rbrother|sons|depth|lower|upper|length|substr/
+    FUNC: /descendants|lbrother|rbrother|sons|depth|lower|upper|length|substr|name/
 
     CMP: /=|~\*?|[<>]=?|in/
 

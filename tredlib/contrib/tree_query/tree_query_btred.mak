@@ -34,6 +34,8 @@ BEGIN {
 
 TODO:
 
+- offer node types based on actual schema
+
 - limitations: ID-based iterators such a/lex.rf and coref 
   require the current FSFile
   to be known. Currently we use $grp to keep this context. But that can
@@ -217,6 +219,8 @@ use strict;
 use warnings;
 BEGIN { import TredMacro  }
 
+$Tree_Query::TrEdSearchPreserve::object_id=0; # different NS so that TrEd's reload-macros doesn't clear it
+
 sub new {
   my ($class,$opts)=@_;
   $opts||={};
@@ -225,9 +229,11 @@ sub new {
   die "Neither fsfile, nor filelist were specified!" unless $what;
   die "Options fsfile, filelist are exclusive!" if $what>1;
   my $self = bless {
+    object_id =>  $Tree_Query::TrEdSearchPreserve::object_id++,
     file => $opts->{file},
     filelist => $opts->{filelist},
     evaluator => undef,
+    query => undef,
     query_nodes => undef,
     results => undef,
   }, $class;
@@ -250,9 +256,9 @@ sub DESTROY {
 
 sub identify {
   my ($self)=@_;
-  return 'TrEdSearch '.
-    ($self->{filelist} ? 'Filelist: '.$self->{filelist} :
-     $self->{file}   ? 'File: '.$self->{file} : '');
+  return 'TrEdSearch-'.$self->{object_id}.' '
+    .($self->{filelist} ? 'Filelist: '.$self->{filelist} :
+      $self->{file}     ? 'File: '     .$self->{file}    : '');
 }
 
 sub configure {
@@ -266,6 +272,7 @@ sub search_first {
   my ($self, $opts)=@_;
   $opts||={};
   my $query = $opts->{query} || $root;
+  $self->{query}=$query;
   $self->{evaluator} = Tree_Query::BtredEvaluator->new($query,
 						      {current_filelist => $self->{filelist} ? 1 : 0});
   $self->{current_result} = undef;
@@ -273,6 +280,11 @@ sub search_first {
   $self->{next_results}=[];
   $self->{have_all_results}=undef;
   return $self->show_next_result;
+}
+
+sub current_query {
+  my ($self)=@_;
+  return $self->{query};
 }
 
 sub show_next_result {
@@ -752,9 +764,11 @@ sub claim_search_win {
     my $nodetest = '$node and ($backref or '
       .(defined($optional) ? $optional.'==$node or ' : '')
       .'!exists($have{$node}))';
+    my $type_name = quotemeta($qnode->{'node-type'});
     my $sub = qq(#line 0 "query-node/${match_pos}"\n)
       . 'sub { my ($node,$backref)=@_; '."\n  "
        .$nodetest
+       .(defined($type_name) && length($type_name) ? "\n and ".q[$node->type->get_decl_path =~ m{^\!].$type_name.q[(?:\.type)$}] : ())
        .(defined($conditions) ? "\n  and ".$conditions : '')
        . $check_preceding
        ."\n}";
@@ -990,6 +1004,7 @@ sub claim_search_win {
 	       : ($name eq 'rbrothers')   ? q[ do { my $n = ].$node.q[; my $i=0; $i++ while ($n=$n->rbrother); $i } ]
 	       : ($name eq 'sons')        ? qq{ scalar(${node}->children) }
     	       : ($name eq 'depth')       ? qq{ ${node}->level }
+    	       : ($name eq 'name')       ? qq{ ${node}->{'#name'} }
 	       : die "Tree_Query internal error while compiling expression: should never get here!";
 	} elsif ($name=~/^(?:lower|upper|length)$/) {
 	  if ($args and @$args==1) {
@@ -1031,6 +1046,10 @@ sub claim_search_win {
 	}
 	$out.=')';
 	return $out;
+      } elsif ($type eq 'SET') {
+	return '('
+	  .  join(',', map { $self->serialize_expression_pt($_,$opts) } @$pt)
+	  . ')';
       }
     } else {
       if ($pt=~/^[-0-9']/) {	# literal

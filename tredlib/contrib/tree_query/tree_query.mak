@@ -1030,23 +1030,40 @@ sub SelectSearch {
 	   ) || return;
   return unless @sel;
   my $sel = $sel[0];
-  if (my $S = GetSearch($sel)) {
-    $SEARCH=$S;
-  } elsif ($sel eq 'Search Remote Treebank Database') {
-    $SEARCH=Tree_Query::SQLSearch->new();
-  } elsif ($sel =~ /Search File: (.*)/) {
-    $SEARCH=Tree_Query::TrEdSearch->new({file => $1});
-  } elsif ($sel =~ /Search File list: (.*)/) {
-    $SEARCH=Tree_Query::TrEdSearch->new({filelist => $1});
+  my $S = GetSearch($sel);
+  unless ($S) {
+    if ($sel eq 'Search Remote Treebank Database') {
+      $S=Tree_Query::SQLSearch->new();
+    } elsif ($sel =~ /Search File: (.*)/) {
+      $S=Tree_Query::TrEdSearch->new({file => $1});
+    } elsif ($sel =~ /Search File list: (.*)/) {
+      $S=Tree_Query::TrEdSearch->new({filelist => $1});
+    }
   }
-  if ($SEARCH) {
-    my $ident = $SEARCH->identify;
+  if ($S) {
+    my $ident = $S->identify;
     @SEARCHES = grep { $_->identify ne $ident } @SEARCHES;
-    push @SEARCHES, $SEARCH;
+    push @SEARCHES, $S;
+    SetSearch($S);
   }
   # TODO
   #
   return $SEARCH;
+}
+
+sub SetSearch {
+  my ($s) = @_;
+  my $prev=$SEARCH && $SEARCH->identify;
+  my $ident = $s && $s->identify;
+  $SEARCH=$s;
+  if ($ident ne $prev) {
+    for my $name ($ident,$prev) {
+      my $tb = GetUserToolbar($name);
+      next unless $tb;
+      my $lab = first { ref($_) eq 'Tk::Label' } $tb->children;
+      $lab->configure(-font=> $name eq $ident ? 'C_small_bold' : 'C_small' ) if $lab;
+    }
+  }
 }
 
 sub CreateSearchToolbar {
@@ -1058,7 +1075,7 @@ sub CreateSearchToolbar {
 		    sub{
 		      my $s = GetSearch($ident);
 		      if ($s) {
-			$SEARCH=$s;
+			SetSearch($s);
 			$s->search_first;
 		      }
 		      ChangingFile(0);
@@ -1070,7 +1087,7 @@ sub CreateSearchToolbar {
 		    sub{
 		      my $s = GetSearch($ident);
 		      if ($s) {
-			$SEARCH=$s;
+			SetSearch($s);
 			$s->show_next_result;
 		      }
 		      ChangingFile(0);
@@ -1082,7 +1099,7 @@ sub CreateSearchToolbar {
 		      sub{
 			my $s = GetSearch($ident);
 			if ($s) {
-			  $SEARCH=$s;
+			  SetSearch($s);
 			  $s->show_prev_result;
 			}
 			ChangingFile(0);
