@@ -3002,18 +3002,35 @@ sub RemoveBackend {
 }
 
 
-=item C<AddNewFilelist($filelist)>
+=item C<AddNewFileList($filelist)>
 
 This macro is only available in TrEd.
-Creates a new TrED filelist from a given Filelist object.
+Creates a new TrED filelist from a given C<Filelist> object.
 
 =cut
 
 #ifdef TRED
 sub AddNewFileList {
   my ($fl)=@_;
-  croak("Not a file-list") unless UNIVERSAL::isa($fl,'Filelist');
+  croak("Not a file-list object") unless UNIVERSAL::isa($fl,'Filelist');
   main::addNewFilelist($grp->{framegroup},$fl);
+}
+#endif
+
+=item C<RemoveFileList($filelist_object_or_name)>
+
+This macro is only available in TrEd.  It disposes of a given filelist
+(identified either by a C<Filelist> object or by name) by removing it
+from TrEd's internal list of open filelists.
+
+=cut
+
+#ifdef TRED
+sub RemoveFileList {
+  my ($fl)=@_;
+  $fl = GetFileList($fl) unless ref($fl);
+  croak("No such file-list") unless UNIVERSAL::isa($fl,'Filelist');
+  main::deleteFilelist($grp->{framegroup},$fl);
 }
 #endif
 
@@ -3032,7 +3049,23 @@ sub GetCurrentFileList {
 }
 #endif
 
-=item C<SetCurrentFilelist($name)>
+=item C<GetFileList($name)>
+
+This macro is only available in TrEd.
+Finds a filelist of a given name in TrEd's internal list open filelists
+and returns the corresponding C<Filelist> object. Returns undef if not found.
+
+=cut
+
+#ifdef TRED
+sub GetFileList {
+  my ($name) = @_;
+  return unless defined $name;
+  return first { $_->name eq $name } @::filelists;
+}
+#endif
+
+=item C<SetCurrentFileList($name)>
 
 This macro is only available in TrEd. Selects the filelist of a given
 name for the current window.
