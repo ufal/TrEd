@@ -562,6 +562,9 @@ sub attr_choices_hook {
       grep $_->{'#name'} =~ /^(?:node|subquery)$/, $node->root->descendants
     ];
   } elsif (!$node->parent or $node->{'#name'} =~ /^(?:node|subquery)$/) {
+    if ($SEARCH and UNIVERSAL::can($SEARCH,'get_node_types')) {
+      return $SEARCH->get_node_types;
+    }
     if ($attr_path eq 'node-type') {
       return [sort keys %schema_map];
     }
