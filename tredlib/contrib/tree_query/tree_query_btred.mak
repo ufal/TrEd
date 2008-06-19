@@ -990,7 +990,7 @@ sub claim_search_win {
 	my $name = $pt->[0];
 	my $args = $pt->[1];
 	my $id;
-	if ($name=~/^(?:descendants|lbrothers|rbrothers|sons|depth)$/) {
+	if ($name=~/^(?:descendants|lbrothers|rbrothers|sons|depth|name)$/) {
 	  my $node;
 	  if ($args and @$args==1 and !ref($args->[0]) and $args->[0]=~s/^\$//) {
 	    $node=$self->serialize_target($args->[0],$opts);
