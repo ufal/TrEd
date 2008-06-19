@@ -624,7 +624,7 @@ sub build_sql {
 
 sub get_node_table_for {
   my ($self,$type)=@_;
-  # return $self->get_schema_name_for.'__trees';
+  return $self->get_schema_name_for($type).'__trees';
   return $type;
 }
 sub get_schema_name_for {
@@ -649,6 +649,13 @@ sub get_schema {
     die "Failed to obtain PML schema $name\n";
   }
   return $self->{schemas}{$name} = PMLSchema->new({string => $results->[0][0]});
+}
+sub get_node_types {
+  my ($self)=@_;
+  return $self->{node_types} if defined $self->{node_types};
+  my $results = $self->run_sql_query(qq(SELECT "type" FROM "#PMLTYPES"),{ MaxRows=>1, RaiseError=>1 });
+  return $self->{node_types} = [ map $_->[0], @$results ];
+  
 }
 sub get_decl_for {
   my ($self,$type)=@_;
@@ -708,11 +715,11 @@ sub serialize_expression_pt {# pt stands for parse tree
 	$j->{$node_id}||=[];
 	
 	my $i = 0;
-	$id=$node_id; #."/$i";
+	$id=$node_id."/$i";
 	my $table=_table_name($decl->get_decl_path);
-      # unless (first {$_->[0] eq $id} (@{$j->{$node_id}}, @{$extra_joins->{$node_id}})) {
-      # 	  push @{$j->{$node_id}},[$id,$table, qq("$id"."#idx" = "$node_id"."data")]; # should be qq($prev."$tab")
-      # 	}
+        unless (first {$_->[0] eq $id} (@{$j->{$node_id}}, @{$extra_joins->{$node_id}})) {
+	  push @{$j->{$node_id}},[$id,$table, qq("$id"."#idx" = "$node_id"."#idx")];
+      	}
 	my @t = @$pt;
 	my $column;
 	my $iter=0;
@@ -783,7 +790,7 @@ sub serialize_expression_pt {# pt stands for parse tree
       my $name = $pt->[0];
       my $args = $pt->[1];
       my $id;
-      if ($name=~/^(?:descendants|lbrothers|rbrothers|sons|depth)$/) {
+      if ($name=~/^(?:descendants|lbrothers|rbrothers|sons|depth|name)$/) {
 	if ($args and @$args==1 and !ref($args->[0]) and $args->[0]=~s/^\$//) {
 	  $id = $args->[0];
 	  if ($self->cmp_subquery_scope($this_node_id,$id)<0) {
@@ -794,12 +801,12 @@ sub serialize_expression_pt {# pt stands for parse tree
 	} else {
 	  $id=$this_node_id;
 	}
-	return ($name eq 'descendants') ? qq{$id."#r"-$id."#idx"}
-	     : ($name eq 'lbrothers')   ? qq{$id."#chord"}
-	     : ($name eq 'rbrothers')   ? qq{$opts->{parent_id}."#chld"-$id."#chord"-1}
-             : ($name eq 'sons')        ? qq{$id."#chld"}
-             : ($name eq 'depth')       ? qq{$id."#lvl"}
-             : ($name eq 'name')       ? qq{$id."#name"}
+	return ($name eq 'descendants') ? qq{"$id"."#r"-"$id"."#idx"}
+	     : ($name eq 'lbrothers')   ? qq{"$id"."#chord"}
+	     : ($name eq 'rbrothers')   ? qq{"$opts->{parent_id}"."#chld"-"$id"."#chord"-1}
+             : ($name eq 'sons')        ? qq{"$id"."#chld"}
+             : ($name eq 'depth')       ? qq{"$id"."#lvl"}
+             : ($name eq 'name')       ? qq{"$id"."#name"}
              : die "Tree_Query internal error while compiling expression: should never get here!";
       } elsif ($name=~/^(?:lower|upper|length)$/) {
 	if ($args and @$args==1) {
@@ -1089,23 +1096,7 @@ sub search_first {
   $opts||={};
   my $query = $opts->{query} || $root;
   $self->{query}=$query;
-  unless ($self->{evaluator}) {
-    $self->{evaluator} = Tree_Query::SQLEvaluator->new(undef,{connect => $self->{config}{data}});
-  CONNECT: {
-      eval {
-	$self->{evaluator}->connect;
-      };
-      if ($@) {
-	ErrorMessage($@);
-	if ($@ =~ /timed out/) {
-	  return;
-	}
-	GUI() && EditAttribute($self->{config}{data},'',$self->{config}{type},'password') || return;
-	$self->{config}{pml}->save();
-	redo CONNECT;
-      }
-    }
-  }
+  $self->init_evaluator;
   eval {
     $self->{evaluator}->prepare_query($query);
   };
@@ -1200,6 +1191,12 @@ sub show_current_result {
   return $self->show_result('current');
 }
 
+sub __cat_path {
+  my ($source_dir,$path)=@_;
+  return $path if $path=~m{^/};
+  return $source_dir.'/'.$path;
+}
+
 sub matching_nodes {
   my ($self,$filename,$tree_number,$tree)=@_;
   return unless $self->{current_result};
@@ -1207,7 +1204,7 @@ sub matching_nodes {
   my $source_dir = $self->get_source_dir;
   my @nodes = ($tree,$tree->descendants);
   my @positions = map { /^\Q$fn\E\.(\d+)$/ ? $1 : () }
-    map { $source_dir.'/'.$_ } @{$self->{current_result}};
+    map { __cat_path($source_dir,$_) } @{$self->{current_result}};
   return @nodes[@positions];
 }
 
@@ -1219,7 +1216,7 @@ sub map_nodes_to_query_pos {
   my @nodes = ($tree,$tree->descendants);
   my $r = $self->{current_result};
   return {
-    map { $_->[1]=~/^\Q$fn\E\.(\d+)$/ ? ($nodes[$1] => $_->[0]) : () } map { [$_,$source_dir.'/'.$r->[$_]] } 0..$#$r 
+    map { $_->[1]=~/^\Q$fn\E\.(\d+)$/ ? ($nodes[$1] => $_->[0]) : () } map { [$_,__cat_path($source_dir,$r->[$_])] } 0..$#$r 
   };
 }
 
@@ -1236,7 +1233,7 @@ sub select_matching_node {
   return if !defined($idx);
   my $result = $self->{current_result}->[$idx];
   my $source_dir = $self->get_source_dir;
-  $result = $source_dir.'/'.$result;
+  $result = __cat_path($source_dir,$result);
   foreach my $win (TrEdWindows()) {
     my $fsfile = $win->{FSFile};
     next unless $fsfile;
@@ -1253,6 +1250,12 @@ sub select_matching_node {
     }
   }
   return;
+}
+
+sub get_node_types {
+  my ($self)=@_;
+  $self->init_evaluator;
+  return $self->{evaluator}->get_node_types;
 }
 
 sub configure {
@@ -1305,6 +1308,27 @@ sub init {
   $self->{config}{data} = $cfg;
 }
 
+sub init_evaluator {
+  my ($self)=@_;
+  unless ($self->{evaluator}) {
+    $self->{evaluator} = Tree_Query::SQLEvaluator->new(undef,{connect => $self->{config}{data}});
+  CONNECT: {
+      eval {
+	$self->{evaluator}->connect;
+      };
+      if ($@) {
+	ErrorMessage($@);
+	if ($@ =~ /timed out/) {
+	  return;
+	}
+	GUI() && EditAttribute($self->{config}{data},'',$self->{config}{type},'password') || return;
+	$self->{config}{pml}->save();
+	redo CONNECT;
+      }
+    }
+  }
+}
+
 
 sub filelist_name {
   my $self=shift;
@@ -1329,7 +1353,7 @@ sub show_result {
       if (defined($idx)) {
 	$grp=$win;
 	my $source_dir = $self->get_source_dir;
-	Open($source_dir.'/'.$self->{current_result}[$idx],{-keep_related=>1});
+	Open(__cat_path($source_dir,$self->{current_result}[$idx]),{-keep_related=>1});
 	Redraw($win);
       }
     }
@@ -1391,7 +1415,7 @@ sub open_pmltq {
     my $source_dir = $self->get_source_dir;
     $opts->{-norecent}=1;
     $opts->{-keep_related}=1;
-    my $fsfile = Open($source_dir.'/'.$first,$opts);
+    my $fsfile = Open(__cat_path($source_dir,$first),$opts);
     if (ref $fsfile) {
       $fsfile->changeAppData('tree_query_url',$filename);
       $fsfile->changeAppData('norecent',1);
