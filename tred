@@ -3378,12 +3378,14 @@ sub deleteFilelist {
   return if ($fl->name eq 'Default' or
 	     $fl->name eq 'Bookmarks');
   print "Allowed\n" if $tredDebug;
-  @filelists=grep($_ ne $fl, @filelists);
+  @filelists=grep($_ != $fl, @filelists);
   print join "\n","Filelists:",@filelists,EMPTY if $tredDebug;
   print scalar(@filelists),"\n" if $tredDebug;
-  $grp->{filelistCurrentFilelist}=undef;
+  if ($grp->{filelistCurrentFilelist}==$fl) {
+    $grp->{filelistCurrentFilelist}=undef;
+    switchFilelist($grp,'Default');
+  }
   undef $fl;
-  switchFilelist($grp,'Default');
   updatePostponed($grp);
 }
 
@@ -5026,6 +5028,11 @@ sub printGetNodesCallback { # called from print_trees
 
 sub onTreeChange {
   my ($win)=@_;
+  return if $insideEval; # we don't want to redraw if called from a macro
+  # not only because it is really expensive, but also because
+  # calling this many times (say 1K) results in so many afterIdle calls
+  # on various places (such as configure(-status=>'disabled') on value line)
+  # that TrEd seems stuck when returning from a macro
   my $grp = $win->{framegroup};
   get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo},1);
   update_value_line($grp);
@@ -5037,6 +5044,7 @@ sub onTreeChange {
 #		     $tv->get_node_pinfo($node,"Oval"));
 
   centerTo($win,$win->{currentNode});
+  $grp->{top}->idletasks;
 }
 
 sub onNodeChange {
@@ -5158,6 +5166,7 @@ sub prepareFonts {
   prepareFont($grp,\$vLineFont,'C_vline');
   eval { # eval, in case fonts already exist
     $grp->{top}->fontCreate(qw/C_small -family sans -size 7/);
+    $grp->{top}->fontCreate(qw/C_small_bold -family sans -weight bold -size 7/);
     $grp->{top}->fontCreate(qw/C_heading -family sans -weight bold -size 11/);
     $grp->{top}->fontCreate(qw/C_fixed   -family courier   -size 9/);
     $grp->{top}->fontCreate(qw/C_default -family sans -size 9/);
