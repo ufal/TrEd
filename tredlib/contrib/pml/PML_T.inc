@@ -103,7 +103,7 @@ applies to C<$this>.
 
 sub GetAAuxNodes {
   my $node = @_ ? $_[0] : $this;
-  return grep defined, map { GetANodeById($_) } ListV($node->attr('a/aux.rf'));
+  return grep defined, map { GetANodeByID($_) } ListV($node->attr('a/aux.rf'));
 }
 
 =item GetANodeByID($id_or_ref)
