@@ -8538,13 +8538,13 @@ sub determineNodeType {
       choose_command => sub {
 	my (undef,undef,$ntypes)=@_;
 	my $i = 1;
-	my @types = map {($i++)." ".($_->[0])} @ntypes;
+	my @types = map {($i++)." ".($_->[0])} @$ntypes;
 	my $selection = [$types[0]];
 	listQuery($win->toplevel,'Untyped node: select node-type','browse',
 		  \@types,$selection) || return;
-	return $ntypes[$1-1] if $selection->[0]=~/^(\d+) /;
+	return @$ntypes[$1-1] if $selection->[0]=~/^(\d+) /;
 	return;
-      }				       
+      }
     });
   };
   plainErrorMessage($win,$@) if $@;
