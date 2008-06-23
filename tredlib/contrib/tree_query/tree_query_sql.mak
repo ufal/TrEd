@@ -4,6 +4,8 @@
 ################
 {
 
+our $SEPARATE_TREES=1;
+
 package Tree_Query::SQLEvaluator;
 use Benchmark;
 use Carp;
@@ -495,6 +497,19 @@ sub user_defined_relation {
 	qq{"$target"."#idx"},
 	q(=),$opts,
        );
+  } elsif ($relation eq 'val_frame') {
+    $cond =
+      $self->serialize_predicate(
+	{
+	  id=>$from_id,
+	  type=>$type,
+	  join=>$opts->{join},
+	  expression => qq{\$$id.val_frame.rf},
+	  negative=>$opts->{negative},
+	},
+	qq{"$target"."#idx"},
+	q(=),$opts,
+       );
   }
   return $cond;
 }
@@ -624,8 +639,7 @@ sub build_sql {
 
 sub get_node_table_for {
   my ($self,$type)=@_;
-  return $self->get_schema_name_for($type).'__trees';
-  return $type;
+  return $SEPARATE_TREES==1 ? $self->get_schema_name_for($type).'__trees' : $type;
 }
 sub get_schema_name_for {
   my ($self,$type)=@_;
@@ -713,13 +727,17 @@ sub serialize_expression_pt {# pt stands for parse tree
 	#	}
 	$extra_joins->{$node_id}||=[];
 	$j->{$node_id}||=[];
-	
+
 	my $i = 0;
-	$id=$node_id."/$i";
 	my $table=_table_name($decl->get_decl_path);
-        unless (first {$_->[0] eq $id} (@{$j->{$node_id}}, @{$extra_joins->{$node_id}})) {
-	  push @{$j->{$node_id}},[$id,$table, qq("$id"."#idx" = "$node_id"."#idx")];
-      	}
+        if ($SEPARATE_TREES==1) {
+	  $id=$node_id."/$i";
+	  unless (first {$_->[0] eq $id} (@{$j->{$node_id}}, @{$extra_joins->{$node_id}})) {
+	    push @{$j->{$node_id}},[$id,$table, qq("$id"."#idx" = "$node_id"."#idx")];
+	  }
+	} else {
+	  $id=$node_id;
+	}
 	my @t = @$pt;
 	my $column;
 	my $iter=0;
@@ -790,6 +808,7 @@ sub serialize_expression_pt {# pt stands for parse tree
       my $name = $pt->[0];
       my $args = $pt->[1];
       my $id;
+      # url|tree_no
       if ($name=~/^(?:descendants|lbrothers|rbrothers|sons|depth|name)$/) {
 	if ($args and @$args==1 and !ref($args->[0]) and $args->[0]=~s/^\$//) {
 	  $id = $args->[0];
@@ -806,7 +825,9 @@ sub serialize_expression_pt {# pt stands for parse tree
 	     : ($name eq 'rbrothers')   ? qq{"$opts->{parent_id}"."#chld"-"$id"."#chord"-1}
              : ($name eq 'sons')        ? qq{"$id"."#chld"}
              : ($name eq 'depth')       ? qq{"$id"."#lvl"}
-             : ($name eq 'name')       ? qq{"$id"."#name"}
+             : ($name eq 'name')        ? qq{"$id"."#name"}
+#             : ($name eq 'url')         ? qq{"$id"."#name"}
+#             : ($name eq 'tree_no')     ? qq{"$id"."#name"}
              : die "Tree_Query internal error while compiling expression: should never get here!";
       } elsif ($name=~/^(?:lower|upper|length)$/) {
 	if ($args and @$args==1) {
@@ -984,7 +1005,9 @@ sub serialize_element {
     @vals=(Fslib::Struct->new({min=>1})) unless @vals;
     for my $occ (@vals) { # this is not optimal for @occ>1
       my ($min,$max)=($occ->{min},$occ->{max});
-      if (defined($min) and length($min) and defined($max) and length($max)) {
+      $min='' unless defined $min;
+      $max='' unless defined $max;
+      if (length($min) and length($max)) {
 	if ($min==$max) {
 	  push @occ,[[['('],@$subquery,[qq')=$min']],$node];
 	} else {
