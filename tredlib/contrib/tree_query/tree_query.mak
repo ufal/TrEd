@@ -1344,7 +1344,7 @@ sub query_parser {
   my $Grammar = $libDir."/contrib/tree_query/Grammar.pm";
   delete $INC{$Grammar};
   require $Grammar;
-  $Tree_Query::user_defined = 'echild|eparent|a/lex.rf\|a/aux.rf|a/lex.rf|a/aux.rf|coref_text|coref_gram|compl';
+  $Tree_Query::user_defined = 'echild|eparent|a/lex.rf\|a/aux.rf|a/lex.rf|a/aux.rf|coref_text|coref_gram|compl|val_frame';
   $parser = Tree_Query::Grammar->new() or die "Could not create parser for Tree_Query grammar\n";
   return $parser;
 }

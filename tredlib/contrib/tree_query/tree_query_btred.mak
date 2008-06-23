@@ -492,7 +492,11 @@ sub claim_search_win {
   sub new {
     my ($class,$query_tree,$opts)=@_;
 
-    unless (ref($query_tree)) {
+    if (ref($query_tree)) {
+      if ($opts->{plan}) {
+	$query_tree=FSFormat->clone_subtree($query_tree);
+      }
+    } else {
       $query_tree = Tree_Query->parse_query($query_tree);
     }
 
