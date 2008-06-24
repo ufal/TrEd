@@ -3074,9 +3074,9 @@ name for the current window.
 
 #ifdef TRED
 sub SetCurrentFileList {
-  my ($name)=@_;
+  my $name=shift;
   croak("Usage: SelectFilelist(name)") if !defined($name) or ref($name) or !length($name);
-  main::selectFilelist($grp,$name);
+  main::selectFilelist($grp,$name,@_);
 }
 #endif
 
