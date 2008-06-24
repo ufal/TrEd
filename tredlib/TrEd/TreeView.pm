@@ -1421,7 +1421,7 @@ sub parse_coords_spec {
 {
   my ($HAVE_PARENT,$XP,$YP,$XN,$YN); # persistent variables for precompiled subs
 sub eval_coords_spec {
-  my ($self,$node,$parent,$c,$coords) = @_;
+  my ($self,$node,$parent,$c) = @_;
   my $node_info=$self->{node_info};
   $HAVE_PARENT = $parent ? 1 : 0;
   $XP = $HAVE_PARENT ? int($node_info->{$parent}{"XPOS"}) : undef;
@@ -1461,7 +1461,7 @@ sub eval_coords_spec {
 	}
       return($cached->());
     } else { # catches ERR too
-      print STDERR "TreeView: ERROR IN COORD SPEC: $coords\n";
+      print STDERR ("TreeView: ERROR IN COORD SPEC: $c for node $node\n");
       return;
     }
   }
@@ -1662,7 +1662,7 @@ sub redraw {
     my $lin=-1;
     COORD: foreach my $c (@coords) {
       #my @c=split ',',$c;
-      my @c = $self->eval_coords_spec($node,$parent,$c,$coords);
+      my @c = $self->eval_coords_spec($node,$parent,$c);
       $lin++;
       next unless @c;
 #      $objectno++;
@@ -1950,6 +1950,7 @@ sub redraw {
     }
     my $clear;
     for my $pat (@$label_patterns) {
+      my $coords;
       $i++;
       $msg=$self->interpolate_text_field($node,$pat,$grp);
       if ($msg=~s/\#{-coords:([^}]*)}//g) {
