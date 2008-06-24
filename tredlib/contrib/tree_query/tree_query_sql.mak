@@ -4,7 +4,7 @@
 ################
 {
 
-our $SEPARATE_TREES=1;
+our $SEPARATE_TREES=0;
 
 package Tree_Query::SQLEvaluator;
 use Benchmark;
@@ -417,9 +417,10 @@ sub user_defined_relation {
       $self->serialize_predicate(
 	{
 	  id=>$from_id,
-	  type=>$opts->{type},
+	  type=>$type,
 	  join=>$opts->{join},
-	  expression => qq{\$$id.a/lex},
+	  negative=>$opts->{negative},
+	  expression => $type eq 't-root' ? qq{\$$id.atree} : qq{\$$id.a/lex},
 	},
 	qq{"$target"."#idx"},
 	'=',$opts
@@ -437,12 +438,14 @@ sub user_defined_relation {
       qq(=),$opts,
      )
   } elsif ($relation eq 'a/lex.rf|a/aux.rf') {
+    print "NEGATIVE: $opts->{negative}\n";
     $cond =
       '('.$self->serialize_predicate(
 	{
 	  id=>$opts->{id},
-	  type=>$opts->{type},
+	  type=>$type,
 	  join=>$opts->{join},
+	  negative=>$opts->{negative},
 	  expression => qq{\$$id.a/lex},
 	},
 	qq{"$target"."#idx"},
@@ -938,10 +941,10 @@ sub serialize_predicate {
   my ($right,$wrap_right,$right_can_be_null) = ref($R) ? $self->serialize_expression($R) : ($R);
   my $res;
   my $negative = $opts->{negative};
-  if ($operator eq '~' and $opts->{syntax} eq 'Oracle') {
+  if ($operator eq '~' and defined($opts->{syntax}) and $opts->{syntax} eq 'Oracle') {
     $res = qq{REGEXP_LIKE($left,$right)};
     $res .= qq{ AND $left IS NOT NULL} if $left_can_be_null and $negative;
-  } elsif ($operator eq '~*' and $opts->{syntax} eq 'Oracle') {
+  } elsif ($operator eq '~*' and defined($opts->{syntax}) and $opts->{syntax} eq 'Oracle') {
     $res = qq{REGEXP_LIKE($left,$right,'i')};
     $res .= qq{ AND $left IS NOT NULL} if $left_can_be_null and $negative;
   } else {
@@ -1022,12 +1025,14 @@ sub serialize_element {
     return (@occ ? [[ ['('],@{Tree_Query::_group(\@occ,[' OR '])},[')'] ],$node] : ());
   } elsif ($name eq 'ref') {
     my $target = $node->{target};
-    if ($self->cmp_subquery_scope($node,$target)<0) {
+    my $cmp = $self->cmp_subquery_scope($node,$target);
+    if ($cmp<0) {
       die "Node '$as_id' belongs to a sub-query and cannot be referred from the scope of node '$target'\n";
     }
+    # case $cmp>0 implies we use negative approach
     my ($rel) = SeqV($node->{relation});
     if ($rel) {
-      return ['('.$self->relation($as_id,$rel,$target,$opts).')',$node];
+      return ['('.$self->relation($as_id,$rel,$target,{%$opts,negative=>($opts->{negative}||$cmp>0)}).')',$node];
     } else {
       return;
     }
@@ -1181,12 +1186,13 @@ sub search_first {
       $grp=$res_win;
       SetCurrentStylesheet(STYLESHEET_FROM_FILE);
       AddNewFileList($fl);
-      SetCurrentFileList($fl->name);
-      GotoFileNo(0);
+      SetCurrentFileList($fl->name,{no_open=>1});
+      #GotoFileNo(0);
+      $self->{current_result}=[$self->{evaluator}->idx_to_pos($results->[0])];
       ($this,$root,$grp)=@context;
       ${$self->{label}} = (CurrentFileNo($res_win)+1).' of '.(LastFileNo($res_win)+1).
 	($limit == $matches ? '+' : '');
-      select_matching_node($this);
+      $self->show_result('current');
     }
   } else {
     QuestionQuery('Results','No results','OK');
@@ -1426,6 +1432,7 @@ sub update_label {
 # and opens the first of the them
 sub open_pmltq {
   my ($self,$filename,$opts)=@_;
+  print "$filename\n";
   my $object_id=$self->{object_id};
   return unless $filename=~s{pmltq://$object_id/}{};
   my @positions = $self->{evaluator}->idx_to_pos([split m{/}, $filename]);

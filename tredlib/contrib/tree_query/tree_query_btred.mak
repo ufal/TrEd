@@ -234,7 +234,7 @@ sub new {
     filelist => $opts->{filelist},
     evaluator => undef,
     query => undef,
-    query_nodes => undef,
+    # query_nodes => undef,
     results => undef,
   }, $class;
   my $ident = $self->identify;
@@ -395,13 +395,13 @@ sub map_nodes_to_query_pos {
 sub node_index_in_last_query {
   my ($self,$query_node)=@_;
   return unless $self->{current_result};
-  return Index($self->{evaluator}->get_query_nodes,$query_node);
+  return $self->{evaluator}->{query_node2pos}{$query_node};
 }
 
 sub select_matching_node {
   my ($self,$query_node)=@_;
   return unless $self->{current_result} and $self->{evaluator};
-  my $idx = Index($self->{evaluator}->get_query_nodes,$query_node);
+  my $idx = $self->node_index_in_last_query($query_node);
   return if !defined($idx);
   my $result = $self->{current_result}->[$idx];
   foreach my $win (TrEdWindows()) {
@@ -492,10 +492,9 @@ sub claim_search_win {
   sub new {
     my ($class,$query_tree,$opts)=@_;
 
+    my $clone_before_plan = 0;
     if (ref($query_tree)) {
-      if ($opts->{plan}) {
-	$query_tree=FSFormat->clone_subtree($query_tree);
-      }
+      $clone_before_plan = 1;
     } else {
       $query_tree = Tree_Query->parse_query($query_tree);
     }
@@ -540,7 +539,7 @@ sub claim_search_win {
       parent_pos => undef,
       pos2match_pos => undef,
       name2match_pos => undef,
-      query_nodes => [],
+      # query_nodes => [],
       results => [],
     }, $class;
     weaken($self->{parent_query}) if $self->{parent_query};
@@ -552,38 +551,47 @@ sub claim_search_win {
       die "Not a query tree: $type!\n";
     }
     my $roots;
-    if ($opts->{plan}) {
-      if ($self->{parent_query}) {
-	$roots = Tree_Query::BtredPlanner::plan(
-	  [ Tree_Query::FilterQueryNodes($query_tree) ],
-	  $query_tree->parent,
-	  $query_tree
-	 );
-      } else {
-	Tree_Query::BtredPlanner::name_all_query_nodes($query_tree);
-	$roots = Tree_Query::BtredPlanner::plan([
-	  Tree_Query::FilterQueryNodes($query_tree)
-	 ],$query_tree);
-      }
-    } else {
+    my @orig_nodes=Tree_Query::FilterQueryNodes($query_tree);
+    my @query_nodes;
+    my %orig2query;
+    if ($opts->{no_plan}) {
       $roots = ($type eq 'q-query.type') ? [ $query_tree->children ] : [$query_tree];
+      @query_nodes=@orig_nodes;
+      %orig2query = map { $_ => $_ } @orig_nodes;
+    } elsif ($self->{parent_query}) {
+      $roots = Tree_Query::BtredPlanner::plan(
+	\@orig_nodes,
+	$query_tree->parent,
+	$query_tree
+       );
+      %orig2query = map { $_ => $_ } @orig_nodes;
+      @query_nodes=Tree_Query::FilterQueryNodes($query_tree); # reordered
+    } else {
+      if ($clone_before_plan) {
+	$query_tree=FSFormat->clone_subtree($query_tree);
+      }
+      @query_nodes=Tree_Query::FilterQueryNodes($query_tree); # same order as @orig_nodes
+      %orig2query = map { $orig_nodes[$_] => $query_nodes[$_] } 0..$#orig_nodes;
+      Tree_Query::BtredPlanner::name_all_query_nodes($query_tree); # need for planning
+      $roots = Tree_Query::BtredPlanner::plan(\@query_nodes,$query_tree);
+      @query_nodes=Tree_Query::FilterQueryNodes($query_tree); # reordered
     }
     my $query_node;
     if (@$roots==0) {
       die "No query node!\n";
     } elsif (@$roots>1) {
-      die "The query is not connected: the graph has more than one root node!\n";
+      die "The query is not connected: the graph has more than one root node (@$roots)!\n";
     } else {
       ($query_node)=@$roots;
     }
-    my @query_nodes=Tree_Query::FilterQueryNodes($query_tree);
-    @{$self->{query_nodes}}=@query_nodes;
+    # @{$self->{query_nodes}}=@orig_nodes;
     %name2pos = map {
       my $name = lc($query_nodes[$_]->{name});
       (defined($name) and length($name)) ? ($name=>$_) : ()
     } 0..$#query_nodes;
     {
       my %node2pos = map { $query_nodes[$_] => $_ } 0..$#query_nodes;
+      $self->{query_node2pos} = { map { $_=>$node2pos{$orig2query{$_}} } @orig_nodes };
       $self->{parent_pos} = [ map { $node2pos{ $_->parent  } } @query_nodes ];
     }
 
@@ -649,10 +657,10 @@ sub claim_search_win {
   }
   *get_result_node = \&r;
 
-  sub get_query_nodes {
-    my $self = shift;
-    return $self->{query_nodes};
-  }
+#   sub get_query_nodes {
+#     my $self = shift;
+#     return $self->{query_nodes};
+#   }
 
   sub reset {
     my ($self)=@_;
@@ -1377,7 +1385,7 @@ sub claim_search_win {
     }
     my $mst=$g->MST_ChuLiuEdmonds();
 #ifdef TRED
-    TredMacro::ChangingFile(1);
+#    TredMacro::ChangingFile(1);
 #endif
     for my $qn (@$query_nodes) {
       $qn->cut();
