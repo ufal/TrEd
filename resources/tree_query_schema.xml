@@ -101,14 +101,14 @@
   <derive name="q-order-precedes.type" type="q-base-relation.type">
     <container>
       <attribute name="label">
-	<constant>depth-first-precedes</constant>
+	<constant>order-precedes</constant>
       </attribute>
     </container>
   </derive>
   <derive name="q-order-follows.type" type="q-base-relation.type">
     <container>
       <attribute name="label">
-	<constant>depth-first-follows</constant>
+	<constant>order-follows</constant>
       </attribute>
     </container>
   </derive>
