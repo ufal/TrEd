@@ -292,6 +292,7 @@ sub serialize_conditions {
       %$opts,
       name => 'and',
       condition => $node,
+      is_positive_conjunct => 1,
     })];
   } else {
     return $self->build_sql($node,{
@@ -383,16 +384,16 @@ sub user_defined_relation {
     my $eid=$id."/e-$i";
     my $table = $self->get_schema_name_for($type).'__eparents';
     push @$J,[$eid,$table, qq("$eid"."#idx" = "$id"."#idx"),
-			       $opts->{negative} ? 'LEFT' : ()
+			       !$opts->{is_positive_conjunct} ? 'LEFT' : () # FIXME: use EXISTS if in a subquery
 			      ];
-    if ($opts->{negative}) {
+    if ($opts->{is_positive_conjunct}) {
+      $cond = qq{"$eid"."eparent"="$target"."#idx"};
+    } else {
       $cond = $self->serialize_predicate(
-	qq{"$eid"."eparent"},
+	qq{"$eid"."eparent"}, # FIXME: this won't work! serialize_predicate won't recognize column "eparent" as an attribute
 	qq{"$target"."#idx"},
 	q(=),$opts,
        );
-    } else {
-      $cond = qq{"$eid"."eparent"="$target"."#idx"};
     }
   } elsif ($relation eq 'echild') {
     my $J = ($join->{$target}||=[]);
@@ -400,9 +401,9 @@ sub user_defined_relation {
     my $eid=$target."/e-$i";
     my $table = $self->get_schema_name_for($type).'__eparents';
     push @$J,[$eid,$table, qq("$eid"."#idx" = "$target"."#idx"),
-			       $opts->{negative} ? 'LEFT' : ()
+			       !$opts->{is_positive_conjunct} ? 'LEFT' : ()
 			      ];
-    if ($opts->{negative}) {
+    if (!$opts->{is_positive_conjunct}) {
       $cond = $self->serialize_predicate(
 	qq{"$eid"."eparent"},
 	qq{"$id"."#idx"},
@@ -419,7 +420,7 @@ sub user_defined_relation {
 	  id=>$from_id,
 	  type=>$type,
 	  join=>$opts->{join},
-	  negative=>$opts->{negative},
+	  is_positive_conjunct=>$opts->{is_positive_conjunct},
 	  expression => $type eq 't-root' ? qq{\$$id.atree} : qq{\$$id.a/lex},
 	},
 	qq{"$target"."#idx"},
@@ -432,20 +433,19 @@ sub user_defined_relation {
 	type=>$type,
 	join=>$opts->{join},
 	expression => qq{\$$id.a/aux.rf},
-	negative=>$opts->{negative},
+	is_positive_conjunct=>$opts->{is_positive_conjunct},
       },
       qq{"$target"."#idx"},
       qq(=),$opts,
      )
   } elsif ($relation eq 'a/lex.rf|a/aux.rf') {
-    print "NEGATIVE: $opts->{negative}\n";
     $cond =
       '('.$self->serialize_predicate(
 	{
 	  id=>$opts->{id},
 	  type=>$type,
 	  join=>$opts->{join},
-	  negative=>$opts->{negative},
+	  is_positive_conjunct=>$opts->{is_positive_conjunct},
 	  expression => qq{\$$id.a/lex},
 	},
 	qq{"$target"."#idx"},
@@ -456,7 +456,7 @@ sub user_defined_relation {
 	   type=>$type,
 	   join=>$opts->{join},
 	   expression => qq{\$$id.a/aux.rf},
-	   negative=>$opts->{negative},
+	   is_positive_conjunct=>$opts->{is_positive_conjunct},
 	 },
 	 qq{"$target"."#idx"},
 	 qq(=),$opts,
@@ -469,7 +469,7 @@ sub user_defined_relation {
 	  type=>$type,
 	  join=>$opts->{join},
 	  expression => qq{\$$id.coref_gram.rf},
-	  negative=>$opts->{negative},
+	  is_positive_conjunct=>$opts->{is_positive_conjunct},
 	},
 	qq{"$target"."#idx"},
 	q(=),$opts,
@@ -482,7 +482,7 @@ sub user_defined_relation {
 	  type=>$type,
 	  join=>$opts->{join},
 	  expression => qq{\$$id.coref_text.rf},
-	  negative=>$opts->{negative},
+	  is_positive_conjunct=>$opts->{is_positive_conjunct},
 	},
 	qq{"$target"."#idx"},
 	q(=),$opts,
@@ -495,7 +495,7 @@ sub user_defined_relation {
 	  type=>$type,
 	  join=>$opts->{join},
 	  expression => qq{\$$id.compl.rf},
-	  negative=>$opts->{negative},
+	  is_positive_conjunct=>$opts->{is_positive_conjunct},
 	},
 	qq{"$target"."#idx"},
 	q(=),$opts,
@@ -508,7 +508,7 @@ sub user_defined_relation {
 	  type=>$type,
 	  join=>$opts->{join},
 	  expression => qq{\$$id.val_frame.rf},
-	  negative=>$opts->{negative},
+	  is_positive_conjunct=>$opts->{is_positive_conjunct},
 	},
 	qq{"$target"."#idx"},
 	q(=),$opts,
@@ -537,11 +537,30 @@ sub build_sql {
 
     push @select, $id;
     my $parent = $n->parent;
-    my $negative=0;
     while ($parent and ($parent->{'#name'}||'') !~/^(?:node|subquery)$/) {
-      $negative=!$negative if ($parent->{'#name'}||'') eq 'not';
+      #      push @ancestors,$parent;
       $parent=$parent->parent;
     }
+#     my $is_positive_conjunct=1;
+#     {
+#       my @ancestors;
+#       while ($parent and ($parent->{'#name'}||'') !~/^(?:node|subquery)$/) {
+# 	push @ancestors,$parent;
+# 	$parent=$parent->parent;
+#       }
+#       for my $anc (@ancestors) {
+# 	my $name = $anc->{'#name'};
+# 	if ($name eq 'not') {
+# 	  $is_positive_conjunct=!$is_positive_conjunct;
+# 	} elsif ($name eq 'or' and $is_positive_conjunct) {
+# 	  $is_positive_conjunct = 0;
+# 	  last;
+# 	} elsif ($name eq 'and' and !$is_positive_conjunct) {
+# 	  $is_positive_conjunct = 0;
+# 	  last;
+# 	}
+#       }
+#     }
     my $parent_id = $self->{id_map}{$parent};
     $conditions{$id} = Tree_Query::as_text($n);
     my @conditions;
@@ -554,7 +573,6 @@ sub build_sql {
 	  id=>$id,
 	  join => $extra_joins,
 	  type=>($parent->{'node-type'}||$default_type),
-	  negative=>$negative,
 	 }),$n];
       push @table,[$self->get_node_table_for($table),$id,$n];
     } else {
@@ -720,7 +738,7 @@ sub serialize_expression_pt {# pt stands for parse tree
       my $node_id = $id;
 	my $decl = $self->get_decl_for($opts->{type});
 	my $j;
-# 	if ($opts->{negative} or $cmp) {
+# 	if (!$opts->{is_positive_conjunct} or $cmp) {
 # 	  print "extra joins\n";
 # 	  $opts->{use_exists}=1;
 # 	  $j=$extra_joins;
@@ -747,7 +765,7 @@ sub serialize_expression_pt {# pt stands for parse tree
 	while ($iter++ < 100) {
 	  my $prev = $id;
 	  my ($mdecl,$mtable);
-	  my $left_join = 0;
+	  my $can_be_null = 0;
 	  my $decl_is = $decl->get_decl_type;
 	  if ($decl_is == PML_STRUCTURE_DECL or
               $decl_is == PML_CONTAINER_DECL) {
@@ -759,29 +777,29 @@ sub serialize_expression_pt {# pt stands for parse tree
 	      $mdecl=undef unless $mdecl; # and $mdecl->get_knit_name eq $column;
 	    }
 	    if ($mdecl) {
-	      $opts->{can_be_null}=1 unless $mdecl->is_required;
+	      unless ($mdecl->is_required) {
+		$can_be_null=1;
+	      }
 	      $mdecl = $mdecl->get_knit_content_decl;
 	    }
 	  } elsif ($decl_is == PML_LIST_DECL or $decl_is == PML_ALT_DECL) {
 	    $mdecl=$decl->get_knit_content_decl;
 	    $column='#value';
-	    $left_join=1;
-	    $opts->{can_be_null}=1;
+	    $can_be_null=1;
 	  } elsif ($decl_is == PML_SEQUENCE_DECL) {
 	    last unless @t;
 	    $column= shift @t;
 	    $mdecl = $decl->get_element_by_name($column);
 	    $mtable='#e_'.table_name($mdecl->get_knit_content_decl->get_decl_path);
-	    $left_join=1;
-	    $opts->{can_be_null}=1;
+	    $can_be_null=1;
 	  } elsif ($decl_is == PML_ELEMENT_DECL) {
 	    $mdecl=$decl->get_knit_content_decl;
 	    $column='#value';
-	    $opts->{can_be_null}=1;
 	  } else {
 	    die ref($self)." internal error: Didn't expect $decl_is type\n";
 	  }
 	  die "Didn't find member '$column' on '$table' while compiling expression $opts->{expression} of node '$this_node_id'" unless $mdecl;
+	  $opts->{can_be_null}=1 if $can_be_null;
 	  if ($mdecl->is_atomic) {
 	    if (@t) {
 	      die "Cannot follow attribute path past atomic type while compiling expression $opts->{expression} of node '$this_node_id': "
@@ -789,7 +807,7 @@ sub serialize_expression_pt {# pt stands for parse tree
 	    }
 	    return qq( "$prev"."$column" );
 	  } else {
-	    if ($left_join and ($opts->{negative} or $cmp)) {
+	    if ($opts->{can_be_null} and (!$opts->{is_positive_conjunct} or $cmp)) {
 	      $opts->{use_exists}=1;
 	      $j=$extra_joins;
 	    }
@@ -797,9 +815,9 @@ sub serialize_expression_pt {# pt stands for parse tree
 	    #$i = @{$j->{$node_id}};
 	    $id=$node_id."/$i";
 	    $table=$mtable||_table_name($mdecl->get_decl_path);
-	    push @{$j->{$node_id}},[$id,$table, qq("$id"."#idx" = "$prev"."$column"), 
-				    (($left_join or $opts->{negative} or $cmp)
-				       and !$opts->{use_exists}) ? 'LEFT' : ()];
+	    push @{$j->{$node_id}},[$id,$table, qq("$id"."#idx" = "$prev"."$column") ];
+#				    ($can_be_null # || !$opts->{is_positive_conjunct} || $cmp
+#				       and !$opts->{use_exists}) ? 'LEFT' : ()];
 	  }
 	  $decl=$mdecl;
 	}
@@ -940,17 +958,17 @@ sub serialize_predicate {
   my ($left,$wrap_left,$left_can_be_null) = ref($L) ? $self->serialize_expression($L) : ($L);
   my ($right,$wrap_right,$right_can_be_null) = ref($R) ? $self->serialize_expression($R) : ($R);
   my $res;
-  my $negative = $opts->{negative};
+  my $is_positive_conjunct = $opts->{is_positive_conjunct};
   if ($operator eq '~' and defined($opts->{syntax}) and $opts->{syntax} eq 'Oracle') {
     $res = qq{REGEXP_LIKE($left,$right)};
-    $res .= qq{ AND $left IS NOT NULL} if $left_can_be_null and $negative;
+    $res .= qq{ AND $left IS NOT NULL} if $left_can_be_null and !$is_positive_conjunct;
   } elsif ($operator eq '~*' and defined($opts->{syntax}) and $opts->{syntax} eq 'Oracle') {
     $res = qq{REGEXP_LIKE($left,$right,'i')};
-    $res .= qq{ AND $left IS NOT NULL} if $left_can_be_null and $negative;
+    $res .= qq{ AND $left IS NOT NULL} if $left_can_be_null and !$is_positive_conjunct;
   } else {
     $res = qq{($left }.uc($operator).qq{ $right}
-      .($left_can_be_null && $negative ? qq{ AND $left IS NOT NULL} : '')
-      .($right_can_be_null && $negative ? qq{ AND $right IS NOT NULL} : '')
+      .($left_can_be_null && !$is_positive_conjunct ? qq{ AND $left IS NOT NULL} : '')
+      .($right_can_be_null && !$is_positive_conjunct ? qq{ AND $right IS NOT NULL} : '')
       .(($opts->{syntax} eq 'Oracle' and $operator eq '='
 	   and $left_can_be_null and $right_can_be_null
 	  ) ? qq{ OR $left IS NULL AND $right IS NULL} : '').')';
@@ -967,16 +985,26 @@ sub serialize_predicate {
 sub serialize_element {
   my ($self,$opts)=@_;
   my ($name,$node,$as_id,$parent_as_id)=map {$opts->{$_}} qw(name condition id parent_id);
-  my $negative = $opts->{negative};
-  $negative=!$negative if $name eq 'not';
+  my $is_positive_conjunct = $opts->{is_positive_conjunct};
   if ($name eq 'test') {
     return
-      [$self->serialize_predicate({%$opts,expression=>$node->{a},negative=>$negative},
-				      {%$opts,expression=>$node->{b},negative=>$negative},
+      [$self->serialize_predicate({%$opts,expression=>$node->{a},is_positive_conjunct=>$is_positive_conjunct},
+				      {%$opts,expression=>$node->{b},is_positive_conjunct=>$is_positive_conjunct},
 				      $node->{operator},
 				      $opts),$node];
   } elsif ($name =~ /^(?:and|or|not)$/) {
-    my @c =
+    my @c = $node->children;
+    if (defined($is_positive_conjunct)) {
+      if ($name eq 'not') {
+	$is_positive_conjunct=!$is_positive_conjunct;
+	$is_positive_conjunct=undef if @c>1 and !$is_positive_conjunct;
+      } elsif ($name eq 'and') {
+	$is_positive_conjunct=undef if @c>1 and !$is_positive_conjunct;
+      } elsif ($name eq 'or') {
+	$is_positive_conjunct=undef if @c>1 and $is_positive_conjunct;
+      }
+    }
+    @c =
       grep { @$_ }
       map {
 	my $n = $_->{'#name'};
@@ -986,9 +1014,9 @@ sub serialize_element {
 	  condition => $_,
 	  id => $as_id,
 	  parent_id => $parent_as_id,
-	  negative=>$negative
+	  is_positive_conjunct=>$is_positive_conjunct
 	 })
-      } grep { $_->{'#name'} ne 'node' } $node->children;
+      } grep { $_->{'#name'} ne 'node' } @c;
    return unless @c;
    return
      $name eq 'not' ? [[['NOT('],@{Tree_Query::_group(\@c,["\n      AND "])},[')']],$node] :
@@ -1029,10 +1057,10 @@ sub serialize_element {
     if ($cmp<0) {
       die "Node '$as_id' belongs to a sub-query and cannot be referred from the scope of node '$target'\n";
     }
-    # case $cmp>0 implies we use negative approach
+    # case $cmp>0 implies we use negative approach: FIXME - force using EXISTS
     my ($rel) = SeqV($node->{relation});
     if ($rel) {
-      return ['('.$self->relation($as_id,$rel,$target,{%$opts,negative=>($opts->{negative}||$cmp>0)}).')',$node];
+      return ['('.$self->relation($as_id,$rel,$target,{%$opts,is_positive_conjunct=>($opts->{is_positive_conjunct}&&!$cmp)}).')',$node];
     } else {
       return;
     }
@@ -1096,7 +1124,7 @@ sub new {
 	CloseFileInWindow($win);
 	CloseWindow($win);
       }
-      RemoveFileList($fn);
+      RemoveFileList($fn) if GetFileList($fn);
       ChangingFile(0);
     });
   return $self;
@@ -1373,12 +1401,37 @@ sub show_result {
     if ($dir eq 'prev') {
       $grp=$win;
       PrevFile();
+      my $idx = Index($self->{last_query_nodes},$save[0]);
+      if (defined($idx)) {
+	my $source_dir = $self->get_source_dir;
+	my $fn = FileName();
+	my $result_fn = __cat_path($source_dir,$self->{current_result}[$idx]);
+	if ($result_fn !~ /^\Q$fn\E\.(\d+)$/) {
+	  Open($result_fn,{-keep_related=>1});
+	  Redraw($win);
+	} else {
+	  $self->select_matching_node($save[0]);
+	}
+      }
     } elsif ($dir eq 'next') {
       $grp=$win;
-      NextFile()
+      NextFile();
+#       my $idx = Index($self->{last_query_nodes},$save[0]);
+#       if (defined($idx)) {
+# 	my $source_dir = $self->get_source_dir;
+# 	my $fn = FileName();
+# 	my $result_fn = __cat_path($source_dir,$self->{current_result}[$idx]);
+# 	print "$fn, $result_fn\n";
+# 	if ($result_fn !~ /^\Q$fn\E\.(\d+)$/) {
+# 	  Open($result_fn,{-keep_related=>1});
+# 	  Redraw($win);
+# 	} else {
+# 	  $self->select_matching_node($save[0]);
+# 	}
+#       }
     } elsif ($dir eq 'current') {
       return unless $self->{current_result};
-      my $idx = Index($self->{last_query_nodes},$this);
+      my $idx = Index($self->{last_query_nodes},$save[0]);
       if (defined($idx)) {
 	$grp=$win;
 	my $source_dir = $self->get_source_dir;
@@ -1387,12 +1440,12 @@ sub show_result {
       }
     }
   };
+  my $err=$@;
   my $plus = ${$self->{label}}=~/\+/;
   ${$self->{label}} = (CurrentFileNo($win)+1).' of '.(LastFileNo($win)+1).
     ($plus ? '+' : '');
   ($this,$root,$grp)=@save;
-  $self->select_matching_node($this);
-  die $@ if $@;
+  die $err if $err;
   return;
 }
 
