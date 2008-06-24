@@ -355,9 +355,9 @@ Bind sub {
 };
 
 my $query_schema = PMLSchema->new({filename => 'tree_query_schema.xml',use_resources=>1});
-my %schema_map = (
-  't-node' => PMLSchema->new({filename => 'tdata_schema.xml',use_resources=>1}),
-  'a-node' => PMLSchema->new({filename => 'adata_schema.xml',use_resources=>1}),
+ my %schema_map = (
+#   't-node' => PMLSchema->new({filename => 'tdata_schema.xml',use_resources=>1}),
+#   'a-node' => PMLSchema->new({filename => 'adata_schema.xml',use_resources=>1}),
 );
 
 Bind sub {
@@ -562,10 +562,10 @@ sub attr_choices_hook {
       grep $_->{'#name'} =~ /^(?:node|subquery)$/, $node->root->descendants
     ];
   } elsif (!$node->parent or $node->{'#name'} =~ /^(?:node|subquery)$/) {
-    if ($SEARCH and UNIVERSAL::can($SEARCH,'get_node_types')) {
-      return $SEARCH->get_node_types;
-    }
     if ($attr_path eq 'node-type') {
+      if ($SEARCH and UNIVERSAL::can($SEARCH,'get_node_types')) {
+	return $SEARCH->get_node_types;
+      }
       return [sort keys %schema_map];
     }
   } elsif ($node->{'#name'} eq 'test') {
@@ -1010,7 +1010,7 @@ sub GetSearch {
 
 sub Search {
   unless ($SEARCH) {
-    SelectSearch();
+    SelectSearch() || return;
   }
   if (UNIVERSAL::isa($SEARCH,'Tree_Query::SQLSearch')) {
     $SEARCH->search_first({edit_sql=>1});
@@ -1279,7 +1279,7 @@ sub tq_serialize {
 	$arrow=~s/{.*//;
 	push @ret,[$rel.' ',$node,'-foreground=>'.arrow_color($arrow)];
       }
-      my $type=get_query_node_type($node);
+      my $type=$node->{'node-type'}; # get_query_node_type($node);
       push @ret,[$type.' ',$node] if $type; #FIXME: 
       if ($node->{name}) {
 	push @ret,['$'.$node->{name},$node,'-foreground=>darkblue'],[' := ',$node];
