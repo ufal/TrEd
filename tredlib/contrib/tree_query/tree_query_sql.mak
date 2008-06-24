@@ -1567,33 +1567,7 @@ my ($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown'
 $DEFAULTS{dbi_config} = <<"EOF";
 <dbi xmlns="http://ufal.mff.cuni.cz/pdt/pml/">
   <head>
-    <schema>
-      <pml_schema 
-	  xmlns="http://ufal.mff.cuni.cz/pdt/pml/schema/" version="1.1">
-        <revision>1.1</revision>
-	<root name="dbi">
-	  <structure>
-	    <member name="limit"><cdata format="nonNegativeInteger"/></member>
-	    <member name="timeout"><cdata format="nonNegativeInteger"/></member>
-	    <member name="configurations">
-	      <list ordered="1" type="dbi-config.type"/>
-	    </member>
-	  </structure>
-	</root>
-	<type name="dbi-config.type">
-	  <structure>
-	    <member name="id" role="#ID" required="1" as_attribute="1"><cdata format="ID"/></member>
-	    <member name="driver"><cdata format="NMTOKEN"/></member>
-	    <member name="host"><cdata format="url"/></member>
-	    <member name="port"><cdata format="integer"/></member>
-	    <member name="database"><cdata format="NMTOKEN"/></member>
-	    <member name="username"><cdata format="NMTOKEN"/></member>
-	    <member name="password"><cdata format="any"/></member>
-	    <member name="sources"><cdata format="anyURI"/></member>
-	  </structure>
-	</type>
-      </pml_schema>
-    </schema>
+    <schema href="treebase_conf_schema.xml"/>
   </head>
   <limit>$DEFAULTS{limit}</limit>
   <timeout>$DEFAULTS{timeout}</timeout>
