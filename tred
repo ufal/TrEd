@@ -2036,11 +2036,11 @@ sub openFile {
 
   $opts{-keep} ||= $grp->{keepfiles};
   if (!$opts{-keep} and $opts{-keep_related}) {
-    print map { $_->filename."\n" } getSecondaryFiles($win,$fsfile), @{$fsfile->appData('fs-part-of')}
-      if $fsfile;
+#    print map { $_->filename."\n" } getSecondaryFiles($win,$fsfile), @{$fsfile->appData('fs-part-of')}
+#      if $fsfile;
     $opts{-keep}=1 if
       $fsfile and
-	first { $_->filename eq $f } getSecondaryFiles($win,$fsfile), @{$fsfile->appData('fs-part-of')};
+	first { $_->filename eq $f } (getSecondaryFiles($win,$fsfile), @{$fsfile->appData('fs-part-of')});
   }
 
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
@@ -3090,10 +3090,10 @@ sub selectFilelistNoUpdate {
 }
 
 sub selectFilelist {
-  my ($grp_or_win,$list_name)=@_;
+  my ($grp_or_win,$list_name,$opts)=@_;
   my ($grp,$win)=grp_win($grp_or_win);
   my $fl = selectFilelistNoUpdate($grp_or_win,$list_name);
-  if ($fl) {
+  if ($fl and !$opts->{no_open}) {
     if ($win->{currentFileNo}>=$fl->file_count()) {
       closeFile($win);
     } else {
@@ -3105,6 +3105,7 @@ sub selectFilelist {
     updateTitle($grp);
     update_sidepanel_filelist_view($grp,$fl,1);
   }
+  return $fl;
 }
 
 # Find named filelist. Return undef if no such filelist exists
