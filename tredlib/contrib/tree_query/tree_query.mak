@@ -112,7 +112,7 @@ or
  (a) vypi¹te korpusové pozice t-uzlù, které jsou na morfologické rovinì vyjádøeny pøíslovcem, 
  (b) spoèítejte distribuci funktorù na této mno¾inì (tj. kolikrát se který funktor vyskytl) 
 
-=pod
+=cut
 
 #
 package Tree_Query;
