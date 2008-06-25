@@ -1462,6 +1462,30 @@ sub closeFileInWindow {
   closeFile($win, -keep_postponed => $keep);
 }
 
+sub filePartOfADisplayedFile {
+  my ($grp,$fsfile)=@_;
+  return unless $fsfile;
+  my $part_of = $fsfile->appData('fs-part-of');
+  return unless ref($part_of) and @$part_of;
+  return 1 if first { 
+    fsfileDisplayingWindows($grp,$_)>0
+			or
+		      filePartOfADisplayedFile($grp,$_)
+		    } @$part_of;
+  return 0;
+}
+
+sub findToplevelFileFor {
+  my ($grp,$fsfile)=@_;
+  return unless $fsfile;
+  my $part_of = $fsfile->appData('fs-part-of');
+  if (ref($part_of) and @$part_of) {
+    return uniq map findToplevelFileFor($grp,$_), @$part_of;
+  } else {
+    return $fsfile;
+  }
+}
+
 sub closeFile {
   my ($win,%opts)=@_;
 
@@ -1476,15 +1500,20 @@ sub closeFile {
     doEvalHook($win,"file_close_hook",$fsfile,\%opts);
     $fsfile->currentTreeNo($win->{treeNo});
     $fsfile->currentNode($win->{currentNode});
-  }
-  if (!$opts{-keep_postponed} and
-	$fsfile and ref($fsfile->appData('fs-part-of')) and
-	@{$fsfile->appData('fs-part-of')}) {
-    warn "Ignoring close to ".$fsfile->filename." - part of ".
-      $fsfile->appData('fs-part-of')->[0]->filename."\n";
+  } else {
     return;
   }
-
+  my $fn=$fsfile->filename;
+  if (!$opts{-keep_postponed} and
+	filePartOfADisplayedFile($win->{framegroup},$fsfile)) {
+    warn "closeFile: Keeping postponed ".$fsfile->filename." - part of a displayed file\n";
+    $opts{-keep_postponed}=1;
+  } else {
+    my @part_of = findToplevelFileFor($win->{framegroup},$fsfile);
+    if ($part_of[0]!=$fsfile) {
+      closeFile($win,%opts,-fsfile=>$_,-keep_postponed=>0) for @part_of;
+    }
+  }
   my @wins;
   if ($opts{-all_windows} and $fsfile) {
     @wins=fsfileDisplayingWindows($win->{framegroup},$fsfile);
@@ -1535,6 +1564,7 @@ sub closeFile {
       redraw_win($w);
     }
   }
+  return 1;
 }
 
 sub getSecondaryFiles {
@@ -6855,18 +6885,18 @@ sub startMain {
 
   $group{focusedWindow}->canvas->focus;
 
-  print STDERR "Binding canvas destroy...\n" if $tredDebug;
-  $top->bind( '<Destroy>',
-		      [ sub {
-			  shift;
-			  my $grp=shift;
-			  $geometry=$top->geometry();
-			  print "geometry is $geometry\n" if $tredDebug;
-			  if ($^O eq "MSWin32" and $top->state() eq 'zoomed') {
-			    $geometry=~s/\+[-0-9]+\+[-0-9]+/+-3+-3/;
-			  }
-			  print "state is ",$top->state(),"\n"  if $tredDebug;
-			},\%group ]);
+#  print STDERR "Binding canvas destroy...\n" if $tredDebug;
+#   $top->bind($top, '<Destroy>',
+# 		      [ sub {
+# 			  shift;
+# 			  my $grp=shift;
+# 			  $geometry=$top->geometry();
+# 			  print "geometry is $geometry\n" if $tredDebug;
+# 			  if ($^O eq "MSWin32" and $top->state() eq 'zoomed') {
+# 			    $geometry=~s/\+[-0-9]+\+[-0-9]+/+-3+-3/;
+# 			  }
+# 			  print "state is ",$top->state(),"\n"  if $tredDebug;
+# 			},\%group ]);
 
   print STDERR "GUI prepared.\n" if $tredDebug;
   $top->update;
