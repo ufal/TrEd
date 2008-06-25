@@ -646,7 +646,7 @@ sub build_sql {
       ($outputs[0]->{'group-by'} ? 
 	 ["\n GROUP BY ".$self->serialize_columns($outputs[0]->{'group-by'},0,$output_opts),$tree] : ()),
       ($outputs[0]->{'sort-by'} ? 
-	 ["\n ORDER BY ".$self->serialize_columns($outputs[0]->{'sort-by'},0,$output_opts),$tree] : ());
+	 ["\n ORDER BY ".$self->serialize_columns($outputs[0]->{'sort-by'},1,$output_opts),$tree] : ());
     shift @outputs;
     my $i=1;
     for my $out (@outputs) {
@@ -656,7 +656,7 @@ sub build_sql {
 	($out->{'group-by'} ?
 	   ["\n GROUP BY ".$self->serialize_columns($out->{'group-by'},$i,$output_opts)."\n",$tree] : ()),
 	($out->{'sort-by'} ?
-	   ["\n ORDER BY ".$self->serialize_columns($out->{'sort-by'},$i,$output_opts)."\n",$tree] : ());
+	   ["\n ORDER BY ".$self->serialize_columns($out->{'sort-by'},$i+1,$output_opts)."\n",$tree] : ());
       $i++;
     }
   }
@@ -672,7 +672,7 @@ sub serialize_columns {
   my @cols;
   my $i=1;
   for my $col (ListV($col_list)) {
-    my ($str,$wrap,$cal_be_null)=$self->serialize_expression({%$opts,expression=>$col,output_column=>$j+1});
+    my ($str,$wrap,$cal_be_null)=$self->serialize_expression({%$opts,expression=>$col,output_column=>$j+1,is_positive_conjunct=>1});
     push @cols, $str.($name ? ' AS c'.($j+1).'_'.($i++) : '');
   }
   return join(',  ', @cols);
@@ -740,7 +740,7 @@ sub serialize_expression_pt {# pt stands for parse tree
   if (ref($pt)) {
     my $type = shift @$pt;
     if ($type eq 'ATTR' or $type eq 'REF_ATTR') {
-      my ($id,$attr,$cmp);
+      my ($id,$attr,$cmp,$decl);
       if ($type eq 'REF_ATTR') {
 	$id = lc($pt->[0]);
 	$pt=$pt->[1];
@@ -750,12 +750,14 @@ sub serialize_expression_pt {# pt stands for parse tree
 	if ($cmp<0) {
 	  die "Node '$id' belongs to a sub-query and cannot be referred from the scope of node '$this_node_id' ($opts->{expression})\n";
 	}
+	my $n = $self->{name2node}{$id};
+	$decl = $self->get_decl_for($n->{'node-type'}||$n->root->{'node-type'});
       } else {
 	$id=$this_node_id;
+	$decl = $self->get_decl_for($opts->{type});
       }
       my $node_id = $id;
-	my $decl = $self->get_decl_for($opts->{type});
-	my $j;
+      my $j;
 # 	if (!$opts->{is_positive_conjunct} or $cmp) {
 # 	  print "extra joins\n";
 # 	  $opts->{use_exists}=1;
@@ -1231,15 +1233,19 @@ sub search_first {
   $self->{results} = $results;
   my $matches = @$results;
   if ($matches) {
-    return $results unless QuestionQuery('Results',
-					 ((defined($limit) and $matches==$limit) ? '>=' : '').
-					   $matches.' match'.($matches>1?'(es)':''),
-					 'Display','Cancel') eq 'Display';
+    my $returns_nodes = $self->{returns_nodes};
+    return $results unless
+      (!$returns_nodes and $matches<200) or
+	QuestionQuery('Results',
+		      ((defined($limit) and $matches==$limit) ? '>=' : '').
+			$matches.($returns_nodes ? ' match'.($matches>1?'(es)':'') : ' row'.($matches>1?'(s)':'')),
+		      'Display','Cancel') eq 'Display';
     unless ($self->{returns_nodes}) {
       EditBoxQuery(
 	"Results",
 	join("\n",map { join("\t",@$_) } @$results),
-	qq{Close},
+	qq{},
+	{-buttons=>['Close']}
        );
       return;
     }
