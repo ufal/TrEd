@@ -39,7 +39,7 @@ print "creating parser took: $time\n";
 use Data::Dumper;
 my $what = shift || 'query';
 $what='parse_'.$what;
-
+print "$what\n";
 $t0 = new Benchmark;
 my $result = $parser->$what($string);
 $t1 = new Benchmark;

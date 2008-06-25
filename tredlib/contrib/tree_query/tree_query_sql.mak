@@ -25,6 +25,7 @@ sub new {
     type_decls => {},
     schema_types => {},
     schemas => {},
+    returns_nodes => 1,
   }, $class;
   $self->prepare_query($query_tree,$opts) if $query_tree;
   return $self;
@@ -95,7 +96,8 @@ sub prepare_query {
   $self->prepare_sql($self->serialize_conditions($query_tree,
 						     { %$opts,
 						       syntax=>$self->sql_driver,
-						       limit=>$self->{limit}
+						       limit=>$self->{limit},
+						       returns_nodes=>\$self->{returns_nodes},
 						      }));
 }
 
@@ -296,6 +298,7 @@ sub serialize_conditions {
     })];
   } else {
     return $self->build_sql($node,{
+      returns_nodes=>$opts->{returns_nodes},
       count=>$opts->{count},
       limit => $opts->{limit},
       syntax=>$opts->{syntax},
@@ -584,11 +587,26 @@ sub build_sql {
   }
 
   my @sql = (['SELECT ']);
-  if ($count == 2) {
+  my @outputs = $tree->parent ? () : ListV($tree->{'output-filters'});
+  my $output_opts;
+  my $returns_nodes = $opts->{returns_nodes} || \ my $dummy;
+  if (@outputs) {
+    $$returns_nodes=0;
+    my $first = first { $_->{'#name'} eq 'node' } $tree->children;
+    $output_opts = {
+      id     => $self->{id_map}{$first},
+      join   => $extra_joins,
+      syntax => $opts->{syntax},
+    };
+    push @sql,[$self->serialize_columns($outputs[0]->{return},0,$output_opts,1),'space'];
+  } elsif ($count == 2) {
+    $$returns_nodes=0;
     push @sql,['count(DISTINCT "'.$self->{id_map}{$tree}.'"."#idx")','space'];
   } elsif ($count) {
+    $$returns_nodes=0;
     push @sql,['count(1)','space'];
   } else {
+    $$returns_nodes=1;
     push @sql, (['DISTINCT '], map {
       my $n = $nodes[$_];
       (($_==0 ? () : [', ','space']),
@@ -623,12 +641,41 @@ sub build_sql {
 	  or !defined($opts->{limit})) {
     push @sql, ["\n".$self->serialize_limit($opts->{limit})."\n",'space']
   }
-
+  if (@outputs) {
+    push @sql,
+      ($outputs[0]->{'group-by'} ? 
+	 ["\n GROUP BY ".$self->serialize_columns($outputs[0]->{'group-by'},0,$output_opts),$tree] : ()),
+      ($outputs[0]->{'sort-by'} ? 
+	 ["\n ORDER BY ".$self->serialize_columns($outputs[0]->{'sort-by'},0,$output_opts),$tree] : ());
+    shift @outputs;
+    my $i=1;
+    for my $out (@outputs) {
+      unshift @sql, ["SELECT ".$self->serialize_columns($out->{'return'},$i,$output_opts,1)." FROM (\n",$tree];
+      push @sql,
+	[")\n",$tree],
+	($out->{'group-by'} ?
+	   ["\n GROUP BY ".$self->serialize_columns($out->{'group-by'},$i,$output_opts)."\n",$tree] : ()),
+	($out->{'sort-by'} ?
+	   ["\n ORDER BY ".$self->serialize_columns($out->{'sort-by'},$i,$output_opts)."\n",$tree] : ());
+      $i++;
+    }
+  }
   if ($format) {
     return Tree_Query::make_string_with_tags(\@sql,[$tree]);
   } else {
     return Tree_Query::make_string(\@sql);
   }
+}
+
+sub serialize_columns {
+  my ($self,$col_list,$j,$opts,$name)=@_;
+  my @cols;
+  my $i=1;
+  for my $col (ListV($col_list)) {
+    my ($str,$wrap,$cal_be_null)=$self->serialize_expression({%$opts,expression=>$col,output_column=>$j+1});
+    push @cols, $str.($name ? ' AS c'.($j+1).'_'.($i++) : '');
+  }
+  return join(',  ', @cols);
 }
 
 sub get_node_table_for {
@@ -686,8 +733,6 @@ sub _table_name {
   $path=~s{^!([^/]+)\.type\b}{$1};
   return $path;
 }
-
-
 
 sub serialize_expression_pt {# pt stands for parse tree
   my ($self,$pt,$opts,$extra_joins)=@_;
@@ -831,6 +876,23 @@ sub serialize_expression_pt {# pt stands for parse tree
 	} else {
 	  die "Wrong arguments for function ${name}() in expression $opts->{expression} of node '$this_node_id'!\nUsage: ${name}(string)\n";
 	}
+      } elsif ($name =~ /^(?:min|max|sum|avg|count)/) {
+	die "The aggregating function $name can only be used in an output filter expression!\n"
+	  unless $opts->{'output_column'};
+	die "The aggregating function $name cannot be used to compute an argument to another aggregating function $opts->{aggregated} in the output filter expression $opts->{expression}!\n" if defined $opts->{'aggregated'};
+	if ($args and @$args==1) {
+	  return uc($name).'('
+	         .  $self->serialize_expression_pt($args->[0],{%$opts,aggregated=>$name},$extra_joins)
+	         . ')';
+	} elsif (!$args or @$args==0) {
+	  if ($name eq 'count') {
+	    return 'COUNT(1)'
+	  } else {
+	    return uc($name).'(c'.($self->{output_column}-1).'_1)';
+	  }
+	} else {
+	  die "Wrong arguments for function ${name}() in output filter expression $opts->{expression}\n";
+	}
       } elsif ($name eq 'substr') {
 	if ($args and @$args>1 and @$args<4) {
 	  my @args = map { $self->serialize_expression_pt($_,$opts,$extra_joins) } @$args;
@@ -873,6 +935,11 @@ sub serialize_expression_pt {# pt stands for parse tree
     if ($pt=~/^[-0-9']/) { # literal
       return qq( $pt );
     } elsif ($pt=~s/^\$//) { # a plain variable
+      if ($pt =~ /^\d+$/) { #column reference
+	die "Column reference \$$pt can only be used in an output filter; error in expression '$opts->{expression}' of node '$this_node_id'\n"
+	  unless $opts->{'output_column'};
+	return ' c'.($opts->{output_column}-1).'_'.$pt;
+      }
       return qq{ "$this_node_id"."#idx" } if $pt eq '$';
       if ($self->cmp_subquery_scope($this_node_id,$pt)<0) {
 	die "Node '$pt' belongs to a sub-query and cannot be referred from the scope of node '$this_node_id' ($opts->{expression})\n";
@@ -886,7 +953,10 @@ sub serialize_expression_pt {# pt stands for parse tree
 
 sub serialize_expression {
   my ($self,$opts)=@_;
-  my $pt = Tree_Query::parse_expression($opts->{expression}); # $pt stands for parse tree
+  my $pt = 
+    $opts->{'output_column'} 
+      ? Tree_Query::parse_column_expression($opts->{expression})
+      : Tree_Query::parse_expression($opts->{expression}); # $pt stands for parse tree
   die "Invalid expression '$opts->{expression}' on node '$opts->{id}'" unless defined $pt;
 
   my $extra_joins={};
@@ -1048,7 +1118,7 @@ sub serialize_element {
 
 sub cmp_subquery_scope {
   my ($self,$src,$target)=@_;
-  $_ = ref($_) ? $_ : $self->{name2node}{$_} || croak("didn't find node $_")
+  $_ = ref($_) ? $_ : $self->{name2node}{$_} || croak("didn't find node '$_'")
     for $src,$target;
   return Tree_Query::cmp_subquery_scope($src,$target);
 }
@@ -1165,6 +1235,14 @@ sub search_first {
 					 ((defined($limit) and $matches==$limit) ? '>=' : '').
 					   $matches.' match'.($matches>1?'(es)':''),
 					 'Display','Cancel') eq 'Display';
+    unless ($self->{returns_nodes}) {
+      EditBoxQuery(
+	"Results",
+	join("\n",map { join("\t",@$_) } @$results),
+	qq{Close},
+       );
+      return;
+    }
     my @wins = TrEdWindows();
     my $res_win;
     my $fn = $self->filelist_name;
