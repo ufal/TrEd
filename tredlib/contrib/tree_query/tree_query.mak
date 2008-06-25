@@ -68,7 +68,7 @@ or
  (a) vypi¹te korpusové pozice t-uzlù, kde je pøísloveèné urèení místa nebo smìru (funktory LOC a DIR1-3) vyjádøeno pøedlo¾kovou skupinou,
  (b) spoèítejte, které pøedlo¾ky jsou pro tyto jednotlivé typy urèení místa nejèastìj¹í
 
-  t-node [ functor~'^LOC|^DIR[1-3]', $a := a/aux.rf a-node [ afun='AuxP' ] ]
+  t-node [ functor~'^LOC|^DIR[1-3]', a/aux.rf a-node $a := [ afun='AuxP' ] ]
   >> $a/afun >> $1, count() per $1 sort decending by $2 >> top 5
 
  (a) vypi¹te korpusové pozice t-uzlù, které vyjadøují pøísloveèné urèení èasu, 
@@ -77,7 +77,7 @@ or
   t-node $x := [ functor='TWHEN' ]
   >> count($x)
 
-  t-node $x := [ functor='TWHEN', a/lex.rf a-node [ m/tag~'^D/ ] ]
+  t-node $x := [ functor='TWHEN', a/lex.rf a-node [ m/tag~'^D' ] ]
   >> count($x)
 
  (a) vypi¹te korpusovou pozici/pozice t-stromu (stromù), které jsou v daném vzorku nejhlub¹í,
@@ -96,14 +96,28 @@ or
 (a) vypi¹te korpusovou pozici/pozice t-stromu (stromù), které mají (z daného vzorku) nejvìt¹í poèet t-uzlù, 
 (b) spoèítejte distribuci velikosti stromù vyjádøené poètem uzlù (tj. poèet stromù o velikosti 2 uzly, 3 uzly atd.)
 
+  t-root $r := 
+[ descendant t-node $n := [ ] ];
+  >> count($n) per $r
+  >> $1,count() per $1 sort by $1
  
  (a) vypi¹te korpusové pozice t-uzlù odpovídajících souøadicí spojce, která koordinuje sémantická substantiva (g/sempos=~/^n/),
  (b) spoèítejte, který funktor se vyskytuje jako èlen koordinace nejèastìji
 
+  [ child $c := 
+     [ is_member = 1, gram/sempos ~ '^n' ], nodetype = 'coap' ];
+  >> $c.functor
+  >> $1,count() per $1 sort by $1
  
  (a) vypi¹te korpusové pozice t-uzlù, které odpovídají koøenùm spojkových vedlej¹ích vìt, 
  (b) spoèítejte distribuci podøadicích spojek (tj. kolikrát se ve vzorku vyskytla spojka ¾e, spojka aby atd.)
 
+  [ a/lex.rf a-node 
+     [ m/tag ~ '^V' ], 
+     a/aux.rf a-node $c := 
+     [ afun = 'AuxC' ] ];
+  >> $c.m/lemma
+  >> $1,count() per $1 sort by $2
  
  (a) vypi¹te korpusové pozice t-uzlù, které odpovídají koøenùm vzta¾ných vedlej¹ích vìt, 
 (b) spoèítejte distribuci vzta¾ných t-lemmat v tìchto vzta¾ných vìtách (kolikrát se vyskytlo které vzta¾né t-lemma kdo, který atd.)
