@@ -46,6 +46,75 @@
 #  pure DOM/XPath-based PMLEvaluator using the same algorithm as
 #  in BtredEvaluator, only reimplementing iterators, relations and attr().
 #
+#
+# aggregating functions:
+# max(count($x)) $y := [ eparent $x := [ ] ];
+#  --> automatically group by $y
+
+=comment
+
+  (a) vypi¹te korpusové pozice t-uzlù reprezentujících osobní zájmena, jejich¾ antecedent ("pøedchùdce" ve smyslu textové koreference) je v jiné vìtì ne¾ dané zájmeno
+ (b) spoèítejte, v kolika pøípadech je antecedent v té¾e vìtì, v kolika pøípadech je v pøedcházející, v kolika pøípadech pøedpøedcházející atd.
+
+   t-node [ t_lemma='#PersPron', $r1:=ancestor t-root [],
+     coref_text t-node [ $r2:=ancestor t-root [] ] ]
+   >> tree_no($r1)-tree_no($r2) >> $1, count() per $1 >> sort by $1
+
+or
+
+   >> distribution(tree_no($r1)-tree_no($r2))
+
+
+ (a) vypi¹te korpusové pozice t-uzlù, kde je pøísloveèné urèení místa nebo smìru (funktory LOC a DIR1-3) vyjádøeno pøedlo¾kovou skupinou,
+ (b) spoèítejte, které pøedlo¾ky jsou pro tyto jednotlivé typy urèení místa nejèastìj¹í
+
+  t-node [ functor~'^LOC|^DIR[1-3]', $a := a/aux.rf a-node [ afun='AuxP' ] ]
+  >> $a/afun >> $1, count() per $1 sort decending by $2 >> top 5
+
+ (a) vypi¹te korpusové pozice t-uzlù, které vyjadøují pøísloveèné urèení èasu, 
+ (b) spoèítejte, kolik z nich je na morfologické rovinì vyjádøeno pøíslovcem
+
+  t-node $x := [ functor='TWHEN' ]
+  >> count($x)
+
+  t-node $x := [ functor='TWHEN', a/lex.rf a-node [ m/tag~'^D/ ] ]
+  >> count($x)
+
+ (a) vypi¹te korpusovou pozici/pozice t-stromu (stromù), které jsou v daném vzorku nejhlub¹í,
+ (b) spoèítejte distribuci hloubky stromù (poèet stromù o hloubce 1, 2, atd.)
+
+  (a)
+     t-node $n := [ ] >> max(level($n)) >> $max;
+     t-root [ 1+x descendant t-node [ level()=$max ] ];
+  (b)
+     t-root $r := [ descendant t-node $n := [ ] ]
+     >> max(depth($n)) per $r
+     >> $1, count() per $1 sort by $1
+
+   select max,count(1) from (select max(n."#lvl") as max from "t-root" r, "t-node" n where r."#idx"=n."#root_idx" group by r."#idx") group by max order by max;
+
+(a) vypi¹te korpusovou pozici/pozice t-stromu (stromù), které mají (z daného vzorku) nejvìt¹í poèet t-uzlù, 
+(b) spoèítejte distribuci velikosti stromù vyjádøené poètem uzlù (tj. poèet stromù o velikosti 2 uzly, 3 uzly atd.)
+
+ 
+ (a) vypi¹te korpusové pozice t-uzlù odpovídajících souøadicí spojce, která koordinuje sémantická substantiva (g/sempos=~/^n/),
+ (b) spoèítejte, který funktor se vyskytuje jako èlen koordinace nejèastìji
+
+ 
+ (a) vypi¹te korpusové pozice t-uzlù, které odpovídají koøenùm spojkových vedlej¹ích vìt, 
+ (b) spoèítejte distribuci podøadicích spojek (tj. kolikrát se ve vzorku vyskytla spojka ¾e, spojka aby atd.)
+
+ 
+ (a) vypi¹te korpusové pozice t-uzlù, které odpovídají koøenùm vzta¾ných vedlej¹ích vìt, 
+(b) spoèítejte distribuci vzta¾ných t-lemmat v tìchto vzta¾ných vìtách (kolikrát se vyskytlo které vzta¾né t-lemma kdo, který atd.)
+
+ 
+ (a) vypi¹te korpusové pozice t-uzlù, které jsou na morfologické rovinì vyjádøeny pøíslovcem, 
+ (b) spoèítejte distribuci funktorù na této mno¾inì (tj. kolikrát se který funktor vyskytl) 
+
+=pod
+
+#
 package Tree_Query;
 {
 use strict;
