@@ -57,8 +57,8 @@
       }
     }
 
-    parse_query: <leftop: node ';' node> (';')(?) /\Z/ 
-           { $return=new_node({},$item[1]); 1 }
+    parse_query: <leftop: node ';' node> (';')(?) output(s?) /\Z/ 
+           { $return=new_node({output=>$item[3] },$item[1]); 1 }
          | { report_error($thisparser,'query',\$text); }
 
     parse_node: (child|opt_child) /\Z/ { $item[1] }
@@ -76,6 +76,37 @@
     node: type(?) var_def(?) '[' <commit> conditions(?) /,?\s*]/ 
           { new_node({ '#name' => 'node', 'node-type' => $item[1][0], name => $item[2][0]}, $item[5][0]) }
         | <error>
+
+    output: '>>' <commit> output_spec
+          | <error>
+
+    output_spec: 'distinct' <commit> plain_output_spec
+                 { ['DISTINCT',[$item[3]]] }
+               | plain_output_spec { $item[1] }
+
+    plain_output_spec: columns group_by(?) sort_by(?)
+                 { { COLUMNS => $item[1], 'GROUP'=>$item[2][0],'SORT'=>$item[3][0]} }
+
+    columns: <leftop: column_expression ',' column_expression> 
+
+    group_by: 'per' columns
+
+    sort_by: 'sort by' columns
+
+    column_expression: <rulevar: ($start,$t)> 
+              | { ($start,$t)=($thisoffset,$text) } <leftop: column_term OP column_term>
+                { $return=substr($t,0,$thisoffset-$start); $return=~s/^\s*//; 1 }
+
+    column_term: '(' <commit> expression ')' { $return=$item[3] }
+                 | /^\$\d+/ <commit>  { $return=['COLREF',$item[1]] }
+                 | result_function  { $return=$item[1] }
+		 | ref_attribute    { $return=$item[1] }
+                 | VARIABLE         { $return=$item[1] }
+		 | literal          { $return=$item[1] }
+		 | <error>
+
+    result_function: RESULT_FUNC <skip: ''> '(' <skip: '\s*(?:[#][^\n]*\s*)?'> arguments(?) ')'
+              { ['FUNC', $item[1],$item[5][0] ] }
 
     type: XMLNAME .../\$|\[/
           { $return = $item[1] }
@@ -212,7 +243,9 @@
     EXTRA_RELATION: /depth-first-precedes|depth-first-follows|order-precedes|order-follows/
               { new_relation($item[1]) }
 
-    FUNC: /descendants|lbrother|rbrother|sons|depth|lower|upper|length|substr|name/
+    FUNC: /descendants|lbrothers|rbrothers|sons|depth|lower|upper|length|substr|name|url|tree_no/
+
+    RESULT_FUNC: /descendants|lbrothers|rbrothers|sons|depth|lower|upper|length|substr|name|url|tree_no|min|max|sum|avg|count|distribution/
 
     CMP: /=|~\*?|[<>]=?|in/
 
