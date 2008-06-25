@@ -348,18 +348,8 @@ sub relation {
     if ($order) {
       $cond =
 	$self->serialize_predicate(
-	  {
-	    id=>$opts->{id},
-	    type=>$opts->{type},
-	    join=>$opts->{join},
-	    expression => qq{\$$id.$order},
-	  },
-	  {
-	    id=>$opts->{id},
-	    type=>$opts->{type},
-	    join=>$opts->{join},
-	    expression => qq{\$$target.$order},
-	  },
+	  qq{\$$id.$order},
+	  qq{\$$target.$order},
 	  '<',$opts # there should be no ambiguity here, treat expressoins as positive
 	 );
     } else {
@@ -379,38 +369,20 @@ sub user_defined_relation {
   my $join=$opts->{join};
   my $from_id = $opts->{id}; # view point
   if ($relation eq 'eparent') {
-    my $J = ($join->{$id}||=[]);
-    my $i = @$J;
-    my $eid=$id."/e-$i";
+    ($id,$target)=($target,$id);
+    $relation='echild';
+  }
+  if ($relation eq 'echild') {
     my $table = $self->get_schema_name_for($type).'__eparents';
-    push @$J,[$eid,$table, qq("$eid"."#idx" = "$id"."#idx"),
-			       !$opts->{is_positive_conjunct} ? 'LEFT' : () # FIXME: use EXISTS if in a subquery
-			      ];
     if ($opts->{is_positive_conjunct}) {
-      $cond = qq{"$eid"."eparent"="$target"."#idx"};
-    } else {
-      $cond = $self->serialize_predicate(
-	qq{"$eid"."eparent"}, # FIXME: this won't work! serialize_predicate won't recognize column "eparent" as an attribute
-	qq{"$target"."#idx"},
-	q(=),$opts,
-       );
-    }
-  } elsif ($relation eq 'echild') {
-    my $J = ($join->{$target}||=[]);
-    my $i = @$J;
-    my $eid=$target."/e-$i";
-    my $table = $self->get_schema_name_for($type).'__eparents';
-    push @$J,[$eid,$table, qq("$eid"."#idx" = "$target"."#idx"),
-			       !$opts->{is_positive_conjunct} ? 'LEFT' : ()
-			      ];
-    if (!$opts->{is_positive_conjunct}) {
-      $cond = $self->serialize_predicate(
-	qq{"$eid"."eparent"},
-	qq{"$id"."#idx"},
-	q(=),$opts,
-       );
-    } else {
+      my $J = ($join->{$target}||=[]);
+      my $i = @$J;
+      my $eid=$target."/e-$i";
+      push @$J,[$eid,$table, qq("$eid"."#idx" = "$target"."#idx")];
       $cond = qq{"$eid"."eparent"="$id"."#idx"};
+    } else {
+      $cond=qq{ EXISTS (SELECT * FROM "$table" e WHERE e."#idx" = "$target"."#idx" AND e."eparent"="$id"."#idx") };
+      # $cond=qq{ "$id"."#idx" IN (SELECT e."eparent" FROM "$table" e WHERE e."#idx" = "$target"."#idx") }; equivalent
     }
   } elsif ($relation eq 'a/lex.rf') {
 #    $cond =  qq{"$id"."a_lex_idx"="$target"."#idx"}
@@ -573,6 +545,7 @@ sub build_sql {
 	  id=>$id,
 	  join => $extra_joins,
 	  type=>($parent->{'node-type'}||$default_type),
+	  is_positive_conjunct=>($n->{'#name'} eq 'subquery' ? 0 : 1),
 	 }),$n];
       push @table,[$self->get_node_table_for($table),$id,$n];
     } else {
@@ -688,7 +661,7 @@ sub get_schema {
 sub get_node_types {
   my ($self)=@_;
   return $self->{node_types} if defined $self->{node_types};
-  my $results = $self->run_sql_query(qq(SELECT "type" FROM "#PMLTYPES"),{ MaxRows=>1, RaiseError=>1 });
+  my $results = $self->run_sql_query(qq(SELECT "type" FROM "#PMLTYPES" ORDER BY "type"),{ MaxRows=>1, RaiseError=>1 });
   return $self->{node_types} = [ map $_->[0], @$results ];
   
 }
@@ -1059,13 +1032,16 @@ sub serialize_element {
     }
     # case $cmp>0 implies we use negative approach: FIXME - force using EXISTS
     my ($rel) = SeqV($node->{relation});
-    if ($rel) {
-      return ['('.$self->relation($as_id,$rel,$target,{%$opts,is_positive_conjunct=>($opts->{is_positive_conjunct}&&!$cmp)}).')',$node];
+    if ($target and $rel) {
+      return ['('.$self->relation($as_id,$rel,$target,
+				  {%$opts,is_positive_conjunct=>($opts->{is_positive_conjunct}&&!$cmp ? 1 : undef)},
+				  $opts
+				 ).')',$node];
     } else {
       return;
     }
   } else {
-    Carp::cluck "Unknown element $name ";
+    Carp::cluck("Unknown element $name ");
     return;
   }
 }
