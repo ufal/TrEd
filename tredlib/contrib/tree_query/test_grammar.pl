@@ -13,16 +13,20 @@ use lib qw(/home/pajas/tred-devel/tredlib/libs/fslib);
 
 use Fslib;
 use PMLSchema;
-
+if ($ARGV[0] eq '-T') {
+  $::RD_TRACE=1;
+  shift;
+}
 BEGIN { require 'Grammar.pm'; }
 
 $Tree_Query::user_defined = 'echild|eparent|a/lex.rf\|a/aux.rf|a/lex.rf|a/aux.rf|coref_text|coref_gram|compl';
 
-my $string=shift;
-if ($string eq '-') {
+my $string=$ARGV[0];
+if (!@ARGV or $string eq '-') {
   local $/;
   $string=<STDIN>;
 }
+shift;
 
 $Tree_Query::user_defined = 'echild|eparent|a/lex.rf\|a/aux.rf|a/lex.rf|a/aux.rf|coref_text|coref_gram|compl';
 
@@ -34,6 +38,7 @@ print "creating parser took: $time\n";
 
 use Data::Dumper;
 my $what = shift || 'query';
+$what='parse_'.$what;
 
 $t0 = new Benchmark;
 my $result = $parser->$what($string);
