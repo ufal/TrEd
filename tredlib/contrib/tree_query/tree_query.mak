@@ -491,13 +491,13 @@ rootstyle:#{balance:1}#{Node-textalign:center}#{NodeLabel-halign:center}
 rootstyle: #{vertical:0}#{nodeXSkip:40}
 rootstyle: #{NodeLabel-skipempty:1}#{CurrentOval-width:3}#{CurrentOval-outline:red}
 rootstyle: <? $Tree_Query::__color_idx=0;$Tree_Query::__color_idx2=1 ?>
-node: #{blue(}<?length($${id}) ? $${id}.' ' : '' ?>#{)}<?length($${node-type}) ? $${node-type}.': ' : '' ?>
+node: #{blue(}<?length($${id}) ? $${id}.' ' : '' ?>#{)}<?length($${node-type}) ? $${node-type}.' ' : '' ?>#{darkblue}<?length($${name}) ? '$'.$${name}.' ' : '' ?>
 label:#{darkgreen}<?
   my $occ = Tree_Query::occ_as_text($this);
   length $occ ? '#{-coords:n-10,n}#{-anchor:e}${occurrences='.$occ.'x}' : ""
 ?><? $${optional} ? '#{-coords:n-10,n}#{-anchor:e}${optional=?}'  : q()
 ?>
-node: #{darkblue}${name}#{brown}<? my$d=$${description}; $d=~s{^User .*?:}{}; $d ?>
+xxxnode: #{brown}<? my$d=$${description}; $d=~s{^User .*?:}{}; $d ?>
 node:<?
   ($this->{'#name'} =~ /^(?:and|or|not)$/) ? uc($this->{'#name'}) : '' 
 ?>${a}${target}
@@ -506,6 +506,8 @@ node:<?
     join("\n",map { Tree_Query::as_text($_,{indent=>'  ',wrap =>1}) } grep { $_->{'#name'} !~ /^(?:node|subquery|ref)$/ } $this->children)
   } elsif ($this->{'#name'} eq 'test') {
     '${operator}'
+  } elsif ($this->{'#name'} eq '' and !$this->parent) {
+     Tree_Query::as_text($this,{no_childnodes=>1,indent=>'  ',wrap =>1})
   }
 ?>
 node:${b}
@@ -1280,6 +1282,7 @@ sub EditQuery {
       DeleteSubtree($node);
       PasteNode($_,$result) for @c;
     } else {
+      $node->{'output-filters'}=CloneValue($result->{'output-filters'});
       DeleteSubtree($_) for $node->children;
       CutPaste($_,$node) for reverse $result->children;
       DetermineNodeType($_) for ($node->descendants);
@@ -1305,7 +1308,17 @@ sub tq_serialize {
     my $desc = $node->{description};
     return [
       [(length($desc) ? '#  '.$desc."\n" : ''),$node],
-      map { (@{tq_serialize($_,$opts)},[";\n"]) } $node->children
+      ($opts->{no_childnodes} ? () : (map { (@{tq_serialize($_,$opts)},[";\n"]) } $node->children)),
+      map {
+	[join('',
+	      '  >> ',
+	      ($_->{distinct} ? ('distinct ')  : ()),
+	      join(',',ListV($_->{return})),
+	      (ListV($_->{'group-by'}) ? (' per ',join(',',ListV($_->{'group-by'})))  : ()),
+	      (ListV($_->{'sort-by'}) ? (' sort by ',join(',',ListV($_->{'sort-by'})))  : ()),
+	      "\n"
+	     ), $node]
+      } ListV($node->{'output-filters'})
      ]
   } else {
     my $copts = {%$opts,no_childnodes=>0,indent=>$indent."     "};
@@ -1428,6 +1441,12 @@ sub parse_query {
 sub parse_expression {
   shift if @_>1;
   my $ret = eval { query_parser()->parse_expression($_[0]) };
+  confess($@) if $@;
+  return $ret;
+}
+sub parse_column_expression {
+  shift if @_>1;
+  my $ret = eval { query_parser()->parse_column_expression($_[0]) };
   confess($@) if $@;
   return $ret;
 }
