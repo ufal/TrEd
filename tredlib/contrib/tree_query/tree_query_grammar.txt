@@ -57,8 +57,9 @@
       }
     }
 
-    parse_query: <leftop: node ';' node> (';')(?) output(s?) /\Z/ 
-           { $return=new_node({output=>$item[3] },$item[1]); 1 }
+    parse_query: <leftop: node ';' node> (';')(?) return(s?) /\Z/ 
+           { $return=new_node({ @{$item[3]} ? 
+	   ('output-filters' => Fslib::List->new(@{$item[3]})) : () },$item[1]); 1 }
          | { report_error($thisparser,'query',\$text); }
 
     parse_node: (child|opt_child) /\Z/ { $item[1] }
@@ -73,35 +74,44 @@
     parse_conditions: lone_conditions(?) /,?\s*\Z/ { $item[1][0] }
          |   { report_error($thisparser,'condition',\$text); }
 
+    parse_column_expression: <leftop: column_term OP column_term> /\Z/ 
+                    { @{$item[1]}>1 ? ['EXP',@{$item[1]}] : $item[1][0] }
+         | { report_error($thisparser,'column_expression',\$text); }
+
     node: type(?) var_def(?) '[' <commit> conditions(?) /,?\s*]/ 
           { new_node({ '#name' => 'node', 'node-type' => $item[1][0], name => $item[2][0]}, $item[5][0]) }
         | <error>
 
-    output: '>>' <commit> output_spec
+    return: '>>' <commit> return_spec { $item[3] }
           | <error>
 
-    output_spec: 'distinct' <commit> plain_output_spec
-                 { ['DISTINCT',[$item[3]]] }
-               | plain_output_spec { $item[1] }
+    return_spec: 'distinct' <commit> plain_return_spec
+                 { $return = $item[3]; $return->{distinct}=1 }
+               | plain_return_spec { $item[1] }
+    plain_return_spec: columns group_by(?) sort_by(?)
+                 { $return=Fslib::Struct->new({ 
+		    return => $item[1],
+		    'group-by'=>$item[2][0],
+		    'sort-by' => $item[3][0],
+		   },1) 
+		 }
+  
+    columns: <leftop: flat_column_expression ',' flat_column_expression> 
+                { $return=Fslib::List->new_from_ref($item[1],1) }
 
-    plain_output_spec: columns group_by(?) sort_by(?)
-                 { { COLUMNS => $item[1], 'GROUP'=>$item[2][0],'SORT'=>$item[3][0]} }
+    group_by: 'per' columns { $item[2] }
 
-    columns: <leftop: column_expression ',' column_expression> 
+    sort_by: 'sort by' columns { $item[2] }
 
-    group_by: 'per' columns
-
-    sort_by: 'sort by' columns
-
-    column_expression: <rulevar: ($start,$t)> 
+    flat_column_expression: <rulevar: ($start,$t)> 
               | { ($start,$t)=($thisoffset,$text) } <leftop: column_term OP column_term>
                 { $return=substr($t,0,$thisoffset-$start); $return=~s/^\s*//; 1 }
 
     column_term: '(' <commit> expression ')' { $return=$item[3] }
-                 | /^\$\d+/ <commit>  { $return=['COLREF',$item[1]] }
+                 | /^\$\d+/ <commit>  { $return=$item[1] }
                  | result_function  { $return=$item[1] }
 		 | ref_attribute    { $return=$item[1] }
-                 | VARIABLE         { $return=$item[1] }
+                 | VARIABLE         { $return='$'.$item[1] }
 		 | literal          { $return=$item[1] }
 		 | <error>
 
