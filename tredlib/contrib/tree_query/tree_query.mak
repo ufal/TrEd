@@ -1372,10 +1372,10 @@ sub tq_serialize {
       map {
 	[join('',
 	      '  >> ',
+	      (ListV($_->{'group-by'}) ? (' for ',join(',',ListV($_->{'group-by'})),"\n     give ")  : ()),
 	      ($_->{distinct} ? ('distinct ')  : ()),
-	      (ListV($_->{'group-by'}) ? (' for ',join(',',ListV($_->{'group-by'})),' give ')  : ()),
 	      join(',',ListV($_->{return})),
-	      (ListV($_->{'sort-by'}) ? (' sort by ',join(',',ListV($_->{'sort-by'})))  : ()),
+	      (ListV($_->{'sort-by'}) ? ("\n     sort by ",join(',',ListV($_->{'sort-by'})))  : ()),
 	      "\n"
 	     ), $node]
       } ListV($node->{'output-filters'})
