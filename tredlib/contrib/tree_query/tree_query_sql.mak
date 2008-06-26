@@ -617,6 +617,7 @@ sub build_sql {
       )
     } 0..$#nodes);
   }
+
   # joins
   {
     my $i=0;
@@ -890,7 +891,7 @@ sub serialize_expression_pt {# pt stands for parse tree
 	  if ($name eq 'count') {
 	    return 'COUNT(1)'
 	  } else {
-	    return uc($name).'(c'.($self->{output_column}-1).'_1)';
+	    return uc($name).'(c'.($opts->{'output_column'}-1).'_1)';
 	  }
 	} else {
 	  die "Wrong arguments for function ${name}() in output filter expression $opts->{expression}\n";
@@ -1230,17 +1231,18 @@ sub search_first {
 		       'Wait another '.$timeout.' seconds','Abort') eq 'Abort') ? 0 : 1
 		     },
   });
-  $self->{results} = $results;
+  my $returns_nodes = $self->{evaluator}{returns_nodes};
+  $self->{results} = $results if $returns_nodes;
   my $matches = @$results;
   if ($matches) {
-    my $returns_nodes = $self->{returns_nodes};
+    print "Returns nodes: $returns_nodes\n";
     return $results unless
       (!$returns_nodes and $matches<200) or
 	QuestionQuery('Results',
 		      ((defined($limit) and $matches==$limit) ? '>=' : '').
 			$matches.($returns_nodes ? ' match'.($matches>1?'(es)':'') : ' row'.($matches>1?'(s)':'')),
 		      'Display','Cancel') eq 'Display';
-    unless ($self->{returns_nodes}) {
+    unless ($returns_nodes) {
       EditBoxQuery(
 	"Results",
 	join("\n",map { join("\t",@$_) } @$results),

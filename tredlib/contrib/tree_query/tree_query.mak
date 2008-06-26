@@ -126,6 +126,52 @@ or
  (a) vypi¹te korpusové pozice t-uzlù, které jsou na morfologické rovinì vyjádøeny pøíslovcem, 
  (b) spoèítejte distribuci funktorù na této mno¾inì (tj. kolikrát se který funktor vyskytl) 
 
+(a) vypi¹te korpusové pozice t-uzlù, které jsou koøenem vedlej¹í vìty v minulém èase, 
+ (b) spoèítejte distribuci funktorù u tìchto uzlù (tj. kolikrát se který funktor vyskytl)
+
+ 
+ (a) vypi¹te korpusové pozice t-stromù reprezentujících vìtu, ve které je obsa¾eno "se" nebo "si", 
+ (b) spoèítejte, kolikrát je na t-rovinì reprezentováno samostatným t-uzlem a kolikrát je souèástí slovesného t-lemmatu
+
+   t-node [ a/lex.rf a-node 
+     [ m/lemma ~ '^se_' ] ];
+  >> count()
+
+   t-node [ a/aux.rf a-node 
+     [ m/lemma ~ '^se_' ] ];
+  >> count()
+
+ (a) vypi¹te korpusové pozice t-uzlù, které jsou na m-rovinì vyjádøeny zájmenem v dativu 
+ (b) spoèítejte distribuci funktorù tìchto t-uzlù (tj. kolikrát se který funktor vyskytl)
+
+   t-node $t := [ a/lex.rf a-node [ m/tag ~ '^....3' ] ];
+  >> $t.functor,count() per $t.functor sort by $2
+
+ (a) vypi¹te korpusové pozice slovesných t-uzlù, jejich¾ protìj¹ky na a-rovinì nemají mezi efektivními potomky vlastní podmìt 
+ (b) spoèítejte, kolikrát jsou které slovní druhy (první písmeno m-tagu) pou¾ité k vyjádøení podmìtu a kolikrát je subjekt na a-rovinì nevyjádøený, aèkoli jde o finitní slovesný tvar (má urèený gramatém g/tense)
+
+    t-node [ gram/sempos = 'v', gram/tense ~ '.',
+     a/lex.rf a-node [ echild a-node $sb := [ afun = 'Sb' ] ] ];
+  >> substr($sb.m/tag,0,1),count() per substr($sb.m/tag,0,1) sort by $2
+
+   PROBLEM: references to $sb.m/tag currently generate two $sb.m/tag columns!
+   SOLUTION: 1) do not generate 2 columns for attributes where there is no list/alt
+             2) allow references to the columns of the grouping clause;
+	        maybe change the syntax to:
+                   >> for substr($sb.m/tag,0,1) return $1,count() sort by $2
+
+
+ (a) vypi¹te korpusové pozice t-uzlù s lemmatem #PersPron, pro které øetìzec t-uzlù spojených textovou koreferencí má délku alespoò tøi (tj. zájmeno a dva pøedchùdci) 
+ (b) spoèítejte distribuci délek korerenèních øetìzcù (tj. kolikrát jde o jediný koreferenèní vztah, kolikrát navazují na sebe dva, kolikrát tøi atd.)
+ 
+ (a) vypi¹te korpusové pozice t-uzlù, jejich¾ t-lemma se li¹í od morfologického lemmatu uzlu, na který odkazuje a/lex.rf 
+ (b) spoèítejte, pro který morfologický slovní druh (první písmeno v m-tagu) je tento rozdíl nejèastìj¹í. 
+
+ 
+ (a) vypi¹te korpusové pozice t-uzlù, ze kterých vedou (prostøednictvím atributù a/lex.rf a a/aux.rf) odkazy na alespoò tøi uzly a-roviny 
+ (b) spoèítejte distribuci poètu a-uzlù odpovídajících t-uzlùm (tj. kolikrát jeden t-uzel neodkazuje na ¾ádný a-uzel, kolikrát odkazuje na jeden, kolikrát odkazuje na dva atd.)
+
+
 =cut
 
 #
