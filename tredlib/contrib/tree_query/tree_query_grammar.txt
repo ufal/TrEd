@@ -115,8 +115,15 @@
 		 | literal          { $return=$item[1] }
 		 | <error>
 
-    result_function: RESULT_FUNC <skip: ''> '(' <skip: '\s*(?:[#][^\n]*\s*)?'> arguments(?) ')'
+    result_function: RESULT_FUNC <skip: ''> '(' <skip: '\s*(?:[#][^\n]*\s*)?'> result_arguments(?) ')'
               { ['FUNC', $item[1],$item[5][0] ] }
+
+    result_arguments: <leftop: result_argument ',' result_argument>
+              { $item[1] }
+
+    result_argument: expression { $item[1] }
+            | /^\$\d+/           { $item[1] }
+            | VARIABLE          { $return='$'.$item[1] }
 
     type: XMLNAME .../\$|\[/
           { $return = $item[1] }

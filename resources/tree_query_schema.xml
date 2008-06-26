@@ -158,10 +158,21 @@
 	  <element name="node" type="q-node.type"/>
 	</sequence>
       </member>
+      <member name="output-filters"><list ordered="1" type="q-output.type"/></member>
       <member name="comments"><list ordered="1"><cdata format="any"/></list></member>
     </structure>
   </type>
-
+  <type name="q-output.type">
+    <structure>
+      <member name="distinct"><cdata format="boolean"/></member>
+      <member name="return" required="1" type="q-columns.type"/>
+      <member name="group-by" type="q-columns.type"/>
+      <member name="sort-by" type="q-columns.type"/>
+    </structure>
+  </type>
+  <type name="q-columns.type">
+    <list ordered="1"><cdata format="string"/></list>
+  </type>
   <type name="q-node.type">
     <structure role="#NODE" name="q-node">
       <member name="name">
