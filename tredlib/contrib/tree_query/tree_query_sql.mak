@@ -598,7 +598,8 @@ sub build_sql {
       join   => $extra_joins,
       syntax => $opts->{syntax},
     };
-    push @sql,[$self->serialize_columns($outputs[0]->{return},0,$output_opts,1),'space'];
+    $output_opts->{group_by} = $self->serialize_columns($outputs[0]->{'group-by'},0,$output_opts,'group_by');
+    push @sql,[$self->serialize_columns($outputs[0]->{return},0,$output_opts,'select'),'space'];
   } elsif ($count == 2) {
     $$returns_nodes=0;
     push @sql,['count(DISTINCT "'.$self->{id_map}{$tree}.'"."#idx")','space'];
@@ -643,21 +644,24 @@ sub build_sql {
     push @sql, ["\n".$self->serialize_limit($opts->{limit})."\n",'space']
   }
   if (@outputs) {
+    my $group_by = delete $output_opts->{group_by};
     push @sql,
-      ($outputs[0]->{'group-by'} ? 
-	 ["\n GROUP BY ".$self->serialize_columns($outputs[0]->{'group-by'},0,$output_opts),$tree] : ()),
-      ($outputs[0]->{'sort-by'} ? 
-	 ["\n ORDER BY ".$self->serialize_columns($outputs[0]->{'sort-by'},1,$output_opts),$tree] : ());
+      (@$group_by ?
+	 ["\n GROUP BY ".join(', ',@$group_by)."\n",$tree] : ()),
+      ($outputs[0]->{'sort-by'} ?
+	 ["\n ORDER BY ".$self->serialize_columns($outputs[0]->{'sort-by'},1,$output_opts,'order_by'),$tree] : ());
     shift @outputs;
     my $i=1;
     for my $out (@outputs) {
-      unshift @sql, ["SELECT ".$self->serialize_columns($out->{'return'},$i,$output_opts,1)." FROM (\n",$tree];
+      $output_opts->{group_by} = $self->serialize_columns($outputs[0]->{'group-by'},$i,$output_opts,'group_by');
+      unshift @sql, ["SELECT ".$self->serialize_columns($out->{'return'},$i,$output_opts,'select')." FROM (\n",$tree];
+      my $group_by = delete $output_opts->{group_by};
       push @sql,
 	[")\n",$tree],
-	($out->{'group-by'} ?
-	   ["\n GROUP BY ".$self->serialize_columns($out->{'group-by'},$i,$output_opts)."\n",$tree] : ()),
+	(@$group_by ?
+	   ["\n GROUP BY ".join(', ',@$group_by)."\n",$tree] : ()),
 	($out->{'sort-by'} ?
-	   ["\n ORDER BY ".$self->serialize_columns($out->{'sort-by'},$i+1,$output_opts)."\n",$tree] : ());
+	   ["\n ORDER BY ".$self->serialize_columns($out->{'sort-by'},$i+1,$output_opts,'order_by')."\n",$tree] : ());
       $i++;
     }
   }
@@ -669,14 +673,14 @@ sub build_sql {
 }
 
 sub serialize_columns {
-  my ($self,$col_list,$j,$opts,$name)=@_;
+  my ($self,$col_list,$j,$opts,$type)=@_;
   my @cols;
   my $i=1;
   for my $col (ListV($col_list)) {
     my ($str,$wrap,$cal_be_null)=$self->serialize_expression({%$opts,expression=>$col,output_column=>$j+1,is_positive_conjunct=>1});
-    push @cols, $str.($name ? ' AS c'.($j+1).'_'.($i++) : '');
+    push @cols, $str.($type eq 'select' ? ' AS c'.($j+1).'_'.($i++) : '');
   }
-  return join(',  ', @cols);
+  return $type eq 'group_by' ? \@cols : join(',  ', @cols);
 }
 
 sub get_node_table_for {
@@ -891,7 +895,8 @@ sub serialize_expression_pt {# pt stands for parse tree
 	  if ($name eq 'count') {
 	    return 'COUNT(1)'
 	  } else {
-	    return uc($name).'(c'.($opts->{'output_column'}-1).'_1)';
+	    my $col = ($opts->{group_by} and @{$opts->{group_by}}) ? $opts->{group_by}[0] : 'c'.($opts->{'output_column'}-1).'_1';
+	    return uc($name).'('.$col.')';
 	  }
 	} else {
 	  die "Wrong arguments for function ${name}() in output filter expression $opts->{expression}\n";
@@ -941,7 +946,8 @@ sub serialize_expression_pt {# pt stands for parse tree
       if ($pt =~ /^\d+$/) { #column reference
 	die "Column reference \$$pt can only be used in an output filter; error in expression '$opts->{expression}' of node '$this_node_id'\n"
 	  unless $opts->{'output_column'};
-	return ' c'.($opts->{output_column}-1).'_'.$pt;
+	my $col = ($opts->{group_by} and @{$opts->{group_by}}) ? $opts->{group_by}[$pt-1] : 'c'.($opts->{'output_column'}-1).'_'.$pt;
+	return ' '.$col.' ';
       }
       return qq{ "$this_node_id"."#idx" } if $pt eq '$';
       if ($self->cmp_subquery_scope($this_node_id,$pt)<0) {
