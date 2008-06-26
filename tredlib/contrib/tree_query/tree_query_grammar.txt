@@ -88,10 +88,10 @@
     return_spec: 'distinct' <commit> plain_return_spec
                  { $return = $item[3]; $return->{distinct}=1 }
                | plain_return_spec { $item[1] }
-    plain_return_spec: columns group_by(?) sort_by(?)
+    plain_return_spec: group_by(?) columns sort_by(?)
                  { $return=Fslib::Struct->new({ 
-		    return => $item[1],
-		    'group-by'=>$item[2][0],
+		    return => $item[2],
+		    'group-by'=>$item[1][0],
 		    'sort-by' => $item[3][0],
 		   },1) 
 		 }
@@ -99,7 +99,7 @@
     columns: <leftop: flat_column_expression ',' flat_column_expression> 
                 { $return=Fslib::List->new_from_ref($item[1],1) }
 
-    group_by: 'per' columns { $item[2] }
+    group_by: 'for' columns 'give' { $item[2] } 
 
     sort_by: 'sort by' columns { $item[2] }
 
