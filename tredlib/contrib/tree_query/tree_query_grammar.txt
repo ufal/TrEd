@@ -74,15 +74,14 @@
     parse_conditions: lone_conditions(?) /,?\s*\Z/ { $item[1][0] }
          |   { report_error($thisparser,'condition',\$text); }
 
-    parse_column_expression: <leftop: column_term OP column_term> /\Z/ 
-                    { @{$item[1]}>1 ? ['EXP',@{$item[1]}] : $item[1][0] }
+    parse_column_expression: column_expression /\Z/ { $item[1] }
          | { report_error($thisparser,'column_expression',\$text); }
 
     node: type(?) var_def(?) '[' <commit> conditions(?) /,?\s*]/ 
           { new_node({ '#name' => 'node', 'node-type' => $item[1][0], name => $item[2][0]}, $item[5][0]) }
         | <error>
 
-    return: '>>' <commit> return_spec { $item[3] }
+    return: '>>' <commit> return_spec (';')(?) { $item[3] } 
           | <error>
 
     return_spec: 'distinct' <commit> plain_return_spec
@@ -103,11 +102,16 @@
 
     sort_by: 'sort by' columns { $item[2] }
 
+    column_expression: <leftop: column_exp OP column_exp>
+                       { @{$item[1]}>1 ? ['EXP',@{$item[1]}] : $item[1][0] }
+
     flat_column_expression: <rulevar: ($start,$t)> 
-              | { ($start,$t)=($thisoffset,$text) } <leftop: column_term OP column_term>
+              | { ($start,$t)=($thisoffset,$text) } <leftop: column_exp OP column_exp>
                 { $return=substr($t,0,$thisoffset-$start); $return=~s/^\s*//; 1 }
 
-    column_term: '(' <commit> expression ')' { $return=$item[3] }
+    column_exp: column_term | analytic_function
+
+    column_term: '(' <commit> column_expression ')' { $return=$item[3] }
                  | /^\$\d+/ <commit>  { $return=$item[1] }
                  | result_function  { $return=$item[1] }
 		 | ref_attribute    { $return=$item[1] }
@@ -115,15 +119,18 @@
 		 | literal          { $return=$item[1] }
 		 | <error>
 
-    result_function: RESULT_FUNC <skip: ''> '(' <skip: '\s*(?:[#][^\n]*\s*)?'> result_arguments(?) ')'
-              { ['FUNC', $item[1],$item[5][0] ] }
+    result_function: FUNC <skip: ''> '(' <commit> <skip: '\s*(?:[#][^\n]*\s*)?'> result_arguments(?) ')'
+                     { ['FUNC', $item[1],$item[6][0] ] }
 
-    result_arguments: <leftop: result_argument ',' result_argument>
+    analytic_function: ANALYTIC_FUNC <skip: ''> '(' <commit> <skip: '\s*(?:[#][^\n]*\s*)?'> 
+		     column_expression(?)
+                     over(?) ')'
+                     { ['ANALYTIC_FUNC', $item[1], $item[6][0], $item[7][0] ? @{$item[7][0]} : () ] }
+
+    over: 'over' <leftop: column_term ',' column_term> { $item[2] }
+
+    result_arguments: <leftop: column_expression ',' column_expression>
               { $item[1] }
-
-    result_argument: expression { $item[1] }
-            | /^\$\d+/           { $item[1] }
-            | VARIABLE          { $return='$'.$item[1] }
 
     type: XMLNAME .../\$|\[/
           { $return = $item[1] }
@@ -260,9 +267,9 @@
     EXTRA_RELATION: /depth-first-precedes|depth-first-follows|order-precedes|order-follows/
               { new_relation($item[1]) }
 
-    FUNC: /descendants|lbrothers|rbrothers|sons|depth|lower|upper|length|substr|name|url|tree_no/
+    FUNC: /descendants|lbrothers|rbrothers|sons|depth|lower|upper|length|substr|ciel|floor|round|trunc|name|url|tree_no|percnt/
 
-    RESULT_FUNC: /descendants|lbrothers|rbrothers|sons|depth|lower|upper|length|substr|name|url|tree_no|min|max|sum|avg|count|distribution/
+    ANALYTIC_FUNC: /min|max|sum|avg|count|ratio/
 
     CMP: /=|~\*?|[<>]=?|in/
 

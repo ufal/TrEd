@@ -96,7 +96,8 @@ sub prepare_query {
   $self->prepare_sql($self->serialize_conditions($query_tree,
 						     { %$opts,
 						       syntax=>$self->sql_driver,
-						       limit=>$self->{limit},
+						       node_limit=>$self->{node_limit},
+						       row_limit=>$self->{row_limit},
 						       returns_nodes=>\$self->{returns_nodes},
 						      }));
 }
@@ -125,7 +126,7 @@ sub connect {
       require DBD::Pg;
       import DBD::Pg qw(:async);
     } elsif ($cfg->{driver} eq 'Oracle') {
-      $::ENV{NLS_LANG}='CZECH_CZECH REPUBLIC.AL32UTF8';
+      $::ENV{NLS_LANG}='AMERICAN_AMERICA.AL32UTF8';
       $::ENV{NLS_NCHAR}='AL32UTF8';
     }
     $self->{dbi} = DBI->connect('dbi:'.$cfg->{driver}.':'.
@@ -300,7 +301,8 @@ sub serialize_conditions {
     return $self->build_sql($node,{
       returns_nodes=>$opts->{returns_nodes},
       count=>$opts->{count},
-      limit => $opts->{limit},
+      node_limit => $opts->{node_limit},
+      row_limit => $opts->{row_limit},
       syntax=>$opts->{syntax},
     });
   }
@@ -495,7 +497,7 @@ sub user_defined_relation {
 sub build_sql {
   my ($self,$tree,$opts)=@_;
   $opts||={};
-  my ($format,$count,$tree_parent_id) = map {$opts->{$_}} qw(format count parent_id limit);
+  my ($format,$count,$tree_parent_id) = map {$opts->{$_}} qw(format count parent_id);
   $count||=0;
   # we rely on depth first order!
   my @nodes = Tree_Query::FilterQueryNodes($tree);
@@ -598,6 +600,7 @@ sub build_sql {
       join   => $extra_joins,
       syntax => $opts->{syntax},
     };
+    push @sql, ['DISTINCT '] if $outputs[0]->{distinct};
     $output_opts->{group_by} = $self->serialize_columns($outputs[0]->{'group-by'},0,$output_opts,'group_by');
     push @sql,[$self->serialize_columns($outputs[0]->{return},0,$output_opts,'select'),'space'];
   } elsif ($count == 2) {
@@ -639,9 +642,10 @@ sub build_sql {
     my @w=@{Tree_Query::_group(\@where,["\n  AND "])};
     push @sql, [ "\nWHERE\n     ",'space'],@w if @w;
   }
+  my $which_limit = $$returns_nodes ? 'node_limit' : 'row_limit';
   unless (defined($tree_parent_id) and defined($self->{id_map}{$tree}) 
-	  or !defined($opts->{limit})) {
-    push @sql, ["\n".$self->serialize_limit($opts->{limit})."\n",'space']
+	  or !defined($opts->{$which_limit})) {
+    push @sql, ["\n".$self->serialize_limit($opts->{$which_limit})."\n",'space']
   }
   if (@outputs) {
     my $group_by = delete $output_opts->{group_by};
@@ -654,7 +658,9 @@ sub build_sql {
     my $i=1;
     for my $out (@outputs) {
       $output_opts->{group_by} = $self->serialize_columns($outputs[0]->{'group-by'},$i,$output_opts,'group_by');
-      unshift @sql, ["SELECT ".$self->serialize_columns($out->{'return'},$i,$output_opts,'select')." FROM (\n",$tree];
+      unshift @sql, ['SELECT '
+		    .($out->{distinct} ? 'DISTINCT ' : '')
+		    .$self->serialize_columns($out->{'return'},$i,$output_opts,'select')." FROM (\n",$tree];
       my $group_by = delete $output_opts->{group_by};
       push @sql,
 	[")\n",$tree],
@@ -875,7 +881,7 @@ sub serialize_expression_pt {# pt stands for parse tree
 #             : ($name eq 'url')         ? qq{"$id"."#name"}
 #             : ($name eq 'tree_no')     ? qq{"$id"."#name"}
              : die "Tree_Query internal error while compiling expression: should never get here!";
-      } elsif ($name=~/^(?:lower|upper|length)$/) {
+      } elsif ($name=~/^(?:lower|upper|length|abs|floor|ciel)$/) {
 	if ($args and @$args==1) {
 	  return uc($name).'('
 	         .  $self->serialize_expression_pt($args->[0],$opts,$extra_joins)
@@ -883,35 +889,59 @@ sub serialize_expression_pt {# pt stands for parse tree
 	} else {
 	  die "Wrong arguments for function ${name}() in expression $opts->{expression} of node '$this_node_id'!\nUsage: ${name}(string)\n";
 	}
-      } elsif ($name =~ /^(?:min|max|sum|avg|count)/) {
-	die "The aggregating function $name can only be used in an output filter expression!\n"
-	  unless $opts->{'output_column'};
-	die "The aggregating function $name cannot be used to compute an argument to another aggregating function $opts->{aggregated} in the output filter expression $opts->{expression}!\n" if defined $opts->{'aggregated'};
-	if ($args and @$args==1) {
+      } elsif ($name=~/^(?:round|trunc)$/) {
+	if ($args and @$args and @$args<3) {
 	  return uc($name).'('
-	         .  $self->serialize_expression_pt($args->[0],{%$opts,aggregated=>$name},$extra_joins)
+	         .  join(',',map { $self->serialize_expression_pt($_,$opts,$extra_joins) } @$args)
 	         . ')';
-	} elsif (!$args or @$args==0) {
-	  if ($name eq 'count') {
-	    return 'COUNT(1)'
-	  } else {
-	    my $col = ($opts->{group_by} and @{$opts->{group_by}}) ? $opts->{group_by}[0] : 'c'.($opts->{'output_column'}-1).'_1';
-	    return uc($name).'('.$col.')';
-	  }
 	} else {
-	  die "Wrong arguments for function ${name}() in output filter expression $opts->{expression}\n";
+	  die "Wrong arguments for function ${name}() in expression $opts->{expression} of node '$this_node_id'!\nUsage: ${name}(string)\n";
+	}
+      } elsif ($name eq 'percnt') {
+	if ($args and @$args>0 and @$args<3) {
+	  my @args = map { $self->serialize_expression_pt($_,$opts,$extra_joins) } @$args;
+	  return 'round(100*('.$args[0].')'
+	    . (@args>1 ? ','.$args[1] : '').q[)||'%'];
+	} else {
+	  die "Wrong arguments for function percnt() in expression $opts->{expression} of node '$this_node_id'!\nUsage: percnt(number,precision?)\n";
 	}
       } elsif ($name eq 'substr') {
 	if ($args and @$args>1 and @$args<4) {
 	  my @args = map { $self->serialize_expression_pt($_,$opts,$extra_joins) } @$args;
 	  $args[1].='+1';
 	  return 'SUBSTR('
-	         .  join(',', @args)
-	         . ')';
+	    .  join(',', @args)
+	      . ')';
 	} else {
-	  die "Wrong arguments for function substr() in expression $opts->{expression} of node '$this_node_id'!\nUsage: substr(string,from,length?)\n";
+	  die "Wrong arguments for function ${name}() in expression $opts->{expression} of node '$this_node_id'!\nUsage: substr(string,from,length?)\n";
 	}
       }
+    } elsif ($type eq 'ANALYTIC_FUNC') {
+      my $name = shift @$pt;
+      die "The analytic function $name can only be used in an output filter expression!\n"
+	unless $opts->{'output_column'};
+      my $first_arg = shift @$pt;
+      die "The analytic function $name without an 'over' clause cannot be used to compute an argument to another analytic function without an 'over' clause $opts->{aggregated} in the output filter expression $opts->{expression}!\n" if defined($opts->{'aggregated'}) and !@$pt;
+      $name = 'ratio_to_report' if $name eq 'ratio';
+      my $out=uc($name).'(';
+      if (defined($first_arg) and length($first_arg)) {
+	$out.=  $self->serialize_expression_pt($first_arg,{%$opts,
+							   (@$pt ? () : (aggregated=>$name))
+							  },$extra_joins)
+      } else {
+	if ($name eq 'count') {
+	  $out.='1'
+	} else {
+	  $out.= ($opts->{group_by} and @{$opts->{group_by}}) ? $opts->{group_by}[0] : 'c'.($opts->{'output_column'}-1).'_1';
+	}
+      }
+      $out.=')';
+      if (@$pt) {
+	$out.= ' over (partition by '
+	  .join(',',map { $self->serialize_expression_pt($_,$opts,$extra_joins) } @$pt)
+	  .')';
+      }
+      return $out;
     } elsif ($type eq 'EXP') {
       my $out.='(';
       while (@$pt) {
@@ -938,6 +968,8 @@ sub serialize_expression_pt {# pt stands for parse tree
 	. ')';
       $opts->{can_be_null}=0;
       return $res;
+    } else {
+      die "Internal error: unrecognized parse tree item $type\n";
     }
   } else {
     if ($pt=~/^[-0-9']/) { # literal
@@ -1146,6 +1178,7 @@ use Scalar::Util qw(weaken);
 BEGIN { import TredMacro  }
 
 our %DEFAULTS = (
+  row_limit => 5000,
   limit => 100,
   timeout => 30,
 );
@@ -1225,10 +1258,11 @@ sub search_first {
     $self->{evaluator}->prepare_sql($sql);
   }
   $self->{last_query_nodes} = $self->{evaluator}->get_query_nodes;
-  my ($limit, $timeout) = map { int($opts->{$_}||$self->{config}{pml}->get_root->get_member($_)||0)||$DEFAULTS{$_} }
-    qw(limit timeout);
+  my ($limit, $row_limit, $timeout) = map { int($opts->{$_}||$self->{config}{pml}->get_root->get_member($_)||0)||$DEFAULTS{$_} }
+    qw(limit row_limit timeout);
   my $results = $self->{evaluator}->run({
-    limit => $limit,
+    node_limit => $limit,
+    row_limit => $limit,
     timeout => $timeout,
     timeout_callback => sub {
       (!GUI() or
@@ -1242,6 +1276,7 @@ sub search_first {
   my $matches = @$results;
   if ($matches) {
     print "Returns nodes: $returns_nodes\n";
+    $limit=$row_limit unless $returns_nodes;
     return $results unless
       (!$returns_nodes and $matches<200) or
 	QuestionQuery('Results',
@@ -1638,6 +1673,7 @@ $DEFAULTS{dbi_config} = <<"EOF";
     <schema href="treebase_conf_schema.xml"/>
   </head>
   <limit>$DEFAULTS{limit}</limit>
+  <row_limit>$DEFAULTS{row_limit}</row_limit>
   <timeout>$DEFAULTS{timeout}</timeout>
   <configurations>
     <LM id="postgress">
