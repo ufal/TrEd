@@ -89,7 +89,7 @@ sub EditBoxQuery {
   $opts ||={};
 
   $d=ToplevelFrame()->DialogBox(-title => $title,
-			   -buttons => ["OK","Cancel"]);
+			   -buttons => delete($opts->{-buttons}) || ["OK","Cancel"]);
   main::addBindTags($d,'dialog');
   $d->bind('all','<Tab>',sub { shift->focusNext; });
   $d->bind('all','<Shift-Tab>',sub { shift->focusPrev; });
