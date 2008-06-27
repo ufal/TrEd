@@ -97,7 +97,7 @@ sub EditBoxQuery {
     my $t=$d->add(qw/Label -wraplength 6i -justify left -text/,$hintText);
     $t->pack(qw/-padx 0 -pady 0 -expand 0 -fill x/);
   }
-  my @opts = (qw/-height 8 -relief sunken -scrollbars sw -borderwidth 2/,-font => $main::font);
+  my @opts = (qw/-height 8 -relief sunken -scrollbars se -borderwidth 2/,-font => $main::font);
   if (!$opts->{-widget} or !eval { $ed=$d->Scrolled(@{$opts->{-widget}},@opts); }) {
     $ed=$d->Scrolled('Text',@opts);
   }
