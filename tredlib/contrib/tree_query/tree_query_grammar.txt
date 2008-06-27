@@ -127,7 +127,8 @@
                      over(?) ')'
                      { ['ANALYTIC_FUNC', $item[1], $item[6][0], $item[7][0] ? @{$item[7][0]} : () ] }
 
-    over: 'over' <leftop: column_term ',' column_term> { $item[2] }
+    over: 'over' 'all' { ['ALL'] } 
+        | 'over' <leftop: column_term ',' column_term> { $item[2] }
 
     result_arguments: <leftop: column_expression ',' column_expression>
               { $item[1] }
