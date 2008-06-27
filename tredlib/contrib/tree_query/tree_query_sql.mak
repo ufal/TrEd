@@ -937,9 +937,11 @@ sub serialize_expression_pt {# pt stands for parse tree
       }
       $out.=')';
       if (@$pt) {
-	$out.= ' over (partition by '
-	  .join(',',map { $self->serialize_expression_pt($_,$opts,$extra_joins) } @$pt)
-	  .')';
+	$out.= ' over ('
+	  .((@$pt==1 and $pt->[0] eq 'ALL')
+	    ? ''
+	    : 'partition by '.join(',',map { $self->serialize_expression_pt($_,$opts,$extra_joins) } @$pt)
+	   ).')';
       }
       return $out;
     } elsif ($type eq 'EXP') {
