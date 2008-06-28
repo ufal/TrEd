@@ -353,9 +353,21 @@ sub relation {
     if ($order) {
       $cond =
 	$self->serialize_predicate(
-	  qq{\$$id.$order},
-	  qq{\$$target.$order},
-	  '<',$opts # there should be no ambiguity here, treat expressoins as positive
+	{
+	  id=>$opts->{id},
+	  type=>$opts->{type},
+	  join=>$opts->{join},
+	  is_positive_conjunct=>$opts->{is_positive_conjunct},
+	  expression => qq{\$$id.$order},
+	},
+	{
+	  id=>$opts->{id},
+	  type=>$opts->{type},
+	  join=>$opts->{join},
+	  is_positive_conjunct=>$opts->{is_positive_conjunct},
+	  expression => qq{\$$target.$order},
+	},
+	'<',$opts # there should be no ambiguity here, treat expressoins as positive
 	 );
     } else {
       die "Node-type $opts->{type} has no ordering attribute; use depth-first-precedes instead!\n";
