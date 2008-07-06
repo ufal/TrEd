@@ -5,6 +5,7 @@
   <root name="dbi">
     <structure>
       <member name="limit"><cdata format="nonNegativeInteger"/></member>
+      <member name="row_limit"><cdata format="nonNegativeInteger"/></member>
       <member name="timeout"><cdata format="nonNegativeInteger"/></member>
       <member name="configurations">
 	<list ordered="1" type="dbi-config.type"/>

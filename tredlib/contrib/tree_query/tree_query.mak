@@ -46,7 +46,8 @@
 #  pure DOM/XPath-based PMLEvaluator using the same algorithm as
 #  in BtredEvaluator, only reimplementing iterators, relations and attr().
 #
-
+package Tree_Query::Common; # so that it gets reloaded
+package Tree_Query::SQLEvaluator; # so that it gets reloaded
 package Tree_Query;
 {
 use strict;
@@ -57,6 +58,9 @@ BEGIN {
   import PML qw(&SchemaName);
   use File::Spec;
   use Benchmark ':hireswallclock';
+  use lib $main::libDir.'/contrib/tree_query';
+  use Tree_Query::Common;
+  import Tree_Query::Common qw(:all);
 }
 
 our $VALUE_LINE_MODE = 0;
@@ -355,7 +359,6 @@ Bind sub {
   menu => 'Create a new query node'
 };
 
-my $query_schema = PMLSchema->new({filename => 'tree_query_schema.xml',use_resources=>1});
  my %schema_map = (
 #   't-node' => PMLSchema->new({filename => 'tdata_schema.xml',use_resources=>1}),
 #   'a-node' => PMLSchema->new({filename => 'adata_schema.xml',use_resources=>1}),
@@ -644,6 +647,21 @@ sub init_id_map {
   };
 }
 
+sub GetNodeName {
+  my ($node)=@_;
+  die "#name!='node'" unless defined($node) and $node->{'#name'} eq 'node';
+  if (defined($node->{name})) {
+    return $node->{name}
+  } else {
+    my $i=0;
+    $i++ while (exists $name2node_hash{"ref$i"});
+    my $name = "ref$i";
+    $node->set_attr('name',$name);
+    $name2node_hash{$name}=$node;
+    return $name;
+  }
+}
+
 #include "ng.inc"
 
 # given to nodes or their IDs ($id and $ref)
@@ -652,81 +670,6 @@ sub init_id_map {
 # (and hence $ref can be referred to from $id)
 # returns -1 otherwise
 
-sub cmp_subquery_scope {
-  my ($id,$ref) = @_;
-  return 0 if $id eq $ref;
-  my $node = ref($id) ? $id : $name2node_hash{$id};
-  my $ref_node = ref($ref) ? $ref : $name2node_hash{$ref};
-  $ref_node || croak "didn't find node $ref";
-  $node || croak "didn't find node $id";
-
-  while ($node->parent and $node->{'#name'} ne 'subquery') {
-    $node=$node->parent;
-  }
-  while ($ref_node->parent and $ref_node->{'#name'} ne 'subquery') {
-    $ref_node=$ref_node->parent;
-  }
-  return 0 if $node==$ref_node;
-  return 1 if first { $_==$ref_node } $node->ancestors;
-  return -1;
-}
-
-sub occ_as_text {
-  my ($node)=@_;
-  return '' unless $node->{'#name'} eq 'subquery';
-  return join('|', grep { /\d/ } map {
-    my ($min,$max)=($_->{min},$_->{max});
-    if (length($min) and length($max)) {
-      if (int($min)==int($max)) {
-	int($min)
-      } else {
-	int($min).'..'.int($max)
-      }
-    } elsif (length($min)) {
-      int($min).'+'
-    } elsif (length($max)) {
-      int($max).'-'
-    } else {
-      '1+'
-    }
-  } AltV($node->{occurrences}));
-}
-
-
-my %child_order = (
-  test=>1,
-  not=>2,
-  or=>3,
-  and=>4,
-  ref=>5,
-  subquery=>6,
-  node=>7,
-);
-
-sub sort_children_by_node_type {
-  my ($node)=@_;
-  return map { $_->[0] }
-         sort { $a->[1]<=>$b->[1] }
-         map { [$_,int($child_order{$_->{'#name'}})] } $node->children;
-}
-
-sub rel_as_text {
-  my ($node)=@_;
-  my ($rel) = SeqV($node->{relation});
-  if ($rel) {
-    my ($rn,$rv)=($rel->name,$rel->value);
-    if ($rn eq 'user-defined') {
-      return $rv->{label};
-    } elsif ($rn =~ /^(?:ancestor|descendant)/
-	       and length($rv->{min_length})||length($rv->{max_length})) {
-      return $rn.'{'.$rv->{min_length}.','.$rv->{max_length}.'}'
-    } else {
-      return $rn;
-    }
-  } else {
-    return 'child';
-  }
-}
 
 sub root_style_hook {
   DrawArrows_init();
@@ -828,7 +771,7 @@ sub get_value_line_hook {
   return unless $tree;
   init_id_map($tree);
   return $VALUE_LINE_MODE == 0 ?
-    make_string_with_tags(tq_serialize($tree),[]) :
+    make_string_with_tags(tq_serialize($tree,{arrow_colors=>\%color}),[]) :
       UNIVERSAL::isa($SEARCH,'Tree_Query::SQLSearch') ? 
 	  ($SEARCH->{evaluator} ? $SEARCH->{evaluator}->build_sql($tree,{format=>1})
 	     : 'NO EVALUATOR')
@@ -853,6 +796,7 @@ sub node_release_hook {
     return 'stop' unless $target_type =~/^(?:node|subquery)$/
       and $type =~/^(?:node|subquery|ref)$/;
     return 'stop' if cmp_subquery_scope($node,$target)<0;
+    print "here\n";
     my @sel = map {
       my $name = $_->name;
       if ($name eq 'user-defined') {
@@ -890,50 +834,6 @@ sub current_node_change_hook {
 
 # Helper routines
 
-sub GetNodeName {
-  my ($node)=@_;
-  die "#name!='node'" unless defined($node) and $node->{'#name'} eq 'node';
-  if (defined($node->{name})) {
-    return $node->{name}
-  } else {
-    my $i=0;
-    $i++ while (exists $name2node_hash{"ref$i"});
-    my $name = "ref$i";
-    $node->set_attr('name',$name);
-    $name2node_hash{$name}=$node;
-    return $name;
-  }
-}
-
-sub SetRelation {
-  my ($node,$type,$opts)=@_;
-  if ($type=~s/^(user-defined): // and !($opts and $opts->{label})) {
-    $opts||={};
-    $opts->{label}=$type;
-    $type = 'user-defined';
-  }
-  my $rel = Fslib::Seq::Element->new( 
-    $type => Fslib::Container->new(undef,$opts) 
-  );
-  $node->{relation}||=Fslib::Seq->new();
-  @{$node->{relation}->elements_list}=( $rel );
-  return $rel;
-}
-
-sub GetRelationTypes {
-  my $node=@_ ? $_[0] : $this;
-  [
-    map {
-      my $name = $_->get_name;
-      if ($name eq 'user-defined') {
-	(map { qq{$name: $_} } $_->get_content_decl->get_attribute_by_name('label')->get_content_decl->get_values())
-      } else {
-	$name;
-      }
-    } $node->type->schema->get_type_by_name('q-ref-relation.type')->get_content_decl->get_elements(),
-   ],
-}
-
 # note: you have to call init_id_map($root); first!
 sub AddOrRemoveRelations {
   my ($node,$target,$types,$opts)=@_;
@@ -970,23 +870,6 @@ sub AddOrRemoveRelations {
   return @new;
 }
 
-
-sub FilterQueryNodes {
-  my ($tree)=@_;
-  my @nodes;
-  my $n = $tree;
-  while ($n) {
-    if ($n->{'#name'} eq 'node' or
-	  ($n==$tree and $n->{'#name'} eq 'subquery')) {
-      push @nodes, $n;
-    } elsif ($n->parent) {
-      $n = $n->following_right_or_up($tree);
-      next;
-    }
-    $n = $n->following($tree);
-  }
-  return @nodes;
-}
 
 
 our %is_match;
@@ -1199,7 +1082,7 @@ sub EditQuery {
     if ($node->parent) {
       my @c;
       if ($no_childnodes) {
-	@c=map CutNode($_), grep { $_->{'#name'} eq 'node' } $node->children;
+	@c=map CutNode($_), grep { $_->{'#name'} eq 'node' } reverse $node->children;
       }
       if (ref($result) eq 'ARRAY') {
 	$_->paste_after($node) for @$result;
@@ -1225,163 +1108,6 @@ sub EditQuery {
   }
 }
 
-### Query serialization
-
-sub tq_serialize {
-  my ($node,$opts)=@_;
-  my $indent = $opts->{indent};
-  my $do_wrap = $opts->{wrap};
-  my $query_node = $opts->{query_node};
-  my $name = $node->{'#name'};
-  $indent||='';
-  my @ret;
-  my $wrap=int($do_wrap) ? "\n$indent" : " ";
-  if ($name eq '' and !$node->parent) {
-    my $desc = $node->{description};
-    return [
-      [(length($desc) ? '#  '.$desc."\n" : ''),$node],
-      ($opts->{no_childnodes} ? () : (map { (@{tq_serialize($_,$opts)},[";\n"]) } $node->children)),
-      map {
-	[join('',
-	      '  >> ',
-	      (ListV($_->{'group-by'}) ? (' for ',join(',',ListV($_->{'group-by'})),"\n     give ")  : ()),
-	      ($_->{distinct} ? ('distinct ')  : ()),
-	      join(',',ListV($_->{return})),
-	      (ListV($_->{'sort-by'}) ? ("\n     sort by ",join(',',ListV($_->{'sort-by'})))  : ()),
-	      "\n"
-	     ), $node]
-      } ListV($node->{'output-filters'})
-     ]
-  } else {
-    my $copts = {%$opts,no_childnodes=>0,indent=>$indent."     "};
-    if ($name eq 'subquery' or $name eq 'node') {
-      $copts->{query_node}=$node;
-    }
-    my @r = map [tq_serialize($_,$copts)], 
-      $opts->{no_childnodes} ? (grep { $_->{'#name'} ne 'node' } $node->children) : $node->children;
-    if ($name=~/^(?:not|or|and)$/) {
-      if ($name eq 'not') {
-	push @ret,['!',$node,$query_node,'-foreground=>darkcyan'];
-	$name='and';
-      }
-      if (@r) {
-	push @ret,( @r==1 ? $r[0] : (['(',$node,$query_node,'-foreground=>darkcyan'],
-				     @{_group(\@r,["${wrap}$name ",$node,$query_node,'-foreground=>darkcyan'])},
-				     [')',$node,$query_node,'-foreground=>darkcyan']) );
-      }
-    } elsif ($name eq 'ref') {
-      my $rel=rel_as_text($node);
-      my $arrow = $rel;
-      $arrow=~s/{.*//;
-      push @ret,
-	[$rel.' ',$node,$query_node,'-foreground=>'.arrow_color($arrow)];
-      my $ref = $node->{target} || '???';
-      push @ret,["\$$ref",$node,$query_node,'-foreground=>darkblue'];
-    } elsif ($name eq 'test') {
-      my $test=  $node->{a}.' '.$node->{operator}.' '.$node->{b};
-      @ret = ( [$test,$node,$query_node] );
-    } elsif ($name eq 'subquery' or $name eq 'node') {
-      if ($name eq 'subquery') {
-	push @ret, [occ_as_text($node).'x ',$node,'-foreground=>darkgreen'];
-      } elsif ($node->{optional}) {
-	push @ret, ['?',$node,'-foreground=>darkgreen'];
-      }
-      my $rel='';
-      if ($node->parent and $node->parent->parent) {
-	$rel=rel_as_text($node);
-	my $arrow = $rel;
-	$arrow=~s/{.*//;
-	push @ret,[$rel.' ',$node,'-foreground=>'.arrow_color($arrow)];
-      }
-      my $type=$node->{'node-type'}; # get_query_node_type($node);
-      push @ret,[$type.' ',$node] if $type; #FIXME: 
-      if ($node->{name}) {
-	push @ret,['$'.$node->{name},$node,'-foreground=>darkblue'],[' := ',$node];
-      }
-      if ($do_wrap) {
-	if (@r) {
-	  push @ret, (["[ ",$node],["${wrap}  "],
-		      @{_group(\@r,[",${wrap}  "])},
-		      ["${wrap}"],[" ]",$node]);
-	} else {
-	  push @ret, (["[ ]",$node]);
-	}
-      } else {
-	unshift @ret,["\n${indent}"] if $node->lbrother;
-	if (@r) {
-	  push @ret,["\n${indent}"],["[ ",$node],
-	    @{_group(\@r,[", ",$node])},
-	      [" ]",$node];
-	} else {
-	  push @ret, (["[ ]",$node]);
-	}
-      }
-    } else {
-      @ret = (['## unknown: '.$name,$node]);
-    }
-  }
-  return \@ret;
-}
-
-sub as_text {
-  my ($node,$opts)=@_;
-  make_string(tq_serialize($node,$opts));
-}
-
-sub _group {
-  my ($array,$and_or) = @_;
-  return [ map {
-    ($_==0) ? ($array->[$_]) : ($and_or,$array->[$_])
-  } 0..$#$array ];
-}
-
-sub make_string {
-  my ($array) = @_;
-  Carp::cluck "not an array" unless ref($array) eq 'ARRAY';
-  return join '', map {
-    ref($_->[0]) ? make_string($_->[0]) : $_->[0]
-  } @$array;
-}
-
-sub make_string_with_tags {
-  my ($array,$tags) = @_;
-  return [map {
-    ref($_->[0]) ? @{make_string_with_tags($_->[0],[uniq(@$tags,@{$_}[1..$#$_])])} : [$_->[0], uniq(@$tags,@{$_}[1..$#$_])]
-  } @$array];
-}
-
-### Query parsing
-
-my $parser;
-sub query_parser {
-  return $parser if defined $parser;
-  my $Grammar = $libDir."/contrib/tree_query/Grammar.pm";
-  delete $INC{$Grammar};
-  require $Grammar;
-  $Tree_Query::user_defined = 'echild|eparent|a/lex.rf\|a/aux.rf|a/lex.rf|a/aux.rf|coref_text|coref_gram|compl|val_frame';
-  $parser = Tree_Query::Grammar->new() or die "Could not create parser for Tree_Query grammar\n";
-  return $parser;
-}
-sub parse_query {
-  shift if @_>1;
-  my $ret = eval {query_parser()->parse_query($_[0])};
-  confess($@) if $@;
-  $ret->set_type($query_schema->find_type_by_path('!q-query.type'));
-  DetermineNodeType($_) for ($ret->descendants);
-  return $ret;
-}
-sub parse_expression {
-  shift if @_>1;
-  my $ret = eval { query_parser()->parse_expression($_[0]) };
-  confess($@) if $@;
-  return $ret;
-}
-sub parse_column_expression {
-  shift if @_>1;
-  my $ret = eval { query_parser()->parse_column_expression($_[0]) };
-  confess($@) if $@;
-  return $ret;
-}
 
 
 
