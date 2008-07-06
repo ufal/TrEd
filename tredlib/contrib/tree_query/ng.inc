@@ -14,10 +14,10 @@ sub fix_netgraph_ord_to_precedes {
   my $ord = (get_query_node_type($node) eq 't') ? 'tfa/deepord' : 'ord';
   my $end;
   my $rel;
-  if ($x eq qq("$ord") and $y=~/^([[:alnum:]]+)\."\Q$ord\E"$/) {
+  if ($x eq qq($ord) and $y=~/^([[:alnum:]]+)\.\Q$ord\E$/) {
     $end = $name2node_hash{lc($1)};
     $rel  = 'order-precedes';
-  } elsif ($y eq qq("$ord") and $x=~/^([[:alnum:]]+)\."\Q$ord\E"$/) {
+  } elsif ($y eq qq($ord) and $x=~/^([[:alnum:]]+)\.\Q$ord\E$/) {
     $end=$name2node_hash{lc($1)};
     $rel  = 'order-follows';
   }
@@ -37,12 +37,12 @@ sub fix_tecto_coap {
   my ($node) = @_;
   return unless $node->{'#name'} eq 'test';
   if ($node->{operator} eq 'in'
-      and $node->{a} eq q("functor")) {
+      and $node->{a} eq q(functor)) {
     my $y = $node->{b};
     $y=~s/\s//g;
-    $y=~s/^\(|\)$//g;
+    $y=~s/^{|}$//g;
     if (join(',',uniq sort split(/,/,$y)) eq q('ADVS','APPS','CONFR','CONJ','CONTRA','CSQ','DISJ','GRAD','OPER','REAS')) {
-      $node->{a} = q("nodetype");
+      $node->{a} = q(nodetype);
       $node->{b} = q('coap');
       $node->{operator} = '=';
       ChangingFile(1);
@@ -159,35 +159,35 @@ sub reduce_optional_node_chain {
 sub fix_netgraph_query {
   init_id_map($root);
   ChangingFile(0);
-#   {
-#     my $node = $root;
-#     my $next;
-#     while ($node) {
-#       fix_or2in($node);
-#       $node=$node->following;
-#     }
-#   }
-#   {
-#     my $node = $root;
-#     while ($node) {
-#       fix_tecto_coap($node);
-#       $node=$node->following;
-#     }
-#   }
-#   {
-#     my $node = $root;
-#     while ($node) {
-#       FPosition($node);
-#       $node = (reduce_optional_node_chain($node) || $node->following);
-#     }
-#   }
+  {
+    my $node = $root;
+    my $next;
+    while ($node) {
+      fix_or2in($node);
+      $node=$node->following;
+    }
+  }
+  {
+    my $node = $root;
+    while ($node) {
+      fix_tecto_coap($node);
+      $node=$node->following;
+    }
+  }
+  {
+    my $node = $root;
+    while ($node) {
+      FPosition($node);
+      $node = (reduce_optional_node_chain($node) || $node->following);
+    }
+  }
   {
     reduce_similar_siblings($root);
   }
-#   {
-#     my $node = $root;
-#     while ($node) {
-#       $node = (fix_netgraph_ord_to_precedes($node)||$node->following);
-#     }
-#   }
+  {
+    my $node = $root;
+    while ($node) {
+      $node = (fix_netgraph_ord_to_precedes($node)||$node->following);
+    }
+  }
 }
