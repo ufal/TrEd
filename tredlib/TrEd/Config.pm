@@ -8,7 +8,7 @@ package TrEd::Config;
 #
 
 use strict;
-
+use File::Spec;
 BEGIN {
   use vars      qw($VERSION @ISA @EXPORT @EXPORT_OK @config_file_search_list $quiet);
   use Exporter  ();
@@ -146,13 +146,16 @@ sub find_exe {
 sub set_default_config_file_search_list {
   require FindBin;
   @config_file_search_list=
-    ($ENV{HOME}.'/.tredrc',
-     (exists $ENV{TREDHOME}) ? $ENV{TREDHOME}.'/tredrc' : (),
-     "$FindBin::RealBin/tredrc",
-     "$FindBin::RealBin/../lib/tredlib/tredrc",
-     "$FindBin::RealBin/tredlib/tredrc",
-     "$FindBin::RealBin/../lib/tred/tredrc",
-     '/usr/usr/share/config/tredrc');
+    (File::Spec->catfile($ENV{HOME},'.tredrc'),
+     map {
+       File::Spec->catfile($_,'tredrc')
+     } (
+       (exists($ENV{TREDHOME}) ? $ENV{TREDHOME} : ()),
+       $FindBin::RealBin,
+       File::Spec->catfile($FindBin::RealBin,'tredlib'),
+       File::Spec->catfile($FindBin::RealBin,'..','lib','tredlib'),
+       File::Spec->catfile($FindBin::RealBin,'..','lib','tred'),
+    ));
 }
 
 sub tilde_expand {

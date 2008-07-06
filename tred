@@ -7687,7 +7687,7 @@ sub saveConfig {
  # otherwise something went wrong
  { 
    my $lasterr=conv_from_locale($!);
-   my ($trc)=TrEd::Config::tilde_expand('~/.tredrc');
+   my ($trc)=File::Spec->catfile($ENV{HOME},'.tredrc');
    if (!_is_same_file($configFile,$trc)  and
        ((defined($top) and
 	   $top->
