@@ -1814,8 +1814,8 @@ sub claim_search_win {
   }
   sub start  {
     my ($self,$node)=@_;
-    my $min = $self->{MIN}||1;
-    my $max = $self->{MAX};
+    my $min = $self->[MIN]||1;
+    my $max = $self->[MAX];
     my $depth=0;
     $node = $node->parent while ($node and ($depth++)<$min);
     $node=undef if defined($max) and $depth>$max;
@@ -1826,7 +1826,7 @@ sub claim_search_win {
   sub next {
     my ($self)=@_;
     my $conditions=$self->[CONDITIONS];
-    my $max = $self->{MAX};
+    my $max = $self->[MAX];
     my $depth = $self->[DEPTH]+1;
     return $_[0]->[NODE]=undef if ($depth>$max);
     my $n=$self->[NODE]->parent;
