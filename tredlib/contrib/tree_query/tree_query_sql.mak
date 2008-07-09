@@ -268,6 +268,18 @@ sub configure {
   $config->save();
 }
 
+sub get_schema_for_query_node {
+  my ($self,$node)=@_;
+  my $ev = $self->init_evaluator;
+  return $ev->get_schema($ev->get_schema_name_for(Tree_Query::Common::GetQueryNodeType($node)));
+}
+
+sub get_type_decl_for_query_node {
+  my ($self,$node)=@_;
+  my $ev = $self->init_evaluator;
+  return $ev->get_decl_for(Tree_Query::Common::GetQueryNodeType($node));
+}
+
 #########################################
 #### Private API
 
@@ -329,6 +341,7 @@ sub init_evaluator {
       }
     }
   }
+  return $self->{evaluator};
 }
 
 

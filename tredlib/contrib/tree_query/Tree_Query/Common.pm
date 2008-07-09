@@ -66,6 +66,88 @@ sub Schema {
   return $query_schema;
 }
 
+sub GetQueryNodeType {
+  my ($node,$schema)=@_;
+  my $p;
+  return unless $node;
+  $node=$p while (($p=$node->parent) && $node->{'#name'} !~ /^(?:node|subquery)$/);
+  if ($schema) {
+    return $node->{'node-type'} || ($p && GetRelativeQueryNodeType($p,$schema,SeqV($node->{relation})));
+  } else {
+    return $node->{'node-type'} || $node->root->{'node-type'};
+  }
+}
+
+
+sub DeclPathToQueryType {
+  my ($path) = @_;
+  return unless defined $path;
+  $path=~s/\[LIST\]/LM/;
+  $path=~s/\[ALT\]/AM/;
+  $path=~s{^!([^/]+)\.type\b}{$1};
+  return $path;
+}
+sub QueryTypeToDecl {
+  my ($type,$schema)=@_;
+  return unless $type and $schema;
+  $type=~s{(/|$)}{.type$1};
+  return $schema->find_type_by_path('!'.$type)
+    or die "Did not find type '!$type'";
+}
+
+my %type = (
+  't-root:user-defined:a/lex.rf' => 'a-root',
+  't-root:user-defined:a/lex.rf|a/aux.rf' => 'a-root',
+  ':user-defined:a/lex.rf' => 'a-node',
+  ':user-defined:a/aux.rf' => 'a-node',
+  ':user-defined:a/lex.rf|a/aux.rf' => 'a-node',
+  ':user-defined:val_frame.rf' => 'frame',
+  ':user-defined:coref_text' => 't-node',
+  ':user-defined:coref_gram' => 't-node',
+  ':user-defined:compl' => 't-node',
+  ':user-defined:echild' => '#same',
+  ':user-defined:eparent' => '#same',
+
+  ':descendant' => '#descendant',
+  ':ancestor' => '#ancestor',
+  ':child' => '#child',
+  ':parent' => '#parent',
+  ':depth-first-precedes' => '#any',
+  ':order-precedes' => '#any',
+);
+
+sub GetRelativeQueryNodeType {
+  my ($node,$schema,$rel)=@_;
+  return unless $node;
+  my $type = GetQueryNodeType($node,$schema)||'';
+  # TODO: if $type is void, we could check if there is just one node-type in the schema and return it if so
+  my $name = $rel ? $rel->name : 'child';
+  $name .= ':'.$rel->value->{label} if $name eq 'user-defined';
+  my $reltype = $type{$type.':'.$name} || $type{':'.$name};
+  if ($reltype eq '#same') {
+    return $type ? $type : ();
+  } elsif ($reltype =~ /^(#descendant|#ancestor|#any)/) {
+    my @t=$schema->node_types;
+    return if @t!=1;
+    return DeclPathToQueryType( $t[0]->get_decl_path );
+  } elsif ($reltype eq '#child') {
+    my @t = QueryTypeToDecl($type,$schema)->get_childnodes_decls;
+    return if @t!=1;
+    return DeclPathToQueryType( $t[0]->get_decl_path );
+  } elsif ($reltype eq '#parent') {
+    my $decl = QueryTypeToDecl($type,$schema);
+    return unless $decl;
+    my @t = $schema->node_types;
+    @t = uniq grep {
+      first { $_==$decl } $_->get_childnodes_decls
+    } @t;
+    return if @t!=1;
+    return DeclPathToQueryType( $t[0]->get_decl_path );
+  } else {
+    return $reltype;
+  }
+}
+
 sub SetRelation {
   my ($node,$type,$opts)=@_;
   if ($type=~s/ \(user-defined\)$// and !($opts and $opts->{label})) {
