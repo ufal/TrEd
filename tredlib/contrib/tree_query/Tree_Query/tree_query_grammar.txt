@@ -84,14 +84,12 @@
     return: '>>' <commit> return_spec (';')(?) { $item[3] } 
           | <error>
 
-    return_spec: 'distinct' <commit> plain_return_spec
-                 { $return = $item[3]; $return->{distinct}=1 }
-               | plain_return_spec { $item[1] }
-    plain_return_spec: group_by(?) columns sort_by(?)
+    return_spec: group_by(?) ('distinct')(?) columns sort_by(?)
                  { $return=Fslib::Struct->new({ 
-		    return => $item[2],
-		    'group-by'=>$item[1][0],
-		    'sort-by' => $item[3][0],
+		    'return'   => $item[3],
+                    'distinct' => scalar(@{$item[2]}),
+		    'group-by' => $item[1][0],
+		    'sort-by'  => $item[4][0],
 		   },1) 
 		 }
   
@@ -268,13 +266,13 @@
     EXTRA_RELATION: /depth-first-precedes|depth-first-follows|order-precedes|order-follows/
               { new_relation($item[1]) }
 
-    FUNC: /descendants|lbrothers|rbrothers|sons|depth|lower|upper|length|substr|ciel|floor|round|trunc|name|url|tree_no|percnt/
+    FUNC: /(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\b/
 
     ANALYTIC_FUNC: /min|max|sum|avg|count|ratio/
 
     CMP: /=|~\*?|[<>]=?|in/
 
-    OP: /[-+*^]|div|mod/
+    OP: /[-+*&]|div|mod/
 
     STRING: /'([^'\\]+|\\.)*'/
 
