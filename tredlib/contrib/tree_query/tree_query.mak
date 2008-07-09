@@ -576,16 +576,20 @@ sub attr_choices_hook {
     }
   } elsif ($node->{'#name'} eq 'test') {
     if ($attr_path eq 'a') {
-      my $schema;
+      my ($types,$schema);
       unless ($schema = get_query_node_schema($node)) {
 	if (UNIVERSAL::isa($SEARCH,'Tree_Query::TrEdSearch')) {
 	  my $file = $SEARCH->{file} || return;
 	  my $fsfile = (first { $_->filename eq $file } GetOpenFiles()) || return;
 	  $schema = PML::Schema($fsfile);
+	} elsif (UNIVERSAL::isa($SEARCH,'Tree_Query::SQLSearch')) {
+	  $SEARCH->init_evaluator;
+	  $types = [ $SEARCH->{evaluator}->get_decl_for(get_query_node_type($node)) ];
+	  $schema=$types->[0]->schema if @$types;
 	}
       }
       return unless $schema;
-      my @res = $schema->get_paths_to_atoms(undef,{ no_childnodes => 1 });
+      my @res = $schema->get_paths_to_atoms($types,{ no_childnodes => 1 });
       return @res ? \@res : ();
     } elsif ($attr_path eq 'b') {
       if (UNIVERSAL::isa($SEARCH,'Tree_Query::SQLSearch')) {
@@ -601,7 +605,7 @@ sub attr_choices_hook {
 	  }
 	  my $sql = <<SQL;
 SELECT * FROM (
-  SELECT "$attr" FROM ${table} 
+  SELECT "$attr" FROM "${table}"
   WHERE "$attr" IS NOT NULL
   GROUP BY "$attr"
   ORDER BY count(1) DESC
@@ -684,6 +688,7 @@ my %color = (
   'a/lex.rf' => 'violet',
   'a/aux.rf' => 'thistle',
   'a/lex.rf|a/aux.rf' => 'tan',
+  'val_frame.rf' => 'cyan',
   'coref_text' => '#4C509F',
   'coref_gram' => '#C05633',
   'compl' => '#629F52',
@@ -698,6 +703,7 @@ my %arrow = (
   'a/lex.rf' => 'first',
   'a/aux.rf' => 'first',
   'a/lex.rf|a/aux.rf' => 'first',
+  'val_frame.rf' => 'first',
   'coref_text' => 'first',
   'coref_gram' => 'first',
   'compl' => 'first',
@@ -848,7 +854,7 @@ sub AddOrRemoveRelations {
       my $rel_name = $rel->name;
       my $val = $rel->value;
       if ($rel_name eq 'user-defined') {
-	$rel_name = "$rel_name: ".$val->{label};
+	$rel_name = $val->{label}." ($rel_name)";
       }
       if ($opts->{-add_only}) {
 	delete $types{$rel_name}; # already have it
@@ -1010,7 +1016,18 @@ sub CreateSearchToolbar {
 		   #		-compound => 'left',
 		  )->pack(-side=>'left');
   }
-  $tb->Label(-text=>$ident,-font=>'C_small')->pack(-side=>'left');
+  my $l = $tb->Label(-text=>$ident,-font=>'C_small')->pack(-side=>'left');
+  $l->bind('<1>',
+	   MacroCallback(
+	     sub{
+	       my $s = GetSearch($ident);
+	       if ($s) {
+		 SetSearch($s);
+		 $s->show_current_result;
+	       }
+	       ChangingFile(0);
+	     }),
+	  );
   $tb->Button(-text=>'x',
 	      -font => 'C_small',
 		-takefocus=>0,

@@ -10,16 +10,18 @@ use warnings;
 use PMLSchema;
 
 use Tree_Query::Common;
+BEGIN { import Tree_Query::Common ':tredmacro' };
 
 our $VERSION = '0.01';
 
-BEGIN { import TredMacro qw(first SeqV AltV ListV) }
+# BEGIN { import TredMacro qw(first SeqV AltV ListV) }
 
 sub new {
   my ($class,$query_tree,$opts)=@_;
   my $self = bless {
     dbi => $opts->{dbi},
     connect => $opts->{connect},
+    debug => $opts->{debug},
     results => undef,
     query_nodes=>undef,
     type_decls => {},
@@ -133,7 +135,7 @@ sub connect {
 			 .($cfg->{driver} eq 'Oracle' ? "sid=" : "database=").$cfg->{database}.';'
 			 .($cfg->{driver} eq 'DB2' ? 'hostname=' : 'host=').$cfg->{host}.';'
 			   ."port=".$cfg->{port};
-    print "$string\n";
+    print STDERR "$string\n" if $self->{debug};
     $self->{dbi} = DBI->connect($string,
 			$cfg->{username},
 			$cfg->{password},
@@ -178,7 +180,7 @@ sub run {
   my $no_results = $opts->{count} ? $results->[0][0]  : scalar(@$results);
   unless ($opts->{quiet}) {
     my $driver_name = $self->sql_driver;
-    print "$self->{id}\tOK\t$driver_name\t$no_results\t$time\n";
+    print STDERR "$self->{id}\tOK\t$driver_name\t$no_results\t$time\n" if $self->{debug};
   }
   return $self->{results}=$results;
 }
@@ -503,7 +505,7 @@ sub user_defined_relation {
 	qq{"$target"."#idx"},
 	q(=),$opts,
        );
-  } elsif ($relation eq 'val_frame') {
+  } elsif ($relation eq 'val_frame.rf') {
     $cond =
       $self->serialize_predicate(
 	{
@@ -889,8 +891,7 @@ sub serialize_expression_pt {# pt stands for parse tree
       my $name = $pt->[0];
       my $args = $pt->[1];
       my $id;
-      # url|tree_no
-      if ($name=~/^(?:descendants|lbrothers|rbrothers|sons|depth|name)$/) {
+      if ($name=~/^(?:descendants|lbrothers|rbrothers|sons|depth|depth_first_order|name)$/) {
 	if ($args and @$args==1 and !ref($args->[0]) and $args->[0]=~s/^\$//) {
 	  $id = $args->[0];
 	  if ($self->cmp_subquery_scope($this_node_id,$id)<0) {
@@ -901,14 +902,13 @@ sub serialize_expression_pt {# pt stands for parse tree
 	} else {
 	  $id=$this_node_id;
 	}
-	return ($name eq 'descendants') ? qq{"$id"."#r"-"$id"."#idx"}
+	return ($name eq 'descendants') ? qq{("$id"."#r"-"$id"."#idx")}
 	     : ($name eq 'lbrothers')   ? qq{"$id"."#chord"}
-	     : ($name eq 'rbrothers')   ? qq{"$opts->{parent_id}"."#chld"-"$id"."#chord"-1}
+	     : ($name eq 'rbrothers')   ? qq{("$opts->{parent_id}"."#chld"-"$id"."#chord"-1)}
              : ($name eq 'sons')        ? qq{"$id"."#chld"}
              : ($name eq 'depth')       ? qq{"$id"."#lvl"}
+             : ($name eq 'depth_first_order') ? qq{("$id"."#idx"-"$id"."#root_idx")}
              : ($name eq 'name')        ? qq{"$id"."#name"}
-#             : ($name eq 'url')         ? qq{"$id"."#name"}
-#             : ($name eq 'tree_no')     ? qq{"$id"."#name"}
              : die "Tree_Query internal error while compiling expression: should never get here!";
       } elsif ($name=~/^(?:lower|upper|length|abs|floor|ciel)$/) {
 	if ($args and @$args==1) {
@@ -918,6 +918,39 @@ sub serialize_expression_pt {# pt stands for parse tree
 	} else {
 	  die "Wrong arguments for function ${name}() in expression $opts->{expression} of node '$this_node_id'!\nUsage: ${name}(string)\n";
 	}
+      } elsif ($name =~ /^(position)$/) {
+	my @arg;
+	if ($args and @$args) {
+	  my $ref = $args->[0];
+	  die "Wrong arguments for function ${name}() in expression $opts->{expression} of node '$this_node_id'!\nUsage: ${name}(\$node?)\n"
+	    if (@$args>1 or $ref!~/^\$(?!\d)/);
+	  @arg = ($ref);
+	}
+	return $self->serialize_expression_pt(
+	  ['EXP' =>
+	     [FUNC => 'file', [@arg]],
+	     '&', "'##'", '&',
+	     [FUNC => 'tree_no', [@arg]],
+	     '&', "'.'", '&',
+	    [FUNC => 'depth_first_order', [@arg]],
+	  ],$opts,$extra_joins);
+      } elsif ($name =~ /^(file|tree_no)$/) {
+	my $id;
+	if ($args and @$args) {
+	  my $ref = $args->[0];
+	  die "Wrong arguments for function ${name}() in expression $opts->{expression} of node '$this_node_id'!\nUsage: ${name}(\$node?)\n"
+	    if (@$args>1 or not $ref=~s/^\$(?!\d)//);
+	  $id= $ref eq '$' ? $this_node_id : $ref;
+	} else {
+	  $id = $this_node_id;
+	}
+	my $n = $self->{name2node}{$id};
+	$n or die "Cannot refer to node '$id' from $name() in expression $opts->{expression} of node '$this_node_id'!\n";
+	my $J = ($extra_joins->{$id}||=[]);
+	my $table = $self->get_schema_name_for($n->{'node-type'}||$n->root->{'node-type'}).'__#files';
+	my $fid = $id."/#file";
+	push @$J,[$fid,$table, qq("$fid"."#idx" = "$id"."#root_idx")] unless first { $_->[0] eq $fid } @$J;
+	return $name eq 'tree_no' ? qq{("$fid"."$name"+1)} : qq{"$fid"."$name"};
       } elsif ($name=~/^(?:round|trunc)$/) {
 	if ($args and @$args and @$args<3) {
 	  return uc($name).'('
@@ -930,7 +963,7 @@ sub serialize_expression_pt {# pt stands for parse tree
 	if ($args and @$args>0 and @$args<3) {
 	  my @args = map { $self->serialize_expression_pt($_,$opts,$extra_joins) } @$args;
 	  return 'round(100*('.$args[0].')'
-	    . (@args>1 ? ','.$args[1] : '').q[)||'%'];
+	    . (@args>1 ? ','.$args[1] : '').q[)];
 	} else {
 	  die "Wrong arguments for function percnt() in expression $opts->{expression} of node '$this_node_id'!\nUsage: percnt(number,precision?)\n";
 	}
@@ -950,7 +983,7 @@ sub serialize_expression_pt {# pt stands for parse tree
       die "The analytic function $name can only be used in an output filter expression!\n"
 	unless $opts->{'output_column'};
       my $first_arg = shift @$pt;
-      die "The analytic function $name without an 'over' clause cannot be used to compute an argument to another analytic function without an 'over' clause $opts->{aggregated} in the output filter expression $opts->{expression}!\n" if defined($opts->{'aggregated'}) and !@$pt;
+      die "The analytic function $name without an 'over' clause cannot be used to compute an argument to another analytic function without an 'over' clause $opts->{aggregated} in the output filter expression $opts->{expression}!\n" if defined($opts->{'aggregated'}) and !@$pt and !($opts->{group_by} and @{$opts->{group_by}});
       $name = 'ratio_to_report' if $name eq 'ratio';
       my $out=uc($name).'(';
       if (defined($first_arg) and length($first_arg)) {
@@ -959,7 +992,9 @@ sub serialize_expression_pt {# pt stands for parse tree
 							  },$extra_joins)
       } else {
 	if ($name eq 'count') {
-	  $out.='1'
+	  $out.='*'
+	} elsif ($name eq 'ratio_to_report') {
+	  $out.='count(*)'
 	} else {
 	  $out.= ($opts->{group_by} and @{$opts->{group_by}}) ? $opts->{group_by}[0] : 'c'.($opts->{'output_column'}-1).'_1';
 	}
@@ -1026,18 +1061,18 @@ sub serialize_expression_pt {# pt stands for parse tree
 sub serialize_expression {
   my ($self,$opts)=@_;
   my $pt = 
-    $opts->{'output_column'} 
+    $opts->{'output_column'}
       ? Tree_Query::Common::parse_column_expression($opts->{expression})
       : Tree_Query::Common::parse_expression($opts->{expression}); # $pt stands for parse tree
   die "Invalid expression '$opts->{expression}' on node '$opts->{id}'" unless defined $pt;
 
-  my $extra_joins={};
+  my $extra_joins=$opts->{'output_column'} ? $opts->{join} : {};
   $opts->{use_exists}=0;
   $opts->{can_be_null}=0;
   my $out = $self->serialize_expression_pt($pt,$opts,$extra_joins); # do not copy $opts here!
 
   my $wrap;
-  if ($opts->{use_exists}) {
+  if (!$opts->{'output_column'} and $opts->{use_exists}) {
     my @from;
     my @where;
     for my $name (keys (%$extra_joins)) {

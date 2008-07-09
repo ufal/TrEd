@@ -82,6 +82,139 @@ local $SIG{__WARN__} = sub {0};
 
 push @Parse::RecDescent::Tree_Query::Grammar::ISA, 'Parse::RecDescent';
 # ARGS ARE: ($parser, $text; $repeating, $_noactions, \@args)
+sub Parse::RecDescent::Tree_Query::Grammar::_alternation_1_of_production_1_of_rule_return_spec
+{
+	my $thisparser = $_[0];
+	use vars q{$tracelevel};
+	local $tracelevel = ($tracelevel||0)+1;
+	$ERRORS = 0;
+	my $thisrule = $thisparser->{"rules"}{"_alternation_1_of_production_1_of_rule_return_spec"};
+	
+	Parse::RecDescent::_trace(q{Trying rule: [_alternation_1_of_production_1_of_rule_return_spec]},
+				  Parse::RecDescent::_tracefirst($_[1]),
+				  q{_alternation_1_of_production_1_of_rule_return_spec},
+				  $tracelevel)
+					if defined $::RD_TRACE;
+
+	
+	my $err_at = @{$thisparser->{errors}};
+
+	my $score;
+	my $score_return;
+	my $_tok;
+	my $return = undef;
+	my $_matched=0;
+	my $commit=0;
+	my @item = ();
+	my %item = ();
+	my $repeating =  defined($_[2]) && $_[2];
+	my $_noactions = defined($_[3]) && $_[3];
+ 	my @arg =        defined $_[4] ? @{ &{$_[4]} } : ();
+	my %arg =        ($#arg & 01) ? @arg : (@arg, undef);
+	my $text;
+	my $lastsep="";
+    my $expectation = new Parse::RecDescent::Expectation(q{'distinct'});
+	$expectation->at($_[1]);
+	
+	my $thisoffset;
+	tie $thisoffset, q{Parse::RecDescent::OffsetCounter}, \$text, $thisparser;
+	
+	my $thisline;
+	tie $thisline, q{Parse::RecDescent::LineCounter}, \$text, $thisparser;
+
+	
+
+	while (!$_matched && !$commit)
+	{
+		
+		Parse::RecDescent::_trace(q{Trying production: ['distinct']},
+					  Parse::RecDescent::_tracefirst($_[1]),
+					  q{_alternation_1_of_production_1_of_rule_return_spec},
+					  $tracelevel)
+						if defined $::RD_TRACE;
+		my $thisprod = $thisrule->{"prods"}[0];
+		$text = $_[1];
+		my $_savetext;
+		@item = (q{_alternation_1_of_production_1_of_rule_return_spec});
+		%item = (__RULE__ => q{_alternation_1_of_production_1_of_rule_return_spec});
+		my $repcount = 0;
+
+
+		Parse::RecDescent::_trace(q{Trying terminal: ['distinct']},
+					  Parse::RecDescent::_tracefirst($text),
+					  q{_alternation_1_of_production_1_of_rule_return_spec},
+					  $tracelevel)
+						if defined $::RD_TRACE;
+		$lastsep = "";
+		$expectation->is(q{})->at($text);
+		
+
+		unless ($text =~ s/\A($skip)/$lastsep=$1 and ""/e and   $text =~ s/\Adistinct//)
+		{
+			
+			$expectation->failed();
+			Parse::RecDescent::_trace(qq{<<Didn't match terminal>>},
+						  Parse::RecDescent::_tracefirst($text))
+							if defined $::RD_TRACE;
+			last;
+		}
+		Parse::RecDescent::_trace(q{>>Matched terminal<< (return value: [}
+						. $& . q{])},
+						  Parse::RecDescent::_tracefirst($text))
+							if defined $::RD_TRACE;
+		push @item, $item{__STRING1__}=$&;
+		
+
+
+		Parse::RecDescent::_trace(q{>>Matched production: ['distinct']<<},
+					  Parse::RecDescent::_tracefirst($text),
+					  q{_alternation_1_of_production_1_of_rule_return_spec},
+					  $tracelevel)
+						if defined $::RD_TRACE;
+		$_matched = 1;
+		last;
+	}
+
+
+        unless ( $_matched || defined($score) )
+	{
+		
+
+		$_[1] = $text;	# NOT SURE THIS IS NEEDED
+		Parse::RecDescent::_trace(q{<<Didn't match rule>>},
+					 Parse::RecDescent::_tracefirst($_[1]),
+					 q{_alternation_1_of_production_1_of_rule_return_spec},
+					 $tracelevel)
+					if defined $::RD_TRACE;
+		return undef;
+	}
+	if (!defined($return) && defined($score))
+	{
+		Parse::RecDescent::_trace(q{>>Accepted scored production<<}, "",
+					  q{_alternation_1_of_production_1_of_rule_return_spec},
+					  $tracelevel)
+						if defined $::RD_TRACE;
+		$return = $score_return;
+	}
+	splice @{$thisparser->{errors}}, $err_at;
+	$return = $item[$#item] unless defined $return;
+	if (defined $::RD_TRACE)
+	{
+		Parse::RecDescent::_trace(q{>>Matched rule<< (return value: [} .
+					  $return . q{])}, "",
+					  q{_alternation_1_of_production_1_of_rule_return_spec},
+					  $tracelevel);
+		Parse::RecDescent::_trace(q{(consumed: [} .
+					  Parse::RecDescent::_tracemax(substr($_[1],0,-length($text))) . q{])}, 
+					  Parse::RecDescent::_tracefirst($text),
+					  , q{_alternation_1_of_production_1_of_rule_return_spec},
+					  $tracelevel)
+	}
+	$_[1] = $text;
+	return $return;
+}
+
+# ARGS ARE: ($parser, $text; $repeating, $_noactions, \@args)
 sub Parse::RecDescent::Tree_Query::Grammar::subquery
 {
 	my $thisparser = $_[0];
@@ -7229,7 +7362,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::return_spec
 	my %arg =        ($#arg & 01) ? @arg : (@arg, undef);
 	my $text;
 	my $lastsep="";
-    my $expectation = new Parse::RecDescent::Expectation(q{'distinct', or plain_return_spec});
+    my $expectation = new Parse::RecDescent::Expectation(q{group_by});
 	$expectation->at($_[1]);
 	
 	my $thisoffset;
@@ -7243,7 +7376,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::return_spec
 	while (!$_matched && !$commit)
 	{
 		
-		Parse::RecDescent::_trace(q{Trying production: ['distinct' <commit> plain_return_spec]},
+		Parse::RecDescent::_trace(q{Trying production: [group_by 'distinct' columns sort_by]},
 					  Parse::RecDescent::_tracefirst($_[1]),
 					  q{return_spec},
 					  $tracelevel)
@@ -7256,68 +7389,73 @@ sub Parse::RecDescent::Tree_Query::Grammar::return_spec
 		my $repcount = 0;
 
 
-		Parse::RecDescent::_trace(q{Trying terminal: ['distinct']},
+		Parse::RecDescent::_trace(q{Trying repeated subrule: [group_by]},
+				  Parse::RecDescent::_tracefirst($text),
+				  q{return_spec},
+				  $tracelevel)
+					if defined $::RD_TRACE;
+		$expectation->is(q{})->at($text);
+		
+		unless (defined ($_tok = $thisparser->_parserepeat($text, \&Parse::RecDescent::Tree_Query::Grammar::group_by, 0, 1, $_noactions,$expectation,sub { \@arg }))) 
+		{
+			Parse::RecDescent::_trace(q{<<Didn't match repeated subrule: [group_by]>>},
+						  Parse::RecDescent::_tracefirst($text),
+						  q{return_spec},
+						  $tracelevel)
+							if defined $::RD_TRACE;
+			last;
+		}
+		Parse::RecDescent::_trace(q{>>Matched repeated subrule: [group_by]<< (}
+					. @$_tok . q{ times)},
+					  
 					  Parse::RecDescent::_tracefirst($text),
 					  q{return_spec},
 					  $tracelevel)
 						if defined $::RD_TRACE;
-		$lastsep = "";
-		$expectation->is(q{})->at($text);
+		$item{q{group_by(?)}} = $_tok;
+		push @item, $_tok;
 		
 
-		unless ($text =~ s/\A($skip)/$lastsep=$1 and ""/e and   $text =~ s/\Adistinct//)
+
+		Parse::RecDescent::_trace(q{Trying repeated subrule: ['distinct']},
+				  Parse::RecDescent::_tracefirst($text),
+				  q{return_spec},
+				  $tracelevel)
+					if defined $::RD_TRACE;
+		$expectation->is(q{'distinct'})->at($text);
+		
+		unless (defined ($_tok = $thisparser->_parserepeat($text, \&Parse::RecDescent::Tree_Query::Grammar::_alternation_1_of_production_1_of_rule_return_spec, 0, 1, $_noactions,$expectation,sub { \@arg }))) 
 		{
-			
-			$expectation->failed();
-			Parse::RecDescent::_trace(qq{<<Didn't match terminal>>},
-						  Parse::RecDescent::_tracefirst($text))
+			Parse::RecDescent::_trace(q{<<Didn't match repeated subrule: ['distinct']>>},
+						  Parse::RecDescent::_tracefirst($text),
+						  q{return_spec},
+						  $tracelevel)
 							if defined $::RD_TRACE;
 			last;
 		}
-		Parse::RecDescent::_trace(q{>>Matched terminal<< (return value: [}
-						. $& . q{])},
-						  Parse::RecDescent::_tracefirst($text))
-							if defined $::RD_TRACE;
-		push @item, $item{__STRING1__}=$&;
-		
-
-		
-
-		Parse::RecDescent::_trace(q{Trying directive: [<commit>]},
-					Parse::RecDescent::_tracefirst($text),
+		Parse::RecDescent::_trace(q{>>Matched repeated subrule: [_alternation_1_of_production_1_of_rule_return_spec]<< (}
+					. @$_tok . q{ times)},
+					  
+					  Parse::RecDescent::_tracefirst($text),
 					  q{return_spec},
 					  $tracelevel)
-						if defined $::RD_TRACE; 
-		$_tok = do { $commit = 1 };
-		if (defined($_tok))
-		{
-			Parse::RecDescent::_trace(q{>>Matched directive<< (return value: [}
-						. $_tok . q{])},
-						Parse::RecDescent::_tracefirst($text))
-							if defined $::RD_TRACE;
-		}
-		else
-		{
-			Parse::RecDescent::_trace(q{<<Didn't match directive>>},
-						Parse::RecDescent::_tracefirst($text))
-							if defined $::RD_TRACE;
-		}
-		
-		last unless defined $_tok;
-		push @item, $item{__DIRECTIVE1__}=$_tok;
+						if defined $::RD_TRACE;
+		$item{q{_alternation_1_of_production_1_of_rule_return_spec(?)}} = $_tok;
+		push @item, $_tok;
 		
 
-		Parse::RecDescent::_trace(q{Trying subrule: [plain_return_spec]},
+
+		Parse::RecDescent::_trace(q{Trying subrule: [columns]},
 				  Parse::RecDescent::_tracefirst($text),
 				  q{return_spec},
 				  $tracelevel)
 					if defined $::RD_TRACE;
 		if (1) { no strict qw{refs};
-		$expectation->is(q{plain_return_spec})->at($text);
-		unless (defined ($_tok = Parse::RecDescent::Tree_Query::Grammar::plain_return_spec($thisparser,$text,$repeating,$_noactions,sub { \@arg })))
+		$expectation->is(q{columns})->at($text);
+		unless (defined ($_tok = Parse::RecDescent::Tree_Query::Grammar::columns($thisparser,$text,$repeating,$_noactions,sub { \@arg })))
 		{
 			
-			Parse::RecDescent::_trace(q{<<Didn't match subrule: [plain_return_spec]>>},
+			Parse::RecDescent::_trace(q{<<Didn't match subrule: [columns]>>},
 						  Parse::RecDescent::_tracefirst($text),
 						  q{return_spec},
 						  $tracelevel)
@@ -7325,17 +7463,45 @@ sub Parse::RecDescent::Tree_Query::Grammar::return_spec
 			$expectation->failed();
 			last;
 		}
-		Parse::RecDescent::_trace(q{>>Matched subrule: [plain_return_spec]<< (return value: [}
+		Parse::RecDescent::_trace(q{>>Matched subrule: [columns]<< (return value: [}
 					. $_tok . q{]},
 					  
 					  Parse::RecDescent::_tracefirst($text),
 					  q{return_spec},
 					  $tracelevel)
 						if defined $::RD_TRACE;
-		$item{q{plain_return_spec}} = $_tok;
+		$item{q{columns}} = $_tok;
 		push @item, $_tok;
 		
 		}
+
+		Parse::RecDescent::_trace(q{Trying repeated subrule: [sort_by]},
+				  Parse::RecDescent::_tracefirst($text),
+				  q{return_spec},
+				  $tracelevel)
+					if defined $::RD_TRACE;
+		$expectation->is(q{sort_by})->at($text);
+		
+		unless (defined ($_tok = $thisparser->_parserepeat($text, \&Parse::RecDescent::Tree_Query::Grammar::sort_by, 0, 1, $_noactions,$expectation,sub { \@arg }))) 
+		{
+			Parse::RecDescent::_trace(q{<<Didn't match repeated subrule: [sort_by]>>},
+						  Parse::RecDescent::_tracefirst($text),
+						  q{return_spec},
+						  $tracelevel)
+							if defined $::RD_TRACE;
+			last;
+		}
+		Parse::RecDescent::_trace(q{>>Matched repeated subrule: [sort_by]<< (}
+					. @$_tok . q{ times)},
+					  
+					  Parse::RecDescent::_tracefirst($text),
+					  q{return_spec},
+					  $tracelevel)
+						if defined $::RD_TRACE;
+		$item{q{sort_by(?)}} = $_tok;
+		push @item, $_tok;
+		
+
 
 		Parse::RecDescent::_trace(q{Trying action},
 					  Parse::RecDescent::_tracefirst($text),
@@ -7344,7 +7510,13 @@ sub Parse::RecDescent::Tree_Query::Grammar::return_spec
 						if defined $::RD_TRACE;
 		
 
-		$_tok = ($_noactions) ? 0 : do { $return = $item[3]; $return->{distinct}=1 };
+		$_tok = ($_noactions) ? 0 : do { $return=Fslib::Struct->new({ 
+		    'return'   => $item[3],
+                    'distinct' => scalar(@{$item[2]}),
+		    'group-by' => $item[1][0],
+		    'sort-by'  => $item[4][0],
+		   },1) 
+		 };
 		unless (defined $_tok)
 		{
 			Parse::RecDescent::_trace(q{<<Didn't match action>> (return value: [undef])})
@@ -7360,86 +7532,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::return_spec
 		
 
 
-		Parse::RecDescent::_trace(q{>>Matched production: ['distinct' <commit> plain_return_spec]<<},
-					  Parse::RecDescent::_tracefirst($text),
-					  q{return_spec},
-					  $tracelevel)
-						if defined $::RD_TRACE;
-		$_matched = 1;
-		last;
-	}
-
-
-	while (!$_matched && !$commit)
-	{
-		
-		Parse::RecDescent::_trace(q{Trying production: [plain_return_spec]},
-					  Parse::RecDescent::_tracefirst($_[1]),
-					  q{return_spec},
-					  $tracelevel)
-						if defined $::RD_TRACE;
-		my $thisprod = $thisrule->{"prods"}[1];
-		$text = $_[1];
-		my $_savetext;
-		@item = (q{return_spec});
-		%item = (__RULE__ => q{return_spec});
-		my $repcount = 0;
-
-
-		Parse::RecDescent::_trace(q{Trying subrule: [plain_return_spec]},
-				  Parse::RecDescent::_tracefirst($text),
-				  q{return_spec},
-				  $tracelevel)
-					if defined $::RD_TRACE;
-		if (1) { no strict qw{refs};
-		$expectation->is(q{})->at($text);
-		unless (defined ($_tok = Parse::RecDescent::Tree_Query::Grammar::plain_return_spec($thisparser,$text,$repeating,$_noactions,sub { \@arg })))
-		{
-			
-			Parse::RecDescent::_trace(q{<<Didn't match subrule: [plain_return_spec]>>},
-						  Parse::RecDescent::_tracefirst($text),
-						  q{return_spec},
-						  $tracelevel)
-							if defined $::RD_TRACE;
-			$expectation->failed();
-			last;
-		}
-		Parse::RecDescent::_trace(q{>>Matched subrule: [plain_return_spec]<< (return value: [}
-					. $_tok . q{]},
-					  
-					  Parse::RecDescent::_tracefirst($text),
-					  q{return_spec},
-					  $tracelevel)
-						if defined $::RD_TRACE;
-		$item{q{plain_return_spec}} = $_tok;
-		push @item, $_tok;
-		
-		}
-
-		Parse::RecDescent::_trace(q{Trying action},
-					  Parse::RecDescent::_tracefirst($text),
-					  q{return_spec},
-					  $tracelevel)
-						if defined $::RD_TRACE;
-		
-
-		$_tok = ($_noactions) ? 0 : do { $item[1] };
-		unless (defined $_tok)
-		{
-			Parse::RecDescent::_trace(q{<<Didn't match action>> (return value: [undef])})
-					if defined $::RD_TRACE;
-			last;
-		}
-		Parse::RecDescent::_trace(q{>>Matched action<< (return value: [}
-					  . $_tok . q{])},
-					  Parse::RecDescent::_tracefirst($text))
-						if defined $::RD_TRACE;
-		push @item, $_tok;
-		
-		
-
-
-		Parse::RecDescent::_trace(q{>>Matched production: [plain_return_spec]<<},
+		Parse::RecDescent::_trace(q{>>Matched production: [group_by 'distinct' columns sort_by]<<},
 					  Parse::RecDescent::_tracefirst($text),
 					  q{return_spec},
 					  $tracelevel)
@@ -9956,227 +10049,6 @@ sub Parse::RecDescent::Tree_Query::Grammar::XMLNAME
 					  Parse::RecDescent::_tracemax(substr($_[1],0,-length($text))) . q{])}, 
 					  Parse::RecDescent::_tracefirst($text),
 					  , q{XMLNAME},
-					  $tracelevel)
-	}
-	$_[1] = $text;
-	return $return;
-}
-
-# ARGS ARE: ($parser, $text; $repeating, $_noactions, \@args)
-sub Parse::RecDescent::Tree_Query::Grammar::plain_return_spec
-{
-	my $thisparser = $_[0];
-	use vars q{$tracelevel};
-	local $tracelevel = ($tracelevel||0)+1;
-	$ERRORS = 0;
-	my $thisrule = $thisparser->{"rules"}{"plain_return_spec"};
-	
-	Parse::RecDescent::_trace(q{Trying rule: [plain_return_spec]},
-				  Parse::RecDescent::_tracefirst($_[1]),
-				  q{plain_return_spec},
-				  $tracelevel)
-					if defined $::RD_TRACE;
-
-	
-	my $err_at = @{$thisparser->{errors}};
-
-	my $score;
-	my $score_return;
-	my $_tok;
-	my $return = undef;
-	my $_matched=0;
-	my $commit=0;
-	my @item = ();
-	my %item = ();
-	my $repeating =  defined($_[2]) && $_[2];
-	my $_noactions = defined($_[3]) && $_[3];
- 	my @arg =        defined $_[4] ? @{ &{$_[4]} } : ();
-	my %arg =        ($#arg & 01) ? @arg : (@arg, undef);
-	my $text;
-	my $lastsep="";
-    my $expectation = new Parse::RecDescent::Expectation(q{group_by});
-	$expectation->at($_[1]);
-	
-	my $thisoffset;
-	tie $thisoffset, q{Parse::RecDescent::OffsetCounter}, \$text, $thisparser;
-	
-	my $thisline;
-	tie $thisline, q{Parse::RecDescent::LineCounter}, \$text, $thisparser;
-
-	
-
-	while (!$_matched && !$commit)
-	{
-		
-		Parse::RecDescent::_trace(q{Trying production: [group_by columns sort_by]},
-					  Parse::RecDescent::_tracefirst($_[1]),
-					  q{plain_return_spec},
-					  $tracelevel)
-						if defined $::RD_TRACE;
-		my $thisprod = $thisrule->{"prods"}[0];
-		$text = $_[1];
-		my $_savetext;
-		@item = (q{plain_return_spec});
-		%item = (__RULE__ => q{plain_return_spec});
-		my $repcount = 0;
-
-
-		Parse::RecDescent::_trace(q{Trying repeated subrule: [group_by]},
-				  Parse::RecDescent::_tracefirst($text),
-				  q{plain_return_spec},
-				  $tracelevel)
-					if defined $::RD_TRACE;
-		$expectation->is(q{})->at($text);
-		
-		unless (defined ($_tok = $thisparser->_parserepeat($text, \&Parse::RecDescent::Tree_Query::Grammar::group_by, 0, 1, $_noactions,$expectation,sub { \@arg }))) 
-		{
-			Parse::RecDescent::_trace(q{<<Didn't match repeated subrule: [group_by]>>},
-						  Parse::RecDescent::_tracefirst($text),
-						  q{plain_return_spec},
-						  $tracelevel)
-							if defined $::RD_TRACE;
-			last;
-		}
-		Parse::RecDescent::_trace(q{>>Matched repeated subrule: [group_by]<< (}
-					. @$_tok . q{ times)},
-					  
-					  Parse::RecDescent::_tracefirst($text),
-					  q{plain_return_spec},
-					  $tracelevel)
-						if defined $::RD_TRACE;
-		$item{q{group_by(?)}} = $_tok;
-		push @item, $_tok;
-		
-
-
-		Parse::RecDescent::_trace(q{Trying subrule: [columns]},
-				  Parse::RecDescent::_tracefirst($text),
-				  q{plain_return_spec},
-				  $tracelevel)
-					if defined $::RD_TRACE;
-		if (1) { no strict qw{refs};
-		$expectation->is(q{columns})->at($text);
-		unless (defined ($_tok = Parse::RecDescent::Tree_Query::Grammar::columns($thisparser,$text,$repeating,$_noactions,sub { \@arg })))
-		{
-			
-			Parse::RecDescent::_trace(q{<<Didn't match subrule: [columns]>>},
-						  Parse::RecDescent::_tracefirst($text),
-						  q{plain_return_spec},
-						  $tracelevel)
-							if defined $::RD_TRACE;
-			$expectation->failed();
-			last;
-		}
-		Parse::RecDescent::_trace(q{>>Matched subrule: [columns]<< (return value: [}
-					. $_tok . q{]},
-					  
-					  Parse::RecDescent::_tracefirst($text),
-					  q{plain_return_spec},
-					  $tracelevel)
-						if defined $::RD_TRACE;
-		$item{q{columns}} = $_tok;
-		push @item, $_tok;
-		
-		}
-
-		Parse::RecDescent::_trace(q{Trying repeated subrule: [sort_by]},
-				  Parse::RecDescent::_tracefirst($text),
-				  q{plain_return_spec},
-				  $tracelevel)
-					if defined $::RD_TRACE;
-		$expectation->is(q{sort_by})->at($text);
-		
-		unless (defined ($_tok = $thisparser->_parserepeat($text, \&Parse::RecDescent::Tree_Query::Grammar::sort_by, 0, 1, $_noactions,$expectation,sub { \@arg }))) 
-		{
-			Parse::RecDescent::_trace(q{<<Didn't match repeated subrule: [sort_by]>>},
-						  Parse::RecDescent::_tracefirst($text),
-						  q{plain_return_spec},
-						  $tracelevel)
-							if defined $::RD_TRACE;
-			last;
-		}
-		Parse::RecDescent::_trace(q{>>Matched repeated subrule: [sort_by]<< (}
-					. @$_tok . q{ times)},
-					  
-					  Parse::RecDescent::_tracefirst($text),
-					  q{plain_return_spec},
-					  $tracelevel)
-						if defined $::RD_TRACE;
-		$item{q{sort_by(?)}} = $_tok;
-		push @item, $_tok;
-		
-
-
-		Parse::RecDescent::_trace(q{Trying action},
-					  Parse::RecDescent::_tracefirst($text),
-					  q{plain_return_spec},
-					  $tracelevel)
-						if defined $::RD_TRACE;
-		
-
-		$_tok = ($_noactions) ? 0 : do { $return=Fslib::Struct->new({ 
-		    return => $item[2],
-		    'group-by'=>$item[1][0],
-		    'sort-by' => $item[3][0],
-		   },1) 
-		 };
-		unless (defined $_tok)
-		{
-			Parse::RecDescent::_trace(q{<<Didn't match action>> (return value: [undef])})
-					if defined $::RD_TRACE;
-			last;
-		}
-		Parse::RecDescent::_trace(q{>>Matched action<< (return value: [}
-					  . $_tok . q{])},
-					  Parse::RecDescent::_tracefirst($text))
-						if defined $::RD_TRACE;
-		push @item, $_tok;
-		
-		
-
-
-		Parse::RecDescent::_trace(q{>>Matched production: [group_by columns sort_by]<<},
-					  Parse::RecDescent::_tracefirst($text),
-					  q{plain_return_spec},
-					  $tracelevel)
-						if defined $::RD_TRACE;
-		$_matched = 1;
-		last;
-	}
-
-
-        unless ( $_matched || defined($score) )
-	{
-		
-
-		$_[1] = $text;	# NOT SURE THIS IS NEEDED
-		Parse::RecDescent::_trace(q{<<Didn't match rule>>},
-					 Parse::RecDescent::_tracefirst($_[1]),
-					 q{plain_return_spec},
-					 $tracelevel)
-					if defined $::RD_TRACE;
-		return undef;
-	}
-	if (!defined($return) && defined($score))
-	{
-		Parse::RecDescent::_trace(q{>>Accepted scored production<<}, "",
-					  q{plain_return_spec},
-					  $tracelevel)
-						if defined $::RD_TRACE;
-		$return = $score_return;
-	}
-	splice @{$thisparser->{errors}}, $err_at;
-	$return = $item[$#item] unless defined $return;
-	if (defined $::RD_TRACE)
-	{
-		Parse::RecDescent::_trace(q{>>Matched rule<< (return value: [} .
-					  $return . q{])}, "",
-					  q{plain_return_spec},
-					  $tracelevel);
-		Parse::RecDescent::_trace(q{(consumed: [} .
-					  Parse::RecDescent::_tracemax(substr($_[1],0,-length($text))) . q{])}, 
-					  Parse::RecDescent::_tracefirst($text),
-					  , q{plain_return_spec},
 					  $tracelevel)
 	}
 	$_[1] = $text;
@@ -13909,7 +13781,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::OP
 	my %arg =        ($#arg & 01) ? @arg : (@arg, undef);
 	my $text;
 	my $lastsep="";
-    my $expectation = new Parse::RecDescent::Expectation(q{/[-+*^]|div|mod/});
+    my $expectation = new Parse::RecDescent::Expectation(q{/[-+*&]|div|mod/});
 	$expectation->at($_[1]);
 	
 	my $thisoffset;
@@ -13923,7 +13795,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::OP
 	while (!$_matched && !$commit)
 	{
 		
-		Parse::RecDescent::_trace(q{Trying production: [/[-+*^]|div|mod/]},
+		Parse::RecDescent::_trace(q{Trying production: [/[-+*&]|div|mod/]},
 					  Parse::RecDescent::_tracefirst($_[1]),
 					  q{OP},
 					  $tracelevel)
@@ -13936,7 +13808,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::OP
 		my $repcount = 0;
 
 
-		Parse::RecDescent::_trace(q{Trying terminal: [/[-+*^]|div|mod/]}, Parse::RecDescent::_tracefirst($text),
+		Parse::RecDescent::_trace(q{Trying terminal: [/[-+*&]|div|mod/]}, Parse::RecDescent::_tracefirst($text),
 					  q{OP},
 					  $tracelevel)
 						if defined $::RD_TRACE;
@@ -13944,7 +13816,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::OP
 		$expectation->is(q{})->at($text);
 		
 
-		unless ($text =~ s/\A($skip)/$lastsep=$1 and ""/e and   $text =~ s/\A(?:[-+*^]|div|mod)//)
+		unless ($text =~ s/\A($skip)/$lastsep=$1 and ""/e and   $text =~ s/\A(?:[-+*&]|div|mod)//)
 		{
 			
 			$expectation->failed();
@@ -13962,7 +13834,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::OP
 		
 
 
-		Parse::RecDescent::_trace(q{>>Matched production: [/[-+*^]|div|mod/]<<},
+		Parse::RecDescent::_trace(q{>>Matched production: [/[-+*&]|div|mod/]<<},
 					  Parse::RecDescent::_tracefirst($text),
 					  q{OP},
 					  $tracelevel)
@@ -15455,7 +15327,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::FUNC
 	my %arg =        ($#arg & 01) ? @arg : (@arg, undef);
 	my $text;
 	my $lastsep="";
-    my $expectation = new Parse::RecDescent::Expectation(q{/descendants|lbrothers|rbrothers|sons|depth|lower|upper|length|substr|ciel|floor|round|trunc|name|url|tree_no|percnt/});
+    my $expectation = new Parse::RecDescent::Expectation(q{/(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\\b/});
 	$expectation->at($_[1]);
 	
 	my $thisoffset;
@@ -15469,7 +15341,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::FUNC
 	while (!$_matched && !$commit)
 	{
 		
-		Parse::RecDescent::_trace(q{Trying production: [/descendants|lbrothers|rbrothers|sons|depth|lower|upper|length|substr|ciel|floor|round|trunc|name|url|tree_no|percnt/]},
+		Parse::RecDescent::_trace(q{Trying production: [/(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\\b/]},
 					  Parse::RecDescent::_tracefirst($_[1]),
 					  q{FUNC},
 					  $tracelevel)
@@ -15482,7 +15354,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::FUNC
 		my $repcount = 0;
 
 
-		Parse::RecDescent::_trace(q{Trying terminal: [/descendants|lbrothers|rbrothers|sons|depth|lower|upper|length|substr|ciel|floor|round|trunc|name|url|tree_no|percnt/]}, Parse::RecDescent::_tracefirst($text),
+		Parse::RecDescent::_trace(q{Trying terminal: [/(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\\b/]}, Parse::RecDescent::_tracefirst($text),
 					  q{FUNC},
 					  $tracelevel)
 						if defined $::RD_TRACE;
@@ -15490,7 +15362,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::FUNC
 		$expectation->is(q{})->at($text);
 		
 
-		unless ($text =~ s/\A($skip)/$lastsep=$1 and ""/e and   $text =~ s/\A(?:descendants|lbrothers|rbrothers|sons|depth|lower|upper|length|substr|ciel|floor|round|trunc|name|url|tree_no|percnt)//)
+		unless ($text =~ s/\A($skip)/$lastsep=$1 and ""/e and   $text =~ s/\A(?:(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\b)//)
 		{
 			
 			$expectation->failed();
@@ -15508,7 +15380,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::FUNC
 		
 
 
-		Parse::RecDescent::_trace(q{>>Matched production: [/descendants|lbrothers|rbrothers|sons|depth|lower|upper|length|substr|ciel|floor|round|trunc|name|url|tree_no|percnt/]<<},
+		Parse::RecDescent::_trace(q{>>Matched production: [/(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\\b/]<<},
 					  Parse::RecDescent::_tracefirst($text),
 					  q{FUNC},
 					  $tracelevel)
@@ -18203,6 +18075,36 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                  'namespace' => 'Parse::RecDescent::Tree_Query::Grammar',
                  '_AUTOACTION' => undef,
                  'rules' => {
+                              '_alternation_1_of_production_1_of_rule_return_spec' => bless( {
+                                                                                               'impcount' => 0,
+                                                                                               'calls' => [],
+                                                                                               'changed' => 0,
+                                                                                               'opcount' => 0,
+                                                                                               'prods' => [
+                                                                                                            bless( {
+                                                                                                                     'number' => '0',
+                                                                                                                     'strcount' => 1,
+                                                                                                                     'dircount' => 0,
+                                                                                                                     'uncommit' => undef,
+                                                                                                                     'error' => undef,
+                                                                                                                     'patcount' => 0,
+                                                                                                                     'actcount' => 0,
+                                                                                                                     'items' => [
+                                                                                                                                  bless( {
+                                                                                                                                           'pattern' => 'distinct',
+                                                                                                                                           'hashname' => '__STRING1__',
+                                                                                                                                           'description' => '\'distinct\'',
+                                                                                                                                           'lookahead' => 0,
+                                                                                                                                           'line' => 1
+                                                                                                                                         }, 'Parse::RecDescent::Literal' )
+                                                                                                                                ],
+                                                                                                                     'line' => undef
+                                                                                                                   }, 'Parse::RecDescent::Production' )
+                                                                                                          ],
+                                                                                               'name' => '_alternation_1_of_production_1_of_rule_return_spec',
+                                                                                               'vars' => '',
+                                                                                               'line' => 1
+                                                                                             }, 'Parse::RecDescent::Rule' ),
                               'subquery' => bless( {
                                                      'impcount' => 0,
                                                      'calls' => [
@@ -18288,7 +18190,7 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                                                            'hashname' => '__STRING1__',
                                                                                                                                            'description' => '\';\'',
                                                                                                                                            'lookahead' => 0,
-                                                                                                                                           'line' => 284
+                                                                                                                                           'line' => 282
                                                                                                                                          }, 'Parse::RecDescent::Literal' )
                                                                                                                                 ],
                                                                                                                      'line' => undef
@@ -18296,7 +18198,7 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                           ],
                                                                                                'name' => '_alternation_1_of_production_1_of_rule_parse_query',
                                                                                                'vars' => '',
-                                                                                               'line' => 284
+                                                                                               'line' => 282
                                                                                              }, 'Parse::RecDescent::Rule' ),
                               'lone_conditions' => bless( {
                                                             'impcount' => 0,
@@ -18641,7 +18543,7 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                    'implicit' => undef,
                                                                                                    'argcode' => undef,
                                                                                                    'lookahead' => 0,
-                                                                                                   'line' => -215
+                                                                                                   'line' => -213
                                                                                                  }, 'Parse::RecDescent::Subrule' ),
                                                                                           bless( {
                                                                                                    'pattern' => '\\Z',
@@ -18649,14 +18551,14 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                    'description' => '/\\\\Z/',
                                                                                                    'lookahead' => 0,
                                                                                                    'rdelim' => '/',
-                                                                                                   'line' => -215,
+                                                                                                   'line' => -213,
                                                                                                    'mod' => '',
                                                                                                    'ldelim' => '/'
                                                                                                  }, 'Parse::RecDescent::Token' ),
                                                                                           bless( {
                                                                                                    'hashname' => '__ACTION1__',
                                                                                                    'lookahead' => 0,
-                                                                                                   'line' => -215,
+                                                                                                   'line' => -213,
                                                                                                    'code' => '{ $item[1] }'
                                                                                                  }, 'Parse::RecDescent::Action' )
                                                                                         ],
@@ -18674,16 +18576,16 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                           bless( {
                                                                                                    'hashname' => '__ACTION1__',
                                                                                                    'lookahead' => 0,
-                                                                                                   'line' => -214,
+                                                                                                   'line' => -212,
                                                                                                    'code' => '{ report_error($thisparser,\'test\',\\$text); }'
                                                                                                  }, 'Parse::RecDescent::Action' )
                                                                                         ],
-                                                                             'line' => -214
+                                                                             'line' => -212
                                                                            }, 'Parse::RecDescent::Production' )
                                                                   ],
                                                        'name' => 'parse_test',
                                                        'vars' => '',
-                                                       'line' => -215
+                                                       'line' => -213
                                                      }, 'Parse::RecDescent::Rule' ),
                               'parse_node' => bless( {
                                                        'impcount' => 0,
@@ -18708,7 +18610,7 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                    'implicit' => 'child, or opt_child',
                                                                                                    'argcode' => undef,
                                                                                                    'lookahead' => 0,
-                                                                                                   'line' => -218
+                                                                                                   'line' => -216
                                                                                                  }, 'Parse::RecDescent::Subrule' ),
                                                                                           bless( {
                                                                                                    'pattern' => '\\Z',
@@ -18716,14 +18618,14 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                    'description' => '/\\\\Z/',
                                                                                                    'lookahead' => 0,
                                                                                                    'rdelim' => '/',
-                                                                                                   'line' => -218,
+                                                                                                   'line' => -216,
                                                                                                    'mod' => '',
                                                                                                    'ldelim' => '/'
                                                                                                  }, 'Parse::RecDescent::Token' ),
                                                                                           bless( {
                                                                                                    'hashname' => '__ACTION1__',
                                                                                                    'lookahead' => 0,
-                                                                                                   'line' => -218,
+                                                                                                   'line' => -216,
                                                                                                    'code' => '{ $item[1] }'
                                                                                                  }, 'Parse::RecDescent::Action' )
                                                                                         ],
@@ -18741,16 +18643,16 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                           bless( {
                                                                                                    'hashname' => '__ACTION1__',
                                                                                                    'lookahead' => 0,
-                                                                                                   'line' => -217,
+                                                                                                   'line' => -215,
                                                                                                    'code' => '{ report_error($thisparser,\'node\',\\$text); }'
                                                                                                  }, 'Parse::RecDescent::Action' )
                                                                                         ],
-                                                                             'line' => -217
+                                                                             'line' => -215
                                                                            }, 'Parse::RecDescent::Production' )
                                                                   ],
                                                        'name' => 'parse_node',
                                                        'vars' => '',
-                                                       'line' => -218
+                                                       'line' => -216
                                                      }, 'Parse::RecDescent::Rule' ),
                               'sort_by' => bless( {
                                                     'impcount' => 0,
@@ -19529,7 +19431,7 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                          'implicit' => undef,
                                                                                                          'argcode' => undef,
                                                                                                          'lookahead' => 0,
-                                                                                                         'line' => -212
+                                                                                                         'line' => -210
                                                                                                        }, 'Parse::RecDescent::Subrule' ),
                                                                                                 bless( {
                                                                                                          'pattern' => '\\Z',
@@ -19537,14 +19439,14 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                          'description' => '/\\\\Z/',
                                                                                                          'lookahead' => 0,
                                                                                                          'rdelim' => '/',
-                                                                                                         'line' => -212,
+                                                                                                         'line' => -210,
                                                                                                          'mod' => '',
                                                                                                          'ldelim' => '/'
                                                                                                        }, 'Parse::RecDescent::Token' ),
                                                                                                 bless( {
                                                                                                          'hashname' => '__ACTION1__',
                                                                                                          'lookahead' => 0,
-                                                                                                         'line' => -212,
+                                                                                                         'line' => -210,
                                                                                                          'code' => '{ $item[1] }'
                                                                                                        }, 'Parse::RecDescent::Action' )
                                                                                               ],
@@ -19562,16 +19464,16 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                 bless( {
                                                                                                          'hashname' => '__ACTION1__',
                                                                                                          'lookahead' => 0,
-                                                                                                         'line' => -211,
+                                                                                                         'line' => -209,
                                                                                                          'code' => '{ report_error($thisparser,\'expression\',\\$text); }'
                                                                                                        }, 'Parse::RecDescent::Action' )
                                                                                               ],
-                                                                                   'line' => -211
+                                                                                   'line' => -209
                                                                                  }, 'Parse::RecDescent::Production' )
                                                                         ],
                                                              'name' => 'parse_expression',
                                                              'vars' => '',
-                                                             'line' => -212
+                                                             'line' => -210
                                                            }, 'Parse::RecDescent::Rule' ),
                               'parse_conditions' => bless( {
                                                              'impcount' => 0,
@@ -19599,7 +19501,7 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                          'matchrule' => 0,
                                                                                                          'repspec' => '?',
                                                                                                          'lookahead' => 0,
-                                                                                                         'line' => -209
+                                                                                                         'line' => -207
                                                                                                        }, 'Parse::RecDescent::Repetition' ),
                                                                                                 bless( {
                                                                                                          'pattern' => ',?\\s*\\Z',
@@ -19607,14 +19509,14 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                          'description' => '/,?\\\\s*\\\\Z/',
                                                                                                          'lookahead' => 0,
                                                                                                          'rdelim' => '/',
-                                                                                                         'line' => -209,
+                                                                                                         'line' => -207,
                                                                                                          'mod' => '',
                                                                                                          'ldelim' => '/'
                                                                                                        }, 'Parse::RecDescent::Token' ),
                                                                                                 bless( {
                                                                                                          'hashname' => '__ACTION1__',
                                                                                                          'lookahead' => 0,
-                                                                                                         'line' => -209,
+                                                                                                         'line' => -207,
                                                                                                          'code' => '{ $item[1][0] }'
                                                                                                        }, 'Parse::RecDescent::Action' )
                                                                                               ],
@@ -19632,16 +19534,16 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                 bless( {
                                                                                                          'hashname' => '__ACTION1__',
                                                                                                          'lookahead' => 0,
-                                                                                                         'line' => -208,
+                                                                                                         'line' => -206,
                                                                                                          'code' => '{ report_error($thisparser,\'condition\',\\$text); }'
                                                                                                        }, 'Parse::RecDescent::Action' )
                                                                                               ],
-                                                                                   'line' => -208
+                                                                                   'line' => -206
                                                                                  }, 'Parse::RecDescent::Production' )
                                                                         ],
                                                              'name' => 'parse_conditions',
                                                              'vars' => '',
-                                                             'line' => -209
+                                                             'line' => -207
                                                            }, 'Parse::RecDescent::Rule' ),
                               'node' => bless( {
                                                  'impcount' => 0,
@@ -19671,7 +19573,7 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                              'matchrule' => 0,
                                                                                              'repspec' => '?',
                                                                                              'lookahead' => 0,
-                                                                                             'line' => -203
+                                                                                             'line' => -201
                                                                                            }, 'Parse::RecDescent::Repetition' ),
                                                                                     bless( {
                                                                                              'subrule' => 'var_def',
@@ -19682,20 +19584,20 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                              'matchrule' => 0,
                                                                                              'repspec' => '?',
                                                                                              'lookahead' => 0,
-                                                                                             'line' => -203
+                                                                                             'line' => -201
                                                                                            }, 'Parse::RecDescent::Repetition' ),
                                                                                     bless( {
                                                                                              'pattern' => '[',
                                                                                              'hashname' => '__STRING1__',
                                                                                              'description' => '\'[\'',
                                                                                              'lookahead' => 0,
-                                                                                             'line' => -203
+                                                                                             'line' => -201
                                                                                            }, 'Parse::RecDescent::Literal' ),
                                                                                     bless( {
                                                                                              'hashname' => '__DIRECTIVE1__',
                                                                                              'name' => '<commit>',
                                                                                              'lookahead' => 0,
-                                                                                             'line' => -203,
+                                                                                             'line' => -201,
                                                                                              'code' => '$commit = 1'
                                                                                            }, 'Parse::RecDescent::Directive' ),
                                                                                     bless( {
@@ -19707,7 +19609,7 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                              'matchrule' => 0,
                                                                                              'repspec' => '?',
                                                                                              'lookahead' => 0,
-                                                                                             'line' => -203
+                                                                                             'line' => -201
                                                                                            }, 'Parse::RecDescent::Repetition' ),
                                                                                     bless( {
                                                                                              'pattern' => ',?\\s*]',
@@ -19715,14 +19617,14 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                              'description' => '/,?\\\\s*]/',
                                                                                              'lookahead' => 0,
                                                                                              'rdelim' => '/',
-                                                                                             'line' => -203,
+                                                                                             'line' => -201,
                                                                                              'mod' => '',
                                                                                              'ldelim' => '/'
                                                                                            }, 'Parse::RecDescent::Token' ),
                                                                                     bless( {
                                                                                              'hashname' => '__ACTION1__',
                                                                                              'lookahead' => 0,
-                                                                                             'line' => -202,
+                                                                                             'line' => -200,
                                                                                              'code' => '{ new_node({ \'#name\' => \'node\', \'node-type\' => $item[1][0], name => $item[2][0]}, $item[5][0]) }'
                                                                                            }, 'Parse::RecDescent::Action' )
                                                                                   ],
@@ -19742,15 +19644,15 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                              'hashname' => '__DIRECTIVE1__',
                                                                                              'commitonly' => '',
                                                                                              'lookahead' => 0,
-                                                                                             'line' => -201
+                                                                                             'line' => -199
                                                                                            }, 'Parse::RecDescent::Error' )
                                                                                   ],
-                                                                       'line' => -201
+                                                                       'line' => -199
                                                                      }, 'Parse::RecDescent::Production' )
                                                             ],
                                                  'name' => 'node',
                                                  'vars' => '',
-                                                 'line' => -203
+                                                 'line' => -201
                                                }, 'Parse::RecDescent::Rule' ),
                               'STRING' => bless( {
                                                    'impcount' => 0,
@@ -20163,55 +20065,18 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                      'line' => -22
                                                    }, 'Parse::RecDescent::Rule' ),
                               'return_spec' => bless( {
-                                                        'impcount' => 0,
+                                                        'impcount' => 1,
                                                         'calls' => [
-                                                                     'plain_return_spec'
+                                                                     'group_by',
+                                                                     '_alternation_1_of_production_1_of_rule_return_spec',
+                                                                     'columns',
+                                                                     'sort_by'
                                                                    ],
                                                         'changed' => 0,
                                                         'opcount' => 0,
                                                         'prods' => [
                                                                      bless( {
                                                                               'number' => '0',
-                                                                              'strcount' => 1,
-                                                                              'dircount' => 1,
-                                                                              'uncommit' => undef,
-                                                                              'error' => undef,
-                                                                              'patcount' => 0,
-                                                                              'actcount' => 1,
-                                                                              'items' => [
-                                                                                           bless( {
-                                                                                                    'pattern' => 'distinct',
-                                                                                                    'hashname' => '__STRING1__',
-                                                                                                    'description' => '\'distinct\'',
-                                                                                                    'lookahead' => 0,
-                                                                                                    'line' => -196
-                                                                                                  }, 'Parse::RecDescent::Literal' ),
-                                                                                           bless( {
-                                                                                                    'hashname' => '__DIRECTIVE1__',
-                                                                                                    'name' => '<commit>',
-                                                                                                    'lookahead' => 0,
-                                                                                                    'line' => -196,
-                                                                                                    'code' => '$commit = 1'
-                                                                                                  }, 'Parse::RecDescent::Directive' ),
-                                                                                           bless( {
-                                                                                                    'subrule' => 'plain_return_spec',
-                                                                                                    'matchrule' => 0,
-                                                                                                    'implicit' => undef,
-                                                                                                    'argcode' => undef,
-                                                                                                    'lookahead' => 0,
-                                                                                                    'line' => -196
-                                                                                                  }, 'Parse::RecDescent::Subrule' ),
-                                                                                           bless( {
-                                                                                                    'hashname' => '__ACTION1__',
-                                                                                                    'lookahead' => 0,
-                                                                                                    'line' => -195,
-                                                                                                    'code' => '{ $return = $item[3]; $return->{distinct}=1 }'
-                                                                                                  }, 'Parse::RecDescent::Action' )
-                                                                                         ],
-                                                                              'line' => undef
-                                                                            }, 'Parse::RecDescent::Production' ),
-                                                                     bless( {
-                                                                              'number' => '1',
                                                                               'strcount' => 0,
                                                                               'dircount' => 0,
                                                                               'uncommit' => undef,
@@ -20220,7 +20085,29 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                               'actcount' => 1,
                                                                               'items' => [
                                                                                            bless( {
-                                                                                                    'subrule' => 'plain_return_spec',
+                                                                                                    'subrule' => 'group_by',
+                                                                                                    'expected' => undef,
+                                                                                                    'min' => 0,
+                                                                                                    'argcode' => undef,
+                                                                                                    'max' => 1,
+                                                                                                    'matchrule' => 0,
+                                                                                                    'repspec' => '?',
+                                                                                                    'lookahead' => 0,
+                                                                                                    'line' => -194
+                                                                                                  }, 'Parse::RecDescent::Repetition' ),
+                                                                                           bless( {
+                                                                                                    'subrule' => '_alternation_1_of_production_1_of_rule_return_spec',
+                                                                                                    'expected' => '\'distinct\'',
+                                                                                                    'min' => 0,
+                                                                                                    'argcode' => undef,
+                                                                                                    'max' => 1,
+                                                                                                    'matchrule' => 0,
+                                                                                                    'repspec' => '?',
+                                                                                                    'lookahead' => 0,
+                                                                                                    'line' => -194
+                                                                                                  }, 'Parse::RecDescent::Repetition' ),
+                                                                                           bless( {
+                                                                                                    'subrule' => 'columns',
                                                                                                     'matchrule' => 0,
                                                                                                     'implicit' => undef,
                                                                                                     'argcode' => undef,
@@ -20228,18 +20115,35 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                     'line' => -194
                                                                                                   }, 'Parse::RecDescent::Subrule' ),
                                                                                            bless( {
+                                                                                                    'subrule' => 'sort_by',
+                                                                                                    'expected' => undef,
+                                                                                                    'min' => 0,
+                                                                                                    'argcode' => undef,
+                                                                                                    'max' => 1,
+                                                                                                    'matchrule' => 0,
+                                                                                                    'repspec' => '?',
+                                                                                                    'lookahead' => 0,
+                                                                                                    'line' => -194
+                                                                                                  }, 'Parse::RecDescent::Repetition' ),
+                                                                                           bless( {
                                                                                                     'hashname' => '__ACTION1__',
                                                                                                     'lookahead' => 0,
-                                                                                                    'line' => -194,
-                                                                                                    'code' => '{ $item[1] }'
+                                                                                                    'line' => -193,
+                                                                                                    'code' => '{ $return=Fslib::Struct->new({ 
+		    \'return\'   => $item[3],
+                    \'distinct\' => scalar(@{$item[2]}),
+		    \'group-by\' => $item[1][0],
+		    \'sort-by\'  => $item[4][0],
+		   },1) 
+		 }'
                                                                                                   }, 'Parse::RecDescent::Action' )
                                                                                          ],
-                                                                              'line' => -194
+                                                                              'line' => undef
                                                                             }, 'Parse::RecDescent::Production' )
                                                                    ],
                                                         'name' => 'return_spec',
                                                         'vars' => '',
-                                                        'line' => -196
+                                                        'line' => -194
                                                       }, 'Parse::RecDescent::Rule' ),
                               'NUMBER' => bless( {
                                                    'impcount' => 0,
@@ -20334,7 +20238,7 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                     'matchrule' => 0,
                                                                                                     'repspec' => '?',
                                                                                                     'lookahead' => 0,
-                                                                                                    'line' => -223
+                                                                                                    'line' => -221
                                                                                                   }, 'Parse::RecDescent::Repetition' ),
                                                                                            bless( {
                                                                                                     'subrule' => 'return',
@@ -20345,7 +20249,7 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                     'matchrule' => 0,
                                                                                                     'repspec' => 's?',
                                                                                                     'lookahead' => 0,
-                                                                                                    'line' => -223
+                                                                                                    'line' => -221
                                                                                                   }, 'Parse::RecDescent::Repetition' ),
                                                                                            bless( {
                                                                                                     'pattern' => '\\Z',
@@ -20353,14 +20257,14 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                     'description' => '/\\\\Z/',
                                                                                                     'lookahead' => 0,
                                                                                                     'rdelim' => '/',
-                                                                                                    'line' => -223,
+                                                                                                    'line' => -221,
                                                                                                     'mod' => '',
                                                                                                     'ldelim' => '/'
                                                                                                   }, 'Parse::RecDescent::Token' ),
                                                                                            bless( {
                                                                                                     'hashname' => '__ACTION1__',
                                                                                                     'lookahead' => 0,
-                                                                                                    'line' => -222,
+                                                                                                    'line' => -220,
                                                                                                     'code' => '{ $return=new_node({ @{$item[3]} ? 
 	   (\'output-filters\' => Fslib::List->new(@{$item[3]})) : () },$item[1]); 1 }'
                                                                                                   }, 'Parse::RecDescent::Action' )
@@ -20379,11 +20283,11 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                            bless( {
                                                                                                     'hashname' => '__ACTION1__',
                                                                                                     'lookahead' => 0,
-                                                                                                    'line' => -220,
+                                                                                                    'line' => -218,
                                                                                                     'code' => '{ report_error($thisparser,\'query\',\\$text); }'
                                                                                                   }, 'Parse::RecDescent::Action' )
                                                                                          ],
-                                                                              'line' => -220
+                                                                              'line' => -218
                                                                             }, 'Parse::RecDescent::Production' )
                                                                    ],
                                                         'name' => 'parse_query',
@@ -20935,74 +20839,6 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                     'vars' => '',
                                                     'line' => 0
                                                   }, 'Parse::RecDescent::Rule' ),
-                              'plain_return_spec' => bless( {
-                                                              'impcount' => 0,
-                                                              'calls' => [
-                                                                           'group_by',
-                                                                           'columns',
-                                                                           'sort_by'
-                                                                         ],
-                                                              'changed' => 0,
-                                                              'opcount' => 0,
-                                                              'prods' => [
-                                                                           bless( {
-                                                                                    'number' => '0',
-                                                                                    'strcount' => 0,
-                                                                                    'dircount' => 0,
-                                                                                    'uncommit' => undef,
-                                                                                    'error' => undef,
-                                                                                    'patcount' => 0,
-                                                                                    'actcount' => 1,
-                                                                                    'items' => [
-                                                                                                 bless( {
-                                                                                                          'subrule' => 'group_by',
-                                                                                                          'expected' => undef,
-                                                                                                          'min' => 0,
-                                                                                                          'argcode' => undef,
-                                                                                                          'max' => 1,
-                                                                                                          'matchrule' => 0,
-                                                                                                          'repspec' => '?',
-                                                                                                          'lookahead' => 0,
-                                                                                                          'line' => -193
-                                                                                                        }, 'Parse::RecDescent::Repetition' ),
-                                                                                                 bless( {
-                                                                                                          'subrule' => 'columns',
-                                                                                                          'matchrule' => 0,
-                                                                                                          'implicit' => undef,
-                                                                                                          'argcode' => undef,
-                                                                                                          'lookahead' => 0,
-                                                                                                          'line' => -193
-                                                                                                        }, 'Parse::RecDescent::Subrule' ),
-                                                                                                 bless( {
-                                                                                                          'subrule' => 'sort_by',
-                                                                                                          'expected' => undef,
-                                                                                                          'min' => 0,
-                                                                                                          'argcode' => undef,
-                                                                                                          'max' => 1,
-                                                                                                          'matchrule' => 0,
-                                                                                                          'repspec' => '?',
-                                                                                                          'lookahead' => 0,
-                                                                                                          'line' => -193
-                                                                                                        }, 'Parse::RecDescent::Repetition' ),
-                                                                                                 bless( {
-                                                                                                          'hashname' => '__ACTION1__',
-                                                                                                          'lookahead' => 0,
-                                                                                                          'line' => -192,
-                                                                                                          'code' => '{ $return=Fslib::Struct->new({ 
-		    return => $item[2],
-		    \'group-by\'=>$item[1][0],
-		    \'sort-by\' => $item[3][0],
-		   },1) 
-		 }'
-                                                                                                        }, 'Parse::RecDescent::Action' )
-                                                                                               ],
-                                                                                    'line' => undef
-                                                                                  }, 'Parse::RecDescent::Production' )
-                                                                         ],
-                                                              'name' => 'plain_return_spec',
-                                                              'vars' => '',
-                                                              'line' => -193
-                                                            }, 'Parse::RecDescent::Rule' ),
                               'flat_set_expression' => bless( {
                                                                 'impcount' => 0,
                                                                 'calls' => [
@@ -21855,7 +21691,7 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                                 'implicit' => undef,
                                                                                                                 'argcode' => undef,
                                                                                                                 'lookahead' => 0,
-                                                                                                                'line' => -206
+                                                                                                                'line' => -204
                                                                                                               }, 'Parse::RecDescent::Subrule' ),
                                                                                                        bless( {
                                                                                                                 'pattern' => '\\Z',
@@ -21863,14 +21699,14 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                                 'description' => '/\\\\Z/',
                                                                                                                 'lookahead' => 0,
                                                                                                                 'rdelim' => '/',
-                                                                                                                'line' => -206,
+                                                                                                                'line' => -204,
                                                                                                                 'mod' => '',
                                                                                                                 'ldelim' => '/'
                                                                                                               }, 'Parse::RecDescent::Token' ),
                                                                                                        bless( {
                                                                                                                 'hashname' => '__ACTION1__',
                                                                                                                 'lookahead' => 0,
-                                                                                                                'line' => -206,
+                                                                                                                'line' => -204,
                                                                                                                 'code' => '{ $item[1] }'
                                                                                                               }, 'Parse::RecDescent::Action' )
                                                                                                      ],
@@ -21888,16 +21724,16 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                        bless( {
                                                                                                                 'hashname' => '__ACTION1__',
                                                                                                                 'lookahead' => 0,
-                                                                                                                'line' => -205,
+                                                                                                                'line' => -203,
                                                                                                                 'code' => '{ report_error($thisparser,\'column_expression\',\\$text); }'
                                                                                                               }, 'Parse::RecDescent::Action' )
                                                                                                      ],
-                                                                                          'line' => -205
+                                                                                          'line' => -203
                                                                                         }, 'Parse::RecDescent::Production' )
                                                                                ],
                                                                     'name' => 'parse_column_expression',
                                                                     'vars' => '',
-                                                                    'line' => -206
+                                                                    'line' => -204
                                                                   }, 'Parse::RecDescent::Rule' ),
                               '_alternation_1_of_production_1_of_rule_ref' => bless( {
                                                                                        'impcount' => 0,
@@ -22029,9 +21865,9 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                      'actcount' => 0,
                                                                      'items' => [
                                                                                   bless( {
-                                                                                           'pattern' => '[-+*^]|div|mod',
+                                                                                           'pattern' => '[-+*&]|div|mod',
                                                                                            'hashname' => '__PATTERN1__',
-                                                                                           'description' => '/[-+*^]|div|mod/',
+                                                                                           'description' => '/[-+*&]|div|mod/',
                                                                                            'lookahead' => 0,
                                                                                            'rdelim' => '/',
                                                                                            'line' => -6,
@@ -22451,9 +22287,9 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                        'actcount' => 0,
                                                                        'items' => [
                                                                                     bless( {
-                                                                                             'pattern' => 'descendants|lbrothers|rbrothers|sons|depth|lower|upper|length|substr|ciel|floor|round|trunc|name|url|tree_no|percnt',
+                                                                                             'pattern' => '(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\\b',
                                                                                              'hashname' => '__PATTERN1__',
-                                                                                             'description' => '/descendants|lbrothers|rbrothers|sons|depth|lower|upper|length|substr|ciel|floor|round|trunc|name|url|tree_no|percnt/',
+                                                                                             'description' => '/(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\\\\b/',
                                                                                              'lookahead' => 0,
                                                                                              'rdelim' => '/',
                                                                                              'line' => -12,
@@ -22907,13 +22743,13 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                'hashname' => '__STRING1__',
                                                                                                'description' => '\'>>\'',
                                                                                                'lookahead' => 0,
-                                                                                               'line' => -199
+                                                                                               'line' => -197
                                                                                              }, 'Parse::RecDescent::Literal' ),
                                                                                       bless( {
                                                                                                'hashname' => '__DIRECTIVE1__',
                                                                                                'name' => '<commit>',
                                                                                                'lookahead' => 0,
-                                                                                               'line' => -199,
+                                                                                               'line' => -197,
                                                                                                'code' => '$commit = 1'
                                                                                              }, 'Parse::RecDescent::Directive' ),
                                                                                       bless( {
@@ -22922,7 +22758,7 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                'implicit' => undef,
                                                                                                'argcode' => undef,
                                                                                                'lookahead' => 0,
-                                                                                               'line' => -199
+                                                                                               'line' => -197
                                                                                              }, 'Parse::RecDescent::Subrule' ),
                                                                                       bless( {
                                                                                                'subrule' => '_alternation_1_of_production_1_of_rule_return',
@@ -22933,12 +22769,12 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                'matchrule' => 0,
                                                                                                'repspec' => '?',
                                                                                                'lookahead' => 0,
-                                                                                               'line' => -199
+                                                                                               'line' => -197
                                                                                              }, 'Parse::RecDescent::Repetition' ),
                                                                                       bless( {
                                                                                                'hashname' => '__ACTION1__',
                                                                                                'lookahead' => 0,
-                                                                                               'line' => -199,
+                                                                                               'line' => -197,
                                                                                                'code' => '{ $item[3] }'
                                                                                              }, 'Parse::RecDescent::Action' )
                                                                                     ],
@@ -22958,15 +22794,15 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                                                'hashname' => '__DIRECTIVE1__',
                                                                                                'commitonly' => '',
                                                                                                'lookahead' => 0,
-                                                                                               'line' => -198
+                                                                                               'line' => -196
                                                                                              }, 'Parse::RecDescent::Error' )
                                                                                     ],
-                                                                         'line' => -198
+                                                                         'line' => -196
                                                                        }, 'Parse::RecDescent::Production' )
                                                               ],
                                                    'name' => 'return',
                                                    'vars' => '',
-                                                   'line' => -199
+                                                   'line' => -197
                                                  }, 'Parse::RecDescent::Rule' ),
                               'flat_column_expression' => bless( {
                                                                    'impcount' => 0,
