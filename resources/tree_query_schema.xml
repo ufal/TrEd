@@ -16,6 +16,7 @@
       <value>coref_text</value> <!-- PDT specific -->
       <value>coref_gram</value> <!-- PDT specific -->
       <value>compl</value> <!-- PDT specific -->
+      <value>val_frame.rf</value> <!-- PDT specific -->
     </choice>
   </type>
   <derive name="q-ref-user-relation-choice.type" type="q-user-relation-choice.type">
