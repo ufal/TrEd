@@ -149,6 +149,7 @@ sub start_hook {
   # print $query_node,",",$query_tree->{id},"\n";
 }
 
+
 sub test_btred {
   my $match;
   while ($match = $evaluator->find_next_match()) {
@@ -421,6 +422,34 @@ sub select_matching_node {
   }
   return;
 }
+
+sub get_schema_for_query_node {
+  my ($self,$node)=@_;
+  return $self->get_schema;
+}
+
+sub get_schema {
+  my ($self)=@_;
+  my $file = $self->{file} || return;
+  my $fsfile = (first { $_->filename eq $file } GetOpenFiles()) || return;
+  return PML::Schema($fsfile);
+}
+
+sub get_type_decl_for_query_node {
+  my ($self,$node)=@_;
+  return $self->get_decl_for(Tree_Query::Common::GetQueryNodeType($node));
+}
+
+sub get_decl_for {
+  my ($self,$type)=@_;
+  my $schema = $self->get_schema();
+  $type=~s{(/|$)}{.type$1};
+  my $decl = $schema->find_type_by_path('!'.$type);
+  $decl or die "Did not find type '!$type'";
+  return $decl;
+}
+
+
 
 ######## Private
 
