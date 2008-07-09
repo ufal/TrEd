@@ -7,8 +7,17 @@ use warnings;
 use Carp;
 use Data::Dumper;
 
+# sub first (&@); # prototype it for compile-time
 use List::Util qw(first);
-BEGIN { import TredMacro qw(uniq SeqV AltV ListV) }
+
+#BEGIN {
+#  import TredMacro qw(uniq SeqV AltV ListV)
+#}
+
+sub uniq  { my %a; grep { !($a{$_}++) } @_ }
+sub AltV  { ref($_[0]) eq 'Fslib::Alt' ? @{$_[0]} : $_[0] }
+sub ListV { ref($_[0]) eq 'Fslib::List' ? @{$_[0]} : () }
+sub SeqV  { ref($_[0]) eq 'Fslib::Seq' ? $_[0]->elements : () }
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -37,11 +46,14 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
   SetRelation
   GetRelationTypes
   FilterQueryNodes
-  
   Schema
-) ] );
+) ],
+  'tredmacro' => [ qw(
+    first uniq ListV AltV SeqV
+  )],
+);
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} },  @{ $EXPORT_TAGS{'tredmacro'} } );
 
 our @EXPORT = qw(  );
 
@@ -56,7 +68,7 @@ sub Schema {
 
 sub SetRelation {
   my ($node,$type,$opts)=@_;
-  if ($type=~s/^(user-defined): // and !($opts and $opts->{label})) {
+  if ($type=~s/ \(user-defined\)$// and !($opts and $opts->{label})) {
     $opts||={};
     $opts->{label}=$type;
     $type = 'user-defined';
@@ -75,7 +87,7 @@ sub GetRelationTypes {
     map {
       my $name = $_->get_name;
       if ($name eq 'user-defined') {
-	(map { qq{$name: $_} } $_->get_content_decl->get_attribute_by_name('label')->get_content_decl->get_values())
+	(map { qq{$_ ($name)} } $_->get_content_decl->get_attribute_by_name('label')->get_content_decl->get_values())
       } else {
 	$name;
       }
@@ -312,7 +324,7 @@ sub query_parser {
   my $Grammar = $INC{'Tree_Query/Common.pm'}; $Grammar=~s{Common.pm$}{Grammar.pm};
   delete $INC{$Grammar};
   require $Grammar;
-  $Tree_Query::user_defined = 'echild|eparent|a/lex.rf\|a/aux.rf|a/lex.rf|a/aux.rf|coref_text|coref_gram|compl|val_frame';
+  $Tree_Query::user_defined = 'echild|eparent|a/lex.rf\|a/aux.rf|a/lex.rf|a/aux.rf|coref_text|coref_gram|compl|val_frame.rf';
   $parser = Tree_Query::Grammar->new() or die "Could not create parser for Tree_Query grammar\n";
   return $parser;
 }
@@ -321,7 +333,6 @@ sub parse_query {
   my $ret = eval {query_parser()->parse_query($_[0])};
   confess($@) if $@;
   $ret->set_type($query_schema->find_type_by_path('!q-query.type'));
-  DetermineNodeType($_) for ($ret->descendants);
   return $ret;
 }
 sub parse_expression {

@@ -341,6 +341,8 @@ sub show_result {
   my ($self,$dir)=@_;
   return unless $self->{evaluator};
   my @save = ($this,$root,$grp);
+  return unless ($self->{current_result} and $self->{last_query_nodes}
+	and @{$self->{current_result}} and @{$self->{last_query_nodes}});
   my $win=$self->claim_search_win();
   eval {
     if ($dir eq 'prev') {
