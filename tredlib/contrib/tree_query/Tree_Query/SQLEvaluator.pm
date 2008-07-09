@@ -752,29 +752,14 @@ sub get_node_types {
   return $self->{node_types} if defined $self->{node_types};
   my $results = $self->run_sql_query(qq(SELECT "type" FROM "#PMLTYPES" ORDER BY "type"),{ MaxRows=>1, RaiseError=>1 });
   return $self->{node_types} = [ map $_->[0], @$results ];
-  
 }
+
 sub get_decl_for {
   my ($self,$type)=@_;
   return unless $type;
-  if ($self->{type_decls}{$type}) {
-    return $self->{type_decls}{$type};
-  }
-  my $schema = $self->get_schema($self->get_schema_name_for($type));
-  $type=~s{(/|$)}{.type$1};
-  my $decl = $self->{type_decls}{$type} = $schema->find_type_by_path('!'.$type);
-  $decl or die "Did not find type '!$type'";
-  return $decl;
+  return $self->{type_decls}{$type} ||= Tree_Query::Common::QueryTypeToDecl($type,$self->get_schema($self->get_schema_name_for($type)));
 }
 
-sub _table_name {
-  my ($path) = @_;
-  return unless defined $path;
-  $path=~s/\[LIST\]/LM/;
-  $path=~s/\[ALT\]/AM/;
-  $path=~s{^!([^/]+)\.type\b}{$1};
-  return $path;
-}
 
 sub serialize_expression_pt {# pt stands for parse tree
   my ($self,$pt,$opts,$extra_joins)=@_;
@@ -812,7 +797,7 @@ sub serialize_expression_pt {# pt stands for parse tree
 	$j->{$node_id}||=[];
 
 	my $i = 0;
-	my $table=_table_name($decl->get_decl_path);
+	my $table=Tree_Query::Common::DeclPathToQueryType($decl->get_decl_path);
         if ($SEPARATE_TREES==1) {
 	  $id=$node_id."/$i";
 	  unless (first {$_->[0] eq $id} (@{$j->{$node_id}}, @{$extra_joins->{$node_id}})) {
@@ -876,7 +861,7 @@ sub serialize_expression_pt {# pt stands for parse tree
 	    $i = @{$j->{$node_id}}+@{$extra_joins->{$node_id}};
 	    #$i = @{$j->{$node_id}};
 	    $id=$node_id."/$i";
-	    $table=$mtable||_table_name($mdecl->get_decl_path);
+	    $table=$mtable||Tree_Query::Common::DeclPathToQueryType($mdecl->get_decl_path);
 	    push @{$j->{$node_id}},[$id,$table, qq("$id"."#idx" = "$prev"."$column") ];
 #				    ($can_be_null # || !$opts->{is_positive_conjunct} || $cmp
 #				       and !$opts->{use_exists}) ? 'LEFT' : ()];

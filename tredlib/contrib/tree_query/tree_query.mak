@@ -231,6 +231,19 @@ Bind sub {
   menu => 'Edit node type',
 };
 
+
+Bind sub {
+  ChangingFile(0);
+  return unless $SEARCH;
+  return unless !$this->parent || $this->{'#name'}=~/^(?:node|subquery)$/;
+  my $type = Tree_Query::Common::GetQueryNodeType($this,$SEARCH->get_schema_for_query_node($this)); #chicken-egg problem (if we don't know the type, we can't know the schema!)
+  $this->{'node-type'} = $type;
+  ChangingFile(1);
+} => {
+  key => 'T',
+  menu => 'Try automatically set the node type based on parent-node type',
+};
+
 Bind sub {
   ChangingFile(0);
   return unless $this->{'#name'} eq 'node';
@@ -544,12 +557,6 @@ END
   SelectSearch();
 }
 
-sub get_query_node_type {
-  my ($node)=@_;
-  my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } ($node,$node->ancestors);
-  my $table = ($qn && $qn->{'node-type'})||$node->root->{'node-type'};
-  return $table;
-}
 
 sub get_query_node_schema {
   my ($node)=@_;
@@ -576,27 +583,15 @@ sub attr_choices_hook {
     }
   } elsif ($node->{'#name'} eq 'test') {
     if ($attr_path eq 'a') {
-      my ($types,$schema);
-      unless ($schema = get_query_node_schema($node)) {
-	if (UNIVERSAL::isa($SEARCH,'Tree_Query::TrEdSearch')) {
-	  my $file = $SEARCH->{file} || return;
-	  my $fsfile = (first { $_->filename eq $file } GetOpenFiles()) || return;
-	  $schema = PML::Schema($fsfile);
-	} elsif (UNIVERSAL::isa($SEARCH,'Tree_Query::SQLSearch')) {
-	  $SEARCH->init_evaluator;
-	  $types = [ $SEARCH->{evaluator}->get_decl_for(get_query_node_type($node)) ];
-	  $schema=$types->[0]->schema if @$types;
-	}
-      }
-      return unless $schema;
-      my @res = $schema->get_paths_to_atoms($types,{ no_childnodes => 1 });
+      my $type = $SEARCH->get_type_decl_for_query_node($node);
+      my @res = $type->get_paths_to_atoms({ no_childnodes => 1 });
       return @res ? \@res : ();
     } elsif ($attr_path eq 'b') {
       if (UNIVERSAL::isa($SEARCH,'Tree_Query::SQLSearch')) {
 	my $name = $editor->get_current_value('a');
 	if ($name and $name=~m{^(?:\$[[:alpha:]_][[:alnum:]_/\-]*\.)?"?([[:alpha:]_][[:alnum:]_/\-]*)"?$}) {
 	  my $attr = $1;
-	  my $table = get_query_node_type($node);
+	  my $table = GetQueryNodeType($node);
 	  return unless $table=~m{^[[:alpha:]_][[:alnum:]_/\-]*$};
 	  if ($attr=~s{^(.*)/}{}) {
 	    my $t=$1;
@@ -700,6 +695,8 @@ my %color = (
   'eparent' => 'green',
 );
 my %arrow = (
+  'depth-first-precedes' => 'first',
+  'order-precedes' => 'first',
   'a/lex.rf' => 'first',
   'a/aux.rf' => 'first',
   'a/lex.rf|a/aux.rf' => 'first',
@@ -714,6 +711,27 @@ my %arrow = (
   'echild' => 'first',
   'eparent' => 'first',
 );
+my %type = (
+  't-root:a/lex.rf' => 'a-root',
+  't-root:a/lex.rf|a/aux.rf' => 'a-root',
+  'a/lex.rf' => 'a-node',
+  'a/aux.rf' => 'a-node',
+  'a/lex.rf|a/aux.rf' => 'a-node',
+  'val_frame.rf' => 'frame',
+  'coref_text' => 't-node',
+  'coref_gram' => 't-node',
+  'compl' => 't-node',
+  'echild' => '#same',
+  'eparent' => '#same',
+
+  'descendant' => '#descendant',
+  'ancestor' => '#ancestor',
+  'child' => '#child',
+  'parent' => '#parent',
+  'depth-first-precedes' => '#any',
+  'order-precedes' => '#any',
+);
+
 sub arrow_color {
   my $rel = shift;
   return $color{$rel};
