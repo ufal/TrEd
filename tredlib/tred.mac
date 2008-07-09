@@ -472,8 +472,8 @@ sub DestroyUserToolbar {
 sub MacroCallback {
   my ($sub)=@_;
   return [sub {
-	    my ($tred)=@_;
-	    main::doEvalMacro($tred->{focusedWindow},$sub);
+	    my $tred=pop @_;
+	    main::doEvalMacro($tred->{focusedWindow},$sub,@_);
 	  },$grp->{framegroup}];
 }
 
