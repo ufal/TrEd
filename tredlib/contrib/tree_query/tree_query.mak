@@ -236,8 +236,18 @@ Bind sub {
   ChangingFile(0);
   return unless $SEARCH;
   return unless !$this->parent || $this->{'#name'}=~/^(?:node|subquery)$/;
-  my $type = Tree_Query::Common::GetQueryNodeType($this,$SEARCH->get_schema_for_query_node($this)); #chicken-egg problem (if we don't know the type, we can't know the schema!)
-  $this->{'node-type'} = $type;
+  my @types = Tree_Query::Common::GetQueryNodeType($this,$SEARCH);
+  print "@types\n";
+  if (@types <= 1) {
+    $this->{'node-type'} = $types[0];
+  } else {
+    my @sel=$types[0];
+    ListQuery('Select node type',
+	      'browse',
+	      \@types,
+	      \@sel) || return;
+    $this->{'node-type'}=$sel[0];
+  }
   ChangingFile(1);
 } => {
   key => 'T',
