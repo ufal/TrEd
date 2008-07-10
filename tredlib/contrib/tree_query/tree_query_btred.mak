@@ -427,6 +427,10 @@ sub get_schema_for_query_node {
   my ($self,$node)=@_;
   return $self->get_schema;
 }
+sub get_schema_for_type {
+  my ($self,$node)=@_;
+  return $self->get_schema;
+}
 
 sub get_schema {
   my ($self)=@_;
