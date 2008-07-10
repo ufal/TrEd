@@ -274,6 +274,12 @@ sub get_schema_for_query_node {
   return $ev->get_schema($ev->get_schema_name_for(Tree_Query::Common::GetQueryNodeType($node)));
 }
 
+sub get_schema_for_type {
+  my ($self,$type)=@_;
+  my $ev = $self->init_evaluator;
+  return $ev->get_schema($ev->get_schema_name_for($type));
+}
+
 sub get_type_decl_for_query_node {
   my ($self,$node)=@_;
   my $ev = $self->init_evaluator;

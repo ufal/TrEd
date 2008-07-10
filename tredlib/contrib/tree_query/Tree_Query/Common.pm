@@ -6,6 +6,7 @@ use strict;
 use warnings;
 use Carp;
 use Data::Dumper;
+use PMLSchema;
 
 # sub first (&@); # prototype it for compile-time
 use List::Util qw(first);
@@ -67,12 +68,16 @@ sub Schema {
 }
 
 sub GetQueryNodeType {
-  my ($node,$schema)=@_;
+  my ($node,$type_mapper)=@_;
   my $p;
   return unless $node;
   $node=$p while (($p=$node->parent) && $node->{'#name'} !~ /^(?:node|subquery)$/);
-  if ($schema) {
-    return $node->{'node-type'} || ($p && GetRelativeQueryNodeType($p,$schema,SeqV($node->{relation})));
+  if ($type_mapper) {
+    return $node->{'node-type'} ||
+      ($p &&
+      ( wantarray
+	  ? (uniq map GetRelativeQueryNodeType($_,$type_mapper,SeqV($node->{relation})), GetQueryNodeType($p,$type_mapper))
+	  : GetRelativeQueryNodeType(scalar(GetQueryNodeType($p,$type_mapper)),$type_mapper,SeqV($node->{relation}))));
   } else {
     return $node->{'node-type'} || $node->root->{'node-type'};
   }
@@ -117,35 +122,58 @@ my %type = (
 );
 
 sub GetRelativeQueryNodeType {
-  my ($node,$schema,$rel)=@_;
-  return unless $node;
-  my $type = GetQueryNodeType($node,$schema)||'';
+  my ($type,$type_mapper,$rel)=@_;
+  $type ||= '';
+  print "type: $type\n";
   # TODO: if $type is void, we could check if there is just one node-type in the schema and return it if so
   my $name = $rel ? $rel->name : 'child';
   $name .= ':'.$rel->value->{label} if $name eq 'user-defined';
   my $reltype = $type{$type.':'.$name} || $type{':'.$name};
+  my @t;
   if ($reltype eq '#same') {
     return $type ? $type : ();
-  } elsif ($reltype =~ /^(#descendant|#ancestor|#any)/) {
-    my @t=$schema->node_types;
-    return if @t!=1;
-    return DeclPathToQueryType( $t[0]->get_decl_path );
+  } elsif ($reltype =~ /^(#ancestor|#any)/) {
+    my $schema = $type_mapper->get_schema_for_type($type)
+      or return;
+    @t=$schema->node_types;
+  } elsif ($reltype eq '#descendant') {
+    my $schema = $type_mapper->get_schema_for_type($type)
+      or return;
+    my $t = QueryTypeToDecl($type,$schema);
+    @t = ($t->get_childnodes_decls);
+    my %seen = map { $_=>1 } @t;
+    my $i=0;
+    while ($i<@t) {
+      for $t ($t[$i]->get_childnodes_decls) {
+	if (!$seen{$t}) {
+	  push @t, $t;
+	  $seen{$t}=1;
+	}
+      }
+      $i++;
+    }
   } elsif ($reltype eq '#child') {
-    my @t = QueryTypeToDecl($type,$schema)->get_childnodes_decls;
-    return if @t!=1;
-    return DeclPathToQueryType( $t[0]->get_decl_path );
+    my $schema = $type_mapper->get_schema_for_type($type)
+      or return;
+    @t = QueryTypeToDecl($type,$schema)->get_childnodes_decls;
   } elsif ($reltype eq '#parent') {
+    my $schema = $type_mapper->get_schema_for_type($type)
+      or return;
     my $decl = QueryTypeToDecl($type,$schema);
     return unless $decl;
-    my @t = $schema->node_types;
     @t = uniq grep {
       first { $_==$decl } $_->get_childnodes_decls
-    } @t;
-    return if @t!=1;
-    return DeclPathToQueryType( $t[0]->get_decl_path );
+    } $schema->node_types;
   } else {
     return $reltype;
   }
+  print @t,"\n";
+  print "wantarray", wantarray(),"\n";
+  return if !wantarray and @t!=1;
+  @t = map DeclPathToQueryType( $_->get_decl_path ),
+    map { ($_->get_decl_type == PML_ELEMENT_DECL) ? $_->get_content_decl : $_ } @t;
+  print "@t\n";
+  return wantarray ? @t : $t[0];
 }
 
 sub SetRelation {
