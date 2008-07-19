@@ -453,6 +453,13 @@ sub get_decl_for {
   return $decl;
 }
 
+sub get_node_types {
+  my ($self)=@_;
+  my $schema = $self->get_schema()
+    or return;
+  return [map Tree_Query::Common::DeclToQueryType( $_ ), $schema->node_types];
+}
+
 
 
 ######## Private

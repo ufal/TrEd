@@ -1,0 +1,211 @@
+#!/usr/bin/env perl
+# pmltq     pajas@ufal.mff.cuni.cz     2008/07/08 08:34:19
+
+our $VERSION="0.1";
+
+use warnings;
+use strict;
+$|=1;
+
+use Getopt::Long;
+use Pod::Usage;
+Getopt::Long::Configure ("bundling");
+my %opts;
+GetOptions(\%opts,
+	'debug|D',
+	'server|s=s',
+#	'netgraph-query|N', TODO
+	'list-servers|l',
+	'config-file|c=s',
+	'limit|L=i',
+	'timeout|t=i',
+	'quiet|q',
+	'help|h',
+	'usage|u',
+        'version|V',
+	'man',
+       ) or $opts{usage}=1;
+
+if ($opts{usage}) {
+  pod2usage(-msg => 'pmltq');
+}
+if ($opts{help}) {
+  pod2usage(-exitstatus => 0, -verbose => 1);
+}
+if ($opts{man}) {
+  pod2usage(-exitstatus => 0, -verbose => 2);
+}
+if ($opts{version}) {
+  print "$VERSION\n";
+  exit;
+}
+
+use constant TRED => '/home/pajas/tred-devel';
+use lib map TRED.'/tredlib/libs/'.$_, qw(fslib pml-base);
+use Fslib;
+use PMLInstance;
+use PMLSchema;
+BEGIN { Fslib::AddResourcePath(TRED.'/resources',$ENV{HOME}.'/.tred.d'); }
+use Tree_Query::Common ':tredmacro';
+use Tree_Query::SQLEvaluator;
+
+
+$opts{'config-file'} ||= Fslib::FindInResources('treebase.conf');
+if ($opts{debug}) {
+  print STDERR "Reading configuration from $opts{'config-file'}\n";
+}
+my $configs = PMLInstance->load({ filename=>$opts{'config-file'} })->get_root->{configurations};
+if ($opts{'list-servers'}) {
+  my @columns = qw(id driver host port database username sources);
+  print join("\t",@columns)."\n";
+  print (("-"x60)."\n");
+  for my $c (map $_->value, grep { $_->name eq 'dbi' } SeqV($configs)) {
+    print (join("\t", map $c->{$_},@columns)."\n");
+  }
+  exit;
+}
+
+my $id = $opts{'server'} || 'base';
+my $conf = first { $_->{id} eq $id } map $_->value, grep $_->name eq 'dbi', SeqV($configs);
+die "Didn't find server configuration named '$id'!\nUse $0 --list-servers and then $0 --server <name>\n"
+  unless $conf;
+
+
+my $evaluator = Tree_Query::SQLEvaluator->new(undef,{connect => $conf, debug=>$opts{debug}});
+$evaluator->connect();
+
+my $query;
+if (@ARGV) {
+  $query=join ' ',@ARGV;
+} else {
+  local $/;
+  $query = <>;
+}
+print STDERR $query,"\n";
+search($query);
+
+
+sub search {
+  my ($query)=@_;
+  my $results;
+#   if ($opts{'netgraph-query'}) {
+#     $query=ng2pmltq($query); TODO
+#   }
+  eval {
+    $evaluator->prepare_query($query); # count=>1
+    $results = $evaluator->run({
+      node_limit => $opts{limit},
+      row_limit => $opts{limit},
+      timeout => $opts{timeout},
+      timeout_callback => sub {
+	print STDERR "Evaluation of query timed out\n";
+	exit 2;
+      },
+    });
+  };
+  warn $@ if $@;
+  if ($results) {
+    for my $r (@$results) {
+      print join("\t",@$r)."\n";
+    }
+    print STDERR $#$results+1," result(s)\n" unless $opts{quiet};
+  }
+}
+
+
+__END__
+
+=head1 NAME
+
+pmltq - query trees stored in a SQL database using PML-TQ (PML Tree Query) language
+
+=head1 SYNOPSIS
+
+pmltq [options] 'query'
+or
+  pmltq -l          for list of available configurations
+  pmltq -u          for usage
+  pmltq -h          for help
+  pmltq --man       for the manual page
+  pmltq --version   for version
+
+=head1 DESCRIPTION
+
+B<pmltq> is a command-line interface to PML-TQ SQL query engine. Given
+a PML-TQ query and optional parameters specifying to which SQL
+database to connect to, B<pmltq> compiles the query into SQL, runs the
+SQL on the database and prints results to the standard output.
+
+If no query is specified on the command-line, pmltq expects to read
+the query from standard input.
+
+=head1 OPTIONS
+
+=over 5
+
+=item	B<--limit|-L> number
+
+Specify maximum number of results (i.e. rows printed by pmltq).
+
+=item	B<--timeout|-t> seconds
+
+Specify a timeout for the query. If the query evaluation takes longer
+than a given number of B<seconds>, pmltq terminates the connection
+with the server and returns with a message "Evaluation of query timed
+out" and exit code 2.
+
+=item	B<--config-file|-c> filename
+
+Specify a configuration file. The configuration file is a XML file (in
+fact, a PML instance conforming to the treebase_conf_schema.xml) that
+lists available SQL engine configurations. If this option is not
+provided, B<pmltq> attempts to find a file named treebase.conf in the
+resource paths (namely in ~/.tred.d).
+
+=item	B<--server|-s> id
+
+Select a server to use by id (use B<--list-servers> to get a list).
+
+=item B<--list-servers|-l>
+
+Print list of available SQL server configurations and exit.
+
+=item	B<--debug|-D>
+
+Print some extended information (e.g. evaluation benchmarks).
+
+=item B<--usage|-u>
+
+Print a brief help message on usage and exits.
+
+=item B<--help|-h>
+
+Prints the help page and exits.
+
+=item B<--man>
+
+Displays the help as manual page.
+
+=item B<--version>
+
+Print program version.
+
+=back
+
+=head1 AUTHOR
+
+Petr Pajas, E<lt>pajas@sup.ms.mff.cuni.czE<gt>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2008 by Petr Pajas
+
+This program is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.2 or,
+at your option, any later version of Perl 5 you may have available.
+
+=head1 BUGS
+
+None reported... yet.
+
+=cut
