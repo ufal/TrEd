@@ -100,7 +100,7 @@ Bind sub {
 
 Bind 'Search' => {
   key => 'space',
-  menu => 'Query SQL server',
+  menu => 'Run query',
   changing_file => 0,
 };
 
@@ -232,24 +232,8 @@ Bind sub {
 };
 
 
-Bind sub {
-  ChangingFile(0);
-  return unless $SEARCH;
-  return unless !$this->parent || $this->{'#name'}=~/^(?:node|subquery)$/;
-  my @types = Tree_Query::Common::GetQueryNodeType($this,$SEARCH);
-  print "@types\n";
-  if (@types <= 1) {
-    $this->{'node-type'} = $types[0];
-  } else {
-    my @sel=$types[0];
-    ListQuery('Select node type',
-	      'browse',
-	      \@types,
-	      \@sel) || return;
-    $this->{'node-type'}=$sel[0];
-  }
-  ChangingFile(1);
-} => {
+Bind 'AssignType' => {
+  changing_file => 0,
   key => 'T',
   menu => 'Try automatically set the node type based on parent-node type',
 };
@@ -292,21 +276,9 @@ Bind sub {
   menu => 'Add a constraint test',
 };
 
-Bind sub {
-  ChangingFile(0);
-  return unless $this->{'#name'} =~ /^(node|subquery|ref)$/;
-  unless (SeqV($this->{relation})) {
-    my @sel='child';
-    ListQuery('Select relation of the current node to its parent',
-	      'browse',
-	      GetRelationTypes($this),
-	      \@sel) || return;
-    SetRelation($this,$sel[0]) if @sel;
-  } elsif (EditAttribute($this,'relation')) {
-    ChangingFile(1);
-  }
-} => {
+Bind AssignRelation => {
   key => 'r',
+  changing_file => 0,
   menu => 'Edit relation of the current node to its parent',
 };
 
@@ -368,14 +340,18 @@ Bind sub {
 Bind sub {
   my $node=$this;
   return unless $node;
+  my $new;
   if (!$node->parent or $node->{'#name'} =~ /^(?:node|subquery)/) {
-    my $new = NewSon();
+    $new = NewSon();
     $new->{'#name'}='node';
     DetermineNodeType($new);
   } elsif ($node->{'$name'}=~/^(?:test|ref)/) {
-    my $new = NewRBrother();
+    $new = NewRBrother();
     $new->{'#name'}=$node->{'#name'};
     DetermineNodeType($new);
+  }
+  if ($new) {
+    $node->parent ? AssignRelation($new) : AssignType($new);
   }
 } => {
   key => 'Insert',
@@ -564,6 +540,8 @@ END
     SetCurrentFileList($fl->name);
     Open($filename);
   }
+  GotoTree(scalar(GetTrees));
+  DetermineNodeType(NewTreeAfter()) if ($root->children);
   SelectSearch();
 }
 
@@ -669,6 +647,44 @@ sub GetNodeName {
     $name2node_hash{$name}=$node;
     return $name;
   }
+}
+
+sub AssignRelation {
+  shift unless ref $_[0];
+  my $node = $_[0] || $this;
+  return unless $node->{'#name'} =~ /^(node|subquery|ref)$/;
+  unless (SeqV($node->{relation})) {
+    my @sel='child';
+    ListQuery('Select relation of the current node to its parent',
+	      'browse',
+	      GetRelationTypes($node),
+	      \@sel) || return;
+    SetRelation($node,$sel[0]) if @sel;
+    AssignType($node);
+  } elsif (EditAttribute($node,'relation')) {
+    AssignType($node);
+    ChangingFile(1);
+  }
+}
+
+sub AssignType {
+  shift unless ref $_[0];
+  my $node = $_[0] || $this;
+  return unless $SEARCH;
+  return unless !$node->parent || $node->{'#name'}=~/^(?:node|subquery)$/;
+  my @types = Tree_Query::Common::GetQueryNodeType($node,$SEARCH);
+  print "@types\n";
+  if (@types <= 1) {
+    $node->{'node-type'} = $types[0];
+  } else {
+    my @sel=$types[0];
+    ListQuery('Select node type',
+	      'browse',
+	      \@types,
+	      \@sel) || return;
+    $node->{'node-type'}=$sel[0];
+  }
+  return 1;
 }
 
 #include "ng.inc"
@@ -947,6 +963,7 @@ sub SelectSearch {
 	      (map { $_->identify } @SEARCHES),
 	      (map { 'Search File list: '.$_->name } TrEdFileLists()),
 	      (map { 'Search File: '.$_->filename } grep ref, map CurrentFile($_), TrEdWindows()),
+	      'Search Using PMLTQ Server',
 	      'Search Remote Treebank Database',
 	    ],
 	    \@sel
@@ -957,6 +974,8 @@ sub SelectSearch {
   unless ($S) {
     if ($sel eq 'Search Remote Treebank Database') {
       $S=Tree_Query::SQLSearch->new();
+    } elsif ($sel eq 'Search Using PMLTQ Server') {
+      $S=Tree_Query::HTTPSearch->new();
     } elsif ($sel =~ /Search File: (.*)/) {
       $S=Tree_Query::TrEdSearch->new({file => $1});
     } elsif ($sel =~ /Search File list: (.*)/) {
@@ -1100,7 +1119,7 @@ sub EditQuery {
     my $time = timestr(timediff($t1,$t0));
     print "creating parser took: $time\n";
   }
-  my $qopts={};
+  my $qopts={-cursor => 'end - 3 chars'};
   while ( defined ($string = EditBoxQuery('Edit query node', $string, '',$qopts)) ) {
     my $t0 = new Benchmark;
     eval {

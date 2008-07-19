@@ -6,13 +6,15 @@
 #### TrEd interface to Tree_Query::Evaluator
 {
 
-package Tree_Query::SQLSearch;
+package Tree_Query::HTTPSearch;
 use Benchmark;
 use Carp;
 use strict;
 use warnings;
 use Scalar::Util qw(weaken);
-use Tree_Query::SQLEvaluator;
+use HTTP::Request::Common;
+use LWP::UserAgent;
+use Encode;
 
 BEGIN { import TredMacro  }
 
@@ -22,14 +24,15 @@ our %DEFAULTS = (
   timeout => 30,
 );
 
-$Tree_Query::SQLSearchPreserve::object_id=0; # different NS so that TrEd's reload-macros doesn't clear it
+$Tree_Query::HTTPSearchPreserve::object_id=0; # different NS so that TrEd's reload-macros doesn't clear it
+my $ua = LWP::UserAgent->new;
+$ua->agent("TrEd/1.0 ");
 
 sub new {
   my ($class,$opts)=@_;
   $opts||={};
   my $self = bless {
-    object_id =>  $Tree_Query::SQLSearchPreserve::object_id++,
-    evaluator => undef,
+    object_id =>  $Tree_Query::HTTPSearchPreserve::object_id++,
     config => {
       pml => $opts->{config_pml},
     },
@@ -41,6 +44,7 @@ sub new {
   $self->{callback} = [\&open_pmltq,$self];
   weaken($self->{callback}[1]);
   register_open_file_hook($self->{callback});
+
   my $ident = $self->identify;
   (undef, $self->{label}) = Tree_Query::CreateSearchToolbar($ident);
   my $fn = $self->filelist_name;
@@ -61,15 +65,14 @@ sub DESTROY {
   my ($self)=@_;
   warn "DESTROING $self\n";
   RunCallback($self->{on_destroy}) if $self->{on_destroy};
-  unregister_open_file_hook($self->{callback});
 }
 
 sub identify {
   my ($self)=@_;
-  my $ident= "SQLSearch-".$self->{object_id};
+  my $ident= "HTTPSearch-".$self->{object_id};
   if ($self->{config}{data}) {
     my $cfg = $self->{config}{data};
-    $ident.=" $cfg->{driver}:$cfg->{username}\@$cfg->{host}:$cfg->{port}/$cfg->{database}";
+    $ident.=" $cfg->{username}\@$cfg->{url}";
   }
   return $ident;
 }
@@ -77,47 +80,33 @@ sub identify {
 sub search_first {
   my ($self, $opts)=@_;
   $opts||={};
-  my $query = $opts->{query} || $root;
-  $self->{query}=$query;
-  $self->init_evaluator;
+  my $query = $self->{query} = $opts->{query} || $root;
+  $self->{last_query_nodes} = [Tree_Query::Common::FilterQueryNodes($query)];
+  $query = Tree_Query::Common::as_text($query,{resolve_types=>1}) if ref($query);
   my ($limit, $row_limit, $timeout) = map { int($opts->{$_}||$self->{config}{pml}->get_root->get_member($_)||0)||$DEFAULTS{$_} }
     qw(limit row_limit timeout);
-  eval {
-    $self->{evaluator}->prepare_query($query,{
-      node_limit => $limit,
-      row_limit => $row_limit,
-    });
-  };
-  if ($@) {
-    ErrorMessage($@);
-    return unless GUI() and $opts->{edit_sql};
-  }
-  if (GUI() and $opts->{edit_sql}) {
-    my $sql = EditBoxQuery(
-      "SQL Query",
-      $self->{evaluator}->get_sql,
-      qq{Confirm or Edit the generated SQL Query},
-     );
-    return unless defined($sql) and length($sql);
-    $self->{evaluator}->prepare_sql($sql);
-  }
-  $self->{last_query_nodes} = $self->{evaluator}->get_query_nodes;
-  my $results = $self->{evaluator}->run({
-    node_limit => $limit,
+  my $t0 = new Benchmark;
+  my $res = $self->request(query => [
+    query => $query,
+    format => 'text',
+    limit => $limit,
     row_limit => $row_limit,
     timeout => $timeout,
-    timeout_callback => sub {
-      (!GUI() or
-	 QuestionQuery('Query Timeout',
-			 'The evaluation of the query seems to take too long',
-		       'Wait another '.$timeout.' seconds','Abort') eq 'Abort') ? 0 : 1
-		     },
-  });
-  my $returns_nodes = $self->{evaluator}{returns_nodes};
-  $self->{results} = $results if $returns_nodes;
+   ]);
+  my $t1 = new Benchmark;
+  my $time = timestr(timediff($t1,$t0));
+  unless ($opts->{quiet}) {
+    my $id = root->{id} || '*';
+    print STDERR "$id\t".$self->identify."\t$time\n";
+  }
+  unless ($res->is_success) {
+    ErrorMessage($res->status_line, "\n");
+    return;
+  }
+  my $results = [ map { [ split /\t/, $_ ] } split /\r?\n/, Encode::decode_utf8($res->content,1) ];
   my $matches = @$results;
   if ($matches) {
-    print "Returns nodes: $returns_nodes\n";
+    my $returns_nodes=$res->header('Pmltq-returns-nodes');
     $limit=$row_limit unless $returns_nodes;
     return $results unless
       (!$returns_nodes and $matches<200) or
@@ -161,7 +150,7 @@ sub search_first {
       AddNewFileList($fl);
       SetCurrentFileList($fl->name,{no_open=>1});
       #GotoFileNo(0);
-      $self->{current_result}=[$self->{evaluator}->idx_to_pos($results->[0])];
+      $self->{current_result}=[$self->idx_to_pos($results->[0])];
       ($this,$root,$grp)=@context;
       ${$self->{label}} = (CurrentFileNo($res_win)+1).' of '.(LastFileNo($res_win)+1).
 	($limit == $matches ? '+' : '');
@@ -256,8 +245,12 @@ sub select_matching_node {
 
 sub get_node_types {
   my ($self)=@_;
-  $self->init_evaluator;
-  return $self->{evaluator}->get_node_types;
+  my $res = $self->request('nodetypes',[format=>'text']);
+  unless ($res->is_success) {
+    ErrorMessage($res->status_line, "\n");
+    return;
+  }
+  return [ split /\r?\n/, Encode::decode_utf8($res->content,1) ];
 }
 
 sub configure {
@@ -270,24 +263,74 @@ sub configure {
 
 sub get_schema_for_query_node {
   my ($self,$node)=@_;
-  my $ev = $self->init_evaluator;
-  return $ev->get_schema($ev->get_schema_name_for(Tree_Query::Common::GetQueryNodeType($node)));
+  my $type = Tree_Query::Common::GetQueryNodeType($node);
+  return $self->get_schema($self->get_schema_name_for($type));
 }
 
 sub get_schema_for_type {
   my ($self,$type)=@_;
-  my $ev = $self->init_evaluator;
-  return $ev->get_schema($ev->get_schema_name_for($type));
+  return $self->get_schema($self->get_schema_name_for($type));
 }
 
 sub get_type_decl_for_query_node {
   my ($self,$node)=@_;
-  my $ev = $self->init_evaluator;
-  return $ev->get_decl_for(Tree_Query::Common::GetQueryNodeType($node));
+  return $self->get_decl_for(Tree_Query::Common::GetQueryNodeType($node));
 }
 
 #########################################
 #### Private API
+
+sub get_schema_name_for {
+  my ($self,$type)=@_;
+  if ($self->{schema_types}{$type}) {
+    return $self->{schema_types}{$type};
+  }
+  my $res = $self->request('type',[
+    type => $type,
+    format=>'text'
+  ]);
+  unless ($res->is_success) {
+    die "Couldn't resolve schema name for type $type: ".$res->status_line."\n";
+  }
+  my $name = Encode::decode_utf8($res->content,1);
+  $name=~s/\r?\n$//;
+  return $self->{schema_types}{$type} = $name || die "Did not find schema name for type $type\n";
+}
+
+sub get_schema {
+  my ($self,$name)=@_;
+  return unless $name;
+  if ($self->{schemas}{$name}) {
+    return $self->{schemas}{$name};
+  }
+  my $res = $self->request('schema',[
+    name => $name,
+   ]);
+  unless ($res->is_success) {
+    die "Failed to obtain PML schema $name ".$res->status_line."\n";;
+  }
+  return $self->{schemas}{$name} = PMLSchema->new({string => Encode::decode_utf8($res->content,1)})
+    || die "Failed to obtain PML schema $name\n";
+}
+
+sub get_decl_for {
+  my ($self,$type)=@_;
+  return unless $type;
+  return $self->{type_decls}{$type} ||= Tree_Query::Common::QueryTypeToDecl($type,$self->get_schema($self->get_schema_name_for($type)));
+}
+
+sub request {
+  my ($self,$type,$data)=@_;
+  my $cfg = $self->{config}{data};
+  my $url = $cfg->{url};
+  $url.='/' unless $url=~m{/};
+  if (ref $data) {
+    $data = [ map { Encode::_utf8_off($_); $_ } @$data ];
+  } elsif (defined $data) {
+    Encode::_utf8_off($data);
+  }
+  return $ua->request(POST(qq{${url}${type}}, $data));
+}
 
 sub init {
   my ($self,$config_file,$id)=@_;
@@ -296,7 +339,7 @@ sub init {
   my $cfgs = $self->{config}{pml}->get_root->{configurations};
   my $cfg_type = $self->{config}{type};
   if (!$id) {
-    my @opts = ((map { $_->value->{id} } grep { $_->name eq 'dbi' } SeqV($cfgs)),' CREATE NEW ');
+    my @opts = ((map { $_->{id} } map $_->value, grep $_->name eq 'http', SeqV($cfgs)),' CREATE NEW ');
     my @sel= $configuration ? $configuration->{id} : @opts ? $opts[0] : ();
     ListQuery('Select treebase connection',
 			 'browse',
@@ -309,11 +352,11 @@ sub init {
   if ($id eq ' CREATE NEW ') {
     $cfg = Fslib::Struct->new();
     GUI() && EditAttribute($cfg,'',$cfg_type) || return;
-    $cfgs->push_element('dbi',$cfg);
+    $cfgs->append($cfg);
     $self->{config}{pml}->save();
     $id = $cfg->{id};
   } else {
-    $cfg = first { $_->{id} eq $id } map $_->value, grep { $_->name eq 'dbi' } SeqV($cfgs);
+    $cfg = first { $_->{id} eq $id } map $_->value, grep $_->name eq 'http', SeqV($cfgs);
     die "Didn't find configuration '$id'" unless $cfg;
   }
   $self->{config}{id} = $id;
@@ -328,28 +371,6 @@ sub init {
   $self->{config}{data} = $cfg;
 }
 
-sub init_evaluator {
-  my ($self)=@_;
-  unless ($self->{evaluator}) {
-    $self->{evaluator} = Tree_Query::SQLEvaluator->new(undef,{connect => $self->{config}{data}});
-  CONNECT: {
-      eval {
-	$self->{evaluator}->connect;
-      };
-      if ($@) {
-	ErrorMessage($@);
-	if ($@ =~ /timed out/) {
-	  return;
-	}
-	GUI() && EditAttribute($self->{config}{data},'',$self->{config}{type},'password') || return;
-	$self->{config}{pml}->save();
-	redo CONNECT;
-      }
-    }
-  }
-  return $self->{evaluator};
-}
-
 
 sub filelist_name {
   my $self=shift;
@@ -358,7 +379,6 @@ sub filelist_name {
 
 sub show_result {
   my ($self,$dir)=@_;
-  return unless $self->{evaluator};
   my @save = ($this,$root,$grp);
   return unless ($self->{current_result} and $self->{last_query_nodes}
 	and @{$self->{current_result}} and @{$self->{last_query_nodes}});
@@ -398,7 +418,6 @@ sub show_result {
     } elsif ($dir eq 'current') {
       return unless $self->{current_result};
       my $idx = Index($self->{last_query_nodes},$save[0]);
-      print "IDX: $idx\n";
       if (defined($idx)) {
 	$grp=$win;
 	my $source_dir = $self->get_source_dir;
@@ -446,19 +465,41 @@ sub update_label {
 	 ($self->{next_results} ? $past+int(@{$self->{next_results}}) : $past).'+';
 }
 
+sub idx_to_pos {
+  my ($self,$idx_list)=@_;
+  my @res;
+  my @list=@$idx_list;
+  while (@list) {
+    my ($idx,$type)=(shift @list, shift @list);
+    my $res = $self->request('node',
+		   [ idx=>$idx,
+		     type=>$type,
+		     format=>'text',
+		   ]);
+    unless ($res->is_success) {
+      die "Failed to resolve $type $idx ".$res->status_line."\n";;
+    }
+    my $f = $res->content;
+    $f=~s/\r?\n$//;
+    print "$f\n";
+    push @res, $f;
+  }
+  return @res;
+}
+
 # registered open_file_hook
 # called by Open to translate URLs of the
 # form pmltq//table/idx/table/idx ....  to a list of file positions
 # and opens the first of the them
 sub open_pmltq {
   my ($self,$filename,$opts)=@_;
-  print "$filename\n";
   my $object_id=$self->{object_id};
   return unless $filename=~s{pmltq://$object_id/}{};
-  my @positions = $self->{evaluator}->idx_to_pos([split m{/}, $filename]);
+  my @positions = $self->idx_to_pos([split m{/}, $filename]);
+  print "$filename: @positions\n";
   $self->{current_result}=\@positions;
   my ($node) = map { CurrentNodeInOtherWindow($_) }
-              grep { CurrentContextForWindow($_) eq 'Tree_Query' } TrEdWindows();
+              grep { CurrentContextForWindow($_) eq __PACKAGE__ } TrEdWindows();
   my $idx = Index($self->{last_query_nodes},$node);
   my $first = $positions[$idx||0];
   if (defined $first and length $first) {
@@ -480,18 +521,10 @@ sub open_pmltq {
 
 sub get_source_dir {
   my ($self)=@_;
-  my $conf = $self->{config}{data};
-  my $source_dir = $conf->{sources};
-  unless ($source_dir) {
-    if (GUI()) {
-      EditAttribute($conf,'sources',
-		    $self->{config}{type},
-		   ) || return;
-      $self->{config}{pml}->save();
-      $source_dir = $conf->{sources};
-    }
-  }
-  return $source_dir;
+  my $cfg = $self->{config}{data};
+  my $url = $cfg->{url};
+  $url.='/' unless $url=~m{/};
+  return qq{${url}file?f=};
 }
 
 sub load_config_file {
@@ -531,8 +564,8 @@ sub get_query_nodes {
 
 
 my ($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown');
-$DEFAULTS{dbi_config} = <<"EOF";
-<dbi xmlns="http://ufal.mff.cuni.cz/pdt/pml/">
+$DEFAULTS{pmltq_config} = <<"EOF";
+<pmltq_config xmlns="http://ufal.mff.cuni.cz/pdt/pml/">
   <head>
     <schema href="treebase_conf_schema.xml"/>
   </head>
@@ -540,24 +573,29 @@ $DEFAULTS{dbi_config} = <<"EOF";
   <row_limit>$DEFAULTS{row_limit}</row_limit>
   <timeout>$DEFAULTS{timeout}</timeout>
   <configurations>
-    <LM id="postgress">
+    <dbi id="postgress">
       <driver>Pg</driver>
       <host>localhost</host>
       <port>5432</port>
       <database>treebase</database>
       <username>$userlogin</username>
       <password></password>
-    </LM>
-    <LM id="oracle">
+    </dbi>
+    <dbi id="oracle">
       <driver>Oracle</driver>
       <host>localhost</host>
       <port>1521</port>
       <database>XE</database>
       <username></username>
       <password></password>
-    </LM>
+    </dbi>
+    <http id="localhost">
+      <url>http://localhost:8121/</host>
+      <username>$userlogin</username>
+      <password></password>
+    </http>
   </configurations>
-</dbi>
+</pmltq_config>
 EOF
 
-} # SQL
+} # HTTP

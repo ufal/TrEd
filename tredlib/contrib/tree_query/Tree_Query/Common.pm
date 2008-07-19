@@ -73,17 +73,26 @@ sub GetQueryNodeType {
   return unless $node;
   $node=$p while (($p=$node->parent) && $node->{'#name'} !~ /^(?:node|subquery)$/);
   if ($type_mapper) {
-    return $node->{'node-type'} ||
-      ($p &&
-      ( wantarray
-	  ? (uniq map GetRelativeQueryNodeType($_,$type_mapper,SeqV($node->{relation})), GetQueryNodeType($p,$type_mapper))
-	  : GetRelativeQueryNodeType(scalar(GetQueryNodeType($p,$type_mapper)),$type_mapper,SeqV($node->{relation}))));
+    return $node->{'node-type'} || ($p
+       ? ( wantarray
+	     ? (uniq map GetRelativeQueryNodeType($_,$type_mapper,SeqV($node->{relation})), GetQueryNodeType($p,$type_mapper))
+	     : GetRelativeQueryNodeType(scalar(GetQueryNodeType($p,$type_mapper)),$type_mapper,SeqV($node->{relation})))
+       : do {
+	 my $t = $type_mapper->get_node_types;
+	 wantarray ? @$t : ( @$t==1 ? $t->[0] : ());
+       }
+      );
   } else {
     return $node->{'node-type'} || $node->root->{'node-type'};
   }
 }
 
 
+sub DeclToQueryType {
+  my ($decl)=@_;
+  $decl = $decl->get_content_decl if $decl->get_decl_type == PML_ELEMENT_DECL;
+  return DeclPathToQueryType( $decl->get_decl_path );
+}
 sub DeclPathToQueryType {
   my ($path) = @_;
   return unless defined $path;
@@ -106,7 +115,7 @@ my %type = (
   ':user-defined:a/lex.rf' => 'a-node',
   ':user-defined:a/aux.rf' => 'a-node',
   ':user-defined:a/lex.rf|a/aux.rf' => 'a-node',
-  ':user-defined:val_frame.rf' => 'frame',
+  ':user-defined:val_frame.rf' => 'v-frame',
   ':user-defined:coref_text' => 't-node',
   ':user-defined:coref_gram' => 't-node',
   ':user-defined:compl' => 't-node',
@@ -124,11 +133,10 @@ my %type = (
 sub GetRelativeQueryNodeType {
   my ($type,$type_mapper,$rel)=@_;
   $type ||= '';
-  print "type: $type\n";
   # TODO: if $type is void, we could check if there is just one node-type in the schema and return it if so
   my $name = $rel ? $rel->name : 'child';
   $name .= ':'.$rel->value->{label} if $name eq 'user-defined';
-  my $reltype = $type{$type.':'.$name} || $type{':'.$name};
+  my $reltype = $type{$type.':'.$name} || $type{':'.$name} || '#any';
   my @t;
   if ($reltype eq '#same') {
     return $type ? $type : ();
@@ -162,17 +170,16 @@ sub GetRelativeQueryNodeType {
     my $decl = QueryTypeToDecl($type,$schema);
     return unless $decl;
     @t = uniq grep {
-      first { $_==$decl } $_->get_childnodes_decls
+      first {
+	$_==$decl
+      } map { ($_->get_decl_type == PML_ELEMENT_DECL) ? $_->get_content_decl : $_ }
+      $_->get_childnodes_decls
     } $schema->node_types;
   } else {
     return $reltype;
   }
-  print @t,"\n";
-  print "wantarray", wantarray(),"\n";
   return if !wantarray and @t!=1;
-  @t = map DeclPathToQueryType( $_->get_decl_path ),
-    map { ($_->get_decl_type == PML_ELEMENT_DECL) ? $_->get_content_decl : $_ } @t;
-  print "@t\n";
+  @t = map DeclToQueryType( $_ ), @t;
   return wantarray ? @t : $t[0];
 }
 
@@ -309,7 +316,8 @@ sub tq_serialize {
   $indent||='';
   my @ret;
   my $wrap=($do_wrap||0) ? "\n$indent" : " ";
-  if (!(defined $name and length $name) and !$node->parent) {
+  $name = '' if !defined $name;
+  if (!(length $name) and !$node->parent) {
     my $desc = $node->{description}||'';
     return [
       [(length($desc) ? '#  '.$desc."\n" : ''),$node],
@@ -368,7 +376,8 @@ sub tq_serialize {
 	my $color=ref($opts->{arrow_colors}) ? $opts->{arrow_colors}{$arrow} : ();
 	push @ret,[$rel.' ',$node,($color ? ('-foreground=>'.$color) : ())];
       }
-      my $type=$node->{'node-type'}; # get_query_node_type($node);
+      my $type=$node->{'node-type'}; # 
+      $type = GetQueryNodeType($node) if !$type and $opts->{resolve_types};
       push @ret,[$type.' ',$node] if $type; #FIXME: 
       if ($node->{name}) {
 	push @ret,['$'.$node->{name},$node,'-foreground=>darkblue'],[' := ',$node];
@@ -379,7 +388,7 @@ sub tq_serialize {
 		      @{_group(\@r,[",${wrap}  "])},
 		      ["${wrap}"],[" ]",$node]);
 	} else {
-	  push @ret, (["[ ]",$node]);
+	  push @ret, (["[  ]",$node]);
 	}
       } else {
 	unshift @ret,["\n${indent}"] if $node->lbrother;
@@ -388,7 +397,7 @@ sub tq_serialize {
 	    @{_group(\@r,[", ",$node])},
 	      [" ]",$node];
 	} else {
-	  push @ret, (["[ ]",$node]);
+	  push @ret, (["[  ]",$node]);
 	}
       }
     } else {
