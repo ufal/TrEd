@@ -222,7 +222,7 @@ sub run_sql_query {
     my $step=0.05;
     my $time=0;
     eval {
-      $sth->execute();
+      $sth->execute(ref($opts->{Bind}) ? @{$opts->{Bind}} : ());
       if (defined $opts->{timeout}) {
 	while (!$sth->pg_ready) {
 	  $time+=$step;
@@ -260,10 +260,10 @@ sub run_sql_query {
 				 { mask=>[ qw( INT ALRM ) ] ,safe => 0 }
 				);
 	alarm($opts->{timeout});
-	$sth->execute();
+	$sth->execute(ref($opts->{Bind}) ? @{$opts->{Bind}} : ());
 	alarm(0);
       } else {
-	$sth->execute();
+	$sth->execute(ref($opts->{Bind}) ? @{$opts->{Bind}} : ());
       }
     };
     alarm(0);
@@ -729,8 +729,8 @@ sub get_schema_name_for {
   if ($self->{schema_types}{$type}) {
     return $self->{schema_types}{$type};
   }
-  my $t=$type; $t=~s/'/''/g;
-  my $results = $self->run_sql_query(qq(SELECT "root" FROM "#PMLTYPES" WHERE "type" = '$t' ),{ MaxRows=>1, RaiseError=>1 });
+  croak("No type!") unless defined $type;
+  my $results = $self->run_sql_query(qq(SELECT "root" FROM "#PMLTYPES" WHERE "type" = ? ),{ MaxRows=>1, RaiseError=>1, Bind=>[$type] });
   return $self->{schema_types}{$type} = $results->[0][0] || die "Did not find schema name for type $type\n";
 }
 sub get_schema {
@@ -739,9 +739,8 @@ sub get_schema {
   if ($self->{schemas}{$name}) {
     return $self->{schemas}{$name};
   }
-  my $n=$name; $n=~s/'/''/g;
-  my $results = $self->run_sql_query(qq(SELECT "schema" FROM "#PML" WHERE "root" = '$n' ),
-				     { MaxRows=>1, RaiseError=>1, LongReadLen=> 512*1024 });
+  my $results = $self->run_sql_query(qq(SELECT "schema" FROM "#PML" WHERE "root" = ? ),
+				     { MaxRows=>1, RaiseError=>1, LongReadLen=> 512*1024, Bind=>[$name] });
   unless (ref($results) and ref($results->[0]) and $results->[0][0]) {
     die "Failed to obtain PML schema $name\n";
   }
