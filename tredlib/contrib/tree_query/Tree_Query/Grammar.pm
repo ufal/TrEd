@@ -15327,7 +15327,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::FUNC
 	my %arg =        ($#arg & 01) ? @arg : (@arg, undef);
 	my $text;
 	my $lastsep="";
-    my $expectation = new Parse::RecDescent::Expectation(q{/(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\\b/});
+    my $expectation = new Parse::RecDescent::Expectation(q{/(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|tr|replace|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\\b/});
 	$expectation->at($_[1]);
 	
 	my $thisoffset;
@@ -15341,7 +15341,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::FUNC
 	while (!$_matched && !$commit)
 	{
 		
-		Parse::RecDescent::_trace(q{Trying production: [/(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\\b/]},
+		Parse::RecDescent::_trace(q{Trying production: [/(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|tr|replace|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\\b/]},
 					  Parse::RecDescent::_tracefirst($_[1]),
 					  q{FUNC},
 					  $tracelevel)
@@ -15354,7 +15354,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::FUNC
 		my $repcount = 0;
 
 
-		Parse::RecDescent::_trace(q{Trying terminal: [/(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\\b/]}, Parse::RecDescent::_tracefirst($text),
+		Parse::RecDescent::_trace(q{Trying terminal: [/(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|tr|replace|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\\b/]}, Parse::RecDescent::_tracefirst($text),
 					  q{FUNC},
 					  $tracelevel)
 						if defined $::RD_TRACE;
@@ -15362,7 +15362,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::FUNC
 		$expectation->is(q{})->at($text);
 		
 
-		unless ($text =~ s/\A($skip)/$lastsep=$1 and ""/e and   $text =~ s/\A(?:(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\b)//)
+		unless ($text =~ s/\A($skip)/$lastsep=$1 and ""/e and   $text =~ s/\A(?:(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|tr|replace|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\b)//)
 		{
 			
 			$expectation->failed();
@@ -15380,7 +15380,7 @@ sub Parse::RecDescent::Tree_Query::Grammar::FUNC
 		
 
 
-		Parse::RecDescent::_trace(q{>>Matched production: [/(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\\b/]<<},
+		Parse::RecDescent::_trace(q{>>Matched production: [/(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|tr|replace|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\\b/]<<},
 					  Parse::RecDescent::_tracefirst($text),
 					  q{FUNC},
 					  $tracelevel)
@@ -22287,9 +22287,9 @@ package Tree_Query::Grammar; sub new { my $self = bless( {
                                                                        'actcount' => 0,
                                                                        'items' => [
                                                                                     bless( {
-                                                                                             'pattern' => '(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\\b',
+                                                                                             'pattern' => '(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|tr|replace|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\\b',
                                                                                              'hashname' => '__PATTERN1__',
-                                                                                             'description' => '/(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\\\\b/',
+                                                                                             'description' => '/(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|tr|replace|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\\\\b/',
                                                                                              'lookahead' => 0,
                                                                                              'rdelim' => '/',
                                                                                              'line' => -12,

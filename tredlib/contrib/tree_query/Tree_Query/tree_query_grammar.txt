@@ -266,7 +266,7 @@
     EXTRA_RELATION: /depth-first-precedes|depth-first-follows|order-precedes|order-follows/
               { new_relation($item[1]) }
 
-    FUNC: /(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\b/
+    FUNC: /(descendants|lbrothers|rbrothers|sons|depth_first_order|depth|lower|upper|length|substr|tr|replace|ciel|floor|round|trunc|percnt|name|file|tree_no|position)\b/
 
     ANALYTIC_FUNC: /min|max|sum|avg|count|ratio/
 

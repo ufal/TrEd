@@ -957,31 +957,65 @@ sub Search {
 
 sub SelectSearch {
   my @sel;
-  ListQuery('Search',
-	    'browse',
-	    [
-	      (map { $_->identify } @SEARCHES),
-	      (map { 'Search File list: '.$_->name } TrEdFileLists()),
-	      (map { 'Search File: '.$_->filename } grep ref, map CurrentFile($_), TrEdWindows()),
-	      'Search Using PMLTQ Server',
-	      'Search Remote Treebank Database',
-	    ],
-	    \@sel
-	   ) || return;
-  return unless @sel;
-  my $sel = $sel[0];
-  my $S = GetSearch($sel);
-  unless ($S) {
-    if ($sel eq 'Search Remote Treebank Database') {
-      $S=Tree_Query::SQLSearch->new();
-    } elsif ($sel eq 'Search Using PMLTQ Server') {
-      $S=Tree_Query::HTTPSearch->new();
-    } elsif ($sel =~ /Search File: (.*)/) {
-      $S=Tree_Query::TrEdSearch->new({file => $1});
-    } elsif ($sel =~ /Search File list: (.*)/) {
-      $S=Tree_Query::TrEdSearch->new({filelist => $1});
-    }
+  require Tk::DialogReturn;
+  my $d = ToplevelFrame()->DialogBox(
+    -title => 'Select search target',
+    -default_button => undef,
+    -cancel_button=>'Cancel',
+    -buttons => ['Cancel'],
+  );
+  $d->BindEscape;
+  my ($vol,$dir)=File::Spec->splitpath([caller(0)]->[1]);
+  for my $b (['File' => 'file', 0, 0],
+	     ['File List' => 'filelist',0,1],
+	     ['SQL Database' => 'local-db',1,0],
+	     ['TreeQuery Server' => 'remote-db',1,1]) {
+    $d->add('Button',
+	    -compound=>'top',
+	    -text => $b->[0],
+	    -image => $d->Photo(
+	      -format=>'png',
+	      -file => File::Spec->catfile(File::Spec->catpath($vol,$dir),'icons',$b->[1].'.png'),
+	     ),
+	    -command => [sub { $_[0]->{selected_button}=$_[1] },$d,$b->[0]],
+	   )->grid(-column => $b->[3], -row => $b->[2]);
   }
+  my $choice = $d->Show;
+  print "$choice\n";
+  return if $choice eq 'Cancel';
+  my $file;
+  if ($choice=~/^File/) {
+    my @sel;
+    ListQuery('Search',
+	      'browse',
+	      [
+		#  (map { $_->identify } @SEARCHES),
+		$choice eq 'File' ? (map $_->filename, grep ref, map CurrentFile($_), TrEdWindows())
+		: $choice eq 'File List' ? (map $_->name, TrEdFileLists())
+		: return
+		# 		(map { 'Search File list: '.$_->name } TrEdFileLists()),
+		# 		(map { 'Search File: '.$_->filename } grep ref, map CurrentFile($_), TrEdWindows()),
+		# 		'Search Using PMLTQ Server',
+		# 		'Search Remote Treebank Database',
+	       ],
+	      \@sel
+	     ) || return;
+    return unless @sel;
+    $file = $sel[0];
+  }
+  my $S;
+  # my $S = GetSearch($sel);
+  #  unless ($S) {
+    if ($choice eq 'SQL Database') {
+      $S=Tree_Query::SQLSearch->new();
+    } elsif ($choice eq 'TreeQuery Server') {
+      $S=Tree_Query::HTTPSearch->new();
+    } elsif ($choice eq 'File') {
+      $S=Tree_Query::TrEdSearch->new({file => $file});
+    } elsif ($choice eq 'File List') {
+      $S=Tree_Query::TrEdSearch->new({filelist => $file});
+    }
+  #  }
   if ($S) {
     my $ident = $S->identify;
     @SEARCHES = grep { $_->identify ne $ident } @SEARCHES;

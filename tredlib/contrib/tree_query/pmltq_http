@@ -30,13 +30,16 @@ sub handle {
     $stdout=$c->stdout;
   }
   while ( my $line = $stdout->getline ) {
+#    print STDERR $line;
     $line=~s/\015?\012$//;
     last unless length $line;
     $res->Header($1,$2) if ($line=~/(.*?): (.*)$/);
   }
   while ( my $line = $stdout->getline ) {
+#    print STDERR $line;
     $res->Print($line);
   }
+#  print STDERR "\n\nCODE: $code\n";
   $res->Code($code);
   return $res;
 }
