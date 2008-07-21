@@ -43,6 +43,7 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
   parse_expression
   parse_column_expression
   cmp_subquery_scope
+  sort_children_by_node_type
 
   SetRelation
   GetRelationTypes

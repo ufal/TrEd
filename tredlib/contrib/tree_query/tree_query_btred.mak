@@ -1077,6 +1077,21 @@ sub claim_search_win {
 	  } else {
 	    die "Wrong arguments for function substr() in expression $opts->{expression} of node '$this_node_id'!\nUsage: substr(string,from,length?)\n";
 	  }
+
+	} elsif ($name eq 'replace') {
+	  if ($args and @$args==3) {
+	    my @args = map { $self->serialize_expression_pt($_,$opts) } @$args;
+	    return 'do{ my ($str,$from,$to) = (' .join(',', @args).'); $str=~s/\Q$from/$to/g; $str }';
+	  } else {
+	    die "Wrong arguments for function ${name}() in expression $opts->{expression} of node '$this_node_id'!\nUsage: $name(string,target,replacement)\n"
+	  }
+	} elsif ($name eq 'tr') {
+	  if ($args and @$args==3) {
+	    my @args = map { $self->serialize_expression_pt($_,$opts) } @$args;
+	    return 'do{ my ($str,$from,$to) = (' .join(',', @args).'); $from=~s{/}{\\/}g; $to=~s{/}{\\/}g; eval qq{$str=~tr/$from/$to/}; $str; }';
+	  } else {
+	    die "Wrong arguments for function ${name}() in expression $opts->{expression} of node '$this_node_id'!\nUsage: $name(string,from_chars,to_chars)\n"
+	  }
 	}
       } elsif ($type eq 'EXP') {
 	my $out.='(';
