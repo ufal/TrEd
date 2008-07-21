@@ -96,11 +96,11 @@ sub search_first {
   my $t1 = new Benchmark;
   my $time = timestr(timediff($t1,$t0));
   unless ($opts->{quiet}) {
-    my $id = root->{id} || '*';
+    my $id = $root->{id} || '*';
     print STDERR "$id\t".$self->identify."\t$time\n";
   }
   unless ($res->is_success) {
-    ErrorMessage($res->status_line, "\n");
+    ErrorMessage($res->status_line, "\n".$res->content);
     return;
   }
   my $results = [ map { [ split /\t/, $_ ] } split /\r?\n/, Encode::decode_utf8($res->content,1) ];

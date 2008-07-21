@@ -961,6 +961,17 @@ sub serialize_expression_pt {# pt stands for parse tree
 	} else {
 	  die "Wrong arguments for function ${name}() in expression $opts->{expression} of node '$this_node_id'!\nUsage: substr(string,from,length?)\n";
 	}
+      } elsif ($name=~/(?:replace|tr)$/) {
+	if ($args and @$args==3) {
+	  my @args = map { $self->serialize_expression_pt($_,$opts,$extra_joins) } @$args;
+	  return ($name eq 'tr' ? 'TRANSLATE' : uc($name) ).'('
+	    .  join(',', @args)
+	      . ')';
+	} else {
+	  die "Wrong arguments for function ${name}() in expression $opts->{expression} of node '$this_node_id'!\nUsage: $name".
+	    ($name eq 'replace' ? "(string,target,replacement)\n"
+	                        : "(string,from_chars,to_chars)\n");
+	}
       }
     } elsif ($type eq 'ANALYTIC_FUNC') {
       my $name = shift @$pt;

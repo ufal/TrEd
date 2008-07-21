@@ -143,6 +143,9 @@ sub resp_query {
 	} @$_)."\n";
       }
     } else {
+      print $cgi->header(-type=>'text/plain',
+			 -charset=>'utf-8',
+			);
       print $results;
       return 500;
     }
