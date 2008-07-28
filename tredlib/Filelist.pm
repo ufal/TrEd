@@ -299,17 +299,17 @@ list of filenames
 sub expand {
   my $self = shift;
   return unless ref($self);
-  @{ $self->files_ref }=();
+  my $fr = $self->files_ref;
+  my $lr = $self->list_ref;
+  @$fr=();
   foreach my $i (0..$self->count-1) {
-    my $f = $self->list_ref->[$i];
-    push @{ $self->files_ref },
+    my $f = $lr->[$i];
+    push @$fr,
       ($f=~m/[\[\{\*\?]/ and $f!~m{^[[:alnum:]]+://}) ?
 	(map { [$_,$i] } glob($f)) : [$f,$i];
   }
-
   my %saw;
-  @{ $self->files_ref } = grep( ref($_) && $_->[0] ne "" && !$saw{$_->[0]}++, @{ $self->files_ref } );
-
+  @$fr = grep( ref($_) && $_->[0] ne "" && !$saw{$_->[0]}++, @$fr );
   return 1;
 }
 
@@ -405,18 +405,42 @@ sub add {
 
   # never add elements already present here or in files
   # and add each element once only
-  @_=grep {defined($_) and $_ ne ""} @_;
-  do {
+  {
+    my $lr = $self->list_ref;
     my %saw;
-    $saw{$_}=1 for (@{ $self->list_ref },(map {$_->[0]} @{ $self->files_ref }));
-    @_=grep{ !($saw{$_}++) } @_;
-  };
-  splice @{ $self->list_ref },$position,0,@_;
+    $saw{$_}=1 for (@$lr, map($_->[0], @$lr));
+    splice @$lr,$position,0, grep !($saw{$_}++), grep defined($_) && $_ ne "", @_;
+  }
   $self->expand();
   return 1;
 }
 
 =pod
+
+=item add_arrayref (position, patterns_arrayref)
+
+Insert patterns from a given ARRAYREF on the given position in the list and update
+file-list
+
+=cut
+
+sub add_arrayref {
+  my ($self,$position,$list)=@_;
+  return unless ref($self);
+
+  # never add elements already present here or in files
+  # and add each element once only
+  my $lr = $self->list_ref;
+  {
+    my %saw;
+    $saw{$_}=1 for (@$lr,map($_->[0], @$lr));
+    splice @$lr, $position,0, grep !($saw{$_}++), grep defined($_) && $_ ne "", @$list;
+  }
+  $self->expand();
+  return 1;
+}
+
+
 
 =item remove (patterns+)
 
