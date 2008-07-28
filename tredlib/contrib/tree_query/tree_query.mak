@@ -104,6 +104,13 @@ Bind 'Search' => {
   changing_file => 0,
 };
 
+Bind sub { Search({no_filters=>1}) } => {
+  key => 'Shift+space',
+  menu => 'Run query without output filters',
+  changing_file => 0,
+};
+
+
 Bind sub {  $SEARCH && $SEARCH->show_current_result } => {
   key => 'm',
   menu => 'Show Match',
@@ -673,7 +680,6 @@ sub AssignType {
   return unless $SEARCH;
   return unless !$node->parent || $node->{'#name'}=~/^(?:node|subquery)$/;
   my @types = Tree_Query::Common::GetQueryNodeType($node,$SEARCH);
-  print "@types\n";
   if (@types <= 1) {
     $node->{'node-type'} = $types[0];
   } else {
@@ -846,7 +852,6 @@ sub node_release_hook {
     return 'stop' unless $target_type =~/^(?:node|subquery)$/
       and $type =~/^(?:node|subquery|ref)$/;
     return 'stop' if cmp_subquery_scope($node,$target)<0;
-    print "here\n";
     my @sel = map {
       my $name = $_->name;
       if ($name eq 'user-defined') {
@@ -945,13 +950,15 @@ sub GetSearch {
 }
 
 sub Search {
+  shift unless ref($_[0]);
+  my $opts=$_[0] || {};
   unless ($SEARCH) {
     SelectSearch() || return;
   }
   if (UNIVERSAL::isa($SEARCH,'Tree_Query::SQLSearch')) {
-    $SEARCH->search_first({edit_sql=>1});
+    $SEARCH->search_first({%$opts});
   } else {
-    $SEARCH->search_first();
+    $SEARCH->search_first($opts);
   }
 }
 
@@ -960,28 +967,41 @@ sub SelectSearch {
   require Tk::DialogReturn;
   my $d = ToplevelFrame()->DialogBox(
     -title => 'Select search target',
-    -default_button => undef,
     -cancel_button=>'Cancel',
     -buttons => ['Cancel'],
   );
   $d->BindEscape;
   my ($vol,$dir)=File::Spec->splitpath([caller(0)]->[1]);
+  my @b;
   for my $b (['File' => 'file', 0, 0],
 	     ['File List' => 'filelist',0,1],
-	     ['SQL Database' => 'local-db',1,0],
-	     ['TreeQuery Server' => 'remote-db',1,1]) {
-    $d->add('Button',
+	     ['TreeQuery Server' => 'remote-db',1,0],
+	     ['SQL Database' => 'local-db',1,1],
+	    ) {
+    my $but = $d->add('Button',
 	    -compound=>'top',
 	    -text => $b->[0],
 	    -image => $d->Photo(
 	      -format=>'png',
 	      -file => File::Spec->catfile(File::Spec->catpath($vol,$dir),'icons',$b->[1].'.png'),
 	     ),
+	    -highlightthickness => 3,
 	    -command => [sub { $_[0]->{selected_button}=$_[1] },$d,$b->[0]],
-	   )->grid(-column => $b->[3], -row => $b->[2]);
+	   );
+    $but->grid(-column => $b->[3], -row => $b->[2]);
+    $but->bind($d,'<Return>'=>'Invoke');
+    push @b,$but;
   }
+  for (0..$#b) {
+    $b[$_]->bind('<Right>',[$b[ ($_+1) % (0+@b) ],'focus']);
+    $b[$_]->bind('<Left>',[$b[ $_-1 ],'focus']);
+    $b[$_]->bind('<Down>',[$b[ [2,3,1,0]->[$_] ],'focus']);
+    $b[$_]->bind('<Up>',[$b[ [3,2,0,1]->[$_] ],'focus']);
+
+  }
+
+  $d->configure(-focus=>$b[0]);
   my $choice = $d->Show;
-  print "$choice\n";
   return if $choice eq 'Cancel';
   my $file;
   if ($choice=~/^File/) {

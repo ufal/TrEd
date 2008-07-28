@@ -153,7 +153,7 @@ sub search_first {
       my @files = map {
 	'pmltq://'.join('/',$self->{object_id},@$_)
       } @$results;
-      $fl->add(0, @files);
+      $fl->add_arrayref(0, \@files);
       my @context=($this,$root,$grp);
       CloseFileInWindow($res_win);
       $grp=$res_win;
