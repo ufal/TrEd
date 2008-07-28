@@ -14,6 +14,7 @@ use warnings;
 use Scalar::Util qw(weaken);
 use HTTP::Request::Common;
 use LWP::UserAgent;
+use File::Temp;
 use Encode;
 
 BEGIN { import TredMacro  }
@@ -82,17 +83,26 @@ sub search_first {
   $opts||={};
   my $query = $self->{query} = $opts->{query} || $root;
   $self->{last_query_nodes} = [Tree_Query::Common::FilterQueryNodes($query)];
-  $query = Tree_Query::Common::as_text($query,{resolve_types=>1}) if ref($query);
+  $query = Tree_Query::Common::as_text($query,{
+    resolve_types=>1,
+    no_filters => $opts->{no_filters},
+  }) if ref($query);
   my ($limit, $row_limit, $timeout) = map { int($opts->{$_}||$self->{config}{pml}->get_root->get_member($_)||0)||$DEFAULTS{$_} }
     qw(limit row_limit timeout);
   my $t0 = new Benchmark;
+
+  my $tmp = File::Temp->new( TEMPLATE => 'pmltq_XXXXX',
+			     UNLINK => 0,
+			     SUFFIX => '.txt' );
   my $res = $self->request(query => [
     query => $query,
     format => 'text',
     limit => $limit,
     row_limit => $row_limit,
     timeout => $timeout,
-   ]);
+   ],
+   $tmp->filename,
+  );
   my $t1 = new Benchmark;
   my $time = timestr(timediff($t1,$t0));
   unless ($opts->{quiet}) {
@@ -100,10 +110,20 @@ sub search_first {
     print STDERR "$id\t".$self->identify."\t$time\n";
   }
   unless ($res->is_success) {
-    ErrorMessage($res->status_line, "\n".$res->content);
+    local $/;
+    ErrorMessage($res->status_line, "\n".<$tmp>);
     return;
   }
-  my $results = [ map { [ split /\t/, $_ ] } split /\r?\n/, Encode::decode_utf8($res->content,1) ];
+  $t0 = new Benchmark;
+  binmode $tmp, ':utf8';
+  my $results = [ map { [ split /\t/, $_ ] }
+		  <$tmp>
+#		    split /\r?\n/, Encode::decode_utf8($res->content,0) 
+		];
+#  unlink $tmp;
+  close $tmp;
+  $t1 = new Benchmark;
+  print STDERR "Decoding results took ",timestr(timediff($t1,$t0)),"\n";
   my $matches = @$results;
   if ($matches) {
     my $returns_nodes=$res->header('Pmltq-returns-nodes');
@@ -142,7 +162,7 @@ sub search_first {
       my @files = map {
 	'pmltq://'.join('/',$self->{object_id},@$_)
       } @$results;
-      $fl->add(0, @files);
+      $fl->add_arrayref(0, \@files);
       my @context=($this,$root,$grp);
       CloseFileInWindow($res_win);
       $grp=$res_win;
@@ -320,7 +340,7 @@ sub get_decl_for {
 }
 
 sub request {
-  my ($self,$type,$data)=@_;
+  my ($self,$type,$data,$out_file)=@_;
   my $cfg = $self->{config}{data};
   my $url = $cfg->{url};
   $url.='/' unless $url=~m{/};
@@ -329,7 +349,7 @@ sub request {
   } elsif (defined $data) {
     Encode::_utf8_off($data);
   }
-  return $ua->request(POST(qq{${url}${type}}, $data));
+  return $ua->request(POST(qq{${url}${type}}, $data),$out_file ? $out_file : ());
 }
 
 sub init {
@@ -352,7 +372,7 @@ sub init {
   if ($id eq ' CREATE NEW ') {
     $cfg = Fslib::Struct->new();
     GUI() && EditAttribute($cfg,'',$cfg_type) || return;
-    $cfgs->append($cfg);
+    $cfgs->push_element('http',$cfg);
     $self->{config}{pml}->save();
     $id = $cfg->{id};
   } else {
@@ -548,7 +568,7 @@ sub load_config_file {
       }
     }
   }
-  $self->{config}{type} = $self->{config}{pml}->get_schema->get_type_by_name('dbi-config.type')->get_content_decl;
+  $self->{config}{type} = $self->{config}{pml}->get_schema->get_type_by_name('http-config.type')->get_content_decl;
   return $self->{config}{pml};
 }
 
