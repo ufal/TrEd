@@ -335,15 +335,15 @@ if ($]>=5.008) {
     $locale_charset = I18N::Langinfo::langinfo(I18N::Langinfo::CODESET());
   };
 }
+require Encode;
 
 sub conv_from_locale {
   my ($str)=@_;
-  if ($locale_charset and $TrEd::Convert::support_unicode) {
-    require Encode;
-    return Encode::decode($locale_charset,$str);
-  } else {
-    return $str;
-  }
+#  if ($locale_charset and $TrEd::Convert::support_unicode) {
+  return Encode::decode($locale_charset,$str);
+#  } else {
+#    return $str;
+#  }
 }
 
 # These are used only in macros and hooks!!!
@@ -1230,7 +1230,13 @@ sub startMain {
 		   $start_context ? () : ("context|t=s")));
       $context = $grp->{macroContext} = defined($start_context) ? $start_context : 'TredMacro';
     }
-
+    if ($term_encoding) {
+      $code=Encode::decode($term_encoding,$code);
+      $initial_code=Encode::decode($term_encoding,$initial_code);
+    } elsif ($code=~/[^[:ascii:]]/ and $locale_charset) {
+      $code=Encode::decode($locale_charset,$code);
+      $initial_code=Encode::decode($locale_charset,$initial_code);
+    }
     $code||="autostart()"; # this is the default macro name
     init_safe_mode($grp) if $safe;
     my $pre='';
