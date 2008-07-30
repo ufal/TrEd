@@ -562,7 +562,7 @@ sub load_config_file {
 	my $tred_d = File::Spec->catfile($ENV{HOME},'.tred.d');
 	mkdir $tred_d unless -d $tred_d;
 	$config_file = File::Spec->catfile($tred_d,'treebase.conf');
-	$self->{config}{pml} = PMLInstance->load({ string => $DEFAULTS{dbi_config},
+	$self->{config}{pml} = PMLInstance->load({ string => $DEFAULTS{pmltq_config},
 					      filename=> $config_file});
 	$self->{config}{pml}->save();
       }
@@ -593,27 +593,13 @@ $DEFAULTS{pmltq_config} = <<"EOF";
   <row_limit>$DEFAULTS{row_limit}</row_limit>
   <timeout>$DEFAULTS{timeout}</timeout>
   <configurations>
-    <dbi id="postgress">
-      <driver>Pg</driver>
-      <host>localhost</host>
-      <port>5432</port>
-      <database>treebase</database>
-      <username>$userlogin</username>
-      <password></password>
-    </dbi>
-    <dbi id="oracle">
-      <driver>Oracle</driver>
-      <host>localhost</host>
-      <port>1521</port>
-      <database>XE</database>
-      <username></username>
-      <password></password>
-    </dbi>
+<!--
     <http id="localhost">
       <url>http://localhost:8121/</host>
       <username>$userlogin</username>
       <password></password>
     </http>
+-->
   </configurations>
 </pmltq_config>
 EOF
