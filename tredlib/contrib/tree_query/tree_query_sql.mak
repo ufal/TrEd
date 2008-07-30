@@ -533,7 +533,7 @@ sub get_query_nodes {
 
 my ($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown');
 $DEFAULTS{dbi_config} = <<"EOF";
-<dbi xmlns="http://ufal.mff.cuni.cz/pdt/pml/">
+<pmltq_config xmlns="http://ufal.mff.cuni.cz/pdt/pml/">
   <head>
     <schema href="treebase_conf_schema.xml"/>
   </head>
@@ -541,24 +541,8 @@ $DEFAULTS{dbi_config} = <<"EOF";
   <row_limit>$DEFAULTS{row_limit}</row_limit>
   <timeout>$DEFAULTS{timeout}</timeout>
   <configurations>
-    <LM id="postgress">
-      <driver>Pg</driver>
-      <host>localhost</host>
-      <port>5432</port>
-      <database>treebase</database>
-      <username>$userlogin</username>
-      <password></password>
-    </LM>
-    <LM id="oracle">
-      <driver>Oracle</driver>
-      <host>localhost</host>
-      <port>1521</port>
-      <database>XE</database>
-      <username></username>
-      <password></password>
-    </LM>
   </configurations>
-</dbi>
+</pmltq_config>
 EOF
 
 } # SQL
