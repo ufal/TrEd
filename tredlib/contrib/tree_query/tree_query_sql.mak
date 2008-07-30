@@ -86,6 +86,7 @@ sub search_first {
     $self->{evaluator}->prepare_query($query,{
       node_limit => $limit,
       row_limit => $row_limit,
+      no_filters => $opts->{no_filters},
     });
   };
   if ($@) {

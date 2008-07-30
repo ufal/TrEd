@@ -116,7 +116,7 @@ sub search_first {
   }
   $t0 = new Benchmark;
   binmode $tmp, ':utf8';
-  my $results = [ map { [ split /\t/, $_ ] }
+  my $results = [ map { chomp; [ split /\t/, $_ ] }
 		  <$tmp>
 #		    split /\r?\n/, Encode::decode_utf8($res->content,0) 
 		];
