@@ -25,6 +25,16 @@
       <member name="username"><cdata format="NMTOKEN"/></member>
       <member name="password"><cdata format="any"/></member>
       <member name="sources"><cdata format="anyURI"/></member>
+      <member name="environment">
+        <list>
+	  <container>
+	    <attribute name="name" required="1">
+	      <cdata format="NMTOKEN"/>
+	    </attribute>
+	    <cdata format="any"/>
+	  </container>
+	</list>
+      </member>
     </structure>
   </type>
   <type name="http-config.type">
