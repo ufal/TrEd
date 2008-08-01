@@ -16,7 +16,7 @@
 # colored nodes in the result tree
 
 # check if we can search for non-projective edges
-
+#
 # relations/attributes from external tables:
 # tables:
 # - T            (tree structure)
@@ -30,22 +30,7 @@
 # relations of tgrep2
 #
 #
-# - turn current EVALUATOR to a wrapper 
-#   called e.g. ResultBrowser. Then Evaluator does not need
-# ResultBrowser classes will implement a common interface 
-#
-#   - Configure
-#   - SearchFirst
-#   - ShowNextResult
-#   - ShowPrevResult
-#   - ShowCurrentNode
-#   - HighlightCurrentNode
-#
-#  one class for SQLEavaluator, one for BtredEvaluator. In the future,
-#  one for NtredEvaluator. I might also atttempt some day to write a
-#  pure DOM/XPath-based PMLEvaluator using the same algorithm as
-#  in BtredEvaluator, only reimplementing iterators, relations and attr().
-#
+
 package Tree_Query::Common; # so that it gets reloaded
 package Tree_Query::SQLEvaluator; # so that it gets reloaded
 package Tree_Query;
@@ -185,9 +170,8 @@ Bind sub {
 Bind sub {
   my $node=$this;
   ChangingFile(0);
-  return if !$node->parent or
-    $node->parent->{'#name'} !~ /^(?:not|or)$/;
-  my $and = NewParent();
+  return unless $node->parent and $node->{'#name'} =~ /^(?:not|or)$/;
+  my $and = NewSon();
   $and->{'#name'}='and';
   DetermineNodeType($and);
   $this=$node;
@@ -255,32 +239,14 @@ Bind sub {
   menu => 'Toggle optional',
 };
 
-Bind sub {
-  my $new;
-  my $node=$this;
-  ChangingFile(0);
-  if ($node->{'#name'}=~/^(?:node|subquery|and|or|not)$/) {
-    $new=NewSon();
-  } elsif ($node->{'#name'}=~/^(?:test|ref)$/) {
-    $new=NewRBrother();
-  } else {
-    return;
-  }
-  $new->{'#name'}='test';
-  $new->{operator}='=';
-  DetermineNodeType($new);
-  if (EditAttribute($new,undef,undef,'a')) {
-#     $node->{'.unhide'}=1;
-    $this=$new;
-  } else {
-    DeleteLeafNode($new);
-    $this=$node;
-    return;
-  }
-  ChangingFile(1);
-} => {
+Bind 'NewTest' => {
   key => '=',
-  menu => 'Add a constraint test',
+  menu => 'Add a equality test',
+};
+
+Bind sub { NewTest('~') } => {
+  key => '~',
+  menu => 'Add a regexp test',
 };
 
 Bind AssignRelation => {
@@ -332,7 +298,14 @@ Bind sub {
 Bind sub {
   my $node=$this;
   return unless $node;
-  my $p=$node->parent && $node->parent->parent;
+  unless ($node->parent) {
+    return if $node->firstson
+      and (QuestionQuery("Really delete tree?",
+			 "Do you want to delete the whole query tree?",
+			 "Delete","Cancel") ne 'Delete');
+    DestroyTree();
+  }
+  my $p = $node->parent && $node->parent->parent;
   if ($node->{'#name'} =~ /^(?:node|subquery)/) {
     DeleteSubtree($_) for grep { !($_->{'#name'} eq 'node'
 				     or ($p && $_->{'#name'} eq 'subquery')) }
@@ -355,6 +328,9 @@ Bind sub {
   } elsif ($node->{'$name'}=~/^(?:test|ref)/) {
     $new = NewRBrother();
     $new->{'#name'}=$node->{'#name'};
+    DetermineNodeType($new);
+  } else {
+    $new = NewSon();
     DetermineNodeType($new);
   }
   if ($new) {
@@ -382,7 +358,12 @@ Bind sub {
   unless ($SEARCH) {
     SelectSearch()||return;
   }
-  $SEARCH->configure;
+  if ($SEARCH->configure) {
+    for (@SEARCHES) {
+      eval { $_->reconfigure } ; # various searches may share the same config file
+      ErrorMessage("$@") if $@;
+    }
+  }
 } => {
   key => 'C',
   menu => 'Configure search engine',
@@ -393,6 +374,12 @@ Bind sub {
 #include <contrib/support/extra_edit.inc>
 #include <contrib/support/arrows.inc>
 
+#unbind-key Alt+N
+#remove-menu New tree
+#unbind-key Alt+T
+#remove-menu Trim (remove all but current subtree)
+
+#bind new_tree_after CTRL+N menu New tree
 
 # Setup context
 unshift @TredMacro::AUTO_CONTEXT_GUESSING,
@@ -508,6 +495,8 @@ sub DefaultQueryFile {
 }
 
 sub NewQuery {
+  SelectSearch() || return;
+
   use POSIX;
   my $id = POSIX::strftime('q-%y-%m-%d_%H%M%S', localtime());
   my $filename = DefaultQueryFile();
@@ -549,7 +538,6 @@ END
   }
   GotoTree(scalar(GetTrees));
   DetermineNodeType(NewTreeAfter()) if ($root->children);
-  SelectSearch();
 }
 
 
@@ -561,8 +549,18 @@ sub get_query_node_schema {
   return $schema_map{$table};
 }
 
+sub attr_validate_hook {
+  my ($txt,$attr_path,$node)=@_;
+  if ($node->{'#name'} eq 'test' and $attr_path eq 'a' or $attr_path eq 'b') {
+    eval { query_parser()->parse_flat_expression($txt) };
+    return $@ ? 0 : 1
+  }
+  return 1;
+}
+
 sub attr_choices_hook {
   my ($attr_path,$node,undef,$editor)=@_;
+  return unless UNIVERSAL::isa($node,'FSNode');
   if ($node->{'#name'} eq 'ref' and $attr_path eq 'target') {
     return [
       grep { defined && length }
@@ -659,7 +657,7 @@ sub GetNodeName {
 sub AssignRelation {
   shift unless ref $_[0];
   my $node = $_[0] || $this;
-  return unless $node->{'#name'} =~ /^(node|subquery|ref)$/;
+  return unless $node->{'#name'} =~ /^(node|subquery)$/ or ($node->{'#name'} eq 'ref' and $node->{target});
   unless (SeqV($node->{relation})) {
     my @sel='child';
     ListQuery('Select relation of the current node to its parent',
@@ -702,16 +700,11 @@ sub AssignType {
 # returns -1 otherwise
 
 
-sub root_style_hook {
-  DrawArrows_init();
-  init_id_map($root);
-}
-sub after_redraw_hook {
-  DrawArrows_cleanup();
-}
 my %color = (
-  'depth-first-precedes' => 'green',
+  'depth-first-precedes' => 'red3',
+  'depth-first-follows' => 'red4',
   'order-precedes' => 'orange',
+  'order-follows' => 'orange3',
   'a/lex.rf' => 'violet',
   'a/aux.rf' => 'thistle',
   'a/lex.rf|a/aux.rf' => 'tan',
@@ -728,7 +721,9 @@ my %color = (
 );
 my %arrow = (
   'depth-first-precedes' => 'first',
+  'depth-first-follows' => 'first',
   'order-precedes' => 'first',
+  'order-follows' => 'first',
   'a/lex.rf' => 'first',
   'a/aux.rf' => 'first',
   'a/lex.rf|a/aux.rf' => 'first',
@@ -776,11 +771,116 @@ sub arrow {
 sub get_nodelist_hook {
   my ($fsfile,$tree_no,$prevcurrent,$show_hidden)=@_;
   my $tree = $fsfile->tree($tree_no);
-  my @nodes = ($tree, grep {
-    my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } ($_,$_->ancestors);
-    ($qn->{'.unhide'} || $show_hidden) || ($_->{'#name'} =~ /^(?:node|subquery)$/)
-  } $tree->descendants);
+  my @nodes=($tree);
+  my $node = $tree->firstson;
+  my $show=$show_hidden;
+  my $next;
+  while ($node) {
+    if ($node->{'#name'} =~ /^(?:node|subquery)$/) {
+      push @nodes,$node;
+      $next=$node->firstson;
+      if ($next) {
+	$show = $show_hidden||$node->{'.unhide'};
+      } else {
+	$next=$node->following_right_or_up;
+      }
+    } else {
+      if ($show) {
+	push @nodes,$node;
+	$next=$node->following;
+      } else {
+	$next=$node->following_right_or_up;
+      }
+    }
+    $node=$next;
+  }
   return [\@nodes,$prevcurrent];
+}
+
+my %legend;
+
+sub root_style_hook {
+  my ($root,$styles,$Opts)=@_;
+  DrawArrows_init();
+  init_id_map($root);
+  %legend=();
+  my @nodes = GetDisplayedNodes();
+  my $hv = HiddenVisible();
+  for my $node (@nodes) {
+    my @refs;
+    my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } ($node,$node->ancestors);
+    my $showHidden = $qn->{'.unhide'} || $hv;
+    @refs = ($node) if $node->{'#name'} =~ /^(?:node|subquery|ref)$/;
+    unless ($showHidden) {
+      push @refs, grep { $_->{'#name'} eq 'ref' }
+	map { $_->{'#name'} eq 'not' ? $_->children : $_ }
+	  $node->children;
+    }
+    for my $n (@refs) {
+      my ($rel) = map {
+	my $name = $_->name;
+	$name eq 'user-defined' ? $_->value->{label} : $name
+      } SeqV($n->{relation});
+      next unless $rel;
+      if ($n!=$node and $n->parent->{'#name'} eq 'not') {
+	$legend{'! '.$rel}=1
+      } else {
+	$legend{$rel}=1
+      }
+    }
+  }
+#  use Data::Dumper;
+#  print Dumper(\%legend);
+  my $tv = $grp->treeView;
+  my $fh=$tv->getFontHeight;
+  $tv->realcanvas->delete('legend');
+  my $scale=$tv->scale_factor();
+  $Opts->{baseYPos}+= $scale*(20 + $fh * (keys(%legend)
+					    +
+					  ($SEARCH ? 0 : 3)
+					 ) );
+}
+sub after_redraw_hook {
+  DrawArrows_cleanup();
+
+  return if $SEARCH and !keys(%legend);
+  my $tv = $grp->treeView;
+  my $scale=$tv->scale_factor();
+  my $c=$tv->realcanvas;
+  my $fh = $grp->treeView->getFontHeight;
+  my $y=$scale * 10;
+  unless ($SEARCH) {
+    $c->createText($scale * 15, $y,
+		   -font => ($tv->get_scaled_font || $tv->get_font),
+		   -text=> qq{NO SEARCH ENGINE SELECTED!\nEditing features will be limited. Press 'c' to select a search engine.},
+		   -anchor=>'nw',
+		   -tags=>['legend','text_item'] );
+    $y+=$scale * 3* $fh;
+  }
+  for my $r ( sort keys %legend ) {
+    my ($negate,$name) = ($r=~/^(!?\s*)(\S+)/);
+    $c->createLine($scale * 75, $y, $scale * 15, $y,
+		   -fill => $color{$name},
+		   -width => 3*$scale,
+		   (-dash => $negate ? '-' : ''),
+		   -arrow => $arrow{$name},
+		   -tags => ['scale_width','legend']
+		  );
+    $c->createText($scale * 85, $y, -font => ($tv->get_scaled_font || $tv->get_font),
+		   # -fill => $color{$name},
+		   -text=> $r, -anchor=>'w', -tags=>['legend','text_item'] );
+    $y+=$scale * $fh;
+  }
+  my @b = $c->bbox('legend');
+  print join ",",@b,"\n";
+  $c->lower(
+    $c->createRectangle(
+      $b[0]-$scale * 5,$b[1],$b[2]+ $scale * 5,$b[3],
+      -fill => 'lightyellow',
+      -tags=>['legend'],
+  ),'legend');
+
+  %legend=();
 }
 
 sub node_style_hook {
@@ -788,7 +888,7 @@ sub node_style_hook {
   my $i=0;
   my @refs;
   my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } ($node,$node->ancestors);
-  my $showHidden = $qn->{'.unhide'} or HiddenVisible();
+  my $showHidden = $qn->{'.unhide'} || HiddenVisible();
   if ($showHidden) {
     @refs=($node) if $node->{'#name'} eq 'ref';
   } else {
@@ -855,15 +955,15 @@ sub node_release_hook {
     my @sel = map {
       my $name = $_->name;
       if ($name eq 'user-defined') {
-	qq{$name: }.$_->value->{label}
+	$_->value->{label}.qq( ($name))
       } else {
 	$name
-	}
+      }
     } map { SeqV($_->{relation}) }
       grep { $_->{target} eq $target->{name} }
-        grep { $_->{'#name'} eq 'ref' } $node->children;
+      ($type eq 'ref' ? $node : (grep $_->{'#name'} eq 'ref', $node->children));
     ListQuery('Select query-node relations to add/preserve',
-	      'multiple',
+	      ($type eq 'ref' ? 'browse' : 'multiple'),
 	      GetRelationTypes($node),
 	      \@sel) || return;
     if ($type eq 'node' or $type eq 'subquery') {
@@ -875,6 +975,7 @@ sub node_release_hook {
       init_id_map($node->root);
       $node->{target}=GetNodeName($target);
       SetRelation($node,$sel[0]) if @sel;
+      TredMacro::Redraw_FSFile_Tree();
       ChangingFile(1);
     }
   }
@@ -955,6 +1056,14 @@ sub Search {
   unless ($SEARCH) {
     SelectSearch() || return;
   }
+
+  unless ($this->parent) {
+    $this=first { $_->{'#name'} eq 'node' } $this->children;
+  } else {
+    my $non_node = first { $_->parent and $_->{'#name'} ne 'node' } reverse ($this, $this->ancestors);
+    $this=$non_node->parent if $non_node;
+  }
+
   if (UNIVERSAL::isa($SEARCH,'Tree_Query::SQLSearch')) {
     $SEARCH->search_first({%$opts});
   } else {
@@ -1226,7 +1335,32 @@ sub EditQuery {
   }
 }
 
-
+sub NewTest {
+  my ($op)=@_;
+  $op='=' if $op !~ /^[=~]$/;
+  my $new;
+  my $node=$this;
+  ChangingFile(0);
+  if ($node->{'#name'}=~/^(?:node|subquery|and|or|not)$/) {
+    $new=NewSon();
+  } elsif ($node->{'#name'}=~/^(?:test|ref)$/) {
+    $new=NewRBrother();
+  } else {
+    return;
+  }
+  $new->{'#name'}='test';
+  $new->{operator}=$op;
+  DetermineNodeType($new);
+  if (EditAttribute($new,undef,undef,'a')) {
+#     $node->{'.unhide'}=1;
+    $this=$new;
+  } else {
+    DeleteLeafNode($new);
+    $this=$node;
+    return;
+  }
+  ChangingFile(1);
+}
 
 
 } # use strict
