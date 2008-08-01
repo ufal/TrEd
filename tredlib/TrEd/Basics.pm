@@ -186,7 +186,7 @@ sub pruneNode {
     while ($t=$node->firstson);
 
   setCurrent($win,$node->parent) if ($node == $win->{currentNode});
-  $t=DeleteLeaf($node);
+  $t=Fslib::DeleteLeaf($node);
   $win->{FSFile}->notSaved(1);
   &$on_node_change($win,'newTree',$t) if $on_node_change;
   return $t;

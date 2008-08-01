@@ -8628,6 +8628,11 @@ sub editAttrsDialog_schema {
 			   $path = $base_path.$path if $base_path ne EMPTY;
 			   return doEvalHook($win,'attr_choices_hook',$path,$node,$mtype,$editor);
 			 }, $win,$base_path,$node ],
+    validate_callback => [ sub {
+			   my ($win,$base_path,$node,$txt,$path,$mtype,$editor)=@_;
+			   $path = $base_path.$path if $base_path ne EMPTY;
+			   return doEvalHook($win,'attr_validate_hook',$txt,$path,$node,$mtype,$editor);
+			 }, $win,$base_path,$node ],
 
     search_field => length $attr_path ? 0 : 1,
     knit_support => 1,

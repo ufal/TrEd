@@ -120,15 +120,16 @@ sub search_first {
   if ($matches) {
     print "Returns nodes: $returns_nodes\n";
     $limit=$row_limit unless $returns_nodes;
+    my $how_many = ((defined($limit) and $matches==$limit) ? '>=' : '').
+      $matches.($returns_nodes ? ' match'.($matches>1?'es':'') : ' row'.($matches>1?'s':''));
     return $results unless
       (!$returns_nodes and $matches<200) or
 	QuestionQuery('Results',
-		      ((defined($limit) and $matches==$limit) ? '>=' : '').
-			$matches.($returns_nodes ? ' match'.($matches>1?'(es)':'') : ' row'.($matches>1?'(s)':'')),
+		      $how_many,
 		      'Display','Cancel') eq 'Display';
     unless ($returns_nodes) {
       EditBoxQuery(
-	"Results",
+	"Results ($how_many)",
 	join("\n",map { join("\t",@$_) } @$results),
 	qq{},
 	{-buttons=>['Close']}
@@ -194,20 +195,35 @@ sub show_current_result {
   return $self->show_result('current');
 }
 
-sub __cat_path {
-  my ($source_dir,$path)=@_;
+sub resolve_path {
+  my ($self,$path)=@_;
   return $path if $path=~m{^/};
-  return $source_dir.'/'.$path;
+  return $self->get_source_dir.'/'.$path;
+}
+
+sub get_source_dir {
+  my ($self)=@_;
+  my $conf = $self->{config}{data};
+  my $source_dir = $conf->{sources};
+  unless ($source_dir) {
+    if (GUI()) {
+      EditAttribute($conf,'sources',
+		    $self->{config}{type},
+		   ) || return;
+      $self->{config}{pml}->save();
+      $source_dir = $conf->{sources};
+    }
+  }
+  return $source_dir;
 }
 
 sub matching_nodes {
   my ($self,$filename,$tree_number,$tree)=@_;
   return unless $self->{current_result};
   my $fn = $filename.'##'.($tree_number+1);
-  my $source_dir = $self->get_source_dir;
   my @nodes = ($tree,$tree->descendants);
   my @positions = map { /^\Q$fn\E\.(\d+)$/ ? $1 : () }
-    map { __cat_path($source_dir,$_) } @{$self->{current_result}};
+    map { $self->resolve_path($_) } @{$self->{current_result}};
   return @nodes[@positions];
 }
 
@@ -215,11 +231,10 @@ sub map_nodes_to_query_pos {
   my ($self,$filename,$tree_number,$tree)=@_;
   return unless $self->{current_result};
   my $fn = $filename.'##'.($tree_number+1);
-  my $source_dir = $self->get_source_dir;
   my @nodes = ($tree,$tree->descendants);
   my $r = $self->{current_result};
   return {
-    map { $_->[1]=~/^\Q$fn\E\.(\d+)$/ ? ($nodes[$1] => $_->[0]) : () } map { [$_,__cat_path($source_dir,$r->[$_])] } 0..$#$r 
+    map { $_->[1]=~/^\Q$fn\E\.(\d+)$/ ? ($nodes[$1] => $_->[0]) : () } map { [$_,$self->resolve_path($r->[$_])] } 0..$#$r 
   };
 }
 
@@ -235,8 +250,7 @@ sub select_matching_node {
   my $idx = Index($self->{last_query_nodes},$query_node);
   return if !defined($idx);
   my $result = $self->{current_result}->[$idx];
-  my $source_dir = $self->get_source_dir;
-  $result = __cat_path($source_dir,$result);
+  $result = $self->resolve_path($result);
   foreach my $win (TrEdWindows()) {
     my $fsfile = $win->{FSFile};
     next unless $fsfile;
@@ -267,6 +281,15 @@ sub configure {
   GUI() && EditAttribute($config->get_root,'',
 			 $config->get_schema->get_root_decl->get_content_decl) || return;
   $config->save();
+  return 1;
+}
+
+sub reconfigure {
+  my ($self)=@_;
+  my $cfg = $self->{config}{pml};
+  undef $self->{config}{pml};
+  return $self->init($cfg->get_filename,$self->{config}{id}) if $cfg;
+  return;
 }
 
 sub get_schema_for_query_node {
@@ -370,9 +393,8 @@ sub show_result {
       PrevFile();
       my $idx = Index($self->{last_query_nodes},$save[0]);
       if (defined($idx)) {
-	my $source_dir = $self->get_source_dir;
 	my $fn = FileName();
-	my $result_fn = __cat_path($source_dir,$self->{current_result}[$idx]);
+	my $result_fn = $self->resolve_path($self->{current_result}[$idx]);
 	if ($result_fn !~ /^\Q$fn\E\.(\d+)$/) {
 	  Open($result_fn,{-keep_related=>1});
 	  Redraw($win);
@@ -385,9 +407,8 @@ sub show_result {
       NextFile();
 #       my $idx = Index($self->{last_query_nodes},$save[0]);
 #       if (defined($idx)) {
-# 	my $source_dir = $self->get_source_dir;
 # 	my $fn = FileName();
-# 	my $result_fn = __cat_path($source_dir,$self->{current_result}[$idx]);
+# 	my $result_fn = $self->resolve_path($self->{current_result}[$idx]);
 # 	print "$fn, $result_fn\n";
 # 	if ($result_fn !~ /^\Q$fn\E\.(\d+)$/) {
 # 	  Open($result_fn,{-keep_related=>1});
@@ -402,8 +423,7 @@ sub show_result {
       print "IDX: $idx\n";
       if (defined($idx)) {
 	$grp=$win;
-	my $source_dir = $self->get_source_dir;
-	Open(__cat_path($source_dir,$self->{current_result}[$idx]),{-keep_related=>1});
+	Open($self->resolve_path($self->{current_result}[$idx]),{-keep_related=>1});
 	Redraw($win);
       }
     }
@@ -463,10 +483,9 @@ sub open_pmltq {
   my $idx = Index($self->{last_query_nodes},$node);
   my $first = $positions[$idx||0];
   if (defined $first and length $first) {
-    my $source_dir = $self->get_source_dir;
     $opts->{-norecent}=1;
     $opts->{-keep_related}=1;
-    my $fsfile = Open(__cat_path($source_dir,$first),$opts);
+    my $fsfile = Open($self->resolve_path($first),$opts);
     if (ref $fsfile) {
       $fsfile->changeAppData('tree_query_url',$filename);
       $fsfile->changeAppData('norecent',1);
@@ -479,26 +498,10 @@ sub open_pmltq {
   return 'stop';
 }
 
-sub get_source_dir {
-  my ($self)=@_;
-  my $conf = $self->{config}{data};
-  my $source_dir = $conf->{sources};
-  unless ($source_dir) {
-    if (GUI()) {
-      EditAttribute($conf,'sources',
-		    $self->{config}{type},
-		   ) || return;
-      $self->{config}{pml}->save();
-      $source_dir = $conf->{sources};
-    }
-  }
-  return $source_dir;
-}
-
 sub load_config_file {
   my ($self,$config_file)=@_;
   if (!$self->{config}{pml} or ($config_file and
-				$config_file ne $self->{config}{pml}->filename)) {
+				$config_file ne $self->{config}{pml}->get_filename)) {
     if ($config_file) {
       die "Configuration file '$config_file' does not exist!" unless -f $config_file;
       $self->{config}{pml} = PMLInstance->load({ filename=>$config_file });

@@ -28,8 +28,8 @@ sub InitObject
 
  my $c = $cw->Compound();
  $c->Space(-width => $opts{-padleft}) if exists $opts{-padleft};
- $c->Image(-image => $opts{-image}) if exists $opts{-image};
- $c->Space(-width => $opts{-padmiddle}) if exists $opts{-image} and exists $opts{-padmiddle};
+ $c->Image(-image => $opts{-image}) if $opts{-image};
+ $c->Space(-width => $opts{-padmiddle}) if $opts{-image} and exists $opts{-padmiddle};
  $c->Text(-text => $opts{-text},
 	  (exists($opts{-font}) ? (-font => $opts{-font}) : ()),
 	   (exists($opts{-underline}) ? (-underline => $opts{-underline}) : ())
