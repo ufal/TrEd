@@ -94,7 +94,8 @@ sub search_first {
   my $t0 = new Benchmark;
 
   my $tmp = File::Temp->new( TEMPLATE => 'pmltq_XXXXX',
-			     UNLINK => 0,
+			     TMPDIR => 1,
+			     UNLINK => 1,
 			     SUFFIX => '.txt' );
   my $res = $self->request(query => [
     query => $query,
