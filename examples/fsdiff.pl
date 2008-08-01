@@ -576,7 +576,7 @@ foreach $f (keys %alltrees) {
     $trcount+=$tree->{trcount};
     $newcount+=$tree->{newcount};
 
-    DeleteTree($tree);		# BTW, delete the tree:)
+    Fslib::DeleteTree($tree);		# BTW, delete the tree:)
   }
 
   print "$f:\n\tTotal: $acount nodes\n\tOn TR: $trcount nodes\n\tNew:   $newcount\n\tAttrs: $total_cmp_attrs\n" if ($opt_s);

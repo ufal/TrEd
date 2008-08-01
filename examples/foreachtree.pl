@@ -83,7 +83,7 @@ foreach $f (@files) {
     print STDERR "$_found matches in $f, wrote to $f.out.\n";
   }
  
-  foreach (@trees) { DeleteTree($_); }
+  foreach (@trees) { Fslib::DeleteTree($_); }
   undef @header;
 }
 

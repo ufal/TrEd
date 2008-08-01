@@ -79,7 +79,7 @@ $bblock = qr/\{(?:(?>  [^{}]* )|(??{ $bblock }))*\}/x;
 {
   no strict 'refs';
   # generate methods
-  for my $opt (@Options, qw(canvasHeight canvasWidth scale)) {
+  for my $opt (@Options, qw(canvasHeight canvasWidth scale scaled_font)) {
     (*{"get_$opt"},*{"set_$opt"}) = do {{
       my $o = $opt;
       (sub { $_[0]->{$o} },

@@ -18,7 +18,7 @@ BEGIN {
   @FORCE_EXPORT = qw($libDir $grp $root $this $_NoSuchTree $Redraw $stderr $stdout
 		     $forceFileSaved $FileChanged $FileNotSaved $NodeClipboard);
   *FileChanged=*FileNotSaved;	# alias
-  import Fslib;
+  import Fslib qw(ImportBackends Cut Next Prev);
   import Fslib qw(&Index &CloneValue &FindInResources &FindDirInResources &ResolvePath);
   import main;
 }
@@ -969,7 +969,7 @@ sub DeleteLeafNode {
   if (length $ord) {
     my $order=$n->{$ord};
     my $node = $n->root;
-    if (DeleteLeaf($n)) {
+    if (Fslib::DeleteLeaf($n)) {
       while ($node) {
 	$node->{$ord}-- if ($node->{$ord}>$order);
 	$node=$node->following;
@@ -979,7 +979,7 @@ sub DeleteLeafNode {
       return 0;
     }
   } else {
-    return DeleteLeaf($n) ? 1 : 0;
+    return Fslib::DeleteLeaf($n) ? 1 : 0;
   }
 }
 
@@ -1005,6 +1005,52 @@ sub DeleteSubtree {
     }
   }
 }
+
+=item C<RemoveTree(n?,fsfile?)>
+
+Removes n-th tree from a given FSFile (trees are numbered starting from 0).
+If no FSFile is specified, uses the current file (see CurrentFile()).
+
+Calling RemoveTree() without arguments, it is equivalent to
+
+  RemoveTree(CurrentTreeNumber(),CurrentFile())
+
+Returns the deleted tree. If you do not reattatch the tree to the FSFile,
+use $tree->destroy method on the returned tree to prevent a memory leak.
+
+=cut
+
+sub RemoveTree {
+  shift if @_==1 and $_[0]!~/^\D/; # class name
+  my ($no,$fsfile)=@_;
+  croak("RemoveTree: must specify tree number!") if defined($fsfile) and !defined($no);
+  $no=CurrentTreeNumber() if !defined $no;
+  my $fs = $fsfile||CurrentFile();
+  my $res = $fs->delete_tree($no);
+  if ($fs==CurrentFile()) {
+    $no=CurrentTreeNumber();
+    $no = max(0,min($no,$fs->lastTreeNo));
+    $grp->{treeNo}=$no;
+  }
+  return $res;
+}
+
+=item C<DestroyTreeNo(n?,fsfile?)>
+
+Like RemoveTree but immediatelly destroys the removed tree. Returns 1
+on success.
+
+=cut
+
+sub DestroyTree {
+  my $tree=&RemoveTree;
+  if ($tree) {
+    $tree->destroy;
+    return 1;
+  }
+  return;
+}
+
 
 =item C<DetermineNodeType($node)>
 
@@ -1084,7 +1130,7 @@ sub PlainDeleteNode {
   return unless ($node and $node->parent);
 
   $this=$this->parent if ($node == $this);
-  return DeleteLeaf($node);
+  return Fslib::DeleteLeaf($node);
 }
 
 =item C<PlainDeleteSubtree(node)>
@@ -1097,7 +1143,7 @@ This macro does not recalculate ordering attributes.
 sub PlainDeleteSubtree {
   shift unless ref($_[0]);
   my $n = $_[0] || $this;
-  return 0 unless ($n);
+  return 0 unless ($n and $n->parent);
   $n->destroy();
   return 1;
 }

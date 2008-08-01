@@ -269,6 +269,10 @@ sub configure {
   return;
 }
 
+sub reconfigure {
+  return;
+}
+
 sub search_first {
   my ($self, $opts)=@_;
   $opts||={};
