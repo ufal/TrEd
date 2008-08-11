@@ -1125,6 +1125,10 @@ sub claim_search_win {
     } else {
       if ($pt=~/^[-0-9']/) {	# literal
 	return qq( $pt );
+      } elsif ($pt=~s/^(['"])(.*)\1$/$2/s) { # literal string
+	$pt=~s/\\([^\\])/$1/sg;
+	$pt=~s/'/\\'/sg;
+	$pt=q{'}.$pt.q{'};
       } elsif ($pt=~s/^\$//) {	# a plain variable
 	if ($pt eq '$') {
 	  return $self->serialize_target($this_node_id,$opts);

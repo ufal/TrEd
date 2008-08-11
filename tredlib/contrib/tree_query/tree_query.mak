@@ -30,6 +30,14 @@
 # relations of tgrep2
 #
 #
+# - allow placeholders literals in tests:
+#   m/lemma = ??
+#   Before evaluating the query, the user is asked
+#   to fill ?? for m/lemma, if empty, the test is ignored
+#   The placeholder remains in the query, but the value
+#   filled in by the user is kept somewhere, so that it is
+#   the value pre-filled next time
+
 
 package Tree_Query::Common; # so that it gets reloaded
 package Tree_Query::SQLEvaluator; # so that it gets reloaded
