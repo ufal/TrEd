@@ -116,11 +116,15 @@
 
 
   <type name="q-relation.type">
-    <sequence content_pattern="(child|parent|descendant|ancestor|user-defined)?">
+    <sequence content_pattern="(child|parent|descendant|ancestor|depth-first-precedes|depth-first-follows|order-precedes|order-follows|user-defined)?">
       <element name="child" type="q-child-relation.type"/>
       <element name="parent" type="q-parent-relation.type"/>
       <element name="descendant" type="q-descendant-relation.type"/>
       <element name="ancestor" type="q-ancestor-relation.type"/>
+      <element name="depth-first-precedes" type="q-depth-first-precedes.type"/>
+      <element name="depth-first-follows" type="q-depth-first-follows.type"/>
+      <element name="order-precedes" type="q-order-precedes.type"/>
+      <element name="order-follows" type="q-order-follows.type"/>
       <element name="user-defined" type="q-user-relation.type"/> 
     </sequence>
   </type>
