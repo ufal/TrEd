@@ -48,6 +48,7 @@ use strict;
 BEGIN {
   use vars qw($this $root);
   import TredMacro;
+  use PMLSchema qw(:constants);
   import PML qw(&SchemaName);
   use File::Spec;
   use Benchmark ':hireswallclock';
@@ -387,7 +388,7 @@ Bind sub {
 #unbind-key Alt+T
 #remove-menu Trim (remove all but current subtree)
 
-#bind new_tree_after CTRL+N menu New tree
+#bind new_tree_after CTRL+n menu New tree
 
 # Setup context
 unshift @TredMacro::AUTO_CONTEXT_GUESSING,
@@ -585,14 +586,43 @@ sub attr_choices_hook {
   } elsif ($node->{'#name'} eq 'test') {
     if ($attr_path eq 'a') {
       my $type = $SEARCH->get_type_decl_for_query_node($node);
-      my @res = $type->get_paths_to_atoms({ no_childnodes => 1 });
-      return @res ? \@res : ();
+      if ($type) {
+	my @res = $type->get_paths_to_atoms({ no_childnodes => 1 });
+	return @res ? \@res : ();
+      }
     } elsif ($attr_path eq 'b') {
-      if (UNIVERSAL::isa($SEARCH,'Tree_Query::SQLSearch')) {
+      if (UNIVERSAL::isa($SEARCH,'Tree_Query::HTTPSearch')) {
 	my $name = $editor->get_current_value('a');
-	if ($name and $name=~m{^(?:\$[[:alpha:]_][[:alnum:]_/\-]*\.)?"?([[:alpha:]_][[:alnum:]_/\-]*)"?$}) {
+	if ($name and $name=~m{^(?:\$([[:alpha:]_][[:alnum:]_\-]*)\.)?([[:alpha:]_][[:alnum:]_/\-]*)$}) {
+	  my $var = $1;
+	  my $attr = $2;
+	  if ($var) {
+	    $node=first {
+	      $_->{'name'} eq $var and
+	      $_->{'#name'}=~/^(?:node|subquery)$/
+	    } $node->root->descendants;
+	  }
+	  return unless $node;
+	  my $decl = $SEARCH->get_type_decl_for_query_node($node);
+	  if ($decl) {
+	    $decl = $decl->find($attr);
+	    my $decl_is = $decl->get_decl_type;
+	    while ($decl_is == PML_ALT_DECL or
+		   $decl_is == PML_LIST_DECL) {
+	      $decl = $decl->get_content_decl;
+	      $decl_is = $decl->get_decl_type;
+	    }
+	    if ($decl_is == PML_CHOICE_DECL or
+		$decl_is == PML_CONSTANT_DECL) {
+	      return [map { $_=~/\D/ ? qq{'$_'} : $_ } $decl->get_values];
+	    }
+	  }
+	}
+      } elsif (UNIVERSAL::isa($SEARCH,'Tree_Query::SQLSearch')) {
+	my $name = $editor->get_current_value('a');
+	if ($name and $name=~m{^(?:\$[[:alpha:]_][[:alnum:]_/\-]*\.)?([[:alpha:]_][[:alnum:]_/\-]*)$}) {
 	  my $attr = $1;
-	  my $table = GetQueryNodeType($node);
+	  my $table = Tree_Query::Common::GetQueryNodeType($node,$SEARCH);
 	  return unless $table=~m{^[[:alpha:]_][[:alnum:]_/\-]*$};
 	  if ($attr=~s{^(.*)/}{}) {
 	    my $t=$1;
@@ -778,7 +808,10 @@ sub arrow {
 
 sub get_nodelist_hook {
   my ($fsfile,$tree_no,$prevcurrent,$show_hidden)=@_;
+  return unless $fsfile;
   my $tree = $fsfile->tree($tree_no);
+  return unless $tree;
+
   my @nodes=($tree);
   my $node = $tree->firstson;
   my $show=$show_hidden;
@@ -1253,10 +1286,8 @@ sub CreateSearchToolbar {
 	      -borderwidth=> $main::buttonBorderWidth,
 	      -image => main::icon($grp->{framegroup},'16x16/remove'),
 	      -command => MacroCallback(sub {
-					  # DestroyUserToolbar($ident);
-					  print "$ident\n";
+					  DestroyUserToolbar($ident);
 					  my ($s) = grep { $_->identify eq $ident } @SEARCHES;
-					  print "$s";
 					  @SEARCHES = grep { $_ != $s } @SEARCHES;
 					  $SEARCH = undef if $SEARCH and $SEARCH == $s;
 					  ChangingFile(0);

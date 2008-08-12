@@ -571,7 +571,7 @@ sub set_config {
   $openFilenameCommand        =	val_or_def($confs,"openfilenamecommand",undef);
   $saveFilenameCommand        =	val_or_def($confs,"savefilenamecommand",undef);
   $lockFiles                  =	val_or_def($confs,"lockfiles",1);
-  $noLockProto                =	val_or_def($confs,"nolockprotocols",'^(https?|zip|tar)\$');
+  $noLockProto                =	val_or_def($confs,"nolockprotocols",'^(https?|zip|tar)$');
   $ioBackends                 =	val_or_def($confs,"iobackends",undef);
   $htmlBrowser                =	val_or_def($confs,"htmlbrowser",undef);
 
