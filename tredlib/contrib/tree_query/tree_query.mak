@@ -304,48 +304,12 @@ Bind sub {
 };
 
 
-Bind sub {
-  my $node=$this;
-  return unless $node;
-  unless ($node->parent) {
-    return if $node->firstson
-      and (QuestionQuery("Really delete tree?",
-			 "Do you want to delete the whole query tree?",
-			 "Delete","Cancel") ne 'Delete');
-    DestroyTree();
-  }
-  my $p = $node->parent && $node->parent->parent;
-  if ($node->{'#name'} =~ /^(?:node|subquery)/) {
-    DeleteSubtree($_) for grep { !($_->{'#name'} eq 'node'
-				     or ($p && $_->{'#name'} eq 'subquery')) }
-      $node->children;
-  }
-  delete_node_keep_children($node);
-} => {
+Bind 'DeleteNode' => {
   key => 'Delete',
   menu => 'Delete current node (pasting its children on its parent)'
 };
 
-Bind sub {
-  my $node=$this;
-  return unless $node;
-  my $new;
-  if (!$node->parent or $node->{'#name'} =~ /^(?:node|subquery)/) {
-    $new = NewSon();
-    $new->{'#name'}='node';
-    DetermineNodeType($new);
-  } elsif ($node->{'$name'}=~/^(?:test|ref)/) {
-    $new = NewRBrother();
-    $new->{'#name'}=$node->{'#name'};
-    DetermineNodeType($new);
-  } else {
-    $new = NewSon();
-    DetermineNodeType($new);
-  }
-  if ($new) {
-    $node->parent ? AssignRelation($new) : AssignType($new);
-  }
-} => {
+Bind 'AddNode' => {
   key => 'Insert',
   menu => 'Create a new query node'
 };
@@ -400,16 +364,55 @@ sub allow_switch_context_hook {
   return 'stop' if SchemaName() ne 'tree_query';
 }
 
+sub pre_switch_context_hook {
+  my ($prev,$new)=@_;
+  return if $prev eq $new;
+  HideUserToolbar('Tree_Query');
+}
 # Setup stylesheet
 sub switch_context_hook {
-  CreateStylesheets();
-  SetCurrentStylesheet('Tree_Query'),Redraw()
-    if GetCurrentStylesheet() ne 'Tree_Query'; #eq STYLESHEET_FROM_FILE();
-  FileAppData('noautosave',1);
+ my ($prev,$new)=@_;
+ CreateStylesheets();
+ SetCurrentStylesheet('Tree_Query'),Redraw()
+   if GetCurrentStylesheet() ne 'Tree_Query'; #eq STYLESHEET_FROM_FILE();
+ #  FileAppData('noautosave',1);
+ print "switch_context_hook from $prev to $new\n";
+ if ($prev ne $new) {
+   if (GetUserToolbar('Tree_Query')) {
+     ShowUserToolbar('Tree_Query');
+   } else {
+     my $tb = NewUserToolbar('Tree_Query');
+     for my $but (
+       ['New query' => \&NewQuery, ],
+       ['Add node' => \&AddNode, ],
+       ['Delete node' => \&DeleteNode, ],
+       ['Edit node' => \&EditNodeConditions, ],
+       ['Edit subtree' => \&EditSubtree, ],
+       ['Edit all' => sub { $this=$root; EditSubtree() }, ],
+       ['Copy' => \&copy_to_clipboad, ],
+       ['Cut' => \&cut_to_clipboad, ],
+       ['Paste' => \&paste_from_clipboad, ],
+       ['Select search engine' => \&SelectSearch ]
+      ) {
+       $tb->Button(-text    => $but->[0],
+		   # -padleft => 15,
+		   # -padright => 15,
+		   # -padmiddle => 10,
+		   # -height => 32,
+		   -command => MacroCallback($but->[1]),
+		   -font    =>'C_small',
+		   -borderwidth => 0,
+		   -takefocus=>0,
+		   -relief => $main::buttonsRelief,
+		   # -image => main::icon($grp->{framegroup},'16x16/'.$but->[2]),
+		  )->pack(-side=>'left');
+     }
+   }
+ }
 }
-sub file_reloaded_hook {
-  FileAppData('noautosave',1);
-}
+# sub file_reloaded_hook {
+#   FileAppData('noautosave',1);
+# }
 
 sub RenewStylesheets {
   DeleteStylesheet('Tree_Query');
@@ -1217,7 +1220,6 @@ sub CreateSearchToolbar {
   RemoveUserToolbar($ident);
   my $tb = NewUserToolbar($ident);
   for my $but (['(Re)start Search' =>
-		  MacroCallback(
 		    sub{
 		      my $s = GetSearch($ident);
 		      if ($s) {
@@ -1225,11 +1227,10 @@ sub CreateSearchToolbar {
 			$s->search_first;
 		      }
 		      ChangingFile(0);
-		    }),
+		    },
 		'find',
 	       ],
 	       ['Next Match' =>
-		  MacroCallback(
 		    sub{
 		      my $s = GetSearch($ident);
 		      if ($s) {
@@ -1237,11 +1238,10 @@ sub CreateSearchToolbar {
 			$s->show_next_result;
 		      }
 		      ChangingFile(0);
-		    }),
+		    },
 		'down',
 	       ],
 	       ['Previous Match' =>
-		  MacroCallback(
 		      sub{
 			my $s = GetSearch($ident);
 			if ($s) {
@@ -1249,7 +1249,7 @@ sub CreateSearchToolbar {
 			  $s->show_prev_result;
 			}
 			ChangingFile(0);
-		      }),
+		      },
 		'up',
 	       ],
 	      ) {
@@ -1258,7 +1258,7 @@ sub CreateSearchToolbar {
 		   -padright => 15,
 		   -padmiddle => 10,
 		   -height => 32,
-		   -command => $but->[1],
+		   -command => MacroCallback($but->[1]),
 		   -font    =>'C_small',
 		   -borderwidth => 0,
 		   -takefocus=>0,
@@ -1352,11 +1352,11 @@ sub EditQuery {
       }
       if (ref($result) eq 'ARRAY') {
 	$_->paste_after($node) for @$result;
-	DetermineNodeType($_) for @$result;
+	DetermineNodeType($_) for map { ($_,$_->descendants) } @$result;
 	$result=$result->[0];
       } else {
 	$result->paste_after($node);
-	DetermineNodeType($result);
+	DetermineNodeType($_) for ($result,$result->descendants);
 	$result->{'.unhide'}=1 if $node->{'.unhide'};
       }
       $this=$result if $node==$this;
@@ -1399,6 +1399,46 @@ sub NewTest {
     return;
   }
   ChangingFile(1);
+}
+
+sub AddNode {
+  my $node=$this;
+  return unless $node;
+  my $new;
+  if (!$node->parent or $node->{'#name'} =~ /^(?:node|subquery)/) {
+    $new = NewSon();
+    $new->{'#name'}='node';
+    DetermineNodeType($new);
+  } elsif ($node->{'$name'}=~/^(?:test|ref)/) {
+    $new = NewRBrother();
+    $new->{'#name'}=$node->{'#name'};
+    DetermineNodeType($new);
+  } else {
+    $new = NewSon();
+    DetermineNodeType($new);
+  }
+  if ($new) {
+    $node->parent ? AssignRelation($new) : AssignType($new);
+  }
+}
+
+sub DeleteNode {
+  my $node=$this;
+  return unless $node;
+  unless ($node->parent) {
+    return if $node->firstson
+      and (QuestionQuery("Really delete tree?",
+			 "Do you want to delete the whole query tree?",
+			 "Delete","Cancel") ne 'Delete');
+    DestroyTree();
+  }
+  my $p = $node->parent && $node->parent->parent;
+  if ($node->{'#name'} =~ /^(?:node|subquery)/) {
+    DeleteSubtree($_) for grep { !($_->{'#name'} eq 'node'
+				     or ($p && $_->{'#name'} eq 'subquery')) }
+      $node->children;
+  }
+  delete_node_keep_children($node);
 }
 
 
