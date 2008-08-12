@@ -468,6 +468,24 @@ sub DestroyUserToolbar {
   $tb->destroy if $tb;
   return;
 }
+sub HideUserToolbar {
+  my ($name)=@_;
+  my $tb =  GetUserToolbar($name);
+  if ($tb) {
+    $tb->packForget;
+    return $tb;
+  }
+  return 0;
+}
+sub ShowUserToolbar {
+  my ($name)=@_;
+  my $tb =  GetUserToolbar($name);
+  if ($tb) {
+    $tb->pack(-fill=>'x');
+    return $tb;
+  }
+  return 0;
+}
 
 sub MacroCallback {
   my ($sub)=@_;
