@@ -361,7 +361,13 @@ sub request {
   } elsif (defined $data) {
     Encode::_utf8_off($data);
   }
-  return $ua->request(POST(qq{${url}${type}}, $data),$out_file ? $out_file : ());
+  Encode::_utf8_off($url);
+  Encode::_utf8_off($type);
+  my $res = eval {
+    $ua->request(POST(qq{${url}${type}}, $data),$out_file ? $out_file : ());
+  };
+  confess($@) if $@;
+  return $res;
 }
 
 sub init {
