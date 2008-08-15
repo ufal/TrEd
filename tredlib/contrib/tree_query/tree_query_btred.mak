@@ -128,21 +128,31 @@ sub start_hook {
   my %opts;
   Getopt::Long::GetOptions(
     \%opts,
+    'query|q=s',
     'plan|p',
   ) or die "Wrong options\n";
-  my ($query_fn,$query_id)=@ARGV;
-  my $query_file = FSFile->newFSFile($query_fn,[Backends()]);
-  if (ref($query_file)) {
-    if ($Fslib::FSError!=0) {
-      die "Error: loading query-file failed: $@ ($!)\n";
-    } elsif ($query_file->lastTreeNo<0) {
-      die "Error: Query file is empty\n";
+  my $query_tree;
+  if (defined $opts{query}) {
+    my $query=$opts{query};
+    die "Empty query\n" unless length $query;
+    $query_tree=Tree_Query->parse_query($query);
+    DetermineNodeType($_) for $query_tree->descendants;
+    print STDERR "Parsed $query\n";
+  } else {
+    my ($query_fn,$query_id)=@ARGV;
+    my $query_file = FSFile->newFSFile($query_fn,[Backends()]);
+    if (ref($query_file)) {
+      if ($Fslib::FSError!=0) {
+	die "Error: loading query-file failed: $@ ($!)\n";
+      } elsif ($query_file->lastTreeNo<0) {
+	die "Error: Query file is empty\n";
+      }
     }
+    my $query_tree = $query_file->appData('id-hash')->{$query_id};
+    die "Query tree $query_fn#$query_id not found\n" unless ref $query_tree;
   }
-  my $query_tree = $query_file->appData('id-hash')->{$query_id};
   #  print STDERR "$query_file\n";
   #plan_query($query_tree) if $opts{plan};
-  die "Query tree $query_fn#$query_id not found\n" unless ref $query_tree;
   $evaluator = Tree_Query::BtredEvaluator->new($query_tree,{plan=>$opts{plan}});
 
   # print STDERR "initialized @iterators, $query_pos\n";
