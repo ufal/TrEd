@@ -781,7 +781,7 @@ sub _node_ord {
     my $ord = $node->get_ordering_member_name;
     return $ord if defined $ord;
   }
-  return $grp->{FSFile}->FS->order;
+  return $grp->{FSFile} ? $grp->{FSFile}->FS->order : undef;
 }
 
 =item C<NewRBrother(node)>
