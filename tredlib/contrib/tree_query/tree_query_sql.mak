@@ -159,6 +159,7 @@ sub search_first {
       my @context=($this,$root,$grp);
       CloseFileInWindow($res_win);
       $grp=$res_win;
+      SetCurrentWindow($grp);
       SetCurrentStylesheet(STYLESHEET_FROM_FILE);
       AddNewFileList($fl);
       SetCurrentFileList($fl->name,{no_open=>1});
@@ -168,6 +169,10 @@ sub search_first {
       ${$self->{label}} = (CurrentFileNo($res_win)+1).' of '.(LastFileNo($res_win)+1).
 	($limit == $matches ? '+' : '');
       $self->show_result('current');
+      SetCurrentWindow($grp);
+#      $grp->{famegroup}{focusedWindow}=$res_win;
+#      local $main::insideEval=0;
+#      main::focusCanvas($grp->canvas, $grp->{framegroup});
     }
   } else {
     QuestionQuery('Results','No results','OK');

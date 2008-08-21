@@ -37,6 +37,12 @@
 #   The placeholder remains in the query, but the value
 #   filled in by the user is kept somewhere, so that it is
 #   the value pre-filled next time
+#
+#
+# FIXME:
+# - Escape after Insert
+# - release with button <2>
+
 
 
 package Tree_Query::Common; # so that it gets reloaded
@@ -377,38 +383,51 @@ sub switch_context_hook {
    if GetCurrentStylesheet() ne 'Tree_Query'; #eq STYLESHEET_FROM_FILE();
  #  FileAppData('noautosave',1);
  print "switch_context_hook from $prev to $new\n";
- if ($prev ne $new) {
+# if ($prev ne $new) {
    if (GetUserToolbar('Tree_Query')) {
-     ShowUserToolbar('Tree_Query');
+     unless (UserToolbarVisible('Tree_Query')) {
+       ShowUserToolbar('Tree_Query');
+     }
    } else {
      my $tb = NewUserToolbar('Tree_Query');
      for my $but (
-       ['New query' => \&NewQuery, ],
-       ['Add node' => \&AddNode, ],
-       ['Delete node' => \&DeleteNode, ],
-       ['Edit node' => \&EditNodeConditions, ],
-       ['Edit subtree' => \&EditSubtree, ],
-       ['Edit all' => sub { $this=$root; EditSubtree() }, ],
-       ['Copy' => \&copy_to_clipboad, ],
-       ['Cut' => \&cut_to_clipboad, ],
-       ['Paste' => \&paste_from_clipboad, ],
-       ['Select search engine' => \&SelectSearch ]
+       ['New query' => \&NewQuery, 'filenew' ],
+       '-',
+       ['Add node' => \&AddNode, 'add'],
+       ['Delete node' => \&DeleteNode, 'editdelete' ],
+       '-',
+       ['Edit node' => \&EditNodeConditions, 'edit' ],
+       ['Edit subtree' => \&EditSubtree,  'edit'],
+       ['Edit all' => sub { $this=$root; EditSubtree() },  'edit'],
+       '-',
+       ['Copy' => \&copy_to_clipboad,  'editcopy'],
+       ['Cut' => \&cut_to_clipboad,  'editcut'],
+       ['Paste' => \&paste_from_clipboad, 'editpaste'],
+       '-',
+       ['Select search engine' => \&SelectSearch,  'connect_creating' ]
       ) {
-       $tb->Button(-text    => $but->[0],
-		   # -padleft => 15,
-		   # -padright => 15,
-		   # -padmiddle => 10,
-		   # -height => 32,
-		   -command => MacroCallback($but->[1]),
-		   -font    =>'C_small',
-		   -borderwidth => 0,
-		   -takefocus=>0,
-		   -relief => $main::buttonsRelief,
-		   # -image => main::icon($grp->{framegroup},'16x16/'.$but->[2]),
-		  )->pack(-side=>'left');
+       if (ref($but)) {
+	 $tb->Button(-text    => $but->[0],
+		     # -padleft => 15,
+		     # -padright => 15,
+		     # -padmiddle => 10,
+		     # -height => 32,
+		     -command => MacroCallback($but->[1]),
+		     -padx => 2,
+		     -font    =>'C_small',
+		     -borderwidth => 0,
+		     -takefocus=>0,
+		     -relief => $main::buttonsRelief,
+		     $but->[2] ? (-compound => 'left',
+				  -image => main::icon($grp->{framegroup},$but->[2])) : ()
+				 )->pack(-side=>'left',-padx=>5);
+       } elsif ($but eq '-') {
+	 $tb->Frame(-bd => 2, -width => 2, -relief => 'groove')
+	   ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
+       }
      }
    }
- }
+ # }
 }
 # sub file_reloaded_hook {
 #   FileAppData('noautosave',1);
@@ -699,25 +718,33 @@ sub AssignRelation {
   shift unless ref $_[0];
   my $node = $_[0] || $this;
   return unless $node->{'#name'} =~ /^(node|subquery)$/ or ($node->{'#name'} eq 'ref' and $node->{target});
-  unless (SeqV($node->{relation})) {
-    my @sel='child';
-    ListQuery('Select relation of the current node to its parent',
-	      'browse',
-	      GetRelationTypes($node),
-	      \@sel) || return;
-    SetRelation($node,$sel[0]) if @sel;
-    AssignType($node);
-  } elsif (EditAttribute($node,'relation')) {
-    AssignType($node);
-    ChangingFile(1);
+  my ($rel) = map {
+    $_->name eq 'user-defined' ?
+      $_->value->{label}.' (user-defined)' : $_->name }
+    SeqV($node->{relation});
+  print "relation: $rel\n";
+  my @sel=($rel||'child');
+  ListQuery('Select relation of the current node to its parent',
+	    'browse',
+	    GetRelationTypes($node),
+	    \@sel) || return;
+  SetRelation($node,$sel[0]) if @sel;
+  if (@sel and $sel[0] eq 'descendant' or $sel[0] eq 'ancestor') {
+    EditAttribute($node,'relation/[1]'.$sel[0]) || return;
   }
+  AssignType($node) || return;
+#  } elsif (EditAttribute($node,'relation')) {
+#    AssignType($node);
+    ChangingFile(1);
+#  }
+  return 1;
 }
 
 sub AssignType {
   shift unless ref $_[0];
   my $node = $_[0] || $this;
-  return unless $SEARCH;
-  return unless !$node->parent || $node->{'#name'}=~/^(?:node|subquery)$/;
+  return 1 unless $SEARCH;
+  return 1 if ( $node->parent && $node->{'#name'}!~/^(?:node|subquery)$/ );
   my @types = Tree_Query::Common::GetQueryNodeType($node,$SEARCH);
   if (@types <= 1) {
     $node->{'node-type'} = $types[0];
@@ -778,26 +805,6 @@ my %arrow = (
   'parent' => 'first',
   'echild' => 'first',
   'eparent' => 'first',
-);
-my %type = (
-  't-root:a/lex.rf' => 'a-root',
-  't-root:a/lex.rf|a/aux.rf' => 'a-root',
-  'a/lex.rf' => 'a-node',
-  'a/aux.rf' => 'a-node',
-  'a/lex.rf|a/aux.rf' => 'a-node',
-  'val_frame.rf' => 'frame',
-  'coref_text' => 't-node',
-  'coref_gram' => 't-node',
-  'compl' => 't-node',
-  'echild' => '#same',
-  'eparent' => '#same',
-
-  'descendant' => '#descendant',
-  'ancestor' => '#ancestor',
-  'child' => '#child',
-  'parent' => '#parent',
-  'depth-first-precedes' => '#any',
-  'order-precedes' => '#any',
 );
 
 sub arrow_color {
@@ -990,10 +997,10 @@ sub line_click_hook {
 sub node_release_hook {
   my ($node,$target,$mod)=@_;
   return unless $target and $mod;
-  if ($mod eq 'Control') {
+  if ($mod =~ /^(Control|Control-3|-2)$/) {
     my $type = $node->{'#name'};
-    my $target_type = $target->{'#name'};
-    return 'stop' unless $target_type =~/^(?:node|subquery)$/
+    my $target_is = $target->{'#name'};
+    return 'stop' unless $target_is =~/^(?:node|subquery)$/
       and $type =~/^(?:node|subquery|ref)$/;
     return 'stop' if cmp_subquery_scope($node,$target)<0;
     my @sel = map {
@@ -1006,9 +1013,21 @@ sub node_release_hook {
     } map { SeqV($_->{relation}) }
       grep { $_->{target} eq $target->{name} }
       ($type eq 'ref' ? $node : (grep $_->{'#name'} eq 'ref', $node->children));
+    my $node_type = $node->{'node-type'};
+    my $target_type = $target->{'node-type'};
+    my $relations =
+      $SEARCH && $node_type && $target_type ?
+      [ grep {
+	first { $_ eq $target_type }
+	  GetRelativeQueryNodeType($node_type,
+				   $SEARCH,
+				   CreateRelation($_))
+	} @{GetRelationTypes($node)}
+       ] : GetRelationTypes($node);
+    return unless @$relations;
     ListQuery('Select query-node relations to add/preserve',
 	      ($type eq 'ref' ? 'browse' : 'multiple'),
-	      GetRelationTypes($node),
+	      $relations,
 	      \@sel) || return;
     if ($type eq 'node' or $type eq 'subquery') {
       init_id_map($node->root);
@@ -1115,6 +1134,10 @@ sub Search {
   }
 }
 
+sub __this_module_path {
+  return [caller(0)]->[1]
+}
+
 sub SelectSearch {
   my @sel;
   require Tk::DialogReturn;
@@ -1124,7 +1147,8 @@ sub SelectSearch {
     -buttons => ['Cancel'],
   );
   $d->BindEscape;
-  my ($vol,$dir)=File::Spec->splitpath([caller(0)]->[1]);
+  my ($vol,$dir)=File::Spec->splitpath(__this_module_path());
+  print "$vol, $dir\n";
   my @b;
   for my $b (['File' => 'file', 0, 0],
 	     ['File List' => 'filelist',0,1],
@@ -1418,7 +1442,9 @@ sub AddNode {
     DetermineNodeType($new);
   }
   if ($new) {
-    $node->parent ? AssignRelation($new) : AssignType($new);
+    unless ($node->parent ? AssignRelation($new) : AssignType($new)) {
+      DeleteLeafNode($new);
+    }
   }
 }
 
