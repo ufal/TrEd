@@ -882,8 +882,8 @@ full:1
 
 node:<? $${nodetype}eq'root' ? '${id}' : '${t_lemma}'
   ?><? '#{customdetail}.${sentmod}'if$${sentmod}
-  ?><? ('#{customcoref}'.$PML_T::coreflemmas{$${id}})
-    if $PML_T::coreflemmas{$${id}}ne'' ?>
+  ?><? ('#{customcoref}'.$PML_T::coreflemmas_hash{$${id}})
+    if $PML_T::coreflemmas_hash{$${id}}ne'' ?>
 
 node:<?
   ($${nodetype} eq 'root' ? '#{customnodetype}${nodetype}' :

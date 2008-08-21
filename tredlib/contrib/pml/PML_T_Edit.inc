@@ -255,6 +255,8 @@ sub AddEntityNode {
                Neg atom
                Oblfm qcomplex
                Percnt qcomplex
+               Period fphr
+               Period3 qcomplex
                PersPron complex
                QCor qcomplex
                Rcp qcomplex
