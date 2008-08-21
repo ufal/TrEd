@@ -28,13 +28,9 @@ use vars qw($svn_version $version $VERSION $about $opt_u $opt_h $opt_c
             $stylesheetFile $opt_S
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
             $valueLine $appName $ioBackends %menuBindings %keyBindings
-            $savedSavePixmap $normalSavePixmap $NewFileNo $stderr $stdout
+            $NewFileNo $stderr $stdout
 	    $userlogin
 	    %save_types %backend_map $debug @normal_win_opts @focused_win_opts
-	    $normalUndoPixmap
-	    $normalRedoPixmap
-	    $normalNextPixmap
-	    $normalPrevPixmap
 	    $locale_charset
 	    $no_secondary
 	    %HELP %vertical_key_arrow_map 
@@ -5233,9 +5229,6 @@ sub saveFileStateUpdate {
   return unless $win->{framegroup}->{saveButton};
   $win->{framegroup}->{saveButton}->
     configure(-state => (($win->{FSFile} and $win->{FSFile}->notSaved) ? 'normal' : 'disabled'));
-#    configure(-image=>
-#	      ($win->{FSFile} and $win->{FSFile}->notSaved)
-#	      ? $normalSavePixmap : $savedSavePixmap);
 }
 
 
@@ -5605,15 +5598,15 @@ sub createCanvasBindings {
   # Button-3
   $canvas->bind('point','<3>'=> [sub {node_down(@_)},$grp,1]);
   foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('point', "<$_-Button-3>"=> [sub {node_click_modif(@_)},$grp,$_."-3"]);
+    $canvas->bind('point', "<$_-Button-3>"=> [sub {node_click_modif(@_)},$grp,"-3"]);
   }
   $canvas->bind('point', '<ButtonRelease-3>'=> [sub {node_release(@_)},$grp,3]);
   foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('point', "<$_-ButtonRelease-3>"=> [sub {node_release_modif(@_)},$grp,"-3"]);
+    $canvas->bind('point', "<$_-ButtonRelease-3>"=> [sub {node_release_modif(@_)},$grp,"$_-3"]);
   }
   $canvas->bind('point','<B3-Motion>'=> [sub {node_move(@_)},$grp,1]);
   foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('point', "<$_-B3-Motion>"=> [sub {node_motion_modif(@_)},$grp,"-3"]);
+    $canvas->bind('point', "<$_-B3-Motion>"=> [sub {node_motion_modif(@_)},$grp,"$_-3"]);
   }
 
   # Button-2
@@ -5622,13 +5615,13 @@ sub createCanvasBindings {
 
   # Button-2
   foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('point', "<$_-Button-2>"=> [sub {node_click_modif(@_)},$grp,$_,"-2"]);
+    $canvas->bind('point', "<$_-Button-2>"=> [sub {node_click_modif(@_)},$grp,$_,"$_-2"]);
   }
   foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('point', "<$_-ButtonRelease-2>"=> [sub {node_release_modif(@_)},$grp,"-2"]);
+    $canvas->bind('point', "<$_-ButtonRelease-2>"=> [sub {node_release_modif(@_)},$grp,"$_-2"]);
   }
   foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('point', "<$_-B2-Motion>"=> [sub {node_motion_modif(@_)},$grp,"-2"]);
+    $canvas->bind('point', "<$_-B2-Motion>"=> [sub {node_motion_modif(@_)},$grp,"$_-2"]);
   }
 
   # Text 1
@@ -5660,7 +5653,7 @@ sub createCanvasBindings {
 
   # TextBg 3
   foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('textbg', "<$_-Button-3>"=> [sub {text_click_modif(@_); Tk->break; },$grp,$_."-3"]);
+    $canvas->bind('textbg', "<$_-Button-3>"=> [sub {text_click_modif(@_); Tk->break; },$grp,"$_-3"]);
   }
 
   # Double-1  
@@ -5677,7 +5670,7 @@ sub createCanvasBindings {
 
   # TextBg Double-3
   foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('textbg', "<$_-Double-3>"=> [sub {text_doubleclick_modif(@_); Tk->break; },$grp,$_."-3"]);
+    $canvas->bind('textbg', "<$_-Double-3>"=> [sub {text_doubleclick_modif(@_); Tk->break; },$grp,"$_-3"]);
   }
 
   # Line clicks
@@ -6305,6 +6298,14 @@ sub startMain {
 			 doEvalHook($grp->{focusedWindow},"reload_macros_hook");
 			 TrEd::TreeView->clear_code_caches;
 			 cleanup_tredmacro($grp);
+			 for my $name (keys %{$grp->{UserToolbarHash}}) {
+			   my $tb = removeUserToolbar($grp,$name);
+			   if ($tb) {
+			     $tb->packForget;
+			     $tb->destroy;
+			   }
+			 }
+			 %{$grp->{UserToolbarHash}}=();
 			 read_macros($macroFile,$libDir);
 			 if ($opt_I) {
                            push @TrEd::Macros::macros,"\n","package TredMacro;\n";
@@ -6504,12 +6505,10 @@ sub startMain {
   $group{Balloon}->attach($group{openButton},
 		 -balloonmsg=> "open file");
   addBindTags($group{openButton},'my');
-  $normalSavePixmap=icon(\%group,"filesave");
-  $savedSavePixmap=icon(\%group,"filesaved");
   $group{saveButton}=
     $group{Toolbar}->Button(-takefocus=>0, -text=> "Save",
 			  -relief=> $buttonsRelief,
-			  -image=> $normalSavePixmap,
+			  -image=> icon(\%group,"filesave"),
 			  -state => 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&saveFile,\%group])->pack(-side=>'left');
