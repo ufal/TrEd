@@ -486,6 +486,14 @@ sub ShowUserToolbar {
   }
   return 0;
 }
+sub UserToolbarVisible {
+  my ($name)=@_;
+  my $tb =  GetUserToolbar($name);
+  if ($tb) {
+    return $tb->ismapped && $tb->manager ? 1 : 0;
+  }
+  return;
+}
 
 sub MacroCallback {
   my ($sub)=@_;
