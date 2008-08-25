@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 <svg
+   xmlns:ns="http://creativecommons.org/ns#"
    xmlns:a="http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/"
    xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:cc="http://web.resource.org/cc/"
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
@@ -13,12 +14,13 @@
    height="32px"
    id="svg3214"
    sodipodi:version="0.32"
-   inkscape:version="0.46"
+   inkscape:version="0.45.1"
    sodipodi:docname="or.svg"
    inkscape:output_extension="org.inkscape.output.svg.inkscape"
    inkscape:export-filename="/home/pajas/projects/med-devel/icons/or.png"
    inkscape:export-xdpi="90"
-   inkscape:export-ydpi="90">
+   inkscape:export-ydpi="90"
+   sodipodi:docbase="/export/home/pajas/tred-devel/devel/icon_sources">
   <defs
      id="defs3216">
     <linearGradient
@@ -261,20 +263,26 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="2"
-     inkscape:cx="9.3423855"
-     inkscape:cy="114.288"
+     inkscape:zoom="5.6568542"
+     inkscape:cx="84.571341"
+     inkscape:cy="52.376688"
      inkscape:current-layer="layer1"
      showgrid="true"
      inkscape:grid-bbox="true"
      inkscape:document-units="px"
-     inkscape:window-width="1400"
+     inkscape:window-width="1280"
      inkscape:window-height="959"
-     inkscape:window-x="123"
-     inkscape:window-y="231" />
+     inkscape:window-x="-2"
+     inkscape:window-y="44" />
   <metadata
      id="metadata3219">
     <rdf:RDF>
+      <ns:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </ns:Work>
       <cc:Work
          rdf:about="">
         <dc:format>image/svg+xml</dc:format>
@@ -296,16 +304,16 @@
        y="3.5654845" />
     <flowRoot
        xml:space="preserve"
-       id="flowRoot2929"
-       style="font-size:8.96855831px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial Black;-inkscape-font-specification:Arial Black Bold"
-       transform="matrix(1.6333815,0,0,1.6333815,-11.153253,-3.1229922)"><flowRegion
-         id="flowRegion2931"><rect
-           id="rect2933"
-           width="24.5"
-           height="19.917059"
+       id="flowRoot2391"
+       style="font-size:11px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial Black"
+       transform="matrix(0.883709,0,0,1,-2.0042323,2.6425484)"><flowRegion
+         id="flowRegion2393"><rect
+           id="rect2395"
+           width="34"
+           height="17.5"
            x="4.5"
            y="6.5"
-           style="font-size:8.96855831px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Arial Black;-inkscape-font-specification:Arial Black Bold" /></flowRegion><flowPara
-         id="flowPara2935"
-         style="font-size:8.96855831px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Arial Black;-inkscape-font-specification:Arial Black Bold">OR</flowPara></flowRoot>  </g>
+           style="font-size:11px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:center;text-anchor:middle;font-family:Arial Black" /></flowRegion><flowPara
+         id="flowPara2397"
+         style="font-size:11px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Arial Black">OR</flowPara></flowRoot>  </g>
 </svg>
