@@ -87,85 +87,28 @@ my @TOOLBAR_BINDINGS = (
   },
   '---',
   {
-   command => 'AddNode',
-   key => 'Insert',
-   menu => 'Create a new query node',
-   toolbar => ['Add node', 'add_node'],
-  },
-  '---',
-  {
-    command =>  sub { my $new = new_rbrother();
-		      if ($new and $new->{'#name'} =~ /^(node|subquery)$/) {
-			( $new->parent ? AssignRelation($new) : AssignType($new) ) || DeleteLeafNode($new);
-		      }
-		    },
-    key => 'Alt+Right',
-    menu => 'New right brother node',
-    toolbar => ['Right brother', 'new_rbrother' ],
+    command => 'SelectSearch',
+    key => 'c',
+    menu => , 'Connect to search server or select file(s) to search',
+    changing_file => 0,
+    toolbar => ['Select search engine' , 'connect_creating' ],
   },
   {
-    command =>  sub { my $new = new_lbrother();
-		      if ($new and $new->{'#name'} =~ /^(node|subquery)$/) {
-			( $new->parent ? AssignRelation($new) : AssignType($new) ) || DeleteLeafNode($new);
-		      }
-		    },
-    key => 'Alt+Left',
-    menu => 'New left brother node',
-    toolbar => ['Left brother','new_lbrother' ],
-  },
-
-  {
-    command =>  sub { my $new = new_son();
-		      if ($new and $new->{'#name'} =~ /^(node|subquery)$/) {
-			( $new->parent ? AssignRelation($new) : AssignType($new) ) || DeleteLeafNode($new);
-		      }
-		    },
-    key => 'Alt+Down',
-    menu => 'New son node',
-    toolbar => ['Son', 'new_son' ],
-  },
-
-  {
-    command =>  sub { my $new = new_parent();
-		      if ($new and $new->{'#name'} =~ /^(node|subquery)$/) {
-			( $new->parent ? AssignRelation($new) : AssignType($new) ) || DeleteLeafNode($new);
-		      }
-		    },
-    key => 'Alt+Up',
-    menu => 'Insert a new node between the current node and its parent',
-    toolbar => ['Parent', 'new_parent' ],
-  },
-  '---',
-  {
-    command => 'DeleteNode',
-    key => 'Delete',
-    menu => 'Delete current node (pasting its children on its parent)',
-    toolbar => ['Delete node', 'delete_node' ],
-  },
-  {
-    command =>  'DeleteSubtree',
-    key => 'Shift+Delete',
-    menu => 'Delete current subtree',
-    toolbar => ['Delete subtree', 'delete_subtree'],
-  },
-  '---',
-  {
-    command => 'cut_to_clipboad',
-    key => 'Ctrl+Delete',
-    menu => 'Cut subtree to clipboard',
-    toolbar => ['Cut',  'editcut'],
-   },
-  {
-    command => 'copy_to_clipboad',
-    key => 'Ctrl+Insert',
-    menu => 'Copy subtree to clipboard',
-    toolbar => ['Copy', 'editcopy'],
-  },
-  {
-    command => sub { paste_from_clipboad(); copy_to_clipboad() },
-    key => 'Shift+Insert',
-    menu => 'Paste subtree from clipboard',
-    toolbar => ['Paste', 'editpaste'],
+    command => sub {
+      unless ($SEARCH) {
+	SelectSearch()||return;
+      }
+      if ($SEARCH->configure) {
+	for (@SEARCHES) {
+	  eval { $_->reconfigure } ; # various searches may share the same config file
+	  ErrorMessage("$@") if $@;
+	}
+      }
+    },
+    key => 'C',
+    menu => 'Configure search engine',
+    changing_file => 0,
+    toolbar => ['Configure' , 'configure' ],
   },
   '---',
 #  "\n",
@@ -187,32 +130,58 @@ my @TOOLBAR_BINDINGS = (
     menu => 'Edit part of the query corresponding to the current subtree',
     toolbar => ['Edit subtree', 'edit_subtree' ],
    },
+
+  '---',
+
+  {
+    command => 'cut_to_clipboad',
+    key => 'Ctrl+Delete',
+    menu => 'Cut subtree to clipboard',
+    toolbar => ['Cut',  'editcut'],
+   },
+  {
+    command => 'copy_to_clipboad',
+    key => 'Ctrl+Insert',
+    menu => 'Copy subtree to clipboard',
+    toolbar => ['Copy', 'editcopy'],
+  },
+  {
+    command => sub { paste_from_clipboad(); copy_to_clipboad() },
+    key => 'Shift+Insert',
+    menu => 'Paste subtree from clipboard',
+    toolbar => ['Paste', 'editpaste'],
+  },
   '---',
   {
-    command => sub {
-      unless ($SEARCH) {
-	SelectSearch()||return;
-      }
-      if ($SEARCH->configure) {
-	for (@SEARCHES) {
-	  eval { $_->reconfigure } ; # various searches may share the same config file
-	  ErrorMessage("$@") if $@;
-	}
+    command =>  sub {
+      ChangingFile(0);
+      my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } ($this,$this->ancestors);
+      if ($qn) {
+	$qn->{'.unhide'}=!$qn->{'.unhide'};
+	$this=$qn;
       }
     },
-    key => 'C',
-    menu => 'Configure search engine',
-    changing_file => 0,
-    toolbar => ['Configure' , 'configure' ],
+    key => 'h',
+    menu => 'Toggle hiding of logical nodes for current node',
+    toolbar => ['(Un)hide','toggle_hide_subtree' ],
   },
   {
-    command => 'SelectSearch',
-    key => 'c',
-    menu => , 'Connect to search server or select file(s) to search',
+    command =>  'ToggleHiding',
+    key => 'H',
+    menu => 'Toggle hiding of logical nodes for all nodes',
     changing_file => 0,
-    toolbar => ['Select search engine' , 'connect_creating' ],
+    toolbar => ['(Un)hide all','toggle_hide_all' ],
   },
+
   "\n",
+
+  {
+   command => 'AddNode',
+   key => 'Insert',
+   menu => 'Create a new query node',
+   toolbar => ['Add node', 'add_node'],
+  },
+  '---',
   {
     command => sub {
       my $node=$this;
@@ -276,6 +245,18 @@ my @TOOLBAR_BINDINGS = (
     menu => 'Add OR condition',
     toolbar => ['OR','or' ],
   },
+  {
+    command =>  'NewTest',
+    key => '=',
+    menu => 'Add a equality test',
+    toolbar => ['Equality','test_equality' ],
+  },
+  {
+    command =>  sub { NewTest('~')   },
+    key => '~',
+    menu => 'Add a regexp test',
+    toolbar => ['Regexp','test_regexp' ],
+  },
   '---',
   {
     command => sub {
@@ -288,7 +269,10 @@ my @TOOLBAR_BINDINGS = (
     toolbar => ['Name','name_node' ],
   },
   {
-    command => 'AssignType',
+    command => sub {
+      return unless $this and $this->parent and $this->{'#name'} =~ /^(node|subquery)$/;
+      $this->{'node-type'} ? EditAttribute($this,'node-type') : AssignType($this)
+    },
     changing_file => 0,
     key => 'T',
     menu => 'Try automatically set the node type based on parent-node type',
@@ -305,7 +289,10 @@ my @TOOLBAR_BINDINGS = (
   {
     command =>  sub {
       ChangingFile(0);
-      return unless $this->{'#name'} eq 'node';
+      unless ($this->parent and $this->parent->parent and $this->{'#name'} eq 'node') {
+	QuestionQuery('Sorry',"Cannot make this node optional!",'Ok');
+	return;
+      }
       $this->{optional}=!$this->{optional};
       ChangingFile(1);
     },
@@ -314,32 +301,31 @@ my @TOOLBAR_BINDINGS = (
     toolbar => ['Optional','optional_node' ],
   },
   {
-    command =>  'NewTest',
-    key => '=',
-    menu => 'Add a equality test',
-    toolbar => ['Equality','test_equality' ],
-  },
-  {
-    command =>  sub { NewTest('~')   },
-    key => '~',
-    menu => 'Add a regexp test',
-    toolbar => ['Regexp','test_regexp' ],
-  },
-  {
     command =>  sub {
       ChangingFile(0);
-      if ($this->{'#name'} eq 'node' and 
-	    $this->parent and $this->parent->{'#name'} =~ /^(?:node|subquery)$/) {
+      if ($this->{'#name'} eq 'node' and
+	    $this->parent and $this->parent->parent and $this->parent->{'#name'} =~ /^(?:node|subquery)$/) {
+	if ($this->{optional}) {
+	  QuestionQuery('Sorry',"Cannot set occurrences for an optional node!",'Ok');
+	  return;
+	}
 	$this->set_type(undef);
 	$this->{'#name'}='subquery';
 	DetermineNodeType($this);
-      } elsif (!$this->{'#name'} eq 'subquery') {
+      }
+      unless ($this->{'#name'} eq 'subquery') {
+	QuestionQuery('Sorry',"Cannot set occurrences for this node!",'Ok');
 	return;
       }
       if (not (AltV($this->{'occurrences'}))) {
 	$this->{occurrences}=Fslib::Struct->new({min=>1});
       }
       if (EditAttribute($this,'occurrences')) {
+	if (! first { defined && length } map { ($_->{min},$_->{max}) } AltV($this->{occurrences})) {
+	  $this->set_type(undef);
+	  $this->{'#name'}='node';
+	  DetermineNodeType($this);
+	}
 	ChangingFile(1);
       }
     },
@@ -349,25 +335,61 @@ my @TOOLBAR_BINDINGS = (
   },
   '---',
   {
-    command =>  sub {
-      ChangingFile(0);
-      my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } ($this,$this->ancestors);
-      if ($qn) {
-	$qn->{'.unhide'}=!$qn->{'.unhide'};
-	$this=$qn;
-      }
-    },
-    key => 'h',
-    menu => 'Toggle hiding of logical nodes for current node',
-    toolbar => ['(Un)hide','toggle_hide_subtree' ],
+    command => 'DeleteNode',
+    key => 'Delete',
+    menu => 'Delete current node (pasting its children on its parent)',
+    toolbar => ['Delete node', 'delete_node' ],
   },
   {
-    command =>  'ToggleHiding',
-    key => 'H',
-    menu => 'Toggle hiding of logical nodes for all nodes',
-    changing_file => 0,
-    toolbar => ['(Un)hide all','toggle_hide_all' ],
+    command =>  'DeleteSubtree',
+    key => 'Shift+Delete',
+    menu => 'Delete current subtree',
+    toolbar => ['Delete subtree', 'delete_subtree'],
   },
+  '---',
+  {
+    command =>  sub { my $new = new_rbrother();
+		      if ($new and $new->{'#name'} =~ /^(node|subquery)$/) {
+			( $new->parent ? AssignRelation($new) : AssignType($new) ) || DeleteLeafNode($new);
+		      }
+		    },
+    key => 'Alt+Right',
+    menu => 'New right brother node',
+    toolbar => ['Right brother', 'new_rbrother' ],
+  },
+  {
+    command =>  sub { my $new = new_lbrother();
+		      if ($new and $new->{'#name'} =~ /^(node|subquery)$/) {
+			( $new->parent ? AssignRelation($new) : AssignType($new) ) || DeleteLeafNode($new);
+		      }
+		    },
+    key => 'Alt+Left',
+    menu => 'New left brother node',
+    toolbar => ['Left brother','new_lbrother' ],
+  },
+
+  {
+    command =>  sub { my $new = new_son();
+		      if ($new and $new->{'#name'} =~ /^(node|subquery)$/) {
+			( $new->parent ? AssignRelation($new) : AssignType($new) ) || DeleteLeafNode($new);
+		      }
+		    },
+    key => 'Alt+Down',
+    menu => 'New son node',
+    toolbar => ['Son', 'new_son' ],
+  },
+
+  {
+    command =>  sub { my $new = new_parent();
+		      if ($new and $new->{'#name'} =~ /^(node|subquery)$/) {
+			( $new->parent ? AssignRelation($new) : AssignType($new) ) || DeleteLeafNode($new);
+		      }
+		    },
+    key => 'Alt+Up',
+    menu => 'Insert a new node between the current node and its parent',
+    toolbar => ['Parent', 'new_parent' ],
+  },
+
  );
 
 
@@ -383,7 +405,9 @@ Bind({
 });
 
 
-Bind($_) for grep ref, @TOOLBAR_BINDINGS;
+for (grep ref, @TOOLBAR_BINDINGS) {
+  Bind($_);
+}
 
 Bind paste_as_new_tree => {
   key => 'Ctrl+Shift+Insert',
@@ -1197,6 +1221,8 @@ sub AddOrRemoveRelations {
 	delete $types{$rel_name}; # already have it
       } elsif (!$types{$rel_name}) {
 	DeleteLeafNode($ref);
+      } else {
+	delete $types{$rel_name}; # already have it
       }
     }
   }
@@ -1272,16 +1298,16 @@ sub SelectSearch {
   );
   $d->BindEscape;
   my ($vol,$dir)=File::Spec->splitpath(__this_module_path());
-  print "$vol, $dir\n";
   my @b;
-  for my $b (['File' => 'file', 0, 0],
-	     ['File List' => 'filelist',0,1],
-	     ['TreeQuery Server' => 'remote-db',1,0],
-	     ['SQL Database' => 'local-db',1,1],
+  for my $b (['File' => 'file', 0, 0, 0],
+	     ['File List' => 'filelist',0,1,5],
+	     ['TreeQuery Server' => 'remote-db',1,0,0],
+	     ['SQL Database' => 'local-db',1,1,0],
 	    ) {
     my $but = $d->add('Button',
 	    -compound=>'top',
 	    -text => $b->[0],
+	    -underline => $b->[4],
 	    -image => $d->Photo(
 	      -format=>'png',
 	      -file => File::Spec->catfile(File::Spec->catpath($vol,$dir),'icons',$b->[1].'.png'),
@@ -1302,6 +1328,12 @@ sub SelectSearch {
   }
 
   $d->configure(-focus=>$b[0]);
+  my $preserve=0;
+  if ($SEARCH) {
+    $d->add('Checkbutton',-variable => \$preserve,-underline=>0,-text=>'Preserve current search')
+      ->grid(-column=>0,-columnspan=>2,-row=>3);
+  }
+  $d->BindButtons;
   my $choice = $d->Show;
   return if $choice eq 'Cancel';
   my $file;
@@ -1338,6 +1370,11 @@ sub SelectSearch {
     }
   #  }
   if ($S) {
+    if (!$preserve and $SEARCH) {
+      DestroyUserToolbar($SEARCH->identify);
+      @SEARCHES = grep { $_!=$SEARCH } @SEARCHES;
+      $SEARCH=undef;
+    }
     my $ident = $S->identify;
     @SEARCHES = grep { $_->identify ne $ident } @SEARCHES;
     push @SEARCHES, $S;
@@ -1353,8 +1390,8 @@ sub SetSearch {
   my $prev=$SEARCH && $SEARCH->identify;
   my $ident = $s && $s->identify;
   $SEARCH=$s;
-  if ($ident ne $prev) {
-    for my $name ($ident,$prev) {
+  if (!defined($prev) or $ident ne $prev) {
+    for my $name (grep defined, $ident,$prev) {
       my $tb = GetUserToolbar($name);
       next unless $tb;
       my $lab = first { ref($_) eq 'Tk::Label' } $tb->children;
@@ -1367,7 +1404,7 @@ sub CreateSearchToolbar {
   my ($ident)=@_;
   RemoveUserToolbar($ident);
   my $tb = NewUserToolbar($ident);
-  for my $but (['(Re)start search' =>
+  for my $but (['Search' =>
 		    sub{
 		      my $s = GetSearch($ident);
 		      if ($s) {
@@ -1424,7 +1461,7 @@ sub CreateSearchToolbar {
 		-takefocus=>0,
 		-relief => $main::buttonsRelief,
 		-image => main::icon($grp->{framegroup},'16x16/'.$but->[2]),
-		-compound => 'left',
+		-compound => 'top',
 	       )->pack(-side=>'left',-padx => 5);
   }
   my $l = $tb->Label(-text=>$ident,-font=>'C_small')->pack(-side=>'left');
@@ -1481,7 +1518,62 @@ sub EditQuery {
     my $time = timestr(timediff($t1,$t0));
     print "creating parser took: $time\n";
   }
-  my $qopts={-cursor => 'end - 3 chars'};
+  my $qopts={-cursor => 'end - 3 chars',
+	     -init => sub {
+	       my ($d,$ed)=@_;
+	       my $f = $d->add('Frame')->pack(-side=>'top');
+	       for (qw|! and or|,
+		    [q|"..."|=>q|""|],
+		    [q|'...'|=>q|''|],
+		    qw| [] () |,
+		    'in { }',
+		    qw|? >> |,
+		    "\n",
+		    qw|= ~ ^ $ |,
+		    q|$n :=|,
+		    qw|< > + - * / |,
+		    ['& (concat)' => '&']
+		   ) {
+		 if ($_ eq "\n") {
+		   $f = $d->add('Frame')->pack(-side=>'top');
+		   next;
+		 }
+		 my ($label,$value)=ref($_) ? @$_ : ($_,$_);
+		 $f->Button(-text => $label,
+			    ($label=~/([[:alpha:]])/ ? (-underline => $-[0]) : ()),
+			    -command => [ sub { $_[0]->Insert($_[1]=~/\$|\^/ ? $_[1] : ' '.$_[1].' ');
+						$_[0]->SetCursor('insert -2 chars') if $_[1]=~/["'[({]/;
+						}, $ed, $value
+					 ]
+			   )->pack(-side=>'left');
+	       }
+	       $f = $d->add('Frame')->pack(-side=>'top');
+	       for my $mb (
+		 [Relation => GetRelationTypes($this)],
+		 [Type => $SEARCH ? $SEARCH->get_node_types : []],
+		 [Function => [map { $_.'()' }
+				 qw( descendants lbrothers rbrothers sons depth_first_order
+				     depth lower upper length substr tr replace ciel floor
+				     round trunc percnt name file tree_no position
+				     min max sum avg count ratio concat)]]
+		) {
+		 my $menubutton = $f->Menubutton(
+		   -text => $mb->[0],
+		   -underline => 0,
+		   -relief => 'raised',
+		   -direction => 'below',
+		  )->pack(-side=>'left');
+		 my $menu = $menubutton->menu(-tearoff => 0);
+		 $menubutton->configure(-menu => $menu);
+		 for (@{$mb->[1]}) {
+		   $menubutton->command(-label => $_,
+					-command => [$ed,'Insert',' '.$_.' ']
+				       );
+		 }
+	       }
+	       $d->BindButtons;
+	     },
+	   };
   while ( defined ($string = EditBoxQuery('Edit query node', $string, '',$qopts)) ) {
     my $t0 = new Benchmark;
     eval {
