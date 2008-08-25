@@ -244,12 +244,29 @@ sub absolutize {
   return map { m(^[[:alnum:]]+:/|^\s*\||^\s*/) ? $_ : rel2abs($_) } grep { !/^\s*$/ } @_;
 }
 
+sub can_have_children {
+  my ($parent_decl)=@_;
+  my $parent_decl_type = $parent_decl->get_decl_type;
+  if ($parent_decl_type == PML_ELEMENT_DECL()) {
+    $parent_decl = $parent_decl->get_content_decl;
+    $parent_decl_type = $parent_decl->get_decl_type;
+  }
+  if ($parent_decl_type == PML_STRUCTURE_DECL()) {
+    return 1 if $parent_decl->find_members_by_role('#CHILDNODES');
+  } elsif ($parent_decl_type == PML_CONTAINER_DECL()) {
+    my $content_decl = $parent_decl->get_content_decl;
+    return 1 if $content_decl and $content_decl->get_role eq '#CHILDNODES';
+  }
+  return 0;
+}
+
 sub chooseNodeType {
   my ($fsfile,$node,$opts)=@_;
   my $type = $node->type;
   return $type if $type;
   my $ntype;
   my @ntypes;
+  my $has_children = $node->firstson ? 1 : 0;
   if ($node->parent) {
     # is parent's type known?
     my $parent_decl = $node->parent->type;
@@ -262,7 +279,8 @@ sub chooseNodeType {
 	  $parent_decl->find_members_by_role('#CHILDNODES');
       } elsif ($parent_decl_type == PML_CONTAINER_DECL()) {
 	$member_decl = $parent_decl->get_content_decl;
-	undef $member_decl unless $member_decl and $member_decl->get_role eq '#CHILDNODES';
+	undef $member_decl unless $member_decl and $member_decl->get_role eq '#CHILDNODES'
+ 	  and (!$has_children or can_have_children($ntype));
       }
       if ($member_decl) {
 	my $member_decl_type = $member_decl->get_decl_type;
@@ -271,7 +289,9 @@ sub chooseNodeType {
 	  undef $ntype unless $ntype and $ntype->get_role eq '#NODE';
 	} elsif ($member_decl_type == PML_SEQUENCE_DECL()) {
 	  my $elements = 
-	  @ntypes = grep { $_->[1]->get_role eq '#NODE' }
+	  @ntypes = 
+	    grep { !$has_children or can_have_children($_->[1]) }
+	    grep { $_->[1]->get_role eq '#NODE' }
 	    map { [ $_->get_name, $_->get_content_decl ] }
 	      $member_decl->get_elements;
 	  if (defined $node->{'#name'}) {
@@ -304,10 +324,13 @@ sub chooseNodeType {
 	  Dumper($tt));
       } elsif ($tt->get_decl_type == PML_LIST_DECL()) {
 	$ntype = $tt->get_content_decl;
-	undef $ntype unless $ntype and $ntype->get_role eq '#NODE';
+	undef $ntype unless $ntype and $ntype->get_role eq '#NODE'
+	  and (!$has_children or can_have_children($ntype));
       } elsif ($tt->get_decl_type == PML_SEQUENCE_DECL()) {
 	my $elements = 
-	  @ntypes = grep { $_->[1]->get_role eq '#NODE' }
+	  @ntypes =
+	    grep { !$has_children or can_have_children($_->[1]) }
+	    grep { $_->[1]->get_role eq '#NODE' }
 	    map { [ $_->get_name, $_->get_content_decl ] }
 	    $tt->get_elements;
 	  if (defined $node->{'#name'}) {
