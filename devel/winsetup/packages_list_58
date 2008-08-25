@@ -12,6 +12,6 @@ XML-LibXSLT
 XML-Writer
 Syntax-Highlight-Perl
 Tk-CodeText
-Parse::RecDescent
+Parse-RecDescent
 Graph
-Graph::ChuLiuEdmonds
+Graph-ChuLiuEdmonds
