@@ -494,12 +494,42 @@ sub UserToolbarVisible {
   }
   return;
 }
+sub AttachTooltip {
+  my ($widget, $message)=@_;
+  $grp->{framegroup}{Balloon}->attach($widget, -balloonmsg=> $message);
+}
 
 sub MacroCallback {
-  my ($sub)=@_;
+  my ($binding)=@_;
+  my $macro;
+  my ($context)=caller;
+  if (ref($binding) eq 'HASH') {
+    my $command = $binding->{command};
+    $context = $binding->{context} || $context;
+    return unless $command;
+    if (exists($binding->{changing_file})) {
+      my $changes_file = $binding->{changing_file};
+      if (ref($command) eq 'CODE') {
+	$macro = sub {
+	  &$command();
+	  ChangingFile($changes_file);
+	};
+      } else {
+	$macro = sub {
+	  $context->$command();
+	  ChangingFile($changes_file);
+	}
+      }
+    } else {
+      $macro = $command;
+    }
+  } else {
+    $macro = $binding;
+  }
+  $macro = (ref($macro) or $macro=~/^\w+-\>/) ? $macro : $context.'->'.$macro;
   return [sub {
 	    my $tred=pop @_;
-	    main::doEvalMacro($tred->{focusedWindow},$sub,@_);
+	    main::doEvalMacro($tred->{focusedWindow},$macro,@_);
 	  },$grp->{framegroup}];
 }
 
