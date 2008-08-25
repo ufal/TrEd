@@ -43,7 +43,9 @@ sub new_rbrother {
   unless (DetermineNodeType($new)) {
     DeleteLeafNode($new);
     $this=$save;
+    return;
   }
+  return $new;
 }
 sub new_lbrother {
   my $save = $this;
@@ -51,7 +53,9 @@ sub new_lbrother {
   unless (DetermineNodeType($new)) {
     DeleteLeafNode($new);
     $this=$save;
+    return;
   }
+  return $new;
 }
 sub new_son {
   my $save = $this;
@@ -59,7 +63,9 @@ sub new_son {
   unless (DetermineNodeType($new)) {
     DeleteLeafNode($new);
     $this=$save;
+    return;
   }
+  return $new;
 }
 sub new_parent {
   return unless $this->parent;
@@ -68,7 +74,9 @@ sub new_parent {
   unless (DetermineNodeType($new)) {
     delete_node_keep_children($new);
     $this=$save;
+    return;
   }
+  return $new;
 }
 
 sub cut_to_firstson {
