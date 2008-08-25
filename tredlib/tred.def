@@ -1797,7 +1797,13 @@ sub Bind {
 #ifdef TRED
   while (@_) {
     my $macro = shift;
-    my $bind=shift;
+    my $bind;
+    if (@_==0 and ref($macro) eq 'HASH') {
+      $bind = $macro;
+      $macro = $macro->{command};
+    } else  {
+      $bind=shift;
+    }
     my ($caller)=caller;
     if (ref($bind) eq 'HASH') {
       my $context  =$bind->{context}||$caller;
