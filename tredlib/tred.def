@@ -2246,8 +2246,8 @@ sub FindPrev {
 
 =item C<ErrorMessage(message)>
 
-In TrEd, show a dialog box containing the given error-message.
-In BTrEd print the error message on standard output.
+In TrEd, show a dialog box containing the given error-message in a
+text window.  In BTrEd print the error message on standard output.
 
 =cut
 
