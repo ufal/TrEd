@@ -112,6 +112,7 @@ sub EditBoxQuery {
   $d->bind($d,'<Escape>', [sub { shift; shift->{selected_button}= 'Cancel'; },$d] );
   $d->bind(ref($ed->Subwidget('scrolled')),'<Escape>', [sub { shift; my $w=shift; $w->{selected_button}= 'Cancel'; },$d] );
   $ed->focus;
+  RunCallback($opts->{-init},$d,$ed) if $opts->{-init};
   if (main::ShowDialog($d) =~ /OK/) {
     $var=$ed->get('0.0','end');
     chomp($var);
@@ -529,7 +530,11 @@ sub MacroCallback {
   $macro = (ref($macro) or $macro=~/^\w+-\>/) ? $macro : $context.'->'.$macro;
   return [sub {
 	    my $tred=pop @_;
-	    main::doEvalMacro($tred->{focusedWindow},$macro,@_);
+	    if ($main::insideEval) {
+	      main::do_eval_macro($macro,@_);
+	    } else {
+	      main::doEvalMacro($tred->{focusedWindow},$macro,@_);
+	    }
 	  },$grp->{framegroup}];
 }
 
