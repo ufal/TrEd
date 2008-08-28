@@ -929,7 +929,7 @@ sub recalculate_positions {
     my $h2 = 2*$nodeHeight + $style->{CurrentNode}{'-addheight'} + $style->{CurrentOval}{'-width'};
     my $h = $h1 < $h2 ? $h2 : $h1;
     $gen_info->{"MaxNodeHeightOnLevel[$level]"}=$h if $gen_info->{"MaxNodeLabelsOnLevel[$level]"}<$h;
-    $maxlevel=$level if $maxlevel<$level;
+    $maxlevel=int($level) if $maxlevel<int($level);
   }
   if ($balance) {
     @{$nodes} = @{$self->balance_node_order($nodes)};
@@ -961,7 +961,6 @@ sub recalculate_positions {
     my $label_style = $style->{'NodeLabel'};
 
     $level=$NI->{'Level'}+$node_style->{'-level'};
-    
     $NI->{"EdgeLabelHeight"}= $edge_label_height;
 
     my $node_label_height=2*$ymargin + $NI->{"NodeLabel_nonempty"}*$fontHeight;
@@ -971,8 +970,11 @@ sub recalculate_positions {
     #      $levelHeight += $nodeYSkip unless ($edge_pattern_count);
     #   }
     my $thisLevelHeight = $gen_info->{"LevelHeight[$level]"};
-    $ypos = $gen_info->{"LevelYPos[$level]"};
-
+    my $frac_level = $level-int($level);
+    $ypos = $frac_level == 0
+      ? $gen_info->{"LevelYPos[$level]"}
+      : $frac_level*$gen_info->{"LevelYPos[".int($level+1)."]"}
+      + (1-$frac_level)*$gen_info->{"LevelYPos[".int($level)."]"};
     $valign=$label_style->{'-valign'};
     if ($valign eq 'bottom') {
       $valign_shift=-$nodeYSkip/2-$node_label_height;
@@ -1383,7 +1385,7 @@ sub parse_coords_spec {
 	}
 	(${'TredMacro::this'},${'TredMacro::grp'})=($node,$grp_ctxt);
 	$that = $cached->($node);
-	print STDERR $@ if $@ ne "";
+	print STDERR "Error in coords: $code\n".$@ if $@ ne "";
 	if (ref($that)) {
 	  $nodehash->{"x$key"}=
 	    $node_info->{$that}{ "XPOS"};
