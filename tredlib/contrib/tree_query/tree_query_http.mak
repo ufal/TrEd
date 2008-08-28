@@ -74,8 +74,12 @@ sub identify {
   if ($self->{config}{data}) {
     my $cfg = $self->{config}{data};
     $ident.=' ';
-    $ident.=$cfg->{username}.'@' if $cfg->{username};
-    $ident.=$cfg->{url};
+    if ($cfg->{id}) {
+      $ident.=$cfg->{id};
+    } else {
+      $ident.=$cfg->{username}.'@' if $cfg->{username};
+      $ident.=$cfg->{url};
+    }
   }
   return $ident;
 }

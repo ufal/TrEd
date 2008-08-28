@@ -69,7 +69,8 @@ sub identify {
   my $ident= "SQLSearch-".$self->{object_id};
   if ($self->{config}{data}) {
     my $cfg = $self->{config}{data};
-    $ident.=" $cfg->{driver}:$cfg->{username}\@$cfg->{host}:$cfg->{port}/$cfg->{database}";
+    $ident.=
+      $cfg->{id} ? " $cfg->{id}" : " $cfg->{driver}:$cfg->{username}\@$cfg->{host}:$cfg->{port}/$cfg->{database}";
   }
   return $ident;
 }
