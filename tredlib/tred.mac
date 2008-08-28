@@ -560,7 +560,7 @@ sub DeclareMinorContext {
 }
 
 sub EnableMinorContext {
-#ifdef tred
+#ifdef TRED
   my ($name,$win)=@_;
   $win||=$grp;
   if (ref($win->{minorContexts})) {
@@ -574,7 +574,7 @@ sub EnableMinorContext {
 }
 
 sub DisableMinorContext {
-#ifdef tred
+#ifdef TRED
   my ($name,$win)=@_;
   $win||=$grp;
   if (ref($win->{minorContexts})) {
