@@ -409,6 +409,7 @@ DeclareMinorContext 'Tree_Query_Results' => {
       }
     }
    }
+#text:<?    my $m=$Tree_Query::is_match{$this};    my $color =  defined($m) ? '#'.$Tree_Query::colors[$m] : CustomColor('sentence');   ($${m/w/token}eq$${m/form} ?     "#{$color}".'${m/w/token}' :   '#{-over:1}#{'.CustomColor('spell').'}['.     join(" ",map { $_->{token} } ListV($this->attr('m/w'))).  ']#{-over:0}'."#{$color}".'${m/form}') ?>
 };
 
 Bind({
@@ -599,13 +600,18 @@ our $__color_idx;
 sub CreateStylesheets{
   unless(StylesheetExists('Tree_Query')){
     SetStylesheetPatterns(<<'EOF','Tree_Query',1);
-context:   Tree_Query
+context:  Tree_Query
 hint: 
 rootstyle:#{balance:1}#{Node-textalign:center}#{NodeLabel-halign:center}
-rootstyle: #{vertical:0}#{nodeXSkip:40}
+rootstyle: #{vertical:0}#{nodeXSkip:40}#{skipHiddenLevels:1}
 rootstyle: #{NodeLabel-skipempty:1}#{CurrentOval-width:3}#{CurrentOval-outline:red}
 rootstyle: <? $Tree_Query::__color_idx=0;$Tree_Query::__color_idx2=1 ?>
-node: #{blue(}<?length($${id}) ? $${id}.' ' : '' ?>#{)}<?length($${node-type}) ? $${node-type}.' ' : '' ?>#{darkblue}<?length($${name}) ? '$'.$${name}.' ' : '' ?>
+node: <?length($${id}) ? '#{blue(}${id}#{)} ' : '' 
+?><? 
+  $this->{'#name'} =~ /^(node|subquery)$/ ?
+   ( length($${node-type}) 
+        ? $${node-type}.' ' : '#{red(}${node-type=NO_TYPE}#{)}' ) : () 
+?>#{darkblue}<?length($${name}) ? '$'.$${name}.' ' : '' ?>
 label:#{darkgreen}<?
   my $occ = Tree_Query::occ_as_text($this);
   length $occ ? '#{-coords:n-10,n}#{-anchor:e}${occurrences='.$occ.'x}' : ""
@@ -641,8 +647,12 @@ style: <?
     '#{Line-tag:relation}'
   }
 ?>
-style: <? if ($this->parent and $this->parent->{'#name'} eq 'or') {
-    '#{Line-dash:-}'
+style: <? if ($this->parent) {
+    if ($this->parent->{'#name'} eq 'or') {
+      '#{Line-dash:-}'
+     }
+  } else {
+     '#{Node-hide:1}'
   }
 ?>
 xlabel:<?
@@ -656,14 +666,17 @@ style:<?
    if ($name eq 'node'
       and !(grep { ($_->{'#name'}||'node') ne 'node' } $this->ancestors)) {
      my $color = Tree_Query::NodeIndexInLastQuery($this);
+    ( $this->{'.unhide'} ? '#{Node-shape:polygon}#{Node-polygon:-8,8,8,8,0,-8}' : '' ).
      (defined($color) ? '#{Oval-fill:#'.$Tree_Query::colors[$color].'}' : '').
      '#{Node-addwidth:7}#{Node-addheight:7}#{Line-width:3}#{Line-arrowshape:14,18,4}'
    } elsif ($name eq 'node') {
+    ( $this->{'.unhide'} ? '#{Node-shape:polygon}#{Node-polygon:-8,8,8,8,0,-8}' : '' ).
      '#{Node-fill:brown}#{Node-addwidth:7}#{Node-addheight:7}#{Line-width:3}#{Line-arrowshape:14,18,4}'
    } elsif ($name eq 'test') {
     '#{NodeLabel-dodrawbox:yes}#{Line-fill:lightgray}#{Node-shape:rectangle}#{Oval-fill:gray}'
    } elsif ($name eq 'subquery') {
-     '#{Node-shape:oval}'
+    ( $this->{'.unhide'} ? '#{Node-shape:polygon}#{Node-polygon:-4,4,4,4,0,-4}' : 
+                                     '#{Node-shape:oval}' )
    } elsif ($name eq 'ref') {
       '#{Node-shape:rectangle}'
    } elsif ($name =~ /^(?:or|and|not)$/) {
@@ -686,7 +699,6 @@ sub NewQuery {
   use POSIX;
   my $id = POSIX::strftime('q-%y-%m-%d_%H%M%S', localtime());
   my $filename = DefaultQueryFile();
-  ChangingFile(0);
   my $fl = first { $_->name eq 'Tree Queries' } TrEdFileLists();
   unless ($fl) {
     $fl = Filelist->new('Tree Queries');
@@ -711,7 +723,6 @@ sub NewQuery {
   <schema href="tree_query_schema.xml" />
  </head>
  <q-trees>
-  <LM id="$id"/>
  </q-trees>
 </tree_query>
 END
@@ -722,8 +733,10 @@ END
     SetCurrentFileList($fl->name);
     Open($filename);
   }
-  GotoTree(scalar(GetTrees));
+  GotoTree(scalar(GetTrees()));
   DetermineNodeType(NewTreeAfter()) if ($root->children);
+  $root->{id}=$id;
+  ChangingFile(0);
 }
 
 
@@ -1689,6 +1702,7 @@ sub AddNode {
   if ($new) {
     unless ($node->parent ? AssignRelation($new) : AssignType($new)) {
       DeleteLeafNode($new);
+      $this=$node;
     }
   }
 }
