@@ -34,7 +34,7 @@ use vars qw($svn_version $version $VERSION $about $opt_u $opt_h $opt_c
 	    $locale_charset
 	    $no_secondary
 	    %HELP %vertical_key_arrow_map 
-	    $manpage $listoptions $no_backups %optmap $carp
+	    $manpage $listoptions $no_backups $no_locks %optmap $carp
            );
 
 $svn_version='$Id$';
@@ -126,6 +126,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
   'man' => \$manpage,
   "list-options" => \$list_options,
   "no-backups" => \$no_backups,
+  "no-locks" => \$no_locks,
   "autosave=i" => \$opt_auto_save,
   "carp" => \$carp,
 );
@@ -1001,6 +1002,7 @@ sub ApplyGlobalConfig {
 		       -highlightbackground => $highlightWindowColor,
 		       -bg => $bg
 		      );
+  $lockFiles=0 if $no_locks;
   return unless $grp;
 
   delete $grp->{icon};
@@ -11332,10 +11334,15 @@ TrEd configuration file (overrides ~/.tredrc).
 
 TrEd stylesheet configuration file (overrides ~/.tred-stylesheets).
 
-=item B<--resource-dir> dirnames
+=item B<--resource-dir|-Z> dirnames
 
 Specifies resource path. This option can be repeated and overrides
-ResoucePath setting in the TrEd configuration file.
+ResoucePath setting in the TrEd configuration file. 
+
+Individual paths can also be separated by colon (POSIX/Unix) or
+semi-colon (Windows) separator. If there is a lone leading or trailing
+separator, the default resource path is prepended or appended,
+respectively.
 
 =item B<--context|-t> context_name
 
@@ -11421,6 +11428,20 @@ Examples:
   -X govMD_c,ord,x_MD_c_hide 
                  - corresponds to <MDg src="c">, <r>, 
                    and <x name="MD_c_hide">).
+
+=item B<--no-backups>
+
+Do not generate `tilda' backup files.
+
+=item B<--no-locks>
+
+Do not attempt to create lock files. Lock files are used to prevent
+another TrEd instance/user from modifying the same document.
+
+=item B<--autosave> number
+
+Create an auto-save file for each modified document every given number
+of minutes. If 0, auto-saving is disabled.
 
 =item B<--quiet|-q>
 
