@@ -174,6 +174,7 @@ sub search_first {
       SetCurrentStylesheet(STYLESHEET_FROM_FILE);
       AddNewFileList($fl);
       SetCurrentFileList($fl->name,{no_open=>1});
+      EnableMinorContext('Tree_Query_Results',$res_win);
       #GotoFileNo(0);
       $self->{current_result}=[$self->idx_to_pos($results->[0])];
       ($this,$root,$grp)=@context;
