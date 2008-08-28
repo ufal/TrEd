@@ -392,7 +392,24 @@ my @TOOLBAR_BINDINGS = (
 
  );
 
-
+DeclareMinorContext 'Tree_Query_Results' => {
+  pre_hooks => {
+    root_style_hook => sub {
+      map_results($root);
+    },
+  },
+  post_hooks => {
+    node_style_hook => sub {
+      my ($node,$styles)=@_;
+      my $m=$Tree_Query::is_match{$node};
+      if (defined $m) {
+	AddStyle($styles,'Oval',-fill => '#'.$Tree_Query::colors[$m]);
+	AddStyle($styles,'Node',-addwidth=>3);
+	AddStyle($styles,'Node',-addheight=>3);
+      }
+    }
+   }
+};
 
 Bind({
   command => sub {
