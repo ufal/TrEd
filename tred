@@ -5809,7 +5809,7 @@ sub startMain {
   $canvas->configure(@focused_win_opts);
 
   print "Starting in context $group{focusedWindow}->{macroContext}\n" if $tredDebug;
-  doEvalHook($grp->{focusedWindow},"initialize_bindings_hook");
+  doEvalHook($group{focusedWindow},"initialize_bindings_hook");
   $group{templateMatchMethod}=$defaultTemplateMatchMethod;
   $group{macroListOrder}=$defaultMacroListOrder;
   print STDERR "Main window created.\n" if $tredDebug;
@@ -6296,6 +6296,9 @@ sub startMain {
 	  -command => [sub {
 			 my ($grp)=@_;
 			 doEvalHook($grp->{focusedWindow},"reload_macros_hook");
+			 delete $grp->{minorContexts};
+			 delete $grp->{minorPreHooks};
+			 delete $grp->{minorPostHooks};
 			 TrEd::TreeView->clear_code_caches;
 			 cleanup_tredmacro($grp);
 			 for my $name (keys %{$grp->{UserToolbarHash}}) {
@@ -10432,7 +10435,8 @@ sub doEvalHook {
   my ($win,$hook)=(shift,shift);
 
   return unless $hook; # and $win->{currentNode};
-  my $bookmark=bookmarkThis($win->{framegroup});
+  my $grp = $win->{framegroup};
+  my $bookmark=bookmarkThis($grp);
   # Save current position (as last action position)
 
   local $insideEval=1;
@@ -10443,15 +10447,40 @@ sub doEvalHook {
     libDir => $libDir,
     forceFileSaved => 0
    );
+  my $minor_contexts;
   if ($win) {
     set_macro_variable(
       this => $win->{currentNode},
-      root => $win->{root}
+      root => $win->{root},
+      grp => $win,
      );
     $context = $win->{macroContext} || 'TredMacro';
+    $minor_contexts = $win->{minorContexts};
+    if (ref($minor_contexts)) {
+      my $pre_hooks = $grp->{minorPreHooks}{$hook};
+      for my $minor (@$minor_contexts) {
+	my $pre_hook = $pre_hooks->{$minor};
+	if (defined $pre_hook) {
+	  print STDERR "running pre-hook $hook for $minor : $pre_hook\n"  if $hookDebug;
+	  eval { $pre_hook->(@_) };
+	  errorMessage($win,$@) if $@;
+	}
+      }
+    }
   }
   my $result=do_eval_hook($win,$context,$hook,@_);
   warn "$@\n" if $@;
+  if (ref($minor_contexts)) {
+    my $post_hooks = $grp->{minorPostHooks}{$hook};
+    for my $minor (@$minor_contexts) {
+      my $post_hook = $post_hooks->{$minor};
+      if (defined $post_hook) {
+	print STDERR "running post-hook $hook for $minor : $post_hook\n" if $hookDebug;
+	eval { $post_hook->(@_) };
+	errorMessage($win,$@) if $@;
+      }
+    }
+  }
   my $file_changed=get_macro_variable("FileNotSaved");
 
   if ($win) {
