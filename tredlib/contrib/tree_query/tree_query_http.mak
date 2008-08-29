@@ -66,6 +66,7 @@ sub DESTROY {
   my ($self)=@_;
   warn "DESTROING $self\n";
   RunCallback($self->{on_destroy}) if $self->{on_destroy};
+  unregister_open_file_hook($self->{callback});
 }
 
 sub identify {
@@ -266,6 +267,7 @@ sub select_matching_node {
       $r=$r->following();
     }
     if ($r) {
+      EnableMinorContext('Tree_Query_Results',$win);
       SetCurrentNodeInOtherWin($win,$r);
       CenterOtherWinTo($win,$r);
     }
