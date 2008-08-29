@@ -4,4 +4,4 @@ targets = $(patsubst %.svg,%.png,$(files))
 all: $(targets)
 
 %.png: %.svg
-	inkscape -e $@ -h 32 -w 32 $<
+	inkscape -e $@ -h 22 -w 22 $<
