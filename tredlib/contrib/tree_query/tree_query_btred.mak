@@ -430,6 +430,7 @@ sub select_matching_node {
       $r=$r->following();
     }
     if ($r) {
+      EnableMinorContext('Tree_Query_Results',$win);
       SetCurrentNodeInOtherWin($win,$r);
       CenterOtherWinTo($win,$r);
     }
@@ -490,6 +491,7 @@ sub claim_search_win {
     $win = SplitWindowVertically();
     my $cur_win = $grp;
     $grp=$win;
+    EnableMinorContext('Tree_Query_Results',$win);
     eval {
       if ($self->{file}) {
 	Open($self->{file});
