@@ -410,9 +410,29 @@ DeclareMinorContext 'Tree_Query_Results' => {
 	AddStyle($styles,'Node',-addwidth=>3);
 	AddStyle($styles,'Node',-addheight=>3);
       }
-    }
-   }
-#text:<?    my $m=$Tree_Query::is_match{$this};    my $color =  defined($m) ? '#'.$Tree_Query::colors[$m] : CustomColor('sentence');   ($${m/w/token}eq$${m/form} ?     "#{$color}".'${m/w/token}' :   '#{-over:1}#{'.CustomColor('spell').'}['.     join(" ",map { $_->{token} } ListV($this->attr('m/w'))).  ']#{-over:0}'."#{$color}".'${m/form}') ?>
+    },
+    get_value_line_hook => sub {
+      my ($fsfile,$no)=@_;
+      if (!defined $_[-1]) {
+	# value line not supplied by hook, we provide the standard one
+	$_[-1] = $grp->treeView->value_line($fsfile,$no,1,1,$grp);
+      }
+      my $vl =  $_[-1];
+      if (ref $vl) {
+	my $m;
+	for my $item (@$vl) {
+	  for (@$item[1..$#$item]) {
+	    if (defined($m=$Tree_Query::is_match{$_})) {
+	      # @$item = $item->[0],grep !/^-foreground => /, @$item[1..$#$item];
+	      push @$item,'-foreground => #'.$Tree_Query::colors[$m];
+	      last;
+	    }
+	  }
+	}
+      }
+      # return $vl;
+    },
+  }
 };
 
 Bind({
