@@ -40,12 +40,12 @@
 #
 #
 # FIXME:
-# - Escape after Insert
-# - release with button <2>
-
+# - do not offer PMLREF non-existing columns in the completion
+# for 'a' in a test
 
 
 package Tree_Query::Common; # so that it gets reloaded
+package Tree_Query::NG2PMLTQ; # so that it gets reloaded
 package Tree_Query::SQLEvaluator; # so that it gets reloaded
 package Tree_Query;
 {
@@ -61,6 +61,7 @@ BEGIN {
   use lib $main::libDir.'/contrib/tree_query';
   use Tree_Query::Common;
   import Tree_Query::Common qw(:all);
+  use Tree_Query::NG2PMLTQ qw(ng2pmltq);
 }
 
 our $VALUE_LINE_MODE = 0;
@@ -77,6 +78,7 @@ Bind 'Tree_Query->NewQuery' => {
   key => 'Shift+F3',
   menu => 'New Tree Query',
 };
+our $ng_string;
 
 my @TOOLBAR_BINDINGS = (
   {
@@ -87,6 +89,23 @@ my @TOOLBAR_BINDINGS = (
     key => 'Ctrl+n',
     menu => 'Create a new query tree',
     toolbar => ['New query', 'filenew' ],
+  },
+  {
+    command => sub {
+      my $res = EditBoxQuery('Insert or Paste a query from NetGraph', $ng_string, '');
+      return unless defined $res and length $res;
+      $ng_string = $res;
+      my $string = ng2pmltq($ng_string);
+      new_tree_after();
+      $root->{id}=new_tree_id();
+      $root->{description} = 'Imported from NetGraph';
+      unless (EditQuery($root,{string=>$string})) {
+	DeleteNode();
+	ChangingFile(0);
+      }
+    },
+    menu => 'Import query from NetGraph',
+    toolbar => ['Import', 'netgraph_client' ],
   },
   '---',
   {
@@ -1562,7 +1581,7 @@ sub EditQuery {
   $opts||={};
 
   my $no_childnodes = ($node->{'#name'} eq 'node' and $opts->{no_childnodes}) ? 1 : 0;
-  my $string = as_text($node,{no_childnodes=>$no_childnodes});
+  my $string = $opts->{string} || as_text($node,{no_childnodes=>$no_childnodes});
   my $result;
   my $parser;
   {
@@ -1678,6 +1697,7 @@ sub EditQuery {
     my $time = timestr(timediff($t1,$t0));
     print "postprocessing took: $time\n";
   }
+  return 1;
 }
 
 sub NewTest {
