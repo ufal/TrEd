@@ -10389,57 +10389,21 @@ sub centerTo {
 	     $tv->get_node_pinfo($node,"YPOS"));
 }
 
-
 sub doEvalHookWithUndo {
-  my ($win,$hook)=(shift,shift);
-
-  return unless $hook; # and $win->{currentNode};
-  my $bookmark=bookmarkThis($win->{framegroup});
-  # Save current position (as last action position)
-  my $undo=prepare_undo($win,"Hook $context"."->".$hook) if ($win and $win->{FSFile});
-
-  local $insideEval=1;
-  my $old_ctxt = TrEd::Macros::save_ctxt();
-  my $context='TredMacro';
-  set_macro_variable(
-    FileNotSaved => '?',
-    libDir => $libDir,
-    forceFileSaved => 0);
-  if ($win) {
-    set_macro_variable(
-      this => $win->{currentNode},
-      root => $win->{root}
-     );
-    $context=$win->{macroContext} || 'TredMacro';
-  }
-  my $result=do_eval_hook($win,$context,$hook,@_);
-  warn "$@\n" if $@;
-  my $file_changed=get_macro_variable("FileNotSaved");
-
-  if ($win) {
-    if ($win->{FSFile}) {
-      if ($file_changed ne '?' and $file_changed) {
-	save_undo($win,$undo);
-	lastActionBookmark($win->{framegroup},$bookmark);
-	$win->{FSFile}->notSaved(1);
-      }
-    }
-    saveFileStateUpdate($win);
-  }
-  TrEd::Macros::restore_ctxt($old_ctxt);
-
-  print STDERR "Hook $hook returned $result\n" if $hookDebug;
-  return $result;
+  _evalHook(1,@_);
 }
-
-
 sub doEvalHook {
-  my ($win,$hook)=(shift,shift);
+  _evalHook(0,@_);
+}
+sub _evalHook {
+  my ($with_undo,$win,$hook)=(shift,shift,shift);
 
   return unless $hook; # and $win->{currentNode};
   my $grp = $win->{framegroup};
-  my $bookmark=bookmarkThis($grp);
   # Save current position (as last action position)
+  my $bookmark=bookmarkThis($grp);
+
+  my $undo=prepare_undo($win,"Hook $context"."->".$hook) if ($with_undo and $win and $win->{FSFile});
 
   local $insideEval=1;
   my $old_ctxt = TrEd::Macros::save_ctxt();
@@ -10488,6 +10452,7 @@ sub doEvalHook {
   if ($win) {
     if ($win->{FSFile}) {
       if ($file_changed ne '?' and $file_changed) {
+	save_undo($win,$undo) if $with_undo;
 	lastActionBookmark($win->{framegroup},$bookmark);
 	$win->{FSFile}->notSaved(1);
       }
