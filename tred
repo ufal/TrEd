@@ -10442,7 +10442,7 @@ sub _evalHook {
       my $post_hook = $post_hooks->{$minor};
       if (defined $post_hook) {
 	print STDERR "running post-hook $hook for $minor : $post_hook\n" if $hookDebug;
-	eval { $post_hook->(@_) };
+	eval { $post_hook->(@_,$result) };
 	errorMessage($win,$@) if $@;
       }
     }
