@@ -80,7 +80,10 @@ Bind 'Tree_Query->NewQuery' => {
 
 my @TOOLBAR_BINDINGS = (
   {
-    command => 'new_tree_after',
+    command => sub {
+      new_tree_after();
+      $root->{id}=new_tree_id();
+    },
     key => 'Ctrl+n',
     menu => 'Create a new query tree',
     toolbar => ['New query', 'filenew' ],
@@ -518,8 +521,6 @@ D0EA2B b7ce1c6b0d0c E2F9FF  c1881d075743  0247FE
 #unbind-key Alt+T
 #remove-menu Trim (remove all but current subtree)
 
-#bind new_tree_after CTRL+n menu New tree
-
 # Setup context
 unshift @TredMacro::AUTO_CONTEXT_GUESSING,
 sub {
@@ -693,11 +694,15 @@ sub DefaultQueryFile {
   return $ENV{HOME}.'/.tred.d/queries.pml';
 }
 
+sub new_tree_id {
+  use POSIX;
+  POSIX::strftime('q-%y-%m-%d_%H%M%S', localtime());
+}
+
 sub NewQuery {
   SelectSearch() || return;
 
-  use POSIX;
-  my $id = POSIX::strftime('q-%y-%m-%d_%H%M%S', localtime());
+  my $id = new_tree_id();
   my $filename = DefaultQueryFile();
   my $fl = first { $_->name eq 'Tree Queries' } TrEdFileLists();
   unless ($fl) {
@@ -1101,7 +1106,6 @@ sub after_redraw_hook {
     $y+=$scale * $fh;
   }
   my @b = $c->bbox('legend');
-  print join ",",@b,"\n";
   $c->lower(
     $c->createRectangle(
       $b[0]-$scale * 5,$b[1],$b[2]+ $scale * 5,$b[3],
