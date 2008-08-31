@@ -318,6 +318,12 @@ sub get_type_decl_for_query_node {
   return $self->get_decl_for(Tree_Query::Common::GetQueryNodeType($node));
 }
 
+sub get_decl_for {
+  my ($self,$type)=@_;
+  return unless $type;
+  return $self->{type_decls}{$type} ||= Tree_Query::Common::QueryTypeToDecl($type,$self->get_schema($self->get_schema_name_for($type)));
+}
+
 #########################################
 #### Private API
 
@@ -352,12 +358,6 @@ sub get_schema {
   }
   return $self->{schemas}{$name} = PMLSchema->new({string => Encode::decode_utf8($res->content,1)})
     || die "Failed to obtain PML schema $name\n";
-}
-
-sub get_decl_for {
-  my ($self,$type)=@_;
-  return unless $type;
-  return $self->{type_decls}{$type} ||= Tree_Query::Common::QueryTypeToDecl($type,$self->get_schema($self->get_schema_name_for($type)));
 }
 
 sub request {

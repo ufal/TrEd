@@ -2,48 +2,6 @@
 
 #include <contrib/pml/PML.mak>
 
-#TODO
-#
-# - _transitive=exclusive (in NG by default, a query node can lay on
-# the transitive edge of other query node; if =exclusive, than no query
-# node can lay on the transitive edge and also, the transitive edge
-# cannot share nodes with any other exclusive transitive edge (but can
-# share nodes with some non-exclusive transitive edge)). Thus,
-# exclusivity in NG seems equivalent to creating an optional node
-# between the transitive query node and its query parent.
-
-# allow the user to mark the nodes with colours and recognize the
-# colored nodes in the result tree
-
-# check if we can search for non-projective edges
-#
-# relations/attributes from external tables:
-# tables:
-# - T            (tree structure)
-# - T_FILEINFO   (currently T_POS)
-# - T_ATTRS      (attribute structure, not yet used)
-
-# warn if optional=1 for a relation that implies a different type
-#
-# some helpful atomic predicates:
-#  - is_leaf
-# relations of tgrep2
-#
-#
-# - allow placeholders literals in tests:
-#   m/lemma = ??
-#   Before evaluating the query, the user is asked
-#   to fill ?? for m/lemma, if empty, the test is ignored
-#   The placeholder remains in the query, but the value
-#   filled in by the user is kept somewhere, so that it is
-#   the value pre-filled next time
-#
-#
-# FIXME:
-# - do not offer PMLREF non-existing columns in the completion
-# for 'a' in a test
-
-
 package Tree_Query::Common; # so that it gets reloaded
 package Tree_Query::NG2PMLTQ; # so that it gets reloaded
 package Tree_Query::SQLEvaluator; # so that it gets reloaded
@@ -1575,6 +1533,83 @@ sub EditSubtree {
   EditQuery($this)
 }
 
+our ($match_node_re,$variable_re,$relation_re);
+$match_node_re  = qr/\[((?:(?> [^][]+ )|(??{ $match_node_re }))*)\]/x;
+$variable_re = qr/\$[[:alpha:]_][[:alnum:]_]*/;
+$relation_re = qr/descendant|ancestor|child|parent|descendant|ancestor|${Tree_Query::user_defined}|depth-first-precedes|depth-first-follows|order-precedes|order-follows/;
+
+sub _find_type_in_query_string {
+  my ($context,$rest)=@_;
+  my ($type,$var);
+  if ($context =~ /(${variable_re})\.$/) {
+    $var = $1;
+    if (($context.$rest)=~/(?:(${relation_re})(?:\s+|$))?(${PMLSchema::CDATA::Name})\s+\Q$var\E\s*:=\s*\[/) {
+      $type = $2;
+    }
+  } else {
+    $context = reverse $context;
+    my $depth = 0;
+    while (length $context) {
+      $context =~ s/^[^]["']+|"(?:[^"\\]+|\\.)*"|'(?:[^'\\]+|\\.)*'//;
+      if ($context=~s/^\[\s*//) {
+	last if $depth==0;
+	$depth--;
+      }
+      $depth++ if $context=~s/^\]\s*//;
+    }
+    return unless length $context;
+    $context=reverse $context;
+    if ($context =~ /(?:(${relation_re})(?:\s+|$))?(?:(${PMLSchema::CDATA::Name})(?:\s+|$))(?:(${variable_re})\s*:=)?$/) {
+      $type = $2;
+    }
+  }
+  return ($type,$var);
+}
+
+sub _editor_offer_values {
+  my ($ed,$operator) = @_;
+  my @sel;
+  if ($SEARCH) {
+    my $context = $ed->get('0.0','insert');
+    if ($context=~s{(${variable_re}\.)?(${PMLSchema::CDATA::Name}(?:/${PMLSchema::CDATA::Name})*)\s*$}{$1}) {
+      my ($var,$attr) = ($1,$2);
+      my ($type) = _find_type_in_query_string($context,
+						   $ed->get('insert','end'));
+      print "$attr, $type, $var\n";
+      my $decl = $SEARCH->get_decl_for($type);
+      if ($decl and ($decl = $decl->find($attr))) {
+	my $decl_is = $decl->get_decl_type;
+	while ($decl_is == PML_ALT_DECL or
+		 $decl_is == PML_LIST_DECL) {
+	  $decl = $decl->get_content_decl;
+	  $decl_is = $decl->get_decl_type;
+	}
+	if ($decl_is == PML_CHOICE_DECL or
+	      $decl_is == PML_CONSTANT_DECL) {
+	  unless (ListQuery(
+	    'Select value',
+	    $operator eq 'in' ? 'multiple' : 'browse',
+	    [map { $_=~/\D/ ? qq{'$_'} : $_ } $decl->get_values],
+	    \@sel,
+	    {
+	      top => $ed->toplevel }
+	   )) {
+	    $ed->focus;
+	    $ed->Insert(' '.$operator.' ');
+	    return;
+	  }
+	}
+      }
+    }
+  }
+  $ed->focus;
+  if ($operator eq 'in') {
+    $ed->Insert(q( in { ).join(', ',@sel).q( } ));
+  } else {
+    $ed->Insert(' '.$operator.' '.(@sel ? $sel[0] : ''))
+  }
+}
+
 sub EditQuery {
   my ($node,$opts)=@_;
 
@@ -1592,20 +1627,23 @@ sub EditQuery {
     print "creating parser took: $time\n";
   }
   my $qopts={-cursor => 'end - 3 chars',
+	     -height => 16,
 	     -init => sub {
 	       my ($d,$ed)=@_;
 	       my $f = $d->add('Frame')->pack(-side=>'top');
-	       for (qw|! and or|,
-		    [q|"..."|=>q|""|],
-		    [q|'...'|=>q|''|],
+	       for (qw|, ! and or|,
+		    [q|"..."| => q|""|],
+		    [q|'...'|=> q|''|
+		    ],
 		    qw| [] () |,
-		    'in { }',
 		    qw|? >> |,
 		    "\n",
-		    qw|= ~ ^ $ |,
+		    qw|^ $ |,
 		    q|$n :=|,
-		    qw|< > + - * / |,
-		    ['& (concat)' => '&']
+		    qw|+ - * /|,
+		    ['& (concat)' => '&'],
+		    ['~ (regexp)' => '~'],
+		    qw|< >|
 		   ) {
 		 if ($_ eq "\n") {
 		   $f = $d->add('Frame')->pack(-side=>'top');
@@ -1614,29 +1652,30 @@ sub EditQuery {
 		 my ($label,$value)=ref($_) ? @$_ : ($_,$_);
 		 $f->Button(-text => $label,
 			    ($label=~/([[:alpha:]])/ ? (-underline => $-[0]) : ()),
-			    -command => [ sub { $_[0]->Insert($_[1]=~/\$|\^/ ? $_[1] : ' '.$_[1].' ');
-						$_[0]->SetCursor('insert -2 chars') if $_[1]=~/["'[({]/;
-						}, $ed, $value
-					 ]
+			    ref($value) ? (-command=>$value) : 
+			     ( -command => [ sub { $_[0]->Insert($_[1]=~/\$|\^/ ? $_[1] : ' '.$_[1].' ');
+						  $_[0]->SetCursor('insert -2 chars') if $_[1]=~/["'[({]/;
+						}, $ed, $value] )
 			   )->pack(-side=>'left');
 	       }
 	       $f = $d->add('Frame')->pack(-side=>'top');
 	       for my $mb (
-		 [Relation => GetRelationTypes($this)],
-		 [Type => $SEARCH ? $SEARCH->get_node_types : []],
+		 [Relation => GetRelationTypes($this),1],
+		 [Type => $SEARCH ? $SEARCH->get_node_types : [], $SEARCH ? 1 : 0],
 		 [Function => [map { $_.'()' }
 				 qw( descendants lbrothers rbrothers sons depth_first_order
 				     depth lower upper length substr tr replace ciel floor
 				     round trunc percnt name file tree_no position
-				     min max sum avg count ratio concat)]]
+				     min max sum avg count ratio concat)],1]
 		) {
 		 my $menubutton = $f->Menubutton(
 		   -text => $mb->[0],
 		   -underline => 0,
+		   -state => $mb->[2] ? 'normal' : 'disabled',
 		   -relief => 'raised',
 		   -direction => 'below',
 		  )->pack(-side=>'left');
-		 my $menu = $menubutton->menu(-tearoff => 0);
+		 my $menu = $menubutton->menu(-tearoff => 0,-font=>'C_small');
 		 $menubutton->configure(-menu => $menu);
 		 for (@{$mb->[1]}) {
 		   $menubutton->command(-label => $_,
@@ -1644,6 +1683,37 @@ sub EditQuery {
 				       );
 		 }
 	       }
+	       $f->Button(
+		 -text => 'Attribute',
+		 -state => $SEARCH ? 'normal' : 'disabled',
+		 -underline => 5,
+		 -relief => 'raised',
+		 -command => [sub {
+		   my ($ed)=@_;
+		   my ($type,$var) = _find_type_in_query_string($ed->get('0.0','insert'),
+								$ed->get('insert','end'));
+		   if (defined $type and length $type) {
+		     my $decl = $SEARCH->get_decl_for($type);
+		     if ($decl) {
+		       my @res = $decl->get_paths_to_atoms({ no_childnodes => 1 });
+		       if (@res) {
+			 my @sel=$res[0];
+			 if (ListQuery('Select attribute'.
+					 ($var ? ' for '.$var : ()),'browse',
+				       \@res,
+				       \@sel,
+				       {top=>$ed->toplevel}
+				      )) {
+			   $ed->Insert(($var ? '' :' ').$sel[0].' ');
+			 }
+		       }
+		     }
+		   }
+		   $ed->focus;
+		  },$ed]
+		)->pack(-side=>'left');
+	       $f->Button(-text => '=', -command => [\&_editor_offer_values,$ed,'='])->pack(-side=>'left');
+	       $f->Button(-text => 'in { ... }', -underline => 0, -command => [\&_editor_offer_values,$ed,'in'])->pack(-side=>'left');
 	       $d->BindButtons;
 	     },
 	   };
