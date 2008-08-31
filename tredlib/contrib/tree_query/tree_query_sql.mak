@@ -318,6 +318,13 @@ sub get_type_decl_for_query_node {
   return $ev->get_decl_for(Tree_Query::Common::GetQueryNodeType($node));
 }
 
+sub get_decl_for {
+  my ($self,$type)=@_;
+  return unless $type;
+  my $ev = $self->init_evaluator;
+  return $ev->get_decl_for($type);
+}
+
 #########################################
 #### Private API
 
