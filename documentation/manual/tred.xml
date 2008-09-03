@@ -7957,13 +7957,22 @@ sub MakeSentence {
 	    <row id="pre_switch_context_hook">
 	      <entry><literal moreinfo="none">pre_switch_context_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>previous</replaceable>,<replaceable>next</replaceable></literal></para><para>Executed in the old context before the macro 
-		context is changed (see <xref linkend="contexts"/>).
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>previous</replaceable>,<replaceable>next</replaceable>,<replaceable>window</replaceable></literal></para><para>Executed in the old context before the macro 
+		  context is changed (see <xref linkend="contexts"/>)
+		and when switching to a different view,
+		and when closing a view.
 		The <replaceable>previous</replaceable> argument
 		contains the name of the
 		current context while
 		<replaceable>next</replaceable> contains the name of the
-		target context.
+		new context, or the string '&lt;NONE>' if the current view is being closed.
+		The <replaceable>window</replaceable> argument is the next view 
+		to be focused. If the context is changed without focusing a different view,
+		<replaceable>window</replaceable> is equal to
+		<literal>$grp</literal>. If the focus moves to a different view 
+		with the same context as in the current view,
+		<replaceable>previous</replaceable> and <replaceable>next</replaceable>
+		are equal and both contain the name of the context.
 	      </para></entry>
 	    </row>
 	    <row id="switch_context_hook">
