@@ -1144,6 +1144,7 @@ sub update_a_filelist_view {
 sub filelistFullFileName {
   my ($win, $fn)=@_;
   my $filelist = $win->{currentFilelist};
+  return unless ref $filelist;
   _filelistFullFileName($filelist,$filelist->file_at($fn));
 }
 sub _filelistFullFileName {
@@ -1638,10 +1639,6 @@ sub textDialog {
   $d->Show;
 }
 
-
-sub _descendant_widgets {
-  return ($_[0],map {_descendant_widgets($_)} $_[0]->children);
-}
 
 sub userQuery {
   my ($win, $message, %opts) = @_;
@@ -3103,7 +3100,7 @@ sub get_nodes_all {
 sub selectFilelistNoUpdate {
   my ($grp_or_win,$list_name,$noResetPosition)=@_;
   my ($grp,$win)=grp_win($grp_or_win);
-  my $fl=switchFilelist($grp,$list_name);
+  my $fl= isFocused($win) ? switchFilelist($grp,$list_name) : findFilelist($list_name);
   print "Switching filelist to $list_name\n" if $tredDebug;
   return unless defined($fl);
   unless ($fl == $win->{currentFilelist}) {
@@ -3120,7 +3117,7 @@ sub selectFilelistNoUpdate {
 sub selectFilelist {
   my ($grp_or_win,$list_name,$opts)=@_;
   my ($grp,$win)=grp_win($grp_or_win);
-  my $fl = selectFilelistNoUpdate($grp_or_win,$list_name);
+  my $fl = selectFilelistNoUpdate($win,$list_name);
   if ($fl and !$opts->{no_open}) {
     if ($win->{currentFileNo}>=$fl->file_count()) {
       closeFile($win);
@@ -3526,7 +3523,7 @@ sub filelistDialog {
   $ll->pack(qw/-expand no -fill x -side top/);
 
   # Bloody hell, how do I underline BrowseEntry labels?
-  foreach (grep { ref($_) and $_->isa('Tk::Label') } _descendant_widgets($ll)) {
+  foreach (grep { ref($_) and $_->isa('Tk::Label') } get_widget_descendants($ll)) {
     $_->configure( -underline => 1 );
   }
   $d->bind("<Alt-i>",[$ll->Subwidget('entry'),'focus']);
@@ -4951,7 +4948,8 @@ sub switchStylesheet {
   my ($grp,$win) = grp_win($grp_or_win);
   return unless ref($win);
   my $prevstylesheet=$win->{stylesheet};
-  return if $prevstylesheet eq $stylesheet;
+  return if $prevstylesheet eq $stylesheet and 
+    $stylesheet ne STYLESHEET_FROM_FILE(); # the file might have changed
   if ($stylesheet eq NEW_STYLESHEET()) {
     $stylesheet=QueryString($grp,"Stylesheet name", "Name: ");
     if (!defined($stylesheet)) {
@@ -5013,7 +5011,7 @@ sub switchContext {
     return 0;
   }
   $win->{macroContext}=$prevcontext;
-  return 0 if (doEvalHook($win,"pre_switch_context_hook",$prevcontext,$context) eq 'stop');
+  return 0 if (doEvalHook($win,"pre_switch_context_hook",$prevcontext,$context,$win) eq 'stop');
   $win->{macroContext}=$context;
   if (isFocused($win)) {
     $grp->{selectedContext}=$context;
@@ -5296,8 +5294,8 @@ sub newTreeView {
 		   -height=> $defCHeight,
 		   qw /-relief sunken
 		       -borderwidth 2
-                       -scrollbars osoe/,
-		   -scrollregion=> [qw/0c 0c 1c 1c/],
+                       -scrollbars se/,
+		   -scrollregion=> [qw/0 0 0 0/],
 		   $treeViewOpts->{backgroundColor} 
 		   ? (-background=> $treeViewOpts->{backgroundColor}) : ()
 		  );
@@ -5362,24 +5360,30 @@ sub focusPrevWindow {
   return focusCanvas($windows->[$idx-1]->canvas,$grp);
 }
 
+sub clearCanvasFocus {
+  my ($grp)=@_;
+  if ($grp->{focusedWindow}) {
+    $grp->{focusedWindow}->canvas()->configure(@normal_win_opts);
+    $grp->{focusedWindow}->canvas()->itemconfigure('stipple',-state=> $stippleInactiveWindows ? 'normal' : 'hidden');
+  }
+}
+
 sub focusCanvas {
   my ($c,$grp)=@_;
   if ($grp->{focusedWindow}) {
     return if $grp->{focusedWindow}->contains($c);
-    $grp->{focusedWindow}->canvas()->configure(@normal_win_opts);
-    $grp->{focusedWindow}->canvas()->itemconfigure('stipple',-state=> $stippleInactiveWindows ? 'normal' : 'hidden');
-    $grp->{focusedWindow}->canvas()->update();
+    clearCanvasFocus($grp);
   }
   if ($c) {
     $c->configure(@focused_win_opts);
     $c->itemconfigure('stipple',-state=> 'hidden');
-    $c->update();
   }
+
   my $newfocus=findCanvasWindow($grp,$c);
   if ($newfocus) {
     my $prevcontext = $grp->{selectedContext};
     my $context = $newfocus->{macroContext};
-    doEvalHook($grp->{focusedWindow},"pre_switch_context_hook",$prevcontext,$context); # stop is ignored here
+    doEvalHook($grp->{focusedWindow},"pre_switch_context_hook",$prevcontext,$context,$newfocus); # stop is ignored here
     $grp->{selectedContext}=$context;
     my $prevfl=$grp->{focusedWindow}->{currentFilelist};
     $grp->{focusedWindow}=$newfocus;
@@ -5406,20 +5410,26 @@ sub focusCanvas {
 }
 
 sub splitWindow {
-  my ($grp,$dir,$nofocus)=@_;
+  my ($grp,$dir,$opts)=@_;
+  $opts ||= {};
   my $twin     = newTrEdWindow($grp);
   my $canvas=$twin->canvas();
-  $canvas->configure(@normal_win_opts);
+  $canvas->configure($opts->{no_focus} ? @normal_win_opts : @focused_win_opts);
   my $win = $grp->{focusedWindow};
   return unless $win;
-  $win->split_frame($canvas,$dir);
-  foreach (qw(FSFile treeNo currentNode currentFileNo macroContext currentFilelist)) {
-    $twin->{$_}=$win->{$_};
+  clearCanvasFocus($grp) unless $opts->{no_focus};
+  $win->split_frame($canvas,$dir,$opts->{ratio});
+  unless ($opts->{no_init}) {
+    foreach (qw(FSFile treeNo currentNode currentFileNo macroContext currentFilelist)) {
+      $twin->{$_}=$win->{$_};
+    }
   }
   applyWindowStylesheet($twin,$grp->{selectedStylesheet});
-  get_nodes_win($twin);
-  redraw_win($twin);
-  focusCanvas($canvas,$grp) unless $nofocus;
+  focusCanvas($canvas,$grp) unless $opts->{no_focus};
+  unless ($opts->{no_redraw}) {
+    get_nodes_win($twin);
+    redraw_win($twin);
+  }
   return $twin;
 }
 
@@ -5428,6 +5438,7 @@ sub removeWindow {
   $win ||= $grp->{focusedWindow};
   my $windows = $grp->{treeWindows};
   if (@$windows > 1) {
+    doEvalHook($win,"pre_switch_context_hook",$win->{macroContext},'<NONE>',$win);
     @$windows=grep {$_ ne $win} @$windows;
     $grp->{rmsplitButton}->configure(-state => 'disabled') if $grp->{rmsplitButton} and @$windows<=1;
     closeFile($win,-no_update => 1, -keep_postponed => 1);

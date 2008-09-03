@@ -293,7 +293,6 @@ push @TredMacro::AUTO_CONTEXT_GUESSING, sub {
   my ($hook)=@_;
   my $resuming = ($hook eq 'file_resumed_hook');
   my $current = CurrentContext();
-  print "$current\n";
   if (PML::SchemaName() eq 'tdata') {
     SetCurrentStylesheet(STYLESHEET_FROM_FILE()) if $resuming;
     if ($current eq 'PML_A_Edit') {

@@ -489,6 +489,29 @@ sub ShowUserToolbar {
   }
   return 0;
 }
+sub EnableUserToolbar {
+  my ($name)=@_;
+  my $tb =  GetUserToolbar($name);
+  if ($tb) {
+    for my $w (main::get_widget_descendants($tb)) {
+      eval { $w->configure(-state => 'normal') }
+    }
+    return $tb;
+  }
+  return 0;
+}
+sub DisableUserToolbar {
+  my ($name)=@_;
+  my $tb =  GetUserToolbar($name);
+  if ($tb) {
+    for my $w (main::get_widget_descendants($tb)) {
+      eval { $w->configure(-state => 'disabled') }
+    }
+    return $tb;
+  }
+  return 0;
+}
+
 sub UserToolbarVisible {
   my ($name)=@_;
   my $tb =  GetUserToolbar($name);

@@ -1907,7 +1907,7 @@ window.
 
 =cut
 
-sub CurrentWindow { return $grp }
+sub CurrentWindow { return $grp->{framegroup}{focusedWindow} }
 
 =item C<SetCurrentWindow(win)>
 
@@ -1935,15 +1935,42 @@ sub SetCurrentWindow {
   }
 }
 
-=item C<SplitWindowHorizontally()>
+=item C<SplitWindowHorizontally(\%opts?)>
 
 Split current window horizontally. Returns an object represening the
 newly created window.
 
+An optional HASHref with the following options can be passed as an argument:
+
+=over 8
+
+=item no_focus => 0|1
+
+do not focus the new view (default value is 1)
+
+=item no_init => 0|1
+
+do not initialize the new view with the file, context, etc. from the
+current vie (default value is 0)
+
+=item no_redraw => 0|1
+
+do not redraw the new view
+
+=item ratio => float
+
+A float value between 0 and 1 indicating the ratio of the height of
+the new view to the current height of the active view.
+
+=back
+
 =cut
 
 sub SplitWindowHorizontally {
-  return main::splitWindow($grp->{framegroup},'horiz',1);
+  shift unless ref $_[0];
+  return main::splitWindow($grp->{framegroup},'horiz',{no_focus=> 1,
+						       ref($_[0]) ? %{$_[0]} : ()
+						     });
 }
 
 =item C<SplitWindowVertically()>
@@ -1951,10 +1978,37 @@ sub SplitWindowHorizontally {
 Split current window horizontally. Returns an object represening the
 newly created window.
 
+An optional HASHref with the following options can be passed as an argument:
+
+=over 8
+
+=item no_focus => 0|1
+
+do not focus the new view (default value is 1)
+
+=item no_init => 0|1
+
+do not initialize the new view with the file, context, etc. from the
+current vie (default value is 0)
+
+=item no_redraw => 0|1
+
+do not redraw the new view
+
+=item ratio => float
+
+A float value between 0 and 1 indicating the ratio of the height of
+the new view to the current height of the active view.
+
+=back
+
 =cut
 
 sub SplitWindowVertically {
-  return main::splitWindow($grp->{framegroup},'vert',1);
+  shift unless ref $_[0];
+  return main::splitWindow($grp->{framegroup},'vert',{no_focus=>1,
+						      ref($_[0]) ? %{$_[0]} : ()
+						    });
 }
 
 =item C<CloseWindow(win?)>
@@ -2478,10 +2532,11 @@ Set stylesheet for the active window.
 =cut
 
 sub SetCurrentStylesheet {
-  if (StylesheetExists($_[0]) or $_[0] eq STYLESHEET_FROM_FILE()) {
-    $grp->{framegroup}{selectedStylesheet} = $_[0] if $grp->{framegroup} and
+  my ($stylesheet_name)=@_;
+  if (StylesheetExists($stylesheet_name) or $stylesheet_name eq STYLESHEET_FROM_FILE()) {
+    $grp->{framegroup}{selectedStylesheet} = $stylesheet_name if $grp->{framegroup} and
       main::isFocused($grp);
-    return main::switchStylesheet($grp,$_[0]);
+    return main::switchStylesheet($grp,$stylesheet_name);
   }
   return -1;
 }
@@ -3117,10 +3172,10 @@ sub GetFileList {
 }
 #endif
 
-=item C<SetCurrentFileList($name)>
+=item C<SetCurrentFileList($name,$win?)>
 
 This macro is only available in TrEd. Selects the filelist of a given
-name for the current window.
+name for the given/current window.
 
 =cut
 
@@ -3130,6 +3185,14 @@ sub SetCurrentFileList {
   croak("Usage: SelectFilelist(name)") if !defined($name) or ref($name) or !length($name);
   main::selectFilelist($grp,$name,@_);
 }
+sub SetCurrentFileListInWindow {
+  my $win=shift;
+  return unless ref $win;
+  my $name=shift;
+  croak("Usage: SelectFilelistInWindow(win,name)") if !defined($name) or ref($name) or !length($name);
+  main::selectFilelist($win,$name,@_);
+}
+
 #endif
 
 =item C<TrEdFileLists()>

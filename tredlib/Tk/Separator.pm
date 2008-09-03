@@ -250,6 +250,7 @@ sub delta_width_bar
  my $r = $w->{'sep'};
  my $t = $w->toplevel;
  my $m = $w->{'master'};
+ return unless $m;
  my $s = $w->slave1;
  my ($min_rootx, $max_rootx, $t_border);
  if (! $w->{'lin_info'})
@@ -284,9 +285,9 @@ sub delta_width
  $l->placeForget if $l;
  my $s = $w->slave1;
  my $s2 = $w->slave2;
- if ($s)
-  {
+ if ($s) {
    my $m = $w->{'master'};
+   return unless $m;
    my $m_border = $m->cget('-bd') + $m->cget('-highlightthickness');
    my $w_width = $w->{'reqwidth'};
    my $m_width = $m->width;
@@ -312,10 +313,10 @@ sub delta_height_bar
  my $r = $w->{'sep'};
  my $t = $w->toplevel;
  my $m = $w->{'master'};
+ return unless $m;
  my $s = $w->slave1;
  my ($min_rooty, $max_rooty, $t_border);
- if (! $w->{'lin_info'})
-  {
+ if (! $w->{'lin_info'}) {
    my $m_border = $m->cget('-bd') + $m->cget('-highlightthickness');
    $t_border    = $t->cget('-bd') + $t->cget('-highlightthickness');
    $min_rooty = $m->rooty + $m_border;
@@ -349,6 +350,7 @@ sub delta_height
  if ($s)
   {
    my $m = $w->{'master'};
+   return unless $m;
    my $m_border = $m->cget('-bd') + $m->cget('-highlightthickness');
    my $w_height = $w->{'reqheight'};
    my $m_height = $m->height;

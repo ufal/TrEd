@@ -80,6 +80,14 @@ sub __guess_context {
   if (defined($mode)) {
     return SwitchContext($mode);
   }
+
+  # do not leave the current context if it explicitly rejects the file
+  my $context = CurrentContext();
+  if (UNIVERSAL::can($context,'allow_switch_context_hook') and
+      &{$context.'::allow_switch_context_hook'}() eq 'stop') {
+    SwitchContext('TredMacro');
+    SetCurrentStylesheet(STYLESHEET_FROM_FILE());
+  }
 }
 
 #endif TRED
