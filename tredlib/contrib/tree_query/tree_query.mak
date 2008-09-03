@@ -301,7 +301,7 @@ my @TOOLBAR_BINDINGS = (
 	$this->{occurrences}=Fslib::Struct->new({min=>1});
       }
       if (EditAttribute($this,'occurrences')) {
-	if (! first { defined && length } map { ($_->{min},$_->{max}) } AltV($this->{occurrences})) {
+	if (! defined first { defined && length } map { ($_->{min},$_->{max}) } AltV($this->{occurrences})) {
 	  $this->set_type(undef);
 	  $this->{'#name'}='node';
 	  DetermineNodeType($this);
@@ -529,9 +529,14 @@ sub allow_switch_context_hook {
 }
 
 sub pre_switch_context_hook {
-  my ($prev,$new)=@_;
+  my ($prev,$new,$win)=@_;
   return if $prev eq $new;
-  HideUserToolbar('Tree_Query');
+  return if $grp==$win and $grp!=CurrentWindow();
+  if (first { $win!=$_ and CurrentContextForWindow($_) eq 'Tree_Query' } TrEdWindows()) {
+    DisableUserToolbar('Tree_Query');
+  } else {
+    HideUserToolbar('Tree_Query');
+  }
 }
 # Setup stylesheet
 sub switch_context_hook {
@@ -540,12 +545,12 @@ sub switch_context_hook {
  SetCurrentStylesheet('Tree_Query'),Redraw()
    if GetCurrentStylesheet() ne 'Tree_Query'; #eq STYLESHEET_FROM_FILE();
  #  FileAppData('noautosave',1);
- print "switch_context_hook from $prev to $new\n";
 # if ($prev ne $new) {
    if (GetUserToolbar('Tree_Query')) {
      unless (UserToolbarVisible('Tree_Query')) {
        ShowUserToolbar('Tree_Query');
      }
+     EnableUserToolbar('Tree_Query');
    } else {
      my $tb = NewUserToolbar('Tree_Query');
      my $frame = $tb->Frame()->pack(qw(-fill x));#qw(-side top -expand 1 -fill both));
@@ -604,7 +609,7 @@ rootstyle:#{balance:1}#{Node-textalign:center}#{NodeLabel-halign:center}
 rootstyle: #{vertical:0}#{nodeXSkip:40}#{skipHiddenLevels:1}
 rootstyle: #{NodeLabel-skipempty:1}#{CurrentOval-width:3}#{CurrentOval-outline:red}
 rootstyle: <? $Tree_Query::__color_idx=0;$Tree_Query::__color_idx2=1 ?>
-node: <?length($${id}) ? '#{blue(}${id}#{)} ' : '' 
+node: <? !$this->parent ? ' Tree Query: ' : () ?><?length($${id}) ? ' #{blue(}${id}#{)} ' : '' 
 ?><? 
   $this->{'#name'} =~ /^(node|subquery)$/ ?
    ( length($${node-type}) 
@@ -625,24 +630,29 @@ node:<?
   } elsif ($this->{'#name'} eq 'test') {
     '${operator}'
   } elsif ($this->{'#name'} eq '' and !$this->parent) {
-     Tree_Query::as_text($this,{no_childnodes=>1,indent=>'  ',wrap =>1})
+     my $filters = Tree_Query::as_text($this,{no_childnodes=>1,indent=>'  ',wrap =>1});
+     $filters=~s/([ \t]*>>)/Output filters:\n$1/; $filters
   }
 ?>
 node:${b}
 style: <? 
   my $name = $this->{'#name'};
-  if ($name =~ /^(?:node|subquery|ref)$/ and $this->parent->parent ) {
-    my ($rel) = map {
-      my $name = $_->name;
-      $name eq 'user-defined' ? $_->value->{label} : $name
-    } SeqV($this->{relation});
-    $rel||='child';
-    my $color = Tree_Query::arrow_color($rel);
-    my $arrow = Tree_Query::arrow($rel);
-    (defined($arrow) ? "#{Line-arrow:$arrow}" : '').
-    (defined($color) ? "#{Line-fill:$color}" : '').
-    ($name eq 'ref' and defined($color) ? "#{Oval-outline:$color}#{Oval-fill:$color}" : '').
-    '#{Line-tag:relation}'
+  if ($this->parent->parent) {
+    if ($name =~ /^(?:node|subquery|ref)$/) {
+      my ($rel) = map {
+        my $name = $_->name;
+        $name eq 'user-defined' ? $_->value->{label} : $name
+      } SeqV($this->{relation});
+      $rel||='child';
+      my $color = Tree_Query::arrow_color($rel);
+      my $arrow = Tree_Query::arrow($rel);
+      (defined($arrow) ? "#{Line-arrow:$arrow}" : '').
+      (defined($color) ? "#{Line-fill:$color}" : '').
+      ($name eq 'ref' and defined($color) ? "#{Oval-outline:$color}#{Oval-fill:$color}" : '').
+      '#{Line-tag:relation}'
+    }
+  } else {
+    '#{Line-coords:n,n,n,n}'
   }
 ?>
 style: <? if ($this->parent) {
@@ -650,7 +660,7 @@ style: <? if ($this->parent) {
       '#{Line-dash:-}'
      }
   } else {
-     '#{Node-hide:1}'
+     '#{Node-shape:rectangle}#{Node-surroundtext:1}#{Oval-fill:white}#{NodeLabel-valign:center}'
   }
 ?>
 xlabel:<?
@@ -708,7 +718,9 @@ sub NewQuery {
     $fl->add($filename);
   }
   if (CurrentFile()) {
-    SplitWindowVertically();
+    my $win = SplitWindowVertically({no_init => 1, no_redraw=>1,no_focus=>0,ratio=>-0.5});
+    # SetCurrentWindow($win);
+    $grp=$win;
     $Redraw='all';
   }
   unless (-f $filename) {
@@ -1069,24 +1081,35 @@ sub root_style_hook {
   $Opts->{baseYPos}+= $scale*(20 + $fh * (keys(%legend)
 					    +
 					  ($SEARCH ? 0 : 3)
+					    +
+					  ($root && $root->firstson ? 0 : 3)
 					 ) );
 }
 sub after_redraw_hook {
   DrawArrows_cleanup();
 
-  return if $SEARCH and !keys(%legend);
+  return if $SEARCH and !keys(%legend) and ($root and $root->firstson);
   my $tv = $grp->treeView;
   my $scale=$tv->scale_factor();
   my $c=$tv->realcanvas;
   my $fh = $grp->treeView->getFontHeight;
   my $y=$scale * 10;
-  unless ($SEARCH) {
+  my $hint='';
+  if (!$SEARCH) {
+    $hint .= qq{NO SEARCH ENGINE SELECTED!\nEditing features will be limited. Press 'c' to select a search engine.\n}
+  }
+  unless ($root and $root->firstson) {
+    $hint .= qq{\n} if $hint;
+    $hint .= qq{QUERY EMPTY!\nPressing 'Insert' to create the first query node!\n}
+  }
+  if (length $hint) {
+    chomp $hint;
     $c->createText($scale * 15, $y,
 		   -font => ($tv->get_scaled_font || $tv->get_font),
-		   -text=> qq{NO SEARCH ENGINE SELECTED!\nEditing features will be limited. Press 'c' to select a search engine.},
+		   -text=> $hint,
 		   -anchor=>'nw',
 		   -tags=>['legend','text_item'] );
-    $y+=$scale * 3* $fh;
+    $y+=$scale * (2+($hint=~y/\n/\n/)) * $fh;
   }
   for my $r ( sort keys %legend ) {
     my ($negate,$name) = ($r=~/^(!?\s*)(\S+)/);
@@ -1279,7 +1302,8 @@ our @last_results;
 # determine which nodes are part of the current result
 sub map_results {
   return unless $SEARCH;
-  %is_match = %{$SEARCH->map_nodes_to_query_pos(FileName(),CurrentTreeNumber(),$root)};
+  my $map = $SEARCH->map_nodes_to_query_pos(FileName(),CurrentTreeNumber(),$root);
+  %is_match = defined($map) ? %$map : ();
 }
 
 sub NodeIndexInLastQuery {
@@ -1575,7 +1599,6 @@ sub _editor_offer_values {
       my ($var,$attr) = ($1,$2);
       my ($type) = _find_type_in_query_string($context,
 						   $ed->get('insert','end'));
-      print "$attr, $type, $var\n";
       my $decl = $SEARCH->get_decl_for($type);
       if ($decl and ($decl = $decl->find($attr))) {
 	my $decl_is = $decl->get_decl_type;
@@ -1805,7 +1828,7 @@ sub AddNode {
     $new = NewSon();
     $new->{'#name'}='node';
     DetermineNodeType($new);
-  } elsif ($node->{'$name'}=~/^(?:test|ref)/) {
+  } elsif ($node->{'#name'}=~/^(?:test|ref)/) {
     $new = NewRBrother();
     $new->{'#name'}=$node->{'#name'};
     DetermineNodeType($new);
@@ -1813,7 +1836,7 @@ sub AddNode {
     $new = NewSon();
     DetermineNodeType($new);
   }
-  if ($new) {
+  if ($new and $new->{'#name'} =~ /^(?:node|subquery)/) {
     unless ($node->parent ? AssignRelation($new) : AssignType($new)) {
       DeleteLeafNode($new);
       $this=$node;
