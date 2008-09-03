@@ -246,6 +246,7 @@ sub absolutize {
 
 sub can_have_children {
   my ($parent_decl)=@_;
+  return unless $parent_decl;
   my $parent_decl_type = $parent_decl->get_decl_type;
   if ($parent_decl_type == PML_ELEMENT_DECL()) {
     $parent_decl = $parent_decl->get_content_decl;
@@ -279,17 +280,17 @@ sub chooseNodeType {
 	  $parent_decl->find_members_by_role('#CHILDNODES');
       } elsif ($parent_decl_type == PML_CONTAINER_DECL()) {
 	$member_decl = $parent_decl->get_content_decl;
-	undef $member_decl unless $member_decl and $member_decl->get_role eq '#CHILDNODES'
- 	  and (!$has_children or can_have_children($ntype));
+	undef $member_decl unless $member_decl and $member_decl->get_role eq '#CHILDNODES';
       }
       if ($member_decl) {
 	my $member_decl_type = $member_decl->get_decl_type;
 	if ($member_decl_type == PML_LIST_DECL()) {
 	  $ntype = $member_decl->get_content_decl;
-	  undef $ntype unless $ntype and $ntype->get_role eq '#NODE';
+	  undef $ntype unless $ntype and $ntype->get_role eq '#NODE'
+	    and (!$has_children or can_have_children($ntype));
 	} elsif ($member_decl_type == PML_SEQUENCE_DECL()) {
 	  my $elements = 
-	  @ntypes = 
+	  @ntypes =
 	    grep { !$has_children or can_have_children($_->[1]) }
 	    grep { $_->[1]->get_role eq '#NODE' }
 	    map { [ $_->get_name, $_->get_content_decl ] }

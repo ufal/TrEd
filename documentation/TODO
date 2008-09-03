@@ -83,6 +83,8 @@
     of of each matched node, i.e. keep that information in the
     iterator.
 
+- BtrEd: implement all documented functions
+
 -  SQL: FIXME: do not offer non-existing PMLREF columns in the completion
    for 'a' in a test (e.g. "coref_gram.rf")
 

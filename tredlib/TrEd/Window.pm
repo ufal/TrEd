@@ -202,12 +202,13 @@ sub splitPack {
   $cf->pack(-in => $frame, -side => $side, qw(-expand yes -fill both));
   $sep->pack(-in => $frame, -side => $side,  -fill => $fill, qw(-expand no));
   $newcf->pack(-in => $frame, -side => $side, qw(-expand yes -fill both));
-  $frame->update; # pack first
+  $frame->idletasks; # pack first
   if ($ori eq 'horiz') {
     $sep->delta_height($ht-$newc->height);
   } else {
     $sep->delta_width($wd-$newc->width);
   }
+  $frame->idletasks;
   return $sep;
 }
 
