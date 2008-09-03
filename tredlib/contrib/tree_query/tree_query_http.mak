@@ -164,7 +164,7 @@ sub search_first {
 	($res_win) = grep { $_ ne $grp } @wins;
       }
     } else {
-      $res_win = SplitWindowVertically();
+      $res_win = SplitWindowVertically({no_init => 1, no_redraw=>1,no_focus=>0});
     }
     {
       my $fl = Filelist->new($fn);
@@ -447,18 +447,17 @@ sub show_result {
     } elsif ($dir eq 'next') {
       $grp=$win;
       NextFile();
-#       my $idx = Index($self->{last_query_nodes},$save[0]);
-#       if (defined($idx)) {
-# 	my $fn = FileName();
-# 	my $result_fn = $self->resolve_path($self->{current_result}[$idx]);
-# 	print "$fn, $result_fn\n";
-# 	if ($result_fn !~ /^\Q$fn\E\.(\d+)$/) {
-# 	  Open($result_fn,{-keep_related=>1});
-# 	  Redraw($win);
-# 	} else {
-# 	  $self->select_matching_node($save[0]);
-# 	}
-#       }
+      my $idx = Index($self->{last_query_nodes},$save[0]);
+      if (defined($idx)) {
+	my $fn = FileName();
+	my $result_fn = $self->resolve_path($self->{current_result}[$idx]);
+	if ($result_fn !~ /^\Q$fn\E\.(\d+)$/) {
+	  Open($result_fn,{-keep_related=>1});
+	  Redraw($win);
+	} else {
+	  $self->select_matching_node($save[0]);
+	}
+      }
     } elsif ($dir eq 'current') {
       return unless $self->{current_result};
       my $idx = Index($self->{last_query_nodes},$save[0]);
@@ -485,16 +484,8 @@ sub claim_search_win {
   my ($win) = map { $_->[0] } grep { $_->[1]->name eq $fn } grep ref($_->[1]), map [$_,GetCurrentFileList($_)], TrEdWindows();
   unless ($win) {
     $win = SplitWindowVertically();
-    my $cur_win = $grp;
-    $grp=$win;
-    eval {
-      if ($self->{file}) {
-	Open($self->{file});
-      } elsif ($self->{filelist}) {
-	SetCurrentFileList($self->{filelist});
-      }
-    };
-    $grp=$cur_win;
+    EnableMinorContext('Tree_Query_Results',$win);
+    eval { SetCurrentFileListInWindow($win,$fn) };
     die $@ if $@;
   }
   return $win;

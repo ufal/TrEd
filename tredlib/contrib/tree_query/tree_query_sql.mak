@@ -461,13 +461,7 @@ sub claim_search_win {
     $win = SplitWindowVertically();
     my $cur_win = $grp;
     $grp=$win;
-    eval {
-      if ($self->{file}) {
-	Open($self->{file});
-      } elsif ($self->{filelist}) {
-	SetCurrentFileList($self->{filelist});
-      }
-    };
+    eval { SetCurrentFileList($fn) };
     $grp=$cur_win;
     die $@ if $@;
   }
