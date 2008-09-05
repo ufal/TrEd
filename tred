@@ -745,6 +745,12 @@ if ($opt_l) {
       my @f=<F>;
       shift @f if ($l=~/\.fl$/i and $f[0]!~m{[/.]} and ! -f absolutize($f[0]));
       s/\s+$// for @f;
+      if ($l=~/\.fl$/i) {
+	# make realtive filenames absolute relative to the .fl file
+	@f=map { Fslib::ResolvePath($l,$_) } @f;
+      } else {
+	@f=absolutize(@f);
+      }
       push @fl_files,\@f;
       close(F);
     } else {
@@ -752,12 +758,12 @@ if ($opt_l) {
     }
   }
   # define filelists CmdLine-1, CmdLine-2, etc.
-  my $fl_no=-1;
-  foreach (grep {@{$_}} @fl_files) {
-    my $fl = new Filelist('CmdLine'.$fl_no);
-    $fl->add(0, absolutize(@{shift @fl_files}));
+  my $fl_no=1;
+  foreach my $files (grep {@$_} @fl_files) {
+    my $fl = new Filelist('CmdLine-'.$fl_no);
+    $fl->add_arrayref(0, $files);
     addNewFilelist(undef,$fl);
-    $fl_no--;
+    $fl_no++;
   }
   print STDERR "Done...\n" if $tredDebug;
   # create Bookmarks filelist
