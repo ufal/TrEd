@@ -24,7 +24,14 @@
       <member name="database"><cdata format="NMTOKEN"/></member>
       <member name="username"><cdata format="NMTOKEN"/></member>
       <member name="password"><cdata format="any"/></member>
-      <member name="sources"><cdata format="anyURI"/></member>
+      <member name="sources">
+	<alt ordered="0">
+	  <container>
+	    <attribute name="schema"><cdata format="NMTOKEN"/></attribute>
+	    <cdata format="anyURI"/>
+	  </container>
+	</alt>
+      </member>
       <member name="environment">
         <list>
 	  <container>
