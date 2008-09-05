@@ -6,6 +6,24 @@
 #### TrEd interface to Tree_Query::Evaluator
 {
 
+{
+package TrEd::PMLTQ::UserAgent;
+  use base qw(LWP::UserAgent);
+  sub get_basic_credentials {
+    my $self = shift;
+    my ($realm, $uri, $isproxy)=@_;
+    my $cfg=$self->{PMLTQ_CFG};
+    if (ref $cfg) {
+      return ($cfg->{username},$cfg->{password});
+    }
+    return $self->LWP::UserAgent::get_basic_credentials(@_);
+  }
+  sub set_cfg {
+    my ($self,$cfg)=@_;
+    $self->{PMLTQ_CFG}=$cfg;
+  }
+}
+
 package Tree_Query::HTTPSearch;
 use Benchmark;
 use Carp;
@@ -26,7 +44,8 @@ our %DEFAULTS = (
 );
 
 $Tree_Query::HTTPSearchPreserve::object_id=0; # different NS so that TrEd's reload-macros doesn't clear it
-my $ua = LWP::UserAgent->new;
+my $ua;
+$ua = TrEd::PMLTQ::UserAgent->new;
 $ua->agent("TrEd/1.0 ");
 
 sub new {
@@ -219,7 +238,7 @@ sub resolve_path {
   my $cfg = $self->{config}{data};
   my $url = $cfg->{url};
   $url.='/' unless $url=~m{^https?://.+/};
-  return qq{${url}file?f=$path};
+  return qq{${url}data/$path};
 }
 
 sub matching_nodes {
@@ -363,6 +382,8 @@ sub get_schema {
 sub request {
   my ($self,$type,$data,$out_file)=@_;
   my $cfg = $self->{config}{data};
+  my $user = $cfg->{user};
+  my $password = $cfg->{password};
   my $url = $cfg->{url};
   $url.='/' unless $url=~m{^https?://.+/};
   if (ref $data) {
@@ -372,6 +393,7 @@ sub request {
   }
   Encode::_utf8_off($url);
   Encode::_utf8_off($type);
+  $ua->set_cfg($cfg);
   my $res = eval {
     $ua->request(POST(qq{${url}${type}}, $data),$out_file ? $out_file : ());
   };
