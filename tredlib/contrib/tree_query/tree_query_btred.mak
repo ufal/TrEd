@@ -317,7 +317,9 @@ sub map_nodes_to_query_pos {
   my @nodes = ($tree,$tree->descendants);
   my $r = $self->{current_result};
   return {
-    map { $_->[1]=~/^\Q$fn\E\.(\d+)$/ ? ($nodes[$1] => $_->[0]) : () } map { [$_,$r->[$_]] } 0..$#$r
+    map { $_->[1]=~/^\Q$fn\E\.(\d+)$/ ? ($nodes[$1] => $_->[0]) : () } 
+      reverse # upper nodes first (optional nodes do not overwrite their parents)
+      map { [$_,$r->[$_]] } 0..$#$r
   };
 }
 
@@ -691,7 +693,7 @@ sub claim_search_win {
       } elsif ($rel->value->{label} eq 'eparent') {
 	$iterator = EParentIterator->new($conditions);
       } else {
-	die "user-defined relation ".$rel->value->{label}." not yet implemented\n"
+	die "user-defined relation ".$rel->value->{label}." not yet implemented in BTrEd Search\n"
       }
     } else {
       die "relation ".$relation." not yet implemented\n"

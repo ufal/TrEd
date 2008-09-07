@@ -613,7 +613,7 @@ node: <? !$this->parent ? ' Tree Query: ' : () ?><?length($${id}) ? ' #{blue(}${
 ?><? 
   $this->{'#name'} =~ /^(node|subquery)$/ ?
    ( length($${node-type}) 
-        ? $${node-type}.' ' : '#{red(}${node-type=NO_TYPE}#{)}' ) : () 
+        ? $${node-type}.' ' : $root->{'node-type'} ? '#{brown(}${node-type='.$root->{'node-type'}.'}#{)}' : '#{red(}${node-type=AMBIGUOUS TYPE}#{)}' ) : () 
 ?>#{darkblue}<?length($${name}) ? '$'.$${name}.' ' : '' ?>
 label:#{darkgreen}<?
   my $occ = Tree_Query::occ_as_text($this);
@@ -1018,7 +1018,9 @@ sub get_nodelist_hook {
   my @nodes=($tree);
   my $node = $tree->firstson;
   my $next;
+  my $current = $tree;
   while ($node) {
+    $current=$node if $node==$prevcurrent;
     if ($node->{'#name'} =~ /^(?:node|subquery)$/) {
       push @nodes,$node;
       $next=$node->following;
@@ -1037,7 +1039,7 @@ sub get_nodelist_hook {
     }
     $node=$next;
   }
-  return [\@nodes,$prevcurrent];
+  return [\@nodes,$current];
 }
 
 my %legend;
@@ -1100,7 +1102,7 @@ sub after_redraw_hook {
   }
   unless ($root and $root->firstson) {
     $hint .= qq{\n} if $hint;
-    $hint .= qq{QUERY EMPTY!\nPressing 'Insert' to create the first query node!\n}
+    $hint .= qq{QUERY IS EMPTY!\nPressing 'Insert' to create the first query node, or 'e' to open the query editor!\n}
   }
   if (length $hint) {
     chomp $hint;
@@ -1659,7 +1661,7 @@ sub EditQuery {
 		    [q|'...'|=> q|''|
 		    ],
 		    qw| [] () |,
-		    qw|? >> |,
+		    ($node->parent ? () : qw|? >> |),
 		    "\n",
 		    qw|^ $ |,
 		    q|$n :=|,
@@ -1686,10 +1688,18 @@ sub EditQuery {
 		 [Relation => GetRelationTypes($this),1],
 		 [Type => $SEARCH ? $SEARCH->get_node_types : [], $SEARCH ? 1 : 0],
 		 [Function => [map { $_.'()' }
-				 qw( descendants lbrothers rbrothers sons depth_first_order
-				     depth lower upper length substr tr replace ciel floor
-				     round trunc percnt name file tree_no position
-				     min max sum avg count ratio concat)],1]
+				 sort
+				   qw( descendants
+				       lbrothers
+				       rbrothers sons depth_first_order
+				       depth lower upper length substr tr replace ciel floor
+				       round trunc percnt name file tree_no position
+				    )
+			       ],1],
+		 ['Analytic function' => [map { $_.'()' }
+				     sort
+				     qw( min max sum avg count ratio concat )
+				    ],1],
 		) {
 		 my $menubutton = $f->Menubutton(
 		   -text => $mb->[0],
@@ -1771,10 +1781,15 @@ sub EditQuery {
       if (ref($result) eq 'ARRAY') {
 	$_->paste_after($node) for @$result;
 	DetermineNodeType($_) for map { ($_,$_->descendants) } @$result;
-	$result=$result->[0];
+	eval {
+	  Tree_Query::Common::CompleteMissingNodeTypes($SEARCH,$_) for @$result
+	} if $SEARCH;
+  	$result=$result->[0];
       } else {
 	$result->paste_after($node);
 	DetermineNodeType($_) for ($result,$result->descendants);
+	eval { Tree_Query::Common::CompleteMissingNodeTypes($SEARCH,$result) }
+	  if $SEARCH;
 	$result->{'.unhide'}=1 if $node->{'.unhide'};
       }
       $this=$result if $node==$this;
@@ -1785,6 +1800,7 @@ sub EditQuery {
       DeleteSubtree($_) for $node->children;
       CutPaste($_,$node) for reverse $result->children;
       DetermineNodeType($_) for ($node->descendants);
+      eval { Tree_Query::Common::CompleteMissingNodeTypes($SEARCH,$node) } if $SEARCH;
     }
     my $t1 = new Benchmark;
     my $time = timestr(timediff($t1,$t0));
