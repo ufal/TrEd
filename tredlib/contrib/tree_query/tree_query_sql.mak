@@ -241,7 +241,9 @@ sub map_nodes_to_query_pos {
   my @nodes = ($tree,$tree->descendants);
   my $r = $self->{current_result};
   return {
-    map { $_->[1]=~/^\Q$fn\E\.(\d+)$/ ? ($nodes[$1] => $_->[0]) : () } map { [$_,$self->resolve_path($r->[$_])] } 0..$#$r 
+    map { $_->[1]=~/^\Q$fn\E\.(\d+)$/ ? ($nodes[$1] => $_->[0]) : () } 
+      reverse # upper nodes first (optional nodes do not overwrite their parents)
+      map { [$_,$self->resolve_path($r->[$_])] } 0..$#$r 
   };
 }
 
@@ -309,7 +311,7 @@ sub get_schema_for_query_node {
 sub get_schema_for_type {
   my ($self,$type)=@_;
   my $ev = $self->init_evaluator;
-  return $ev->get_schema($ev->get_schema_name_for($type));
+  return $ev->get_schema_for_type($type);
 }
 
 sub get_type_decl_for_query_node {
