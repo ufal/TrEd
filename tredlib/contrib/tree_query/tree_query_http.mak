@@ -258,7 +258,9 @@ sub map_nodes_to_query_pos {
   my @nodes = ($tree,$tree->descendants);
   my $r = $self->{current_result};
   return {
-    map { $_->[1]=~/^\Q$fn\E\.(\d+)$/ ? ($nodes[$1] => $_->[0]) : () } map { [$_,$self->resolve_path($r->[$_])] } 0..$#$r 
+    map { $_->[1]=~/^\Q$fn\E\.(\d+)$/ ? ($nodes[$1] => $_->[0]) : () } 
+      reverse # upper nodes first (optional nodes do not overwrite their parents)
+      map { [$_,$self->resolve_path($r->[$_])] } 0..$#$r
   };
 }
 
