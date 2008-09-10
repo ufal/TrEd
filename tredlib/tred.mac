@@ -568,7 +568,7 @@ sub DeclareMinorContext {
   my ($name,$opts)=@_;
   croak "The 1st argument to DeclareMinorContext must be a context name!" unless (defined($name) and length($name) and !ref($name));
   croak "The 2nd argument to DeclareMinorContext must be a hash reference!" unless ref($opts) eq 'HASH';
-  croak "Too soon to call  DeclareMinorContext" unless ref($grp) and ref($grp->{framegroup});
+#  croak "Too soon to call  DeclareMinorContext" unless ref($grp) and ref($grp->{framegroup});
   if (exists $grp->{framegroup}{minorContexts}{$name}) {
     carp("WARNING: re-declaration of an existing minor context $name");
   }

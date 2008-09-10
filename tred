@@ -8430,11 +8430,12 @@ sub dumpSentView {
 	  local $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
 	  local $TrEd::TreeView::on_get_nodes = [\&onGetNodes,$win];
 
+	  my $dpi = int($grp->{top}->fpixels('1i'));
 	  eval {
 	    TrEd::Print::print_trees
 		($fsfile,$grp->{top},$canvas,
-		 $no,0,1,0,$img_file,0,
-		 "$imageMagickConvert -density 75 - ".IOBackend::quote_filename($img_file),
+		 $no,0,1,0,$img_file,0,0,
+		 "$imageMagickConvert -density $dpi - ".IOBackend::quote_filename($img_file),
 		 1,1,
 		 $win->{treeView}->get_showHidden(),
 		 {
@@ -8453,6 +8454,11 @@ sub dumpSentView {
 	  $canvas->destroy();
 	  $img=0;
 	}
+	$V=~s{&}{&amp;}g;
+	$V=~s{<}{&lt;}g;
+	$V=~s{\t}{     }g;
+	$V=~s{\n}{<br/>}g;
+	$V=~s{ ( +)}{' '.('&nbsp;'x length($1))}eg;
 	print $html $V;
       } else {
 #	print $html "<other key=\"$K\" value=\"$V\"/>";
