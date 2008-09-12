@@ -159,7 +159,6 @@ sub new {
     filelist => $opts->{filelist},
     evaluator => undef,
     query => undef,
-    # query_nodes => undef,
     results => undef,
   }, $class;
   my $ident = $self->identify;
@@ -245,9 +244,10 @@ sub show_next_result {
   my $result;
   eval {
     $result = $self->{evaluator}->find_next_match();
+    my $result_files = $self->{evaluator}->get_result_files;
     if ($result) {
       $self->{current_result} = [
-	map ThisAddress($_), @$result
+	map ThisAddress($result->[$_],$result_files->[$_]), 0..$#$result
       ];
     } else {
       $self->{have_all_results}=1;
@@ -292,10 +292,14 @@ sub show_current_result {
   my ($self)=@_;
   $self->update_label;
   return unless $self->{current_result};
+  my $idx = $self->node_index_in_last_query($this);
+  $idx ||= 0;
   my @save = ($grp,$root,$this);
-  $grp=$self->claim_search_win;
-  Open($self->{current_result}->[0]);
-  $Redraw='all';
+  my $address = $self->{current_result}[$idx];
+  my ($file) = ParseNodeAddress($address);
+  $grp=$self->claim_search_win($file);
+  Open($address,{-keep_related=>1});
+  Redraw($grp);
   ($grp,$root,$this)=@save;
   return $self->{current_result};
 }
@@ -356,11 +360,13 @@ sub select_matching_node {
 
 sub get_schema_for_query_node {
   my ($self,$node)=@_;
-  return $self->get_schema;
+  my $decl = $self->get_type_decl_for_query_node($node);
+  return $decl && $decl->schema;
 }
 sub get_schema_for_type {
-  my ($self,$node)=@_;
-  return $self->get_schema;
+  my ($self,$type)=@_;
+  my $decl = $self->get_decl_for($type);
+  return $decl && $decl->get_schema;
 }
 
 sub get_schema {
@@ -370,6 +376,13 @@ sub get_schema {
   return PML::Schema($fsfile);
 }
 
+sub get_schemas {
+  my ($self)=@_;
+  my $file = $self->{file} || return;
+  my $fsfile = (first { $_->filename eq $file } GetOpenFiles()) || return;
+  return uniq map PML::Schema($_), ($fsfile,  GetSecondaryFiles($fsfile));
+}
+
 sub get_type_decl_for_query_node {
   my ($self,$node)=@_;
   return $self->get_decl_for(Tree_Query::Common::GetQueryNodeType($node));
@@ -377,18 +390,18 @@ sub get_type_decl_for_query_node {
 
 sub get_decl_for {
   my ($self,$type)=@_;
-  my $schema = $self->get_schema();
   $type=~s{(/|$)}{.type$1};
-  my $decl = $schema->find_type_by_path('!'.$type);
-  $decl or die "Did not find type '!$type'";
-  return $decl;
+  for my $schema ($self->get_schemas) {
+    my $decl = $schema->find_type_by_path('!'.$type);
+    return $decl if $decl;
+  }
+  warn "Did not find type '!$type'";
+  return;
 }
 
 sub get_node_types {
   my ($self)=@_;
-  my $schema = $self->get_schema()
-    or return [];
-  return [map Tree_Query::Common::DeclToQueryType( $_ ), $schema->node_types];
+  return [map Tree_Query::Common::DeclToQueryType( $_ ), map $_->node_types, $self->get_schemas];
 }
 
 
@@ -396,10 +409,11 @@ sub get_node_types {
 ######## Private
 
 sub claim_search_win {
-  my ($self)=@_;
+  my ($self,$file)=@_;
   my $win;
-  if ($self->{file}) {
-    ($win) = map { $_->[0] } grep { $_->[1]->filename eq $self->{file} } grep ref($_->[1]), map [$_,CurrentFile($_)], TrEdWindows();
+  $file ||= $self->{file};
+  if ($file) {
+    ($win) = map { $_->[0] } grep { $_->[1]->filename eq $file } grep ref($_->[1]), map [$_,CurrentFile($_)], TrEdWindows();
   } else {
     ($win) = map { $_->[0] } grep { $_->[1]->name eq $self->{filelist} } grep ref($_->[1]), map [$_,GetCurrentFileList($_)], TrEdWindows();
   }
@@ -409,8 +423,8 @@ sub claim_search_win {
     $grp=$win;
     EnableMinorContext('Tree_Query_Results',$win);
     eval {
-      if ($self->{file}) {
-	Open($self->{file});
+      if ($file) {
+	Open($file);
       } elsif ($self->{filelist}) {
 	SetCurrentFileList($self->{filelist});
       }
@@ -620,12 +634,16 @@ sub claim_search_win {
     my $self = shift;
     return $self->{results}
   }
+  sub get_result_files {
+    my $self = shift;
+    return $self->{result_files}
+  }
   sub r {
     my ($self,$name)=@_;
     return unless $self->{results};
     my $pos =  $self->{name2pos}{$name};
     return unless defined $pos;
-    return $self->{results}[$pos];
+    return wantarray ? ($self->{results}[$pos],$self->{result_files}[$pos]) : $self->{results}[$pos];
   }
   *get_result_node = \&r;
 
@@ -1187,7 +1205,12 @@ sub claim_search_win {
 	} else {
 	  print STDERR ("complete match [bool: $opts->{boolean}]\n") if $DEBUG;
 	  # complete match:
-	  return $opts->{boolean} ? 1 : ($self->{results}=[map { $_->node } @$iterators]);
+	  if ($opts->{boolean}) {
+	    return 1;
+	  } else {
+	    $self->{result_files}=[map { $_->file } @$iterators];
+	    return $self->{results}=[map { $_->node } @$iterators];
+	  }
 	}
       }
     }
@@ -1433,43 +1456,6 @@ sub claim_search_win {
 }
 #################################################
 {
-  package OptionalIterator;
-  use base qw(Tree_Query::Iterator);
-  use constant CONDITIONS=>0;
-  use constant ITERATOR=>1;
-  use constant NODE=>2;
-  use Carp;
-  sub new {
-    my ($class,$iterator)=@_;
-    croak "usage: $class->new($iterator)" unless UNIVERSAL::isa($iterator,'Tree_Query::Iterator');
-    return bless [$iterator->conditions,$iterator],$class;
-  }
-  sub start  {
-    my ($self,$parent)=@_;
-    $self->[NODE]=$parent;
-    return $parent ? ($self->[CONDITIONS]->($parent) ? $parent : $self->next) : undef;
-  }
-  sub next {
-    my ($self)=@_;
-    my $n = $self->[NODE];
-    if ($n) {
-      $self->[NODE]=undef;
-      return $self->[ITERATOR]->start($n);
-    }
-    return $self->[ITERATOR]->next;
-  }
-  sub node {
-    my ($self)=@_;
-    return $self->[NODE] || $self->[ITERATOR]->node;
-  }
-  sub reset {
-    my ($self)=@_;
-    $self->[NODE]=undef;
-    $self->[ITERATOR]->reset;
-  }
-}
-#################################################
-{
   package FSFileIterator;
   use Carp;
   use base qw(Tree_Query::Iterator);
@@ -1483,8 +1469,9 @@ sub claim_search_win {
     return bless [$conditions,$fsfile],$class;
   }
   sub start  {
-    my ($self)=@_;
+    my ($self,$fsfile)=@_;
     $self->[TREE_NO]=0;
+    $self->[FILE]=$fsfile if $fsfile;
     my $n = $self->[NODE] = $self->[FILE]->tree(0);
     return ($n && $self->[CONDITIONS]->($n)) ? $n : ($n && $self->next);
   }
@@ -1500,6 +1487,9 @@ sub claim_search_win {
   }
   sub node {
     return $_[0]->[NODE];
+  }
+  sub file {
+    return $_[0]->[FILE];
   }
   sub reset {
     my ($self)=@_;
@@ -1532,6 +1522,9 @@ sub claim_search_win {
       last if $conditions->($n);
     }
     return $self->[NODE]=$n;
+  }
+  sub file {
+    return TredMacro::CurrentFile();
   }
   sub node {
     return $_[0]->[NODE];
@@ -1571,6 +1564,9 @@ sub claim_search_win {
   sub node {
     return $_[0]->[NODE];
   }
+  sub file {
+    return TredMacro::CurrentFile();
+  }
   sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
@@ -1584,10 +1580,11 @@ sub claim_search_win {
   use constant CONDITIONS=>0;
   use constant TREE=>1;
   use constant NODE=>2;
+  use constant FILE=>3;
   sub new  {
-    my ($class,$conditions,$root)=@_;
+    my ($class,$conditions,$root,$fsfile)=@_;
     croak "usage: $class->new(sub{...})" unless ref($conditions) eq 'CODE';
-    return bless [$conditions,$root],$class;
+    return bless [$conditions,$root,$fsfile],$class;
   }
   sub start  {
     my ($self)=@_;
@@ -1607,9 +1604,55 @@ sub claim_search_win {
   sub node {
     return $_[0]->[NODE];
   }
+  sub file {
+    return $_[0]->[FILE];
+  }
   sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
+  }
+}
+#################################################
+{
+  package OptionalIterator;
+  use base qw(Tree_Query::Iterator);
+  use constant CONDITIONS=>0;
+  use constant ITERATOR=>1;
+  use constant NODE=>2;
+  use constant FILE=>3;
+  use Carp;
+  sub new {
+    my ($class,$iterator)=@_;
+    croak "usage: $class->new($iterator)" unless UNIVERSAL::isa($iterator,'Tree_Query::Iterator');
+    return bless [$iterator->conditions,$iterator],$class;
+  }
+  sub start  {
+    my ($self,$parent,$fsfile)=@_;
+    $self->[NODE]=$parent;
+    $self->[FILE]=$fsfile;
+    return $parent ? ($self->[CONDITIONS]->($parent) ? $parent : $self->next) : undef;
+  }
+  sub next {
+    my ($self)=@_;
+    my $n = $self->[NODE];
+    if ($n) {
+      $self->[NODE]=undef;
+      return $self->[ITERATOR]->start($n);
+    }
+    return $self->[ITERATOR]->next;
+  }
+  sub node {
+    my ($self)=@_;
+    return $self->[NODE] || $self->[ITERATOR]->node;
+  }
+  sub file {
+    return $_[0]->[FILE];
+  }
+  sub reset {
+    my ($self)=@_;
+    $self->[NODE]=undef;
+    $self->[FILE]=undef;
+    $self->[ITERATOR]->reset;
   }
 }
 #################################################
@@ -1618,8 +1661,10 @@ sub claim_search_win {
   use base qw(Tree_Query::Iterator);
   use constant CONDITIONS=>0;
   use constant NODE=>1;
+  use constant FILE=>2;
   sub start  {
-    my ($self,$parent)=@_;
+    my ($self,$parent,$fsfile)=@_;
+    $self->[FILE]=$fsfile if $fsfile;
     my $n = $self->[NODE]=$parent->firstson;
     return ($n && $self->[CONDITIONS]->($n)) ? $n : ($n && $self->next);
   }
@@ -1633,9 +1678,13 @@ sub claim_search_win {
   sub node {
     return $_[0]->[NODE];
   }
+  sub file {
+    return $_[0]->[FILE];
+  }
   sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
+    $self->[FILE]=undef;
   }
 }
 #################################################
@@ -1645,9 +1694,11 @@ sub claim_search_win {
   use constant CONDITIONS=>0;
   use constant NODE=>1;
   use constant TOP=>2;
+  use constant FILE=>3;
 
   sub start  {
-    my ($self,$parent)=@_;
+    my ($self,$parent,$fsfile)=@_;
+    $self->[FILE]=$fsfile if $fsfile;
     my $n= $parent->firstson;
     $self->[NODE]=$n;
     $self->[TOP]=$parent;
@@ -1664,10 +1715,14 @@ sub claim_search_win {
   sub node {
     return $_[0]->[NODE];
   }
+  sub file {
+    return $_[0]->[FILE];
+  }
   sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
     $self->[TOP]=undef;
+    $self->[FILE]=undef;
   }
 }
 
@@ -1681,6 +1736,7 @@ sub claim_search_win {
   use constant MAX=>2;
   use constant DEPTH=>3;
   use constant NODE=>4;
+  use constant FILE=>5;
 
   sub new {
     my ($class,$conditions,$min,$max)=@_;
@@ -1689,7 +1745,8 @@ sub claim_search_win {
     return bless [$conditions,$min,$max],$class;
   }
   sub start  {
-    my ($self,$parent)=@_;
+    my ($self,$parent,$fsfile)=@_;
+    $self->[FILE]=$fsfile;
     my $n=$parent->firstson;
     $self->[DEPTH]=1;
     $self->[NODE]=$n;
@@ -1730,12 +1787,16 @@ sub claim_search_win {
     }
     return $self->[NODE]=undef;
   }
+  sub file {
+    return $_[0]->[FILE];
+  }
   sub node {
     return $_[0]->[NODE];
   }
   sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
+    $self->[FILE]=undef;
   }
 }
 #################################################
@@ -1744,8 +1805,10 @@ sub claim_search_win {
   use base qw(Tree_Query::Iterator);
   use constant CONDITIONS=>0;
   use constant NODE=>1;
+  use constant FILE=>2;
   sub start  {
-    my ($self,$node)=@_;
+    my ($self,$node,$fsfile)=@_;
+    $self->[FILE]=$fsfile;
     my $n = $node->parent;
     return $self->[NODE] = ($n && $self->[CONDITIONS]->($n)) ? $n : undef;
   }
@@ -1755,9 +1818,13 @@ sub claim_search_win {
   sub node {
     return $_[0]->[NODE];
   }
+  sub file {
+    return $_[0]->[FILE];
+  }
   sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
+    $self->[FILE]=undef;
   }
 }
 #################################################
@@ -1766,8 +1833,10 @@ sub claim_search_win {
   use base qw(Tree_Query::Iterator);
   use constant CONDITIONS=>0;
   use constant NODE=>1;
+  use constant FILE=>2;
   sub start  {
-    my ($self,$node)=@_;
+    my ($self,$node,$fsfile)=@_;
+    $self->[FILE]=$fsfile;
     my $n = $node->parent;
     $self->[NODE]=$n;
     return ($n && $self->[CONDITIONS]->($n)) ? $n : ($n && $self->next);
@@ -1782,9 +1851,13 @@ sub claim_search_win {
   sub node {
     return $_[0]->[NODE];
   }
+  sub file {
+    return $_[0]->[FILE];
+  }
   sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
+    $self->[FILE]=undef;
   }
 }
 #################################################
@@ -1797,6 +1870,7 @@ sub claim_search_win {
   use constant MAX=>2;
   use constant NODE=>3;
   use constant DEPTH=>4;
+  use constant FILE=>5;
   sub new  {
     my ($class,$conditions,$min,$max)=@_;
     croak "usage: $class->new(sub{...})" unless ref($conditions) eq 'CODE';
@@ -1804,9 +1878,10 @@ sub claim_search_win {
     return bless [$conditions,$min,$max],$class;
   }
   sub start  {
-    my ($self,$node)=@_;
+    my ($self,$node,$fsfile)=@_;
     my $min = $self->[MIN]||1;
     my $max = $self->[MAX];
+    $self->[FILE]=$fsfile;
     my $depth=0;
     $node = $node->parent while ($node and ($depth++)<$min);
     $node=undef if defined($max) and $depth>$max;
@@ -1834,9 +1909,13 @@ sub claim_search_win {
   sub node {
     return $_[0]->[NODE];
   }
+  sub file {
+    return $_[0]->[FILE];
+  }
   sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
+    $self->[FILE]=undef;
   }
 }
 
@@ -1846,15 +1925,17 @@ sub claim_search_win {
   use base qw(Tree_Query::Iterator);
   use constant CONDITIONS=>0;
   use constant NODE=>1;
+  use constant FILE=>2;
   sub start  {
-    my ($self,$node)=@_;
+    my ($self,$node,$fsfile)=@_;
     my $lex_rf = $node->attr('a/lex.rf');
     my $refnode;
+    $self->[FILE] = $fsfile;
     if (defined $lex_rf) {
-      $lex_rf=~s/^.*?#//;
-      $refnode=PML_T::GetANodeByID($lex_rf);
+      # $lex_rf=~s/^.*?#//;
+      $refnode=PML_T::GetANodeByID($lex_rf,$fsfile);
     }
-    return $self->[NODE]= $self->[CONDITIONS]->($refnode) ? $refnode : undef;
+    return $self->[NODE] = $self->[CONDITIONS]->($refnode) ? $refnode : undef;
   }
   sub next {
     return $_[0]->[NODE]=undef;
@@ -1862,9 +1943,13 @@ sub claim_search_win {
   sub node {
     return $_[0]->[NODE];
   }
+  sub file {
+    return PML_T::AFile($_[0]->[FILE]);
+  }
   sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
+    $self->[FILE]=undef;
   }
 }
 #################################################
@@ -1873,8 +1958,10 @@ sub claim_search_win {
   use base qw(Tree_Query::Iterator);
   use constant CONDITIONS=>0;
   use constant NODES=>1;
+  use constant FILE=>2;
   sub start  {
-    my ($self,$node)=@_;
+    my ($self,$node,$fsfile)=@_;
+    $self->[FILE]=$fsfile;
     $self->[NODES] = $self->get_node_list($node);
     my $n = $self->[NODES]->[0];
     return $self->[CONDITIONS]->($n) ? $n : ($n && $self->next);
@@ -1893,10 +1980,13 @@ sub claim_search_win {
     my ($self)=@_;
     return $self->[NODES]->[0];
   }
-
+  sub file {
+    return $_[0]->[FILE];
+  }
   sub reset {
     my ($self)=@_;
     $self->[NODES]=undef;
+    $self->[FILE]=undef;
   }
   sub get_node_list {
     return [];
@@ -1910,9 +2000,12 @@ sub claim_search_win {
   sub get_node_list  {
     my ($self,$node)=@_;
     return [grep defined, map {
-      my $id = $_; $id=~s/^.*?#//;
-      PML_T::GetANodeByID($id)
+        # my $id = $_; # $id=~s/^.*?#//;
+        PML_T::GetANodeByID($_,$self->[SimpleListIterator::FILE])
       } TredMacro::ListV($node->attr('a/aux.rf'))];
+  }
+  sub file {
+    return PML_T::AFile($_[0]->[SimpleListIterator::FILE]);
   }
 }
 #################################################
@@ -1921,7 +2014,10 @@ sub claim_search_win {
   use base qw(SimpleListIterator);
   sub get_node_list  {
     my ($self,$node)=@_;
-    return [PML_T::GetANodes($node)];
+    return [PML_T::GetANodes($node,$self->[SimpleListIterator::FILE])];
+  }
+  sub file {
+    return PML_T::AFile($_[0]->[SimpleListIterator::FILE]);
   }
 }
 #################################################
