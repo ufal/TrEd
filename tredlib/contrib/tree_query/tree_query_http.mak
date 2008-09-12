@@ -59,33 +59,46 @@ sub new {
     query => undef,
     query_nodes => undef,
     results => undef,
+    limit=>undef,
+    spinbox_timeout=>undef,
   }, $class;
   $self->init($opts->{config_file},$opts->{config_id}) || return;
-  $self->{callback} = [\&open_pmltq,$self];
-  weaken($self->{callback}[1]);
-  register_open_file_hook($self->{callback});
-
   my $ident = $self->identify;
-  (undef, $self->{label}) = Tree_Query::CreateSearchToolbar($ident);
-  my $fn = $self->filelist_name;
+  {
+    my $tb;
+    ($tb, $self->{label}) = Tree_Query::CreateSearchToolbar($ident);
+    $tb->Label(-text=>"Timeout:")->pack(-side=>'left',-padx=>10);
+    $tb->Spinbox(
+      -background=>'white',
+      -widt=>3,
+      -from => 10,
+      -to => 300,
+      -increment=>5,
+      -textvariable => \$self->{spinbox_timeout},
+     )->pack(-side => 'left',
+	    );
+  }
   $self->{on_destroy} = MacroCallback(
     sub {
       DestroyUserToolbar($ident);
-      for my $win (map { $_->[0] } grep { $_->[1]->name eq $fn } grep ref($_->[1]), map [$_,GetCurrentFileList($_)], TrEdWindows()) {
+      for my $win ($self->get_result_windows) {
 	CloseFileInWindow($win);
 	CloseWindow($win);
       }
-      RemoveFileList($fn) if GetFileList($fn);
       ChangingFile(0);
     });
   return $self;
 }
 
+sub toolbar {
+  my ($self)=@_;
+  GetUserToolbar($self->identify);
+}
+
 sub DESTROY {
   my ($self)=@_;
-  warn "DESTROING $self\n";
+  # warn "DESTROING $self\n";
   RunCallback($self->{on_destroy}) if $self->{on_destroy};
-  unregister_open_file_hook($self->{callback});
 }
 
 sub identify {
@@ -104,6 +117,66 @@ sub identify {
   return $ident;
 }
 
+sub _find_shown_result_indexes {
+  my ($self,$wins)=@_;
+  my $cur_res = $self->{current_result};
+  my %seen;
+  for my $win (@$wins) {
+    my $idx = GetMinorContextData('Tree_Query_Results','index',$win);
+    if (defined($idx) and $idx<@$cur_res) {
+      my $m = $cur_res->[$idx];
+      $seen{$idx}=$win;
+      if ($m=~/^(([^#]+)(?:\#\#\d+))/) {
+	$seen{$1}=$win;
+	$seen{$2}=$win;
+      }
+    }
+  }
+  return \%seen;
+}
+
+sub _assign_first_result_index_not_shown {
+  my ($self,$seen,$win)=@_;
+  $win||=$grp;
+  $seen||=$self->_find_shown_result_indexes([ grep { IsMinorContextEnabled('Tree_Query_Results',$_) } TrEdWindows() ]);
+  my $cur_res = $self->{current_result};
+  return unless ref $cur_res and @$cur_res;
+  # first try a specific file
+  for my $i (0..$#{$cur_res}) {
+    next if $seen->{$i};
+    my $m = $cur_res->[$i];
+    if ($m=~/^(([^#]+)(?:\#\#\d+))/g) {
+      if (!$seen->{$2}) {
+	$seen->{$i}=$win;
+	$seen->{$2}=$win;
+	$seen->{$1}=$win;
+	return $i;
+      }
+    }
+  }
+  # first then a specific tree
+  for my $i (0..$#{$cur_res}) {
+    next if $seen->{$i};
+    my $m = $cur_res->[$i];
+    if ($m=~/^(([^#]+)(?:\#\#\d+))/g) {
+      return $i if !$seen->{$2};
+      if (!$seen->{$1}) {
+	$seen->{$i}=$win;
+	$seen->{$1}=$win;
+	return $i;
+      }
+    }
+  }
+  # then a specific query node
+  for my $i (0..$#{$cur_res}) {
+    if (!$seen->{$i}) {
+      $seen->{$i}=$win;
+      return $i;
+    }
+  }
+  return;
+}
+
 sub search_first {
   my ($self, $opts)=@_;
   $opts||={};
@@ -113,31 +186,31 @@ sub search_first {
     resolve_types=>1,
     no_filters => $opts->{no_filters},
   }) if ref($query);
-  my ($limit, $row_limit, $timeout) = map { int($opts->{$_}||$self->{config}{pml}->get_root->get_member($_)||0)||$DEFAULTS{$_} }
-    qw(limit row_limit timeout);
+  my ($limit, $row_limit) = map { int($opts->{$_}||$self->{config}{pml}->get_root->get_member($_)||0)||$DEFAULTS{$_} } qw(limit row_limit);
+  my $timeout = int($opts->{timeout}||$self->{spinbox_timeout}) || $DEFAULTS{timeout};
   my $t0 = new Benchmark;
 
   my $tmp = File::Temp->new( TEMPLATE => 'pmltq_XXXXX',
 			     TMPDIR => 1,
 			     UNLINK => 1,
 			     SUFFIX => '.txt' );
+  $self->update_label('Query in progress, please wait....');
   my $res = $self->request(query => [
     query => $query,
     format => 'text',
     limit => $limit,
     row_limit => $row_limit,
     timeout => $timeout,
-   ],
-   $tmp->filename,
-  );
+   ], $tmp->filename);
   binmode $tmp, ':utf8';
-
+  $self->{limit}=$limit;
   my $t1 = new Benchmark;
   my $time = timestr(timediff($t1,$t0));
   unless ($opts->{quiet}) {
     my $id = $root->{id} || '*';
     print STDERR "$id\t".$self->identify."\t$time\n";
   }
+  $self->update_label('');
   unless ($res->is_success) {
     ErrorMessage($res->status_line."\n".$res->content."\n");
     return;
@@ -171,40 +244,29 @@ sub search_first {
        );
       return;
     }
-    my @wins = TrEdWindows();
-    my $res_win;
-    my $fn = $self->filelist_name;
-    if (@wins>1) {
-      ($res_win) = grep { 
-	my $f = GetCurrentFileList($_);
-	($f and $f->name eq $fn)
-      } @wins;
-      unless ($res_win) {
-	($res_win) = grep { $_ ne $grp } @wins;
-      }
-    } else {
-      $res_win = SplitWindowVertically({no_init => 1, no_redraw=>1,no_focus=>0});
-    }
     {
-      my $fl = Filelist->new($fn);
-      my @files = map {
-	'pmltq://'.join('/',$self->{object_id},@$_)
-      } @$results;
-      $fl->add_arrayref(0, \@files);
+      $self->update_label('Preparing results ...');
+      my @wins = grep { IsMinorContextEnabled('Tree_Query_Results',$_) } TrEdWindows();
+      unless (@wins>0) {
+	@wins = (SplitWindowVertically({no_init => 1, no_redraw=>1,no_focus=>0}));
+	EnableMinorContext('Tree_Query_Results',$wins[0]);
+      }
+      $self->{results}=$results;
+      $self->{current_result_no}=0;
+      my $cur_res = $self->{current_result}=[$self->idx_to_pos($results->[0])];
+      for my $win (@wins) {
+	SetMinorContextData('Tree_Query_Results','index',undef,$win);
+      }
       my @context=($this,$root,$grp);
-      CloseFileInWindow($res_win);
-      $grp=$res_win;
-      SetCurrentWindow($grp);
-      SetCurrentStylesheet(STYLESHEET_FROM_FILE);
-      AddNewFileList($fl);
-      SetCurrentFileList($fl->name,{no_open=>1});
-      EnableMinorContext('Tree_Query_Results',$res_win);
-      #GotoFileNo(0);
-      $self->{current_result}=[$self->idx_to_pos($results->[0])];
+      for my $res_win (@wins) {
+	CloseFileInWindow($res_win);
+	$grp=$res_win;
+	SetCurrentWindow($grp);
+	SetCurrentStylesheet(STYLESHEET_FROM_FILE);
+      }
       ($this,$root,$grp)=@context;
-      ${$self->{label}} = (CurrentFileNo($res_win)+1).' of '.(LastFileNo($res_win)+1).
-	($limit == $matches ? '+' : '');
       $self->show_result('current');
+      $self->update_label;
       SetCurrentWindow($grp);
     }
   } else {
@@ -440,11 +502,7 @@ sub init {
     $self->{config}{pml}->save();
   }
   $self->{config}{data} = $cfg;
-}
-
-sub filelist_name {
-  my $self=shift;
-  return ref($self).":".$self->{object_id};
+  $self->{spinbox_timeout}=int($self->{config}{pml}->get_root->get_member('timeout')) || $DEFAULTS{timeout};
 }
 
 sub show_result {
@@ -452,90 +510,138 @@ sub show_result {
   my @save = ($this,$root,$grp);
   return unless ($self->{current_result} and $self->{last_query_nodes}
 	and @{$self->{current_result}} and @{$self->{last_query_nodes}});
-  my $win=$self->claim_search_win();
+  my @wins=$self->get_result_windows();
+  my $seen=$self->_find_shown_result_indexes(\@wins);
+  $self->update_label('Loading results ...');
   eval {
+    { # attempt to locate the current node in one of the windows
+      my $idx = Index($self->{last_query_nodes},$this);
+      if (defined $idx) {
+	# ok, this window shows the query
+	unless ($seen->{$idx}) {
+	  # this node is not shown in any window
+	    my $m = $self->{current_result}[$idx];
+	    if ($m=~/^(([^#]+)(?:\#\#\d+))/g) {
+	      my $win = $seen->{$1}||$seen->{$2};
+	      if ($win) {
+		SetMinorContextData('Tree_Query_Results','index',$idx,$win);
+		$seen->{$idx}=$win;
+	      } else {
+		$win=$wins[0];
+		SetMinorContextData('Tree_Query_Results','index',$idx,$win);
+		$seen->{$idx}=$win;
+		$seen->{$1}=$win;
+		$seen->{$2}=$win;
+	      }
+	    }
+	  }
+      }
+    }
     if ($dir eq 'prev') {
-      $grp=$win;
-      PrevFile();
-      my $idx = Index($self->{last_query_nodes},$save[0]);
-      if (defined($idx)) {
-	my $fn = FileName();
-	my $result_fn = $self->resolve_path($self->{current_result}[$idx]);
-	if ($result_fn !~ /^\Q$fn\E\.(\d+)$/) {
-	  Open($result_fn,{-keep_related=>1});
-	  Redraw($win);
-	} else {
-	  $self->select_matching_node($save[0]);
+      my $no = $self->{current_result_no};
+      if ($no>0) {
+	$self->{current_result_no} = --$no;
+	$self->{current_result}=[$self->idx_to_pos($self->{results}[$no])];
+      }
+      for my $win (@wins) {
+	$grp=$win;
+	my $idx = GetMinorContextData('Tree_Query_Results','index');
+	if (!defined($idx) or $idx>$#{$self->{last_query_nodes}}) {
+	  $idx = $self->_assign_first_result_index_not_shown($seen,$win);
+	  SetMinorContextData('Tree_Query_Results','index',$idx);
 	}
+	if (defined $idx) {
+	  my $result_fn = $self->resolve_path($self->{current_result}[$idx]);
+	  Open($result_fn,{-keep_related=>1});
+	} else {
+	  CloseFileInWindow($win);
+	}
+	Redraw($win);
       }
     } elsif ($dir eq 'next') {
-      $grp=$win;
-      NextFile();
-      my $idx = Index($self->{last_query_nodes},$save[0]);
-      if (defined($idx)) {
-	my $fn = FileName();
-	my $result_fn = $self->resolve_path($self->{current_result}[$idx]);
-	if ($result_fn !~ /^\Q$fn\E\.(\d+)$/) {
-	  Open($result_fn,{-keep_related=>1});
-	  Redraw($win);
-	} else {
-	  $self->select_matching_node($save[0]);
+      my $no = $self->{current_result_no};
+      if ($no<$#{$self->{results}}) {
+	$self->{current_result_no} = ++$no;
+	$self->{current_result}=[$self->idx_to_pos($self->{results}[$no])];
+      }
+      for my $win (@wins) {
+	$grp=$win;
+	my $idx = GetMinorContextData('Tree_Query_Results','index');
+	if (!defined($idx) or $idx>$#{$self->{last_query_nodes}}) {
+	  $idx = $self->_assign_first_result_index_not_shown($seen,$win);
+	  SetMinorContextData('Tree_Query_Results','index',$idx);
 	}
+	if (defined $idx) {
+	  my $result_fn = $self->resolve_path($self->{current_result}[$idx]);
+	  Open($result_fn,{-keep_related=>1});
+	} else {
+	  CloseFileInWindow($win);
+	}
+	Redraw($win);
       }
     } elsif ($dir eq 'current') {
-      return unless $self->{current_result};
-      my $idx = Index($self->{last_query_nodes},$save[0]);
-      if (defined($idx)) {
+      for my $win (@wins) {
 	$grp=$win;
-	Open($self->resolve_path($self->{current_result}[$idx]),{-keep_related=>1});
+	my $idx = GetMinorContextData('Tree_Query_Results','index');
+	if (!defined($idx) or $idx>$#{$self->{last_query_nodes}}) {
+	  $idx = $self->_assign_first_result_index_not_shown($seen,$win);
+	  SetMinorContextData('Tree_Query_Results','index',$idx);
+	}
+	if (defined $idx) {
+	  my $result_fn = $self->resolve_path($self->{current_result}[$idx]);
+	  Open($result_fn,{-keep_related=>1});
+	} else {
+	  CloseFileInWindow($win);
+	}
 	Redraw($win);
       }
     }
   };
   my $err=$@;
-  my $plus = ${$self->{label}}=~/\+/;
-  ${$self->{label}} = (CurrentFileNo($win)+1).' of '.(LastFileNo($win)+1).
-    ($plus ? '+' : '');
+  $self->update_label;
   ($this,$root,$grp)=@save;
   die $err if $err;
   return;
 }
 
 
-sub claim_search_win {
+sub get_result_windows {
   my ($self)=@_;
-  my $fn = $self->filelist_name;
-  my ($win) = map { $_->[0] } grep { $_->[1]->name eq $fn } grep ref($_->[1]), map [$_,GetCurrentFileList($_)], TrEdWindows();
-  unless ($win) {
-    $win = SplitWindowVertically();
+  my @wins = grep { IsMinorContextEnabled('Tree_Query_Results',$_) } TrEdWindows();
+  unless (@wins) {
+    my $win = SplitWindowVertically();
     EnableMinorContext('Tree_Query_Results',$win);
-    eval { SetCurrentFileListInWindow($win,$fn) };
     die $@ if $@;
+    @wins=($win);
   }
-  return $win;
+  return @wins;
 }
 
 sub update_label {
-  my ($self)=@_;
-  my $past = (($self->{past_results} ? int(@{$self->{past_results}}) : 0)
-		+ ($self->{current_result} ? 1 : 0));
-  ${$self->{label}} = $past.' of '.
-	 ($self->{next_results} ? $past+int(@{$self->{next_results}}) : $past).'+';
+  my ($self,$text)=@_;
+  if (defined $text) {
+    ${$self->{label}}=$text;
+  } else {
+    my $no = $self->{current_result_no}+1;
+    my $limit = $self->{limit}||0;
+    my $matches = $self->{results} ? @{$self->{results}} : 0;
+    ${$self->{label}} = qq{$no of $matches}.($matches==$limit ? '+' : '');
+  }
+  my $tb=$self->toolbar;
+  $tb->update if $tb;
+  return;
 }
 
 sub idx_to_pos {
   my ($self,$idx_list)=@_;
   my @res;
-  my @list=@$idx_list;
-  while (@list) {
-    my ($idx,$type)=(shift @list, shift @list);
+  for my $ident (@$idx_list) {
     my $res = $self->request('node',
-		   [ idx=>$idx,
-		     type=>$type,
+		   [ idx=>$ident,
 		     format=>'text',
 		   ]);
     unless ($res->is_success) {
-      die "Failed to resolve $type $idx ".$res->status_line."\n";;
+      die "Failed to resolve $ident!\n".$res->status_line."\n";;
     }
     my $f = $res->content;
     $f=~s/\r?\n$//;
@@ -543,38 +649,6 @@ sub idx_to_pos {
     push @res, $f;
   }
   return @res;
-}
-
-# registered open_file_hook
-# called by Open to translate URLs of the
-# form pmltq//table/idx/table/idx ....  to a list of file positions
-# and opens the first of the them
-sub open_pmltq {
-  my ($self,$filename,$opts)=@_;
-  my $object_id=$self->{object_id};
-  return unless $filename=~s{pmltq://$object_id/}{};
-  my @positions = $self->idx_to_pos([split m{/}, $filename]);
-  print "$filename: @positions\n";
-  $self->{current_result}=\@positions;
-  my ($node) = map { CurrentNodeInOtherWindow($_) }
-              grep { CurrentContextForWindow($_) eq __PACKAGE__ } TrEdWindows();
-  my $idx = Index($self->{last_query_nodes},$node);
-  my $first = $positions[$idx||0];
-  if (defined $first and length $first) {
-    $opts->{-norecent}=1;
-    $opts->{-keep_related}=1;
-    print "RESULT: ",$self->resolve_path($first),"\n";
-    my $fsfile = Open($self->resolve_path($first),$opts);
-    if (ref $fsfile) {
-      $fsfile->changeAppData('tree_query_url',$filename);
-      $fsfile->changeAppData('norecent',1);
-      for my $req_fs (GetSecondaryFiles($fsfile)) {
-	$req_fs->changeAppData('norecent',1);
-      }
-    }
-    Redraw();
-  }
-  return 'stop';
 }
 
 sub load_config_file {
