@@ -91,7 +91,7 @@ sub DrawArrows {
     if ($node == $target) {
       # same node
       push @{$props{-coords}},qq(n,n,n+$dx,n+$dy,n+$raise+$dx,n+$dy,n+$raise+$dx,n+$raise+$dy,n+$dx,n+$raise+$dy,n-$raise+$dx,n+$raise+$dy,n-$raise+$dx,n+$dy,n,n);
-    } elsif ($displayed_nodes_hash{$target}) {
+    } elsif (defined($target) and $displayed_nodes_hash{$target}) {
       # same sentence
       my $arr = $arrows->{$node}||=[];
       $i=@{$arr};
