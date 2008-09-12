@@ -67,17 +67,20 @@ sub GetANodeREFs {
   return (($lex ne "" ? $lex : ()), ListV($node->attr('a/aux.rf')));
 }
 
-=item GetANodes($node?)
+=item GetANodes($node?,$fsfile?)
 
 Returns a list of analytical nodes referenced from a given
 tectogrammatical node. This combines references from a/tree.rf
 (root-node), a/aux.rf and a/lex.rf (non-root nodes). If no node is
-given, the function applies to C<$this>.
+given, the function applies to C<$this>. If the node belongs to other
+file than the current file, the optional second argument must
+specify the corresponding FSFile object.
 
 =cut
 
 sub GetANodes {
-  return grep defined, map { GetANodesHash()->{$_} } &GetANodeIDs;
+  my ($node,$fsfile)=@_;
+  return grep defined, map { GetANodesHash($fsfile)->{$_} } GetANodeIDs($node);
 }
 
 =item GetALexNode($node?)
@@ -106,7 +109,7 @@ sub GetAAuxNodes {
   return grep defined, map { GetANodeByID($_) } ListV($node->attr('a/aux.rf'));
 }
 
-=item GetANodeByID($id_or_ref)
+=item GetANodeByID($id_or_ref,$fsfile?)
 
 Looks up an analytical node by its ID (or PMLREF - i.e. the ID
 preceded by a file prefix of the form C<a#>). This function only works
@@ -116,9 +119,9 @@ belongs to an analytical file associated with it.
 =cut
 
 sub GetANodeByID {
-  my ($arf)=@_;
+  my ($arf,$fsfile)=@_;
   $arf =~ s/^.*?#//;
-  return GetANodesHash()->{$arf};
+  return GetANodesHash($fsfile)->{$arf};
 }
 
 =item GetANodesHash()
@@ -362,21 +365,21 @@ sub DrawCorefArrows {
     push @edges,\%edge;
   }
   if ($node->{coref_special} eq 'segm') { # pointer to an unspecified segment of preceeding sentences
-    print STDERR "ref-arrows: Segment - unaimed arrow\n" if $main::macroDebug;
-    push @edges, {
+    print STDERR "ref-arrows: Segment - unaimed arrow\n" if $main::macroDebug; 
+   push @edges, {
       -fill   => CustomColor('arrow_segment'),
       -deltax => -25,
       -deltay => 10*($rotate_prv_snt++),
-      -tag => 'segm'
+      -tag => 'segm',
     };
   }
   if ($node->{coref_special} eq 'exoph') {
     print STDERR "ref-arrows: Exophora\n" if $main::macroDebug;
     push @edges, {
-      -fill   => CustomColor('arrow_segment'),
+      -fill   => CustomColor('arrow_exoph'),
       -deltax => 10*($rotate_dfr_snt++),
       -deltay => -25,
-      -tag => 'exoph'
+      -tag => 'exoph',
     };
   }
   DrawArrows($node,$styles,\@edges,\%common);
