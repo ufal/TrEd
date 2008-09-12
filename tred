@@ -2815,9 +2815,9 @@ sub initSidePanel {
       ]);
     $grp->{Balloon}->attach($menu,-msg => '');
     $t->bind('<3>', sub { my ($w)=@_;
-			  
 			  $menu->Post($w->pointerxy);
-			  Tk->break; });
+			  Tk->break;
+			});
     #$grp->{sidePanel}->widget('filelistView')->show;
   }
   unless ($grp->{sidePanel}->widget('fileSystemView')) {
@@ -5401,6 +5401,7 @@ sub focusCanvas {
     update_value_line($grp);
     update_status_info($grp->{focusedWindow});
     update_value_line_current($newfocus,$newfocus->{currentNode});
+    update_minor_contexts($newfocus);
     updateTitle($grp);
     updateScaleFactor($grp);
     resetUndoStatus($newfocus);
@@ -5429,6 +5430,7 @@ sub splitWindow {
     foreach (qw(FSFile treeNo currentNode currentFileNo macroContext currentFilelist)) {
       $twin->{$_}=$win->{$_};
     }
+    $twin->{minorContexts}=[ @{$win->{minorContexts}||[]} ];
   }
   applyWindowStylesheet($twin,$grp->{selectedStylesheet});
   focusCanvas($canvas,$grp) unless $opts->{no_focus};
@@ -5827,10 +5829,6 @@ sub startMain {
   my $canvas = $group{focusedWindow}->canvas();
   $canvas->configure(@focused_win_opts);
 
-  print "Starting in context $group{focusedWindow}->{macroContext}\n" if $tredDebug;
-  doEvalHook($group{focusedWindow},"initialize_bindings_hook");
-  $group{templateMatchMethod}=$defaultTemplateMatchMethod;
-  $group{macroListOrder}=$defaultMacroListOrder;
   print STDERR "Main window created.\n" if $tredDebug;
 
   if (-f $appIcon) {
@@ -6220,6 +6218,12 @@ sub startMain {
 
   $group{BookmarksFileMenu}= MenubarItem($group{Menubar},qw/-label Bookmarks -underline 0/);
   updateBookmarks(\%group);
+
+  print "Starting in context $group{focusedWindow}->{macroContext}\n" if $tredDebug;
+  doEvalHook($group{focusedWindow},"initialize_bindings_hook");
+  $group{templateMatchMethod}=$defaultTemplateMatchMethod;
+  $group{macroListOrder}=$defaultMacroListOrder;
+
   my $cM=[];
   if ($createMacroMenu) {
 #     push @$cM, 
@@ -6318,6 +6322,8 @@ sub startMain {
 			 delete $grp->{minorContexts};
 			 delete $grp->{minorPreHooks};
 			 delete $grp->{minorPostHooks};
+			 %keyBindings=();
+			 %menuBindings=();
 			 TrEd::TreeView->clear_code_caches;
 			 cleanup_tredmacro($grp);
 			 for my $name (keys %{$grp->{UserToolbarHash}}) {
@@ -6420,6 +6426,15 @@ sub startMain {
 			      },\%group]
 			   );
     $sl->pack(qw/-side left -fill x -expand yes/);
+  }
+  {
+    $group{minorContextsText}='';
+    $group{minorContextsMenu} = $bf->Menubutton(-image=>icon(\%group,'puzzle'),-direction=>'above')->pack(-side => 'left',-expand => 'no');
+    my $menu = $group{minorContextsMenu}->menu(qw/-tearoff 0/);
+    $group{minorContextsMenu}->configure(-menu => $menu);
+    $group{minorContextsLabel} = $bf->Label(-textvariable=>\$group{minorContextsText},
+					   )->pack(-side => 'left',-expand => 'no',-padx=>5);
+    update_minor_contexts(\%group);
   }
   {
     $group{canvasScale}=0;
@@ -10508,13 +10523,13 @@ sub examineEvent {
   }
   if ($by_event_hook) {
     if (defined($macro)) {
-      $$bindings = "$key bound by event_hook to: ".findMacroDescription($macro);
+      $$bindings = "$key bound by event_hook to: ".findMacroDescription($grp,$macro);
     } else {
       $$bindings = "$key is blocked by event_hook\n";
     }
   } else {
     if (defined($macro)) {
-      $$bindings = "$key is bound to: ".findMacroDescription($macro);
+      $$bindings = "$key is bound to: ".findMacroDescription($grp,$macro);
     } else {
       $$bindings = "$key is not bound\n";
     }
@@ -10562,13 +10577,22 @@ sub examineBindingsDialog {
 }
 
 sub findMacroDescription {
-  my ($macro)=@_;
-  if ($macro =~ /^(.*)->/) {
+  my ($grp_or_win,$macro)=@_;
+  if (!ref($macro) and $macro =~ /^(.*)->/) {
     my $b = $menuBindings{$1};
     my ($desc) = grep { ref($b->{$_}) and $b->{$_}[0] eq $macro } keys %$b;
     return "$desc ($macro)" if $desc ne EMPTY;
+    return "macro $macro";
+  } else {
+    my ($grp,$win)=grp_win($grp_or_win);
+    for my $context (uniq($win->{macroContext},"TredMacro")) {
+      my $Menus = $menuBindings{$context};
+      my %macro_to_menu = map { $Menus->{$_}->[0] => $_ } keys %{ $Menus };
+      my $desc = $macro_to_menu{$macro};
+      return $desc." (inline code)" if defined $desc;
+    }
+    return "this macro has no description (inline code)";
   }
-  return "macro $macro";
 }
 
 sub doEvalMacro {
@@ -10586,7 +10610,7 @@ sub doEvalMacro {
     forceFileSaved => 0,
     Redraw => 'file');
 
-  my $undo=prepare_undo($win,findMacroDescription($macro));
+  my $undo=prepare_undo($win,findMacroDescription($win,$macro));
   my $result=do_eval_macro($win,$macro);
   my $current_win=get_macro_variable("grp");
   if ($win != $current_win and UNIVERSAL::isa($current_win,'TrEd::Window') ) {
@@ -10667,11 +10691,31 @@ sub doEvalMacro {
 
 sub resolveKey {
   my $grp=$_[0];
- context:
-  foreach my $context (uniq($grp->{focusedWindow}->{macroContext},"TredMacro")) {
+  my $win = $grp->{focusedWindow};
+  my $minor_contexts=$win->{minorContexts};
+  if ($minor_contexts) {
+    foreach my $minor_context (@$minor_contexts) {
+      my $bindings = $grp->{minorKeyPriorityBindings}{$minor_context};
+      foreach my $key (@_) {
+	if ($bindings and exists $bindings->{$key}) {
+	  return($bindings->{$key},$key);
+	}
+      }
+    }
+  }
+  foreach my $context (uniq($win->{macroContext},"TredMacro")) {
     foreach my $key (@_) {
       if (exists ($keyBindings{$context}->{$key})) {
 	return($keyBindings{$context}->{$key},$key)
+      }
+    }
+  }
+  if ($minor_contexts) {
+    foreach my $minor_context (@$minor_contexts) {
+      foreach my $key (@_) {
+	if ($bindings and exists $bindings->{$key}) {
+	  return($bindings->{$key},$key);
+	}
       }
     }
   }
@@ -10953,7 +10997,7 @@ sub node_release {
       $w->itemconfigure($tv->get_node_pinfo($parent,"Oval"),
 			  nodeOptions($win,$parent));
       $tv->apply_stored_style_opts("Oval",$parent);
-      if (doEvalHook($win,"node_release_hook",$node,$parent,"$button",$e) ne 'stop') {
+      if (doEvalHookWithUndo($win,"node_release_hook",$node,$parent,"$button",$e) ne 'stop') {
 	if ($parent->test_child_type($node) or
 	    userQuery($win,"WARNING:\n\n".
 			"The target node does not permit the dragged node ".
@@ -11224,7 +11268,6 @@ sub cleanup_tredmacro {
   my ($grp)=@_;
   $TrEd::Macros::macrosEvaluated=0;
   # cleanup
-
   %TrEd::Macros::defines=(TRED => 1);
   my %packages;
   @packages { ('TredMacro',
@@ -11243,6 +11286,97 @@ sub cleanup_tredmacro {
     print STDERR $@ if $@;
   }
 }
+
+sub declareMinorContext {
+  my ($grp_or_win,$name,$opts) = @_;
+  my ($grp,$win)=grp_win($grp_or_win);
+  if (exists $grp->{minorContexts}{$name}) {
+    carp("WARNING: re-declaration of an existing minor context $name");
+  }
+  $grp->{minorContexts}{$name}=$opts;
+  for my $type (qw(pre post)) {
+    my $hooks = $opts->{$type.'_hooks'};
+    if (ref($hooks) eq 'HASH') {
+      foreach my $hook (keys %$hooks) {
+	$grp->{'minor'.ucfirst($type).'Hooks'}{$hook}{$name}=$hooks->{$hook};
+      }
+    }
+  }
+  for my $tp ([qw(bindings minorKeyBindings)],
+	      [qw(priority_bindings minorKeyPriorityBindings)]) {
+    my ($type,$store) = @$tp;
+    if (ref($opts->{$type}) eq 'ARRAY') {
+      for my $binding (@{$opts->{$type}}) {
+	my $key = $binding->{key};
+	my $macro = $binding->{command};
+	if (defined($key) and defined($macro)) {
+	  $grp->{$store}{$name}{$key}=$macro;
+	}
+      }
+    } elsif (ref($opts->{$type}) eq 'HASH') {
+      $grp->{$store}{$name}=$opts->{$type};
+    }
+  }
+  update_minor_contexts($grp);
+}
+sub enableMinorContext {
+  my ($grp_or_win,$name)=@_;
+  my ($grp,$win)=grp_win($grp_or_win);
+  if (ref($win->{minorContexts})) {
+    if (!first { $_ eq $name } @{$win->{minorContexts}}) {
+      push @{$win->{minorContexts}}, $name;
+    }
+  } else {
+    $win->{minorContexts}=[$name];
+  }
+  update_minor_contexts($win);
+}
+sub disableMinorContext {
+  my ($grp_or_win,$name)=@_;
+  my ($grp,$win)=grp_win($grp_or_win);
+  if (ref($win->{minorContexts})) {
+    @{$win->{minorContexts}}=grep {$_ ne $name} @{$win->{minorContexts}};
+  }
+  update_minor_contexts($win);
+}
+sub toggleMinorContext {
+  my ($grp_or_win,$name)=@_;
+  my ($grp,$win)=grp_win($grp_or_win);
+  if (ref($win->{minorContexts})) {
+    if (first { $_ eq $name } @{$win->{minorContexts}}) {
+      disableMinorContext($grp_or_win,$name);
+    } else {
+      enableMinorContext($grp_or_win,$name);
+    }
+  } else {
+    enableMinorContext($grp_or_win,$name);
+  }
+  get_nodes_win($win);
+  redraw_win($win);
+}
+
+sub _minor_ctxt_abbrev {
+  my ($grp,$name)=@_;
+  return join '',$name=~m/(?:^|(?<=_|\s|-))(.)/g;
+}
+sub update_minor_contexts {
+  my ($grp_or_win)=@_;
+  my ($grp,$win)=grp_win($grp_or_win);
+  if ($grp->{focusedWindow}==$win) {
+    $grp->{minorContextsText} = join ',',
+      map _minor_ctxt_abbrev($grp,$_), @{$win->{minorContexts}}
+  }
+  if ($grp_or_win == $grp and $grp->{minorContextsMenu}) {
+    my $menu= $grp->{minorContextsMenu}->cget('-menu');
+    $menu->delete(0,'end');
+    my $i=0;
+    foreach my $name (sort keys %{$grp->{minorContexts}||{}}) {
+      $grp->{minorContextsMenu}->command(-label => _minor_ctxt_abbrev($grp,$name).":  $name",
+				      -command=> [\&toggleMinorContext,$grp,$name]);
+    }
+  }
+}
+
 
 ## watch leaks
 # package Tk::Widget;
