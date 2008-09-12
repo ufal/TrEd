@@ -507,7 +507,7 @@ sub LocateNode {
   }
 }
 
-=item C<ThisAddress(node?)>
+=item C<ThisAddress(node?,fsfile?)>
 
 Return a given node's address string in a form of filename#tree_no.index
 (tree_no starts from 1 to reflect TrEd's UI convention).
@@ -559,6 +559,15 @@ Prints the result of C<ThisAddressNTRED> on stdout.
 =cut
 
 sub NPosition { print ThisAddressNTRED(@_),"\n"; }
+
+=item C<ParseNodeAddress(address)>
+
+Split given address into a filename/URL and a suffix and return these
+as a two element list.
+
+=cut
+
+sub ParseNodeAddress { &main::parseFileSuffix }
 
 =back
 
