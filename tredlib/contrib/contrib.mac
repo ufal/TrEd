@@ -70,15 +70,13 @@ sub file_resumed_hook {
 sub __guess_context {
   my ($hook)=@_;
   my ($mode)= GetPatternsByPrefix('mode',STYLESHEET_FROM_FILE());
+  return SwitchContext($mode) if defined $mode;
   return unless $grp->{FSFile};
   foreach my $sub (@TredMacro::AUTO_CONTEXT_GUESSING) {
     my $ret = &$sub;
     if (defined($ret)) {
       return SwitchContext($ret);
     }
-  }
-  if (defined($mode)) {
-    return SwitchContext($mode);
   }
 
   # do not leave the current context if it explicitly rejects the file

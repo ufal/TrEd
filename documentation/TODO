@@ -199,14 +199,14 @@ matches the root of the defined query).
    the value pre-filled next time
 
 
-* Minor Contexts
+* Minor Modes
 
  - [X] query results displaying
  - diff-gram displaying
  - [X] free node positioning
  - subtree-folding
- - multi tree
-
+ - [X] multi tree
+ - [X] multi sentence
 * NTrEd [0/1]
 
   - [ ] SSH tunneling in NTrEd
