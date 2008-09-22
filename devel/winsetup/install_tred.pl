@@ -302,7 +302,6 @@ sub Fail {
   }
 }
 
-
 sub Install_PPM_Modules {
   my $ppm = ActivePerl::PPM::Client->new;
   return unless $install_packages;
@@ -352,6 +351,24 @@ sub Install_PPM_Modules {
     }};
     Log("done.\n");
     chomp @features;
+
+    my @remove = grep /^!/, @features;
+    @features = grep !/^!/, @features;
+    for my $name (@remove) {
+      $name=~s/^!//;
+      for my $area_name ($ppm->areas) {
+	my $area = $ppm->area($area_name);
+	my $pkg = $area->package($name);
+	if ($pkg) {
+	  Log("Uninstalling $name\n");
+	  $pkg->run_script("uninstall", $area, undef, {
+		    old_version => $pkg->{version},
+		    packlist => $area->package_packlist($pkg->{id}),
+		});
+	  $area->uninstall($name);
+	}
+      }
+    }
     my @best= grep { defined } map { $ppm->package_best($_,0) } @features;
     for (@best) {
       Log("best ".$_->name_version."\n");
@@ -449,6 +466,10 @@ sub Install_TrEd {
       my $perm = ((stat $tredrc)[2] | 0600); # read-write
       chmod($perm,$tredrc);
     }
+  }
+  {
+    my $activity = ppm_status('begin',"Removing obsolete *.pm files");
+    remove_old_pm_files($mw,$install_target);
   }
 
   copy_tree($mw, $install_tred_path => $install_target,
@@ -653,6 +674,32 @@ BEGIN {
       $progress=1;
     }
     print STDERR "Copied $file_no files".($file_no<$file_count ? "of $file_count" : "\n");
+  }
+  sub remove_old_pm_files {
+    my ($mw,$dir)=@_;
+    my $count=0;
+    $dir = File::Spec->catfile($dir,'tredlib');
+    {
+      my $activity = ppm_status('begin','Looking for old *.pm files');
+      find({ wanted => sub {
+		$count++ if m[\.pm$] and !m[/contrib/]
+            }, no_chdir=>1 },$dir);
+      $activity->tick(1);
+      $activity->end;
+    }
+    {
+      my $activity = ppm_status('begin','Removing $count old *.pm files');
+      my $no=0;
+      find ({ wanted => sub {
+		if (m[\.pm$] and !m[/contrib/]) {
+		  Log("Removing $_\n");
+		  unlink $_ || Log("Error: $!\n");
+		  $activity->tick((++$no)/$count);
+		  $mw->update;
+		}
+            }, no_chdir=>1 },$dir);
+      $activity->end;
+    }
   }
 }
 
