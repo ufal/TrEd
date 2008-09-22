@@ -455,6 +455,7 @@ sub claim_search_win {
 
     'depth-first-precedes' => q( $start->root==$end->root and  do{my $n=$start->following; $n=$n->following while ($n and $n!=$end); $n ? 1 : 0 }), # not very effective !!
     'depth-first-follows' => q( $start->root==$end->root and  do{my $n=$end->following; $n=$n->following while ($n and $n!=$start); $n ? 1 : 0 }), # not very effective !!
+    'same-tree-as' => q($start->root==$end->root), # not very effective !!
    );
 
   my %test_user_defined_relation = (
@@ -483,6 +484,7 @@ sub claim_search_win {
       $clone_before_plan = 1;
     } else {
       $query_tree = Tree_Query->parse_query($query_tree);
+      TredMacro::DetermineNodeType($_) for $query_tree->descendants;
     }
 
     $opts ||= {};
@@ -683,6 +685,8 @@ sub claim_search_win {
       }
     } elsif ($relation eq 'parent') {
       $iterator = ParentIterator->new($conditions);
+    } elsif ($relation eq 'same-tree-as') {
+      $iterator = SameTreeIterator->new($conditions);
     } elsif ($relation eq 'ancestor') {
       my ($min,$max)=
 	map { (defined($_) and length($_)) ? $_ : undef }
@@ -754,7 +758,11 @@ sub claim_search_win {
 
     my $recompute_cond = $opts->{recompute_condition}[$match_pos];
     if (defined $recompute_cond) {
-      $check_preceding = join('', map {"\n   and ".'$conditions['.$_.']->($matched_nodes->['.$self->{pos2match_pos}[$_].'],1) '} sort { $a<=>$b } keys %$recompute_cond);
+      $check_preceding = join('', map {"\n   and ".
+	   '$conditions['.$_.']->($matched_nodes->['.$self->{pos2match_pos}[$_].'],'
+	   .'$iterators['.$_.']->file,'
+	   .'1) '
+     } sort { $a<=>$b } keys %$recompute_cond);
     }
     if (length $check_preceding) {
       $check_preceding = "\n".
@@ -768,7 +776,7 @@ sub claim_search_win {
       .'!exists($have{$node}))';
     my $type_name = quotemeta($qnode->{'node-type'});
     my $sub = qq(#line 0 "query-node/${match_pos}"\n)
-      . 'sub { my ($node,$backref)=@_; '."\n  "
+      . 'sub { my ($node,$fsfile,$backref)=@_; '."\n  "
        .$nodetest
        .(defined($type_name) && length($type_name) ? "\n and ".q[$node->type->get_decl_path =~ m{^\!].$type_name.q[(?:\.type)$}] : ())
        .(defined($conditions) ? "\n  and ".$conditions : '')
@@ -1004,6 +1012,7 @@ sub claim_search_win {
 	  return ($name eq 'descendants') ? qq{ scalar(${node}->descendants) }
 	       : ($name eq 'lbrothers')   ? q[ do { my $n = ].$node.q[; my $i=0; $i++ while ($n=$n->lbrother); $i } ]
 	       : ($name eq 'rbrothers')   ? q[ do { my $n = ].$node.q[; my $i=0; $i++ while ($n=$n->rbrother); $i } ]
+	       : ($name eq 'depth_first_order') ? q[ do { my $n = ].$node.q[; my $r=$n->root; my $i=0; $i++ while ($n!=$r and $r=$r->following); $i } ]
 	       : ($name eq 'sons')        ? qq{ scalar(${node}->children) }
     	       : ($name eq 'depth')       ? qq{ ${node}->level }
     	       : ($name eq 'name')       ? qq{ ${node}->{'#name'} }
@@ -1042,6 +1051,10 @@ sub claim_search_win {
 	  } else {
 	    die "Wrong arguments for function ${name}() in expression $opts->{expression} of node '$this_node_id'!\nUsage: $name(string,from_chars,to_chars)\n"
 	  }
+	} elsif ($name eq 'match') {
+	  die "match() NOT YET IMPLEMENTED!\n";
+	} elsif ($name eq 'substitute') {
+	  die "substitue() NOT YET IMPLEMENTED!\n";
 	}
       } elsif ($type eq 'EXP') {
 	my $out.='(';
@@ -1163,7 +1176,7 @@ sub claim_search_win {
       # print "Starting subquery on $opts->{seed}->{id} $opts->{seed}->{t_lemma}.$opts->{seed}->{functor}\n" if $opts->{seed} and $DEBUG;
       $node
 	= $matched_nodes->[$pos2match_pos->[$$query_pos]]
-	  = $iterator->start( $opts->{seed} );
+	  = $iterator->start( $opts->{seed}, $opts->{fsfile} );
       $have->{$node}=1 if $node;
     }
     while (1) {
@@ -1193,11 +1206,12 @@ sub claim_search_win {
 
 	if ($$query_pos<$#$iterators) {
 	  $$query_pos++;
-	  my $seed = $iterators->[ $parent_pos->[$$query_pos] ]->node;
+	  $iterator = $iterators->[ $parent_pos->[$$query_pos] ];
+	  my ($seed,$fsfile) = ($iterator->node, $iterator->file);
 	  $iterator = $iterators->[$$query_pos];
 	  $node
 	    = $matched_nodes->[$pos2match_pos->[$$query_pos]]
-	      = $iterator->start($seed);
+	      = $iterator->start($seed,$fsfile);
 	  #print STDERR ("restart $$query_pos $iterator from $seed->{t_lemma}.$seed->{functor} $self->{debug}[$$query_pos]\n") if $DEBUG;
 	  $have->{$node}=1 if $node;
 	  next;
@@ -1242,6 +1256,7 @@ sub claim_search_win {
     'order-follows' => 10000,
     'depth-first-precedes' => 1000,
     'depth-first-follows' => 1000,
+    'same-tree-as' => 40,
    );
 
   %reverse = (
@@ -1251,6 +1266,7 @@ sub claim_search_win {
     'ancestor' => 'descendant',
     'parent' => 'child',
     'child' => 'parent',
+    'same-tree-as' => 'same-tree-as',
     'order-precedes' => 'order-follows',
     'order-follows' => 'order-precedes',
     'depth-first-precedes' => 'depth-first-follows',
@@ -1471,17 +1487,22 @@ sub claim_search_win {
   sub start  {
     my ($self,$fsfile)=@_;
     $self->[TREE_NO]=0;
-    $self->[FILE]=$fsfile if $fsfile;
+    if ($fsfile) {
+      $self->[FILE]=$fsfile;
+    } else {
+      $fsfile=$self->[FILE];
+    }
     my $n = $self->[NODE] = $self->[FILE]->tree(0);
-    return ($n && $self->[CONDITIONS]->($n)) ? $n : ($n && $self->next);
+    return ($n && $self->[CONDITIONS]->($n,$fsfile)) ? $n : ($n && $self->next);
   }
   sub next {
     my ($self)=@_;
     my $conditions=$self->[CONDITIONS];
     my $n=$self->[NODE];
+    my $fsfile=$self->[FILE];
     while ($n) {
-      $n = $n->following || $self->[FILE]->tree(++$self->[TREE_NO]);
-      last if $conditions->($n);
+      $n = $n->following || $fsfile->tree(++$self->[TREE_NO]);
+      last if $conditions->($n,$fsfile);
     }
     return $self->[NODE]=$n;
   }
@@ -1511,15 +1532,16 @@ sub claim_search_win {
     TredMacro::GotoTree(0);
     $this=$root;
     $self->[NODE]=$this;
-    return ($this && $self->[CONDITIONS]->($this)) ? $this : ($this && $self->next);
+    return ($this && $self->[CONDITIONS]->($this,TredMacro::CurrentFile())) ? $this : ($this && $self->next);
   }
   sub next {
     my ($self)=@_;
     my $conditions=$self->[CONDITIONS];
     my $n=$self->[NODE];
+    my $fsfile=TredMacro::CurrentFile();
     while ($n) {
       $n = $n->following || (TredMacro::NextTree() && $this);
-      last if $conditions->($n);
+      last if $conditions->($n,$fsfile);
     }
     return $self->[NODE]=$n;
   }
@@ -1539,7 +1561,7 @@ sub claim_search_win {
   package CurrentFilelistIterator;
   use base qw(Tree_Query::Iterator);
   BEGIN {
-    import TredMacro qw($this $root);
+    import TredMacro qw($this $root $grp);
   }
   use constant CONDITIONS=>0;
   use constant NODE=>1;
@@ -1549,15 +1571,19 @@ sub claim_search_win {
     TredMacro::GotoTree(0);
     $this=$root;
     $self->[NODE]=$this;
-    return ($this && $self->[CONDITIONS]->($this)) ? $this : ($this && $self->next);
+    my $fsfile = $grp->{FSFile};
+    return ($this && $self->[CONDITIONS]->($this,$fsfile)) ? $this : ($this && $self->next);
   }
   sub next {
     my ($self)=@_;
     my $conditions=$self->[CONDITIONS];
     my $n=$self->[NODE];
+    my $fsfile = $grp->{FSFile};
     while ($n) {
-      $n = $n->following || (TredMacro::NextTree() && $this) ||  (TredMacro::NextFile() && $this);
-      last if $conditions->($n);
+      $n = $n->following 
+	|| (TredMacro::NextTree() && $this && ($fsfile=$grp->{FSFile}))
+	||  (TredMacro::NextFile() && $this && ($fsfile=$grp->{FSFile}));
+      last if $conditions->($n,$fsfile);
     }
     return $self->[NODE]=$n;
   }
@@ -1565,7 +1591,7 @@ sub claim_search_win {
     return $_[0]->[NODE];
   }
   sub file {
-    return TredMacro::CurrentFile();
+    return $grp->{FSFile};
   }
   sub reset {
     my ($self)=@_;
@@ -1589,15 +1615,16 @@ sub claim_search_win {
   sub start  {
     my ($self)=@_;
     my $root = $self->[NODE] = $self->[TREE];
-    return ($root && $self->[CONDITIONS]->($root)) ? $root : ($root && $self->next);
+    return ($root && $self->[CONDITIONS]->($root,$self->[FILE])) ? $root : ($root && $self->next);
   }
   sub next {
     my ($self)=@_;
     my $conditions=$self->[CONDITIONS];
     my $n=$self->[NODE];
+    my $fsfile=$self->[FILE];
     while ($n) {
       $n = $n->following;
-      last if $conditions->($n);
+      last if $conditions->($n,$fsfile);
     }
     return $self->[NODE]=$n;
   }
@@ -1610,6 +1637,24 @@ sub claim_search_win {
   sub reset {
     my ($self)=@_;
     $self->[NODE]=undef;
+  }
+}
+#################################################
+{
+  package SameTreeIterator;
+  use Carp;
+  use base qw(TreeIterator);
+  sub new  {
+    my ($class,$conditions)=@_;
+    croak "usage: $class->new(sub{...})" unless ref($conditions) eq 'CODE';
+    return bless [$conditions],$class;
+  }
+  sub start  {
+    my ($self,$root,$fsfile)=@_;
+    $root=$root->root if $root;
+    $self->[TreeIterator::NODE] = $self->[TreeIterator::TREE] = $root;
+    $self->[TreeIterator::FILE]=$fsfile;
+    return ($root && $self->[TreeIterator::CONDITIONS]->($root,$fsfile)) ? $root : ($root && $self->next);
   }
 }
 #################################################
@@ -1630,14 +1675,14 @@ sub claim_search_win {
     my ($self,$parent,$fsfile)=@_;
     $self->[NODE]=$parent;
     $self->[FILE]=$fsfile;
-    return $parent ? ($self->[CONDITIONS]->($parent) ? $parent : $self->next) : undef;
+    return $parent ? ($self->[CONDITIONS]->($parent,$fsfile) ? $parent : $self->next) : undef;
   }
   sub next {
     my ($self)=@_;
     my $n = $self->[NODE];
     if ($n) {
       $self->[NODE]=undef;
-      return $self->[ITERATOR]->start($n);
+      return $self->[ITERATOR]->start($n,$self->[FILE]);
     }
     return $self->[ITERATOR]->next;
   }
@@ -1664,15 +1709,20 @@ sub claim_search_win {
   use constant FILE=>2;
   sub start  {
     my ($self,$parent,$fsfile)=@_;
-    $self->[FILE]=$fsfile if $fsfile;
+    if ($fsfile) {
+      $self->[FILE]=$fsfile;
+    } else {
+      $fsfile=$self->[FILE];
+    }
     my $n = $self->[NODE]=$parent->firstson;
-    return ($n && $self->[CONDITIONS]->($n)) ? $n : ($n && $self->next);
+    return ($n && $self->[CONDITIONS]->($n,$fsfile)) ? $n : ($n && $self->next);
   }
   sub next {
     my ($self)=@_;
     my $conditions=$self->[CONDITIONS];
     my $n=$self->[NODE]->rbrother;
-    $n=$n->rbrother while ($n and !$conditions->($n));
+    my $fsfile = $self->[FILE];
+    $n=$n->rbrother while ($n and !$conditions->($n,$fsfile));
     return $self->[NODE]=$n;
   }
   sub node {
@@ -1698,18 +1748,23 @@ sub claim_search_win {
 
   sub start  {
     my ($self,$parent,$fsfile)=@_;
-    $self->[FILE]=$fsfile if $fsfile;
+    if ($fsfile) {
+      $self->[FILE]=$fsfile;
+    } else {
+      $fsfile=$self->[FILE];
+    }
     my $n= $parent->firstson;
     $self->[NODE]=$n;
     $self->[TOP]=$parent;
-    return ($n && $self->[CONDITIONS]->($n)) ? $n : ($n && $self->next);
+    return ($n && $self->[CONDITIONS]->($n,$fsfile)) ? $n : ($n && $self->next);
   }
   sub next {
     my ($self)=@_;
     my $conditions=$self->[CONDITIONS];
     my $top = $self->[TOP];
     my $n=$self->[NODE]->following($top);
-    $n=$n->following($top) while ($n and !$conditions->($n));
+    my $fsfile=$self->[FILE];
+    $n=$n->following($top) while ($n and !$conditions->($n,$fsfile));
     return $self->[NODE]=$n;
   }
   sub node {
@@ -1750,7 +1805,7 @@ sub claim_search_win {
     my $n=$parent->firstson;
     $self->[DEPTH]=1;
     $self->[NODE]=$n;
-    return ($self->[MIN]<=1 and $self->[CONDITIONS]->($n)) ? $n : ($n && $self->next);
+    return ($self->[MIN]<=1 and $self->[CONDITIONS]->($n,$fsfile)) ? $n : ($n && $self->next);
   }
   sub next {
     my ($self)=@_;
@@ -1759,6 +1814,7 @@ sub claim_search_win {
     my $depth = $self->[DEPTH];
     my $conditions=$self->[CONDITIONS];
     my $n = $self->[NODE];
+    my $fsfile=$self->[FILE];
     my $r;
     SEARCH:
     while ($n) {
@@ -1780,7 +1836,7 @@ sub claim_search_win {
 	  }
 	}
       }
-      if ($n and $min<=$depth and $conditions->($n)) {
+      if ($n and $min<=$depth and $conditions->($n,$fsfile)) {
 	$self->[DEPTH]=$depth;
 	return $self->[NODE]=$n;
       }
@@ -1810,7 +1866,7 @@ sub claim_search_win {
     my ($self,$node,$fsfile)=@_;
     $self->[FILE]=$fsfile;
     my $n = $node->parent;
-    return $self->[NODE] = ($n && $self->[CONDITIONS]->($n)) ? $n : undef;
+    return $self->[NODE] = ($n && $self->[CONDITIONS]->($n,$fsfile)) ? $n : undef;
   }
   sub next {
     return $_[0]->[NODE]=undef;
@@ -1839,13 +1895,14 @@ sub claim_search_win {
     $self->[FILE]=$fsfile;
     my $n = $node->parent;
     $self->[NODE]=$n;
-    return ($n && $self->[CONDITIONS]->($n)) ? $n : ($n && $self->next);
+    return ($n && $self->[CONDITIONS]->($n,$fsfile)) ? $n : ($n && $self->next);
   }
   sub next {
     my ($self)=@_;
     my $conditions=$self->[CONDITIONS];
     my $n=$self->[NODE]->parent;
-    $n=$n->parent while ($n and !$conditions->($n));
+    my $fsfile = $self->[FILE];
+    $n=$n->parent while ($n and !$conditions->($n,$fsfile));
     return $_[0]->[NODE]=$n;
   }
   sub node {
@@ -1887,7 +1944,7 @@ sub claim_search_win {
     $node=undef if defined($max) and $depth>$max;
     $self->[NODE]=$node;
     $self->[DEPTH]=$depth;
-    return ($node && $self->[CONDITIONS]->($node)) ? $node : ($node && $self->next);
+    return ($node && $self->[CONDITIONS]->($node,$fsfile)) ? $node : ($node && $self->next);
   }
   sub next {
     my ($self)=@_;
@@ -1896,7 +1953,8 @@ sub claim_search_win {
     my $depth = $self->[DEPTH]+1;
     return $_[0]->[NODE]=undef if ($depth>$max);
     my $n=$self->[NODE]->parent;
-    while ($n and !$conditions->($n)) {
+    my $fsfile = $self->[FILE];
+    while ($n and !$conditions->($n,$fsfile)) {
       $depth++;
       if ($depth<=$max) {
 	$n=$n->parent;
@@ -1935,7 +1993,7 @@ sub claim_search_win {
       # $lex_rf=~s/^.*?#//;
       $refnode=PML_T::GetANodeByID($lex_rf,$fsfile);
     }
-    return $self->[NODE] = $self->[CONDITIONS]->($refnode) ? $refnode : undef;
+    return $self->[NODE] = $self->[CONDITIONS]->($refnode,$self->file) ? $refnode : undef;
   }
   sub next {
     return $_[0]->[NODE]=undef;
@@ -1964,14 +2022,15 @@ sub claim_search_win {
     $self->[FILE]=$fsfile;
     $self->[NODES] = $self->get_node_list($node);
     my $n = $self->[NODES]->[0];
-    return $self->[CONDITIONS]->($n) ? $n : ($n && $self->next);
+    return $self->[CONDITIONS]->($n,$self->file) ? $n : ($n && $self->next);
   }
   sub next {
     my ($self)=@_;
     my $nodes = $self->[NODES];
     my $conditions=$self->[CONDITIONS];
     shift @{$nodes};
-    while ($nodes->[0] and !$conditions->($nodes->[0])) {
+    my $fsfile = $self->file;
+    while ($nodes->[0] and !$conditions->($nodes->[0],$fsfile)) {
       shift @{$nodes};
     }
     return $nodes->[0];

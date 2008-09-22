@@ -195,6 +195,7 @@ sub search_first {
 			     UNLINK => 1,
 			     SUFFIX => '.txt' );
   $self->update_label('Query in progress, please wait....');
+  $self->{current_result}=undef;
   my $res = $self->request(query => [
     query => $query,
     format => 'text',
@@ -371,6 +372,7 @@ sub get_node_types {
 sub configure {
   my ($self)=@_;
   my $config = $self->{config}{pml};
+  local $main::sortAttrs=0;
   GUI() && EditAttribute($config->get_root,'',
 			 $config->get_schema->get_root_decl->get_content_decl) || return;
   $config->save();
@@ -484,6 +486,7 @@ sub init {
   my $cfg;
   if ($id eq ' CREATE NEW ') {
     $cfg = Fslib::Struct->new();
+    local $main::sortAttrs=0;
     GUI() && EditAttribute($cfg,'',$cfg_type) || return;
     $cfgs->push_element('http',$cfg);
     $self->{config}{pml}->save();
@@ -495,7 +498,8 @@ sub init {
   $self->{config}{id} = $id;
   unless (defined $cfg->{url}) {
     if (GUI()) {
-       EditAttribute($cfg,'',$cfg_type,'password') || return;
+      local $main::sortAttrs=0;
+      EditAttribute($cfg,'',$cfg_type,'password') || return;
     } else {
       die "The configuration $id does not specify a URL\n";
     }

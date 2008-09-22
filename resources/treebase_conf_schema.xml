@@ -19,13 +19,13 @@
     <structure>
       <member name="id" role="#ID" required="1" as_attribute="1"><cdata format="ID"/></member>
       <member name="driver"><cdata format="NMTOKEN"/></member>
-      <member name="host"><cdata format="url"/></member>
+      <member name="host"><cdata format="anyURI"/></member>
       <member name="port"><cdata format="integer"/></member>
       <member name="database"><cdata format="NMTOKEN"/></member>
       <member name="username"><cdata format="NMTOKEN"/></member>
       <member name="password"><cdata format="any"/></member>
       <member name="sources">
-	<alt ordered="0">
+	<alt>
 	  <container>
 	    <attribute name="schema"><cdata format="NMTOKEN"/></attribute>
 	    <cdata format="anyURI"/>
@@ -33,7 +33,7 @@
 	</alt>
       </member>
       <member name="environment">
-        <list>
+        <list ordered="0">
 	  <container>
 	    <attribute name="name" required="1">
 	      <cdata format="NMTOKEN"/>
@@ -47,7 +47,7 @@
   <type name="http-config.type">
     <structure>
       <member name="id" role="#ID" required="1" as_attribute="1"><cdata format="ID"/></member>
-      <member name="url"><cdata format="url"/></member>
+      <member name="url"><cdata format="anyURI"/></member>
       <member name="username"><cdata format="NMTOKEN"/></member>
       <member name="password"><cdata format="any"/></member>
     </structure>

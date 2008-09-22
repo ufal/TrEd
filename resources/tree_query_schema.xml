@@ -10,9 +10,9 @@
     <choice>
       <value>echild</value> <!-- PDT specific -->
       <value>eparent</value> <!-- PDT specific -->
-      <value>a/lex.rf|a/aux.rf</value> <!-- PDT specific -->
       <value>a/lex.rf</value> <!-- PDT specific -->
       <value>a/aux.rf</value> <!-- PDT specific -->
+      <value>a/lex.rf|a/aux.rf</value> <!-- PDT specific -->
       <value>coref_text</value> <!-- PDT specific -->
       <value>coref_gram</value> <!-- PDT specific -->
       <value>compl</value> <!-- PDT specific -->
@@ -113,32 +113,41 @@
       </attribute>
     </container>
   </derive>
+  <derive name="q-same-tree-as.type" type="q-base-relation.type">
+    <container>
+      <attribute name="label">
+	<constant>same-tree-as</constant>
+      </attribute>
+    </container>
+  </derive>
 
 
   <type name="q-relation.type">
-    <sequence content_pattern="(child|parent|descendant|ancestor|depth-first-precedes|depth-first-follows|order-precedes|order-follows|user-defined)?">
-      <element name="child" type="q-child-relation.type"/>
-      <element name="parent" type="q-parent-relation.type"/>
-      <element name="descendant" type="q-descendant-relation.type"/>
-      <element name="ancestor" type="q-ancestor-relation.type"/>
+    <sequence content_pattern="(child|parent|descendant|ancestor|depth-first-precedes|depth-first-follows|order-precedes|order-follows|user-defined|same-tree-as)?">
+      <element name="same-tree-as" type="q-same-tree-as.type"/>
       <element name="depth-first-precedes" type="q-depth-first-precedes.type"/>
       <element name="depth-first-follows" type="q-depth-first-follows.type"/>
       <element name="order-precedes" type="q-order-precedes.type"/>
       <element name="order-follows" type="q-order-follows.type"/>
+      <element name="ancestor" type="q-ancestor-relation.type"/>
+      <element name="parent" type="q-parent-relation.type"/>
+      <element name="child" type="q-child-relation.type"/>
+      <element name="descendant" type="q-descendant-relation.type"/>
       <element name="user-defined" type="q-user-relation.type"/> 
     </sequence>
   </type>
 
   <type name="q-ref-relation.type">
-    <sequence content_pattern="(descendant|ancestor|parent|child|depth-first-precedes|depth-first-follows|order-precedes|order-follows|user-defined)?">
-      <element name="descendant" type="q-descendant-relation.type"/>
-      <element name="ancestor" type="q-ancestor-relation.type"/>
-      <element name="parent" type="q-parent-relation.type"/>
-      <element name="child" type="q-child-relation.type"/>
+    <sequence content_pattern="(descendant|ancestor|parent|child|depth-first-precedes|depth-first-follows|order-precedes|order-follows|user-defined|same-tree-as)?">
+      <element name="same-tree-as" type="q-same-tree-as.type"/>
       <element name="depth-first-precedes" type="q-depth-first-precedes.type"/>
       <element name="depth-first-follows" type="q-depth-first-follows.type"/>
       <element name="order-precedes" type="q-order-precedes.type"/>
       <element name="order-follows" type="q-order-follows.type"/>
+      <element name="ancestor" type="q-ancestor-relation.type"/>
+      <element name="parent" type="q-parent-relation.type"/>
+      <element name="child" type="q-child-relation.type"/>
+      <element name="descendant" type="q-descendant-relation.type"/>
       <element name="user-defined" type="q-user-relation.type"/> 
     </sequence>
   </type>
