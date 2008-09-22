@@ -1,8 +1,8 @@
+# -*- cperl -*-
 
 #ifndef Move_Nodes_Freely
 #define Move_Nodes_Freely
 
-# -*- cperl -*-
 
 package Move_Nodes_Freely;
 
@@ -14,6 +14,7 @@ BEGIN {
 
 $move_nodes_freely{subtree} = 'Alt';
 DeclareMinorContext 'Move_Nodes_Freely' => {
+  abbrev => 'move',
   post_hooks => {
     node_release_hook => \&node_release_hook,
     node_style_hook => sub {
