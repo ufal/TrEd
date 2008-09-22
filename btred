@@ -339,11 +339,11 @@ require Encode;
 
 sub conv_from_locale {
   my ($str)=@_;
-#  if ($locale_charset and $TrEd::Convert::support_unicode) {
-  return Encode::decode($locale_charset,$str);
-#  } else {
-#    return $str;
-#  }
+  if ($locale_charset and $TrEd::Convert::support_unicode) {
+    return Encode::decode($locale_charset,$str);
+  } else {
+    return $str;
+  }
 }
 
 # These are used only in macros and hooks!!!
@@ -462,12 +462,6 @@ exit $exit_code;
 ############################
 
 sub _msg { $_ERR->print("BTRED: ",@_); }
-sub _last_err { 
-  return "" unless $@;
-  my $err = $@;
-  $err =~ s/^\s+|\s+$//g;
-  return $err;
-}
 sub _make_uniq ($) { my %U; @{$_[0]} = grep {!exists($U{$_}) && ($U{$_}=1)} @{$_[0]} }
 sub sign_md5 ($$) {
   my ($key,$message)=@_;
@@ -1358,6 +1352,7 @@ sub _clear_err {
 }
 sub _last_err {
   my ($ret) = grep { defined and length } ($_[0], $@, conv_from_locale($!));
+  $ret =~ s/^\s+|\s+$//g;
   return $ret;
 }
 sub _new_status {
