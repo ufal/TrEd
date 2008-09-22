@@ -19,7 +19,7 @@ import TrEd::Convert;
 
 use constant NoHash => {};
 
-use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_get_node_style $on_get_nodes %PATTERN_CODE_CACHE %COORD_CODE_CACHE %COORD_SPEC_CACHE);
+use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_get_node_style $on_get_nodes $on_redraw_done %PATTERN_CODE_CACHE %COORD_CODE_CACHE %COORD_SPEC_CACHE);
 
 @Options = qw(CanvasBalloon backgroundColor
   stripeColor vertStripe horizStripe baseXPos baseYPos boxColor
@@ -2137,6 +2137,9 @@ sub redraw {
     $self->scale($scale);
   } else {
     $self->reset_scroll_region;
+  }
+  if ($on_redraw_done) {
+    callback($on_redraw_done,$self);
   }
 }
 

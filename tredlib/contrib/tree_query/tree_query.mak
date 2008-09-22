@@ -272,6 +272,7 @@ my @TOOLBAR_BINDINGS = (
       if (not (AltV($this->{'occurrences'}))) {
 	$this->{occurrences}=Fslib::Struct->new({min=>1});
       }
+      local $main::sortAttrs=0;
       if (EditAttribute($this,'occurrences')) {
 	if (! defined first { defined && length } map { ($_->{min},$_->{max}) } AltV($this->{occurrences})) {
 	  $this->set_type(undef);
@@ -392,8 +393,8 @@ Bind({
   },
   key => 't',
   menu => 'Edit node type',
-},
-  {
+});
+Bind({
     command =>  sub { my $new = new_lbrother();
 		      if ($new and $new->{'#name'} =~ /^(node|subquery)$/) {
 			( $new->parent ? AssignRelation($new) : AssignType($new) ) || DeleteLeafNode($new);
@@ -402,9 +403,7 @@ Bind({
     key => 'Alt+Left',
     menu => 'New left brother node',
     # toolbar => ['Left brother','new_lbrother' ],
-  },
-);
-
+  });
 
 for (grep ref, @TOOLBAR_BINDINGS) {
   Bind($_);
@@ -629,11 +628,17 @@ node:<?
 ?>${a}${target}
 node:<?
   if (($this->{'#name'}=~/^(?:node|subquery)$/) and !$this->{'.unhide'} and !TredMacro::HiddenVisible() ) {
-    join("\n",map { Tree_Query::as_text($_,{indent=>'  ',wrap =>1}) } grep { $_->{'#name'} !~ /^(?:node|subquery|ref)$/ } $this->children)
+    join("\n",map { Tree_Query::as_text($_,{indent=>'  ',wrap =>1}) } 
+       grep {
+	my $f;
+	not(
+	  $_->{'#name'} eq 'ref' or
+	  ($_->{'#name'} eq 'not' and $f=$_->firstson and $f->{'#name'} eq 'ref' and !$f->rbrother)) }
+       grep { $_->{'#name'} !~ /^(?:node|subquery|ref)$/ } $this->children)
   } elsif ($this->{'#name'} eq 'test') {
     '${operator}'
   } elsif ($this->{'#name'} eq '' and !$this->parent) {
-     my $filters = Tree_Query::as_text($this,{no_childnodes=>1,indent=>'  ',wrap =>1});
+     my $filters = Tree_Query::as_text($this,{no_childnodes=>1, indent=>'  ',wrap =>1});
      $filters=~s/([ \t]*>>)/Output filters:\n$1/; $filters
   }
 ?>
@@ -660,7 +665,7 @@ style: <?
 ?>
 style: <? if ($this->parent) {
     if ($this->parent->{'#name'} eq 'or') {
-      '#{Line-dash:-}'
+      '#{Line-dash:8,2}'
      }
   } else {
      '#{Node-shape:rectangle}#{Node-surroundtext:1}#{Oval-fill:white}#{NodeLabel-valign:center}'
@@ -679,15 +684,15 @@ style:<?
      my $color = Tree_Query::NodeIndexInLastQuery($this);
     ( $this->{'.unhide'} ? '#{Node-shape:polygon}#{Node-polygon:-8,8,8,8,0,-8}' : '' ).
      (defined($color) ? '#{Oval-fill:#'.$Tree_Query::colors[$color].'}' : '').
-     '#{Node-addwidth:7}#{Node-addheight:7}#{Line-width:3}#{Line-arrowshape:14,18,4}'
+     '#{Node-addheight:7}#{Line-arrowshape:14,20,4}'
    } elsif ($name eq 'node') {
     ( $this->{'.unhide'} ? '#{Node-shape:polygon}#{Node-polygon:-8,8,8,8,0,-8}' : '' ).
-     '#{Node-fill:brown}#{Node-addwidth:7}#{Node-addheight:7}#{Line-width:3}#{Line-arrowshape:14,18,4}'
+     '#{Node-fill:brown}#{Line-arrowshape:14,20,4}'
    } elsif ($name eq 'test') {
     '#{NodeLabel-dodrawbox:yes}#{Line-fill:lightgray}#{Node-shape:rectangle}#{Oval-fill:gray}'
    } elsif ($name eq 'subquery') {
     ( $this->{'.unhide'} ? '#{Node-shape:polygon}#{Node-polygon:-4,4,4,4,0,-4}' : 
-                                     '#{Node-shape:oval}' )
+                                     '#{Node-shape:oval}' ).'#{Line-arrowshape:14,20,4}'
    } elsif ($name eq 'ref') {
       '#{Node-shape:rectangle}'
    } elsif ($name =~ /^(?:or|and|not)$/) {
@@ -791,7 +796,7 @@ sub attr_choices_hook {
     }
   } elsif ($node->{'#name'} eq 'test') {
     if ($attr_path eq 'a') {
-      my $type = $SEARCH->get_type_decl_for_query_node($node);
+      my $type = $SEARCH && $SEARCH->get_type_decl_for_query_node($node);
       if ($type) {
 	my @res = $type->get_paths_to_atoms({ no_childnodes => 1 });
 	return @res ? \@res : ();
@@ -936,6 +941,7 @@ sub AssignRelation {
 	    \@sel) || return;
   SetRelation($node,$sel[0]) if @sel;
   if (@sel and $sel[0] eq 'descendant' or $sel[0] eq 'ancestor') {
+    local $main::sortAttrs=0;
     EditAttribute($node,'relation/[1]'.$sel[0]) || return;
   }
   AssignType($node) || return;
@@ -975,6 +981,7 @@ sub AssignType {
 
 
 my %color = (
+  'same-tree-as' => 'gray',
   'depth-first-precedes' => 'red3',
   'depth-first-follows' => 'red4',
   'order-precedes' => 'orange',
@@ -994,6 +1001,7 @@ my %color = (
   'eparent' => 'green',
 );
 my %arrow = (
+  'same-tree-as' => 'first',
   'depth-first-precedes' => 'first',
   'depth-first-follows' => 'first',
   'order-precedes' => 'first',
@@ -1055,7 +1063,7 @@ sub get_nodelist_hook {
   return [\@nodes,$current];
 }
 
-my %legend;
+my (%legend,%main_query);
 
 sub root_style_hook {
   my ($root,$styles,$Opts)=@_;
@@ -1064,11 +1072,13 @@ sub root_style_hook {
   %legend=();
   my @nodes = GetDisplayedNodes();
   my $hv = HiddenVisible();
+  %main_query = map { $_=>1 } Tree_Query::Common::FilterQueryNodes($root);
   for my $node (@nodes) {
     my @refs;
     my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } ($node,$node->ancestors);
     my $showHidden = $qn->{'.unhide'} || $hv;
-    @refs = ($node) if $node->{'#name'} =~ /^(?:node|subquery|ref)$/;
+    @refs = ($node) if $node->{'#name'} =~ /^(?:node|subquery|ref)$/ and
+      $node->parent and $node->parent->parent;
     unless ($showHidden) {
       push @refs, grep { $_->{'#name'} eq 'ref' }
 	map { $_->{'#name'} eq 'not' ? $_->children : $_ }
@@ -1079,6 +1089,7 @@ sub root_style_hook {
 	my $name = $_->name;
 	$name eq 'user-defined' ? $_->value->{label} : $name
       } SeqV($n->{relation});
+      $rel||='child' if $n==$node;
       next unless $rel;
       if ($n!=$node and $n->parent->{'#name'} eq 'not') {
 	$legend{'! '.$rel}=1
@@ -1101,6 +1112,7 @@ sub root_style_hook {
 					 ) );
 }
 sub after_redraw_hook {
+  return unless $root;
   DrawArrows_cleanup();
 
   return if $SEARCH and !keys(%legend) and ($root and $root->firstson);
@@ -1133,6 +1145,7 @@ sub after_redraw_hook {
 		   -width => 3*$scale,
 		   (-dash => $negate ? '-' : ''),
 		   -arrow => $arrow{$name},
+		   -arrowshape => [14,20,4],
 		   -tags => ['scale_width','legend']
 		  );
     $c->createText($scale * 85, $y, -font => ($tv->get_scaled_font || $tv->get_font),
@@ -1157,6 +1170,23 @@ sub node_style_hook {
   my @refs;
   my $qn = first { $_->{'#name'} =~ /^(?:node|subquery)$/ } ($node,$node->ancestors);
   my $showHidden = $qn->{'.unhide'} || HiddenVisible();
+  my $lw = $grp->treeView->get_lineWidth;
+  if ($main_query{$node}) {
+    AddStyle($styles,'Node',
+	     -addheight=>7,
+	     -addwidth=>7,
+	    );
+    AddStyle($styles,'Line',
+	     -width=>2+$lw,
+	    );
+  } elsif ($node->{'#name'} =~ /^(?:node|subquery)$/) {
+    AddStyle($styles,'Node',
+	     -addheight=>1,
+	     -addwidth=>1);
+    AddStyle($styles,'Line',
+	     -width=>2+$lw,
+	    );
+  }
   if ($showHidden) {
     @refs=($node) if $node->{'#name'} eq 'ref';
   } else {
@@ -1181,8 +1211,8 @@ sub node_style_hook {
       } SeqV($ref->attr('relation'))
      ], {
        -arrow => 'last',
-       -arrowshape => '14,18,4',
-       -width => $showHidden ? 1 : 2,
+       -arrowshape => '14,20,4',
+       -width => $showHidden ? $lw : $lw+1,
        -smooth => 1,
      });
   }
@@ -1206,6 +1236,7 @@ sub line_click_hook {
   my ($node,$tag,$button, $double,$modif, $ev)=@_;
   if ($node and $double and $button eq '1' and !$modif) {
     if ($tag eq 'relation') {
+      local $main::sortAttrs=0;
       EditAttribute($node,'relation');
       Redraw();
     }
@@ -1597,7 +1628,7 @@ sub EditSubtree {
 our ($match_node_re,$variable_re,$relation_re);
 $match_node_re  = qr/\[((?:(?> [^][]+ )|(??{ $match_node_re }))*)\]/x;
 $variable_re = qr/\$[[:alpha:]_][[:alnum:]_]*/;
-$relation_re = qr/descendant|ancestor|child|parent|descendant|ancestor|${Tree_Query::user_defined}|depth-first-precedes|depth-first-follows|order-precedes|order-follows/;
+$relation_re = qr/descendant|ancestor|child|parent|descendant|ancestor|${Tree_Query::user_defined}|depth-first-precedes|depth-first-follows|order-precedes|order-follows|same-tree-as/;
 
 sub _find_type_in_query_string {
   my ($context,$rest)=@_;
@@ -1693,7 +1724,7 @@ sub EditQuery {
 	       my $f = $d->add('Frame')->pack(-side=>'top');
 	       for (
 		 qw(? 3x),
-		 [Relation => GetRelationTypes($this)],
+		 [Relation => [map { /^(\S+)/ } @{GetRelationTypes($this)}]],
 		 [Type => $SEARCH ? $SEARCH->get_node_types : [], { -state => $SEARCH ? 'normal' : 'disabled' }],
 		 q|$n :=|,
 		 '[ ]',
@@ -1771,7 +1802,7 @@ sub EditQuery {
 		     -text => $label,
 		     -underline => 0,
 		     -relief => 'raised',
-		     -direction => 'below',
+		     -direction => 'right',
 		     %$opts,
 		    )->pack(-side=>'left');
 		   my $menu = $menubutton->menu(-tearoff => 0,-font=>'C_small');
@@ -1869,6 +1900,7 @@ sub NewTest {
   $new->{'#name'}='test';
   $new->{operator}=$op;
   DetermineNodeType($new);
+  local $main::sortAttrs=0;
   if (EditAttribute($new,undef,undef,'a')) {
 #     $node->{'.unhide'}=1;
     $this=$new;
@@ -1948,11 +1980,19 @@ sub AddNOT {
 sub AddAND {
   my $node=$this;
   ChangingFile(0);
-  return unless $node->parent and $node->{'#name'} =~ /^(?:not|or)$/;
-  my $and = NewSon();
+  return unless $node->parent;
+  my $and;
+  if ($node->{'#name'} eq 'or') {
+    $and = NewSon();
+    $this=$and;
+  } elsif ($node->parent->{'#name'} eq 'or') {
+    $and = NewParent();
+    $this=$node;
+  } else {
+    return;
+  }
   $and->{'#name'}='and';
   DetermineNodeType($and);
-  $this=$and;
   ChangingFile(1);
 }
 
@@ -1961,7 +2001,7 @@ sub AddOR {
   ChangingFile(0);
   return unless $node->parent and $node->{'#name'} ne 'or';
   my $or;
-  if ($node->{'#name'} eq 'node') {
+  if ($node->{'#name'} =~ /^(?:node|and|not|subquery)/) {
     $or=NewSon();
     $this=$or;
     $node->{'.unhide'}=1;
