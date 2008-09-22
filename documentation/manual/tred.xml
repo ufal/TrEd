@@ -8096,7 +8096,9 @@ sub MakeSentence {
 	    <row id="highlight_value_line_tag_hook">
 	      <entry><literal moreinfo="none">highlight_value_line_tag_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Invoked every time a node is selected. The hook should
+	      <entry>
+		<para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable></literal></para>
+		<para>Invoked every time a node is selected. The hook should
 		return a tag associated with some text in the value
 		line. The text is then highlighted in the value line.</para></entry>
 	    </row>
@@ -8239,8 +8241,8 @@ sub MakeSentence {
 	    </row>
 	    <row id="value_line_doubleclick_hook">
 	      <entry><literal moreinfo="none">value_line_doubleclick_hook</literal></entry>
-	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>tags...</replaceable></literal></para><para>Called when the user double-clicks the text
+	      <entry>yes</entry>
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>@tags</replaceable></literal></para><para>Called when the user double-clicks the text
 		in the value-line, i.e. text field displayed above the tree.
 		Arguments are the tags associated with
 		the clicked part of the text. Tag may be arbitrary
@@ -8254,6 +8256,34 @@ sub MakeSentence {
 		where <literal moreinfo="none">$tag</literal> is a simple scalar, i.e. astring.
 		Hence, if necessary, the macro has to iterated through the tree
 		in order to find the corresponding node.)
+		The hook may return a node to focus or 'stop' to prevent
+		focusing a node associated with the part of the text that was double-clicked.
+	      </para></entry>
+	    </row>
+	    <row id="value_line_click_hook">
+	      <entry><literal moreinfo="none">value_line_click_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>$button,$modif,$tags_array_ref</replaceable></literal></para><para>Called when the user clicks or doubleclicks the text window displayed above the tree
+		  with any mouse button and possibly a keyboard modifier.
+		Arguments are:
+		  the mouse button (1,2,3),
+		  the modifier (Alt, Meta, Control, Shift),
+		  and an array-ref consisting of
+		  the tags associated with
+		the clicked part of the text. Tag may be arbitrary
+		strings associated with the text in the
+		<literal moreinfo="none">value_line_hook</literal> or
+		a serialized form of a node reference
+		if the text is associated with a particular node.
+		(More specifically,
+		the Perl expression <literal moreinfo="none">$tag eq $node</literal> is
+		true for one of the tags and the corresponding node,
+		where <literal moreinfo="none">$tag</literal> is a simple scalar, i.e. astring.
+		Hence, if necessary, the macro has to iterated through the tree
+		in order to find the corresponding node.)
+		For a double-click with the 1st mouse button, 
+		<literal>value_line_doubleclick_hook</literal> is called
+		before this hook.
 	      </para></entry>
 	    </row>
 	    <row id="status_line_doubleclick_hook">
@@ -8939,7 +8969,7 @@ sub SubtreeFuncAssign {
 	PML schema is represented by a <ulink url="http://ufal.mff.cuni.cz/~pajas/tred/PMLSchema.html"><literal>PMLSchema</literal></ulink>
 	object. This object can be retrieved from the current
 	<literal>FSFile</literal> using the macro
-	  <code>MetaData('schema')</code>.
+	  <literal>MetaData('schema')</literal>.
       </para>
       <para>
 	PML structures are represented as
@@ -8970,18 +9000,18 @@ sub SubtreeFuncAssign {
       <para>
 	The non-tree data structures contained in the root element of
 	the PML instance can be obtained either from
-	<code>MetaData('pml_root')</code>.  If the root element
+	<literal>MetaData('pml_root')</literal>.  If the root element
 	contains a sequence with role <literal>#TREES</literal>,
-	<code>MetaData('pml_root')</code> is empty and
+	<literal>MetaData('pml_root')</literal> is empty and
 	non-tree members of the sequence preceding trees are
         stored in a sequence
-	<code>MetaData('pml_prolog')</code> while
+	<literal>MetaData('pml_prolog')</literal> while
 	non-tree members that follow all trees are stored in a sequence
-        <code>MetaData('pml_epilog')</code>.
+        <literal>MetaData('pml_epilog')</literal>.
       </para>
 	<para>PML structures/containers that have a member or attribute
 	  with the role <literal>#ID</literal> are indexed
-	  by their IDs in a HASH <code>AppData('id-hash')</code>.
+	  by their IDs in a HASH <literal>AppData('id-hash')</literal>.
 	</para>
       <para>
 	If the PML schema declares a reference to an external resource
@@ -9022,12 +9052,12 @@ sub SubtreeFuncAssign {
 	choose to process it.
       </para>
 	<para>The following HASH references carry information about
-	  external resources: <code>MetaData('refnames')</code>
+	  external resources: <literal>MetaData('refnames')</literal>
 	  maps reference names to reference IDs,
-	  <code>MetaData('references')</code>
+	  <literal>MetaData('references')</literal>
 	  maps reference IDs to URLs, 
 	  and, for DOM and PMLInstance resources,
-	  <code>AppData('ref')</code> maps
+	  <literal>AppData('ref')</literal> maps
 	  reference IDs to objects representing the
 	  resources in <literal>TrEd</literal>.
       </para>

@@ -624,6 +624,51 @@ sub GetMinorContextData {
 #endif
 }
 
+sub _quick_pml_type {
+  my $spec=shift;
+  if (ref($spec) eq 'ARRAY') {
+    if ($spec->[0] eq 'list') {
+      q(<list>)._quick_pml_type($spec->[1]).q(</list>)
+    } elsif ($spec->[0] eq 'alt') {
+      q(<alt>)._quick_pml_type($spec->[1]).q(</alt>)
+    } elsif ($spec->[0] eq 'structure') {
+      q(<structure>).
+	(join "\n",
+	 map { qq(<member name="$spec->[2*$_+1]">)._quick_pml_type($spec->[2*$_+2]).q(</member>) }
+	   0..int(($#$spec-1)/2)
+	).qq(</structure>)
+    } elsif ($spec->[0] eq 'choice') {
+      q(<choice>).join("\n", map qq(<value>$_</value>), @$spec[1..$#$spec]).qq(</structure>)
+    } else {
+      die "quick_pml(): unknown or unsupported declaration type '$spec->[0]'";
+    }
+  } else {
+    return qq(<cdata format="$spec"/>);
+  }
+}
+
+sub QuickPML {
+  my ($name,$spec,$root)=@_;
+  my $template=_quick_pml_type($spec);
+  my $pml = PMLInstance->load({string => <<"EOF"});
+<$name xmlns="http://ufal.mff.cuni.cz/pdt/pml/">
+<head>
+  <schema>
+   <pml_schema
+     version="1.1"
+     xmlns="http://ufal.mff.cuni.cz/pdt/pml/schema/">
+     <root name="$name">
+       $template
+     </root>
+   </pml_schema>
+  </schema>
+</head>
+</$name>
+EOF
+  $pml->set_root($root) if $root;
+  return $pml;
+}
+
 
 #ifinclude "contrib/contrib.mac"
 

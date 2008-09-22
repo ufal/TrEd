@@ -2608,7 +2608,7 @@ sub set_value_line {
       }
     }
     $vl->Subwidget('scrolled')->insert('end',EMPTY,undef,
-				       map { ($_->[0], [@$_[1..$#$_]]) } @$v);
+				       map { ($_->[0], [reverse @$_[1..$#$_]]) } @$v);
   } else {
     $vl->Subwidget('scrolled')->insert('0.0',$v);
   }
@@ -4872,6 +4872,9 @@ sub printThis {
   }
   local $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
   local $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
+  local $TrEd::TreeView::on_redraw_done = [
+    sub { doEvalHook($_[1],'after_redraw_hook') },$win
+  ];
 
   my $fsfile = $win->{FSFile};
   my @range = ($one_per_file ? TrEd::Print::parse_print_list($fsfile,$range) : ($range));
@@ -6428,12 +6431,11 @@ sub startMain {
     $sl->pack(qw/-side left -fill x -expand yes/);
   }
   {
-    $group{minorContextsText}='';
     $group{minorContextsMenu} = $bf->Menubutton(-image=>icon(\%group,'puzzle'),-direction=>'above')->pack(-side => 'left',-expand => 'no');
     my $menu = $group{minorContextsMenu}->menu(qw/-tearoff 0/);
     $group{minorContextsMenu}->configure(-menu => $menu);
-    $group{minorContextsLabel} = $bf->Label(-textvariable=>\$group{minorContextsText},
-					   )->pack(-side => 'left',-expand => 'no',-padx=>5);
+    $group{minorContextsLabelFrame} = $bf->Frame()->pack(-side => 'left',-expand => 'no',-padx=>5);
+    $group{minorContextsLabels}={};
     update_minor_contexts(\%group);
   }
   {
@@ -6463,37 +6465,12 @@ sub startMain {
 				  -background => $valueLineFocusBackground,
 				  -foreground => $valueLineFocusForeground,
 				 );
-  $group{valueLine}->bind('<Double-1>',
-			     [sub {
-				my ($w,$grp)=@_;
-				my $Ev=$w->XEvent;
-				my $win=$grp->{focusedWindow};
-				my (@tags)=
-				  $w->tagNames($w->index($Ev->xy));
-				my $ret;
-				$ret = doEvalHook($win,"value_line_doubleclick_hook", @tags);
-				if (ref($ret) and ref($ret) =~ /^FSNode/) {
-				  setCurrent($win,$ret);
-				  ensureCurrentIsDisplayed($win);
-				  centerTo($win,$ret);
-				  Tk->break;
-				  return;
-				} elsif ($ret ne 'stop') {
-				  my $node=$win->{root};
-				  while ($node) {
-				    if (index(join(EMPTY,@tags),${node})>=0) {
-				      setCurrent($win,$node);
-				      ensureCurrentIsDisplayed($win);
-				      centerTo($win,$node);
-				      Tk->break;
-				      return;
-				    }
-				    $node=$node->following();
-				  }
-				}
-				Tk->break;
-			      },\%group]
-			     );
+  for my $modif ('',qw(Shift Control Alt Meta)) {
+    my $m=$modif ? $modif.'-' : '';
+    for my $but (1..3, map 'Double-'.$_, 1..3) {
+      $group{valueLine}->bind(qq{<${m}${but}>},[\&valueLineClick,\%group,$modif,$but]);
+    }
+  }
 
   $group{vLineSeparator}=$top->Adjuster();
   eval { # supported only on some platforms/version of Tk
@@ -7064,8 +7041,9 @@ sub removeUserToolbar {
   my $grp=cast_to_grp($grp_or_win);
   my $tb = delete $grp->{UserToolbarHash}{$name};
   return unless $tb;
-  $tb->packForget;
-  unless (keys %{$grp->{UserToolbarHash}}) {
+  if (keys %{$grp->{UserToolbarHash}}) {
+    $tb->packForget;
+  } else {
     $grp->{UserToolbars}->packForget;
     $grp->{UserToolbarSep}->packForget;
   }
@@ -8444,6 +8422,9 @@ sub dumpSentView {
 	  local $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
 	  local $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
 	  local $TrEd::TreeView::on_get_nodes = [\&onGetNodes,$win];
+	  local $TrEd::TreeView::on_redraw_done = [
+	    sub { doEvalHook($_[1],'after_redraw_hook') },$win
+	  ];
 
 	  my $dpi = int($grp->{top}->fpixels('1i'));
 	  eval {
@@ -8673,7 +8654,8 @@ sub editAttrsDialog_schema {
     validate_callback => [ sub {
 			   my ($win,$base_path,$node,$txt,$path,$mtype,$editor)=@_;
 			   $path = $base_path.$path if $base_path ne EMPTY;
-			   return doEvalHook($win,'attr_validate_hook',$txt,$path,$node,$mtype,$editor);
+			   my $res = doEvalHook($win,'attr_validate_hook',$txt,$path,$node,$mtype,$editor);
+			   defined $res ? $res : 1;
 			 }, $win,$base_path,$node ],
 
     search_field => length $attr_path ? 0 : 1,
@@ -10085,6 +10067,7 @@ sub redraw_win {
   #------------------------------------------------------------
   $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
   $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
+  $TrEd::TreeView::on_redraw_done= undef;
   my $vl;
 #  $vl=$win->treeView->value_line($win->{FSFile},$win->{treeNo},1,0,$win);
 #  $vl=$win->treeView->value_line($win->{FSFile},$win->{treeNo},1,1,$win);
@@ -11357,14 +11340,41 @@ sub toggleMinorContext {
 
 sub _minor_ctxt_abbrev {
   my ($grp,$name)=@_;
-  return join '',$name=~m/(?:^|(?<=_|\s|-))(.)/g;
+#  $name=~s/[aeiouy]//gi;
+#  return $name;
+  return $grp->{minorContexts}{$name}{abbrev}
+    || join '',$name=~m/(?:^|(?<=_|\s|-))(.)/g;
+}
+sub configure_minor_context {
+  my ($l,$grp,$name)=@_;
+  my $cmd = $grp->{minorContexts}{$name}{configure};
+  doEvalMacro($grp->{focusedWindow},$cmd) if $cmd;
 }
 sub update_minor_contexts {
   my ($grp_or_win)=@_;
   my ($grp,$win)=grp_win($grp_or_win);
   if ($grp->{focusedWindow}==$win) {
-    $grp->{minorContextsText} = join ',',
-      map _minor_ctxt_abbrev($grp,$_), @{$win->{minorContexts}}
+    my %activate = map {$_=>1} @{$win->{minorContexts}};
+    for my $name (keys %{$grp->{minorContextsLabels}}) {
+      unless (delete $activate{$name}) {
+	my $l = delete $grp->{minorContextsLabels}{$name};
+	$l->packForget;
+	$l->destroy;
+      }
+    }
+    for my $name (grep $activate{$_},@{$win->{minorContexts}}) {
+      my $l = $grp->{minorContextsLabels}{$name} =
+	$grp->{minorContextsLabelFrame}->Label(
+	  -text=>_minor_ctxt_abbrev($grp,$name).' ',
+	  -activeforeground=>'darkblue',
+	  -highlightcolor=>'blue',
+	 )->pack(-side=>'right');
+      $l->bind('<Double-1>',[\&configure_minor_context,$grp,$name]);
+      if ($grp->{minorContexts}{$name}{configure}) {
+	$l->bind('<Enter>',[qw(configure -state active)]);
+	$l->bind('<Leave>',[qw(configure -state normal)]);
+      }
+    }
   }
   if ($grp_or_win == $grp and $grp->{minorContextsMenu}) {
     my $menu= $grp->{minorContextsMenu}->cget('-menu');
@@ -11377,6 +11387,40 @@ sub update_minor_contexts {
   }
 }
 
+sub valueLineClick {
+  my ($w,$grp,$modif,$but)=@_;
+  my $Ev=$w->XEvent;
+  my $win=$grp->{focusedWindow};
+  my (@tags)=
+    $w->tagNames($w->index($Ev->xy));
+  my $ret;
+  if ($but eq 'Double-1' and $modif eq '') {
+    doEvalHook($win,"value_line_click_hook", $but, $modif, \@tags);
+    $ret = doEvalHook($win,"value_line_doubleclick_hook", @tags);
+    if (ref($ret) and ref($ret) =~ /^FSNode/) {
+      setCurrent($win,$ret);
+      ensureCurrentIsDisplayed($win);
+      centerTo($win,$ret);
+      Tk->break;
+      return;
+    } elsif ($ret ne 'stop') {
+      my $node=$win->{root};
+      while ($node) {
+	if (index(join(EMPTY,@tags),${node})>=0) {
+	  setCurrent($win,$node);
+	  ensureCurrentIsDisplayed($win);
+	  centerTo($win,$node);
+	  Tk->break;
+	  return;
+	}
+	$node=$node->following();
+      }
+    }
+  } else {
+    doEvalHook($win,"value_line_click_hook", $but, $modif, \@tags);
+  }
+  Tk->break;
+}
 
 ## watch leaks
 # package Tk::Widget;
