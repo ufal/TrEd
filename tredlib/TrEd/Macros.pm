@@ -211,7 +211,6 @@ sub read_macros {
 
   my ($file,$libDir,$keep,$encoding)=(shift,shift,shift,shift);
   $macrosEvaluated=0;
-  local *F;
   my @contexts=@_;
   $encoding = $defaultMacroEncoding unless $encoding ne "";
   @contexts=("TredMacro") unless (@contexts);
@@ -222,10 +221,12 @@ sub read_macros {
     $exec_code=undef;
     print STDERR "Reading $defaultMacroFile\n" if $macroDebug;
     push @macros,"\n#line 1 \"$defaultMacroFile\"\n";
+    my $fh;
     print "ERROR: Cannot open macros: $defaultMacroFile!\n", return 0
-      unless open(my $fh,"<$defaultMacroFile");
+      unless open($fh,"<$defaultMacroFile");
     set_encoding($fh,$encoding);
-    push @macros, <$fh>;
+    preprocess($fh,$defaultMacroFile,\@macros,\@contexts);
+    #    push @macros, <$fh>;
     close $fh;
   }
   print STDERR "Reading $file\n" if $macroDebug;
@@ -234,7 +235,14 @@ sub read_macros {
     || (!$keep && ($file="$libDir/$file") && open($F,"<$file")) ||
       die "ERROR: Cannot open macros: $file ($!)!\n";
   set_encoding($F,$encoding);
+  preprocess($F,$file,\@macros,\@contexts);
+  close($F);
+  print STDERR "Read ",scalar(@macros)." lines of code.\n" if !$keep and $macroDebug;
 
+}
+
+sub preprocess {
+  my ($F,$file,$macros,$contexts)=@_;
 #
 # new "pragmas":
 #
@@ -254,14 +262,14 @@ sub read_macros {
 # insert <method> [as] [menu] <menu>[/submenu[/...]]
 #
 
-  push @macros,"\n#line 1 \"$file\"\n";
+  push @$macros,"\n#line 1 \"$file\"\n";
   my $line=1;
   my @conditions;
   my $ifok=1;
   while (<$F>) {
     $line++;
     if (/^\#endif(?:$|\s)/) {
-      push @macros,$_;
+      push @$macros,$_;
       if (@conditions) {
 	pop @conditions;
 	$ifok = (!@conditions || $conditions[$#conditions]);
@@ -282,11 +290,11 @@ sub read_macros {
 	die "unmatched #elseif in \"$file\" line $line\n";
       }
     } elsif (/^\#ifdef\s+(\S*)/) {
-      push @macros,$_;
+      push @$macros,$_;
       push @conditions, (is_defined($1) && (!@conditions || $conditions[$#conditions]));
       $ifok = $conditions[$#conditions];
     } elsif (/^\#ifndef\s+(\S*)/) {
-      push @macros,$_;
+      push @$macros,$_;
       push @conditions, (!is_defined($1) && (!@conditions || $conditions[$#conditions]));
       $ifok = $conditions[$#conditions];
     } else {
@@ -294,10 +302,10 @@ sub read_macros {
 	if (/^\s*__END__/) {
 	  last;
 	} elsif (/^\s*__DATA__/) {
-	  warn "Warning: __DATA__ has no meaning in TredMacro (ise __END__ instead) at $file line $line\n";
+	  warn "Warning: __DATA__ has no meaning in TredMacro (use __END__ instead) at $file line $line\n";
 	  last;
 	}
-	push @macros,$_;
+	push @$macros,$_;
 	if (/^\#!(.*)$/) {
 	  $exec_code=$1 unless defined $exec_code; # first wins
 	} elsif (/^\#define\s+(\S*)(?:\s+(.*))?/) {
@@ -305,42 +313,42 @@ sub read_macros {
 	} elsif (/^\#undefine\s+(\S*)/) {
 	  undefine_symbol($1);
 	} elsif (/^\#\s*binding-context\s+(.*)/) {
-	  @contexts=(split /\s+/,$1) if $ifok;
+	  @$contexts=(split /\s+/,$1) if $ifok;
 	} elsif (/^\#\s*key-binding-adopt\s+(.*)/) {
 	  my @toadopt=(split /\s+/,$1);
-	  foreach my $context (@contexts) {
+	  foreach my $context (@$contexts) {
 	    foreach my $toadopt (@toadopt) {
 	      copy_key_bindings($toadopt,$context);
 	    }
 	  }
 	} elsif (/^\#\s*menu-binding-adopt\s+(.*)/) {
 	  my @toadopt=(split /\s+/,$1);
-	  foreach my $context (@contexts) {
+	  foreach my $context (@$contexts) {
 	    foreach my $toadopt (@toadopt) {
 	      copy_menu_bindings($toadopt,$context);
 	    }
 	  }
 	} elsif (/^\#[ \t]*unbind-key[ \t]+([^ \t\r\n]+)/) {
 	  my $key=$1;
-	  unbind_key($_,$key) for @contexts;
+	  unbind_key($_,$key) for @$contexts;
 	} elsif (/^\#[ \t]*bind[ \t]+(\w+(?:-\>\w+)?)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+([^\r\n]+))?/) {
 	  my ($macro,$key,$menu)=($1,$2,$3);
 	  $menu = TrEd::Convert::encode($menu);
-	  if ($menu) { add_to_menu($_, $menu => $macro) for @contexts; }
-	  bind_key($_, $key => $macro) for @contexts;
+	  if ($menu) { add_to_menu($_, $menu => $macro) for @$contexts; }
+	  bind_key($_, $key => $macro) for @$contexts;
 	} elsif (/^\#\s*insert[ \t]+(\w*)[ \t]+(?:as[ \t]+)?(?:menu[ \t]+)?([^\r\n]+)/) {
 	  my $macro=$1;
 	  my $menu=TrEd::Convert::encode($2);
-	  add_to_menu($_, $menu, $macro) for @contexts;
+	  add_to_menu($_, $menu, $macro) for @$contexts;
 	} elsif (/^\#\s*remove-menu[ \t]+([^\r\n]+)/) {
 	  my $menu=TrEd::Convert::encode($1);
-	  remove_from_menu($_, $menu) for @contexts;
+	  remove_from_menu($_, $menu) for @$contexts;
 	} elsif (/^\#\s*(if)?include\s+\<([^\r\n]+\S)\>\s*(?:encoding\s+(\S+)\s*)?$/) {
 	  my $enc = $3;
 	  my $mf="$libDir/$2";
 	  if (-f $mf) {
-	    read_macros($mf,$libDir,1,$enc,@contexts);
-	    push @macros,"\n#line $line \"$file\"\n";
+	    read_macros($mf,$libDir,1,$enc,@$contexts);
+	    push @$macros,"\n#line $line \"$file\"\n";
 	  } elsif ($1 ne 'if') {
 	    die
 	      "Error including macros $mf\n from $file: ",
@@ -364,8 +372,8 @@ sub read_macros {
 	  }
 	  foreach my $mf (@includes) {
 	    if (-f $mf) {
-	      read_macros($mf,$libDir,1,$enc,@contexts);
-	      push @macros,"\n#line $line \"$file\"\n";
+	      read_macros($mf,$libDir,1,$enc,@$contexts);
+	      push @$macros,"\n#line $line \"$file\"\n";
 	    } elsif ($if ne 'if') {
 	      die
 		"Error including macros $mf\n from $file: ",
@@ -375,8 +383,8 @@ sub read_macros {
 	} elsif (/^\#\s*(if)?include\s+([^\r\n]+?\S)\s*(?:encoding\s+(\S+)\s*)?$/) {
 	  my ($if,$f,$enc) = ($1,$2,$3);
 	  if ($f=~m%^/%) {
-	    read_macros($f,$libDir,1,$enc,@contexts);
-	    push @macros,"\n#line $line \"$file\"\n";
+	    read_macros($f,$libDir,1,$enc,@$contexts);
+	    push @$macros,"\n#line $line \"$file\"\n";
 	  } else {
 	    my $mf=$f;
 	    print STDERR "including $mf\n" if $macroDebug;
@@ -389,8 +397,8 @@ sub read_macros {
 	      }
 	    }
 	    if (-f $mf) {
-	      read_macros($mf,$libDir,1,$enc,@contexts);
-	      push @macros,"\n#line $line \"$file\"\n";
+	      read_macros($mf,$libDir,1,$enc,@$contexts);
+	      push @$macros,"\n#line $line \"$file\"\n";
 	    } elsif ($if ne 'if') {
 	      die
 		"Error including macros $mf\n from $file: ",
@@ -402,13 +410,11 @@ sub read_macros {
 	}
       } else {
 	# $ifok == 0
-	push @macros,"\n"; # only for line numbering purposes
+	push @$macros,"\n"; # only for line numbering purposes
       }
     }
   }
   die "Missing #endif in $file line $line (".scalar(@conditions)." unmatched #if-pragmas)\n" if (@conditions);
-  close($F);
-  print STDERR "Read ",scalar(@macros)." lines of code.\n" if !$keep and $macroDebug;
   return 1;
 }
 

@@ -2036,6 +2036,8 @@ sub CloseWindow {
   return $grp;
 }
 
+#endif TRED
+
 =item C<CurrentFile(win?)>
 
 Return a FSFile object representing the file currently open in a given
@@ -2051,6 +2053,8 @@ sub CurrentFile {
     return $win->{FSFile};
   }
 }
+
+#ifdef TRED
 
 =item C<CurrentNodeInOtherWindow(win)>
 
@@ -2426,7 +2430,11 @@ sub SetStylesheetPatterns {
   my ($patterns,$stylesheet,$create) = @_;
   $stylesheet = GetCurrentStylesheet() unless defined $stylesheet;
   main::setStylesheetPatterns($grp,$patterns,$stylesheet,$create);
-  main::redraw_stylesheet($grp->{framegroup},$stylesheet);
+#ifdef TRED
+  if ($grp->{framegroup}) {
+    main::redraw_stylesheet($grp->{framegroup},$stylesheet);
+  }
+#endif TRED
   $Redraw='all';
 }
 
@@ -3063,7 +3071,7 @@ sub GetOpenFiles {
   return @main::openfiles;
 #else
   return grep defined, ($grp->{fsfile}, values %{$grp->{preloaded}});
-#end
+#endif
 }
 
 
