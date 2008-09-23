@@ -1803,7 +1803,7 @@ binding.
 =cut
 
 sub Bind {
-#ifdef TRED
+  return unless GUI();
   while (@_) {
     my $macro = shift;
     my $bind;
@@ -1843,7 +1843,6 @@ sub Bind {
       croak("Usage: Bind(macro => string|hash-ref, ...)");
     }
   }
-#endif TRED
 }
 
 
@@ -1857,13 +1856,12 @@ key-bining once removed cannot be restored (except by restarting TrEd).
 =cut
 
 sub UnbindBuiltin {
-#ifdef TRED
+  return unless GUI();
   my ($key)=@_;
   $key=~s/\+/-/g;	# convert ctrl-x to ctrl+x
   $key=~s/([^-]+-)/ucfirst($1)/eg;
   $key=~s/Ctrl-/Control-/g;
   $grp->{framegroup}{top}->bind('my',"<$key>",undef);
-#endif
 }
 
 =item C<GUI()>
@@ -1895,8 +1893,6 @@ sub CloseGUI {
     ChangingFile(0);
   }
 }
-
-#ifdef TRED
 
 =item C<TrEdWindows()>
 
@@ -2036,7 +2032,6 @@ sub CloseWindow {
   return $grp;
 }
 
-#endif TRED
 
 =item C<CurrentFile(win?)>
 
@@ -2053,8 +2048,6 @@ sub CurrentFile {
     return $win->{FSFile};
   }
 }
-
-#ifdef TRED
 
 =item C<CurrentNodeInOtherWindow(win)>
 
@@ -2267,7 +2260,6 @@ sub SaveUndo {
   main::save_undo($grp, main::prepare_undo($grp,'Macro: '.$_[0]));
 }
 
-#endif TRED
 
 =item C<Find()>
 
@@ -2430,11 +2422,9 @@ sub SetStylesheetPatterns {
   my ($patterns,$stylesheet,$create) = @_;
   $stylesheet = GetCurrentStylesheet() unless defined $stylesheet;
   main::setStylesheetPatterns($grp,$patterns,$stylesheet,$create);
-#ifdef TRED
-  if ($grp->{framegroup}) {
+  if (GUI()) {
     main::redraw_stylesheet($grp->{framegroup},$stylesheet);
   }
-#endif TRED
   $Redraw='all';
 }
 
@@ -2636,14 +2626,13 @@ Get or set user defined custom color.
 
 sub CustomColor {
   my ($color,$value)=@_;
-#ifdef TRED
+  return unless GUI();
   if (defined($value)) {
-    $TrEd::Config::treeViewOpts->{customColors}->{$color}=$value;
+    return $TrEd::Config::treeViewOpts->{customColors}->{$color}=$value;
   } else {
     $value = $TrEd::Config::treeViewOpts->{customColors}->{$color};
     return $value;
   }
-#endif TRED
 }
 
 =item C<UserConf(name,new-value?)>
