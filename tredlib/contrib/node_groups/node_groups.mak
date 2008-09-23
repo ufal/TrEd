@@ -37,7 +37,7 @@ sub draw_groups {
   }
 }
 
-
+my @colors = qw(lightblue yellow lightgreen orange cyan lightgray pink);
 sub draw_group {
   my ($win,$group_no,$nodes,$opts)=@_;
 #  $Redraw = 'none';
