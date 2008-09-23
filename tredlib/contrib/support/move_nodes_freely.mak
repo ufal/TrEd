@@ -13,7 +13,7 @@ BEGIN {
 #include "move_nodes_freely.inc"
 
 $move_nodes_freely{subtree} = 'Alt';
-DeclareMinorContext 'Move_Nodes_Freely' => {
+DeclareMinorMode 'Move_Nodes_Freely' => {
   abbrev => 'move',
   post_hooks => {
     node_release_hook => \&node_release_hook,

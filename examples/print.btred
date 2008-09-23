@@ -110,6 +110,12 @@ my %opts =
   sub isFocused {
     return 1;
   }
+  sub declareMinorMode {
+  }
+  sub enableMinorMode {
+  }
+  sub disableMinorMode {
+  }
 }
 
 
