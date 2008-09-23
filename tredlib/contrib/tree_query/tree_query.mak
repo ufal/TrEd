@@ -341,7 +341,8 @@ my @TOOLBAR_BINDINGS = (
 
  );
 
-DeclareMinorContext 'Tree_Query_Results' => {
+DeclareMinorMode 'Tree_Query_Results' => {
+  abbrev => 'reslt',
   bindings => {
     'n' => sub { $SEARCH && $SEARCH->show_next_result },
     'p' => sub { $SEARCH && $SEARCH->show_prev_result },

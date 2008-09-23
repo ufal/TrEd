@@ -40,7 +40,7 @@ sub get_config {
   return $cfg->get_root;
 }
 
-DeclareMinorContext 'Show_Surrounding_Sentences' => {
+DeclareMinorMode 'Show_Surrounding_Sentences' => {
   abbrev => 'srnd_sent',
   configure => \&edit_configuration,
   post_hooks => {

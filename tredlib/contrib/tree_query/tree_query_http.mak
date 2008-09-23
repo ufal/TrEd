@@ -122,7 +122,7 @@ sub _find_shown_result_indexes {
   my $cur_res = $self->{current_result};
   my %seen;
   for my $win (@$wins) {
-    my $idx = GetMinorContextData('Tree_Query_Results','index',$win);
+    my $idx = GetMinorModeData('Tree_Query_Results','index',$win);
     if (defined($idx) and $idx<@$cur_res) {
       my $m = $cur_res->[$idx];
       $seen{$idx}=$win;
@@ -138,7 +138,7 @@ sub _find_shown_result_indexes {
 sub _assign_first_result_index_not_shown {
   my ($self,$seen,$win)=@_;
   $win||=$grp;
-  $seen||=$self->_find_shown_result_indexes([ grep { IsMinorContextEnabled('Tree_Query_Results',$_) } TrEdWindows() ]);
+  $seen||=$self->_find_shown_result_indexes([ grep { IsMinorModeEnabled('Tree_Query_Results',$_) } TrEdWindows() ]);
   my $cur_res = $self->{current_result};
   return unless ref $cur_res and @$cur_res;
   # first try a specific file
@@ -247,16 +247,16 @@ sub search_first {
     }
     {
       $self->update_label('Preparing results ...');
-      my @wins = grep { IsMinorContextEnabled('Tree_Query_Results',$_) } TrEdWindows();
+      my @wins = grep { IsMinorModeEnabled('Tree_Query_Results',$_) } TrEdWindows();
       unless (@wins>0) {
 	@wins = (SplitWindowVertically({no_init => 1, no_redraw=>1,no_focus=>0}));
-	EnableMinorContext('Tree_Query_Results',$wins[0]);
+	EnableMinorMode('Tree_Query_Results',$wins[0]);
       }
       $self->{results}=$results;
       $self->{current_result_no}=0;
       my $cur_res = $self->{current_result}=[$self->idx_to_pos($results->[0])];
       for my $win (@wins) {
-	SetMinorContextData('Tree_Query_Results','index',undef,$win);
+	SetMinorModeData('Tree_Query_Results','index',undef,$win);
       }
       my @context=($this,$root,$grp);
       for my $res_win (@wins) {
@@ -351,7 +351,7 @@ sub select_matching_node {
       $r=$r->following();
     }
     if ($r) {
-      EnableMinorContext('Tree_Query_Results',$win);
+      EnableMinorMode('Tree_Query_Results',$win);
       SetCurrentNodeInOtherWin($win,$r);
       CenterOtherWinTo($win,$r);
     }
@@ -528,11 +528,11 @@ sub show_result {
 	    if ($m=~/^(([^#]+)(?:\#\#\d+))/g) {
 	      my $win = $seen->{$1}||$seen->{$2};
 	      if ($win) {
-		SetMinorContextData('Tree_Query_Results','index',$idx,$win);
+		SetMinorModeData('Tree_Query_Results','index',$idx,$win);
 		$seen->{$idx}=$win;
 	      } else {
 		$win=$wins[0];
-		SetMinorContextData('Tree_Query_Results','index',$idx,$win);
+		SetMinorModeData('Tree_Query_Results','index',$idx,$win);
 		$seen->{$idx}=$win;
 		$seen->{$1}=$win;
 		$seen->{$2}=$win;
@@ -549,10 +549,10 @@ sub show_result {
       }
       for my $win (@wins) {
 	$grp=$win;
-	my $idx = GetMinorContextData('Tree_Query_Results','index');
+	my $idx = GetMinorModeData('Tree_Query_Results','index');
 	if (!defined($idx) or $idx>$#{$self->{last_query_nodes}}) {
 	  $idx = $self->_assign_first_result_index_not_shown($seen,$win);
-	  SetMinorContextData('Tree_Query_Results','index',$idx);
+	  SetMinorModeData('Tree_Query_Results','index',$idx);
 	}
 	if (defined $idx) {
 	  my $result_fn = $self->resolve_path($self->{current_result}[$idx]);
@@ -570,10 +570,10 @@ sub show_result {
       }
       for my $win (@wins) {
 	$grp=$win;
-	my $idx = GetMinorContextData('Tree_Query_Results','index');
+	my $idx = GetMinorModeData('Tree_Query_Results','index');
 	if (!defined($idx) or $idx>$#{$self->{last_query_nodes}}) {
 	  $idx = $self->_assign_first_result_index_not_shown($seen,$win);
-	  SetMinorContextData('Tree_Query_Results','index',$idx);
+	  SetMinorModeData('Tree_Query_Results','index',$idx);
 	}
 	if (defined $idx) {
 	  my $result_fn = $self->resolve_path($self->{current_result}[$idx]);
@@ -586,10 +586,10 @@ sub show_result {
     } elsif ($dir eq 'current') {
       for my $win (@wins) {
 	$grp=$win;
-	my $idx = GetMinorContextData('Tree_Query_Results','index');
+	my $idx = GetMinorModeData('Tree_Query_Results','index');
 	if (!defined($idx) or $idx>$#{$self->{last_query_nodes}}) {
 	  $idx = $self->_assign_first_result_index_not_shown($seen,$win);
-	  SetMinorContextData('Tree_Query_Results','index',$idx);
+	  SetMinorModeData('Tree_Query_Results','index',$idx);
 	}
 	if (defined $idx) {
 	  my $result_fn = $self->resolve_path($self->{current_result}[$idx]);
@@ -611,10 +611,10 @@ sub show_result {
 
 sub get_result_windows {
   my ($self)=@_;
-  my @wins = grep { IsMinorContextEnabled('Tree_Query_Results',$_) } TrEdWindows();
+  my @wins = grep { IsMinorModeEnabled('Tree_Query_Results',$_) } TrEdWindows();
   unless (@wins) {
     my $win = SplitWindowVertically();
-    EnableMinorContext('Tree_Query_Results',$win);
+    EnableMinorMode('Tree_Query_Results',$win);
     die $@ if $@;
     @wins=($win);
   }
