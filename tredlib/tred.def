@@ -2922,6 +2922,21 @@ sub Open {
   return $ret;
 }
 
+=item C<ReloadCurrentFile()>
+
+Close and reload current fsfile.
+
+=cut
+
+sub ReloadCurrentFile {
+  my $ret = main::reloadFile($grp);
+  if (exists($grp->{framegroup})) { # why?
+    $root=$grp->{root};
+    $this=$grp->{currentNode};
+  }
+  return $ret;
+}
+
 =item C<Resume($fsfile)>
 
 Resume a previously open fsfile a given window in TrEd.

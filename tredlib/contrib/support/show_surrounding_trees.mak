@@ -33,8 +33,10 @@ sub edit_configuration {
 }
 sub configure {
   my ($before,$after)=@_;
-  $cfg->{context_before}=int($before);
-  $cfg->{context_after}=int($after);
+  for my $c (get_config()) {
+    $c->{context_before}=int($before);
+    $c->{context_after}=int($after);
+  }
 }
 sub get_config {
   return $cfg->get_root;
