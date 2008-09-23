@@ -41,7 +41,7 @@ sub get_config {
 }
 
 
-DeclareMinorContext 'Show_Surrounding_Trees' => {
+DeclareMinorMode 'Show_Surrounding_Trees' => {
   abbrev => 'srnd_trees',
   configure => \&edit_configuration,
   post_hooks => {

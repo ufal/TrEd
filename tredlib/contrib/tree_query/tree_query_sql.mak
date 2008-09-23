@@ -159,7 +159,7 @@ sub search_first {
       $fl->add_arrayref(0, \@files);
       my @context=($this,$root,$grp);
       CloseFileInWindow($res_win);
-      EnableMinorContext('Tree_Query_Results',$res_win);
+      EnableMinorMode('Tree_Query_Results',$res_win);
       $grp=$res_win;
       SetCurrentWindow($grp);
       SetCurrentStylesheet(STYLESHEET_FROM_FILE);
@@ -271,7 +271,7 @@ sub select_matching_node {
       $r=$r->following();
     }
     if ($r) {
-      EnableMinorContext('Tree_Query_Results',$win);
+      EnableMinorMode('Tree_Query_Results',$win);
       SetCurrentNodeInOtherWin($win,$r);
       CenterOtherWinTo($win,$r);
     }

@@ -564,63 +564,63 @@ sub MacroCallback {
 	  },$grp->{framegroup}];
 }
 
-sub DeclareMinorContext {
+sub DeclareMinorMode {
 #ifdef TRED
   my ($name,$opts)=@_;
-  croak "The 1st argument to DeclareMinorContext must be a context name!" unless (defined($name) and length($name) and !ref($name));
-  croak "The 2nd argument to DeclareMinorContext must be a hash reference!" unless ref($opts) eq 'HASH';
-#  croak "Too soon to call  DeclareMinorContext" unless ref($grp) and ref($grp->{framegroup});
-  main::declareMinorContext($grp,$name,$opts);
+  croak "The 1st argument to DeclareMinorMode must be a context name!" unless (defined($name) and length($name) and !ref($name));
+  croak "The 2nd argument to DeclareMinorMode must be a hash reference!" unless ref($opts) eq 'HASH';
+#  croak "Too soon to call  DeclareMinorMode" unless ref($grp) and ref($grp->{framegroup});
+  main::declareMinorMode($grp,$name,$opts);
 #endif
 }
 
-sub EnableMinorContext {
+sub EnableMinorMode {
 #ifdef TRED
   my ($name,$win)=@_;
-  main::enableMinorContext($win||$grp,$name);
+  main::enableMinorMode($win||$grp,$name);
 #endif
 }
 
-sub DisableMinorContext {
+sub DisableMinorMode {
 #ifdef TRED
   my ($name,$win)=@_;
-  main::disableMinorContext($win||$grp,$name);
+  main::disableMinorMode($win||$grp,$name);
 #endif
 }
 
-sub ListEnabledMinorContexts {
+sub ListEnabledMinorModes {
 #ifdef TRED
   my ($win)=@_;
   $win||=$grp;
-  return ref($win->{minorContexts}) ? @{$win->{minorContexts}} : ();
+  return ref($win->{minorModes}) ? @{$win->{minorModes}} : ();
 #endif
 }
 
-sub IsMinorContextEnabled {
+sub IsMinorModeEnabled {
 #ifdef TRED
   my ($name,$win)=@_;
   $win||=$grp;
-  return 0 unless ref($win->{minorContexts});
-  for my $c (@{$win->{minorContexts}}) {
+  return 0 unless ref($win->{minorModes});
+  for my $c (@{$win->{minorModes}}) {
     return 1 if $c eq $name;
   }
   return 0;
 #endif
 }
 
-sub SetMinorContextData {
+sub SetMinorModeData {
 #ifdef TRED
   my ($name,$key,$value,$win)=@_;
   $win||=$grp;
-  return $win->{minorContextData}{$name}{$key}=$value;
+  return $win->{minorModeData}{$name}{$key}=$value;
 #endif
 }
 
-sub GetMinorContextData {
+sub GetMinorModeData {
 #ifdef TRED
   my ($name,$key,$win)=@_;
   $win||=$grp;
-  return $win->{minorContextData}{$name}{$key};
+  return $win->{minorModeData}{$name}{$key};
 #endif
 }
 
