@@ -222,7 +222,7 @@ my $configFile=read_config();
 $TrEd::Convert::inputenc=$opt_n if $opt_n;
 $TrEd::Config::treeViewOpts->{showHidden} = 1 if $opt_H;
 
-$iconPath = "$libDir/icons/default" unless (defined $iconPath);
+$iconPath = "$libDir/icons/crystal" unless (defined $iconPath);
 
 $macroFile="$libDir/tred.mac" unless (defined $macroFile);
 
@@ -835,11 +835,11 @@ sub icon {
     my @paths = (map {
       my $p =
       m{^\s*\Q${TrEd::Convert::Ds}\E} ? $_ : $libDir."/icons/".$_;
-      $default = 1 if $p eq $libDir."/icons/default";
+      $default = 1 if $p eq $libDir."/icons/crystal";
       $p;
     } split(/$split/o,$iconPath));
     # add default theme, unless already in the list
-    push @paths, $libDir."/icons/default" unless $default;
+    push @paths, $libDir."/icons/crystal" unless $default;
     DIR: for my $dir (@paths) {
       for my $ext (@extensions) {
 	my $file = "$dir/$name.$ext";
