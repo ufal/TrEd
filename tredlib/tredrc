@@ -5,7 +5,7 @@
 ;; ------------------------------------------------------------
 ;; Toolbar icon theme
 ;; ------------------------------------------------------------
-; IconPath="default" ;; use "crystal" for a slick color icon theme
+; IconPath="crystal" ;; use "default" for the old black and white icon theme
 
 ;; ------------------------------------------------------------
 ;; Colors may be given either by name of the color or using a 
