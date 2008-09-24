@@ -31,9 +31,11 @@ use strict;
 use warnings;
 use Scalar::Util qw(weaken);
 use HTTP::Request::Common;
-use LWP::UserAgent;
 use File::Temp;
 use Encode;
+use URI;
+
+#use LWP::UserAgent;
 
 BEGIN { import TredMacro  }
 
@@ -44,9 +46,9 @@ our %DEFAULTS = (
 );
 
 $Tree_Query::HTTPSearchPreserve::object_id=0; # different NS so that TrEd's reload-macros doesn't clear it
-my $ua;
-$ua = TrEd::PMLTQ::UserAgent->new;
-$ua->agent("TrEd/1.0 ");
+my $ua = $IOBackend::lwp_user_agent;
+#$ua = IOBackend->new;
+#$ua->agent("TrEd/1.0 ");
 
 sub new {
   my ($class,$opts)=@_;
@@ -448,7 +450,7 @@ sub get_schema {
 sub request {
   my ($self,$type,$data,$out_file)=@_;
   my $cfg = $self->{config}{data};
-  my $user = $cfg->{user};
+  my $user = $cfg->{username};
   my $password = $cfg->{password};
   my $url = $cfg->{url};
   $url.='/' unless $url=~m{^https?://.+/};
@@ -459,7 +461,9 @@ sub request {
   }
   Encode::_utf8_off($url);
   Encode::_utf8_off($type);
-  $ua->set_cfg($cfg);
+  #  $ua->set_cfg($cfg);
+  $ua->credentials(URI->new($url)->host_port,'PMLTQ',$user,$password)
+    if (grep { defined && length } $password, $user)==2;
   my $res = eval {
     $ua->request(POST(qq{${url}${type}}, $data),$out_file ? $out_file : ());
   };
