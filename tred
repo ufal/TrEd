@@ -265,6 +265,8 @@ require Fslib;
 import Fslib;
 import Fslib qw(&Index $FSError);
 import PMLSchema qw(:constants); # too late (we'll need () after PML_.._DECL)
+require TrEd::UserAgent;
+
 
 $stylesheetFile = $opt_S ne EMPTY ? $opt_S : $ENV{HOME}."/.tred-stylesheets";
 
@@ -5754,6 +5756,8 @@ sub startMain {
     $top=MainWindow->new();
   }
   $group{top} = $top;
+
+  $IOBackend::lwp_user_agent = TrEd::UserAgent->new($top);
 
   # a workaround for focus being lost after popup menu usage on Win32
   if ($^O eq 'MSWin32') {
