@@ -1,3 +1,3 @@
 #include "move_nodes_freely.mak"
-#include "show_neigboring_trees.mak"
-#include "show_neigboring_sentences.mak"
+#include "show_neighboring_trees.mak"
+#include "show_neighboring_sentences.mak"
