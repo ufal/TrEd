@@ -1,9 +1,9 @@
 # -*- cperl -*-
 
-#ifndef Show_Surrounding_Sentences
-#define Show_Surrounding_Sentences
+#ifndef Show_Neigboring_Sentences
+#define Show_Neigboring_Sentences
 {
-package Show_Surrounding_Sentences;
+package Show_Neigboring_Sentences;
 
 BEGIN {
   import TredMacro;
@@ -42,8 +42,8 @@ sub get_config {
   return $cfg->get_root;
 }
 
-DeclareMinorMode 'Show_Surrounding_Sentences' => {
-  abbrev => 'srnd_sent',
+DeclareMinorMode 'Show_Neigboring_Sentences' => {
+  abbrev => 'neigh_sent',
   configure => \&edit_configuration,
   post_hooks => {
     get_value_line_hook => sub {
@@ -109,4 +109,4 @@ DeclareMinorMode 'Show_Surrounding_Sentences' => {
 }
 1;
 
-#endif Move_Nodes_Freely
+#endif Show_Neigboring_Trees
