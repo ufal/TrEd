@@ -285,12 +285,15 @@ sub get_value_line_hook {
 sub root_style_hook {
   my ($node,$styles)=@_;
   %PML_T::coreflemmas_hash=();
+  %PML_T::displayed_nodes;
+  @PML_T::displayed_nodes{ GetDisplayedNodes() } = ();
   DrawArrows_init();
   return;
 }
 # clear caches
 sub after_redraw_hook {
   %PML_T::coreflemmas_hash=();
+  %PML_T::displayed_nodes=();
   DrawArrows_cleanup();
   return;
 }
@@ -339,7 +342,8 @@ sub DrawCorefArrows {
     my($refed,$treeNo)=SearchForNodeById($coref);
     my %edge = (-tag => $cortype);
     if ($refed) {
-      my $orientation=$treeNo-CurrentTreeNumber()-1;
+      my $orientation=
+	exists($PML_T::displayed_nodes{$refed}) ? 0 : $treeNo-CurrentTreeNumber()-1;
       $PML_T::coreflemmas_hash{$node->{id}}.=' '.$refed->{t_lemma} if $orientation;
       if ($orientation == 0) {
 	$edge{-target} = $refed;
