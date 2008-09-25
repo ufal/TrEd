@@ -16,7 +16,8 @@
    (URL, version, author, short description of purpose, ... other
    information could be extracted from the package it self).
 
-* TrEd [11/30]
+* TrEd [14/30]
+ - [X] create undo for all displayed trees (multi tree mode)
  - [X] display current filelist (or a tree of file-lists) in the side-bar
  - [X] display a filesystem-browser in the side-bar
  - [X] allow the stylesheet to define raise-order of canvas items
@@ -29,11 +30,11 @@
        heights (with possibly skipped labels)
  - [X] create dimensions and position of the textbox according to
        non-empty labels
- - [ ] value-line: support for displaying preceding and following
+ - [X] value-line: support for displaying preceding and following
        context (differentiated e.g. by font size or colour)
  - [X] allow additional textlabels, positioned using #{-coords:...} and
        anchoring (float:)
- - [ ] undo for tree-related Node-menu items 
+ - [X] undo for tree-related Node-menu items 
  - [ ] document various side-effects (setting $this/$root in GotoFile,
        ...)
  - [ ] fix: undo/redo on add/delete node (e.g. in PML_T) breaks
@@ -62,7 +63,7 @@
  - [ ] document #{Node-surroundtext:1}, #{NodeLabel-skipempty:1},
        #{EdgeLabel-skipempty:1}, float:..., node:#{-option:value},
        #{Node-xadj},#{Node-yadj}
- - [ ] minor contexts
+ - [X] minor contexts
  - [ ] printing should reflect the canvas bounding box even if the
    top-left corner is in positive or negative coordinates
  - [ ] remove obsoleted computation of canvas height/width
