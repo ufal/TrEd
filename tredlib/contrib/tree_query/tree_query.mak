@@ -721,10 +721,10 @@ sub NewQuery {
   my $fl = first { $_->name eq 'Tree Queries' } TrEdFileLists();
   unless ($fl) {
     $fl = Filelist->new('Tree Queries');
+    $fl->add(0,$filename);
     AddNewFileList($fl);
-    $fl->add($filename);
   }
-  if (CurrentFile()) {
+  if (CurrentFile() and $root) {
     my $win = SplitWindowVertically({no_init => 1, no_redraw=>1,no_focus=>0,ratio=>-0.5});
     # SetCurrentWindow($win);
     $grp=$win;
@@ -1206,7 +1206,7 @@ sub node_style_hook {
 	  -target => $name2node_hash{lc($target)},
 	  -fill   => $showHidden ? 'gray' : arrow_color($name),
 	  (-dash   => $negate ? '-' : ''),
-	  -raise => 8+8*(++$i),
+	  -raise => 8+16*(++$i),
 	  -tag => 'relation',
 	}
       } SeqV($ref->attr('relation'))
@@ -1725,8 +1725,72 @@ sub EditQuery {
 	       my $f = $d->add('Frame')->pack(-side=>'top');
 	       for (
 		 qw(? 3x),
-		 [Relation => [map { /^(\S+)/ } @{GetRelationTypes($this)}]],
-		 [Type => $SEARCH ? $SEARCH->get_node_types : [], { -state => $SEARCH ? 'normal' : 'disabled' }],
+		 [Relation => undef, #[ map { /^(\S+)/ } @{GetRelationTypes($this)} ],
+		  {
+		    -command => [
+		      sub {
+			my ($ed)=@_;
+			my ($node_type) = _find_type_in_query_string($ed->get('0.0','insert'),
+								     $ed->get('insert','end'));
+			my $relations;
+			if ($SEARCH and defined $node_type and length $node_type) {
+			  $relations =
+			    [ grep {
+			      @{[GetRelativeQueryNodeType($node_type,
+							  $SEARCH,
+							  CreateRelation($_))]}>0
+							} @{GetRelationTypes($this)}
+						       ];
+			} else {
+			  $relations = GetRelationTypes($this);
+			}
+			return unless @$relations;
+			my @sel=['child'];
+			if (ListQuery('Select relation',
+				  'browse',
+				  $relations,
+				      \@sel)) {
+			  my $sel = $sel[0];
+			  $sel=~s/\s.*//;
+			  $ed->Insert($sel.' ');
+			}
+			$ed->focus;
+		      },$ed
+		     ],
+		  }
+		 ],
+		 [Type => undef,
+		  {
+		    -state => $SEARCH ? 'normal' : 'disabled',
+		    -command => [
+		      sub {
+			my ($ed)=@_;
+			my $prev=$ed->get('0.0','insert');
+			my ($node_type) = _find_type_in_query_string($prev,
+								     $ed->get('insert','end'));
+			my $relation = 'child';
+			if ($prev=~/(${Tree_Query::user_defined})\s*$/) {
+			  $relation = $1.' (user-defined)';
+			} elsif ($prev=~/(${relation_re})\s*$/) {
+			  $relation = $1;
+			}
+			my @types=
+			  $node_type ? 
+			  GetRelativeQueryNodeType($node_type,$SEARCH,CreateRelation($relation)) :
+			    @{$SEARCH->get_node_types};
+			if (@types==1) {
+			  $ed->Insert($types[0].' ');
+			} else {
+			  my @sel=[$types[0]];
+			  if (ListQuery('Select node type', 'browse', \@types, \@sel)) {
+			    $ed->Insert($sel[0].' ');
+			  }
+			}
+			$ed->focus;
+		      },$ed
+		     ],
+                  }
+		 ],
 		 q|$n :=|,
 		 '[ ]',
 		 "\n",
