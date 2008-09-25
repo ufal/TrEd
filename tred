@@ -67,6 +67,17 @@ use IO;
 use Cwd;
 use File::Spec;
 use constant EMPTY => q{};
+use constant {
+  UNDO_ACTIVE_NODE => 1,
+  UNDO_ACTIVE_ROOT => 2,
+  UNDO_DATA_AND_TREE_ORDER => 3,
+  UNDO_TREE_ORDER => 4,
+  UNDO_DISPLAYED_TREES => 5,
+  UNDO_CURRENT_TREE_AND_TREE_ORDER => 6,
+  UNDO_ACTIVE_ROOT_AND_TREE_ORDER => 7,
+  UNDO_DATA => 8,
+};
+
 use Tk::widgets
   qw(Frame Pane LabFrame Listbox HList Menu
      ItemStyle DialogBox Tiler BrowseEntry Panedwindow Dialog DialogBox
@@ -6120,39 +6131,47 @@ sub startMain {
 	 [Button=> 'New Node', -underline=> 0, -command=> [sub {
 					       my ($grp)=@_;
 					       my $win=$grp->{focusedWindow};
-					       save_undo($win,prepare_undo($win,"New Node"));
+					       save_undo($win,prepare_undo($win,"New Node",UNDO_ACTIVE_NODE));
 					       my $new = newNode($win);
 					       determineNodeType($win,$new);
 					     },\%group]],
 	 [Button=> 'Remove Active Node', -underline=> 0, -command=> [sub {
 					       my ($grp)=@_;
 					       my $win=$grp->{focusedWindow};
-					       save_undo($win,prepare_undo($win,'Remove Active Node'));
+					       save_undo($win,prepare_undo($win,'Remove Active Node',,UNDO_ACTIVE_ROOT));
 					       pruneNode($win,$win->{currentNode});
 					     },\%group]],
 	 [Button=> 'Insert New Tree', -underline=> 0, -command=> [sub {
 						      my ($grp)=@_;
 						      my $win = $grp->{focusedWindow};
+						      save_undo($win,prepare_undo($win,'Insert New Tree',UNDO_TREE_ORDER));
 						      newTree($win);
 						      determineNodeType($win,$win->{root});
 						    },\%group]],
 	 [Button=> 'Insert New Tree After', -underline=> 16, -command=> [sub {
 						      my ($grp)=@_;
 						      my $win = $grp->{focusedWindow};
+						      save_undo($win,prepare_undo($win,'Insert New Tree After',UNDO_TREE_ORDER));
 						      newTreeAfter($win);
 						      determineNodeType($win,$win->{root});
 						    },\%group]],
 	 [Button=> 'Remove Whole Current Tree', -underline=> 7, -command=> [sub {
 						      my ($grp)=@_;
-						      pruneTree($grp->{focusedWindow});
+						      my $win = $grp->{focusedWindow};
+						      save_undo($win,prepare_undo($win,'Remove Tree',UNDO_CURRENT_TREE_AND_TREE_ORDER));
+						      pruneTree($win);
 						    },\%group]],
 	 [Button=> 'Move Current Tree Backward',-command=> [sub {
 							      my ($grp)=@_;
-							      moveTree($grp->{focusedWindow},-1);
+							      my $win = $grp->{focusedWindow};
+							      save_undo($win,prepare_undo($win,'Move Tree Backward',UNDO_TREE_ORDER));
+							      moveTree($win,-1);
 							    },\%group]],
 	 [Button=> 'Move Current Tree Foreward',-command=> [sub {
 							      my ($grp)=@_;
-							      moveTree($grp->{focusedWindow},1);
+							      my $win = $grp->{focusedWindow};
+							      save_undo($win,prepare_undo($win,'Move Tree Foreward',UNDO_TREE_ORDER));
+							      moveTree($win,1);
 							    },\%group]],
 	 [Button=> 'Make Current Node the Root',-command=> [sub {
 							      my ($grp)=@_;
@@ -6188,7 +6207,7 @@ sub startMain {
 								return if $res eq 'Cancel';
 								$discard=1 if $res=~/Discard/;
 							      }
-							      save_undo($win,prepare_undo($win,'Make Current Node the Root'));
+							      save_undo($win,prepare_undo($win,'Make Current Node the Root',UNDO_ACTIVE_ROOT_AND_TREE_ORDER));
 							      makeRoot($win, $node, $discard );
 							    },\%group]],
 	 [Separator=> EMPTY],
@@ -8668,7 +8687,7 @@ sub editAttrsDialog_schema {
     set_command => sub {
       my ($callback)=@_;
       $win->{FSFile}->notSaved(1) if $win->{FSFile};
-      save_undo($win,prepare_undo($win,$dlg_title));
+      save_undo($win,prepare_undo($win,$dlg_title,UNDO_DATA,$node));
       lastActionBookmark($win->{framegroup});
       &$callback();
       if (length $attr_path) {
@@ -8808,7 +8827,7 @@ sub editAttrsDialog {
 
   if ($result=~ /OK/) {
     $win->{FSFile}->notSaved(1);
-    save_undo($win,prepare_undo($win,'Edit Node'));
+    save_undo($win,prepare_undo($win,'Edit Node',UNDO_DATA,$node));
     lastActionBookmark($win->{framegroup});
     foreach $a (@atord) {
       $node->set_member($a,decode($e{$a}->get));
@@ -9963,7 +9982,7 @@ sub doEditAttr {
     if (defined($newvalue)) {
       $win->toplevel->Busy(-recurse=> 1);
       $win->{FSFile}->notSaved(1);
-      save_undo($win,prepare_undo($win,"Edit Attribute '$attr'"));
+      save_undo($win,prepare_undo($win,"Edit Attribute '$attr'",UNDO_DATA,$node));
       lastActionBookmark($grp);
       $node->set_member($attr,$newvalue);
       doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
@@ -9981,7 +10000,7 @@ sub doEditAttr {
     if (defined $newvalue) {
       $grp->{top}->Busy(-recurse=> 1);
       $win->{FSFile}->notSaved(1);
-      save_undo($win,prepare_undo($win,"Edit Attribute '$attr'"));
+      save_undo($win,prepare_undo($win,"Edit Attribute '$attr'",UNDO_DATA,$node));
       lastActionBookmark($grp);
       $node->set_member($attr,$newvalue);
       doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
@@ -10020,7 +10039,7 @@ sub doEditAttr {
   if ($result=~ /OK/) {
     get_grp_history($grp,$e, "attr-$attr");
     $win->{FSFile}->notSaved(1);
-    save_undo($win,prepare_undo($win,"Edit Attribute '$attr'"));
+    save_undo($win,prepare_undo($win,"Edit Attribute '$attr'",UNDO_DATA,$node));
     lastActionBookmark($grp);
     $node->set_member($attr,decode($newvalue));
     doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
@@ -10428,7 +10447,7 @@ sub _evalHook {
   # Save current position (as last action position)
   my $bookmark=bookmarkThis($grp);
 
-  my $undo=prepare_undo($win,"Hook $context"."->".$hook) if ($with_undo and $win and $win->{FSFile});
+  my $undo=prepare_undo($win,"Hook $context"."->".$hook,UNDO_DISPLAYED_TREES) if ($with_undo and $win and $win->{FSFile});
 
   local $insideEval=1;
   my $old_ctxt = TrEd::Macros::save_ctxt();
@@ -10597,7 +10616,7 @@ sub doEvalMacro {
     forceFileSaved => 0,
     Redraw => 'file');
 
-  my $undo=prepare_undo($win,findMacroDescription($win,$macro));
+  my $undo=prepare_undo($win,findMacroDescription($win,$macro,UNDO_DISPLAYED_TREES));
   my $result=do_eval_macro($win,$macro);
   my $current_win=get_macro_variable("grp");
   if ($win != $current_win and UNIVERSAL::isa($current_win,'TrEd::Window') ) {
@@ -11001,7 +11020,7 @@ sub node_release {
 	    $top=$top->parent;
 	  }
 	  if ($parent and $node->parent!=$top) {
-	    save_undo($win,prepare_undo($win, "Cat/Paste node with mouse"));
+	    save_undo($win,prepare_undo($win, "Cat/Paste node with mouse"),UNDO_DISPLAYED_TREES);
 	    my $oldparent=$node->parent;
 	    Fslib::Paste(Cut($node),
 			 $parent,
@@ -11057,21 +11076,88 @@ sub node_release_modif {
 }
 
 sub prepare_undo {
-  my ($win,$message,$phase_only)=@_;
+  my ($win,$message,$what,$data)=@_;
   return unless $maxUndo;
   my $fsfile=$win->{FSFile};
   return undef unless $fsfile;
-  my $tree;
-  eval { require Storable; };
-  if ($@) {
-    return undef;
-  } elsif ( !ref($win->{root}) ) {
-    return undef;
+  $what||=UNDO_DISPLAYED_TREES;
+  my $snapshot;
+  if ($what == UNDO_ACTIVE_NODE) {
+    $data=$win->{currentNode};
+  } elsif ($what == UNDO_ACTIVE_ROOT) {
+    $data=$win->{currentNode};
+    return unless ref $data;
+    $data = $data->root;
+  } elsif ($what == UNDO_CURRENT_TREE) {
+    return if !ref($win->{root});
+    $data=$win->{root};
+  } elsif ($what == UNDO_TREE_ORDER) {
+    $snapshot = [@{$fsfile->treeList}];
+  } elsif ($what == UNDO_DISPLAYED_TREES) {
+    my $n = $win->{Nodes};
+    my %n; @n{@$n}=();
+    # the following should be a bit faster than uniq map $_->root, @$n
+    $data = [uniq map { my $p=$_->parent; $p && exists($n{$p}) ? () : ($p ? $p->root : $_) }  @$n ];
+  } elsif ($what == UNDO_DATA_AND_TREE_ORDER) {
+    if (ref($data)) {
+      $what=UNDO_TREE_ORDER;
+      $snapshot = [@{$fsfile->treeList}];
+    } else {
+      $snapshot = [make_data_snapshot($data),
+		   [@{$fsfile->treeList}]
+		  ];
+    }
+  } elsif ($what == UNDO_CURRENT_TREE_AND_TREE_ORDER) {
+    return if !ref($win->{root});
+    $snapshot = [make_data_snapshot($win->{root}),
+		 [@{$fsfile->treeList}]
+		];
+  } elsif ($what == UNDO_ACTIVE_ROOT_AND_TREE_ORDER) {
+    my $n = $win->{currentNode};
+    return unless ref $n;
+    $snapshot = [make_data_snapshot($n->root),
+		 [@{$fsfile->treeList}]
+		];
+  } elsif ($what == UNDO_DATA) {
+    # $data = $data;
   } else {
-    my $tree = make_data_snapshot( $win->{root} );
-    return [$fsfile,['Snapshot',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$message,$phase_only]];
+    ErrorMessage($win, "Unknown undo type: $what\n");
+    return;
+  }
+  if (!defined $snapshot) {
+    return unless ref $data;
+    $snapshot = [make_data_snapshot( $data ),$data];
+  }
+  return [$fsfile,['Snapshot',$win->{treeNo},$snapshot,$win->{currentNode},$message,$what]];
+}
+
+sub prepare_redo {
+  my ($win,$undo)=@_;
+  my $type = $undo->[0];
+  my $message = $undo->[4];
+  return prepare_undo($win,$message) unless $type eq 'Snapshot';
+  my $what = $undo->[5];
+  my $snapshot=$undo->[2];
+  $what||=UNDO_DISPLAYED_TREES;
+  if ($what == UNDO_ACTIVE_NODE or
+      $what == UNDO_ACTIVE_ROOT or
+      $what == UNDO_DATA or
+      $what == UNDO_CURRENT_TREE or
+      $what == UNDO_DISPLAYED_TREES
+     ) {
+    return prepare_undo($win,$message,UNDO_DATA,$snapshot->[1]);
+  } elsif ($what == UNDO_TREE_ORDER) {
+    return prepare_undo($win,$message,UNDO_TREE_ORDER);
+  } elsif ($what == UNDO_CURRENT_TREE_AND_TREE_ORDER or
+	   $what == UNDO_ACTIVE_ROOT_AND_TREE_ORDER or
+	   $what == UNDO_DATA_TREE_AND_TREE_ORDER) {
+    return prepare_undo($win,$message,UNDO_DATA_AND_TREE_ORDER,$snapshot->[1]);
+  } else {
+    ErrorMessage($win, "Unknown undo type: $what\n");
+    return prepare_undo($win,$message);
   }
 }
+
 
 sub save_undo {
   my ($win,$undo)=@_;
@@ -11124,18 +11210,56 @@ sub undo {
   my $undo=$stack->[$stackpos];
   if ($undo) {
     my $new_undo;
-    $new_undo=prepare_undo($win,$undo->[$stackpos][4]) if (!$redo and $#$stack == $stackpos);
     my $type = $undo->[0];
+    $new_undo=prepare_redo($win,$undo)
+      if (!$redo and $#$stack == $stackpos);
     my $treeNo=$undo->[1];
-    my $tree=$undo->[2];
-    my $prev = $fsfile->treeList->[$treeNo];
-    $prev->destroy if ref($prev);
+    my $snapshot=$undo->[2];
     if ($type eq 'Snapshot') {
-      $fsfile->treeList->[$treeNo] = restore_data_from_snapshot($tree);
+      my $what=$undo->[5];
+      if ($what == UNDO_ACTIVE_NODE or
+	  $what == UNDO_ACTIVE_ROOT or
+	  $what == UNDO_DISPLAYED_TREES or
+	  $what == UNDO_DATA
+	 ) {
+	restore_data_from_snapshot($snapshot->[0]);
+	# nothing to do
+      } elsif ($what == UNDO_CURRENT_TREE) {
+	my $prev = $fsfile->treeList->[$treeNo];
+	$prev->destroy if ref($prev);
+	$fsfile->treeList->[$treeNo] = restore_data_from_snapshot($snapshot->[0]);
+      } elsif ($what == UNDO_TREE_ORDER) {
+	@{$fsfile->treeList}=@$snapshot;
+      } elsif ($what == UNDO_CURRENT_TREE_AND_TREE_ORDER) {
+	#	my $prev = $fsfile->treeList->[$treeNo];
+	#	$prev->destroy if ref($prev);
+	#	$prev=
+	restore_data_from_snapshot($snapshot->[0]);
+	my %r; $r{ @{$snapshot->[1]} }=();
+	for (@{$fsfile->treeList}) {
+	  $_->destroy if ref ($_) and !exists($r{$_});
+	}
+	@{$fsfile->treeList}=@{$snapshot->[1]};
+	# $fsfile->treeList->[$treeNo]=$prev;
+      } elsif ($what == UNDO_ACTIVE_ROOT_AND_TREE_ORDER or
+	       $what == UNDO_DATA_ROOT_AND_TREE_ORDER) {
+	restore_data_from_snapshot($snapshot->[0]);
+	my %r; $r{ @{$snapshot->[1]} }=();
+	for (@{$fsfile->treeList}) {
+	  $_->destroy if ref ($_) and !exists($r{$_});
+	}
+	@{$fsfile->treeList}=@{$snapshot->[1]};
+      } else {
+	ErrorMessage($win, "Unknown undo type: $what\n");
+      }
     } elsif ($type eq 'FS') {
-      $fsfile->treeList->[$treeNo]=$fsfile->FS->parseFSTree($tree);
+      my $prev = $fsfile->treeList->[$treeNo];
+      $prev->destroy if ref($prev);
+      $fsfile->treeList->[$treeNo]=$fsfile->FS->parseFSTree($snapshot);
     } elsif ($type eq 'Storable') {
-      $fsfile->treeList->[$treeNo]=Storable::thaw($tree);
+      my $prev = $fsfile->treeList->[$treeNo];
+      $prev->destroy if ref($prev);
+      $fsfile->treeList->[$treeNo]=Storable::thaw($snapshot);
     }
     if ($#$stack == $stackpos) {
       if ($redo) {
@@ -11149,8 +11273,9 @@ sub undo {
     resetUndoStatus($win);
     $fsfile->notSaved(1);
     $win->{treeNo}=$treeNo;
-    $win->{currentNode}=getNodeByNo($win,$undo->[3]);
     get_nodes_fsfile_tree($win->{framegroup},$fsfile,$treeNo);
+    $win->{currentNode}=ref($undo->[3]) ? $undo->[3] : $win->{Nodes}[$undo->[3]];
+    ensureCurrentIsDisplayed($win);
     redraw_fsfile_tree($win->{framegroup},$fsfile,$treeNo);
     centerTo($win,$win->{currentNode});
   } else {
@@ -11340,6 +11465,8 @@ sub toggleMinorMode {
   }
   get_nodes_win($win);
   redraw_win($win);
+  ensureCurrentIsDisplayed($win);
+  centerTo($win,$win->{currentNode});
 }
 
 sub _minor_ctxt_abbrev {
