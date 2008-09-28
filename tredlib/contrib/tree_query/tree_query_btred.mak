@@ -900,6 +900,7 @@ sub claim_search_win {
       }
     } elsif ($name eq 'ref') {
       my ($rel) = TredMacro::SeqV($node->{relation});
+      return unless $rel;
       my $target = lc( $node->{target} );
       my $relation = $rel->name;
       my $expression;

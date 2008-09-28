@@ -375,8 +375,10 @@ sub configure {
   my ($self)=@_;
   my $config = $self->{config}{pml};
   local $main::sortAttrs=0;
-  GUI() && EditAttribute($config->get_root,'',
-			 $config->get_schema->get_root_decl->get_content_decl) || return;
+  GUI() && edit_config('Edit configuration',
+		       $config->get_root,
+		       $config->get_schema->get_root_decl->get_content_decl,
+		      ) || return;
   $config->save();
   return 1;
 }
@@ -413,6 +415,19 @@ sub get_decl_for {
 
 #########################################
 #### Private API
+
+sub edit_config {
+  my ($title,$data,$type,$focus)=@_;
+  ToplevelFrame()->TrEdNodeEditDlg({
+    title => $title,
+    type => $type,
+    object => $data,
+    search_field => 0,
+    focus => $focus,
+    no_sort=>1,
+  });
+
+}
 
 sub get_schema_name_for {
   my ($self,$type)=@_;
@@ -478,7 +493,7 @@ sub init {
   my $cfgs = $self->{config}{pml}->get_root->{configurations};
   my $cfg_type = $self->{config}{type};
   if (!$id) {
-    my @opts = ((map { $_->{id} } map $_->value, grep $_->name eq 'http', SeqV($cfgs)),' CREATE NEW ');
+    my @opts = ((map { $_->{id} } map $_->value, grep $_->name eq 'http', SeqV($cfgs)),' CREATE NEW CONNECTION ');
     my @sel= $configuration ? $configuration->{id} : @opts ? $opts[0] : ();
     ListQuery('Select treebase connection',
 			 'browse',
@@ -488,10 +503,10 @@ sub init {
   }
   return unless $id;
   my $cfg;
-  if ($id eq ' CREATE NEW ') {
+  if ($id eq ' CREATE NEW CONNECTION ') {
     $cfg = Fslib::Struct->new();
     local $main::sortAttrs=0;
-    GUI() && EditAttribute($cfg,'',$cfg_type) || return;
+    GUI() && edit_config('Edit connection',$cfg,$cfg_type,'id') || return;
     $cfgs->push_element('http',$cfg);
     $self->{config}{pml}->save();
     $id = $cfg->{id};
@@ -503,7 +518,7 @@ sub init {
   unless (defined $cfg->{url}) {
     if (GUI()) {
       local $main::sortAttrs=0;
-      EditAttribute($cfg,'',$cfg_type,'password') || return;
+      edit_config('Edit connection',$cfg,$cfg_type,'password') || return;
     } else {
       die "The configuration $id does not specify a URL\n";
     }
