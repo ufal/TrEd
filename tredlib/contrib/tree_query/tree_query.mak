@@ -724,7 +724,8 @@ sub NewQuery {
     $fl->add(0,$filename);
     AddNewFileList($fl);
   }
-  if (CurrentFile() and $root) {
+  if (CurrentFile() and $root and GetCurrentFileList()->name ne 'Tree Queries'
+	and PML::SchemaName() ne 'tree_query') {
     my $win = SplitWindowVertically({no_init => 1, no_redraw=>1,no_focus=>0,ratio=>-0.5});
     # SetCurrentWindow($win);
     $grp=$win;
@@ -1409,15 +1410,17 @@ sub SelectSearch {
     -cancel_button=>'Cancel',
     -buttons => ['Cancel'],
   );
+  $d->add('Label', -text=>'What are you going to search?')->pack(-pady => 10);
+  my $f = $d->add('Frame')->pack(qw(-expand 1 -fill both));
   $d->BindEscape;
   my ($vol,$dir)=File::Spec->splitpath(__this_module_path());
   my @b;
-  for my $b (['File' => 'file', 0, 0, 0], # grid row, grid column, underline
-	     ['File List' => 'filelist',0,1,5],
-	     ['TreeQuery Server' => 'remote-db',0,2,0],
-#	     ['SQL Database' => 'local-db',1,1,0],
+  for my $b (['File (local)' => 'file', 0, 0, 0], # grid row, grid column, underline
+#	     ['List of files (local)' => 'filelist',0,1,5],
+	     ['Treebank (server)' => 'remote-db',0,1,0],
+#	     ['Database (server)' => 'local-db',1,1,0],
 	    ) {
-    my $but = $d->add('Button',
+    my $but = $f->Button(
 	    -compound=>'top',
 	    -text => $b->[0],
 	    -underline => $b->[4],
@@ -1443,7 +1446,7 @@ sub SelectSearch {
   my $preserve=0;
   if ($SEARCH) {
     $d->add('Checkbutton',-variable => \$preserve,-underline=>0,-text=>'Preserve current search')
-      ->grid(-column=>0,-columnspan=>3,-row=>3);
+      ->pack();
   }
   $d->BindButtons;
   my $choice = $d->Show;
@@ -1455,13 +1458,9 @@ sub SelectSearch {
 	      'browse',
 	      [
 		#  (map { $_->identify } @SEARCHES),
-		$choice eq 'File' ? (map $_->filename, grep ref, map CurrentFile($_), TrEdWindows())
-		: $choice eq 'File List' ? (map $_->name, TrEdFileLists())
-		: return
-		# 		(map { 'Search File list: '.$_->name } TrEdFileLists()),
-		# 		(map { 'Search File: '.$_->filename } grep ref, map CurrentFile($_), TrEdWindows()),
-		# 		'Search Using PMLTQ Server',
-		# 		'Search Remote Treebank Database',
+		(map "File: ".$_, uniq(map $_->filename, grep ref, map(CurrentFile($_), TrEdWindows()), GetOpenFiles())),
+		(map "List: ".$_->name." (".$_->file_count." files)",
+		 grep $_->file_count, TrEdFileLists())
 	       ],
 	      \@sel
 	     ) || return;
@@ -1471,16 +1470,19 @@ sub SelectSearch {
   my $S;
   # my $S = GetSearch($sel);
   #  unless ($S) {
-    if ($choice eq 'SQL Database') {
-      $S=Tree_Query::SQLSearch->new();
-    } elsif ($choice eq 'TreeQuery Server') {
-      $S=Tree_Query::HTTPSearch->new();
-    } elsif ($choice eq 'File') {
+  if ($choice =~ /^Database/) {
+    $S=Tree_Query::SQLSearch->new();
+  } elsif ($choice =~ /^Treebank/) {
+    $S=Tree_Query::HTTPSearch->new();
+  } elsif ($choice =~ /^File/) {
+    if ($file=~s/^File:\s*//) {
       $S=Tree_Query::TrEdSearch->new({file => $file});
-    } elsif ($choice eq 'File List') {
+    } elsif ($file=~s/^List:\s*|\([^\)]* files\)$//g) {
       $S=Tree_Query::TrEdSearch->new({filelist => $file});
     }
-  #  }
+    #    } elsif ($choice =~ /^List/) {
+    #      $S=Tree_Query::TrEdSearch->new({filelist => $file});
+  }
   if ($S) {
     if (!$preserve and $SEARCH) {
       DestroyUserToolbar($SEARCH->identify);

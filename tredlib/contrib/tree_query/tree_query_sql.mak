@@ -337,7 +337,7 @@ sub init {
   my $cfgs = $self->{config}{pml}->get_root->{configurations};
   my $cfg_type = $self->{config}{type};
   if (!$id) {
-    my @opts = ((map { $_->value->{id} } grep { $_->name eq 'dbi' } SeqV($cfgs)),' CREATE NEW ');
+    my @opts = ((map { $_->value->{id} } grep { $_->name eq 'dbi' } SeqV($cfgs)),' CREATE NEW CONNECTION ');
     my @sel= $configuration ? $configuration->{id} : @opts ? $opts[0] : ();
     ListQuery('Select treebase connection',
 			 'browse',
@@ -347,7 +347,7 @@ sub init {
   }
   return unless $id;
   my $cfg;
-  if ($id eq ' CREATE NEW ') {
+  if ($id eq ' CREATE NEW CONNECTION ') {
     $cfg = Fslib::Struct->new();
     GUI() && EditAttribute($cfg,'',$cfg_type) || return;
     $cfgs->push_element('dbi',$cfg);
