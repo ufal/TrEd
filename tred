@@ -8605,6 +8605,7 @@ sub focusxFind {
 
 sub determineNodeType {
   my ($win,$node)=@_;
+  return unless $node;
   my $type = $node->type;
   return $type if $type;
   doEvalHook($win,'determine_node_type_hook',$node);
