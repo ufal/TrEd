@@ -4273,6 +4273,187 @@ sub SetupXPath {
 
 sub noop { 1 }
 
+##############################
+# Toolbars
+
+#ifdef TRED
+sub NewUserToolbar {
+  my ($name,$opts)=@_;
+  return main::newUserToolbar($grp->{framegroup},$name,$opts);
+}
+sub GetUserToolbar {
+  my ($name)=@_;
+  return $grp->{framegroup}{UserToolbarHash}{$name};
+}
+sub RemoveUserToolbar {
+  my ($name)=@_;
+  return main::removeUserToolbar($grp->{framegroup},$name);
+}
+sub DestroyUserToolbar {
+  my ($name)=@_;
+  my $tb =  RemoveUserToolbar($name);
+  $tb->destroy if $tb;
+  return;
+}
+sub HideUserToolbar {
+  my ($name)=@_;
+  my $tb =  GetUserToolbar($name);
+  if ($tb) {
+    $tb->packForget;
+    return $tb;
+  }
+  return 0;
+}
+sub ShowUserToolbar {
+  my ($name)=@_;
+  my $tb =  GetUserToolbar($name);
+  if ($tb) {
+    $tb->pack(-fill=>'x');
+    return $tb;
+  }
+  return 0;
+}
+sub EnableUserToolbar {
+  my ($name)=@_;
+  my $tb =  GetUserToolbar($name);
+  if ($tb) {
+    for my $w (main::get_widget_descendants($tb)) {
+      eval { $w->configure(-state => 'normal') }
+    }
+    return $tb;
+  }
+  return 0;
+}
+sub DisableUserToolbar {
+  my ($name)=@_;
+  my $tb =  GetUserToolbar($name);
+  if ($tb) {
+    for my $w (main::get_widget_descendants($tb)) {
+      eval { $w->configure(-state => 'disabled') }
+    }
+    return $tb;
+  }
+  return 0;
+}
+
+sub UserToolbarVisible {
+  my ($name)=@_;
+  my $tb =  GetUserToolbar($name);
+  if ($tb) {
+    return $tb->ismapped && $tb->manager ? 1 : 0;
+  }
+  return;
+}
+sub AttachTooltip {
+  my ($widget, $message)=@_;
+  $grp->{framegroup}{Balloon}->attach($widget, -balloonmsg=> $message);
+}
+
+sub MacroCallback {
+  my ($binding)=@_;
+  my $macro;
+  my ($context)=caller;
+  if (ref($binding) eq 'HASH') {
+    my $command = $binding->{command};
+    $context = $binding->{context} || $context;
+    return unless $command;
+    if (exists($binding->{changing_file})) {
+      my $changes_file = $binding->{changing_file};
+      if (ref($command) eq 'CODE') {
+	$macro = sub {
+	  &$command();
+	  ChangingFile($changes_file);
+	};
+      } else {
+	$macro = sub {
+	  $context->$command();
+	  ChangingFile($changes_file);
+	}
+      }
+    } else {
+      $macro = $command;
+    }
+  } else {
+    $macro = $binding;
+  }
+  $macro = (ref($macro) or $macro=~/^\w+-\>/) ? $macro : $context.'->'.$macro;
+  return [sub {
+	    my $tred=pop @_;
+	    if ($main::insideEval) {
+	      main::do_eval_macro($macro,@_);
+	    } else {
+	      main::doEvalMacro($tred->{focusedWindow},$macro,@_);
+	    }
+	  },$grp->{framegroup}];
+}
+#endif
+
+##################################
+# MinorModes
+
+
+sub DeclareMinorMode {
+#ifdef TRED
+  my ($name,$opts)=@_;
+  croak "The 1st argument to DeclareMinorMode must be a context name!" unless (defined($name) and length($name) and !ref($name));
+  croak "The 2nd argument to DeclareMinorMode must be a hash reference!" unless ref($opts) eq 'HASH';
+#  croak "Too soon to call  DeclareMinorMode" unless ref($grp) and ref($grp->{framegroup});
+  main::declareMinorMode($grp,$name,$opts);
+#endif
+}
+
+sub EnableMinorMode {
+#ifdef TRED
+  my ($name,$win)=@_;
+  main::enableMinorMode($win||$grp,$name);
+#endif
+}
+
+sub DisableMinorMode {
+#ifdef TRED
+  my ($name,$win)=@_;
+  main::disableMinorMode($win||$grp,$name);
+#endif
+}
+
+sub ListEnabledMinorModes {
+#ifdef TRED
+  my ($win)=@_;
+  $win||=$grp;
+  return ref($win->{minorModes}) ? @{$win->{minorModes}} : ();
+#endif
+}
+
+sub IsMinorModeEnabled {
+#ifdef TRED
+  my ($name,$win)=@_;
+  $win||=$grp;
+  return 0 unless ref($win->{minorModes});
+  for my $c (@{$win->{minorModes}}) {
+    return 1 if $c eq $name;
+  }
+  return 0;
+#endif
+}
+
+sub SetMinorModeData {
+#ifdef TRED
+  my ($name,$key,$value,$win)=@_;
+  $win||=$grp;
+  return $win->{minorModeData}{$name}{$key}=$value;
+#endif
+}
+
+sub GetMinorModeData {
+#ifdef TRED
+  my ($name,$key,$win)=@_;
+  $win||=$grp;
+  return $win->{minorModeData}{$name}{$key};
+#endif
+}
+
+
+
 
 =back
 
