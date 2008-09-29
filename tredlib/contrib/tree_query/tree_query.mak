@@ -800,7 +800,7 @@ sub attr_choices_hook {
     if ($attr_path eq 'a') {
       my $type = $SEARCH && $SEARCH->get_type_decl_for_query_node($node);
       if ($type) {
-	my @res = $type->get_paths_to_atoms({ no_childnodes => 1 });
+	my @res = sort $type->get_paths_to_atoms({ no_childnodes => 1 });
 	return @res ? \@res : ();
       }
     } elsif ($attr_path eq 'b') {
@@ -829,7 +829,7 @@ SQL
 	  my $results = eval { $SEARCH->{evaluator}->run_sql_query($sql,{ MaxRows=>100, RaiseError=>1, Timeout => 10 }) };
 	  print $@;
 	  return if $@;
-	  my @res= map qq('$_->[0]'),@$results;
+	  my @res= sort map qq('$_->[0]'),@$results;
 	  return @res ? \@res : ();
 	}
       } elsif (UNIVERSAL::can($SEARCH,'get_type_decl_for_query_node')) {
@@ -855,7 +855,7 @@ SQL
 	    }
 	    if ($decl_is == PML_CHOICE_DECL or
 		$decl_is == PML_CONSTANT_DECL) {
-	      return [map { $_=~/\D/ ? qq{"$_"} : $_ } $decl->get_values];
+	      return [sort map { $_=~/\D/ ? qq{"$_"} : $_ } $decl->get_values];
 	    }
 	  }
 	}
@@ -908,8 +908,8 @@ sub GetNodeName {
     return $node->{name}
   } else {
     my $i=0;
-    $i++ while (exists $name2node_hash{"ref$i"});
-    my $name = "ref$i";
+    $i++ while (exists $name2node_hash{"n$i"});
+    my $name = "n$i";
     $node->set_attr('name',$name);
     $name2node_hash{$name}=$node;
     return $name;
