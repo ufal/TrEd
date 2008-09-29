@@ -1,9 +1,9 @@
 # -*- cperl -*-
 
-#ifndef Show_Neigboring_Trees
-#define Show_Neigboring_Trees
+#ifndef Show_Neighboring_Trees
+#define Show_Neighboring_Trees
 {
-package Show_Neigboring_Trees;
+package Show_Neighboring_Trees;
 use strict;
 BEGIN {
   import TredMacro;
@@ -43,7 +43,7 @@ sub get_config {
 }
 
 
-DeclareMinorMode 'Show_Neigboring_Trees' => {
+DeclareMinorMode 'Show_Neighboring_Trees' => {
   abbrev => 'neigh_trees',
   configure => \&edit_configuration,
   post_hooks => {
@@ -90,4 +90,4 @@ DeclareMinorMode 'Show_Neigboring_Trees' => {
 }
 1;
 
-#endif Show_Neigboring_Trees
+#endif Show_Neighboring_Trees
