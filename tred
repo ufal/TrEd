@@ -8219,8 +8219,8 @@ sub reloadSentenceView {
 			       -borderwidth => 0,
 			       -padx => 5,
 			       -pady => 5,
-			       -selectimage => icon($grp,"green_belly3"),
-			       -image => icon($grp,"gray_belly3"),
+			       -selectimage => icon($grp,"checkbox_checked"),
+			       -image => icon($grp,"checkbox"),
 			       -variable => \$selref->[$i]
 			      ));
     $t->window('create', 'end', -window =>
@@ -8249,10 +8249,31 @@ sub reloadSentenceView {
 	print $@ if $@;
       }
     }
-
+    my $collapse=0;
     $t->insert('end',"(".($i+1).") ",['treeno',"start-tree-".($i+1)],
-	       map { ($_->[0], [@$_[1..$#$_]]) } @$v);
-    $t->insert('end',"\n",['newline',"end-tree-".($i+1)]);
+	       map {
+		  my $l = $v->[$_];
+		  my $t = $l->[0];
+		  my @t = @$l[1..$#$l];
+		  if (!$collapse and $_<$#$v and $t=~s/(\n\s*)$//) {
+		    $collapse=1;
+		    ($t,\@t,"...",["#collapse_bar#","#collapse_bar_$i#"],$1,["#collapse_$i#"])
+		  } else {
+		    push @t, "#collapse_$i#" if $collapse;
+		    ($t, \@t)
+		  }
+		} 0..$#$v);
+    if ($collapse) {
+      $t->tagBind("#collapse_bar_$i#",'<Any-Enter>', => [sub { $_[0]->tagConfigure("#collapse_bar_$_[1]#", -background => 'cyan') },$i]);
+      $t->tagBind("#collapse_bar_$i#",'<Any-Leave>', => [sub { $_[0]->tagConfigure("#collapse_bar_$_[1]#", -background => undef) },$i]);
+      $t->tagConfigure("#collapse_$i#", -elide => 0);
+      $t->tagBind("#collapse_bar_$i#",'<1>', => [sub {
+		    my ($w,$i)=@_; 
+		    $w->tagConfigure("#collapse_$i#",
+				     -elide => $w->tagCget("#collapse_$i#",'-elide') ? 0 : 1) },$i]);
+    }
+    $t->insert('end',"\n",['newline',"end-tree-".($i+1), "#collapse_$i#"
+			  ]);
 	       #	       get_value_line($grp->{focusedWindow},
 	       #			      $grp->{focusedWindow}->{FSFile},$i,1),'tline',
     #	       "\n",'newline');
@@ -8289,6 +8310,24 @@ sub sentViewGetSelection {
    $rng=~s/,$//;
  }
  return $rng;
+}
+
+sub sentViewToggleCollapse {
+ my ($grp,$t,$val)=@_;
+ if (!defined $val) {
+   $val = $grp->{expandSentView};
+ }
+ $t->tagConfigure('#collapse_bar#',
+		  -elide => $val ? 0 : 1);
+ my $i=0;
+ undef $@;
+ do {{
+   eval {
+     $t->tagCget("#collapse_$i#",'-elide'); # dies if the tag does not exist
+     $t->tagConfigure("#collapse_$i#", -elide => $val ? 1 : 0);
+   };
+   $i++
+ }} while (!$@);
 }
 
 sub viewSentences {
@@ -8378,6 +8417,8 @@ sub dumpSentView {
 
   my $win = $grp->{focusedWindow};
   return if ($create_images and warnWin32PrintConvert($t) eq 'Cancel');
+
+  sentViewToggleCollapse($grp,$t,1);
 
   my $file=$fsfile->filename;
   $file=~s/\.(?:csts|sgml|sgm|cst|trxml|trx|tei|xml|fs|pls)(?:\.gz)?$/.html/i;
@@ -8496,9 +8537,10 @@ sub populateSentencesDialog {
 
   use Tk::ROText;
 #c -background white
+# -spacing3 6 
   my $t= $d->
     Scrolled(qw/ROText -relief sunken -borderwidth 2 -setgrid true
-                     -spacing3 6 -wrap word
+		     -wrap word
 		     -height 20 -scrollbars oe/,
 	     -font=>$font
 	    );
@@ -8535,6 +8577,12 @@ sub populateSentencesDialog {
   $bottom->Button(-text=> "Save As HTML with Images",
 		  -underline => 18,
 		  -command=>[ \&dumpSentView,$grp,$fsfile,$t,1,$selref])
+    ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
+
+  $bottom->Checkbutton(-text=> "Shrink/Expand",
+		  -underline => 0,
+		  -variable => \$grp->{expandSentView},
+		  -command=>[ \&sentViewToggleCollapse,$grp,$t])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
 
   $d->BindButtons;
