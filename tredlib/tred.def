@@ -12,9 +12,6 @@ use base qw(main Exporter);
 use Carp;
 use vars qw(@FORCE_EXPORT);
 BEGIN {
-  *isa = \&UNIVERSAL::isa; # this is a work-around needed for a bug in Class::Std
-  *can = \&UNIVERSAL::can; # this is a work-around needed for a bug in Class::Std
-
   @FORCE_EXPORT = qw($libDir $grp $root $this $_NoSuchTree $Redraw $stderr $stdout
 		     $forceFileSaved $FileChanged $FileNotSaved $NodeClipboard);
   *FileChanged=*FileNotSaved;	# alias
@@ -23,6 +20,10 @@ BEGIN {
   import main;
 }
 use vars @FORCE_EXPORT;
+
+# The following is a workaround for a nasty bug of Class::Std in case somewants to use it
+sub isa { &UNIVERSAL::isa }
+sub can { &UNIVERSAL::can }
 
 sub _croak {
   my ($pkg, $file, $line) = caller(1);
@@ -489,7 +490,8 @@ the corresponding FSFile object.
 =cut
 
 sub LocateNode {
-  my $node = ref($_[0]) ? $_[0] : $this;
+  my $node = ref($_[0]) ? $_[0] :
+      @_ ? $this : confess("Cannot get position of an undefined node");
   my $fsfile = ref($_[1]) ? $_[1] : CurrentFile();
   return unless ref $node;
   my $tree = $node->root;
@@ -4189,7 +4191,7 @@ sub import {
   no strict qw(refs);
   my $pkg=shift;
   my %stash=%{"${pkg}::"};
-  _import($pkg,scalar(caller),($#_>=0 ? @_ : keys %stash),@FORCE_EXPORT)
+  _import($pkg,scalar(caller),($#_>=0 ? @_ : grep {$_ ne 'BEGIN'} keys %stash),@FORCE_EXPORT)
 };
 
 sub import_only {
