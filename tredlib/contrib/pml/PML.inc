@@ -10,6 +10,7 @@ BEGIN {
   use Carp;
 }
 
+use Scalar::Util qw(weaken);
 
 =pod
 
@@ -151,7 +152,7 @@ sub GetNodeHash {
     for (my $i=0;$i<=$#$trees;$i++) {
       my $node = $trees->[$i];
       while ($node) {
-	$ids{ $node->{id} } = $node;
+	weaken($ids{ $node->{id} } = $node);
       } continue {
 	$node = $node->following;
       }
