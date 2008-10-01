@@ -16,3 +16,4 @@ Tk-CodeText
 Parse-RecDescent
 Graph
 Graph-ChuLiuEdmonds
+PerlIO-gzip

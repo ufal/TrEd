@@ -19,7 +19,7 @@ foreach my $table_name ('prob_tag_given_form','prob_tag_given_prevtag',
 			'prob_tag_given_suffix4','prob_tag_given_suffix2') {
     my $filename = "$data_dir/$table_name.tsv.gz";
     print STDERR "   $filename ... \n";
-    open I,"<:gzip",$filename or die $! ;
+    open I,"<:gzip:utf8",$filename or die $! ;
     # ??? je zaruceno spravne kodovani ???
     while (<I>) {
         chomp;

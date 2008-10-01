@@ -4050,9 +4050,12 @@ sub macrolistDialog {
 		    -underline => 0,
 	     -command=> [ sub {
 			     my ($w,$grp,$t,$ctxt)=@_;
-			     my $mac=$t->info(data => $t->info('anchor'));
+			     my $macro=$t->info(data => $t->info('anchor'));
 			     $w->destroy();
-			     doEvalMacro($grp->{focusedWindow},$mac);
+			     if (ref($macro) eq 'Tk::Callback') { # CODE ref gets mangled to Tk::Callback by Tk
+			       $macro=$macro->[0];
+			     }
+			     doEvalMacro($grp->{focusedWindow},$macro);
 			   },$d,$grp,$t,\$context ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>'left');
 
 
