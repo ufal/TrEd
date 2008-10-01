@@ -1,0 +1,1632 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Created by pml_simplify on Mon Jun 23 16:19:24 2008
+  Command-line: pml_simlify 
+-->
+<pml_schema xmlns="http://ufal.mff.cuni.cz/pdt/pml/schema/" version="1.1">
+  <revision>1.0.0</revision>
+  <description>Data for TMT (Tecto Machine Translation)</description>
+  <!-- PML schema created by Zdenek Zabokrtsky; this schema adopts (and modifies)
+  many constructions from PDT 2.0 schemas written by Petr Pajas -->
+  <!-- Each document contains "meta-attributes" common for the whole
+ document (such as the source text to be translated) and a list of
+ tree bundles related to the individual sentences. -->
+  <root name="tmt_document">
+    <structure>
+      <member name="meta" required="1" type="meta.type"/>
+      <member name="bundles" role="#TREES" required="0">
+        <list ordered="1" type="bundle.type"/>
+      </member>
+    </structure>
+  </root>
+  <!-- Metainfo (info about the whole document) -->
+  <type name="meta.type">
+    <structure>
+      <member name="source_lang" type="lang.type"/>
+      <member name="source_text">
+        <cdata format="any"/>
+      </member>
+      <member name="source_html">
+        <cdata format="any"/>
+      </member>
+      <member name="target_lang" type="lang.type"/>
+      <member name="target_text">
+        <cdata format="any"/>
+      </member>
+      <!-- Old-style language-specific members are available for Czech and English: -->
+      <member name="english_source_text">
+        <cdata format="any"/>
+      </member>
+      <member name="english_source_html">
+        <cdata format="any"/>
+      </member>
+      <member name="english_target_text">
+        <cdata format="any"/>
+      </member>
+      <member name="czech_source_text">
+        <cdata format="any"/>
+      </member>
+      <member name="czech_source_html">
+        <cdata format="any"/>
+      </member>
+      <member name="czech_target_text">
+        <cdata format="any"/>
+      </member>
+    </structure>
+  </type>
+  <!-- Lang fields contain ISO 639 language code -->
+  <!-- This is not an exhausting list. New codes can be added as needed.
+       Go to http://en.wikipedia.org/wiki/ISO_639 for codes of other languages. -->
+  <type name="lang.type">
+    <choice>
+      <value/>
+      <!-- unknown language -->
+      <value>cs</value>
+      <!-- Czech -->
+      <value>en</value>
+      <!-- English -->
+      <!-- other major languages -->
+      <value>de</value>
+      <!-- German -->
+      <value>fr</value>
+      <!-- French -->
+      <value>es</value>
+      <!-- Spanish -->
+      <value>it</value>
+      <!-- Italian -->
+      <value>ru</value>
+      <!-- Russian -->
+      <value>ar</value>
+      <!-- Arabic -->
+      <value>zh</value>
+      <!-- Chinese -->
+      <!-- other Slavic languages -->
+      <value>sk</value>
+      <!-- Slovak -->
+      <value>pl</value>
+      <!-- Polish -->
+      <value>dsb</value>
+      <!-- Lower Sorbian -->
+      <value>hsb</value>
+      <!-- Upper Sorbian -->
+      <value>be</value>
+      <!-- Belarusian -->
+      <value>uk</value>
+      <!-- Ukrainian -->
+      <value>sl</value>
+      <!-- Slovene -->
+      <value>hr</value>
+      <!-- Croatian -->
+      <value>sr</value>
+      <!-- Serbian -->
+      <value>mk</value>
+      <!-- Macedonian -->
+      <value>bg</value>
+      <!-- Bulgarian -->
+      <value>cu</value>
+      <!-- Old Church Slavonic -->
+      <!-- other Germanic languages -->
+      <value>nl</value>
+      <!-- Dutch -->
+      <value>af</value>
+      <!-- Afrikaans -->
+      <value>fy</value>
+      <!-- Frisian -->
+      <value>lb</value>
+      <!-- Luxemburgish -->
+      <value>yi</value>
+      <!-- Yiddish -->
+      <value>da</value>
+      <!-- Danish -->
+      <value>sv</value>
+      <!-- Swedish -->
+      <value>no</value>
+      <!-- Norwegian -->
+      <value>nn</value>
+      <!-- Nynorsk (New Norwegian) -->
+      <value>fo</value>
+      <!-- Faroese -->
+      <value>is</value>
+      <!-- Icelandic -->
+      <!-- other Romance and Italic languages -->
+      <value>la</value>
+      <!-- Latin -->
+      <value>pt</value>
+      <!-- Portuguese -->
+      <value>gl</value>
+      <!-- Galician -->
+      <value>ca</value>
+      <!-- Catalan -->
+      <value>oc</value>
+      <!-- Occitan -->
+      <value>rm</value>
+      <!-- Rhaeto-Romance -->
+      <value>co</value>
+      <!-- Corsican -->
+      <value>sc</value>
+      <!-- Sardinian -->
+      <value>ro</value>
+      <!-- Romanian -->
+      <value>mo</value>
+      <!-- Moldovan (deprecated: use Romanian) -->
+      <!-- Celtic languages -->
+      <value>ga</value>
+      <!-- Irish -->
+      <value>gd</value>
+      <!-- Scottish -->
+      <value>cy</value>
+      <!-- Welsh -->
+      <value>br</value>
+      <!-- Breton -->
+      <!-- Baltic languages -->
+      <value>lt</value>
+      <!-- Lithuanian -->
+      <value>lv</value>
+      <!-- Latvian -->
+      <!-- other Indo-European languages in Europe -->
+      <value>sq</value>
+      <!-- Albanian -->
+      <value>el</value>
+      <!-- Greek -->
+      <!-- Indo-Iranian languages -->
+      <value>fa</value>
+      <!-- Persian -->
+      <value>ur</value>
+      <!-- Urdu -->
+      <value>hi</value>
+      <!-- Hindi -->
+      <value>rom</value>
+      <!-- Romany -->
+      <value>gu</value>
+      <!-- Gujarati -->
+      <value>bn</value>
+      <!-- Bengali -->
+      <!-- other Semitic languages -->
+      <value>mt</value>
+      <!-- Maltese -->
+      <value>he</value>
+      <!-- Hebrew -->
+      <value>am</value>
+      <!-- Amharic -->
+      <!-- Finno-Ugric languages -->
+      <value>hu</value>
+      <!-- Hungarian -->
+      <value>fi</value>
+      <!-- Finnish -->
+      <value>et</value>
+      <!-- Estonian -->
+      <!-- other European languages -->
+      <value>eu</value>
+      <!-- Basque -->
+      <!-- Turkic languages -->
+      <value>tr</value>
+      <!-- Turkish -->
+      <value>az</value>
+      <!-- Azeri -->
+      <value>ba</value>
+      <!-- Bashkir -->
+      <value>tt</value>
+      <!-- Tatar -->
+      <value>tk</value>
+      <!-- Turkmen -->
+      <value>uz</value>
+      <!-- Uzbek -->
+      <value>kaa</value>
+      <!-- Karakalpak -->
+      <value>kk</value>
+      <!-- Kazakh -->
+      <value>ky</value>
+      <!-- Kyrgyz -->
+      <value>ug</value>
+      <!-- Uyghur -->
+      <value>sah</value>
+      <!-- Yakut -->
+      <!-- other languages -->
+      <value>ja</value>
+      <!-- Japanese -->
+      <value>ko</value>
+      <!-- Korean -->
+      <value>vi</value>
+      <!-- Vietnamese -->
+      <value>sw</value>
+      <!-- Swahili -->
+    </choice>
+  </type>
+  <type name="bundle.type">
+    <structure role="#NODE" name="bundle-root">
+      <member as_attribute="1" name="id" role="#ID" required="1">
+        <cdata format="ID"/>
+      </member>
+      <member name="source_sentence">
+        <cdata format="any"/>
+      </member>
+      <member name="target_sentence">
+        <cdata format="any"/>
+      </member>
+      <member name="english_source_sentence">
+        <cdata format="any"/>
+      </member>
+      <member name="english_target_sentence">
+        <cdata format="any"/>
+      </member>
+      <member name="english_baseline_sentence">
+        <cdata format="any"/>
+      </member>
+      <member name="czech_source_sentence">
+        <cdata format="any"/>
+      </member>
+      <member name="czech_target_sentence">
+        <cdata format="any"/>
+      </member>
+      <member name="czech_baseline_sentence">
+        <cdata format="any"/>
+      </member>
+      <member name="trees">
+        <structure>
+          <member name="SAnyM" type="m-root.type"/>
+          <member name="SEnglishP" type="english_p_nonterminal.type"/>
+          <member name="SEnglishM" type="english_m_root.type"/>
+          <member name="SEnglishA" type="a-root.type"/>
+          <member name="SEnglishT" type="t-root.type"/>
+          <member name="TEnglishT" type="t-root.type"/>
+          <member name="TEnglishA" type="TCzechA-root.type"/>
+          <member name="SCzechT" type="t-root.type"/>
+          <member name="TCzechT" type="TCzechT-root.type"/>
+          <member name="TCzechA" type="TCzechA-root.type"/>
+          <member name="SCzechM" type="czech_m_root.type"/>
+          <member name="SCzechA" type="a-root.type"/>
+          <member name="SCzechN" type="n-root.type"/>
+        </structure>
+      </member>
+    </structure>
+  </type>
+  <!-- generic (language-independent) m-layer representation -->
+  <type name="m-root.type">
+    <structure role="#NODE" name="m-root">
+      <member name="id" role="#ID" as_attribute="1" required="0">
+        <cdata format="ID"/>
+      </member>
+      <member name="children" role="#CHILDNODES">
+        <list type="m-node.type" ordered="1"/>
+      </member>
+    </structure>
+  </type>
+  <type name="m-node.type">
+    <structure name="m-node" role="#NODE">
+      <member name="id" as_attribute="1" role="#ID" required="0">
+        <cdata format="ID"/>
+      </member>
+      <!--      <member name="src.rf"><cdata format="PMLREF"/></member>
+      <member name="w.rf">
+        <list ordered="1" role="#KNIT" type="w-node.type"/>
+      </member> -->
+      <member name="form_change" type="m-form_change.type">
+        <!--        <choice>
+          <value>ctcd</value>
+          <value>spell</value>
+          <value>insert</value>
+          <value>num_normalization</value>
+        </choice> -->
+      </member>
+      <!--
+        Offset is position (starting with 0) of the first character of the form in the source sentence.
+        It is needed for late sentence segmentation.
+        (20.6.2008 zeman)
+      -->
+      <member name="offset">
+        <cdata format="any"/>
+      </member>
+      <member name="form">
+        <cdata format="any"/>
+      </member>
+      <member name="lemma">
+        <cdata format="any"/>
+      </member>
+      <member name="tag">
+        <cdata format="any"/>
+      </member>
+      <!--
+        2.1.2008 ptacek: need this for get_sentence_string()
+        but I don't want to introduce the whole w-machinery,
+        so I just lift it into the a-layer, your opinion/criticism is welcome
+      -->
+      <member name="no_space_after" type="bool.type"/>
+      <!-- 15.1.2008 marecek: word alignment -->
+      <member name="walign">
+        <structure>
+          <member name="sure.rf">
+            <list ordered="0">
+              <cdata format="PMLREF"/>
+            </list>
+          </member>
+          <member name="possible.rf">
+            <list ordered="0">
+              <cdata format="PMLREF"/>
+            </list>
+          </member>
+        </structure>
+      </member>
+    </structure>
+  </type>
+  <!-- English p-layer representation -->
+  <type name="english_p_nonterminal.type">
+    <structure role="#NODE">
+      <member name="id" role="#ID" as_attribute="1" required="1">
+        <cdata format="ID"/>
+      </member>
+      <member name="is_head">
+        <cdata format="any"/>
+      </member>
+      <member name="head_selection_rule">
+        <cdata format="any"/>
+      </member>
+      <member name="is_collins_head">
+        <cdata format="any"/>
+      </member>
+      <member name="phrase" type="english_p_phrase.type"/>
+      <member name="functions">
+        <list type="english_p_function.type" ordered="1"/>
+      </member>
+      <member name="index">
+        <cdata format="any"/>
+      </member>
+      <member name="coindex">
+        <cdata format="any"/>
+      </member>
+      <member name="children" role="#CHILDNODES">
+        <sequence role="#CHILDNODES">
+          <element name="nonterminal" type="english_p_nonterminal.type"/>
+          <element name="terminal" type="english_p_terminal.type"/>
+        </sequence>
+      </member>
+    </structure>
+  </type>
+  <type name="english_p_terminal.type">
+    <structure role="#NODE">
+      <member name="id" role="#ID" as_attribute="1" required="1">
+        <cdata format="ID"/>
+      </member>
+      <member name="is_head">
+        <cdata format="any"/>
+      </member>
+      <member name="head_selection_rule">
+        <cdata format="any"/>
+      </member>
+      <member name="is_collins_head">
+        <cdata format="any"/>
+      </member>
+      <member name="index">
+        <cdata format="any"/>
+      </member>
+      <member name="coindex">
+        <cdata format="any"/>
+      </member>
+      <member name="form">
+        <cdata format="any"/>
+      </member>
+      <member name="lemma">
+        <cdata format="any"/>
+      </member>
+      <member name="tag" type="english_p_postag.type"/>
+      <!--        <member name="m.rf" role="#KNIT" type="m-node.type"/> -->
+    </structure>
+  </type>
+  <type name="english_p_phrase.type">
+    <choice>
+      <value>S</value>
+      <value>SBAR</value>
+      <value>SBARQ</value>
+      <value>SINV</value>
+      <value>SQ</value>
+      <value>ADJP</value>
+      <value>ADVP</value>
+      <value>CONJP</value>
+      <value>FRAG</value>
+      <value>INTJ</value>
+      <value>LST</value>
+      <value>NAC</value>
+      <value>NP</value>
+      <value>NX</value>
+      <value>PP</value>
+      <value>PRN</value>
+      <value>PRT</value>
+      <value>QP</value>
+      <value>RRC</value>
+      <value>UCP</value>
+      <value>VP</value>
+      <value>WHADJP</value>
+      <value>WHADVP</value>
+      <value>WHNP</value>
+      <value>WHPP</value>
+      <value>X</value>
+      <value>TOP</value>
+      <!-- added because of the collins parser -->
+      <value>NPB</value>
+      <!-- added because of the collins parser -->
+    </choice>
+  </type>
+  <type name="english_p_function.type">
+    <choice>
+      <value>ADV</value>
+      <value>NOM</value>
+      <value>DTV</value>
+      <value>LGS</value>
+      <value>PRD</value>
+      <value>PUT</value>
+      <value>SBJ</value>
+      <value>TPC</value>
+      <value>VOC</value>
+      <value>BNF</value>
+      <value>DIR</value>
+      <value>EXT</value>
+      <value>LOC</value>
+      <value>MNR</value>
+      <value>PRP</value>
+      <value>TMP</value>
+      <value>CLR</value>
+      <value>CLF</value>
+      <value>HLN</value>
+      <value>TTL</value>
+    </choice>
+  </type>
+  <type name="english_p_postag.type">
+    <choice>
+      <value>CC</value>
+      <value>CD</value>
+      <value>DT</value>
+      <value>EX</value>
+      <value>FW</value>
+      <value>IN</value>
+      <value>JJ</value>
+      <value>JJR</value>
+      <value>JJS</value>
+      <value>LS</value>
+      <value>MD</value>
+      <value>NN</value>
+      <value>NNS</value>
+      <value>NNP</value>
+      <value>NNPS</value>
+      <value>PDT</value>
+      <value>POS</value>
+      <value>PRP</value>
+      <value>PRP$</value>
+      <value>RB</value>
+      <value>RBR</value>
+      <value>RBS</value>
+      <value>RP</value>
+      <value>SYM</value>
+      <value>TO</value>
+      <value>UH</value>
+      <value>VB</value>
+      <value>VBD</value>
+      <value>VBG</value>
+      <value>VBN</value>
+      <value>VBP</value>
+      <value>VBZ</value>
+      <value>WDT</value>
+      <value>WP</value>
+      <value>WP$</value>
+      <value>WPS</value>
+      <value>WRB</value>
+      <value>-NONE-</value>
+      <value>-LRB-</value>
+      <value>-RRB-</value>
+      <value>-LSB-</value>
+      <value>-RSB-</value>
+      <value>-LCB-</value>
+      <value>-RCB-</value>
+      <value>,</value>
+      <value>.</value>
+      <value>:</value>
+      <value>$</value>
+      <value>``</value>
+      <value>''</value>
+      <value>#</value>
+      <!-- values generated by  Lingua::EN::Tagger -->
+      <!--      <value>PP</value>
+      <value>PPC</value>
+      <value>PPD</value>
+      <value>PPL</value>
+      <value>PPR</value>
+      <value>PPS</value>
+      <value>LRB</value>
+      <value>RRB</value> -->
+    </choice>
+  </type>
+  <!--  English a-layer representation -->
+  <type name="a-root.type">
+    <structure role="#NODE" name="a-root">
+      <member name="id" role="#ID" as_attribute="1" required="1">
+        <cdata format="ID"/>
+      </member>
+      <member name="ptree.rf">
+        <!-- pridano na navrh Jirky -->
+        <cdata format="PMLREF"/>
+      </member>
+      <member name="s.rf">
+        <cdata format="PMLREF"/>
+      </member>
+      <member name="afun">
+        <constant>AuxS</constant>
+      </member>
+      <member name="ord" role="#ORDER" required="1">
+        <cdata format="nonNegativeInteger"/>
+      </member>
+      <member name="children" role="#CHILDNODES">
+        <list type="a-node.type" ordered="1"/>
+      </member>
+    </structure>
+  </type>
+  <type name="a-node.type">
+    <structure role="#NODE" name="a-node">
+      <member name="id" role="#ID" as_attribute="1" required="1">
+        <cdata format="ID"/>
+      </member>
+      <!--      <member name="m.rf" role="#KNIT" type="m-node.type"/> -->
+      <member name="m" type="m-node.type"/>
+      <member name="afun" type="afun.type"/>
+      <member name="is_member" type="bool.type"/>
+      <member type="bool.type" name="is_parenthesis_root"/>
+      <member name="ord" role="#ORDER" required="1">
+        <cdata format="nonNegativeInteger"/>
+      </member>
+      <member name="children" role="#CHILDNODES">
+        <list type="a-node.type" ordered="1"/>
+      </member>
+      <member name="p" type="a-p.type"/>
+      <!-- pridano na navrh Jirky      -->
+      <member type="bool.type" name="is_aux_to_child"/>
+      <member type="bool.type" name="is_aux_to_parent"/>
+      <member type="bool.type" name="parent_is_aux"/>
+      <member name="conll_deprel">
+        <cdata format="any"/>
+      </member>
+    </structure>
+  </type>
+  <type name="a-p.type">
+    <!-- pridano na navrh Jirky -->
+    <structure>
+      <member name="terminal.rf">
+        <cdata format="PMLREF"/>
+      </member>
+      <member name="nonterminals.rf">
+        <list ordered="0">
+          <cdata format="PMLREF"/>
+        </list>
+      </member>
+    </structure>
+  </type>
+  <type name="afun.type">
+    <choice>
+      <value>Pred</value>
+      <value>Pnom</value>
+      <value>AuxV</value>
+      <value>Sb</value>
+      <value>Obj</value>
+      <value>Atr</value>
+      <value>Adv</value>
+      <value>AtrAdv</value>
+      <value>AdvAtr</value>
+      <value>Coord</value>
+      <value>AtrObj</value>
+      <value>ObjAtr</value>
+      <value>AtrAtr</value>
+      <value>AuxT</value>
+      <value>AuxR</value>
+      <value>AuxP</value>
+      <value>Apos</value>
+      <value>ExD</value>
+      <value>AuxC</value>
+      <value>Atv</value>
+      <value>AtvV</value>
+      <value>AuxO</value>
+      <value>AuxZ</value>
+      <value>AuxY</value>
+      <value>AuxG</value>
+      <value>AuxK</value>
+      <value>AuxX</value>
+    </choice>
+  </type>
+  <!--  English m-layer representation -->
+  <type name="english_m_root.type">
+    <structure role="#NODE" name="m-root">
+      <member name="id" role="#ID" as_attribute="1" required="0">
+        <cdata format="ID"/>
+      </member>
+      <member name="children" role="#CHILDNODES">
+        <list type="m-node.type" ordered="1"/>
+      </member>
+    </structure>
+  </type>
+  <!--
+  <type name="w-node.type">
+    <structure name="w-node">
+      <member name="id" as_attribute="1" role="#ID" required="1"><cdata format="ID"/></member>
+      <member name="token" required="1"><cdata format="any"/></member>
+      <member name="no_space_after" type="bool.type"/>
+    </structure>
+  </type>
+-->
+  <!-- Root of the English (source-language) m-layer representation -->
+  <!--
+
+  <type name="english_m_root.type">
+    <structure role="#NODE" name="english_m_root">
+      <member name="id" role="#ID" as_attribute="1" required="1"><cdata format="ID"/></member>
+      <member name="children" role="#CHILDNODES">
+        <list type="english_m_node.type" ordered="1"/>
+      </member>
+    </structure>
+  </type>
+
+-->
+  <!-- Tokens of the English (source-language) m-layer representation -->
+  <!--
+  <import type="m-node.type" schema="mdata_schema.xml" />
+  <adapt name="english_m_node.type" source="m-node.type"/>
+-->
+  <!--     <structure>
+     <member name="vlkojesterka" required="1"><cdata
+     format="any"/></member>
+     </structure>
+  </adapt> -->
+  <!--  English t-layer representation -->
+  <type name="t-root.type">
+    <structure role="#NODE" name="t-root">
+      <member as_attribute="1" name="id" role="#ID" required="1">
+        <cdata format="ID"/>
+      </member>
+      <member name="atree.rf">
+        <cdata format="PMLREF"/>
+      </member>
+      <member name="nodetype">
+        <constant>root</constant>
+      </member>
+      <member name="cze_sentence">
+        <cdata format="any"/>
+      </member>
+      <member name="deepord" required="0">
+        <!-- zakomentovane role="#ORDER" -->
+        <cdata format="nonNegativeInteger"/>
+      </member>
+      <member name="children" role="#CHILDNODES">
+        <list ordered="1" type="t-node.type"/>
+      </member>
+    </structure>
+  </type>
+  <type name="t-node.type">
+    <structure role="#NODE" name="t-node">
+      <member as_attribute="1" name="id" role="#ID" required="1">
+        <cdata format="ID"/>
+      </member>
+      <member name="a" type="t-a.type"/>
+      <member name="compl.rf">
+        <list ordered="0">
+          <cdata format="PMLREF"/>
+        </list>
+      </member>
+      <member name="coref_text.rf">
+        <list ordered="0">
+          <cdata format="PMLREF"/>
+        </list>
+      </member>
+      <member name="coref_gram.rf">
+        <list ordered="0">
+          <cdata format="PMLREF"/>
+        </list>
+      </member>
+      <member name="coref_special" type="coref_special.type"/>
+      <member name="val_frame.rf">
+        <alt>
+          <cdata format="PMLREF"/>
+        </alt>
+      </member>
+      <member name="nodetype" type="t-nodetype.type"/>
+      <member name="is_generated" type="bool.type"/>
+      <member name="t_lemma">
+        <cdata format="any"/>
+      </member>
+      <member name="functor">
+        <alt type="func.type"/>
+      </member>
+      <member name="subfunctor" type="t-subfunctor.type"/>
+      <member name="is_member" type="bool.type"/>
+      <member name="is_name_of_person" type="bool.type"/>
+      <member name="quot">
+        <list ordered="0">
+          <structure>
+            <member name="type" type="t-type.type"/>
+            <member name="set_id">
+              <cdata format="any"/>
+            </member>
+          </structure>
+        </list>
+      </member>
+      <member name="is_dsp_root" type="bool.type"/>
+      <member name="sentmod" type="t-sentmod.type"/>
+      <member name="gram" type="t-gram.type"/>
+      <member name="named_entity" type="t-named_entity.type"/>
+      <member name="tfa" type="t-tfa.type"/>
+      <member name="is_parenthesis" type="bool.type"/>
+      <member name="is_state" type="bool.type"/>
+      <member name="is_name" type="bool.type"/>
+      <member name="is_passive" type="bool.type"/>
+      <member name="voice">
+        <cdata format="any"/>
+      </member>
+      <!-- pro anglictinu active/passive, pro cestinu jich bude vic! -->
+      <member name="is_infin" type="bool.type"/>
+      <member name="is_reflexive" type="bool.type"/>
+      <member name="is_optimizable" type="bool.type"/>
+      <member name="is_clause_head" type="bool.type"/>
+      <member name="is_relclause_head" type="bool.type"/>
+      <member name="deepord">
+        <!-- zakomentovana  role="#ORDER" -->
+        <cdata format="nonNegativeInteger"/>
+      </member>
+      <member name="children" role="#CHILDNODES">
+        <list ordered="1" type="t-node.type"/>
+      </member>
+      <member name="formeme">
+        <cdata format="any"/>
+      </member>
+      <member name="aligned.rf">
+        <cdata format="PMLREF"/>
+      </member>
+      <member name="align">
+        <structure>
+          <member name="links">
+            <list ordered="0" type="align-links.type"/>
+          </member>
+          <member name="giza_links">
+            <list ordered="0" type="align-links.type"/>
+          </member>
+          <member name="manual_links">
+            <list ordered="0" type="align-links.type"/>
+          </member>
+          <!-- THIS WILL BE DELETED - START -->
+          <member name="head.rf">
+            <cdata format="PMLREF"/>
+          </member>
+          <member name="automatic.rf">
+            <list ordered="0">
+              <cdata format="PMLREF"/>
+            </list>
+          </member>
+          <member name="manual.rf">
+            <list ordered="0">
+              <cdata format="PMLREF"/>
+            </list>
+          </member>
+          <member name="sure.rf">
+            <list ordered="0">
+              <cdata format="PMLREF"/>
+            </list>
+          </member>
+          <!-- THIS WILL BE DELETED - END -->
+          <member name="rules">
+            <list ordered="0">
+              <cdata format="any"/>
+            </list>
+          </member>
+          <member name="is_aligned_edge" type="bool.type"/>
+          <member name="t_lemma_variants">
+            <list ordered="0">
+              <cdata format="any"/>
+            </list>
+          </member>
+        </structure>
+      </member>
+      <member name="source">
+        <structure>
+          <member name="head.rf">
+            <cdata format="PMLREF"/>
+          </member>
+        </structure>
+      </member>
+      <member name="clause_number">
+        <cdata format="any"/>
+      </member>
+    </structure>
+  </type>
+  <type name="align-links.type">
+    <structure>
+      <member name="counterpart.rf">
+        <cdata format="PMLREF"/>
+      </member>
+      <member name="type">
+        <cdata format="any"/>
+      </member>
+    </structure>
+  </type>
+  <!--
+ <type name="t-alignment.type">
+     <structure>
+
+       <member name="t_lemma_variants">
+         <list ordered="0">
+           <cdata format="any"/>
+         </list>
+       </member>
+
+       <member name="lex.rf">
+         <cdata format="PMLREF"/>
+       </member>
+       <member name="aux.rf">
+         <list ordered="0">
+           <cdata format="PMLREF"/>
+         </list>
+       </member>
+     </structure>
+ </type>
+-->
+  <type name="t-tfa.type">
+    <choice>
+      <value>t</value>
+      <value>f</value>
+      <value>c</value>
+    </choice>
+  </type>
+  <type name="t-gram.type">
+    <structure>
+      <member name="sempos" type="t-sempos.type"/>
+      <member name="gender" type="t-gender.type"/>
+      <member name="number" type="t-number.type"/>
+      <member name="degcmp" type="t-degcmp.type"/>
+      <member name="verbmod" type="t-verbmod.type"/>
+      <member name="deontmod" type="t-deontmod.type"/>
+      <member name="tense" type="t-tense.type"/>
+      <member name="aspect" type="t-aspect.type"/>
+      <member name="resultative" type="t-resultative.type"/>
+      <member name="dispmod" type="t-dispmod.type"/>
+      <member name="iterativeness" type="t-iterativeness.type"/>
+      <member name="indeftype" type="t-indeftype.type"/>
+      <member name="person" type="t-person.type"/>
+      <member name="numertype" type="t-numertype.type"/>
+      <member name="politeness" type="t-politeness.type"/>
+      <member name="negation" type="t-negation.type"/>
+    </structure>
+  </type>
+  <type name="t-named_entity.type">
+    <structure>
+      <member name="number">
+        <cdata format="any"/>
+      </member>
+      <member name="type" type="t-ne-type.type"/>
+    </structure>
+  </type>
+  <type name="t-ne-type.type">
+    <choice>
+      <value>person</value>
+      <value>organization</value>
+      <value>location</value>
+    </choice>
+  </type>
+  <type name="t-negation.type">
+    <choice>
+      <value>neg0</value>
+      <value>neg1</value>
+      <value>nr</value>
+    </choice>
+  </type>
+  <type name="t-politeness.type">
+    <choice>
+      <value>polite</value>
+      <value>basic</value>
+      <value>inher</value>
+      <value>nr</value>
+    </choice>
+  </type>
+  <type name="t-numertype.type">
+    <choice>
+      <value>basic</value>
+      <value>set</value>
+      <value>kind</value>
+      <value>ord</value>
+      <value>frac</value>
+      <value>nr</value>
+    </choice>
+  </type>
+  <type name="t-person.type">
+    <choice>
+      <value>1</value>
+      <value>2</value>
+      <value>3</value>
+      <value>inher</value>
+      <value>nr</value>
+    </choice>
+  </type>
+  <type name="t-indeftype.type">
+    <choice>
+      <value>relat</value>
+      <value>indef1</value>
+      <value>indef2</value>
+      <value>indef3</value>
+      <value>indef4</value>
+      <value>indef5</value>
+      <value>indef6</value>
+      <value>inter</value>
+      <value>negat</value>
+      <value>total1</value>
+      <value>total2</value>
+      <value>nr</value>
+    </choice>
+  </type>
+  <type name="t-iterativeness.type">
+    <choice>
+      <value>it1</value>
+      <value>it0</value>
+      <value>nr</value>
+    </choice>
+  </type>
+  <type name="t-dispmod.type">
+    <choice>
+      <value>disp1</value>
+      <value>disp0</value>
+      <value>nr</value>
+      <value>nil</value>
+    </choice>
+  </type>
+  <type name="t-resultative.type">
+    <choice>
+      <value>res1</value>
+      <value>res0</value>
+      <value>nr</value>
+    </choice>
+  </type>
+  <type name="t-aspect.type">
+    <choice>
+      <value>proc</value>
+      <value>cpl</value>
+      <value>nr</value>
+    </choice>
+  </type>
+  <type name="t-tense.type">
+    <choice>
+      <value>sim</value>
+      <value>ant</value>
+      <value>post</value>
+      <value>nr</value>
+      <value>nil</value>
+    </choice>
+  </type>
+  <type name="t-deontmod.type">
+    <choice>
+      <value>deb</value>
+      <value>hrt</value>
+      <value>vol</value>
+      <value>poss</value>
+      <value>perm</value>
+      <value>fac</value>
+      <value>decl</value>
+      <value>nr</value>
+    </choice>
+  </type>
+  <type name="t-verbmod.type">
+    <choice>
+      <value>ind</value>
+      <value>imp</value>
+      <value>cdn</value>
+      <value>nr</value>
+      <value>nil</value>
+    </choice>
+  </type>
+  <type name="t-degcmp.type">
+    <choice>
+      <value>pos</value>
+      <value>comp</value>
+      <value>acomp</value>
+      <value>sup</value>
+      <value>nr</value>
+    </choice>
+  </type>
+  <type name="t-number.type">
+    <choice>
+      <value>sg</value>
+      <value>pl</value>
+      <value>inher</value>
+      <value>nr</value>
+    </choice>
+  </type>
+  <type name="t-gender.type">
+    <choice>
+      <value>anim</value>
+      <value>inan</value>
+      <value>fem</value>
+      <value>neut</value>
+      <value>inher</value>
+      <value>nr</value>
+    </choice>
+  </type>
+  <type name="t-sempos.type">
+    <choice>
+      <value>n.denot</value>
+      <value>n.denot.neg</value>
+      <value>n.pron.def.demon</value>
+      <value>n.pron.def.pers</value>
+      <value>n.pron.indef</value>
+      <value>n.quant.def</value>
+      <value>adj.denot</value>
+      <value>adj.pron.def.demon</value>
+      <value>adj.pron.indef</value>
+      <value>adj.quant.def</value>
+      <value>adj.quant.indef</value>
+      <value>adj.quant.grad</value>
+      <value>adv.denot.grad.nneg</value>
+      <value>adv.denot.ngrad.nneg</value>
+      <value>adv.denot.grad.neg</value>
+      <value>adv.denot.ngrad.neg</value>
+      <value>adv.pron.def</value>
+      <value>adv.pron.indef</value>
+      <value>v</value>
+    </choice>
+  </type>
+  <type name="t-sentmod.type">
+    <choice>
+      <value>enunc</value>
+      <value>excl</value>
+      <value>desid</value>
+      <value>imper</value>
+      <value>inter</value>
+    </choice>
+  </type>
+  <type name="t-type.type">
+    <choice>
+      <value>citation</value>
+      <value>dsp</value>
+      <value>meta</value>
+      <value>other</value>
+      <value>title</value>
+    </choice>
+  </type>
+  <type name="t-subfunctor.type">
+    <choice>
+      <value>above</value>
+      <value>abstr</value>
+      <value>across</value>
+      <value>after</value>
+      <value>agst</value>
+      <value>along</value>
+      <value>approx</value>
+      <value>around</value>
+      <value>basic</value>
+      <value>before</value>
+      <value>begin</value>
+      <value>behind</value>
+      <value>below</value>
+      <value>betw</value>
+      <value>circ</value>
+      <value>elsew</value>
+      <value>end</value>
+      <value>ext</value>
+      <value>flow</value>
+      <value>front</value>
+      <value>incl</value>
+      <value>in</value>
+      <value>less</value>
+      <value>mid</value>
+      <value>more</value>
+      <value>near</value>
+      <value>opp</value>
+      <value>target</value>
+      <value>than</value>
+      <value>to</value>
+      <value>wout</value>
+      <value>wrt</value>
+      <value>nr</value>
+    </choice>
+  </type>
+  <type name="t-nodetype.type">
+    <choice>
+      <value>atom</value>
+      <value>coap</value>
+      <value>complex</value>
+      <value>dphr</value>
+      <value>fphr</value>
+      <value>list</value>
+      <value>qcomplex</value>
+    </choice>
+  </type>
+  <type name="t-a.type">
+    <structure>
+      <member name="lex.rf">
+        <cdata format="PMLREF"/>
+      </member>
+      <member name="aux.rf">
+        <list ordered="0">
+          <cdata format="PMLREF"/>
+        </list>
+      </member>
+    </structure>
+  </type>
+  <type name="coref_special.type">
+    <choice>
+      <value>segm</value>
+      <value>exoph</value>
+    </choice>
+  </type>
+  <type name="func.type">
+    <choice>
+      <value>ACT</value>
+      <value>AUTH</value>
+      <value>PAT</value>
+      <value>ADDR</value>
+      <value>EFF</value>
+      <value>ORIG</value>
+      <value>ACMP</value>
+      <value>ADVS</value>
+      <value>AIM</value>
+      <value>APP</value>
+      <value>APPS</value>
+      <value>ATT</value>
+      <value>BEN</value>
+      <value>CAUS</value>
+      <value>CNCS</value>
+      <value>CM</value>
+      <value>COMPL</value>
+      <value>CONJ</value>
+      <value>COND</value>
+      <value>CONFR</value>
+      <value>CONTRA</value>
+      <value>CONTRD</value>
+      <value>CPHR</value>
+      <value>CPR</value>
+      <value>CRIT</value>
+      <value>CSQ</value>
+      <value>DENOM</value>
+      <value>DIFF</value>
+      <value>DIR1</value>
+      <value>DIR2</value>
+      <value>DIR3</value>
+      <value>DISJ</value>
+      <value>DPHR</value>
+      <value>EXT</value>
+      <value>FPHR</value>
+      <value>GRAD</value>
+      <value>HER</value>
+      <value>ID</value>
+      <value>INTF</value>
+      <value>INTT</value>
+      <value>LOC</value>
+      <value>MANN</value>
+      <value>MAT</value>
+      <value>MEANS</value>
+      <value>MOD</value>
+      <value>OPER</value>
+      <value>PAR</value>
+      <value>PARTL</value>
+      <value>PREC</value>
+      <value>PRED</value>
+      <value>REAS</value>
+      <value>REG</value>
+      <value>RESL</value>
+      <value>RESTR</value>
+      <value>RHEM</value>
+      <value>RSTR</value>
+      <value>SUBS</value>
+      <value>TFHL</value>
+      <value>TFRWH</value>
+      <value>THL</value>
+      <value>THO</value>
+      <value>TOWH</value>
+      <value>TPAR</value>
+      <value>TSIN</value>
+      <value>TTILL</value>
+      <value>TWHEN</value>
+      <value>VOCAT</value>
+      <value>DESCR</value>
+      <value>???</value>
+    </choice>
+  </type>
+  <type name="bool.type">
+    <choice>
+      <value>0</value>
+      <value>1</value>
+    </choice>
+  </type>
+  <!-- ######################################3 -->
+  <type name="czech_m_root.type">
+    <structure role="#NODE" name="m-root">
+      <member name="id" role="#ID" as_attribute="1" required="0">
+        <cdata format="ID"/>
+      </member>
+      <member name="children" role="#CHILDNODES">
+        <list type="m-node.type" ordered="1"/>
+      </member>
+    </structure>
+  </type>
+  <type name="m-form_change.type">
+    <choice>
+      <value>ctcd</value>
+      <value>spell</value>
+      <value>insert</value>
+      <value>num_normalization</value>
+    </choice>
+  </type>
+  <!-- named entities -->
+  <type name="n-root.type">
+    <structure role="#NODE" name="a-root">
+      <member name="children" role="#CHILDNODES">
+        <list type="n-node.type" ordered="1"/>
+      </member>
+    </structure>
+  </type>
+  <type name="n-node.type">
+    <structure role="#NODE" name="a-node">
+      <member name="id" role="#ID" as_attribute="1" required="1">
+        <cdata format="ID"/>
+      </member>
+      <member name="ne_type">
+        <cdata format="any"/>
+      </member>
+      <member name="normalized_name">
+        <cdata format="any"/>
+      </member>
+      <member name="m.rf">
+        <list ordered="0">
+          <cdata format="PMLREF"/>
+        </list>
+      </member>
+      <member name="children" role="#CHILDNODES">
+        <list type="n-node.type" ordered="1"/>
+      </member>
+    </structure>
+  </type>
+  <!--  -->
+  <type name="TCzechA-root.type">
+    <structure role="#NODE" name="a-root">
+      <member name="id" role="#ID" as_attribute="1" required="1">
+        <cdata format="ID"/>
+      </member>
+      <member name="s.rf">
+        <cdata format="PMLREF"/>
+      </member>
+      <member name="xxx.rf">
+        <cdata format="PMLREF"/>
+      </member>
+      <member name="afun">
+        <constant>AuxS</constant>
+      </member>
+      <member name="ord" role="#ORDER" required="1">
+        <cdata format="nonNegativeInteger"/>
+      </member>
+      <member name="children" role="#CHILDNODES">
+        <list type="TCzechA-node.type" ordered="1"/>
+      </member>
+    </structure>
+  </type>
+  <type name="TCzechA-node.type">
+    <structure role="#NODE" name="a-node">
+      <member name="id" role="#ID" as_attribute="1" required="1">
+        <cdata format="ID"/>
+      </member>
+      <member name="m" type="m-node.type"/>
+      <member name="afun" type="afun.type"/>
+      <member name="is_member" type="bool.type"/>
+      <member type="bool.type" name="is_parenthesis_root"/>
+      <member name="ord" role="#ORDER" required="1">
+        <cdata format="nonNegativeInteger"/>
+      </member>
+      <member name="children" role="#CHILDNODES">
+        <list type="TCzechA-node.type" ordered="1"/>
+      </member>
+      <member name="morphcat" type="czech_morphcat.type"/>
+      <member name="clause_number">
+        <cdata format="any"/>
+      </member>
+    </structure>
+  </type>
+  <type name="czech_morphcat.type">
+    <structure>
+      <member name="pos">
+        <cdata format="any"/>
+      </member>
+      <member name="subpos">
+        <cdata format="any"/>
+      </member>
+      <member name="gender">
+        <cdata format="any"/>
+      </member>
+      <member name="number">
+        <cdata format="any"/>
+      </member>
+      <member name="case">
+        <cdata format="any"/>
+      </member>
+      <member name="possgender">
+        <cdata format="any"/>
+      </member>
+      <member name="possnumber">
+        <cdata format="any"/>
+      </member>
+      <member name="person">
+        <cdata format="any"/>
+      </member>
+      <member name="tense">
+        <cdata format="any"/>
+      </member>
+      <member name="grade">
+        <cdata format="any"/>
+      </member>
+      <member name="negation">
+        <cdata format="any"/>
+      </member>
+      <member name="voice">
+        <cdata format="any"/>
+      </member>
+      <member name="reserve1">
+        <cdata format="any"/>
+      </member>
+      <member name="reserve2">
+        <cdata format="any"/>
+      </member>
+    </structure>
+  </type>
+  <!--   TCzechT trees  -->
+  <!--   -->
+  <type name="translation_model.type">
+    <structure>
+      <member name="t_lemma_variants">
+        <list ordered="0">
+          <structure>
+            <member name="t_lemma">
+              <cdata format="any"/>
+            </member>
+            <member name="pos">
+              <cdata format="any"/>
+            </member>
+            <member name="source">
+              <cdata format="any"/>
+            </member>
+            <member name="prob_Lt_given_Ls">
+              <cdata format="any"/>
+            </member>
+          </structure>
+        </list>
+      </member>
+      <member name="formeme_variants">
+        <list ordered="0">
+          <structure>
+            <member name="formeme">
+              <cdata format="any"/>
+            </member>
+            <member name="prob_Ft_given_Fs">
+              <cdata format="any"/>
+            </member>
+          </structure>
+        </list>
+      </member>
+    </structure>
+  </type>
+  <type name="language_model.type">
+    <structure>
+      <member name="gfd" type="logcount_table.type"/>
+      <member name="gf" type="logcount_table.type"/>
+      <member name="fd" type="logcount_table.type"/>
+      <member name="d" type="logcount_table.type"/>
+    </structure>
+  </type>
+  <type name="logcount_table.type">
+    <list ordered="0">
+      <structure>
+        <member name="key">
+          <cdata format="any"/>
+        </member>
+        <member name="logcount">
+          <cdata format="any"/>
+        </member>
+      </structure>
+    </list>
+  </type>
+  <type name="transition_scores.type">
+    <list ordered="0">
+      <structure>
+        <member name="hint">
+          <cdata format="any"/>
+        </member>
+        <member name="score">
+          <cdata format="any"/>
+        </member>
+        <member name="my_lexeme_index">
+          <cdata format="any"/>
+        </member>
+        <member name="my_formeme_index">
+          <cdata format="any"/>
+        </member>
+        <member name="eparent_lexeme_index">
+          <cdata format="any"/>
+        </member>
+      </structure>
+    </list>
+  </type>
+  <type name="subtree_scores.type">
+    <list ordered="0">
+      <structure>
+        <member name="hint">
+          <cdata format="any"/>
+        </member>
+        <member name="score">
+          <cdata format="any"/>
+        </member>
+        <member name="my_lexeme_index">
+          <cdata format="any"/>
+        </member>
+        <member name="transitions_to_echildren">
+          <list ordered="0">
+            <structure>
+              <member name="echild_id">
+                <cdata format="any"/>
+              </member>
+              <member name="echild_lexeme_index">
+                <cdata format="any"/>
+              </member>
+              <member name="echild_formeme_index">
+                <cdata format="any"/>
+              </member>
+            </structure>
+          </list>
+        </member>
+      </structure>
+    </list>
+  </type>
+  <!--  ============ derived from t-root.type ============  -->
+  <type name="TCzechT-root.type">
+    <structure role="#NODE" name="t-root">
+      <member as_attribute="1" name="id" role="#ID" required="1">
+        <cdata format="ID"/>
+      </member>
+      <member name="atree.rf">
+        <cdata format="PMLREF"/>
+      </member>
+      <member name="nodetype">
+        <constant>root</constant>
+      </member>
+      <member name="cze_sentence">
+        <cdata format="any"/>
+      </member>
+      <member name="deepord" required="0">
+        <!-- zakomentovane role="#ORDER" -->
+        <cdata format="nonNegativeInteger"/>
+      </member>
+      <member name="children" role="#CHILDNODES">
+        <list ordered="1" type="TCzechT-node.type"/>
+      </member>
+    </structure>
+  </type>
+  <!--  ============ derived from t-node.type ============  -->
+  <type name="TCzechT-node.type">
+    <structure role="#NODE" name="t-node">
+      <member as_attribute="1" name="id" role="#ID" required="1">
+        <cdata format="ID"/>
+      </member>
+      <member name="a" type="t-a.type"/>
+      <member name="compl.rf">
+        <list ordered="0">
+          <cdata format="PMLREF"/>
+        </list>
+      </member>
+      <member name="coref_text.rf">
+        <list ordered="0">
+          <cdata format="PMLREF"/>
+        </list>
+      </member>
+      <member name="coref_gram.rf">
+        <list ordered="0">
+          <cdata format="PMLREF"/>
+        </list>
+      </member>
+      <member name="coref_special" type="coref_special.type"/>
+      <member name="val_frame.rf">
+        <alt>
+          <cdata format="PMLREF"/>
+        </alt>
+      </member>
+      <member name="nodetype" type="t-nodetype.type"/>
+      <member name="is_generated" type="bool.type"/>
+      <member name="t_lemma">
+        <cdata format="any"/>
+      </member>
+      <member name="functor">
+        <alt type="func.type"/>
+      </member>
+      <member name="subfunctor" type="t-subfunctor.type"/>
+      <member name="is_member" type="bool.type"/>
+      <member name="is_name_of_person" type="bool.type"/>
+      <member name="quot">
+        <list ordered="0">
+          <structure>
+            <member name="type" type="t-type.type"/>
+            <member name="set_id">
+              <cdata format="any"/>
+            </member>
+          </structure>
+        </list>
+      </member>
+      <member name="is_dsp_root" type="bool.type"/>
+      <member name="sentmod" type="t-sentmod.type"/>
+      <member name="gram" type="t-gram.type"/>
+      <member name="named_entity" type="t-named_entity.type"/>
+      <member name="tfa" type="t-tfa.type"/>
+      <member name="is_parenthesis" type="bool.type"/>
+      <member name="is_state" type="bool.type"/>
+      <member name="is_name" type="bool.type"/>
+      <member name="is_passive" type="bool.type"/>
+      <member name="voice">
+        <cdata format="any"/>
+      </member>
+      <!-- pro anglictinu active/passive, pro cestinu jich bude vic! -->
+      <member name="is_infin" type="bool.type"/>
+      <member name="is_reflexive" type="bool.type"/>
+      <member name="is_optimizable" type="bool.type"/>
+      <member name="is_clause_head" type="bool.type"/>
+      <member name="is_relclause_head" type="bool.type"/>
+      <member name="deepord">
+        <!-- zakomentovana  role="#ORDER" -->
+        <cdata format="nonNegativeInteger"/>
+      </member>
+      <member name="children" role="#CHILDNODES">
+        <list ordered="1" type="TCzechT-node.type"/>
+      </member>
+      <member name="formeme">
+        <cdata format="any"/>
+      </member>
+      <member name="aligned.rf">
+        <cdata format="PMLREF"/>
+      </member>
+      <member name="align">
+        <structure>
+          <member name="links">
+            <list ordered="0" type="align-links.type"/>
+          </member>
+          <member name="giza_links">
+            <list ordered="0" type="align-links.type"/>
+          </member>
+          <member name="manual_links">
+            <list ordered="0" type="align-links.type"/>
+          </member>
+          <!-- THIS WILL BE DELETED - START -->
+          <member name="head.rf">
+            <cdata format="PMLREF"/>
+          </member>
+          <member name="automatic.rf">
+            <list ordered="0">
+              <cdata format="PMLREF"/>
+            </list>
+          </member>
+          <member name="manual.rf">
+            <list ordered="0">
+              <cdata format="PMLREF"/>
+            </list>
+          </member>
+          <member name="sure.rf">
+            <list ordered="0">
+              <cdata format="PMLREF"/>
+            </list>
+          </member>
+          <!-- THIS WILL BE DELETED - END -->
+          <member name="rules">
+            <list ordered="0">
+              <cdata format="any"/>
+            </list>
+          </member>
+          <member name="is_aligned_edge" type="bool.type"/>
+          <member name="t_lemma_variants">
+            <list ordered="0">
+              <cdata format="any"/>
+            </list>
+          </member>
+        </structure>
+      </member>
+      <member name="source">
+        <structure>
+          <member name="head.rf">
+            <cdata format="PMLREF"/>
+          </member>
+        </structure>
+      </member>
+      <member name="clause_number">
+        <cdata format="any"/>
+      </member>
+    </structure>
+  </type>
+</pml_schema>

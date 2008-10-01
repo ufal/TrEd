@@ -1,0 +1,6 @@
+#ifndef cz_t_analysis
+#define cz_t_analysis
+
+#include "cz_t_analysis.mak"
+
+#endif cz_t_analysis
