@@ -2977,7 +2977,7 @@ sub update_attribute_view {
   my $current = $win->{currentNode};
   $attrsView->set_option('no_sort'=>!$sortAttrs);
   $attrsView->set_data({
-    type => $current && $current->type,
+    type => ref($current) && $current->type,
     object => $current,
   });
 }
