@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pml_schema
+  xmlns="http://ufal.mff.cuni.cz/pdt/pml/schema/"
+  version="1.1">
+  <description>English PDT analytical trees</description>
+  <reference name="pdata" readas="trees"/>
+
+  <import type="a-root.type" schema="tmt_schema.xml"/>
+
+  <root name="adata" type="a-adata.type"/>
+
+  <type name="a-adata.type">
+    <structure>
+      <member name="meta" required="0" type="a-meta.type"/>
+      <member name="trees" role="#TREES" required="1">
+	<list type="a-root.type" ordered="1"/>
+      </member>
+    </structure>
+  </type>
+
+  <type name="a-meta.type">
+    <structure>
+      <member name="annotation_info">
+	<structure name="a-annotation-info">
+	  <member name="version_info"><cdata format="any"/></member>
+	  <member name="desc"><cdata format="any"/></member>
+	</structure>
+      </member>
+    </structure>
+  </type>
+
+
+  <!-- prebiti importovaneho: a doplneni-->
+  <type name="m-node.type">
+    <structure name="m-node">
+      <member name="id" as_attribute="1" role="#ID"><cdata format="ID"/></member>
+      <member name="src.rf"><cdata format="PMLREF"/></member>
+      <member name="form_change" type="m-form_change.type"/>
+      <member name="form" required="1"><cdata format="any"/></member>
+      <member name="lemma" required="1"><cdata format="any"/></member>
+      <member name="tag" required="1"><cdata format="any"/></member>
+                <member name="w" required="1">
+                        <list type="w-node.type" ordered="1"/>
+                </member>
+    </structure>
+  </type>
+
+ <type name="w-node.type">
+    <structure name="w-node">
+      <member name="id" as_attribute="1" role="#ID"><cdata format="ID"/></member>
+      <member name="token" required="1"><cdata format="any"/></member>
+      <member name="no_space_after" type="bool.type"/>
+    </structure>
+  </type>
+
+
+</pml_schema>

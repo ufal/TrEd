@@ -1,0 +1,1114 @@
+<?xml version="1.0"?>
+<grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:a="http://relaxng.org/ns/annotation/1.0" xmlns:pml="http://ufal.mff.cuni.cz/pdt/pml/" xmlns:s="http://ufal.mff.cuni.cz/pdt/pml/schema/" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes"><include href="pml_common.rng"/>
+  <a:documentation>PML schema Revision: 1.0.0</a:documentation>
+  <a:documentation>RelaxNG schema for PML described as: Data for TMT (Tecto Machine Translation)</a:documentation>
+  
+  
+  <start><element name="pml:tmt_document"><ref name="head.element"/><interleave>
+      <element name="pml:meta"><ref name="type-meta.type"/></element>
+      <optional><element name="pml:bundles"><choice><zeroOrMore><element name="pml:LM"><ref name="type-bundle.type"/></element></zeroOrMore><ref name="type-bundle.type"/></choice></element></optional>
+    </interleave></element></start>
+  
+  <define name="type-meta.type"><interleave>
+      <optional><element name="pml:source_lang"><ref name="type-lang.type"/></element></optional>
+      <optional><element name="pml:source_text"><text/></element></optional>
+      <optional><element name="pml:source_html"><text/></element></optional>
+      <optional><element name="pml:target_lang"><ref name="type-lang.type"/></element></optional>
+      <optional><element name="pml:target_text"><text/></element></optional>
+      
+      <optional><element name="pml:english_source_text"><text/></element></optional>
+      <optional><element name="pml:english_source_html"><text/></element></optional>
+      <optional><element name="pml:english_target_text"><text/></element></optional>
+      <optional><element name="pml:czech_source_text"><text/></element></optional>
+      <optional><element name="pml:czech_source_html"><text/></element></optional>
+      <optional><element name="pml:czech_target_text"><text/></element></optional>
+    </interleave></define>
+  
+  
+  
+  <define name="type-lang.type"><choice>
+      <value datatypeLibrary="" type="string"/>
+      
+      <value datatypeLibrary="" type="string">cs</value>
+      
+      <value datatypeLibrary="" type="string">en</value>
+      
+      
+      <value datatypeLibrary="" type="string">de</value>
+      
+      <value datatypeLibrary="" type="string">fr</value>
+      
+      <value datatypeLibrary="" type="string">es</value>
+      
+      <value datatypeLibrary="" type="string">it</value>
+      
+      <value datatypeLibrary="" type="string">ru</value>
+      
+      <value datatypeLibrary="" type="string">ar</value>
+      
+      <value datatypeLibrary="" type="string">zh</value>
+      
+      
+      <value datatypeLibrary="" type="string">sk</value>
+      
+      <value datatypeLibrary="" type="string">pl</value>
+      
+      <value datatypeLibrary="" type="string">dsb</value>
+      
+      <value datatypeLibrary="" type="string">hsb</value>
+      
+      <value datatypeLibrary="" type="string">be</value>
+      
+      <value datatypeLibrary="" type="string">uk</value>
+      
+      <value datatypeLibrary="" type="string">sl</value>
+      
+      <value datatypeLibrary="" type="string">hr</value>
+      
+      <value datatypeLibrary="" type="string">sr</value>
+      
+      <value datatypeLibrary="" type="string">mk</value>
+      
+      <value datatypeLibrary="" type="string">bg</value>
+      
+      <value datatypeLibrary="" type="string">cu</value>
+      
+      
+      <value datatypeLibrary="" type="string">nl</value>
+      
+      <value datatypeLibrary="" type="string">af</value>
+      
+      <value datatypeLibrary="" type="string">fy</value>
+      
+      <value datatypeLibrary="" type="string">lb</value>
+      
+      <value datatypeLibrary="" type="string">yi</value>
+      
+      <value datatypeLibrary="" type="string">da</value>
+      
+      <value datatypeLibrary="" type="string">sv</value>
+      
+      <value datatypeLibrary="" type="string">no</value>
+      
+      <value datatypeLibrary="" type="string">nn</value>
+      
+      <value datatypeLibrary="" type="string">fo</value>
+      
+      <value datatypeLibrary="" type="string">is</value>
+      
+      
+      <value datatypeLibrary="" type="string">la</value>
+      
+      <value datatypeLibrary="" type="string">pt</value>
+      
+      <value datatypeLibrary="" type="string">gl</value>
+      
+      <value datatypeLibrary="" type="string">ca</value>
+      
+      <value datatypeLibrary="" type="string">oc</value>
+      
+      <value datatypeLibrary="" type="string">rm</value>
+      
+      <value datatypeLibrary="" type="string">co</value>
+      
+      <value datatypeLibrary="" type="string">sc</value>
+      
+      <value datatypeLibrary="" type="string">ro</value>
+      
+      <value datatypeLibrary="" type="string">mo</value>
+      
+      
+      <value datatypeLibrary="" type="string">ga</value>
+      
+      <value datatypeLibrary="" type="string">gd</value>
+      
+      <value datatypeLibrary="" type="string">cy</value>
+      
+      <value datatypeLibrary="" type="string">br</value>
+      
+      
+      <value datatypeLibrary="" type="string">lt</value>
+      
+      <value datatypeLibrary="" type="string">lv</value>
+      
+      
+      <value datatypeLibrary="" type="string">sq</value>
+      
+      <value datatypeLibrary="" type="string">el</value>
+      
+      <value datatypeLibrary="" type="string">hy</value>
+      
+      
+      <value datatypeLibrary="" type="string">fa</value>
+      
+      <value datatypeLibrary="" type="string">ku-latn</value>
+      
+      <value datatypeLibrary="" type="string">ku-arab</value>
+      
+      <value datatypeLibrary="" type="string">ku-cyrl</value>
+      
+      <value datatypeLibrary="" type="string">os</value>
+      
+      <value datatypeLibrary="" type="string">tg</value>
+      
+      <value datatypeLibrary="" type="string">ps</value>
+      
+      
+      <value datatypeLibrary="" type="string">ks</value>
+      
+      <value datatypeLibrary="" type="string">sd</value>
+      
+      <value datatypeLibrary="" type="string">pa</value>
+      
+      <value datatypeLibrary="" type="string">ur</value>
+      
+      <value datatypeLibrary="" type="string">hi</value>
+      
+      <value datatypeLibrary="" type="string">gu</value>
+      
+      <value datatypeLibrary="" type="string">mr</value>
+      
+      <value datatypeLibrary="" type="string">ne</value>
+      
+      <value datatypeLibrary="" type="string">or</value>
+      
+      <value datatypeLibrary="" type="string">bn</value>
+      
+      <value datatypeLibrary="" type="string">as</value>
+      
+      <value datatypeLibrary="" type="string">rmy</value>
+      
+      
+      <value datatypeLibrary="" type="string">mt</value>
+      
+      <value datatypeLibrary="" type="string">he</value>
+      
+      <value datatypeLibrary="" type="string">am</value>
+      
+      
+      <value datatypeLibrary="" type="string">hu</value>
+      
+      <value datatypeLibrary="" type="string">fi</value>
+      
+      <value datatypeLibrary="" type="string">et</value>
+      
+      
+      <value datatypeLibrary="" type="string">eu</value>
+      
+      <value datatypeLibrary="" type="string">ka</value>
+      
+      <value datatypeLibrary="" type="string">ab</value>
+      
+      <value datatypeLibrary="" type="string">ce</value>
+      
+      
+      <value datatypeLibrary="" type="string">tr</value>
+      
+      <value datatypeLibrary="" type="string">az</value>
+      
+      <value datatypeLibrary="" type="string">cv</value>
+      
+      <value datatypeLibrary="" type="string">ba</value>
+      
+      <value datatypeLibrary="" type="string">tt</value>
+      
+      <value datatypeLibrary="" type="string">tk</value>
+      
+      <value datatypeLibrary="" type="string">uz</value>
+      
+      <value datatypeLibrary="" type="string">kaa</value>
+      
+      <value datatypeLibrary="" type="string">kk</value>
+      
+      <value datatypeLibrary="" type="string">ky</value>
+      
+      <value datatypeLibrary="" type="string">ug</value>
+      
+      <value datatypeLibrary="" type="string">sah</value>
+      
+      
+      <value datatypeLibrary="" type="string">xal</value>
+      
+      <value datatypeLibrary="" type="string">bxr</value>
+      
+      <value datatypeLibrary="" type="string">mn</value>
+      
+      <value datatypeLibrary="" type="string">ko</value>
+      
+      <value datatypeLibrary="" type="string">ja</value>
+      
+      
+      <value datatypeLibrary="" type="string">te</value>
+      
+      <value datatypeLibrary="" type="string">kn</value>
+      
+      <value datatypeLibrary="" type="string">ml</value>
+      
+      <value datatypeLibrary="" type="string">ta</value>
+      
+      
+      <value datatypeLibrary="" type="string">zh</value>
+      
+      <value datatypeLibrary="" type="string">hak</value>
+      
+      <value datatypeLibrary="" type="string">nan</value>
+      
+      <value datatypeLibrary="" type="string">yue</value>
+      
+      <value datatypeLibrary="" type="string">lo</value>
+      
+      <value datatypeLibrary="" type="string">th</value>
+      
+      <value datatypeLibrary="" type="string">my</value>
+      
+      <value datatypeLibrary="" type="string">bo</value>
+      
+      
+      <value datatypeLibrary="" type="string">vi</value>
+      
+      <value datatypeLibrary="" type="string">km</value>
+      
+      
+      <value datatypeLibrary="" type="string">sw</value>
+      
+    </choice></define>
+  <define name="type-bundle.type"><interleave>
+      <attribute name="id"><data type="ID"/></attribute>
+      <optional><element name="pml:source_sentence"><text/></element></optional>
+      
+      <optional><element name="pml:source_translit"><text/></element></optional>
+      <optional><element name="pml:target_sentence"><text/></element></optional>
+      <optional><element name="pml:target_translit"><text/></element></optional>
+      <optional><element name="pml:english_source_sentence"><text/></element></optional>
+      <optional><element name="pml:english_target_sentence"><text/></element></optional>
+      <optional><element name="pml:english_baseline_sentence"><text/></element></optional>
+      <optional><element name="pml:czech_source_sentence"><text/></element></optional>
+      <optional><element name="pml:czech_target_sentence"><text/></element></optional>
+      <optional><element name="pml:czech_baseline_sentence"><text/></element></optional>
+      <optional><element name="pml:trees"><interleave>
+          <optional><element name="pml:SAnyM"><ref name="type-m-root.type"/></element></optional>
+          <optional><element name="pml:SEnglishP"><ref name="type-english_p_nonterminal.type"/></element></optional>
+          <optional><element name="pml:SEnglishM"><ref name="type-english_m_root.type"/></element></optional>
+          <optional><element name="pml:SEnglishA"><ref name="type-a-root.type"/></element></optional>
+          <optional><element name="pml:SEnglishT"><ref name="type-t-root.type"/></element></optional>
+          <optional><element name="pml:TEnglishT"><ref name="type-t-root.type"/></element></optional>
+          <optional><element name="pml:TEnglishA"><ref name="type-TCzechA-root.type"/></element></optional>
+          <optional><element name="pml:SCzechT"><ref name="type-t-root.type"/></element></optional>
+          <optional><element name="pml:TCzechT"><ref name="type-TCzechT-root.type"/></element></optional>
+          <optional><element name="pml:TCzechA"><ref name="type-TCzechA-root.type"/></element></optional>
+          <optional><element name="pml:SCzechM"><ref name="type-czech_m_root.type"/></element></optional>
+          <optional><element name="pml:SCzechA"><ref name="type-a-root.type"/></element></optional>
+          <optional><element name="pml:SCzechN"><ref name="type-n-root.type"/></element></optional>
+        </interleave></element></optional>
+    </interleave></define>
+  
+  <define name="type-m-root.type"><interleave>
+      <optional><attribute name="id"><data type="ID"/></attribute></optional>
+      <optional><element name="pml:children"><choice><zeroOrMore><element name="pml:LM"><ref name="type-m-node.type"/></element></zeroOrMore><ref name="type-m-node.type"/></choice></element></optional>
+    </interleave></define>
+  <define name="type-m-node.type"><interleave>
+      <optional><attribute name="id"><data type="ID"/></attribute></optional>
+      
+      <optional><element name="pml:form_change"><ref name="type-m-form_change.type"/></element></optional>
+      
+      <optional><element name="pml:offset"><text/></element></optional>
+      <optional><element name="pml:form"><text/></element></optional>
+      
+      <optional><element name="pml:translit"><text/></element></optional>
+      <optional><element name="pml:lemma"><text/></element></optional>
+      <optional><element name="pml:tag"><text/></element></optional>
+      
+      <optional><element name="pml:no_space_after"><ref name="type-bool.type"/></element></optional>
+      
+      <optional><element name="pml:walign"><interleave>
+          <optional><element name="pml:sure.rf"><choice><zeroOrMore><element name="pml:LM"><ref name="PMLREF"/></element></zeroOrMore><ref name="PMLREF"/></choice></element></optional>
+          <optional><element name="pml:possible.rf"><choice><zeroOrMore><element name="pml:LM"><ref name="PMLREF"/></element></zeroOrMore><ref name="PMLREF"/></choice></element></optional>
+        </interleave></element></optional>
+    </interleave></define>
+  
+  <define name="type-english_p_nonterminal.type"><interleave>
+      <attribute name="id"><data type="ID"/></attribute>
+      <optional><element name="pml:is_head"><text/></element></optional>
+      <optional><element name="pml:head_selection_rule"><text/></element></optional>
+      <optional><element name="pml:is_collins_head"><text/></element></optional>
+      <optional><element name="pml:phrase"><ref name="type-english_p_phrase.type"/></element></optional>
+      <optional><element name="pml:functions"><choice><zeroOrMore><element name="pml:LM"><ref name="type-english_p_function.type"/></element></zeroOrMore><ref name="type-english_p_function.type"/></choice></element></optional>
+      <optional><element name="pml:index"><text/></element></optional>
+      <optional><element name="pml:coindex"><text/></element></optional>
+      <optional><element name="pml:children"><zeroOrMore><choice>
+          <element name="pml:nonterminal"><ref name="type-english_p_nonterminal.type"/></element>
+          <element name="pml:terminal"><ref name="type-english_p_terminal.type"/></element>
+        </choice></zeroOrMore></element></optional>
+    </interleave></define>
+  <define name="type-english_p_terminal.type"><interleave>
+      <attribute name="id"><data type="ID"/></attribute>
+      <optional><element name="pml:is_head"><text/></element></optional>
+      <optional><element name="pml:head_selection_rule"><text/></element></optional>
+      <optional><element name="pml:is_collins_head"><text/></element></optional>
+      <optional><element name="pml:index"><text/></element></optional>
+      <optional><element name="pml:coindex"><text/></element></optional>
+      <optional><element name="pml:form"><text/></element></optional>
+      <optional><element name="pml:lemma"><text/></element></optional>
+      <optional><element name="pml:tag"><ref name="type-english_p_postag.type"/></element></optional>
+      
+    </interleave></define>
+  <define name="type-english_p_phrase.type"><choice>
+      <value datatypeLibrary="" type="string">S</value>
+      <value datatypeLibrary="" type="string">SBAR</value>
+      <value datatypeLibrary="" type="string">SBARQ</value>
+      <value datatypeLibrary="" type="string">SINV</value>
+      <value datatypeLibrary="" type="string">SQ</value>
+      <value datatypeLibrary="" type="string">ADJP</value>
+      <value datatypeLibrary="" type="string">JJP</value>
+      <value datatypeLibrary="" type="string">ADVP</value>
+      <value datatypeLibrary="" type="string">CONJP</value>
+      <value datatypeLibrary="" type="string">FRAG</value>
+      <value datatypeLibrary="" type="string">INTJ</value>
+      <value datatypeLibrary="" type="string">LST</value>
+      <value datatypeLibrary="" type="string">NAC</value>
+      <value datatypeLibrary="" type="string">NP</value>
+      <value datatypeLibrary="" type="string">NML</value>
+      <value datatypeLibrary="" type="string">NX</value>
+      <value datatypeLibrary="" type="string">PP</value>
+      <value datatypeLibrary="" type="string">PRN</value>
+      <value datatypeLibrary="" type="string">PRT</value>
+      <value datatypeLibrary="" type="string">QP</value>
+      <value datatypeLibrary="" type="string">RRC</value>
+      <value datatypeLibrary="" type="string">UCP</value>
+      <value datatypeLibrary="" type="string">VP</value>
+      <value datatypeLibrary="" type="string">WHADJP</value>
+      <value datatypeLibrary="" type="string">WHADVP</value>
+      <value datatypeLibrary="" type="string">WHNP</value>
+      <value datatypeLibrary="" type="string">WHPP</value>
+      <value datatypeLibrary="" type="string">X</value>
+      <value datatypeLibrary="" type="string">TOP</value>
+      
+      <value datatypeLibrary="" type="string">NPB</value>
+      
+    </choice></define>
+  <define name="type-english_p_function.type"><choice>
+      <value datatypeLibrary="" type="string">ADV</value>
+      <value datatypeLibrary="" type="string">NOM</value>
+      <value datatypeLibrary="" type="string">DTV</value>
+      <value datatypeLibrary="" type="string">LGS</value>
+      <value datatypeLibrary="" type="string">PRD</value>
+      <value datatypeLibrary="" type="string">PUT</value>
+      <value datatypeLibrary="" type="string">SBJ</value>
+      <value datatypeLibrary="" type="string">TPC</value>
+      <value datatypeLibrary="" type="string">VOC</value>
+      <value datatypeLibrary="" type="string">BNF</value>
+      <value datatypeLibrary="" type="string">DIR</value>
+      <value datatypeLibrary="" type="string">EXT</value>
+      <value datatypeLibrary="" type="string">LOC</value>
+      <value datatypeLibrary="" type="string">MNR</value>
+      <value datatypeLibrary="" type="string">PRP</value>
+      <value datatypeLibrary="" type="string">TMP</value>
+      <value datatypeLibrary="" type="string">CLR</value>
+      <value datatypeLibrary="" type="string">CLF</value>
+      <value datatypeLibrary="" type="string">HLN</value>
+      <value datatypeLibrary="" type="string">TTL</value>
+    </choice></define>
+  <define name="type-english_p_postag.type"><choice>
+      <value datatypeLibrary="" type="string">CC</value>
+      <value datatypeLibrary="" type="string">CD</value>
+      <value datatypeLibrary="" type="string">DT</value>
+      <value datatypeLibrary="" type="string">EX</value>
+      <value datatypeLibrary="" type="string">FW</value>
+      <value datatypeLibrary="" type="string">IN</value>
+      <value datatypeLibrary="" type="string">JJ</value>
+      <value datatypeLibrary="" type="string">JJR</value>
+      <value datatypeLibrary="" type="string">JJS</value>
+      <value datatypeLibrary="" type="string">LS</value>
+      <value datatypeLibrary="" type="string">MD</value>
+      <value datatypeLibrary="" type="string">NN</value>
+      <value datatypeLibrary="" type="string">NNS</value>
+      <value datatypeLibrary="" type="string">NNP</value>
+      <value datatypeLibrary="" type="string">NNPS</value>
+      <value datatypeLibrary="" type="string">PDT</value>
+      <value datatypeLibrary="" type="string">POS</value>
+      <value datatypeLibrary="" type="string">PRP</value>
+      <value datatypeLibrary="" type="string">PRP$</value>
+      <value datatypeLibrary="" type="string">RB</value>
+      <value datatypeLibrary="" type="string">RBR</value>
+      <value datatypeLibrary="" type="string">RBS</value>
+      <value datatypeLibrary="" type="string">RP</value>
+      <value datatypeLibrary="" type="string">SYM</value>
+      <value datatypeLibrary="" type="string">TO</value>
+      <value datatypeLibrary="" type="string">UH</value>
+      <value datatypeLibrary="" type="string">VB</value>
+      <value datatypeLibrary="" type="string">VBD</value>
+      <value datatypeLibrary="" type="string">VBG</value>
+      <value datatypeLibrary="" type="string">VBN</value>
+      <value datatypeLibrary="" type="string">VBP</value>
+      <value datatypeLibrary="" type="string">VBZ</value>
+      <value datatypeLibrary="" type="string">WDT</value>
+      <value datatypeLibrary="" type="string">WP</value>
+      <value datatypeLibrary="" type="string">WP$</value>
+      <value datatypeLibrary="" type="string">WPS</value>
+      <value datatypeLibrary="" type="string">WRB</value>
+      <value datatypeLibrary="" type="string">-NONE-</value>
+      <value datatypeLibrary="" type="string">-LRB-</value>
+      <value datatypeLibrary="" type="string">-RRB-</value>
+      <value datatypeLibrary="" type="string">-LSB-</value>
+      <value datatypeLibrary="" type="string">-RSB-</value>
+      <value datatypeLibrary="" type="string">-LCB-</value>
+      <value datatypeLibrary="" type="string">-RCB-</value>
+      <value datatypeLibrary="" type="string">,</value>
+      <value datatypeLibrary="" type="string">.</value>
+      <value datatypeLibrary="" type="string">:</value>
+      <value datatypeLibrary="" type="string">$</value>
+      <value datatypeLibrary="" type="string">``</value>
+      <value datatypeLibrary="" type="string">''</value>
+      <value datatypeLibrary="" type="string">#</value>
+      
+      
+    </choice></define>
+  
+  <define name="type-a-root.type"><interleave>
+      <attribute name="id"><data type="ID"/></attribute>
+      <optional><element name="pml:ptree.rf"><ref name="PMLREF"/></element></optional>
+      <optional><element name="pml:s.rf"><ref name="PMLREF"/></element></optional>
+      <optional><element name="pml:afun"><choice><value datatypeLibrary="" type="string">AuxS</value></choice></element></optional>
+      <element name="pml:ord"><data type="nonNegativeInteger"/></element>
+      <optional><element name="pml:children"><choice><zeroOrMore><element name="pml:LM"><ref name="type-a-node.type"/></element></zeroOrMore><ref name="type-a-node.type"/></choice></element></optional>
+    </interleave></define>
+  <define name="type-a-node.type"><interleave>
+      <attribute name="id"><data type="ID"/></attribute>
+      
+      <optional><element name="pml:m"><ref name="type-m-node.type"/></element></optional>
+      <optional><element name="pml:afun"><ref name="type-afun.type"/></element></optional>
+      <optional><element name="pml:is_member"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_parenthesis_root"><ref name="type-bool.type"/></element></optional>
+      <element name="pml:ord"><data type="nonNegativeInteger"/></element>
+      <optional><element name="pml:children"><choice><zeroOrMore><element name="pml:LM"><ref name="type-a-node.type"/></element></zeroOrMore><ref name="type-a-node.type"/></choice></element></optional>
+      <optional><element name="pml:p"><ref name="type-a-p.type"/></element></optional>
+      
+      <optional><element name="pml:is_aux_to_child"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_aux_to_parent"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:parent_is_aux"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:conll_deprel"><text/></element></optional>
+    </interleave></define>
+  <define name="type-a-p.type"><interleave>
+      <optional><element name="pml:terminal.rf"><ref name="PMLREF"/></element></optional>
+      <optional><element name="pml:nonterminals.rf"><choice><zeroOrMore><element name="pml:LM"><ref name="PMLREF"/></element></zeroOrMore><ref name="PMLREF"/></choice></element></optional>
+    </interleave></define>
+  <define name="type-afun.type"><choice>
+      <value datatypeLibrary="" type="string">Pred</value>
+      <value datatypeLibrary="" type="string">Pnom</value>
+      <value datatypeLibrary="" type="string">AuxV</value>
+      <value datatypeLibrary="" type="string">Sb</value>
+      <value datatypeLibrary="" type="string">Obj</value>
+      <value datatypeLibrary="" type="string">Atr</value>
+      <value datatypeLibrary="" type="string">Adv</value>
+      <value datatypeLibrary="" type="string">AtrAdv</value>
+      <value datatypeLibrary="" type="string">AdvAtr</value>
+      <value datatypeLibrary="" type="string">Coord</value>
+      <value datatypeLibrary="" type="string">AtrObj</value>
+      <value datatypeLibrary="" type="string">ObjAtr</value>
+      <value datatypeLibrary="" type="string">AtrAtr</value>
+      <value datatypeLibrary="" type="string">AuxT</value>
+      <value datatypeLibrary="" type="string">AuxR</value>
+      <value datatypeLibrary="" type="string">AuxP</value>
+      <value datatypeLibrary="" type="string">Apos</value>
+      <value datatypeLibrary="" type="string">ExD</value>
+      <value datatypeLibrary="" type="string">AuxC</value>
+      <value datatypeLibrary="" type="string">Atv</value>
+      <value datatypeLibrary="" type="string">AtvV</value>
+      <value datatypeLibrary="" type="string">AuxO</value>
+      <value datatypeLibrary="" type="string">AuxZ</value>
+      <value datatypeLibrary="" type="string">AuxY</value>
+      <value datatypeLibrary="" type="string">AuxG</value>
+      <value datatypeLibrary="" type="string">AuxK</value>
+      <value datatypeLibrary="" type="string">AuxX</value>
+    </choice></define>
+  
+  <define name="type-english_m_root.type"><interleave>
+      <optional><attribute name="id"><data type="ID"/></attribute></optional>
+      <optional><element name="pml:children"><choice><zeroOrMore><element name="pml:LM"><ref name="type-m-node.type"/></element></zeroOrMore><ref name="type-m-node.type"/></choice></element></optional>
+    </interleave></define>
+  
+  
+  
+  
+  
+  
+  
+  <define name="type-t-root.type"><interleave>
+      <attribute name="id"><data type="ID"/></attribute>
+      <optional><element name="pml:atree.rf"><ref name="PMLREF"/></element></optional>
+      <optional><element name="pml:nodetype"><choice><value datatypeLibrary="" type="string">root</value></choice></element></optional>
+      <optional><element name="pml:cze_sentence"><text/></element></optional>
+      <optional><element name="pml:deepord"><data type="nonNegativeInteger"/></element></optional>
+      <optional><element name="pml:children"><choice><zeroOrMore><element name="pml:LM"><ref name="type-t-node.type"/></element></zeroOrMore><ref name="type-t-node.type"/></choice></element></optional>
+    </interleave></define>
+  <define name="type-t-node.type"><interleave>
+      <attribute name="id"><data type="ID"/></attribute>
+      <optional><element name="pml:a"><ref name="type-t-a.type"/></element></optional>
+      <optional><element name="pml:compl.rf"><choice><zeroOrMore><element name="pml:LM"><ref name="PMLREF"/></element></zeroOrMore><ref name="PMLREF"/></choice></element></optional>
+      <optional><element name="pml:coref_text.rf"><choice><zeroOrMore><element name="pml:LM"><ref name="PMLREF"/></element></zeroOrMore><ref name="PMLREF"/></choice></element></optional>
+      <optional><element name="pml:coref_gram.rf"><choice><zeroOrMore><element name="pml:LM"><ref name="PMLREF"/></element></zeroOrMore><ref name="PMLREF"/></choice></element></optional>
+      <optional><element name="pml:coref_special"><ref name="type-coref_special.type"/></element></optional>
+      <optional><element name="pml:val_frame.rf"><choice><oneOrMore><element name="pml:AM"><ref name="PMLREF"/></element></oneOrMore><ref name="PMLREF"/></choice></element></optional>
+      <optional><element name="pml:nodetype"><ref name="type-t-nodetype.type"/></element></optional>
+      <optional><element name="pml:is_generated"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:t_lemma"><text/></element></optional>
+      <optional><element name="pml:functor"><choice><oneOrMore><element name="pml:AM"><ref name="type-func.type"/></element></oneOrMore><ref name="type-func.type"/></choice></element></optional>
+      <optional><element name="pml:subfunctor"><ref name="type-t-subfunctor.type"/></element></optional>
+      <optional><element name="pml:is_member"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_name_of_person"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:quot"><choice><zeroOrMore><element name="pml:LM"><interleave>
+            <optional><element name="pml:type"><ref name="type-t-type.type"/></element></optional>
+            <optional><element name="pml:set_id"><text/></element></optional>
+          </interleave></element></zeroOrMore><interleave>
+            <optional><element name="pml:type"><ref name="type-t-type.type"/></element></optional>
+            <optional><element name="pml:set_id"><text/></element></optional>
+          </interleave></choice></element></optional>
+      <optional><element name="pml:is_dsp_root"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:sentmod"><ref name="type-t-sentmod.type"/></element></optional>
+      <optional><element name="pml:gram"><ref name="type-t-gram.type"/></element></optional>
+      <optional><element name="pml:named_entity"><ref name="type-t-named_entity.type"/></element></optional>
+      <optional><element name="pml:tfa"><ref name="type-t-tfa.type"/></element></optional>
+      <optional><element name="pml:is_parenthesis"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_state"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_name"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_passive"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:voice"><text/></element></optional>
+      
+      <optional><element name="pml:is_infin"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_reflexive"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_optimizable"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_clause_head"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_relclause_head"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:deepord"><data type="nonNegativeInteger"/></element></optional>
+      <optional><element name="pml:children"><choice><zeroOrMore><element name="pml:LM"><ref name="type-t-node.type"/></element></zeroOrMore><ref name="type-t-node.type"/></choice></element></optional>
+      <optional><element name="pml:formeme"><text/></element></optional>
+      <optional><element name="pml:aligned.rf"><ref name="PMLREF"/></element></optional>
+      <optional><element name="pml:align"><interleave>
+          <optional><element name="pml:links"><choice><zeroOrMore><element name="pml:LM"><ref name="type-align-links.type"/></element></zeroOrMore><ref name="type-align-links.type"/></choice></element></optional>
+          <optional><element name="pml:giza_links"><choice><zeroOrMore><element name="pml:LM"><ref name="type-align-links.type"/></element></zeroOrMore><ref name="type-align-links.type"/></choice></element></optional>
+          <optional><element name="pml:manual_links"><choice><zeroOrMore><element name="pml:LM"><ref name="type-align-links.type"/></element></zeroOrMore><ref name="type-align-links.type"/></choice></element></optional>
+          
+          <optional><element name="pml:head.rf"><ref name="PMLREF"/></element></optional>
+          <optional><element name="pml:automatic.rf"><choice><zeroOrMore><element name="pml:LM"><ref name="PMLREF"/></element></zeroOrMore><ref name="PMLREF"/></choice></element></optional>
+          <optional><element name="pml:manual.rf"><choice><zeroOrMore><element name="pml:LM"><ref name="PMLREF"/></element></zeroOrMore><ref name="PMLREF"/></choice></element></optional>
+          <optional><element name="pml:sure.rf"><choice><zeroOrMore><element name="pml:LM"><ref name="PMLREF"/></element></zeroOrMore><ref name="PMLREF"/></choice></element></optional>
+          
+          <optional><element name="pml:rules"><choice><zeroOrMore><element name="pml:LM"><text/></element></zeroOrMore><text/></choice></element></optional>
+          <optional><element name="pml:is_aligned_edge"><ref name="type-bool.type"/></element></optional>
+          <optional><element name="pml:t_lemma_variants"><choice><zeroOrMore><element name="pml:LM"><text/></element></zeroOrMore><text/></choice></element></optional>
+        </interleave></element></optional>
+      <optional><element name="pml:source"><interleave>
+          <optional><element name="pml:head.rf"><ref name="PMLREF"/></element></optional>
+        </interleave></element></optional>
+      <optional><element name="pml:clause_number"><text/></element></optional>
+    </interleave></define>
+  <define name="type-align-links.type"><interleave>
+      <optional><element name="pml:counterpart.rf"><ref name="PMLREF"/></element></optional>
+      <optional><element name="pml:type"><text/></element></optional>
+    </interleave></define>
+  
+  <define name="type-t-tfa.type"><choice>
+      <value datatypeLibrary="" type="string">t</value>
+      <value datatypeLibrary="" type="string">f</value>
+      <value datatypeLibrary="" type="string">c</value>
+    </choice></define>
+  <define name="type-t-gram.type"><interleave>
+      <optional><element name="pml:sempos"><ref name="type-t-sempos.type"/></element></optional>
+      <optional><element name="pml:gender"><ref name="type-t-gender.type"/></element></optional>
+      <optional><element name="pml:number"><ref name="type-t-number.type"/></element></optional>
+      <optional><element name="pml:degcmp"><ref name="type-t-degcmp.type"/></element></optional>
+      <optional><element name="pml:verbmod"><ref name="type-t-verbmod.type"/></element></optional>
+      <optional><element name="pml:deontmod"><ref name="type-t-deontmod.type"/></element></optional>
+      <optional><element name="pml:tense"><ref name="type-t-tense.type"/></element></optional>
+      <optional><element name="pml:aspect"><ref name="type-t-aspect.type"/></element></optional>
+      <optional><element name="pml:resultative"><ref name="type-t-resultative.type"/></element></optional>
+      <optional><element name="pml:dispmod"><ref name="type-t-dispmod.type"/></element></optional>
+      <optional><element name="pml:iterativeness"><ref name="type-t-iterativeness.type"/></element></optional>
+      <optional><element name="pml:indeftype"><ref name="type-t-indeftype.type"/></element></optional>
+      <optional><element name="pml:person"><ref name="type-t-person.type"/></element></optional>
+      <optional><element name="pml:numertype"><ref name="type-t-numertype.type"/></element></optional>
+      <optional><element name="pml:politeness"><ref name="type-t-politeness.type"/></element></optional>
+      <optional><element name="pml:negation"><ref name="type-t-negation.type"/></element></optional>
+    </interleave></define>
+  <define name="type-t-named_entity.type"><interleave>
+      <optional><element name="pml:number"><text/></element></optional>
+      <optional><element name="pml:type"><ref name="type-t-ne-type.type"/></element></optional>
+    </interleave></define>
+  <define name="type-t-ne-type.type"><choice>
+      <value datatypeLibrary="" type="string">person</value>
+      <value datatypeLibrary="" type="string">organization</value>
+      <value datatypeLibrary="" type="string">location</value>
+    </choice></define>
+  <define name="type-t-negation.type"><choice>
+      <value datatypeLibrary="" type="string">neg0</value>
+      <value datatypeLibrary="" type="string">neg1</value>
+      <value datatypeLibrary="" type="string">nr</value>
+    </choice></define>
+  <define name="type-t-politeness.type"><choice>
+      <value datatypeLibrary="" type="string">polite</value>
+      <value datatypeLibrary="" type="string">basic</value>
+      <value datatypeLibrary="" type="string">inher</value>
+      <value datatypeLibrary="" type="string">nr</value>
+    </choice></define>
+  <define name="type-t-numertype.type"><choice>
+      <value datatypeLibrary="" type="string">basic</value>
+      <value datatypeLibrary="" type="string">set</value>
+      <value datatypeLibrary="" type="string">kind</value>
+      <value datatypeLibrary="" type="string">ord</value>
+      <value datatypeLibrary="" type="string">frac</value>
+      <value datatypeLibrary="" type="string">nr</value>
+    </choice></define>
+  <define name="type-t-person.type"><choice>
+      <value datatypeLibrary="" type="string">1</value>
+      <value datatypeLibrary="" type="string">2</value>
+      <value datatypeLibrary="" type="string">3</value>
+      <value datatypeLibrary="" type="string">inher</value>
+      <value datatypeLibrary="" type="string">nr</value>
+    </choice></define>
+  <define name="type-t-indeftype.type"><choice>
+      <value datatypeLibrary="" type="string">relat</value>
+      <value datatypeLibrary="" type="string">indef1</value>
+      <value datatypeLibrary="" type="string">indef2</value>
+      <value datatypeLibrary="" type="string">indef3</value>
+      <value datatypeLibrary="" type="string">indef4</value>
+      <value datatypeLibrary="" type="string">indef5</value>
+      <value datatypeLibrary="" type="string">indef6</value>
+      <value datatypeLibrary="" type="string">inter</value>
+      <value datatypeLibrary="" type="string">negat</value>
+      <value datatypeLibrary="" type="string">total1</value>
+      <value datatypeLibrary="" type="string">total2</value>
+      <value datatypeLibrary="" type="string">nr</value>
+    </choice></define>
+  <define name="type-t-iterativeness.type"><choice>
+      <value datatypeLibrary="" type="string">it1</value>
+      <value datatypeLibrary="" type="string">it0</value>
+      <value datatypeLibrary="" type="string">nr</value>
+    </choice></define>
+  <define name="type-t-dispmod.type"><choice>
+      <value datatypeLibrary="" type="string">disp1</value>
+      <value datatypeLibrary="" type="string">disp0</value>
+      <value datatypeLibrary="" type="string">nr</value>
+      <value datatypeLibrary="" type="string">nil</value>
+    </choice></define>
+  <define name="type-t-resultative.type"><choice>
+      <value datatypeLibrary="" type="string">res1</value>
+      <value datatypeLibrary="" type="string">res0</value>
+      <value datatypeLibrary="" type="string">nr</value>
+    </choice></define>
+  <define name="type-t-aspect.type"><choice>
+      <value datatypeLibrary="" type="string">proc</value>
+      <value datatypeLibrary="" type="string">cpl</value>
+      <value datatypeLibrary="" type="string">nr</value>
+    </choice></define>
+  <define name="type-t-tense.type"><choice>
+      <value datatypeLibrary="" type="string">sim</value>
+      <value datatypeLibrary="" type="string">ant</value>
+      <value datatypeLibrary="" type="string">post</value>
+      <value datatypeLibrary="" type="string">nr</value>
+      <value datatypeLibrary="" type="string">nil</value>
+    </choice></define>
+  <define name="type-t-deontmod.type"><choice>
+      <value datatypeLibrary="" type="string">deb</value>
+      <value datatypeLibrary="" type="string">hrt</value>
+      <value datatypeLibrary="" type="string">vol</value>
+      <value datatypeLibrary="" type="string">poss</value>
+      <value datatypeLibrary="" type="string">perm</value>
+      <value datatypeLibrary="" type="string">fac</value>
+      <value datatypeLibrary="" type="string">decl</value>
+      <value datatypeLibrary="" type="string">nr</value>
+    </choice></define>
+  <define name="type-t-verbmod.type"><choice>
+      <value datatypeLibrary="" type="string">ind</value>
+      <value datatypeLibrary="" type="string">imp</value>
+      <value datatypeLibrary="" type="string">cdn</value>
+      <value datatypeLibrary="" type="string">nr</value>
+      <value datatypeLibrary="" type="string">nil</value>
+    </choice></define>
+  <define name="type-t-degcmp.type"><choice>
+      <value datatypeLibrary="" type="string">pos</value>
+      <value datatypeLibrary="" type="string">comp</value>
+      <value datatypeLibrary="" type="string">acomp</value>
+      <value datatypeLibrary="" type="string">sup</value>
+      <value datatypeLibrary="" type="string">nr</value>
+    </choice></define>
+  <define name="type-t-number.type"><choice>
+      <value datatypeLibrary="" type="string">sg</value>
+      <value datatypeLibrary="" type="string">pl</value>
+      <value datatypeLibrary="" type="string">inher</value>
+      <value datatypeLibrary="" type="string">nr</value>
+    </choice></define>
+  <define name="type-t-gender.type"><choice>
+      <value datatypeLibrary="" type="string">anim</value>
+      <value datatypeLibrary="" type="string">inan</value>
+      <value datatypeLibrary="" type="string">fem</value>
+      <value datatypeLibrary="" type="string">neut</value>
+      <value datatypeLibrary="" type="string">inher</value>
+      <value datatypeLibrary="" type="string">nr</value>
+    </choice></define>
+  <define name="type-t-sempos.type"><choice>
+      <value datatypeLibrary="" type="string">n.denot</value>
+      <value datatypeLibrary="" type="string">n.denot.neg</value>
+      <value datatypeLibrary="" type="string">n.pron.def.demon</value>
+      <value datatypeLibrary="" type="string">n.pron.def.pers</value>
+      <value datatypeLibrary="" type="string">n.pron.indef</value>
+      <value datatypeLibrary="" type="string">n.quant.def</value>
+      <value datatypeLibrary="" type="string">adj.denot</value>
+      <value datatypeLibrary="" type="string">adj.pron.def.demon</value>
+      <value datatypeLibrary="" type="string">adj.pron.indef</value>
+      <value datatypeLibrary="" type="string">adj.quant.def</value>
+      <value datatypeLibrary="" type="string">adj.quant.indef</value>
+      <value datatypeLibrary="" type="string">adj.quant.grad</value>
+      <value datatypeLibrary="" type="string">adv.denot.grad.nneg</value>
+      <value datatypeLibrary="" type="string">adv.denot.ngrad.nneg</value>
+      <value datatypeLibrary="" type="string">adv.denot.grad.neg</value>
+      <value datatypeLibrary="" type="string">adv.denot.ngrad.neg</value>
+      <value datatypeLibrary="" type="string">adv.pron.def</value>
+      <value datatypeLibrary="" type="string">adv.pron.indef</value>
+      <value datatypeLibrary="" type="string">v</value>
+    </choice></define>
+  <define name="type-t-sentmod.type"><choice>
+      <value datatypeLibrary="" type="string">enunc</value>
+      <value datatypeLibrary="" type="string">excl</value>
+      <value datatypeLibrary="" type="string">desid</value>
+      <value datatypeLibrary="" type="string">imper</value>
+      <value datatypeLibrary="" type="string">inter</value>
+    </choice></define>
+  <define name="type-t-type.type"><choice>
+      <value datatypeLibrary="" type="string">citation</value>
+      <value datatypeLibrary="" type="string">dsp</value>
+      <value datatypeLibrary="" type="string">meta</value>
+      <value datatypeLibrary="" type="string">other</value>
+      <value datatypeLibrary="" type="string">title</value>
+    </choice></define>
+  <define name="type-t-subfunctor.type"><choice>
+      <value datatypeLibrary="" type="string">above</value>
+      <value datatypeLibrary="" type="string">abstr</value>
+      <value datatypeLibrary="" type="string">across</value>
+      <value datatypeLibrary="" type="string">after</value>
+      <value datatypeLibrary="" type="string">agst</value>
+      <value datatypeLibrary="" type="string">along</value>
+      <value datatypeLibrary="" type="string">approx</value>
+      <value datatypeLibrary="" type="string">around</value>
+      <value datatypeLibrary="" type="string">basic</value>
+      <value datatypeLibrary="" type="string">before</value>
+      <value datatypeLibrary="" type="string">begin</value>
+      <value datatypeLibrary="" type="string">behind</value>
+      <value datatypeLibrary="" type="string">below</value>
+      <value datatypeLibrary="" type="string">betw</value>
+      <value datatypeLibrary="" type="string">circ</value>
+      <value datatypeLibrary="" type="string">elsew</value>
+      <value datatypeLibrary="" type="string">end</value>
+      <value datatypeLibrary="" type="string">ext</value>
+      <value datatypeLibrary="" type="string">flow</value>
+      <value datatypeLibrary="" type="string">front</value>
+      <value datatypeLibrary="" type="string">incl</value>
+      <value datatypeLibrary="" type="string">in</value>
+      <value datatypeLibrary="" type="string">less</value>
+      <value datatypeLibrary="" type="string">mid</value>
+      <value datatypeLibrary="" type="string">more</value>
+      <value datatypeLibrary="" type="string">near</value>
+      <value datatypeLibrary="" type="string">opp</value>
+      <value datatypeLibrary="" type="string">target</value>
+      <value datatypeLibrary="" type="string">than</value>
+      <value datatypeLibrary="" type="string">to</value>
+      <value datatypeLibrary="" type="string">wout</value>
+      <value datatypeLibrary="" type="string">wrt</value>
+      <value datatypeLibrary="" type="string">nr</value>
+    </choice></define>
+  <define name="type-t-nodetype.type"><choice>
+      <value datatypeLibrary="" type="string">atom</value>
+      <value datatypeLibrary="" type="string">coap</value>
+      <value datatypeLibrary="" type="string">complex</value>
+      <value datatypeLibrary="" type="string">dphr</value>
+      <value datatypeLibrary="" type="string">fphr</value>
+      <value datatypeLibrary="" type="string">list</value>
+      <value datatypeLibrary="" type="string">qcomplex</value>
+    </choice></define>
+  <define name="type-t-a.type"><interleave>
+      <optional><element name="pml:lex.rf"><ref name="PMLREF"/></element></optional>
+      <optional><element name="pml:aux.rf"><choice><zeroOrMore><element name="pml:LM"><ref name="PMLREF"/></element></zeroOrMore><ref name="PMLREF"/></choice></element></optional>
+    </interleave></define>
+  <define name="type-coref_special.type"><choice>
+      <value datatypeLibrary="" type="string">segm</value>
+      <value datatypeLibrary="" type="string">exoph</value>
+    </choice></define>
+  <define name="type-func.type"><choice>
+      <value datatypeLibrary="" type="string">ACT</value>
+      <value datatypeLibrary="" type="string">AUTH</value>
+      <value datatypeLibrary="" type="string">PAT</value>
+      <value datatypeLibrary="" type="string">ADDR</value>
+      <value datatypeLibrary="" type="string">EFF</value>
+      <value datatypeLibrary="" type="string">ORIG</value>
+      <value datatypeLibrary="" type="string">ACMP</value>
+      <value datatypeLibrary="" type="string">ADVS</value>
+      <value datatypeLibrary="" type="string">AIM</value>
+      <value datatypeLibrary="" type="string">APP</value>
+      <value datatypeLibrary="" type="string">APPS</value>
+      <value datatypeLibrary="" type="string">ATT</value>
+      <value datatypeLibrary="" type="string">BEN</value>
+      <value datatypeLibrary="" type="string">CAUS</value>
+      <value datatypeLibrary="" type="string">CNCS</value>
+      <value datatypeLibrary="" type="string">CM</value>
+      <value datatypeLibrary="" type="string">COMPL</value>
+      <value datatypeLibrary="" type="string">CONJ</value>
+      <value datatypeLibrary="" type="string">COND</value>
+      <value datatypeLibrary="" type="string">CONFR</value>
+      <value datatypeLibrary="" type="string">CONTRA</value>
+      <value datatypeLibrary="" type="string">CONTRD</value>
+      <value datatypeLibrary="" type="string">CPHR</value>
+      <value datatypeLibrary="" type="string">CPR</value>
+      <value datatypeLibrary="" type="string">CRIT</value>
+      <value datatypeLibrary="" type="string">CSQ</value>
+      <value datatypeLibrary="" type="string">DENOM</value>
+      <value datatypeLibrary="" type="string">DIFF</value>
+      <value datatypeLibrary="" type="string">DIR1</value>
+      <value datatypeLibrary="" type="string">DIR2</value>
+      <value datatypeLibrary="" type="string">DIR3</value>
+      <value datatypeLibrary="" type="string">DISJ</value>
+      <value datatypeLibrary="" type="string">DPHR</value>
+      <value datatypeLibrary="" type="string">EXT</value>
+      <value datatypeLibrary="" type="string">FPHR</value>
+      <value datatypeLibrary="" type="string">GRAD</value>
+      <value datatypeLibrary="" type="string">HER</value>
+      <value datatypeLibrary="" type="string">ID</value>
+      <value datatypeLibrary="" type="string">INTF</value>
+      <value datatypeLibrary="" type="string">INTT</value>
+      <value datatypeLibrary="" type="string">LOC</value>
+      <value datatypeLibrary="" type="string">MANN</value>
+      <value datatypeLibrary="" type="string">MAT</value>
+      <value datatypeLibrary="" type="string">MEANS</value>
+      <value datatypeLibrary="" type="string">MOD</value>
+      <value datatypeLibrary="" type="string">OPER</value>
+      <value datatypeLibrary="" type="string">PAR</value>
+      <value datatypeLibrary="" type="string">PARTL</value>
+      <value datatypeLibrary="" type="string">PREC</value>
+      <value datatypeLibrary="" type="string">PRED</value>
+      <value datatypeLibrary="" type="string">REAS</value>
+      <value datatypeLibrary="" type="string">REG</value>
+      <value datatypeLibrary="" type="string">RESL</value>
+      <value datatypeLibrary="" type="string">RESTR</value>
+      <value datatypeLibrary="" type="string">RHEM</value>
+      <value datatypeLibrary="" type="string">RSTR</value>
+      <value datatypeLibrary="" type="string">SUBS</value>
+      <value datatypeLibrary="" type="string">TFHL</value>
+      <value datatypeLibrary="" type="string">TFRWH</value>
+      <value datatypeLibrary="" type="string">THL</value>
+      <value datatypeLibrary="" type="string">THO</value>
+      <value datatypeLibrary="" type="string">TOWH</value>
+      <value datatypeLibrary="" type="string">TPAR</value>
+      <value datatypeLibrary="" type="string">TSIN</value>
+      <value datatypeLibrary="" type="string">TTILL</value>
+      <value datatypeLibrary="" type="string">TWHEN</value>
+      <value datatypeLibrary="" type="string">VOCAT</value>
+      <value datatypeLibrary="" type="string">DESCR</value>
+      <value datatypeLibrary="" type="string">???</value>
+    </choice></define>
+  <define name="type-bool.type"><choice>
+      <value datatypeLibrary="" type="string">0</value>
+      <value datatypeLibrary="" type="string">1</value>
+    </choice></define>
+  
+  <define name="type-czech_m_root.type"><interleave>
+      <optional><attribute name="id"><data type="ID"/></attribute></optional>
+      <optional><element name="pml:children"><choice><zeroOrMore><element name="pml:LM"><ref name="type-m-node.type"/></element></zeroOrMore><ref name="type-m-node.type"/></choice></element></optional>
+    </interleave></define>
+  <define name="type-m-form_change.type"><choice>
+      <value datatypeLibrary="" type="string">ctcd</value>
+      <value datatypeLibrary="" type="string">spell</value>
+      <value datatypeLibrary="" type="string">insert</value>
+      <value datatypeLibrary="" type="string">num_normalization</value>
+    </choice></define>
+  
+  <define name="type-n-root.type"><interleave>
+      <optional><element name="pml:children"><choice><zeroOrMore><element name="pml:LM"><ref name="type-n-node.type"/></element></zeroOrMore><ref name="type-n-node.type"/></choice></element></optional>
+    </interleave></define>
+  <define name="type-n-node.type"><interleave>
+      <attribute name="id"><data type="ID"/></attribute>
+      <optional><element name="pml:ne_type"><text/></element></optional>
+      <optional><element name="pml:normalized_name"><text/></element></optional>
+      <optional><element name="pml:m.rf"><choice><zeroOrMore><element name="pml:LM"><ref name="PMLREF"/></element></zeroOrMore><ref name="PMLREF"/></choice></element></optional>
+      <optional><element name="pml:children"><choice><zeroOrMore><element name="pml:LM"><ref name="type-n-node.type"/></element></zeroOrMore><ref name="type-n-node.type"/></choice></element></optional>
+    </interleave></define>
+  
+  <define name="type-TCzechA-root.type"><interleave>
+      <attribute name="id"><data type="ID"/></attribute>
+      <optional><element name="pml:s.rf"><ref name="PMLREF"/></element></optional>
+      <optional><element name="pml:xxx.rf"><ref name="PMLREF"/></element></optional>
+      <optional><element name="pml:afun"><choice><value datatypeLibrary="" type="string">AuxS</value></choice></element></optional>
+      <element name="pml:ord"><data type="nonNegativeInteger"/></element>
+      <optional><element name="pml:children"><choice><zeroOrMore><element name="pml:LM"><ref name="type-TCzechA-node.type"/></element></zeroOrMore><ref name="type-TCzechA-node.type"/></choice></element></optional>
+    </interleave></define>
+  <define name="type-TCzechA-node.type"><interleave>
+      <attribute name="id"><data type="ID"/></attribute>
+      <optional><element name="pml:m"><ref name="type-m-node.type"/></element></optional>
+      <optional><element name="pml:afun"><ref name="type-afun.type"/></element></optional>
+      <optional><element name="pml:is_member"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_parenthesis_root"><ref name="type-bool.type"/></element></optional>
+      <element name="pml:ord"><data type="nonNegativeInteger"/></element>
+      <optional><element name="pml:children"><choice><zeroOrMore><element name="pml:LM"><ref name="type-TCzechA-node.type"/></element></zeroOrMore><ref name="type-TCzechA-node.type"/></choice></element></optional>
+      <optional><element name="pml:morphcat"><ref name="type-czech_morphcat.type"/></element></optional>
+      <optional><element name="pml:clause_number"><text/></element></optional>
+    </interleave></define>
+  <define name="type-czech_morphcat.type"><interleave>
+      <optional><element name="pml:pos"><text/></element></optional>
+      <optional><element name="pml:subpos"><text/></element></optional>
+      <optional><element name="pml:gender"><text/></element></optional>
+      <optional><element name="pml:number"><text/></element></optional>
+      <optional><element name="pml:case"><text/></element></optional>
+      <optional><element name="pml:possgender"><text/></element></optional>
+      <optional><element name="pml:possnumber"><text/></element></optional>
+      <optional><element name="pml:person"><text/></element></optional>
+      <optional><element name="pml:tense"><text/></element></optional>
+      <optional><element name="pml:grade"><text/></element></optional>
+      <optional><element name="pml:negation"><text/></element></optional>
+      <optional><element name="pml:voice"><text/></element></optional>
+      <optional><element name="pml:reserve1"><text/></element></optional>
+      <optional><element name="pml:reserve2"><text/></element></optional>
+    </interleave></define>
+  
+  
+  <define name="type-translation_model.type"><interleave>
+      <optional><element name="pml:t_lemma_variants"><choice><zeroOrMore><element name="pml:LM"><interleave>
+            <optional><element name="pml:t_lemma"><text/></element></optional>
+            <optional><element name="pml:pos"><text/></element></optional>
+            <optional><element name="pml:source"><text/></element></optional>
+            <optional><element name="pml:prob_Lt_given_Ls"><text/></element></optional>
+          </interleave></element></zeroOrMore><interleave>
+            <optional><element name="pml:t_lemma"><text/></element></optional>
+            <optional><element name="pml:pos"><text/></element></optional>
+            <optional><element name="pml:source"><text/></element></optional>
+            <optional><element name="pml:prob_Lt_given_Ls"><text/></element></optional>
+          </interleave></choice></element></optional>
+      <optional><element name="pml:formeme_variants"><choice><zeroOrMore><element name="pml:LM"><interleave>
+            <optional><element name="pml:formeme"><text/></element></optional>
+            <optional><element name="pml:prob_Ft_given_Fs"><text/></element></optional>
+          </interleave></element></zeroOrMore><interleave>
+            <optional><element name="pml:formeme"><text/></element></optional>
+            <optional><element name="pml:prob_Ft_given_Fs"><text/></element></optional>
+          </interleave></choice></element></optional>
+    </interleave></define>
+  <define name="type-language_model.type"><interleave>
+      <optional><element name="pml:gfd"><ref name="type-logcount_table.type"/></element></optional>
+      <optional><element name="pml:gf"><ref name="type-logcount_table.type"/></element></optional>
+      <optional><element name="pml:fd"><ref name="type-logcount_table.type"/></element></optional>
+      <optional><element name="pml:d"><ref name="type-logcount_table.type"/></element></optional>
+    </interleave></define>
+  <define name="type-logcount_table.type"><choice><zeroOrMore><element name="pml:LM"><interleave>
+        <optional><element name="pml:key"><text/></element></optional>
+        <optional><element name="pml:logcount"><text/></element></optional>
+      </interleave></element></zeroOrMore><interleave>
+        <optional><element name="pml:key"><text/></element></optional>
+        <optional><element name="pml:logcount"><text/></element></optional>
+      </interleave></choice></define>
+  <define name="type-transition_scores.type"><choice><zeroOrMore><element name="pml:LM"><interleave>
+        <optional><element name="pml:hint"><text/></element></optional>
+        <optional><element name="pml:score"><text/></element></optional>
+        <optional><element name="pml:my_lexeme_index"><text/></element></optional>
+        <optional><element name="pml:my_formeme_index"><text/></element></optional>
+        <optional><element name="pml:eparent_lexeme_index"><text/></element></optional>
+      </interleave></element></zeroOrMore><interleave>
+        <optional><element name="pml:hint"><text/></element></optional>
+        <optional><element name="pml:score"><text/></element></optional>
+        <optional><element name="pml:my_lexeme_index"><text/></element></optional>
+        <optional><element name="pml:my_formeme_index"><text/></element></optional>
+        <optional><element name="pml:eparent_lexeme_index"><text/></element></optional>
+      </interleave></choice></define>
+  <define name="type-subtree_scores.type"><choice><zeroOrMore><element name="pml:LM"><interleave>
+        <optional><element name="pml:hint"><text/></element></optional>
+        <optional><element name="pml:score"><text/></element></optional>
+        <optional><element name="pml:my_lexeme_index"><text/></element></optional>
+        <optional><element name="pml:transitions_to_echildren"><choice><zeroOrMore><element name="pml:LM"><interleave>
+              <optional><element name="pml:echild_id"><text/></element></optional>
+              <optional><element name="pml:echild_lexeme_index"><text/></element></optional>
+              <optional><element name="pml:echild_formeme_index"><text/></element></optional>
+            </interleave></element></zeroOrMore><interleave>
+              <optional><element name="pml:echild_id"><text/></element></optional>
+              <optional><element name="pml:echild_lexeme_index"><text/></element></optional>
+              <optional><element name="pml:echild_formeme_index"><text/></element></optional>
+            </interleave></choice></element></optional>
+      </interleave></element></zeroOrMore><interleave>
+        <optional><element name="pml:hint"><text/></element></optional>
+        <optional><element name="pml:score"><text/></element></optional>
+        <optional><element name="pml:my_lexeme_index"><text/></element></optional>
+        <optional><element name="pml:transitions_to_echildren"><choice><zeroOrMore><element name="pml:LM"><interleave>
+              <optional><element name="pml:echild_id"><text/></element></optional>
+              <optional><element name="pml:echild_lexeme_index"><text/></element></optional>
+              <optional><element name="pml:echild_formeme_index"><text/></element></optional>
+            </interleave></element></zeroOrMore><interleave>
+              <optional><element name="pml:echild_id"><text/></element></optional>
+              <optional><element name="pml:echild_lexeme_index"><text/></element></optional>
+              <optional><element name="pml:echild_formeme_index"><text/></element></optional>
+            </interleave></choice></element></optional>
+      </interleave></choice></define>
+  
+  <define name="type-TCzechT-root.type"><interleave>
+      <attribute name="id"><data type="ID"/></attribute>
+      <optional><element name="pml:atree.rf"><ref name="PMLREF"/></element></optional>
+      <optional><element name="pml:nodetype"><choice><value datatypeLibrary="" type="string">root</value></choice></element></optional>
+      <optional><element name="pml:cze_sentence"><text/></element></optional>
+      <optional><element name="pml:deepord"><data type="nonNegativeInteger"/></element></optional>
+      <optional><element name="pml:children"><choice><zeroOrMore><element name="pml:LM"><ref name="type-TCzechT-node.type"/></element></zeroOrMore><ref name="type-TCzechT-node.type"/></choice></element></optional>
+    </interleave></define>
+  
+  <define name="type-TCzechT-node.type"><interleave>
+      <attribute name="id"><data type="ID"/></attribute>
+      <optional><element name="pml:a"><ref name="type-t-a.type"/></element></optional>
+      <optional><element name="pml:compl.rf"><choice><zeroOrMore><element name="pml:LM"><ref name="PMLREF"/></element></zeroOrMore><ref name="PMLREF"/></choice></element></optional>
+      <optional><element name="pml:coref_text.rf"><choice><zeroOrMore><element name="pml:LM"><ref name="PMLREF"/></element></zeroOrMore><ref name="PMLREF"/></choice></element></optional>
+      <optional><element name="pml:coref_gram.rf"><choice><zeroOrMore><element name="pml:LM"><ref name="PMLREF"/></element></zeroOrMore><ref name="PMLREF"/></choice></element></optional>
+      <optional><element name="pml:coref_special"><ref name="type-coref_special.type"/></element></optional>
+      <optional><element name="pml:val_frame.rf"><choice><oneOrMore><element name="pml:AM"><ref name="PMLREF"/></element></oneOrMore><ref name="PMLREF"/></choice></element></optional>
+      <optional><element name="pml:nodetype"><ref name="type-t-nodetype.type"/></element></optional>
+      <optional><element name="pml:is_generated"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:t_lemma"><text/></element></optional>
+      <optional><element name="pml:functor"><choice><oneOrMore><element name="pml:AM"><ref name="type-func.type"/></element></oneOrMore><ref name="type-func.type"/></choice></element></optional>
+      <optional><element name="pml:subfunctor"><ref name="type-t-subfunctor.type"/></element></optional>
+      <optional><element name="pml:is_member"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_name_of_person"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:quot"><choice><zeroOrMore><element name="pml:LM"><interleave>
+            <optional><element name="pml:type"><ref name="type-t-type.type"/></element></optional>
+            <optional><element name="pml:set_id"><text/></element></optional>
+          </interleave></element></zeroOrMore><interleave>
+            <optional><element name="pml:type"><ref name="type-t-type.type"/></element></optional>
+            <optional><element name="pml:set_id"><text/></element></optional>
+          </interleave></choice></element></optional>
+      <optional><element name="pml:is_dsp_root"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:sentmod"><ref name="type-t-sentmod.type"/></element></optional>
+      <optional><element name="pml:gram"><ref name="type-t-gram.type"/></element></optional>
+      <optional><element name="pml:named_entity"><ref name="type-t-named_entity.type"/></element></optional>
+      <optional><element name="pml:tfa"><ref name="type-t-tfa.type"/></element></optional>
+      <optional><element name="pml:is_parenthesis"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_state"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_name"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_passive"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:voice"><text/></element></optional>
+      
+      <optional><element name="pml:is_infin"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_reflexive"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_optimizable"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_clause_head"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:is_relclause_head"><ref name="type-bool.type"/></element></optional>
+      <optional><element name="pml:deepord"><data type="nonNegativeInteger"/></element></optional>
+      <optional><element name="pml:children"><choice><zeroOrMore><element name="pml:LM"><ref name="type-TCzechT-node.type"/></element></zeroOrMore><ref name="type-TCzechT-node.type"/></choice></element></optional>
+      <optional><element name="pml:formeme"><text/></element></optional>
+      <optional><element name="pml:aligned.rf"><ref name="PMLREF"/></element></optional>
+      <optional><element name="pml:align"><interleave>
+          <optional><element name="pml:links"><choice><zeroOrMore><element name="pml:LM"><ref name="type-align-links.type"/></element></zeroOrMore><ref name="type-align-links.type"/></choice></element></optional>
+          <optional><element name="pml:giza_links"><choice><zeroOrMore><element name="pml:LM"><ref name="type-align-links.type"/></element></zeroOrMore><ref name="type-align-links.type"/></choice></element></optional>
+          <optional><element name="pml:manual_links"><choice><zeroOrMore><element name="pml:LM"><ref name="type-align-links.type"/></element></zeroOrMore><ref name="type-align-links.type"/></choice></element></optional>
+          
+          <optional><element name="pml:head.rf"><ref name="PMLREF"/></element></optional>
+          <optional><element name="pml:automatic.rf"><choice><zeroOrMore><element name="pml:LM"><ref name="PMLREF"/></element></zeroOrMore><ref name="PMLREF"/></choice></element></optional>
+          <optional><element name="pml:manual.rf"><choice><zeroOrMore><element name="pml:LM"><ref name="PMLREF"/></element></zeroOrMore><ref name="PMLREF"/></choice></element></optional>
+          <optional><element name="pml:sure.rf"><choice><zeroOrMore><element name="pml:LM"><ref name="PMLREF"/></element></zeroOrMore><ref name="PMLREF"/></choice></element></optional>
+          
+          <optional><element name="pml:rules"><choice><zeroOrMore><element name="pml:LM"><text/></element></zeroOrMore><text/></choice></element></optional>
+          <optional><element name="pml:is_aligned_edge"><ref name="type-bool.type"/></element></optional>
+          <optional><element name="pml:t_lemma_variants"><choice><zeroOrMore><element name="pml:LM"><text/></element></zeroOrMore><text/></choice></element></optional>
+        </interleave></element></optional>
+      <optional><element name="pml:source"><interleave>
+          <optional><element name="pml:head.rf"><ref name="PMLREF"/></element></optional>
+        </interleave></element></optional>
+      <optional><element name="pml:clause_number"><text/></element></optional>
+    </interleave></define>
+</grammar>
