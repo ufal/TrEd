@@ -1,0 +1,942 @@
+akcentovat	1	1	1
+akceptovat	1	1	1
+aktualizovat	0		1
+analyzovat	1	2	2
+artikulovat	1	1	1
+avizovat	0		1
+bombardovat	1	1	1
+brát	0.9	9	10
+bít	1	1	1
+cedit	1	1	1
+cenit	1	1	1
+charakterizovat	0.666666666666667	2	3
+chovat	1	1	1
+chránit	0.75	6	8
+chválit	1	1	1
+chápat	1	9	9
+datovat	0.8	4	5
+definovat	0		2
+deformovat	1	1	1
+demolovat	1	1	1
+deprimovat	0		1
+determinovat	1	1	1
+devalvovat	1	1	1
+de¹ifrovat	0		1
+diskriminovat	1	1	1
+diskutovat	1	1	1
+diskvalifikovat	0		1
+distribuovat	1	2	2
+dobýt	1	1	1
+dodat	1	4	4
+dodr¾et	1	2	2
+dodr¾ovat	1	4	4
+dohnat	1	1	1
+dohodnout	0.75	3	4
+dohotovit	0		1
+dojednat	1	1	1
+dokonèit	0.714285714285714	5	7
+dokumentovat	1	2	2
+dokázat	0		1
+dolo¾it	0		6
+domluvit	0.5	1	2
+domyslet	0		1
+domý¹let	1	1	1
+donutit	1	2	2
+dopadnout	1	2	2
+doplnit	0.25	1	4
+doporuèit	0		1
+doporuèovat	1	1	1
+dopravit	0.8	4	5
+doprovodit	1	1	1
+doprovázet	0.833333333333333	5	6
+doruèit	1	6	6
+dosahovat	1	2	2
+dosáhnout	0.909090909090909	10	11
+dotknout	0		1
+dotovat	1	1	1
+dovolit	0		2
+dová¾et	1	1	1
+dovést	0		1
+draftovat	1	1	1
+drtit	1	1	1
+dr¾et	0.5	1	2
+dát	0.375	6	16
+dávat	1	2	2
+eliminovat	1	2	2
+evakuovat	1	1	1
+exportovat	1	1	1
+financovat	1	8	8
+fixovat	1	2	2
+formalizovat	1	1	1
+formulovat	0.5	1	2
+garantovat	1	1	1
+handicapovat	1	1	1
+hledat	1	2	2
+hlásit	0.75	6	8
+hnát	1	1	1
+hodnotit	0.857142857142857	6	7
+honorovat	1	2	2
+hospitalizovat	0.75	3	4
+hradit	1	3	3
+hrát	1	1	1
+identifikovat	1	5	5
+ignorovat	1	2	2
+ilustrovat	0		1
+implantovat	1	1	1
+inaktivovat	1	1	1
+indikovat	1	1	1
+indisponovat	0		1
+informovat	0.444444444444444	4	9
+inspirovat	1	1	1
+instalovat	1	1	1
+integrovat	1	1	1
+internovat	1	1	1
+interpretovat	1	6	6
+investovat	1	3	3
+izolovat	0.666666666666667	2	3
+jmenovat	0.944444444444444	17	18
+klást	0.75	3	4
+kompaktovat	1	1	1
+kompenzovat	1	2	2
+komplikovat	1	2	2
+koncipovat	0.666666666666667	2	3
+konfiskovat	1	2	2
+konstatovat	1	1	1
+konstruovat	1	3	3
+kontaminovat	1	3	3
+kontrolovat	1	2	2
+koupit	1	2	2
+kritizovat	1	1	1
+krátit	1	1	1
+krýt	0.4	2	5
+kvalifikovat	1	1	1
+kódovat	1	2	2
+kótovat	1	1	1
+legitimovat	0		1
+liberalizovat	1	1	1
+likvidovat	0.75	3	4
+limitovat	0.25	1	4
+lokalizovat	0.75	3	4
+lákat	1	1	1
+léèit	1	2	2
+líèit	1	1	1
+materializovat	0		1
+maøit	1	1	1
+metat	1	1	1
+modelovat	1	1	1
+modulovat	1	1	1
+montovat	1	1	1
+motivovat	0.833333333333333	5	6
+myslet	1	1	1
+mìnit	1	1	1
+mìøit	0.5	1	2
+nabídnout	1	5	5
+nabízet	1	2	2
+nadat	0		1
+nadchnout	0		2
+nahradit	0.571428571428571	4	7
+nahrazovat	1	1	1
+nainstalovat	0.5	1	2
+najmout	0		1
+nakazit	1	1	1
+naklonit	0		2
+nakomandovat	1	1	1
+nakoupit	1	1	1
+nakupovat	1	1	1
+naleznout	0.91304347826087	21	23
+nalomit	1	1	1
+namìøit	0		1
+namíøit	0		4
+napadnout	1	1	1
+naplnit	0		3
+naplánovat	1	2	2
+napojit	0.5	1	2
+napomenout	0		1
+napsat	0.625	5	8
+naru¹it	1	1	1
+nasadit	0.75	3	4
+nashromá¾dit	1	1	1
+nastolit	1	2	2
+nastínit	0		1
+nasytit	0		1
+nasít	1	1	1
+natoèit	0		1
+natáèet	1	1	1
+nauèit	0		1
+navodit	1	1	1
+navracet	1	1	1
+navrhnout	0.875	7	8
+navrhovat	1	5	5
+navý¹it	1	1	1
+nazvat	1	1	1
+nazírat	1	1	1
+nazývat	1	4	4
+naøídit	1	1	1
+nièit	1	1	1
+nominovat	1	2	2
+novelizovat	1	3	3
+nutit	0.545454545454545	6	11
+nést	1	1	1
+obchodovat	1	2	2
+obehrát	1	1	1
+obeznámit	1	1	1
+obhájit	0		1
+objasnit	0		1
+objevit	0.882352941176471	15	17
+obklopit	1	1	1
+obklíèit	0.5	1	2
+oblo¾it	0		1
+obléci	0		2
+obnovit	0.714285714285714	5	7
+obsadit	0.538461538461538	7	13
+obsazovat	1	1	1
+obslou¾it	1	1	1
+obstarat	1	1	1
+obsáhnout	0.5	3	6
+obtì¾kat	0		1
+obtì¾ovat	1	1	1
+obvinit	0.428571428571429	6	14
+ob¾alovat	0.333333333333333	1	3
+obìtovat	1	1	1
+ocenit	0.857142857142857	6	7
+ochromit	1	1	1
+ochránit	0.5	1	2
+ochudit	0		2
+odblokovat	1	1	1
+odcizit	1	1	1
+odebrat	1	6	6
+odebírat	1	1	1
+odehrát	0.5	1	2
+odejmout	0.75	3	4
+odepsat	1	1	1
+odeslat	1	2	2
+odevzdat	1	1	1
+odhadovat	1	4	4
+odhalit	1	4	4
+odhodlat	0		3
+odkázat	0.333333333333333	1	3
+odli¹it	1	1	1
+odlouèit	0		2
+odlo¾it	0.9	9	10
+odmìnit	0		2
+odmìòovat	1	2	2
+odmítat	1	1	1
+odmítnout	1	1	1
+odpreparovat	0		1
+odprodat	1	1	1
+odrazit	0.5	1	2
+odroèit	1	2	2
+odsoudit	0.823529411764706	14	17
+odsouhlasit	0.5	1	2
+odstranit	0.75	6	8
+odstátnit	1	1	1
+odstøelit	1	1	1
+odtroubit	0		1
+odvodit	0.285714285714286	2	7
+odvolat	1	4	4
+odvozovat	1	1	1
+odvracet	1	1	1
+odvysílat	1	1	1
+odvést	1	1	1
+odvézt	1	1	1
+od¹kodnit	1	2	2
+ohlásit	1	2	2
+ohromit	0		1
+ohrozit	0.5	4	8
+ohro¾ovat	1	2	2
+okle¹tit	1	1	1
+okupovat	0		1
+omezit	0.588235294117647	10	17
+omezovat	1	5	5
+omilostnit	1	1	1
+omluvit	0.333333333333333	1	3
+opatøit	0		3
+opomenout	1	1	1
+oprávnit	0.4	2	5
+optimalizovat	1	1	1
+organizovat	1	1	1
+orientovat	0.666666666666667	2	3
+oslabit	0.5	1	2
+oslavovat	1	1	1
+oslnit	1	1	1
+ostøelovat	1	1	1
+osvobodit	0.6	3	5
+osídlit	1	1	1
+otevøít	0.48	12	25
+otisknout	0		1
+otrávit	0		1
+otøást	0		1
+ovlivnit	0.571428571428571	4	7
+ovlivòovat	1	4	4
+ovládat	1	3	3
+ovìøovat	1	2	2
+ozbrojit	0		2
+ozdobit	1	1	1
+oznaèit	0.666666666666667	4	6
+oznaèovat	1	10	10
+oznámit	0.833333333333333	5	6
+ozáøit	1	1	1
+o¹etøit	0.666666666666667	2	3
+oèekávat	1	2	2
+oèistit	0		1
+oèkovat	1	1	1
+oèíslovat	0		1
+parafovat	1	1	1
+paralyzovat	1	1	1
+pentlit	1	1	1
+penzionovat	1	1	1
+platit	1	4	4
+plánovat	0.7	7	10
+pobouøit	1	1	1
+pochválit	0		1
+podat	0.846153846153846	11	13
+podcenit	0		1
+podchytit	1	1	1
+podepsat	0.857142857142857	12	14
+podepøít	0.666666666666667	2	3
+podezøívat	1	1	1
+podhodnotit	0.5	1	2
+podinvestovat	0		1
+podlo¾it	0		1
+podmínit	0.5	4	8
+podnìcovat	1	1	1
+podporovat	1	3	3
+podpoøit	1	2	2
+podrobit	0.857142857142857	6	7
+podrobovat	1	1	1
+podávat	1	1	1
+podøídit	0.375	3	8
+pohnout	1	1	1
+pohøbít	0.571428571428571	4	7
+pohøbívat	1	1	1
+pohøe¹ovat	0.5	2	4
+pojistit	0		2
+pojmenovat	0		1
+pojmout	0.333333333333333	1	3
+pokazit	0		1
+pokládat	1	2	2
+pokrýt	0.333333333333333	1	3
+pokutovat	1	1	1
+pokøtít	1	1	1
+polo¾it	0.5	4	8
+pomalovat	1	1	1
+ponechat	0.833333333333333	5	6
+popravit	1	2	2
+popsat	0.75	6	8
+poranit	1	1	1
+porazit	1	2	2
+poru¹it	1	3	3
+poskytnout	0.8	4	5
+poskytovat	1	3	3
+poslat	1	3	3
+posoudit	1	2	2
+postavit	0.928571428571429	13	14
+postihnout	0.6	6	10
+posunout	1	1	1
+posuzovat	1	4	4
+posílit	0.5	1	2
+posít	0		1
+potlaèit	1	2	2
+potlaèovat	0		1
+potrestat	1	11	11
+potvrdit	0.833333333333333	5	6
+potì¹it	0		5
+poutat	1	1	1
+pou¾ít	1	17	17
+pou¾ívat	1	3	3
+pouèit	0.333333333333333	1	3
+pova¾ovat	0.897435897435897	35	39
+povolat	1	2	2
+povolit	0.666666666666667	4	6
+povìøit	0.8	4	5
+pozastavit	1	1	1
+pozdr¾et	1	1	1
+poznamenat	0.571428571428571	4	7
+poznat	1	2	2
+pozorovat	1	7	7
+pozvat	0.75	3	4
+po¹kodit	0.5	1	2
+po¹kozovat	0		1
+po¹lapávat	1	1	1
+po¾adovat	1	1	1
+po¾ádat	1	2	2
+poøídit	1	4	4
+prezentovat	1	6	6
+privatizovat	1	4	4
+probrat	1	2	2
+proclívat	1	1	1
+prodat	0.916666666666667	11	12
+prodlou¾it	0.333333333333333	1	3
+prodávat	1	1	1
+prohlásit	1	4	4
+prohlédnout	1	2	2
+projednat	1	2	2
+projednávat	1	2	2
+prokázat	1	10	10
+prolo¾it	1	1	1
+prolít	1	1	1
+prominout	1	1	1
+promìnit	1	2	2
+promísit	0		1
+promítat	1	1	1
+prooèkovat	0		1
+propojit	0		1
+propracovat	1	1	1
+propustit	0.9	9	10
+provozovat	1	2	2
+provádìt	0.833333333333333	5	6
+provázet	1	4	4
+provést	1	12	12
+prozkoumat	1	2	2
+prozradit	0		1
+pro¹etøit	1	2	2
+pro¹etøovat	1	1	1
+pro¹pikovat	0		1
+psát	0.666666666666667	2	3
+publikovat	1	9	9
+pálit	1	3	3
+pøecenit	0		1
+pøeceòovat	0		1
+pøedat	0.857142857142857	6	7
+pøedepsat	0		2
+pøedimenzovat	0		1
+pøedlo¾it	1	11	11
+pøednést	1	1	1
+pøedpovìdìt	0.666666666666667	2	3
+pøedra¾it	1	3	3
+pøedstavit	0.8	4	5
+pøedstihnout	1	1	1
+pøedtisknout	0		1
+pøedvádìt	1	1	1
+pøedvést	1	1	1
+pøedznamenat	0		1
+pøedávat	1	2	2
+pøedávkovat	1	1	1
+pøehodnotit	1	2	2
+pøejmenovat	1	1	1
+pøekonat	0		2
+pøekraèovat	1	1	1
+pøekroèit	0		1
+pøekvapit	0		2
+pøelo¾it	0		1
+pøemìnit	1	1	1
+pøemístit	1	1	1
+pøená¹et	1	1	1
+pøenést	1	2	2
+pøepadnout	0.666666666666667	2	3
+pøepracovat	1	1	1
+pøeru¹it	0.666666666666667	4	6
+pøestìhovat	1	1	1
+pøesunout	1	1	1
+pøesvìdèit	0.117647058823529	4	34
+pøesvìdèovat	1	1	1
+pøesytit	0		1
+pøetisknout	1	1	1
+pøetopit	0		1
+pøetí¾it	0		1
+pøevzít	1	2	2
+pøevést	0.8	4	5
+pøevézt	0.833333333333333	5	6
+pøezdívat	1	1	1
+pøeèíst	1	1	1
+pøidr¾ovat	1	1	1
+pøidìlit	1	1	1
+pøihlásit	0		1
+pøijmout	0.909090909090909	20	22
+pøijímat	1	6	6
+pøikládat	1	1	1
+pøikroèit	1	1	1
+pøilepit	0		1
+pøilepovat	1	1	1
+pøilo¾it	0		1
+pøinutit	1	1	1
+pøinést	1	1	1
+pøipevnit	1	2	2
+pøipisovat	1	5	5
+pøipojit	0.6	3	5
+pøipravit	0.266666666666667	16	60
+pøipravovat	1	3	3
+pøipsat	1	1	1
+pøipustit	0.25	1	4
+pøislíbit	1	2	2
+pøisoudit	1	1	1
+pøistavit	1	1	1
+pøistavìt	0		1
+pøiznávat	0		1
+pøizpùsobit	0		2
+pøi¹roubovat	1	1	1
+pùsobit	1	1	1
+ranit	1	1	1
+ratifikovat	1	1	1
+realizovat	1	6	6
+redigovat	1	1	1
+redukovat	1	2	2
+reexportovat	1	1	1
+registrovat	0.833333333333333	5	6
+regulovat	1	4	4
+rehabilitovat	1	2	2
+rekonstruovat	1	1	1
+respektovat	0.5	1	2
+restaurovat	1	1	1
+rezervovat	1	1	1
+rozbíjet	1	1	1
+rozbít	1	1	1
+rozdat	1	1	1
+rozdrobit	0		2
+rozdìlit	0.4	4	10
+rozepnout	0		1
+rozepsat	0		1
+rozeznat	1	1	1
+rozhodnout	0.380952380952381	8	21
+rozkrást	0		1
+rozli¹it	1	1	1
+rozlo¾it	0		4
+rozmazat	0		1
+rozmístit	0.333333333333333	1	3
+rozpracovat	1	3	3
+rozprodat	1	1	1
+roztrousit	0		1
+roztrpèit	0		1
+rozumìt	0		1
+rozvádìt	1	1	1
+rozvázat	1	1	1
+roz¹íøit	0.571428571428571	4	7
+rozèarovat	1	1	1
+rozøe¹it	1	1	1
+schválit	0.733333333333333	11	15
+sdru¾it	1	2	2
+sdìlit	1	2	2
+sdílet	1	1	1
+selektovat	1	5	5
+sepisovat	1	1	1
+sepsat	1	1	1
+servírovat	1	1	1
+sestavit	1	2	2
+seznámit	0		1
+se¾ehnout	1	1	1
+seèíst	0		1
+seøídit	0		1
+shledat	0.75	3	4
+shodit	1	1	1
+shrnout	0.25	1	4
+shromá¾dit	1	2	2
+situovat	1	3	3
+sledovat	1	1	1
+slo¾it	0.545454545454545	6	11
+smazat	1	1	1
+smìrovat	1	1	1
+smìøovat	0		1
+sní¾it	0.5	3	6
+soudit	0.5	1	2
+soustøedit	0.5	3	6
+spatøit	1	2	2
+specializovat	0		3
+splatit	0		1
+splnit	0.666666666666667	4	6
+splácet	1	1	1
+spojit	0.466666666666667	14	30
+spojovat	1	1	1
+spokojit	0		3
+spou¹tìt	1	1	1
+spoèítat	0		2
+spravovat	1	1	1
+spustit	1	2	2
+spáchat	1	3	3
+spíchnout	1	1	1
+srovnat	0		1
+srovnávat	1	2	2
+stanovit	0.555555555555556	15	27
+stavìt	1	1	1
+stimulovat	1	1	1
+strhat	1	1	1
+strhnout	0.5	1	2
+strhávat	1	1	1
+strukturovat	1	1	1
+stvoøit	1	1	1
+stvrdit	1	1	1
+stvrzovat	1	1	1
+stáhnout	1	1	1
+stíhat	0.888888888888889	16	18
+støelit	1	1	1
+su¾ovat	1	1	1
+svolat	0.8	4	5
+svrhnout	0.8	4	5
+svázat	0.25	1	4
+svìøit	1	3	3
+testovat	1	1	1
+traktovat	1	1	1
+transformovat	1	1	1
+transportovat	1	2	2
+trestat	0.5	1	2
+tvoøit	0.875	7	8
+ubezpeèit	1	2	2
+ubytovat	0.333333333333333	2	6
+uchopit	1	1	1
+uchovat	0.5	1	2
+uchovávat	1	2	2
+uchránit	1	1	1
+uctívat	1	3	3
+udeøit	1	1	1
+udávat	1	1	1
+udìlat	1	1	1
+udìlit	0.846153846153846	11	13
+udìlovat	1	2	2
+uhradit	0		1
+ujasnit	0		1
+ujistit	0		1
+ukazovat	1	1	1
+uklidit	0		1
+ukládat	1	3	3
+ukonèit	0.833333333333333	5	6
+ukradnout	1	1	1
+ulovit	1	1	1
+ulo¾it	0.545454545454545	6	11
+umis»ovat	1	3	3
+umo¾nit	0.5	1	2
+umuèit	1	1	1
+umístit	0.416666666666667	5	12
+unavit	0		1
+unést	0		1
+uplatnit	0.75	3	4
+uplatòovat	0.5	2	4
+upoutat	0		1
+upozornit	1	1	1
+upozoròovat	1	1	1
+upravit	0.833333333333333	5	6
+upsat	0		1
+upustit	1	1	1
+upøesnit	1	2	2
+upøít	0.5	1	2
+urychlit	1	2	2
+urèit	0.296296296296296	8	27
+urèovat	1	2	2
+uskuteènit	1	3	3
+uskuteèòovat	1	1	1
+usmrtit	1	1	1
+usmìròovat	1	1	1
+usnadòovat	1	1	1
+uspoøádat	0.666666666666667	2	3
+ustanovit	1	1	1
+ustanovovat	1	1	1
+ustavit	0.666666666666667	2	3
+utajit	0		1
+utlaèovat	1	1	1
+utr¾it	1	1	1
+uvalit	1	2	2
+uveøejnit	1	1	1
+uvolnit	0.666666666666667	2	3
+uvolòovat	1	2	2
+uvrhnout	1	1	1
+uvádìt	0.8	4	5
+uvést	0.452380952380952	19	42
+uvìznit	1	1	1
+uzavírat	1	1	1
+uzavøít	0.65	13	20
+uznat	0.5	1	2
+uznávat	0		1
+uzpùsobit	1	1	1
+u¹etøit	0.333333333333333	1	3
+u¾ít	0.666666666666667	2	3
+u¾ívat	1	3	3
+uèinit	1	4	4
+valorizovat	1	1	1
+vetknout	0		1
+vidìt	0.5	2	4
+vlastnit	1	1	1
+vlo¾it	1	3	3
+vnést	1	1	1
+vnímat	1	4	4
+volit	0.777777777777778	7	9
+vracet	1	1	1
+vrhat	1	1	1
+vrátit	0.923076923076923	12	13
+vsunout	1	1	1
+vtahovat	1	1	1
+vtáhnout	0		2
+vtìlit	1	1	1
+vybavit	0.25	2	8
+vybrat	0.875	7	8
+vybudovat	1	4	4
+vybírat	1	1	1
+vychovat	0		1
+vychovávat	1	1	1
+vydat	1	11	11
+vydekorovat	0		1
+vydra¾it	1	2	2
+vydávat	1	3	3
+vyhla¹ovat	1	2	2
+vyhledávat	1	2	2
+vyhlásit	1	10	10
+vyhovìt	1	1	1
+vyhradit	0.375	3	8
+vyhro¾ovat	1	3	3
+vyhrát	0		2
+vyhubit	1	1	1
+vyjasnit	1	1	1
+vyjmout	0.5	2	4
+vyjádøit	0.666666666666667	4	6
+vykazovat	1	1	1
+vykládat	1	2	2
+vykonat	1	2	2
+vykonávat	1	1	1
+vykopávat	1	1	1
+vykrmit	1	1	1
+vykupovat	1	1	1
+vykácet	1	1	1
+vykázat	1	1	1
+vylosovat	0		1
+vylouèit	0.333333333333333	9	27
+vylo¾it	1	1	1
+vymezit	1	2	2
+vymezovat	1	1	1
+vymr¹tit	1	1	1
+vymìnit	1	4	4
+vymìøovat	1	1	1
+vynaleznout	1	1	1
+vynalo¾it	1	3	3
+vyobrazit	0		1
+vyoperovat	1	1	1
+vyplatit	0.666666666666667	2	3
+vyplnit	1	2	2
+vyplácet	1	8	8
+vyplòovat	1	1	1
+vypnout	0		1
+vypolíèkovat	0		1
+vypou¹tìt	1	1	1
+vypovìdìt	1	1	1
+vypracovat	1	4	4
+vyprodat	0.5	1	2
+vypsat	1	4	4
+vypustit	1	3	3
+vypálit	1	1	1
+vypínat	1	1	1
+vypùjèit	0		1
+vyrovnat	0		1
+vyrábìt	1	1	1
+vysadit	1	1	1
+vyslat	1	1	1
+vyslovit	1	5	5
+vysly¹et	0		1
+vyslýchat	0		1
+vystavit	0.4	6	15
+vystavovat	1	1	1
+vystopovat	1	1	1
+vystrojit	1	1	1
+vystìhovat	1	1	1
+vystøelit	1	1	1
+vystøídat	1	2	2
+vysvìtlovat	1	2	2
+vysílat	1	3	3
+vytesat	1	1	1
+vytlaèit	0.5	2	4
+vytlaèovat	1	2	2
+vytrejdovat	1	1	1
+vytvoøit	1	7	7
+vytváøet	1	3	3
+vytypovat	1	1	1
+vytì¾it	1	1	1
+vytí¾it	0		2
+vytýèit	1	1	1
+vyu¾ít	0.444444444444444	4	9
+vyu¾ívat	1	6	6
+vyuèit	0		1
+vyuèovat	1	4	4
+vyvinout	0.75	3	4
+vyvlastnit	1	2	2
+vyvolat	1	4	4
+vyvolávat	1	1	1
+vyvrátit	1	1	1
+vyvzdorovat	0		1
+vyvá¾et	1	1	1
+vyvá¾it	0.5	1	2
+vyvést	1	2	2
+vyvézt	1	1	1
+vyvíjet	0.5	1	2
+vyzbrojit	0		2
+vyzvat	1	2	2
+vy¹etøit	1	5	5
+vy¹etøovat	1	2	2
+vy¹kolit	1	1	1
+vy¾adovat	1	1	1
+vyèerpat	0.5	1	2
+vyèistit	1	1	1
+vyèlenit	0.5	1	2
+vyèítat	1	1	1
+vyøadit	0.75	3	4
+vyøe¹it	0.625	5	8
+vyøídit	0.5	1	2
+vzbudit	1	1	1
+vzdálit	0		4
+vznést	0		1
+vzpomínat	1	1	1
+vzít	1	4	4
+vázat	0.666666666666667	6	9
+vést	0.769230769230769	10	13
+vìnovat	0.8125	13	16
+vìznit	0.5	1	2
+vítat	1	3	3
+zabavit	1	1	1
+zaberanit	0		1
+zabezpeèit	0.333333333333333	1	3
+zabezpeèovat	1	1	1
+zablokovat	0		1
+zabudovat	0		2
+zabít	0.833333333333333	15	18
+zachovat	0.6	3	5
+zachránit	0.5	1	2
+zachytit	0.8	4	5
+zadlu¾it	0		1
+zadr¾et	1	11	11
+zahltit	0		1
+zahnat	0		1
+zahrnout	0.1	1	10
+zahubit	1	1	1
+zahájit	0.954545454545455	21	22
+zainteresovat	0		2
+zajistit	0.7	7	10
+zaji¹»ovat	1	3	3
+zajmout	1	1	1
+zakonèit	0		1
+zakopat	0		1
+zakotvit	0.333333333333333	2	6
+zakoupit	1	1	1
+zakoøenit	0.25	1	4
+zakrýt	0		1
+zakázat	0.333333333333333	1	3
+zakódovat	0		1
+zalo¾it	0.447368421052632	17	38
+zamìstnat	0.6	3	5
+zamìøit	0.166666666666667	2	12
+zamítnout	1	1	1
+zamý¹let	1	1	1
+zanést	0		1
+zapeèetit	1	1	1
+zaplatit	0.666666666666667	2	3
+zaplavit	1	1	1
+zaplnit	1	1	1
+zaplést	0		1
+zapnout	0		1
+zapojit	0.666666666666667	2	3
+zapomenout	0.5	3	6
+zapovìdìt	0		1
+zapoèítat	0		3
+zapoèítávat	1	1	1
+zapsat	0.2	1	5
+zapálit	1	1	1
+zapøíèinit	0		1
+zaregistrovat	0.25	1	4
+zarmoutit	0		1
+zaruèit	0.5	1	2
+zaskoèit	0.333333333333333	1	3
+zaslat	1	1	1
+zastavit	1	5	5
+zastoupit	0.0909090909090909	1	11
+zastínit	0		1
+zastøelit	1	4	4
+zastøít	0		1
+zasáhnout	0.714285714285714	5	7
+zasílat	1	1	1
+zatknout	1	3	3
+zatlaèit	1	1	1
+zatí¾it	0		2
+zavalit	0		1
+zavléci	1	1	1
+zavra¾dit	0.75	3	4
+zavrhnout	0.5	1	2
+zavr¹it	1	1	1
+zavádìt	1	2	2
+zavázat	1	1	1
+zavést	0.714285714285714	5	7
+zavøít	0.333333333333333	1	3
+zaznamenat	0.727272727272727	8	11
+zaznamenávat	1	1	1
+za¾ehnat	0		1
+zaèlenit	1	2	2
+zaøadit	0.866666666666667	13	15
+zaøazovat	1	3	3
+zaøídit	0		1
+zbavit	0.857142857142857	6	7
+zbourat	1	1	1
+zcizit	1	1	1
+zdecimovat	1	1	1
+zdvojit	0		1
+zdùraznit	1	1	1
+zdùvodnit	1	1	1
+zdùvodòovat	1	2	2
+zhanobit	1	1	1
+zhor¹it	0		1
+zjistit	0.882352941176471	15	17
+zji¹»ovat	1	3	3
+zklamat	0.6	3	5
+zkomplikovat	0		1
+zkontumovat	0		1
+zkoumat	1	1	1
+zkrátit	1	1	1
+zkva¹ovat	1	1	1
+zkøivit	1	1	1
+zlikvidovat	1	1	1
+zlomit	0		1
+zmapovat	0		2
+zmocnit	0		1
+zmrazit	0		1
+zmìnit	0.333333333333333	1	3
+zmínit	0		1
+zmírnit	1	1	1
+znechutit	0		1
+znejistìt	0		1
+zneklidnit	0		1
+zneklidnìt	0		2
+znepokojit	0		3
+zneu¾ít	1	2	2
+zneu¾ívat	1	2	2
+znevýhodnit	0		1
+zne¹kodòovat	1	1	1
+znièit	0.75	3	4
+znovuotevøít	1	1	1
+znovupostavit	1	1	1
+znásilnit	0.5	1	2
+zobchodovat	1	1	1
+zobrazit	0		2
+zodpovìdìt	0.5	1	2
+zorganizovat	1	1	1
+zpeèetit	1	1	1
+zpochybnit	0.333333333333333	1	3
+zpochybòovat	1	1	1
+zpozdit	1	1	1
+zpracovat	0.5	2	4
+zprostit	1	1	1
+zprostøedkovat	0		1
+zprovoznit	1	1	1
+zpøetrhat	1	1	1
+zpøístupnit	1	1	1
+zpùsobit	0.333333333333333	4	12
+zpùsobovat	1	2	2
+zranit	0.92	23	25
+zreprodukovat	0		1
+zru¹it	0.888888888888889	8	9
+ztoto¾òovat	1	1	1
+ztratit	0.25	1	4
+zva¾ovat	1	1	1
+zveøejnit	1	11	11
+zviditelnit	1	1	1
+zvolit	0.952380952380952	20	21
+zvìstovat	1	1	1
+zvýhodnit	0.5	1	2
+zvýraznìt	0		1
+zvý¹it	1	9	9
+zásobovat	1	1	1
+získat	1	3	3
+získávat	1	1	1
+zøedit	0		1
+zøídit	1	4	4
+¹pinit	1	1	1
+¹íøit	1	1	1
+¾ivit	1	1	1
+¾ádat	1	2	2
+èinit	1	1	1
+èlenit	1	1	1
+èíst	1	1	1
+øe¹it	1	5	5
+øíci	0.5	4	8
+øídit	1	6	6
+úroèit	0		1

@@ -1,0 +1,20 @@
+33a34,36
+>       <member name="ptree.rf">
+>          <cdata format="PMLREF"/>
+>       </member>
+46a50
+>       <member name="p" type="a-p.type"/>
+119a124,136
+>   <type name="a-p.type">
+>         <structure>
+>                 <member name="lex.rf">
+>                         <cdata format="PMLREF"/>
+>                 </member>
+>                 <member name="aux.rf">
+>                         <list ordered="0">
+>                                 <cdata format="PMLREF"/>
+>                         </list>
+>                 </member>
+>         </structure>
+>   </type>
+>
