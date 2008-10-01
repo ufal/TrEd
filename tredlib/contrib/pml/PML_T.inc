@@ -348,7 +348,7 @@ sub DrawCorefArrows {
       if ($orientation == 0) {
 	$edge{-target} = $refed;
 	$edge{-fill}=CustomColor('arrow_'.$cortype);
-	$edge{-dash}=GetPatternsByPrefix('full')?($cortype eq'compl'?'2,3,5,3':$cortype eq'grammatical'?'5,3':1):'';
+	$edge{-dash}=GetPatternsByPrefix('full')?($cortype eq'compl'?'2,3,5,3':$cortype eq'grammatical'?'5,3':''):'';
       } elsif ($orientation<0) {
 	print STDERR "ref-arrows: Preceding sentence\n"if $main::macroDebug;
 	$edge{-fill}=CustomColor('arrow_'.$cortype);
