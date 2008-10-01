@@ -1698,7 +1698,6 @@ sub closeFile {
   no strict qw(refs);
   set_macro_variable('TredMacro::NodeClipboard' => undef);
   # close required files too, unless file remains pre-loaded
-
   closeSecondaryFilesOf($grp,$grp->{FSFile});
   $grp->{root}=undef;
   $grp->{FSFile}=undef;
@@ -1717,6 +1716,7 @@ sub closeSecondaryFilesOf {
       my $req_filename = absolutize_path($fsfile->filename,$req->[1]);
       my $secondary = $grp->{'secondary'}->{$req_filename};
       if ($secondary) {
+	closeSecondaryFilesOf($grp,$secondary);
 	my $part_of = $secondary->appData('fs-part-of');
 	@$part_of = grep { $_ != $fsfile } @$part_of;
 	unless (@$part_of) {
