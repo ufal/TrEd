@@ -127,7 +127,9 @@ sub init_ValencyLexicon {
       } else {
 	$info=InfoDialog($top,"First run, loading lexicon $vallex_file. Please, wait...");
       }
-      $ValencyLexicon= $XMLDataClass->new($vallex_file,$conv,!$vallex_validate);
+      my $url = IOBackend::make_URI($vallex_file);
+      my $file = ($url->scheme eq 'file') ? $url->file : "$url";
+      $ValencyLexicon= $XMLDataClass->new($file,$conv,!$vallex_validate);
     };
     my $err=$@;
     $info->destroy() if $info;
