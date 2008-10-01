@@ -1654,7 +1654,8 @@ sub redraw {
     my @fill=split '&',$line_style->{'-fill'};
     my @width=split '&',$line_style->{'-width'};
 
-    my @dash=map { /\d/ ? [split /,/,$_] : $_ } 
+    my @dash= map { ref($_) && @_==1 ? '' : $_ }
+      map { /\d/ ? [split /,/,$_] : $_ } 
       split '&',$line_style->{'-dash'};
     my @smooth=split '&',$line_style->{'-smooth'};
     my %nodehash;
