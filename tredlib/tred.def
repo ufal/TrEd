@@ -491,7 +491,7 @@ the corresponding FSFile object.
 
 sub LocateNode {
   my $node = ref($_[0]) ? $_[0] :
-      @_ ? $this : confess("Cannot get position of an undefined node");
+      @_ ? confess("Cannot get position of an undefined node") : $this;
   my $fsfile = ref($_[1]) ? $_[1] : CurrentFile();
   return unless ref $node;
   my $tree = $node->root;
@@ -3609,6 +3609,72 @@ Returns a temporary filename..
 sub tmpFileName {
   require POSIX;
   return POSIX::tmpnam();
+}
+
+=item C<DirPart($path)>
+
+Returns directory part of a given path (including volume).
+
+=cut
+
+sub DirPart {
+  return File::Spec->catpath(
+    (File::Spec->splitpath($_[0]))[0,1]
+  );
+}
+
+=item C<FilePart($path)>
+
+Returns file-name part of a given path.
+
+=cut
+
+sub FilePart {
+  return( (File::Spec->splitpath($_[0]))[2] );
+}
+
+=item C<CallerPath()>
+
+Return path of the perl module or macro-file that invoked this macro.
+
+=cut
+
+sub CallerPath {
+  return( (caller)[1] );
+}
+
+=item C<CallerDir($rel_path?)>
+
+If called without an argument, returns the directory of the perl
+module or macro-file that invoked this macro.
+
+If a relative path is given as an argument, a respective absolute path
+is computed based on the caller's directory and returned.
+
+=cut
+
+sub CallerDir {
+  return
+    @_>1
+      ? File::Spec->rel2abs($_[0], DirPart( (caller)[1] ))
+      : DirPart( (caller)[1] );
+}
+
+=item C<FindMacroDir($rel_dir)
+
+Searches for a given relative path in directories with user-defined
+macros and returns an absolute path to the first directory that matches.
+
+=cut
+
+sub FindMacroDir {
+  my ($dir)=@_;
+  confess( "Usage: FindMacroDir(rel_dir)" ) unless defined $dir and length $dir;
+  my $candidate = File::Spec->catdir($libDir, 'contrib', $dir);
+  if (-d $candidate) {
+    return $candidate
+  }
+  confess( "FindMacroDir: didn't find subdirectory '$dir' in macro paths" );
 }
 
 =back
