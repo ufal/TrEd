@@ -22,7 +22,7 @@ BEGIN { import TredMacro; }
 
 our ($this, $root, $grp);
 
-our ($Redraw, $libDir);
+our ($Redraw);
 
 our ($paragraph_hide_mode, $entity_hide_mode, $level_guide_mode) = ('', '', 0);
 
@@ -1402,7 +1402,7 @@ sub open_level_second {
             return;
         }
 
-        system 'perl -X ' . ( escape $libDir . '/contrib/padt/exec/SyntaxFS.pl' ) .
+        system 'perl -X ' . ( escape CallerDir('exec').'/SyntaxFS.pl' ) .
                       ' ' . ( expace $file[0] );
 
         mkdir path $path, "$level" unless -d path $path, "$level";

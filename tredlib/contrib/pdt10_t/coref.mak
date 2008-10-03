@@ -6,7 +6,7 @@
 # CONFIGURATION:
 #
 
-use lib "$main::libDir/contrib/auto_coref";
+use lib FindMacroDir('auto_coref');
 require ACAP;
 use vars qw($drawAutoCoref $cortypes %cortype_colors $referent_color
 	    $inf_lemmas_addr $inf_lemmas_pat

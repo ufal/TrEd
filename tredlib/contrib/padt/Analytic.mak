@@ -22,7 +22,7 @@ BEGIN { import TredMacro; }
 
 our ($this, $root, $grp);
 
-our ($Redraw, $libDir);
+our ($Redraw);
 
 our ($hooks_request_mode, $fill) = (0, ' ' x 4);
 
@@ -1299,12 +1299,12 @@ sub synchronize_file {
 
     move $file[0], $file[3];
 
-    system 'perl -X ' . ( escape $libDir . '/contrib/padt/exec/SyntaxFS.pl' ) .
+    system 'perl -X ' . ( escape CallerDir('exec').'/SyntaxFS.pl' ) .
                   ' ' . ( expace $file[1] );
 
     move $file[2], $file[0];
 
-    system 'btred -QI ' . ( escape $libDir . '/contrib/padt/exec/migrate_annotation_syntax.btred' ) .
+    system 'btred -QI ' . ( escape CallerDir('exec').'/migrate_annotation_syntax.btred' ) .
                     ' ' . ( espace $file[0] );
 
     print "... succeeded.\n";
@@ -1413,7 +1413,7 @@ sub open_level_third {
             return;
         }
 
-        system 'perl -X ' . ( escape $libDir . '/contrib/padt/exec/DeeperFS.pl' ) .
+        system 'perl -X ' . ( escape CallerDir('exec').'/DeeperFS.pl' ) .
                       ' ' . ( expace $file[0] );
 
         mkdir path $path, "$level" unless -d path $path, "$level";

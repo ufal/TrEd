@@ -3,7 +3,7 @@
 package ValLex::GUI;
 
 BEGIN { import TredMacro; }
-use lib "$main::libDir/contrib/vallex";
+use lib CallerDir('..');
 use utf8;
 
 use vars qw($ValencyLexicon $ChooserHideObsolete $frameid_attr
@@ -28,7 +28,7 @@ $vallex_validate = 0;
 $vallex_file = $ENV{VALLEX};
 unless (defined($vallex_file) and length($vallex_file)) {
   # try to find vallex in libDir (old-way) or in resources (new-way)
-  $vallex_file = ResolvePath("$libDir/contrib/ValLex/vallex.xml",'vallex.xml',1);
+  $vallex_file = ResolvePath(CallerDir()."/vallex.xml",'vallex.xml',1);
 }
 }
 

@@ -8,7 +8,7 @@ use Arab_special_chars;
 use Fslib;
 
 my %frequent;
-open F,$TredMacro::libDir."/contrib/padt/PADT/most_freq_200"
+open F,CallerDir()."/most_freq_200"
   or warn "Can't find the most frequent lemmas (most_freq_200)!";
 while (<F>) {chomp; $frequent{$_}=1};
 close F;
