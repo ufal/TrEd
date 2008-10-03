@@ -32,6 +32,7 @@ BEGIN {
   $vLineFont
   $libDir
   $extensionsDir
+  $extensionRepos
   $iconPath
   $appIcon
   $sortAttrs
@@ -387,7 +388,7 @@ sub set_config {
 
   $extensionsDir=tilde_expand(length($confs->{extensionsdir})
 				? $confs->{extensionsdir} : '~/.tred.d/extensions');
-
+  $extensionRepos = val_or_def($confs,'extensionrepos','http://ufal.mff.cuni.cz/~pajas/tred/extensions');
   {
     my $def_res_path=$libDir;
     if ($^O eq 'Win32') {
