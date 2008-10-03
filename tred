@@ -813,24 +813,8 @@ if ($opt_X ne EMPTY) {
 }
 
 print STDERR "Reading macros from $macroFile...\n" unless $opt_q;
-read_macros($macroFile,$libDir);		# read macros
-if ($opt_I) {
-  print STDERR ("Reading additional macros from $opt_I...\n") unless $opt_q;
-  push @TrEd::Macros::macros,"\n","package TredMacro;\n";
-  read_macros($opt_I,$libDir,1);
-}
 
-my $extensions = getExtensionList();
-initExtensions($extensions);
-print STDERR ("Reading extension macros...\n") unless $quiet;
-for my $ext_contrib (getExtensionMacroPaths($extensions)) {
-  print STDERR ("Reading extension macros from $ext_contrib...\n") unless $quiet;
-  push @TrEd::Macros::macros,"\n","package TredMacro;\n";
-  read_macros($ext_contrib,$libDir,1);
-}
-
-
-print STDERR "done.\n" unless $opt_q;
+loadMacros();
 
 startMain();	# display first tree
 
@@ -1804,6 +1788,24 @@ sub updatePostponed {
     print STDERR "Updating session menu\n"  if $tredDebug;
     my $menu= $grp->{PostponedFileMenu}->menu;
     $menu->delete(0,'end');
+    $grp->{PostponedFileMenu}->command(-label=> 'Extensions',
+				       -state=> 'disabled',
+				       -background=> '#444444'
+				      );
+    $grp->{PostponedFileMenu}->command(-label => "Manage Extensions",
+				       -underline=> 0,
+				       -command=> [sub {
+						     my ($grp) = @_;
+						     my $reload_macros;
+						     manageExtensions($grp, {
+						       repositories => [ split /\s+/, $extensionRepos ],
+						       reload_macros => \$reload_macros,
+						     });
+						     if ($reload_macros) {
+						       reloadMacros($grp);
+						     }
+						   },$grp]);
+
     $grp->{PostponedFileMenu}->command(-label=> 'Options',
 				       -state=> 'disabled',
 				       -background=> '#444444'
@@ -2967,6 +2969,54 @@ sub update_status_info {
 			      update_attribute_view($win);
 			    });
 }
+sub update_macro_menus {
+  my ($grp)=@_;
+  $grp->{ContextsMenu}->configure(-options => [getContexts()])
+    if $grp->{ContextsMenu};
+  if ($grp->{MacroMenu}) {
+    my $menu = $grp->{MacroMenu}->menu;
+    $menu->delete(qw(0 end));
+    foreach my $context (sort(keys(%keyBindings))) {
+      $menu->Cascade( -label => $context, 
+		      -menuitems=>
+			cascadeMenus(map { $keyBindings{$context}->{$_}=~/(?:$context\-\>)?(.*)/;
+					   [Button => $1,
+					    -command=> [sub {
+							  doEvalMacro($_[0]->{focusedWindow},
+								      $_[1]);
+						   },$grp,
+							$keyBindings{$context}->{$_}],
+					    -accelerator=> "($_)"
+					   ]
+					 } sort(keys(%{$keyBindings{$context}}))));
+    }
+  }
+  if ($grp->{UserMenu}) {
+    my $menu = $grp->{UserMenu}->menu;
+    $menu->delete(qw(0 end));
+    foreach my $context ("TredMacro",grep { $_ ne "TredMacro" } sort(keys(%menuBindings))) {
+      my %macro_to_key = reverse %{ $keyBindings{$context} };
+      $menu->Cascade( -label => $context,
+		 -menuitems=>
+		   cascadeMenus(map {
+		     my $v = $menuBindings{$context}->{$_};
+		     my $key = defined($v->[1]) ? $v->[1] : $macro_to_key{$v->[0]};
+		     [Button=> "$_",
+		      -command=> [sub {
+				    doEvalMacro($_[0]->{focusedWindow},
+						$_[1]);
+				  },
+				  $grp,
+				  $v->[0]],
+		      $key ? (-accelerator=> "(".$key.")") : ()]}
+				  sort(keys(%{$menuBindings{$context}}))));
+    }
+  }
+}
+
+
+
+
 sub update_macrolist_view {
   my ($grp,$win) = grp_win($_[0]);
   my $view = $grp->{sidePanel} && $grp->{sidePanel}->widget('macroListView');
@@ -6265,77 +6315,11 @@ sub startMain {
   $group{templateMatchMethod}=$defaultTemplateMatchMethod;
   $group{macroListOrder}=$defaultMacroListOrder;
 
-  my $cM=[];
   if ($createMacroMenu) {
-#     push @$cM, 
-#       @{cascadeMenus(map { $keyBindings{TredMacro}->{$_}=~/TredMacro\-\>(.*)/;
-# 			   [Button=> $1,
-# 			    -command=> [ sub {
-# 					   doEvalMacro($_[0]->{focusedWindow},
-# 						       $_[1]);
-# 					 },\%group,
-# 					 $keyBindings{TredMacro}->{$_}],
-# 			    -accelerator=> "($_)"
-# 			   ]
-# 			 } sort(keys(%{$keyBindings{TredMacro}})))};
-
-    foreach my $context (sort(keys(%keyBindings))) {
-#      if ($context ne "TredMacro") {
-	push @$cM,
-	  [Cascade=> $context,
-	   -menuitems=>
-	   cascadeMenus(map { $keyBindings{$context}->{$_}=~/(?:$context\-\>)?(.*)/;
-			      [Button=> $1,
-			       -command=> [sub {
-					   doEvalMacro($_[0]->{focusedWindow},
-						       $_[1]);
-					 },\%group,
-					   $keyBindings{$context}->{$_}],
-			       -accelerator=> "($_)"
-			      ]
-			    } sort(keys(%{$keyBindings{$context}})))];
-#      }
-    }
-
-    $group{MacroMenu}=$group{Menubar}->
-      Cascade(qw/-label Sh~ortcuts -menuitems/=> #  -underline 2
-		 $cM);
+    $group{MacroMenu}=$group{Menubar}->Cascade(qw/-label Sh~ortcuts -menuitems/=> []);
   }
-  $cM=[];
-#   push @$cM,
-#     @{cascadeMenus(map ([Button=> $_,
-# 			 -command=> [sub {
-# 				       doEvalMacro($_[0]->{focusedWindow},
-# 						   $_[1]);
-# 				     },
-# 				     \%group,$menuBindings{TredMacro}->{$_}->[0]],
-# 			 ($menuBindings{TredMacro}->{$_}->[1]) ?
-# 			 (-accelerator=> "(".$menuBindings{TredMacro}->{$_}->[1].")") : ()],
-# 			sort(keys(%{$menuBindings{TredMacro}}))))};
-
-  foreach my $context ("TredMacro",grep { $_ ne "TredMacro" } sort(keys(%menuBindings))) {
-    my %macro_to_key = reverse %{ $keyBindings{$context} };
-#   if ($context eq "TredMacro") { 
-#   } else {
-        push @$cM,
-  	[Cascade=> $context,
-  	 -menuitems=>
-  	 cascadeMenus(map {
-	   my $v = $menuBindings{$context}->{$_};
-	   my $key = defined($v->[1]) ? $v->[1] : $macro_to_key{$v->[0]};
-	   [Button=> "$_",
-	    -command=> [sub {
-			  doEvalMacro($_[0]->{focusedWindow},
-				      $_[1]);
-			},
-			\%group,
-			$v->[0]],
-	    $key ? (-accelerator=> "(".$key.")") : ()]}
-			sort(keys(%{$menuBindings{$context}})))];
-#      }
-  }
-  $group{UserMenu}=MenubarItem($group{Menubar},qw/-label ~Macros -menuitems/=> $cM);
-
+  $group{UserMenu}=MenubarItem($group{Menubar},qw/-label ~Macros -menuitems/=> []);
+  update_macro_menus(\%group);
   addBindTags($group{Toolbar},'my');
 
   $group{HelpMenu}= MenubarItem($group{Menubar},
@@ -6357,34 +6341,8 @@ sub startMain {
 	  -command=> [\&examineBindingsDialog,\%group]
 	 ],
 	 [Button => 'Reload macros', -underline => 0,
-	  -command => [sub {
-			 my ($grp)=@_;
-			 doEvalHook($grp->{focusedWindow},"reload_macros_hook");
-			 delete $grp->{minorModes};
-			 delete $grp->{minorPreHooks};
-			 delete $grp->{minorPostHooks};
-			 %keyBindings=();
-			 %menuBindings=();
-			 TrEd::TreeView->clear_code_caches;
-			 cleanup_tredmacro($grp);
-			 for my $name (keys %{$grp->{UserToolbarHash}}) {
-			   my $tb = removeUserToolbar($grp,$name);
-			   if ($tb) {
-			     $tb->packForget;
-			     $tb->destroy;
-			   }
-			 }
-			 %{$grp->{UserToolbarHash}}=();
-			 read_macros($macroFile,$libDir);
-			 if ($opt_I) {
-                           push @TrEd::Macros::macros,"\n","package TredMacro;\n";
-                           read_macros($opt_I,$libDir,1);
-                         }
-			 update_macrolist_view($grp);
-			 doEvalHook($grp->{focusedWindow},"macros_reloaded_hook");
-			 get_nodes_all($grp);
-			 redraw_all($grp);
-		       },\%group]],
+	  -command => [\&reloadMacros,\%group],
+	 ],
 	 [
 	  Cascade=> 'Debugging messages',
 	  -underline => 0,
@@ -11615,6 +11573,53 @@ sub valueLineClick {
     doEvalHook($win,"value_line_click_hook", $but, $modif, \@tags);
   }
   Tk->break;
+}
+
+sub loadMacros {
+  read_macros($macroFile,$libDir); # read macros
+  if ($opt_I) {
+    print STDERR ("Reading additional macros from $opt_I...\n") unless $opt_q;
+    push @TrEd::Macros::macros,"\n","package TredMacro;\n";
+    read_macros($opt_I,$libDir,1);
+  }
+
+  my $extensions = getExtensionList();
+  initExtensions($extensions);
+  print STDERR ("Reading extension macros...\n") unless $quiet;
+  for my $ext_contrib (getExtensionMacroPaths($extensions)) {
+    if (-f $ext_contrib) {
+      print STDERR ("Reading extension macros from $ext_contrib...\n") unless $quiet;
+      push @TrEd::Macros::macros,"\n","package TredMacro;\n";
+      read_macros($ext_contrib,$libDir,1);
+    }
+  }
+  print STDERR "done.\n" unless $opt_q;
+}
+
+sub reloadMacros {
+  my ($grp)=@_;
+  doEvalHook($grp->{focusedWindow},"reload_macros_hook");
+  delete $grp->{minorModes};
+  delete $grp->{minorPreHooks};
+  delete $grp->{minorPostHooks};
+  %keyBindings=();
+  %menuBindings=();
+  TrEd::TreeView->clear_code_caches;
+  cleanup_tredmacro($grp);
+  for my $name (keys %{$grp->{UserToolbarHash}}) {
+    my $tb = removeUserToolbar($grp,$name);
+    if ($tb) {
+      $tb->packForget;
+      $tb->destroy;
+    }
+  }
+  %{$grp->{UserToolbarHash}}=();
+  loadMacros();
+  update_macro_menus($grp);
+  update_macrolist_view($grp);
+  doEvalHook($grp->{focusedWindow},"macros_reloaded_hook");
+  get_nodes_all($grp);
+  redraw_all($grp);
 }
 
 ## watch leaks
