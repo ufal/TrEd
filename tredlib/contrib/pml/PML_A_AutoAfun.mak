@@ -1,8 +1,8 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2008-02-06 14:53:57 pajas>
+## Time-stamp: <2008-10-02 00:20:04 pajas>
 
-use lib "$main::libDir/contrib/auto_afun/AutoAfun";
+use lib FindMacroDir("auto_afun/AutoAfun");
 
 {
 my %LcAfuns = map { lc($_)=>$_ }
@@ -74,7 +74,7 @@ sub assign_all_afun_auto {
   my $class=$_[0];
   my $node=$root;
   while ($node) {
-    assign_afun_auto($class,$node) if ($node->{afun} eq '???' or $node->{afun} eq '');
+    assign_afun_auto($class,$node) if ($node->{afun} eq '' or $node->{afun} eq '???' or $node->{afun} eq '');
     $node=$node->following();
   }
 }

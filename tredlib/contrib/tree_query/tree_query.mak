@@ -9,18 +9,20 @@ package Tree_Query;
 {
 use strict;
 
+use vars qw($this $root);
 BEGIN {
-  use vars qw($this $root);
   import TredMacro;
-  use PMLSchema qw(:constants);
   import PML qw(&SchemaName);
-  use File::Spec;
-  use Benchmark ':hireswallclock';
-  use lib $main::libDir.'/contrib/tree_query';
-  use Tree_Query::Common;
-  import Tree_Query::Common qw(:all);
-  use Tree_Query::NG2PMLTQ qw(ng2pmltq);
 }
+
+use PMLSchema qw(:constants);
+use File::Spec;
+use Benchmark ':hireswallclock';
+
+use lib CallerDir();
+
+use Tree_Query::Common qw(:all);
+use Tree_Query::NG2PMLTQ qw(ng2pmltq);
 
 our $VALUE_LINE_MODE = 0;
 our @SEARCHES;

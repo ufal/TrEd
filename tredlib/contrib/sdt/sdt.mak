@@ -1,9 +1,9 @@
 # -*- cperl -*-
 # $Id$
 
-use lib "$main::libDir/contrib/sdt";
-
 package Analytic;
+
+use lib CallerDir();
 
 # ---- macros added by Zdenek Zabokrtsky for SDT purposes ----
 

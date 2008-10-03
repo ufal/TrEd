@@ -4,12 +4,18 @@
  - Firefox-like extension packages download one package with
    stylesheets, macros, schemas, resources, icons, etc. and install it to
    user's ~/.tred.d. Extensions should be placed anywhere on HTTP and
-   should be versioned, TrEd could look on startup for updates.
+   should be versioned, TrEd could look on startup for updates
+   (or better, look for them on user's demand and also
+   when upgraded).
    - prereqs:
       - Stylesheets in separate files (~/.tred.d/stylesheets or so)
       - macros in ~/.tred.d/macros/<package>/
       - icons in ~/.tred.d/icons/<package>/
       - extra resources in ~/.tred.d/resources/<package>/
+      - a file managing installed packages
+      - a tool for creating packages
+      - an API for installing packages and cmd-line and TrEd iface to that API
+      - safe extension loading
 
  - Maybe a set of URLs with package repositories could be specified, a
    content.xml file in each repo would describe packages in that repo

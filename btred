@@ -288,6 +288,9 @@ import TrEd::Macros;
 $TrEd::Macros::strict = $strict;
 $TrEd::Macros::warnings = $warnings;
 
+require TrEd::Extensions;
+import TrEd::Extensions qw(:all);
+
 # basic tree operations
 require TrEd::Basics;
 import TrEd::Basics;
@@ -380,6 +383,16 @@ if ($include_macro) {
   push @TrEd::Macros::macros,"\n","package TredMacro;\n";
   read_macros($include_macro,$libDir,1);
 }
+
+my $extensions = getExtensionList();
+initExtensions($extensions);
+_msg("Reading extension macros...\n") unless $quiet;
+for my $ext_contrib (getExtensionMacroPaths($extensions)) {
+  _msg("Reading extension macros from $ext_contrib...\n") unless $quiet;
+  push @TrEd::Macros::macros,"\n","package TredMacro;\n";
+  read_macros($ext_contrib,$libDir,1);
+}
+
 if ($dump_macros) {
   binmode STDOUT,":utf8";
   use Data::Dumper;

@@ -13,7 +13,7 @@ BEGIN { import TredMacro; }
 #use strict;
 #use vars qw ($root $grp $this);
 
-use lib "$main::libDir/contrib/grammatemes";
+use lib CallerDir();
 require Assign_german_grammatemes;
 require Assign_czech_grammatemes;
 

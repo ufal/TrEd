@@ -2,7 +2,7 @@
 ## author: Petr Pajas, Zdenek Zabokrtsky
 ## Time-stamp: <2008-02-06 14:09:02 pajas>
 
-use lib "$main::libDir/contrib/auto_afun/AutoAfun";
+use lib CallerDir("AutoAfun");
 
 my %LcAfuns = map { lc($_)=>$_ }
   qw(--- Pred Pnom AuxV Sb Obj Atr Adv AtrAdv AdvAtr Coord AtrObj

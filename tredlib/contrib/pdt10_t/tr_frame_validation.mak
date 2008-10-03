@@ -48,7 +48,7 @@ sub init_vallex {
     my $V_vallex = $ENV{VALLEX};
     if ($V_vallex eq "") {
       # try to find vallex in libDir (old-way) or in resources (new-way)
-      $V_vallex = ResolvePath("$libDir/contrib/ValLex/vallex.xml",'vallex.xml',1);
+      $V_vallex = FindInResources('vallex.xml');
     }
     require ValLex::DummyConv;
     $V = $tredmodule->new($V_vallex,TrEd::ValLex::DummyConv->new(),0);
