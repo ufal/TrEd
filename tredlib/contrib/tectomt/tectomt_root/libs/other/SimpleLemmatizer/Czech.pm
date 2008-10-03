@@ -11,8 +11,7 @@ my $filename = "$ENV{TMT_SHARED}/generated_data/data_for_simple_lemmatizer/form_
 my %form_and_pos_to_lemma;
 
 print STDERR "Loading the lemmatization table...\n";
-open I,"<:gzip:utf8",$filename or die $!;
-# ??? je zaruceno kodovani???
+open I,"<:raw:perlio:gzip:utf8",$filename or die $!;
 while (<I>) {
     chomp;
     my ($form,$pos,$lemma) = split /\t/;
