@@ -2202,7 +2202,7 @@ sub RedrawStatusLine {
     &main::setCurrent($grp,$this);
     &main::centerTo($grp,$this);
   }
-  &main::updateStatusLine($grp);
+  &main::update_status_info($grp);
 }
 
 

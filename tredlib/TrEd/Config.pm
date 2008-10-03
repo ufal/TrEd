@@ -31,6 +31,7 @@ BEGIN {
   $font
   $vLineFont
   $libDir
+  $extensionsDir
   $iconPath
   $appIcon
   $sortAttrs
@@ -381,7 +382,11 @@ sub set_config {
     }
   }
   $libDir=tilde_expand($confs->{libdir}) if (exists $confs->{libdir});
+  $extensionsDir=tilde_expand($confs->{extensionsdir}) if ();
   unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
+
+  $extensionsDir=tilde_expand(length($confs->{extensionsdir})
+				? $confs->{extensionsdir} : '~/.tred.d/extensions');
 
   {
     my $def_res_path=$libDir;

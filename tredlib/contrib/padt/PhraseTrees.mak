@@ -22,7 +22,7 @@ BEGIN { import TredMacro; }
 
 our ($this, $root, $grp);
 
-our ($Redraw, $libDir);
+our ($Redraw);
 
 our ($hooks_request_mode, $fill) = (0, ' ' x 4);
 

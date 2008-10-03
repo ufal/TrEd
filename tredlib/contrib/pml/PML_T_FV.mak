@@ -38,7 +38,7 @@ sub init_vallex {
     #else
     my $V_vallex = $ENV{VALLEX};
     if ($V_vallex eq "") {
-      # try to find vallex in libDir (old-way) or in resources (new-way)
+      # try to find vallex in resources
       $V_vallex = FindInResources('vallex.xml') ||
 	FindInResources('vallex.xml.gz');
     }

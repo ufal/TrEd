@@ -15,8 +15,8 @@ use File::Spec ();
 use vars qw($tmt_root);
 
 BEGIN {
-   use vars qw($libDir $root $this $grp);
-   my $tmt_dir=$libDir.'/contrib/tectomt';
+   use vars qw($root $this $grp);
+   my $tmt_dir=FindMacroDir('tectomt');
    $ENV{TMT_ROOT}= $tmt_root = "$tmt_dir/tectomt_root/";
    $ENV{TMT_SHARED}="$tmt_dir/tectomt_shared/";
 }
@@ -127,6 +127,9 @@ sub analyze_sentence {
     $a->{'s.rf'}='m#'.$a->{id};
     $a->{'s.rf'}=~s/A/M/;
   }
+
+  PML_A_Edit->assign_afun_auto_tree( $result{a} ); # before we delete m
+
   for my $a ($result{a}->descendants) {
     $a->{'m.rf'}='m#'.$a->{id};
     $a->{'m.rf'}=~s/A/M/;

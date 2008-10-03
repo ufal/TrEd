@@ -335,6 +335,8 @@ for my $sym (split /,/, $opt_y) {
   }
 }
 
+require TrEd::Extensions;
+import TrEd::Extensions qw(:all);
 
 # tree drawing module
 require TrEd::TreeView;
@@ -817,6 +819,16 @@ if ($opt_I) {
   push @TrEd::Macros::macros,"\n","package TredMacro;\n";
   read_macros($opt_I,$libDir,1);
 }
+
+my $extensions = getExtensionList();
+initExtensions($extensions);
+print STDERR ("Reading extension macros...\n") unless $quiet;
+for my $ext_contrib (getExtensionMacroPaths($extensions)) {
+  print STDERR ("Reading extension macros from $ext_contrib...\n") unless $quiet;
+  push @TrEd::Macros::macros,"\n","package TredMacro;\n";
+  read_macros($ext_contrib,$libDir,1);
+}
+
 
 print STDERR "done.\n" unless $opt_q;
 

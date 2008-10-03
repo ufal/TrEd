@@ -5,7 +5,7 @@ $AdvLexiconData=undef;
 $AdvLexiconDialog=undef;
 
 
-$AdvFile = ResolvePath("$libDir/contrib/ValLex/adverbs.xml",'adverbs.xml',1);
+$AdvFile = ResolvePath(CallerDir()."/adverbs.xml",'adverbs.xml',1);
 
 sub ChooseAdverbFunc {
   my $top=ToplevelFrame();
