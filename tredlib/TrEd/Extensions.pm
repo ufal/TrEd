@@ -8,6 +8,9 @@ use Carp;
 use File::Spec;
 use URI;
 
+require Tk::DialogReturn;
+require Tk::BindButtons;
+
 BEGIN {
   require Exporter;
   require Fslib;
@@ -61,6 +64,10 @@ sub initExtensions {
     if (-d $dir) {
       Fslib::AddResourcePath($dir);
     }
+    $dir = File::Spec->catdir($extension_dir,$name);
+    if (-d $dir) {
+      push @TrEd::Macros::macro_include_paths, $dir
+    }
   }
 }
 sub getExtensionMacroPaths {
@@ -73,7 +80,8 @@ sub getExtensionMacroPaths {
   my $extension_dir=getExtensionsDir();
   return
 #  grep { -f $_ }
-  map { File::Spec->catfile($extension_dir,$_,'contrib','contrib.mac') }
+  map { glob($_.'/*/contrib.mac'), ( -f $_.'/contrib.mac' ? $_.'/contrib.mac' : ()) }
+  map { File::Spec->catfile($extension_dir,$_,'contrib') }
   grep { !/^!/ }
   @$list;
 }
@@ -136,10 +144,16 @@ sub _populate_extension_pane {
 # 		     #		     -width =>600,
 # 		     -background=>'white',
 # 		    );
-  my $text = $d->add('Scrolled' => 'ROText',
+  my $text = $opts->{pane} || $d->add('Scrolled' => 'ROText',
 		     -scrollbars=>'oe',
 		     -takefocus=>0,
-		     -relief=>'flat',-wrap=>'word',-width=>60,);
+		     -relief=>'flat',
+		     -wrap=>'word',
+		     -width=>60,
+		     -height=>20,
+		    );
+  $text->configure(-state=>'normal');
+  $text->delete(qw(0.0 end));
   for my $name (@$list) {
     my $short_name = UNIVERSAL::isa($name,'URI') ?
       do { my $n=$name; $n=~s{.*/}{}; $n } : $name;
@@ -208,7 +222,7 @@ sub _populate_extension_pane {
       $text->insert('end','Copyright '.
 		    ( $data->{copyright}{'#content'}
 			.($data->{copyright}{year} ? ' (c) '.$data->{copyright}{year} : '')
-		    ),[qw(copyright)],"\n\n") if ref $data->{copyright};
+		    ),[qw(copyright)],"\n") if ref $data->{copyright};
     } else {
       $text->insert('end','Name: ',[qw(label)],$name,[qw(name)],"\n");
       $text->insert('end','Description: ',[qw(label)],'N/A',[qw(desc)],"\n\n");
@@ -233,17 +247,26 @@ sub _populate_extension_pane {
 		       -background=>'white',
 		       -relief => 'flat',
 		       -borderwidth => 0,
-		       -padx => 5,
-		       -pady => 5,
+#		       -padx => 5,
+#		       -pady => 5,
+		       -height => 18,
 		       -selectimage => main::icon($tred,"checkbox_checked"),
 		       -image => main::icon($tred,"checkbox"),
 		       -command => [sub {
 				      my ($enable,$name,$requires)=@_;
 				      # print "Enable: $enable->{$name}, $name, ",join(",",map { $_->{name} } @$requires),"\n";;
-				      if ($enable->{$name}==1) {
-					$enable->{$_}++ for map { $_->{href} } @$requires;
-				      } elsif ($enable->{$name}==0) {
-					$enable->{$_}-- for map { $_->{href} } @$requires;
+				      for my $req (@$requires) {
+					my $href = $req->{href};
+					my $req_name = $req->{name};
+					unless (exists($enable->{$href})) {
+					  ($href) = grep { m{/\Q$req_name\E$}  } keys %$enable;
+					}
+					next unless $href;
+					if ($enable->{$name}==1) {
+					  $enable->{$href}++
+					} elsif ($enable->{$name}==0) {
+					  $enable->{$href}--;
+					}
 				      }
 				    },\%enable,$name,\@requires],
 		       -variable=>\$enable{$name})->pack(-fill=>'x')
@@ -255,8 +278,9 @@ sub _populate_extension_pane {
 		       -background=>'white',
 		       -relief => 'flat',
 		       -borderwidth => 0,
-		       -padx => 5,
-		       -pady => 5,
+#		       -padx => 2,
+#		       -pady => 2,
+		       -height => 18,
 		       -selectimage => main::icon($tred,"checkbox_checked"),
 		       -image => main::icon($tred,"checkbox"),
 		       -command => [sub {
@@ -267,17 +291,19 @@ sub _populate_extension_pane {
 		       -variable=>\$enable{$name})->pack(-fill=>'both',-side=>'left',-padx => 5);
       $bf->Button(-text=>'Uninstall',
 		  -compound=>'left',
+		  -height => 18,
 		  -image => main::icon($tred,'remove'),
 		  -command => [sub {
-				 my ($name,$d,$reload,@slaves)=@_;
+				 my ($name,$d,$opts,@slaves)=@_;
+				 delete $opts->{versions}{$name};
 				 uninstallExtension($name,{tk=>$d}); # or just rmtree
 				 $text->configure(-state=>'normal');
 				 $text->DeleteTextTaggedWith($name);
 				 $text->configure(-state=>'disabled');
 				 # $text->gridForget(grep defined, @slaves);
 				 $_->destroy for @slaves;
-				 $$reload=1 if ref $reload;
-			       },$name,$d,$opts->{reload_macros},$bf,$text,$image],
+				 ${$opts->{reload_macros}}=1 if ref( $opts->{reload_macros} );
+			       },$name,$d,$opts,$bf,$text,$image],
 		 )->pack(-fill=>'both',
 			 -side=>'right',
 			 -padx => 5);
@@ -334,13 +360,16 @@ sub _populate_extension_pane {
 
   $text->configure(-state=>'disabled');
 
-  if ($opts->{pane}) {
-    $opts->{pane}->packForget;
-    $opts->{pane}->destroy
-  }
+#  if ($opts->{pane}) {
+#    $opts->{pane}->packForget;
+#    $opts->{pane}->destroy
+#  } else {
   $text->pack(-expand=>1,-fill=>'both');
+  unless ($opts->{pane}) {
+    $text->TextSearchLine(-parent => $d, -label=>'S~earch')->pack(qw(-fill x));
+    $opts->{pane}=$text;
+  }
   $text->see('0.0');
-  $opts->{pane}=$text;
   return \%enable;
 }
 
@@ -354,6 +383,7 @@ sub manageExtensions {
 			 -buttons => ['Close',
 				      $opts->{install} ? $INSTALL : $DOWNLOAD_NEW]
 			);
+  $d->maxsize(0.9*$d->screenwidth,0.9*$d->screenheight);
   my $enable = _populate_extension_pane($tred,$d,$opts);
   if ($opts->{install}) {
     $d->Subwidget('B_'.$INSTALL)->configure(
@@ -384,6 +414,7 @@ sub manageExtensions {
   }
   require Tk::DialogReturn;
   $d->BindEscape(undef,'Close');
+  $d->BindButtons();
   return $d->Show();
 }
 
