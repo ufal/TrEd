@@ -12,6 +12,7 @@ BEGIN {
   use Exporter  ();
   use vars qw($VERSION @ISA @EXPORT @EXPORT_OK $exec_code @macros $useEncoding
               $macrosEvaluated $safeCompartment %defines $warnings $strict
+	      @macro_include_paths
 	      %keyBindings
 	      %menuBindings
 	     );
@@ -344,15 +345,23 @@ sub preprocess {
 	  my $menu=TrEd::Convert::encode($1);
 	  remove_from_menu($_, $menu) for @$contexts;
 	} elsif (/^\#\s*(if)?include\s+\<([^\r\n]+\S)\>\s*(?:encoding\s+(\S+)\s*)?$/) {
+	  my $conditional_include = $1 eq 'if' ? 1 : 0;
 	  my $enc = $3;
-	  my $mf="$libDir/$2";
-	  if (-f $mf) {
-	    read_macros($mf,$libDir,1,$enc,@$contexts);
-	    push @$macros,"\n#line $line \"$file\"\n";
-	  } elsif ($1 ne 'if') {
+	  my $f = $2;
+	  my $found;
+	  for my $path ($libDir, @macro_include_paths) {
+	    my $mf="$path/$2";
+	    if (-f $mf) {
+	      read_macros($mf,$libDir,1,$enc,@$contexts);
+	      push @$macros,"\n#line $line \"$file\"\n";
+	      $found = 1;
+	      last;
+	    }
+	  }
+	  if (!$found and !$conditional_include) {
 	    die
-	      "Error including macros $mf\n from $file: ",
-		"file not found!\n";
+	      "Error including macros $f\n from $file: ",
+		"file not found in search paths: $libDir @macro_include_paths\n";
 	  }
 	} elsif (/^\#\s*(if)?include\s+"([^\r\n]+\S)"\s*(?:encoding\s+(\S+)\s*)?$/) {
 	  my $enc = $3;
