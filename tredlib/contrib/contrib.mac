@@ -17,38 +17,6 @@ packages. See below how to plug context-specific code in.
 
 =cut
 
-# ##############################################
-# ## define PDT10 if you wish the
-# ## PDT1.0-specific macros
-# ## to be included
-# ## (e.g. run tred/btred with -y PDT10)
-# ##############################################
-# #ifndef PDT10
-# #define pdt10_a
-# #define pdt10_t
-# #define tfa
-# #define transf
-# #define grammatemes
-# #endif
-
-# ###############################################
-# ## define SDT if you wish the
-# ## Slovene Dependency Treebank-specific macros
-# ## to be included
-# ## (e.g. run tred/btred with -y SDT)
-# ##############################################
-# #ifndef SDT
-# #define sdt
-# #endif
-
-# ###############################################
-# ## define REMOTE if you wish the
-# ## remote_control macros to be included
-# ##############################################
-# #ifndef REMOTE
-# #define remote_control
-# #endif
-
 #include "<*/contrib.mac>"
 
 package TredMacro;

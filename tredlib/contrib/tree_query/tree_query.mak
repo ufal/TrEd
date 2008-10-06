@@ -505,8 +505,10 @@ D0EA2B b7ce1c6b0d0c E2F9FF  c1881d075743  0247FE
 #   'a-node' => PMLSchema->new({filename => 'adata_schema.xml',use_resources=>1}),
 );
 
-
+#define no_extra_edit_menu_bindings
 #include <contrib/support/extra_edit.inc>
+#undefine no_extra_edit_menu_bindings
+
 #include <contrib/support/arrows.inc>
 
 #unbind-key Alt+N

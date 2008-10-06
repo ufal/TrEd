@@ -11615,9 +11615,9 @@ sub reloadMacros {
   }
   %{$grp->{UserToolbarHash}}=();
   loadMacros();
+  doEvalHook($grp->{focusedWindow},"macros_reloaded_hook");
   update_macro_menus($grp);
   update_macrolist_view($grp);
-  doEvalHook($grp->{focusedWindow},"macros_reloaded_hook");
   get_nodes_all($grp);
   redraw_all($grp);
 }
