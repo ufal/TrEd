@@ -1,38 +1,72 @@
 # -*- cperl -*-
 # Additional macros and bindings for creating trees from scratch
 
-#bind new_tree_after Alt+N menu New tree
-#bind new_rbrother to Alt+Right menu New right brother node
-#bind new_lbrother to Alt+Left menu New left brother node
-#bind new_son to Alt+Down menu New son node
-#bind new_parent to Alt+Up menu New parent node
+#ifndef no_extra_edit_key_bindings
 
-#bind trim_subtree Alt+T menu Trim (remove all but current subtree)
-#bind delete_node_keep_children to Delete menu Delete current node (pasting its children on its parent)
-#bind DeleteSubtree to Ctrl+Delete menu Delete current subtree
+#bind new_tree_after Alt+N
+#bind new_rbrother to Alt+Right
+#bind new_lbrother to Alt+Left
+#bind new_son to Alt+Down
+#bind new_parent to Alt+Up
 
-#bind cut_to_clipboad to Shift+Delete menu Cut subtree to clipboard
-#bind copy_to_clipboad to Ctrl+Insert menu Copy subtree to clipboard
-#bind paste_from_clipboad to Shift+Insert menu Paste subtree from clipboard
-#bind paste_as_new_tree to Ctrl+Shift+Insert menu Paste as new tree
+#bind trim_subtree Alt+T
+#bind delete_node_keep_children to Delete
+#bind DeleteSubtree to Ctrl+Delete
 
-#bind cut_to_parents_parent to Ctrl+Up menu Place node on parent's parent
-#bind cut_to_parents_rbrother to Ctrl+Right menu Place node on parent's right brother
-#bind cut_to_parents_lbrother to Ctrl+Left menu Place node on parent's left brother
-#bind cut_to_sibling to Ctrl+Down menu Place node on its left- or right-sibling (whichever exists)
+#bind cut_to_clipboad to Shift+Delete
+#bind copy_to_clipboad to Ctrl+Insert
+#bind paste_from_clipboad to Shift+Insert
+#bind paste_as_new_tree to Ctrl+Shift+Insert
 
+#bind cut_to_parents_parent to Ctrl+Up
+#bind cut_to_parents_rbrother to Ctrl+Right
+#bind cut_to_parents_lbrother to Ctrl+Left
+#bind cut_to_sibling to Ctrl+Down
 
-#include "reordering.inc"
-#include "projectivize.inc"
+#bind ShiftLeft to Ctrl+Shift+Left
+#bind ShiftRight to Ctrl+Shift+Right
+#bind ShiftSToverSTLeft to Alt+Shift+Left
+#bind ShiftSToverSTRight to Alt+Shift+Right
 
-#bind ShiftLeft to Ctrl+Shift+Left menu Move node to the left
-#bind ShiftRight to Ctrl+Shift+Right menu Move node to the right
-#bind ShiftSToverSTLeft to Alt+Shift+Left menu Swap subtree with subtree to the left
-#bind ShiftSToverSTRight to Alt+Shift+Right menu Swap subtree with subtree to the right
+#endif no_extra_edit_key_bindings
+
+#ifndef no_extra_edit_menu_bindings
+
 #insert ShiftSTLeft as menu Move subtree to the left
 #insert ShiftSTRight as menu Move subtree to the right
 #insert ProjectivizeCurrentSubTree as menu Projectivize subtree
 #insert ProjectivizeTree as menu Projectivize tree
+
+#insert new_tree_after as menu New tree
+#insert new_rbrother as menu New right brother node
+#insert new_lbrother as menu New left brother node
+#insert new_son as menu New son node
+#insert new_parent as menu New parent node
+
+#insert trim_subtree as menu Trim (remove all but current subtree)
+#insert delete_node_keep_children as menu Delete current node (pasting its children on its parent)
+#insert DeleteSubtree as menu Delete current subtree
+
+#insert cut_to_clipboad as menu Cut subtree to clipboard
+#insert copy_to_clipboad as menu Copy subtree to clipboard
+#insert paste_from_clipboad as menu Paste subtree from clipboard
+#insert paste_as_new_tree as menu Paste as new tree
+
+#insert cut_to_parents_parent as menu Place node on parent's parent
+#insert cut_to_parents_rbrother as menu Place node on parent's right brother
+#insert cut_to_parents_lbrother as menu Place node on parent's left brother
+#insert cut_to_sibling as menu Place node on its left- or right-sibling (whichever exists)
+
+#insert ShiftLeft as menu Move node to the left
+#insert ShiftRight as menu Move node to the right
+#insert ShiftSToverSTLeft as menu Swap subtree with subtree to the left
+#insert ShiftSToverSTRight as menu Swap subtree with subtree to the right
+
+#endif no_extra_edit_menu_bindings
+
+
+#include "reordering.inc"
+
 
 sub new_tree_after {
   DetermineNodeType(NewTreeAfter());

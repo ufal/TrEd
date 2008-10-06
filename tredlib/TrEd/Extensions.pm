@@ -97,6 +97,18 @@ sub getExtensionMetaData {
   return $data;
 }
 
+# compare two revision numbers
+sub _cmp_revisions {
+  my ($my_revision,$revision)=@_;
+  my @my_revision = split(/\./,$my_revision);
+  my @revision = split(/\./,$revision);
+  my $cmp=0;
+  while ($cmp==0 and (@my_revision or @revision)) {
+    $cmp = (shift(@my_revision) <=> shift(@revision));
+  }
+  return $cmp;
+}
+
 sub _populate_extension_pane {
   my ($tred,$d,$opts)=@_;
   my $list = $opts->{list};
@@ -104,7 +116,6 @@ sub _populate_extension_pane {
     if ($opts->{install}) {
       $list=[];
       for my $repo (map { IOBackend::make_URI($_) } @{$opts->{repositories}}) {
-	print "REPO: $repo\n";
 	push @$list, map { URI->new($_)->abs($repo.'/') } grep { length and defined }
 	  @{getExtensionList($repo)};
       }
@@ -117,26 +128,44 @@ sub _populate_extension_pane {
   my $extension_dir=getExtensionsDir();
   my $row=0;
   my %enable;
-  my $pane = $d->add('Scrolled' => 'Pane',
+#   my $pane = $d->add('Scrolled' => 'Pane',
+# 		     -scrollbars=>'oe',
+# 		     -sticky=>'nw',
+# 		     -gridded => 'xy',
+# 		     -height=>400,
+# 		     #		     -width =>600,
+# 		     -background=>'white',
+# 		    );
+  my $text = $d->add('Scrolled' => 'ROText',
 		     -scrollbars=>'oe',
-		     -sticky=>'nw',
-		     -gridded => 'xy',
-		     -height=>400,
-		     #		     -width =>600,
-		     -background=>'white',
-		    );
+		     -takefocus=>0,
+		     -relief=>'flat',-wrap=>'word',-width=>60,);
   for my $name (@$list) {
-    unless ($opts->{install}) {
+    my $short_name = UNIVERSAL::isa($name,'URI') ?
+      do { my $n=$name; $n=~s{.*/}{}; $n } : $name;
+    my $data;
+    if ($opts->{install}) {
+      $data = getExtensionMetaData($name);
+      next unless $data;
+      my $installed_ver = $opts->{installed}{$short_name};
+      next unless (!$installed_ver and $data->{version})
+	or ($installed_ver and $data->{version}
+	    and _cmp_revisions($installed_ver,$data->{version})<0
+	   );
+    } else {
       $enable{$name} = 1;
       if ($name=~s{^!}{}) {
 	$enable{$name} = 0;
       }
+      $data = getExtensionMetaData($name);
     }
-    my $bf = $pane->Frame;
-    my $text = $pane->ROText(-relief=>'flat',-wrap=>'word',-width=>60,);
-    my $data = getExtensionMetaData($name);
+    my $start = $text->index('end');
+    my $bf = $text->Frame(-background=>undef);
+#    $bf->bind('<MouseWheel>',sub{print "y\n" });
+#    $bf->bind("<$_>",sub{print "x\n" }) for 4..7;
     my $image;
     if ($data) {
+      $opts->{versions}{$name}=$data->{version};
       if ($data->{icon}) {
 	my ($path,$unlink,$format);
 	if (UNIVERSAL::isa($name,'URI')) {
@@ -150,27 +179,33 @@ sub _populate_extension_pane {
 	  require Tk::JPEG;
 	  require Tk::PNG;
 	  eval {
-	    my $img = $pane->Photo(
+	    my $img = $text->Photo(
 	      -file => $path,
 	      -format => $format,
 	      -width=>160,
 	      -height=>0,
 	     );
-	    $image = $pane->Label(-image=> $img);
+	    $image = $text->Label(-image=> $img);
 	  };
 	  warn $@ if $@;
 	  unlink $path if $unlink;
 	}
       }
-      $text->insert('end','Name: ',[qw(label)],$name,[qw(name)],"\n");
-      $text->insert('end','Title: ',[qw(label)],$data->{title},[qw(title)],"\n") if $data->{title};
-      $text->insert('end','Version: ',[qw(label)],$data->{version},[qw(version)],"\n") if $data->{version};
+      $text->insert('end',"\n");
+      $text->windowCreate('end',-window => $image,-padx=>5) if $image;
+
+      $text->insert('end',$data->{title},[qw(title)]);
+      $text->insert('end',' ('.$short_name.(defined($data->{version}) && length($data->{version})
+			  ? ' '.$data->{version} : ''
+			 ).')',[qw(name)]);
+      $text->insert('end',"\n");
+#      $text->insert('end','Name: ',[qw(label)],$name,[qw(name)],"\n");
       my $desc = $data->{description} || 'N/A';
       $desc=~s/\s+/ /g;
       $desc=~s/^\s+|\s+$//g;
-      $text->insert('end','Description: ',[qw(label)],
-		    "\n".$desc,[qw(desc)],"\n");
-      $text->insert('end','Copyright: ',[qw(label)],
+      $text->insert('end',#'Description: ',[qw(label)],
+		    $desc,[qw(desc)],"\n");
+      $text->insert('end','Copyright '.
 		    ( $data->{copyright}{'#content'}
 			.($data->{copyright}{year} ? ' (c) '.$data->{copyright}{year} : '')
 		    ),[qw(copyright)],"\n\n") if ref $data->{copyright};
@@ -178,21 +213,21 @@ sub _populate_extension_pane {
       $text->insert('end','Name: ',[qw(label)],$name,[qw(name)],"\n");
       $text->insert('end','Description: ',[qw(label)],'N/A',[qw(desc)],"\n\n");
     }
-    $text->tagConfigure('label', -foreground => 'darkblue', -font => 'C_bold');
     my $end = $text->index('end');
     $end=~s/\..*//;
     $text->configure(-height=>$end);
     my @requires;
     if ($data and ref $data->{require}) {
-      print "$name\n";
-      print "$data->{require}\n";
+      #print "$name\n";
+      #print "$data->{require}\n";
       @requires = $data->{require}->values('extension');
-      print ((map { $_->{href} } @requires),"\n");
+      #print ((map { $_->{href} } @requires),"\n");
     }
 
     if (UNIVERSAL::isa($name,'URI')) {
-      $bf->Checkbutton(-text=>'Install',
-		       # -compound=>'left',
+      $bf->Checkbutton(-text=> exists($opts->{installed}{$short_name})
+			 ? 'Upgrade' : 'Install',
+		       -compound=>'left',
 		       -selectcolor=>undef,
 		       -indicatoron => 0,
 		       -background=>'white',
@@ -204,7 +239,7 @@ sub _populate_extension_pane {
 		       -image => main::icon($tred,"checkbox"),
 		       -command => [sub {
 				      my ($enable,$name,$requires)=@_;
-				      print "Enable: $enable->{$name}, $name, ",join(",",map { $_->{name} } @$requires),"\n";;
+				      # print "Enable: $enable->{$name}, $name, ",join(",",map { $_->{name} } @$requires),"\n";;
 				      if ($enable->{$name}==1) {
 					$enable->{$_}++ for map { $_->{href} } @$requires;
 				      } elsif ($enable->{$name}==0) {
@@ -212,7 +247,6 @@ sub _populate_extension_pane {
 				      }
 				    },\%enable,$name,\@requires],
 		       -variable=>\$enable{$name})->pack(-fill=>'x')
-			 
     } else {
       $bf->Checkbutton(-text=>'Enable',
 		       -compound=>'left',
@@ -230,32 +264,83 @@ sub _populate_extension_pane {
 				      $$reload=1 if ref $reload;
 				      setExtension($name,$enable{$name});
 				    },$name,$opts->{reload_macros}],
-		       -variable=>\$enable{$name})->pack(-fill=>'x');
+		       -variable=>\$enable{$name})->pack(-fill=>'both',-side=>'left',-padx => 5);
       $bf->Button(-text=>'Uninstall',
 		  -compound=>'left',
 		  -image => main::icon($tred,'remove'),
 		  -command => [sub {
 				 my ($name,$d,$reload,@slaves)=@_;
 				 uninstallExtension($name,{tk=>$d}); # or just rmtree
-				 $pane->gridForget(grep defined, @slaves);
+				 $text->configure(-state=>'normal');
+				 $text->DeleteTextTaggedWith($name);
+				 $text->configure(-state=>'disabled');
+				 # $text->gridForget(grep defined, @slaves);
 				 $_->destroy for @slaves;
 				 $$reload=1 if ref $reload;
 			       },$name,$d,$opts->{reload_macros},$bf,$text,$image],
-		 )->pack(-fill=>'x');
+		 )->pack(-fill=>'both',
+			 -side=>'right',
+			 -padx => 5);
     }
-    $bf->grid(-column=>0,-row=>$row, -sticky=>'nw',);
-    $text->grid(-column=>1,-row=>$row,-padx=>5,-pady=>5, -sticky=>'nw', );
-    $image->grid(-column=>2,-row=>$row,-padx=>5,-pady=>5, -sticky=>'nw',) if $image;
+#    $bf->grid(-column=>0,-row=>$row, -sticky=>'nw',);
+#    $text->grid(-column=>1,-row=>$row,-padx=>5,-pady=>5, -sticky=>'nw', );
+#    $image->grid(-column=>2,-row=>$row,-padx=>5,-pady=>5, -sticky=>'nw',) if $image;
+
+    $text->insert('end',' ',[$bf]);
+    $text->windowCreate('end',-window => $bf,-padx=>5);
+    $text->tagConfigure($bf,-justify=>'right');
+    $text->Insert("\n");
+    $text->Insert("\n");
+    $text->tagAdd($name,$start.' - 1 line','end -1 char');
+
+    $text->tagBind($name,'<Any-Enter>' => [sub {
+					     my ($text,$name,$bf)=@_;
+					     $bf->configure(-background=>'lightblue');
+					     $text->tagConfigure($name,-background=>'lightblue');
+					     $bf->focus;
+					     $bf->focusNext;
+					   },$name,$bf]);
+    $bf->bind('<Any-Enter>' => [sub {
+			      my ($bf,$text,$name)=@_;
+			      $bf->configure(-background=>'lightblue');
+			      $text->tagConfigure($name,-background=>'lightblue');
+			      $bf->focus;
+			      $bf->focusNext;
+			    },$text,$name]);
+    $text->tagBind($name,'<Any-Leave>' => [sub {
+					     my ($text,$name,$bf)=@_;
+					     $bf->configure(-background=>'white');
+					     $text->tagConfigure($name,-background=>'white');
+					   },$name,$bf]);
+    $bf->bind('<Any-Leave>' => [sub {
+			      my ($bf,$text,$name)=@_;
+			      $bf->configure(-background=>'white');
+			      $text->tagConfigure($name,-background=>'white');
+			    },$text,$name]);
+    for my $w ($bf,$bf->children) {
+      $w->bind('<4>',         [$text,'yview','scroll',-1,'units']);
+      $w->bind('<5>',         [$text,'yview','scroll',1,'units']);
+      $w->Tk::bind('<MouseWheel>',
+		   [ sub { $text->yview('scroll',-($_[1]/120)*3,'units') },
+		     Tk::Ev("D")]);
+    }
+
 
     $row++;
   }
+  $text->tagConfigure('label', -foreground => 'darkblue', -font => 'C_bold');
+  $text->tagConfigure('title', -foreground => 'black', -font => 'C_bold');
+  $text->tagConfigure('copyright', -foreground => '#666', -font => 'C_small');
+
+  $text->configure(-state=>'disabled');
+
   if ($opts->{pane}) {
     $opts->{pane}->packForget;
     $opts->{pane}->destroy
   }
-  $pane->pack(-expand=>1,-fill=>'both');
-
-  $opts->{pane}=$pane;
+  $text->pack(-expand=>1,-fill=>'both');
+  $text->see('0.0');
+  $opts->{pane}=$text;
   return \%enable;
 }
 
@@ -263,10 +348,11 @@ sub manageExtensions {
   my ($tred,$opts)=@_;
   $opts||={};
   my $mw = $tred->{top} || return;
-  my $DOWNLOAD_NEW = 'Download new extensions';
+  my $DOWNLOAD_NEW = 'Get new extensions';
   my $INSTALL = 'Install Selected';
   my $d = $mw->DialogBox(-title => 'Manage Extensions',
-			 -buttons => ['Close',$opts->{install} ? $INSTALL : $DOWNLOAD_NEW]
+			 -buttons => ['Close',
+				      $opts->{install} ? $INSTALL : $DOWNLOAD_NEW]
 			);
   my $enable = _populate_extension_pane($tred,$d,$opts);
   if ($opts->{install}) {
@@ -286,6 +372,7 @@ sub manageExtensions {
     $d->Subwidget('B_'.$DOWNLOAD_NEW)->configure(
       -command => sub {
 	if (manageExtensions($tred,{ install=>1,
+				     installed => $opts->{versions},
 				     repositories => $opts->{repositories} }) eq $INSTALL) {
 	  $enable = _populate_extension_pane($tred,$d,$opts);
 	  if (ref($opts->{reload_macros})) {
@@ -295,6 +382,8 @@ sub manageExtensions {
       }
      );
   }
+  require Tk::DialogReturn;
+  $d->BindEscape(undef,'Close');
   return $d->Show();
 }
 
@@ -340,16 +429,16 @@ EOF
     mkdir $dir;
     my ($zip_file,$unlink) = eval { IOBackend::fetch_file($url.'.zip') };
     if ($@) {
-      ErrorMessage($opts->{tk},"Downloading ${url}.zip failed:\n".$@);
+      main::errorMessage($opts->{tk},"Downloading ${url}.zip failed:\n".$@);
       next;
     }
     my $zip = Archive::Zip->new();
     unless ($zip->read( $zip_file ) == Archive::Zip::AZ_OK()) {
-      ErrorMessage($opts->{tk},"Reading ${url}.zip failed!\n");
+      main::errorMessage($opts->{tk},"Reading ${url}.zip failed!\n");
       next;
     }
     unless ($zip->extractTree( '', $dir.'/' ) == Archive::Zip::AZ_OK()) {
-      ErrorMessage($opts->{tk},"Extracting files from ${url}.zip failed!\n");
+      main::errorMessage($opts->{tk},"Extracting files from ${url}.zip failed!\n");
       next;
     }
     @extension_file = ((grep { !/^\!?\Q$name\E\s*$/ } @extension_file),$name);
