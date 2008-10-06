@@ -3670,11 +3670,13 @@ macros and returns an absolute path to the first directory that matches.
 sub FindMacroDir {
   my ($dir)=@_;
   confess( "Usage: FindMacroDir(rel_dir)" ) unless defined $dir and length $dir;
-  my $candidate = File::Spec->catdir($libDir, 'contrib', $dir);
-  if (-d $candidate) {
-    return $candidate
+  for my $macro_dir ($libDir, @TrEd::Macros::macro_include_paths) {
+    my $candidate = File::Spec->catdir($macro_dir, 'contrib', $dir);
+    if (-d $candidate) {
+      return $candidate
+    }
   }
-  confess( "FindMacroDir: didn't find subdirectory '$dir' in macro paths" );
+  confess( "FindMacroDir: didn't find subdirectory '$dir' in macro paths: $libDir @TrEd::Macros::macro_include_paths\n" );
 }
 
 =back

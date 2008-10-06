@@ -19,7 +19,7 @@
       <member name="version" type="te-version.type"/>
       <member name="copyright">
 	<container>
-	  <attribute name="year"><cdata format="nonNegativeInteger"/></attribute>
+	  <attribute name="year"><cdata format="any"/></attribute>
 	  <cdata format="any"/>
 	</container>
       </member>

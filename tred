@@ -814,8 +814,6 @@ if ($opt_X ne EMPTY) {
 
 print STDERR "Reading macros from $macroFile...\n" unless $opt_q;
 
-loadMacros();
-
 startMain();	# display first tree
 
 print STDERR "TrEd ended.\n" unless $opt_q;
@@ -5955,7 +5953,7 @@ sub startMain {
   # We need to pack in an optionmenu, so we cannot use menubar on windows
   # and cannot use Toplevel->configure(-menu) on other systems
   if ($^O eq 'MSWin32') {
-    $group{Menubar}=$group{MenubarFrame}=$group{top}->Frame(-relief=> $menubarRelief, -borderwidth=> 0);
+    $group{Menubar}=$group{MenubarFrame}=$top->Frame(-relief=> $menubarRelief, -borderwidth=> 0);
     $group{Menubar}->pack(qw/-fill x/);
   } else {
     $group{Menubar}=$group{MenubarFrame}->Menu(-type => 'menubar',
@@ -6310,8 +6308,7 @@ sub startMain {
   $group{BookmarksFileMenu}= MenubarItem($group{Menubar},qw/-label Bookmarks -underline 0/);
   updateBookmarks(\%group);
 
-  print "Starting in context $group{focusedWindow}->{macroContext}\n" if $tredDebug;
-  doEvalHook($group{focusedWindow},"initialize_bindings_hook");
+
   $group{templateMatchMethod}=$defaultTemplateMatchMethod;
   $group{macroListOrder}=$defaultMacroListOrder;
 
@@ -6319,7 +6316,6 @@ sub startMain {
     $group{MacroMenu}=$group{Menubar}->Cascade(qw/-label Sh~ortcuts -menuitems/=> []);
   }
   $group{UserMenu}=MenubarItem($group{Menubar},qw/-label ~Macros -menuitems/=> []);
-  update_macro_menus(\%group);
   addBindTags($group{Toolbar},'my');
 
   $group{HelpMenu}= MenubarItem($group{Menubar},
@@ -6364,7 +6360,7 @@ sub startMain {
 	]);
 
   $group{selectedContext} =  'TredMacro' unless exists($keyBindings{ $group{selectedContext} });
-  $group{ContextsMenu}=$group{MenubarFrame}->Optionmenu(-options => [getContexts()],
+  $group{ContextsMenu}=$group{MenubarFrame}->Optionmenu(-options => [],
  	       -textvariable=> \$group{selectedContext},
  	       -command=> [sub { my ($grp,$context) = @_;
  				 switchContext($grp->{focusedWindow}, $context);
@@ -6432,7 +6428,6 @@ sub startMain {
     $group{minorModesMenu}->configure(-menu => $menu);
     $group{minorModesLabelFrame} = $bf->Frame()->pack(-side => 'left',-expand => 'no',-padx=>5);
     $group{minorModesLabels}={};
-    update_minor_modes(\%group);
   }
   {
     $group{canvasScale}=0;
@@ -6735,7 +6730,6 @@ sub startMain {
 			  -balloonmsg=> "customize display patterns\nof the selected stylesheet\n(e.g. change tree appearance, labels etc.)");
   $group{StylesheetMenu}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
   $group{StylesheetMenuLabel}=$group{Toolbar}->Label(qw/-text Style: -underline 2/)->pack(qw/-side right/);
-  updateStylesheetMenu(\%group);
   $group{Balloon}->attach($group{StylesheetMenu},
 			  -balloonmsg=> "stylesheet (tree appearance)");
 
@@ -6744,8 +6738,8 @@ sub startMain {
 
   $group{Toolbar}->pack(-fill=> 'x', -padx=> '1', -pady=> 1);
 
-  $group{UserToolbarSep}=$group{top}->Frame(qw/-relief sunken -height 2 -borderwidth 2/);
-  $group{UserToolbars}=$group{top}->Frame();
+  $group{UserToolbarSep}=$top->Frame(qw/-relief sunken -height 2 -borderwidth 2/);
+  $group{UserToolbars}=$top->Frame();
   addBindTags($group{UserToolbars},'my');
   my $vlsubframe=$group{vLineFrame}->Frame();
   $group{vLineNumLabel}=$vlsubframe->Label(-text => '-/-')->pack(qw/-side top -fill x/);
@@ -6786,112 +6780,6 @@ sub startMain {
   
 #  $group{sLineFrame}->pack(qw/-fill x -expand yes/);
 
-  print STDERR "Binding keystrokes...\n" if $tredDebug;
-  $group{Menubar}->bind('<Escape>', [sub { shift->menu->Leave(); Tk->break; }] );
-
-  foreach my $prefix ('Alt','Meta') {
-    $group{top}->
-      bind('my',"<$prefix-KeyPress>"=>
-	   [sub {
-	      if (defined(evalMacro(@_))) {
-		Tk->break;
-	      } else {
-		# Actually, this should work by it self. And it realy
-		# does, but not under windows :-) Well, do not laugh,
-		# too early, Linux users. With menu (not menubutton)
-		# this is the same there, only vice versa.
-		my ($w,$grp,$mod)=@_;
-		my $mbar=$grp->{Menubar};
-		$mbar->FindMenu($w->XEvent->K);
-		if ($^O eq 'MSWin32') {
-		  foreach my $child (grep { $_->class eq 'Menubutton' }
-				     $mbar->children) {
-		    $child->ButtonUp() 
-		  }
-		}
-		Tk->break;
-	      }
-	    }, \%group,uc($prefix).'+']);
-  }
-  foreach my $prefix ('Alt','Meta') {
-    $group{top}->
-      bind('my',"<$prefix-x>"=>
-	   [sub {
-	      if (defined(evalMacro(@_))) {
-		Tk->break;
-	      } else {
-		my ($w,$grp)=@_;
-		my $but = $grp->{ContextsMenu};
-		my $menu = $but->menu;
-		my $ctxt = $grp->{selectedContext};
-		Tk->break if $ctxt eq EMPTY;
-		my $idx = eval { $menu->index($ctxt) } ;
-		Tk->break if $idx eq 'none';
-		$but->Post();
-		eval { $menu->activate($idx) };
-		$but->ButtonUp() if $^O eq 'MSWin32';
-		Tk->break;
-	      }
-	    }, \%group,uc($prefix).'+']);
-  }
-  foreach my $prefix ('Alt','Meta') {
-    $group{top}->
-      bind('my',"<$prefix-y>"=>
-	   [sub {
-	      if (defined(evalMacro(@_))) {
-		Tk->break;
-	      } else {
-		my ($w,$grp)=@_;
-		my $but = $grp->{StylesheetMenu};
-		my $menu = $but->menu;
-		my $stylesheet = $grp->{selectedStylesheet};
-		Tk->break if $stylesheet eq EMPTY;
-		my $idx = eval { $menu->index($stylesheet) };
-		Tk->break if $idx eq 'none';
-		$but->Post();
-		eval { $menu->activate($idx) };
-		$but->ButtonUp() if $^O eq 'MSWin32';
-		Tk->break;
-	      }
-	    }, \%group,uc($prefix).'+']);
-  }
-
-  #  $group{top}->bind('my','<Control-x><KeyPress>'=>
-  #			[sub { evalMacro(@_); Tk->break; }, \%group, 'CTRL-X+' ]);
-
-  $group{top}->bind('my','<KeyPress>'=>
-			[sub {
-			   evalMacro(@_); Tk->break;
-			 }, \%group, EMPTY ]);
-
-  foreach (qw(Shift Control Meta Alt Control-Shift Control-Alt
-              Control-Meta Alt-Shift Meta-Shift)) {
-    foreach my $event (qw(KeyPress Right Left Up Down
-                          Return comma period Next Prior greater less)) {
-      $group{top}->bind('my',"<$_-$event>"=>
-			    [sub { evalMacro(@_); Tk->break; },
-			     \%group, keyBind($_)."+"])
-	unless ("$_-$event" eq "Alt-KeyPress" or "$_-$event" eq "Meta-KeyPress")
-    }
-  }
-
-#  $top->bind('all','<Tab>',undef);
-
-  # New Busy window bindings
-  $group{top}->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
-  $top->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
-  $top->Tk::bind('Busy','<Any-KeyPress>',[\&Tk::Widget::_busy => 1]);
-  $top->Tk::bind('Busy','<Any-KeyRelease>',[\&Tk::Widget::_busy => 0]);
-  $top->Tk::bind('Busy','<Any-ButtonPress>',[\&Tk::Widget::_busy => 1]);
-  $top->Tk::bind('Busy','<Any-ButtonRelease>',[\&Tk::Widget::_busy => 0]);
-  $top->Tk::bind('Busy','<Any-Motion>',[\&Tk::Widget::_busy => 0]);
-  $top->bind('Tk::Listbox','<KeyPress>',\&list_isearch);
-
-  # setup default binding
-  while (my ($key, $def) = each %default_binding) {
-    $group{ $def->[2] || 'Toolbar' }->bind('my', $key => [ $def->[0], \%group ]);
-  }
-
   $group{focusedWindow}->canvas->focus;
 
 #  print STDERR "Binding canvas destroy...\n" if $tredDebug;
@@ -6910,6 +6798,13 @@ sub startMain {
   print STDERR "GUI prepared.\n" if $tredDebug;
   $top->update;
   $top->Busy(-recurse=> 1);
+  eval { loadMacros() };
+  errorMessage($group{focusedWindow},$@) if $@;
+  print "Starting in context $group{focusedWindow}->{macroContext}\n" if $tredDebug;
+  doEvalHook($group{focusedWindow},"initialize_bindings_hook");
+  update_macro_menus(\%group);
+  update_minor_modes(\%group);
+  updateStylesheetMenu(\%group);
   if (doEvalHook($group{focusedWindow},"init_hook") eq 'stop') {
     $top->Unbusy;
     print STDERR "Stopped by init_hook\n";
@@ -6988,7 +6883,6 @@ sub startMain {
 
   $group{appenddefault} = 1; #($group{focusedWindow}{currentFilelist}->count()>0);
 
-  print STDERR "done.\nStarting main loop.\n" if $tredDebug;
   # run start_hook
   if (doEvalHook($group{focusedWindow},"start_hook") eq 'stop') {
     $top->Unbusy;
@@ -7004,6 +6898,114 @@ sub startMain {
     die $@ if $@;
     doEvalMacro($group{focusedWindow},$macro);
   }
+
+
+  print STDERR "Binding keystrokes...\n" if $tredDebug;
+  $group{Menubar}->bind('<Escape>', [sub { shift->menu->Leave(); Tk->break; }] );
+
+  foreach my $prefix ('Alt','Meta') {
+    $top->
+      bind('my',"<$prefix-KeyPress>"=>
+	   [sub {
+	      if (defined(evalMacro(@_))) {
+		Tk->break;
+	      } else {
+		# Actually, this should work by it self. And it realy
+		# does, but not under windows :-) Well, do not laugh,
+		# too early, Linux users. With menu (not menubutton)
+		# this is the same there, only vice versa.
+		my ($w,$grp,$mod)=@_;
+		my $mbar=$grp->{Menubar};
+		$mbar->FindMenu($w->XEvent->K);
+		if ($^O eq 'MSWin32') {
+		  foreach my $child (grep { $_->class eq 'Menubutton' }
+				     $mbar->children) {
+		    $child->ButtonUp() 
+		  }
+		}
+		Tk->break;
+	      }
+	    }, \%group,uc($prefix).'+']);
+  }
+  foreach my $prefix ('Alt','Meta') {
+    $top->
+      bind('my',"<$prefix-x>"=>
+	   [sub {
+	      if (defined(evalMacro(@_))) {
+		Tk->break;
+	      } else {
+		my ($w,$grp)=@_;
+		my $but = $grp->{ContextsMenu};
+		my $menu = $but->menu;
+		my $ctxt = $grp->{selectedContext};
+		Tk->break if $ctxt eq EMPTY;
+		my $idx = eval { $menu->index($ctxt) } ;
+		Tk->break if $idx eq 'none';
+		$but->Post();
+		eval { $menu->activate($idx) };
+		$but->ButtonUp() if $^O eq 'MSWin32';
+		Tk->break;
+	      }
+	    }, \%group,uc($prefix).'+']);
+  }
+  foreach my $prefix ('Alt','Meta') {
+    $top->
+      bind('my',"<$prefix-y>"=>
+	   [sub {
+	      if (defined(evalMacro(@_))) {
+		Tk->break;
+	      } else {
+		my ($w,$grp)=@_;
+		my $but = $grp->{StylesheetMenu};
+		my $menu = $but->menu;
+		my $stylesheet = $grp->{selectedStylesheet};
+		Tk->break if $stylesheet eq EMPTY;
+		my $idx = eval { $menu->index($stylesheet) };
+		Tk->break if $idx eq 'none';
+		$but->Post();
+		eval { $menu->activate($idx) };
+		$but->ButtonUp() if $^O eq 'MSWin32';
+		Tk->break;
+	      }
+	    }, \%group,uc($prefix).'+']);
+  }
+
+  #  $top->bind('my','<Control-x><KeyPress>'=>
+  #			[sub { evalMacro(@_); Tk->break; }, \%group, 'CTRL-X+' ]);
+
+  $top->bind('my','<KeyPress>'=>
+			[sub {
+			   evalMacro(@_); Tk->break;
+			 }, \%group, EMPTY ]);
+
+  foreach (qw(Shift Control Meta Alt Control-Shift Control-Alt
+              Control-Meta Alt-Shift Meta-Shift)) {
+    foreach my $event (qw(KeyPress Right Left Up Down
+                          Return comma period Next Prior greater less)) {
+      $top->bind('my',"<$_-$event>"=>
+			    [sub { evalMacro(@_); Tk->break; },
+			     \%group, keyBind($_)."+"])
+	unless ("$_-$event" eq "Alt-KeyPress" or "$_-$event" eq "Meta-KeyPress")
+    }
+  }
+
+#  $top->bind('all','<Tab>',undef);
+
+  # New Busy window bindings
+  $top->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
+  $top->Tk::bind('Busy','<Any-KeyPress>',[\&Tk::Widget::_busy => 1]);
+  $top->Tk::bind('Busy','<Any-KeyRelease>',[\&Tk::Widget::_busy => 0]);
+  $top->Tk::bind('Busy','<Any-ButtonPress>',[\&Tk::Widget::_busy => 1]);
+  $top->Tk::bind('Busy','<Any-ButtonRelease>',[\&Tk::Widget::_busy => 0]);
+  $top->Tk::bind('Busy','<Any-Motion>',[\&Tk::Widget::_busy => 0]);
+  $top->bind('Tk::Listbox','<KeyPress>',\&list_isearch);
+
+  # setup default binding
+  while (my ($key, $def) = each %default_binding) {
+    $group{ $def->[2] || 'Toolbar' }->bind('my', $key => [ $def->[0], \%group ]);
+  }
+
+  print STDERR "done.\nStarting main loop.\n" if $tredDebug;
   MainLoop;
   if ($group{top}) {
     saveRuntimeConfig(\%group);
