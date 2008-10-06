@@ -263,9 +263,9 @@ sub _populate_extension_pane {
 					}
 					next unless $href;
 					if ($enable->{$name}==1) {
-					  $enable->{$href}++
+					  $enable->{$href}=1;#++
 					} elsif ($enable->{$name}==0) {
-					  $enable->{$href}--;
+					  #$enable->{$href}--;
 					}
 				      }
 				    },\%enable,$name,\@requires],
