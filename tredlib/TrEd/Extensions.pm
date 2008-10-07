@@ -8,12 +8,12 @@ use Carp;
 use File::Spec;
 use URI;
 
-require Tk::DialogReturn;
-require Tk::BindButtons;
-
 BEGIN {
   require Exporter;
   require Fslib;
+  require Tk::DialogReturn;
+  require Tk::BindButtons;
+  require Tk::ProgressBar;
 
   our @ISA = qw(Exporter);
   our %EXPORT_TAGS = ( 'all' => [ qw(
@@ -96,7 +96,6 @@ sub getExtensionMetaData {
       File::Spec->catfile(getExtensionsDir(),$name,'package.xml');
     return unless -f $metafile;
   }
-  print "$metafile\n";
   my $data =  eval { PMLInstance->load({
     filename => $metafile,
   })->get_root;
@@ -117,33 +116,145 @@ sub _cmp_revisions {
   return $cmp;
 }
 
+sub _required_by {
+  my ($name, $exists, $required_by)=@_;
+  my %set;
+  my @test_deps=($name);
+  while (@test_deps) {
+    my $n = shift @test_deps;
+    if (! exists $set{$n}) {
+      push @test_deps,
+	grep exists($exists->{$n}), keys %{$required_by->{$n}};
+      $set{$n}=$n;
+    }
+  }
+  return values(%set);
+}
+
+sub _requires {
+  my ($name,$exists,$requires)=@_;
+  my %req;
+  my @deps = ($name);
+  while (@deps) {
+    my $n = shift @deps;
+    unless (exists $req{$n}) {
+      push @deps, grep exists($exists->{$_}), @{$requires->{$n}} if $requires->{$n};
+      $req{$n}=$n;
+    }
+  }
+  return values %req;
+}
+
 sub _populate_extension_pane {
   my ($tred,$d,$opts)=@_;
-  my $list = $opts->{list};
-  if (!$list) {
-    if ($opts->{install}) {
-      $list=[];
-      for my $repo (map { IOBackend::make_URI($_) } @{$opts->{repositories}}) {
-	push @$list, map { URI->new($_)->abs($repo.'/') } grep { length and defined }
-	  @{getExtensionList($repo)};
-      }
-    } else {
-      $list = getExtensionList();
+  my $list;
+  my (%enable,%required_by,%embeded,%requires,%data);
+  my ($progress,$progressbar)=($opts->{progress},$opts->{progressbar});
+  if ($opts->{install}) {
+    my @list;
+    for my $repo (map { IOBackend::make_URI($_) } @{$opts->{repositories}}) {
+      push @list, map { [$repo,$_,URI->new($_)->abs($repo.'/')] } grep { length and defined }
+	@{getExtensionList($repo)};
     }
-  } elsif (!ref($list) eq 'ARRAY') {
-    carp('manageExtensions: parameter list must be an array reference');
+    if ($progressbar) {
+      $progressbar->configure(
+	-to => scalar(@list),
+	-blocks => scalar(@list),
+       );
+    }
+    my $i=0;
+    my %in_def_repo; @in_def_repo{map $_->[2], @list}=();
+    my %seen;
+  PKG:
+    while ($i<@list) {
+      my ($repo,$short_name,$uri) = @{$list[$i]};
+      my $data = $data{$uri} ||= getExtensionMetaData($uri);
+      my $installed_ver = $opts->{installed}{$short_name};
+      $installed_ver||=0;
+      if (exists $in_def_repo{$uri}) {
+	$$progress++ if $progress;
+	$progressbar->update if $progressbar;
+      }
+      if ($data and
+	    (!$installed_ver and $data->{version})
+	    or ($installed_ver and $data->{version} and _cmp_revisions($installed_ver,$data->{version})<0)) {
+	$i++
+      } else {
+	splice @list,$i,1;
+	next PKG;
+      }
+      $requires{$uri} = [];
+      if (!exists($seen{$uri}) and $data->{require}) {
+	$seen{$uri}=1;
+	for my $req ($data->{require}->values('extension')) {
+	  my $req_name = $req->{name};
+	  my $installed_req_ver = $opts->{installed}{$req_name};
+	  my ($min,$max) = ($req->{min_version},$req->{max_version});
+	  next if ($installed_req_ver
+		   and (!$min or _cmp_revisions($installed_req_ver,$min)>=0)
+		   and (!$max or _cmp_revisions($installed_req_ver,$max)<=0));
+	  my $req_uri = URI->new($req->{href} || $req_name)->abs($uri);
+	  my $req_data = $data{$req_uri} ||= getExtensionMetaData($req_uri);
+	  if ($req_data) {
+	    my $req_version = $req_data->{version};
+	    unless ((!$min or _cmp_revisions($req_version,$min)>=0)
+		  and (!$max or _cmp_revisions($req_version,$max)<=0)) {
+	      my $res = $d->QuestionQuery(
+		-title => 'Error',
+		-label => "Package $short_name from $repo\nrequires package $req_name "
+		  ." in version $min..$max, but only $req_version is available",
+		-buttons =>["Skip $short_name", 'Ignore versions', 'Cancel']
+	       );
+	      return if $res eq 'Cancel';
+	      if ($res=~/^Skip/) {
+		next PKG;
+	      }
+	    }
+	  } else {
+	    my $res = $d->QuestionQuery(
+	      -title => 'Error',
+	      -label => "Package $short_name from $repo\nrequires package $req_name "
+		." which is not available",
+	      -buttons =>["Skip $short_name", 'Ignore dependencies', 'Cancel']
+	     );
+	    return if $res eq 'Cancel';
+	    if ($res=~/^Skip/) {
+	      next PKG;
+	    }
+	  }
+	  push @{$requires{$uri}}, $req_uri;
+	  unless (exists $seen{$req_uri} or exists $in_def_repo{$req_uri}) {
+	    push @list,[URI->new('.')->abs($req_uri), $req_name, $req_uri];
+	  }
+	}
+      }
+      $required_by{$_}{$uri}=1 for @{$requires{$uri}};
+    }
+    $list = [ map $_->[2], @list ];
+  } else {
+    $list = getExtensionList();
+    if ($progressbar) {
+      $progressbar->configure(
+	-to => scalar(@$list),
+	-blocks => scalar(@$list),
+       );
+    }
+    for my $name (@$list) {
+      $enable{$name} = 1;
+      if ($name=~s{^!}{}) {
+	  $enable{$name} = 0;
+	}
+      my $data = $data{$name} = getExtensionMetaData($name);
+      $$progress++ if $progress;
+      $progressbar->update if $progressbar;
+      if ($data and ref $data->{require}) {
+	$requires{$name} = $data->{require} ? [map { $_->{name} } $data->{require}->values('extension')] : [];
+      }
+      $required_by{$_}{$name}=1 for @{$requires{$name}};
+    }
   }
   my $extension_dir=getExtensionsDir();
   my $row=0;
-  my %enable;
-#   my $pane = $d->add('Scrolled' => 'Pane',
-# 		     -scrollbars=>'oe',
-# 		     -sticky=>'nw',
-# 		     -gridded => 'xy',
-# 		     -height=>400,
-# 		     #		     -width =>600,
-# 		     -background=>'white',
-# 		    );
   my $text = $opts->{pane} || $d->add('Scrolled' => 'ROText',
 		     -scrollbars=>'oe',
 		     -takefocus=>0,
@@ -157,26 +268,9 @@ sub _populate_extension_pane {
   for my $name (@$list) {
     my $short_name = UNIVERSAL::isa($name,'URI') ?
       do { my $n=$name; $n=~s{.*/}{}; $n } : $name;
-    my $data;
-    if ($opts->{install}) {
-      $data = getExtensionMetaData($name);
-      next unless $data;
-      my $installed_ver = $opts->{installed}{$short_name};
-      next unless (!$installed_ver and $data->{version})
-	or ($installed_ver and $data->{version}
-	    and _cmp_revisions($installed_ver,$data->{version})<0
-	   );
-    } else {
-      $enable{$name} = 1;
-      if ($name=~s{^!}{}) {
-	$enable{$name} = 0;
-      }
-      $data = getExtensionMetaData($name);
-    }
+    my $data = $data{$name};
     my $start = $text->index('end');
-    my $bf = $text->Frame(-background=>undef);
-#    $bf->bind('<MouseWheel>',sub{print "y\n" });
-#    $bf->bind("<$_>",sub{print "x\n" }) for 4..7;
+    my $bf = $text->Frame(-background=>'white');
     my $image;
     if ($data) {
       $opts->{versions}{$name}=$data->{version};
@@ -230,14 +324,8 @@ sub _populate_extension_pane {
     my $end = $text->index('end');
     $end=~s/\..*//;
     $text->configure(-height=>$end);
-    my @requires;
-    if ($data and ref $data->{require}) {
-      #print "$name\n";
-      #print "$data->{require}\n";
-      @requires = $data->{require}->values('extension');
-      #print ((map { $_->{href} } @requires),"\n");
-    }
 
+    $embeded{$name}=[$bf,$image ? $image : ()];
     if (UNIVERSAL::isa($name,'URI')) {
       $bf->Checkbutton(-text=> exists($opts->{installed}{$short_name})
 			 ? 'Upgrade' : 'Install',
@@ -253,22 +341,37 @@ sub _populate_extension_pane {
 		       -selectimage => main::icon($tred,"checkbox_checked"),
 		       -image => main::icon($tred,"checkbox"),
 		       -command => [sub {
-				      my ($enable,$name,$requires)=@_;
+				      my ($enable,$required_by,$name,$requires)=@_;
 				      # print "Enable: $enable->{$name}, $name, ",join(",",map { $_->{name} } @$requires),"\n";;
-				      for my $req (@$requires) {
-					my $href = $req->{href};
-					my $req_name = $req->{name};
-					unless (exists($enable->{$href})) {
-					  ($href) = grep { m{/\Q$req_name\E$}  } keys %$enable;
-					}
-					next unless $href;
-					if ($enable->{$name}==1) {
-					  $enable->{$href}=1;#++
-					} elsif ($enable->{$name}==0) {
-					  #$enable->{$href}--;
+				      if ($enable->{$name}==1) {
+					$required_by->{$name}{$name}=1;
+				      } else {
+					delete $required_by->{$name}{$name};
+					if (keys %{$required_by->{$name}}) {
+					  $enable->{$name}=1; # do not allow
+					  return;
 					}
 				      }
-				    },\%enable,$name,\@requires],
+				      my @req = _requires($name, $enable, $requires);
+				      for my $href (@req) {
+#					my $href = $req->{href};
+#					my $req_name = $req->{name};
+#					next if $req_name eq $name;
+#					unless (exists($enable->{$href})) {
+#					  ($href) = grep { m{/\Q$req_name\E$}  } keys %$enable;
+#					}
+					next if $href eq $name or !exists($enable->{$href});
+					if ($enable->{$name}==1) {
+					  $enable->{$href}=1;
+					  $required_by->{$href}{$name}=1;
+					} elsif ($enable->{$name}==0) {
+					  delete $required_by->{$href}{$name};
+					  unless (keys(%{$required_by->{$href}})) {
+					    $enable->{$href}=0;
+					  }
+					}
+				      }
+				    },\%enable,\%required_by,$name,\%requires],
 		       -variable=>\$enable{$name})->pack(-fill=>'x')
     } else {
       $bf->Checkbutton(-text=>'Enable',
@@ -284,34 +387,74 @@ sub _populate_extension_pane {
 		       -selectimage => main::icon($tred,"checkbox_checked"),
 		       -image => main::icon($tred,"checkbox"),
 		       -command => [sub {
-				      my ($name,$reload)=@_;
-				      $$reload=1 if ref $reload;
-				      setExtension($name,$enable{$name});
-				    },$name,$opts->{reload_macros}],
+				      my ($name,$opts,$required_by,$requires)=@_;
+				      my (@enable,@disable);
+				      if ($enable{$name}) {
+					@enable=_requires($name,$opts->{versions},$requires);
+				      } else {
+					@disable=_required_by($name,$opts->{versions},$required_by);
+					if (@disable>1) {
+					  my $res = $d->QuestionQuery(
+					    -title => 'Disable related packages?',
+					    -label => "The following packages require '$name':\n\n".
+					      join ("\n",grep { $_ ne $name } sort @disable),
+					    -buttons =>['Ignore dependencies', 'Disable all', 'Cancel']
+					   );
+					  if ($res=~/^Ignore/) {
+					    @disable=($name);
+					  } elsif ($res =~ /^Cancel/) {
+					    $enable{$name}=$enable{$name} ? 0 : 1;
+					    return;
+					  }
+					}
+				      }
+				      ${$opts->{reload_macros}}=1 if ref $opts->{reload_macros};
+				      $enable{$_}=0 for @disable;
+				      $enable{$_}=1 for @enable;
+				      setExtension(\@disable,0) if (@disable);
+				      setExtension(\@enable,1) if (@enable)
+				    },$name,$opts,\%required_by,\%requires],
 		       -variable=>\$enable{$name})->pack(-fill=>'both',-side=>'left',-padx => 5);
       $bf->Button(-text=>'Uninstall',
 		  -compound=>'left',
 		  -height => 18,
 		  -image => main::icon($tred,'remove'),
 		  -command => [sub {
-				 my ($name,$d,$opts,@slaves)=@_;
-				 delete $opts->{versions}{$name};
-				 uninstallExtension($name,{tk=>$d}); # or just rmtree
+				 my ($name,$required_by,$opts,$d,$embeded)=@_;
+				 my @remove=_required_by($name,$opts->{versions},$required_by);
+				 my $quiet;
+				 if (@remove>1) {
+				   $quiet=1;
+				   my $res = $d->QuestionQuery(
+				     -title => 'Remove related packages?',
+				     -label => "The following packages require '$name':\n\n".
+				       join ("\n",grep { $_ ne $name } sort @remove),
+				     -buttons =>['Ignore dependencies', 'Remove all', 'Cancel']
+				    );
+				   if ($res=~/^Ignore/) {
+				     @remove=($name);
+				   } elsif ($res =~ /^Cancel/) {
+				     return;
+				   }
+				 }
 				 $text->configure(-state=>'normal');
-				 $text->DeleteTextTaggedWith($name);
+				 for my $n (@remove) {
+				   if (uninstallExtension($n,{tk=>$d, quiet=>$quiet})) {
+				     delete $opts->{versions}{$n};
+				     $text->DeleteTextTaggedWith($n);
+				     #for (@{$embeded->{$n}}) {
+				     #  eval { $_->destroy };
+				     #}
+				     delete $embeded->{$n};
+				     ${$opts->{reload_macros}}=1 if ref( $opts->{reload_macros} );
+				   }
+				 }
 				 $text->configure(-state=>'disabled');
-				 # $text->gridForget(grep defined, @slaves);
-				 $_->destroy for @slaves;
-				 ${$opts->{reload_macros}}=1 if ref( $opts->{reload_macros} );
-			       },$name,$d,$opts,$bf,$text,$image],
+			       },$name,\%required_by,$opts,$d], #,\%embeded
 		 )->pack(-fill=>'both',
 			 -side=>'right',
 			 -padx => 5);
     }
-#    $bf->grid(-column=>0,-row=>$row, -sticky=>'nw',);
-#    $text->grid(-column=>1,-row=>$row,-padx=>5,-pady=>5, -sticky=>'nw', );
-#    $image->grid(-column=>2,-row=>$row,-padx=>5,-pady=>5, -sticky=>'nw',) if $image;
-
     $text->insert('end',' ',[$bf]);
     $text->windowCreate('end',-window => $bf,-padx=>5);
     $text->tagConfigure($bf,-justify=>'right');
@@ -358,13 +501,9 @@ sub _populate_extension_pane {
   $text->tagConfigure('title', -foreground => 'black', -font => 'C_bold');
   $text->tagConfigure('copyright', -foreground => '#666', -font => 'C_small');
 
-  $text->configure(-state=>'disabled');
-
-#  if ($opts->{pane}) {
-#    $opts->{pane}->packForget;
-#    $opts->{pane}->destroy
-#  } else {
+  $text->configure(-height=>20);
   $text->pack(-expand=>1,-fill=>'both');
+  $text->configure(-state=>'disabled');
   unless ($opts->{pane}) {
     $text->TextSearchLine(-parent => $d, -label=>'S~earch')->pack(qw(-fill x));
     $opts->{pane}=$text;
@@ -379,20 +518,34 @@ sub manageExtensions {
   my $mw = $tred->{top} || return;
   my $DOWNLOAD_NEW = 'Get new extensions';
   my $INSTALL = 'Install Selected';
-  my $d = $mw->DialogBox(-title => 'Manage Extensions',
+  my $d = $mw->DialogBox(-title => $opts->{install} ? 'Install New Extensions' : 'Manage Extensions',
 			 -buttons => ['Close',
 				      $opts->{install} ? $INSTALL : $DOWNLOAD_NEW]
 			);
   $d->maxsize(0.9*$d->screenwidth,0.9*$d->screenheight);
   my $enable = _populate_extension_pane($tred,$d,$opts);
+  unless (ref $enable) {
+    $d->destroy;
+    return;
+  }
   if ($opts->{install}) {
     $d->Subwidget('B_'.$INSTALL)->configure(
       -command => sub {
 	my @selected = grep $enable->{$_}, keys %$enable;
-	$d->Busy(-recurse=>1);
-	eval {
-	  installExtensions(\@selected,{tk => $d}) if @selected;
-	};
+	my $progress;
+	if (@selected) {
+	  $d->add('ProgressBar',
+		  -from=>0,
+		  -to => scalar(@selected),
+		  -colors => [0,'darkblue'],
+		  -blocks => scalar(@selected),
+		  -width => 15,
+		  -variable => \$progress)->pack(-expand =>1, -fill=>'x',-pady => 5);
+	  $d->Busy(-recurse=>1);
+	  eval {
+	    installExtensions(\@selected,{tk => $d, progress=>\$progress});
+	  };
+	}
 	main::errorMessage($d,$@) if $@;
 	$d->Unbusy;
 	$d->{selected_button}=$INSTALL;
@@ -401,7 +554,16 @@ sub manageExtensions {
   } elsif ($opts->{repositories} and @{$opts->{repositories}}) {
     $d->Subwidget('B_'.$DOWNLOAD_NEW)->configure(
       -command => sub {
+	my $progress;
+	my $progressbar = $d->add('ProgressBar',
+				  -from=>0,
+				  -to => 1,
+				  -colors => [0,'darkblue'],
+				  -width => 15,
+				  -variable => \$progress)->pack(-expand =>1, -fill=>'x',-pady => 5);
 	if (manageExtensions($tred,{ install=>1,
+				     progress=>\$progress,
+				     progressbar=>$progressbar,
 				     installed => $opts->{versions},
 				     repositories => $opts->{repositories} }) eq $INSTALL) {
 	  $enable = _populate_extension_pane($tred,$d,$opts);
@@ -409,6 +571,8 @@ sub manageExtensions {
 	    ${$opts->{reload_macros}}=1;
 	  }
 	}
+	$progressbar->packForget;
+	$progressbar->destroy;
       }
      );
   }
@@ -473,6 +637,10 @@ EOF
       next;
     }
     @extension_file = ((grep { !/^\!?\Q$name\E\s*$/ } @extension_file),$name);
+    if (ref $opts->{progress}) {
+      ${$opts->{progress}}++;
+      $opts->{tk}->update if $opts->{tk};
+    }
   }
   open my $fh, '>:utf8', $extension_list_file ||
     die "Installation failed: cannot write to extension list $extension_list_file: $!";
@@ -482,6 +650,7 @@ EOF
 
 sub setExtension {
   my ($name,$enable)=@_;
+  my %names; @names{ (ref($name) eq 'ARRAY' ? @$name : $name) } = ();
   my $extension_dir=getExtensionsDir();
   my $extension_list_file =
     File::Spec->catfile($extension_dir,'extensions.lst');
@@ -493,8 +662,8 @@ sub setExtension {
     open $fh, '>:utf8', $extension_list_file ||
       die "Configuring extenson failed: cannot write extension list $extension_list_file: $!";
     for (@list) {
-      if (/^!?\Q$name\E\s*$/) {
-	print $fh (($enable ? '' : '!').$name."\n");
+      if (/^!?(\S+)\s*$/ and exists($names{$1})) {
+	print $fh (($enable ? '' : '!').$1."\n");
       } else {
 	print $fh ($_);
       }
@@ -511,7 +680,7 @@ sub uninstallExtension {
   my $extension_dir=getExtensionsDir();
   my $dir = File::Spec->catdir($extension_dir,$name);
   if (-d $dir) {
-    return if ($opts->{tk} and
+    return if ($opts->{tk} and !$opts->{quiet} and
 		 $opts->{tk}->QuestionQuery(
 		   -title => 'Uninstall?',
 		   -label => "Really uninstall extension $name ($dir)?",
@@ -534,6 +703,7 @@ sub uninstallExtension {
     }
     close $fh;
   }
+  return 1;
 }
 
 

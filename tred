@@ -37,11 +37,11 @@ use vars qw($svn_version $version $VERSION $about $opt_u $opt_h $opt_c
 	    $manpage $listoptions $no_backups $no_locks %optmap $carp
            );
 
-$svn_version='$Id$';
+$svn_version='$Revision$ ';
 $version =  $svn_version;
-$version =~ s{^\$Id:\s*\S+\s*|\s+pajas.*$}{}g;
+$version =~ s{^\$Revision:\s*|\$ $}{}g;
 $version =  "1.".$version;
-$VERSION = $version; $VERSION=~s/\s.*//;
+$VERSION = $version;
 
 $about=
   "Copyright (c) 2000-2008 by Petr Pajas\n".
@@ -171,7 +171,7 @@ if ($list_options) {
 $no_secondary = $opt_Y;
 
 if ($opt_v) {
-  print "TrEd $version\nPerl: $]\nPlatform: $^O\nTk: $Tk::VERSION\n\n";
+  print "TrEd $VERSION\nPerl: $]\nPlatform: $^O\nTk: $Tk::VERSION\n\n";
   exit;
 }
 
@@ -5340,8 +5340,7 @@ sub About {
   }
 
   doEvalHook($grp->{focusedWindow},"about_file_hook",\$message);
-  my $ver=$version;
-  $ver=~s/\$//g;
+  my $ver=$VERSION;
   $grp->{top}->toplevel->
     messageBox(-icon=> 'info',
 	       -type=> 'ok',
@@ -6458,7 +6457,7 @@ sub startMain {
 				 );
   for my $modif ('',qw(Shift Control Alt Meta)) {
     my $m=$modif ? $modif.'-' : '';
-    for my $but (1..3, map 'Double-'.$_, 1..3) {
+    for my $but ((map 'Double-'.$_, 1..3), 1..3) {
       $group{valueLine}->bind(qq{<${m}${but}>},[\&valueLineClick,\%group,$modif,$but]);
     }
   }
@@ -11549,7 +11548,7 @@ sub valueLineClick {
   my (@tags)=
     $w->tagNames($w->index($Ev->xy));
   my $ret;
-  if ($but eq 'Double-1' and $modif eq '') {
+  if ($but eq 'Double-ButtonPress-1' and $modif eq '') {
     doEvalHook($win,"value_line_click_hook", $but, $modif, \@tags);
     $ret = doEvalHook($win,"value_line_doubleclick_hook", @tags);
     if (ref($ret) and ref($ret) =~ /^FSNode/) {
