@@ -573,7 +573,7 @@ sub Pl2Bat {
 
   my $text = <<'BAT';
 @echo off
-set PATH=%PATH%;_INSTALL_TARGET_\bin
+set PATH=%PATH%;"_INSTALL_TARGET_\bin"
 
 if "%OS%" == "Windows_NT" goto WinNT
 _PERLBIN_ _CMD_ %1 %2 %3 %4 %5 %6 %7 %8 %9
