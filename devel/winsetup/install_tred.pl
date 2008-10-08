@@ -51,13 +51,80 @@ my $install_target = 'c:\tred';
 my $data_folder = 'c:\tred_data';
 my $icon = File::Spec->rel2abs('tred/tredlib/tred.xpm',$install_base);
 my $license_file = File::Spec->rel2abs('tred/LICENSE',$install_base);
+my $extensions_repo = File::Spec->rel2abs('extensions',$install_base);
+
+push @INC,
+  map File::Spec->rel2abs('tred/'.$_,$install_base),
+  qw(tredlib tredlib/libs/tk tredlib/libs/pml-base tredlib/libs/fslib);
 my $mk_data_folder = 1;
 my ($status,$status2,$progress); # watched text variables
 my $Log; # text widget
 
 
+sub Install {
+#  Install_PPM_Modules();
+#  Install_TrEd();
+#  MakeShortcuts();
+}
+
+sub InstallExtensions {
+  require Fslib;
+  require TrEd::Extensions;
+  my ($d,$pane,$progress,$progressbar)=@_;
+
+  require TrEd::Utils;
+  TrEd::Utils::find_win_home();
+
+  require TrEd::Config;
+  TrEd::Config::set_default_config_file_search_list();
+  TrEd::Config::read_config();
+#  print $TrEd::Config::extensionsDir,"\n";
+  Fslib::AddResourcePath(File::Spec->rel2abs('tred/resources',$install_base));
+
+  my $list = TrEd::Extensions::getExtensionList();
+  if ($progressbar) {
+    $progressbar->configure(
+      -to => scalar(@$list),
+      -blocks => scalar(@$list),
+     );
+  }
+  my %versions;
+  for my $name (@$list) {
+    $name=~s/^!//;
+    my $data = TrEd::Extensions::getExtensionMetaData($name);
+    $$progress++ if $progress;
+    $progressbar->update if $progressbar;
+    $versions{$name}=$data->{version} if $data;
+  }
+  my $enable = TrEd::Extensions::_populate_extension_pane({top=>$d},
+							  $d,
+							  {
+							    pane => $pane,
+							    install=>1,
+							    progress=>$progress,
+							    progressbar=>$progressbar,
+							    installed => \%versions,
+							    repositories => [$extensions_repo],
+							  });
+}
+
+sub icon {
+  my ($t,$name)=@_;
+  require Tk::PNG;
+  my $file = File::Spec->rel2abs('tred/tredlib/icons/crystal/'.$name.'.png',$install_base);
+  $t->{top}->Photo(-file => $file,-format=>'png');
+}
+
 my $mw=Tk::MainWindow->new(-title=>'TrEd Setup Wizard');
 $mw->optionAdd("*font","{Sans} 9");
+$mw->fontCreate(qw/C_small -family sans -size 7/);
+$mw->fontCreate(qw/C_small_bold -family sans -weight bold -size 7/);
+$mw->fontCreate(qw/C_heading -family sans -weight bold -size 11/);
+$mw->fontCreate(qw/C_fixed   -family courier   -size 9/);
+$mw->fontCreate(qw/C_default -family sans -size 9/);
+$mw->fontCreate(qw/C_bold    -family sans -size 9 -weight bold/);
+$mw->fontCreate(qw/C_italic  -family sans -size 9 -slant italic/);
+
 my $tf = $mw->Frame(-background=>'white')->pack(-expand => 'yes', -fill => 'x');
 my $lf = $tf->Frame(-background=>'white')->pack(-expand => 'yes', -fill => 'x');
 $lf->Label(
@@ -210,9 +277,15 @@ my $finish_b;
   my $body = $page->Frame()->pack(qw(-expand yes -fill both));
   my $bf = $page->Frame()->pack(qw(-fill x -padx 10 -pady 10 -side bottom));
   #$bf->Button(-text=>' Abort ', -command => [\&prev_page,$name])->pack(-side => 'left',-padx=>15,-pady=>15);
-  $finish_b = $bf->Button(-text=>' Finish ', -state=>'disabled',
-			  -command => sub { $mw->destroy; exit },
-			 )->pack(-side => 'right',-padx=>15,-pady=>15);
+  if (-d $extensions_repo) {
+    $finish_b=$bf->Button(-text=>' Continue > ', 
+			  -command => [\&next_page,$name])->pack(-side => 'right',-padx=>15,-pady=>15);
+  } else {
+    $finish_b = $bf->Button(-text=>' Finish ',
+			    -state=>'disabled',
+			    -command => sub { $mw->destroy; exit },
+			   )->pack(-side => 'right',-padx=>15,-pady=>15);
+  }
 
   $body->Label( -textvariable => \$status,
 	      -font=>'system',
@@ -249,6 +322,102 @@ my $finish_b;
 			 -relief=>'sunken',
  			 -height=>15,
 			 )->pack(-fill=>'x',-expand=>'yes',-padx=>10,-pady=>10);
+}
+my $finish_b2;
+if (-d $extensions_repo) {
+  my $name = "extensions";
+  my ($progress, $progressbar, $pane);
+  my $enable;
+  my $page = $nb->add($name,
+		      -label => "Install Extensions",
+		      -state => 'disabled',
+		      -raisecmd => sub {
+			$status="Creating extension list:";
+			$status2="";
+			$enable = InstallExtensions($nb,$pane,\$progress,$progressbar);
+			$status="Install extensions";
+			$status2="Please select extensions to install/upgrade";
+			$finish_b2->configure(-state => 'normal');
+			$pane->focusForce;
+#			$status="Installation complete!";
+#			$status2="";
+			$progress=0;
+		      }
+		     );
+  my $body = $page->Frame()->pack(qw(-expand yes -fill both));
+  $body->Label( -textvariable => \$status,
+	      -font=>'system',
+	      -width => 60,
+	      -anchor => 'w',
+	    )->pack(-expand => 1, -fill => 'x', -padx => 10);
+  $body->Label( -textvariable => \$status2,
+	      -anchor => 'w',
+	      -width => 70,
+	    )->pack(-expand => 1, -fill => 'x', -padx => 10 );
+  $progressbar = $body->ProgressBar(
+		     -width => 20,
+		     -length => 500,
+		     -anchor => 'w',
+		     -from => 0,
+		     -to => 1,
+		     -resolution => 0.001,
+		     -blocks=>0,
+		     -troughcolor=>'white',
+		     -relief => 'sunken',
+		     -border=>1,
+		     -variable => \$progress,
+ 		     -colors=>[0,'darkblue'],
+# 			       map {
+# 				 $_/100,
+# 				   sprintf('#%02x%02x%02x',200-2*$_,200-2*$_,255-$_);
+# 			       } 0..100,
+# 			      ],
+		    )->pack(-expand => 1, -fill => 'x',-padx => 10, -pady => 10);
+
+  $pane = $body->Scrolled('ROText',
+			  -scrollbars=>'oe',
+			  -takefocus=>0,
+			  -relief=>'flat',
+			  -wrap=>'word',
+			  -width=>60,
+			  -height=>20,
+			  -background => 'white',
+			 )->pack(-fill=>'x',-expand=>'yes',-padx=>10,-pady=>10);
+
+  my $bf = $page->Frame()->pack(qw(-fill x -padx 10 -pady 10 -side bottom));
+  #$bf->Button(-text=>' Abort ', -command => [\&prev_page,$name])->pack(-side => 'left',-padx=>15,-pady=>15);
+
+  $finish_b2 = $bf->Button(-text=>' Install Selected ', -state=>'disabled',
+			  -command => sub {
+			    my @selected = grep $enable->{$_}, keys %$enable;
+			    if (@selected) {
+			      $progressbar->configure(
+				-to => scalar(@selected),
+				-blocks => scalar(@selected),
+			       );
+			      $mw->Busy(-recurse=>1);
+			      eval {
+				TrEd::Extensions::installExtensions(\@selected,{
+				  tk => $body,
+				  progress=>\$progress,
+				  # quiet=>$opts->{only_upgrades},
+				});
+			      };
+			    }
+			    $mw->ErrorReport(
+			      -title   => "Installation error",
+			      -message => "The following error occurred during package installation:",
+			      -body    => "$@",
+			      -buttons => [qw(OK)],
+			     ) if $@;
+			    $mw->Unbusy;
+			    $mw->destroy; exit 
+			  },
+			  )->pack(-side => 'right',-padx=>15,-pady=>15);
+  $bf->Button(-text=>' Finish ', -state=>'normal',
+	      -command => sub { $mw->destroy; exit  }
+	     )->pack(-side => 'right',-padx=>15,-pady=>15);
+
 }
 
 MainLoop;
