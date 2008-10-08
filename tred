@@ -198,7 +198,7 @@ _set_encoding(\*STDERR,':utf8',"STDERR");
 _set_encoding(\*STDOUT,':utf8',"STDOUT");
 
 ########## Config file #############
-# this must be done before readconfig is first used
+# this must be done before read_config is first used
 @filelists=();
 @openfiles=();
 

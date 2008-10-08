@@ -69,6 +69,7 @@ sub initExtensions {
       push @TrEd::Macros::macro_include_paths, $dir
     }
   }
+  PMLBackend::configure();
 }
 sub getExtensionMacroPaths {
   my ($list)=@_;
