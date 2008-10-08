@@ -240,94 +240,13 @@ sub NonProjEdges {
   my $top=shift;
 
   return undef unless ref($top);
-
-  return PDT::non_proj_edges($top,0,@_);
+  if (exists &non_proj_edges) {
+    return NonProjectivity::non_proj_edges($top,0,@_);
+  } else {
+    confess("Module NonProjectivity (support/non-projectivity.mak) not loaded!");
+  }
 
 } # sub NonProjEdges
-
-#ifdef TRED
-
-{ my@CustomColors=qw/error red
-                     mlemma blue
-                     form black
-                     tag darkgreen
-                     lemma black
-                     current red
-                     sentence black
-                     spell gray
-                     status darkblue
-                     tfa_text darkcyan
-                     tfa_t white
-                     tfa_f yellow
-                     tfa_c green
-                     tfa_no #c0c0c0
-                     func #601808
-                     subfunc #a02818
-                     afun darkblue
-                     coappa blue
-                     parenthesis #809080
-                     nodetype darkblue
-                     complex darkmagenta
-                     detail darkgreen
-                     detailheader #002416
-                     coref darkblue
-                     arrow_textual #4C509F
-                     arrow_grammatical #C05633
-                     arrow_segment darkred
-                     arrow_compl #629F52
-                     arrow_exoph blue
-                     line_normal #7f7f7f
-                     line_member #a0a0a0
-                     line_comm #6F11EA/;
-  while(@CustomColors){
-    my$key=shift(@CustomColors);
-    my$val=shift(@CustomColors);
-    unless (CustomColor($key)) {
-      CustomColor($key,$val);
-    }
-  }
-}
-
-# context guessing
-
-push @TredMacro::AUTO_CONTEXT_GUESSING, sub {
-  my ($hook)=@_;
-  my $resuming = ($hook eq 'file_resumed_hook');
-  my $current = CurrentContext();
-  if (PML::SchemaName() eq 'tdata') {
-    SetCurrentStylesheet(STYLESHEET_FROM_FILE()) if $resuming;
-    if ($current eq 'PML_A_Edit') {
-      return 'PML_T_Edit';
-    } elsif ($current =~ /^PML.*_T_/) {
-      return $current;
-    } else {
-      return 'PML_T_View';
-    }
-  } elsif (PML::SchemaName() eq 'adata') {
-    SetCurrentStylesheet(STYLESHEET_FROM_FILE()) if $resuming;
-    if ($current eq 'PML_T_Edit') {
-      return 'PML_A_Edit';
-    } elsif ($current =~ /^PML.*_A_/) {
-      return $current;
-    } else {
-      return 'PML_A_View';
-    }
-    return 1;
-  } elsif (PML::SchemaName() eq 'aeditdata') {
-    SetCurrentStylesheet(STYLESHEET_FROM_FILE()) if $resuming;
-    return 'PML_A_Edit';
-  } elsif (PML::SchemaName() eq 'mdata') {
-    SetCurrentStylesheet(STYLESHEET_FROM_FILE()) if $resuming;
-    if ($current =~ /^PML.*_M_/) {
-      return $current;
-    } else {
-      return 'PML_M';
-    }
-  }
-  return;
-};
-
-#endif TRED
 
 =back
 
