@@ -23,7 +23,8 @@ use vars qw($svn_version $version $VERSION $about $opt_u $opt_h $opt_c
 	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_p
 	    $opt_n $opt_D $opt_v $opt_H $opt_I $opt_Z $opt_e
             $libDir $docDir
-	    $macroFile @filelists @openfiles $treeViewOpts $opt_m
+	    $macroFile @filelists %filelist_from_extension
+	    @openfiles $treeViewOpts $opt_m
             @backends @ISA @EXPORT @open_types @save_types $opt_l $opt_s
             $stylesheetFile $opt_S
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
@@ -5976,6 +5977,7 @@ sub startMain {
   $group{FileMenu}->command(-label=> 'Open URL ...',
 			    -underline=> 5,
 			    -command=> [\&urlDialog, \%group]);
+
   $group{FileMenu}->cascade(-label=> 'New',
 			    -underline=>0,
 			    -menuitems=>
@@ -6302,7 +6304,6 @@ sub startMain {
 
 
   $group{PostponedFileMenu}= MenubarItem($group{Menubar},qw/-label ~Session/);
-  updatePostponed(\%group);
 
   $group{BookmarksFileMenu}= MenubarItem($group{Menubar},qw/-label Bookmarks -underline 0/);
   updateBookmarks(\%group);
@@ -6804,6 +6805,8 @@ sub startMain {
   update_macro_menus(\%group);
   update_minor_modes(\%group);
   updateStylesheetMenu(\%group);
+  updatePostponed(\%group);
+
   if (doEvalHook($group{focusedWindow},"init_hook") eq 'stop') {
     $top->Unbusy;
     print STDERR "Stopped by init_hook\n";
@@ -7114,6 +7117,7 @@ sub updateRuntimeConfig {
 
     my $i=0;
     foreach (@filelists) {
+      next if exists $filelist_from_extension{$_};
       if (ref($_) and defined($_->filename) and $_->filename ne EMPTY) {
 	$_->save;
 	$s=$_->filename();
@@ -7946,7 +7950,9 @@ sub listQuery {
   my $top=$w->toplevel;
   my $d=$w->DialogBox(-title	  => $title,
 		      -width	  => '8c',
-		      -buttons  => ["OK", "Cancel"]);
+		      -buttons  => ["OK", "Cancel"],
+		      ref($opts{dialog}) ? %{$opts{dialog}} : (),
+		     );
   $d->BindReturn($d,1);
   $d->BindEscape();
   if (ref($opts{label})) {
@@ -7986,6 +7992,8 @@ sub listQuery {
 			    },
 			    $l
 			   ])->pack(-side => 'left');
+  } else {
+    $l->bind('<Double-1>', sub { $d->{selected_button}='OK' });
   }
   if (ref($opts{buttons})) {
     foreach my $b (@{$opts{buttons}}) {
@@ -11586,6 +11594,19 @@ sub loadMacros {
 
   my $extensions = getExtensionList();
   initExtensions($extensions);
+  foreach my $path (getExtensionSampleDataPaths($extensions)) {
+    foreach my $f (glob(File::Spec->catfile($path,'*.fl'))) {
+      print "Reading $f\n" if $tredDebug;
+      $fl=Filelist->new(undef,$f);
+      $filelist_from_extension{$fl}=1;
+
+      next unless $fl;
+      $fl->load();
+#      print STDERR "Reading filelist ".$fl->name." from ".$fl->filename."\n" if $tredDebug;
+      addNewFilelist(undef,$fl);
+    }
+  }
+
   print STDERR ("Reading extension macros...\n") unless $quiet;
   for my $ext_contrib (getExtensionMacroPaths($extensions)) {
     if (-f $ext_contrib) {
