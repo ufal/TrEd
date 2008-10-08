@@ -36,6 +36,7 @@ use vars qw($svn_version $version $VERSION $about $opt_u $opt_h $opt_c
 	    $no_secondary
 	    %HELP %vertical_key_arrow_map 
 	    $manpage $listoptions $no_backups $no_locks %optmap $carp
+	    $tred_d;
            );
 
 $svn_version='$Revision$ ';
@@ -221,6 +222,16 @@ if (-d $libDir) {
   $libDir=$ld;
   $TrEd::Config::quiet = $opt_q;
 }
+
+{
+  # ensure ~/.tred.d exists
+  $tred_d = File::Spec->catdir($ENV{HOME},'.tred.d');
+  if (! -d $tred_d) {
+    mkdir $tred_d || warn "Could not create tred configuration directory: $tred_d: $!\n";
+  }
+}
+
+
 
 if (defined $opt_c) {
   @TrEd::Config::config_file_search_list=($opt_c); # override any other possible config files
@@ -1793,17 +1804,7 @@ sub updatePostponed {
 				      );
     $grp->{PostponedFileMenu}->command(-label => "Manage Extensions",
 				       -underline=> 0,
-				       -command=> [sub {
-						     my ($grp) = @_;
-						     my $reload_macros;
-						     manageExtensions($grp, {
-						       repositories => [ split /\s+/, $extensionRepos ],
-						       reload_macros => \$reload_macros,
-						     });
-						     if ($reload_macros) {
-						       reloadMacros($grp);
-						     }
-						   },$grp]);
+				       -command=> [\&manage_extensions,$grp,1]);
 
     $grp->{PostponedFileMenu}->command(-label=> 'Options',
 				       -state=> 'disabled',
@@ -6797,6 +6798,33 @@ sub startMain {
 
   print STDERR "GUI prepared.\n" if $tredDebug;
   $top->update;
+
+  # check if TrEd has been updated
+  my $version_file = File::Spec->catfile($tred_d,'last_version');
+  my $ver;
+  if (open my $fh, '<', $version_file) {
+    $ver=<$fh>;
+    close $fh;
+    chomp $ver;
+  }
+  if (open my $fh, '>', $version_file) {
+    print $fh $VERSION,"\n";
+    close $fh;
+  } else {
+    warn "Could not write version information to $version_file: $!\n";
+    $ver = $VERSION; # do not bother the user in this case
+  }
+  if (!$ver and $ver ne $VERSION) {
+    if (userQuery($top, "TrEd was "
+		    .($ver ? "upgraded" : "installed or upgraded")
+		    ." recently.\n\n".
+		        "Do you want to check for new extensions or updates?",
+		  -title => "TrEd Upgraded",
+		  -buttons => ["Manage Extensions","Later"]) =~ /Manage/) {
+      manage_extensions(\%group,0);
+    }
+  }
+
   $top->Busy(-recurse=> 1);
   eval { loadMacros() };
   errorMessage($group{focusedWindow},$@) if $@;
@@ -7006,6 +7034,7 @@ sub startMain {
   while (my ($key, $def) = each %default_binding) {
     $group{ $def->[2] || 'Toolbar' }->bind('my', $key => [ $def->[0], \%group ]);
   }
+
 
   print STDERR "done.\nStarting main loop.\n" if $tredDebug;
   MainLoop;
@@ -11642,6 +11671,18 @@ sub reloadMacros {
   update_macrolist_view($grp);
   get_nodes_all($grp);
   redraw_all($grp);
+}
+
+sub manage_extensions {
+  my ($grp,$do_reload) = @_;
+  my $reload_macros;
+  manageExtensions($grp, {
+    repositories => [ split /\s+/, $extensionRepos ],
+    reload_macros => \$reload_macros,
+  });
+  if ($do_reload and $reload_macros) {
+    reloadMacros($grp);
+  }
 }
 
 ## watch leaks
