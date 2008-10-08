@@ -43,6 +43,7 @@ use vars qw($quiet $Quiet $debug $carp $csts_xargs $strip_prefix $add_prefix
 	    $locale_charset $host $allow_switch_context
 	    @resource_paths @define_symbols $dump_macros
 	    $strict $warnings $no_backups
+	    $list_extensions $enable_extensions $disable_extensions
 	   );
 
 $version='$Revision$ ';
@@ -93,6 +94,9 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "allow-host|b=s" => \$allow_host,
 	    "server-host=s" => \$host,
 	    "server-port|L=i"  => \$start_server,
+	    "enable-extensions=s" => \$enable_extensions,
+	    "disable-extensions=s" => \$disable_extensions,
+	    "list-extensions" => \$list_extensions,
 	    "help|h" => \$help,
 	    "list-options" => \$list_options,
 	    "usage|u"        => \$usage,
@@ -385,6 +389,22 @@ if ($include_macro) {
 }
 
 my $extensions = getExtensionList();
+{
+  my (%e,%d);
+  @e{ split /,/,$enable_extensions }=();
+  @d{ split /,/,$disable_extensions }=();
+@$extensions =
+  map { /^!(.*)/ ?
+	  (exists($e{'*'}) || exists($e{$1}) ? $1 : $_)
+	:
+	  (exists($d{'*'}) || exists($d{$_}) ? '!'.$_ : $_)
+      } @$extensions;
+}
+if ($list_extensions) {
+  print map "$_\n", @$extensions;
+  exit;
+}
+
 initExtensions($extensions);
 _msg("Reading extension macros...\n") unless $quiet;
 for my $ext_contrib (getExtensionMacroPaths($extensions)) {
@@ -2333,10 +2353,31 @@ called knitting - an operation where the stand-off annotation is
 handled by a IO backend and the resulting knitted file appears to
 btred as a single unit.
 
+=item B<--enable-extensions> list
+
+Give a comma-separated list of installed TrEd extension names to
+temporarily enable if disabled in the extension configuration.
+Use '*' to enable all currently enabled extensions.
+
+=item B<--disable-extensions> list
+
+Give a comma-separated list of installed TrEd extension names to
+temporarily disable if enabled in the extension configuration. 
+Use '*' to disable all currently enabled extensions.
+
+=item B<--list-extensions>
+
+Print out a list of available extensions and exit. Each extension name
+is given on a separate line and disabled extensions are preceded by
+'!'. This command takes into account options of
+B<--disable-extensions> and B<--enable-extensions>, so it can be used
+to test their interaction.
+
 =item B<--lib>
 
 Prints path to module directory containing Fslib and other TrEd specific
 libraries and exit.
+
 
 =item B<--usage|-u>
 
