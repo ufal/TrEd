@@ -14,6 +14,7 @@ BEGIN {
   require Tk::DialogReturn;
   require Tk::BindButtons;
   require Tk::ProgressBar;
+  require Tk::ErrorReport;
 
   our @ISA = qw(Exporter);
   our %EXPORT_TAGS = ( 'all' => [ qw(
@@ -22,7 +23,8 @@ BEGIN {
 				      getExtensionList
 				      getExtensionMacroPaths
 				      manageExtensions
-  ) ] );
+                                      getExtensionSampleDataPaths
+				   ) ] );
   our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
   our @EXPORT = qw(  );
   our $VERSION = '0.01';
@@ -71,6 +73,7 @@ sub initExtensions {
   }
   PMLBackend::configure();
 }
+
 sub getExtensionMacroPaths {
   my ($list)=@_;
   if (@_==0) {
@@ -84,6 +87,21 @@ sub getExtensionMacroPaths {
   map { glob($_.'/*/contrib.mac'), ( -f $_.'/contrib.mac' ? $_.'/contrib.mac' : ()) }
   map { File::Spec->catfile($extension_dir,$_,'contrib') }
   grep { !/^!/ }
+  @$list;
+}
+
+sub getExtensionSampleDataPaths {
+  my ($list)=@_;
+  if (@_==0) {
+    $list=getExtensionList();
+  } elsif (!ref($list) eq 'ARRAY') {
+    carp('Usage: configureExtensionSampleDataPaths( [ extension_name(s)... ] )');
+  }
+  my $extension_dir=getExtensionsDir();
+  return
+  grep -d $_,
+  map File::Spec->catfile($extension_dir,$_,'sample'),
+  grep !/^!/,
   @$list;
 }
 
@@ -154,7 +172,9 @@ sub _populate_extension_pane {
   if ($opts->{install}) {
     my @list;
     for my $repo (map { IOBackend::make_URI($_) } @{$opts->{repositories}}) {
-      push @list, map { [$repo,$_,URI->new($_)->abs($repo.'/')] } grep { length and defined }
+      push @list, map { [$repo,$_,URI->new($_)->abs($repo.'/')] } 
+	grep { $opts->{only_upgrades} ? exists($opts->{installed}{$_}) : 1 }
+	grep { length and defined }
 	@{getExtensionList($repo)};
     }
     if ($progressbar) {
@@ -169,6 +189,7 @@ sub _populate_extension_pane {
   PKG:
     while ($i<@list) {
       my ($repo,$short_name,$uri) = @{$list[$i]};
+
       my $data = $data{$uri} ||= getExtensionMetaData($uri);
       my $installed_ver = $opts->{installed}{$short_name};
       $installed_ver||=0;
@@ -194,7 +215,9 @@ sub _populate_extension_pane {
 	  next if ($installed_req_ver
 		   and (!$min or _cmp_revisions($installed_req_ver,$min)>=0)
 		   and (!$max or _cmp_revisions($installed_req_ver,$max)<=0));
-	  my $req_uri = URI->new($req->{href} || $req_name)->abs($uri);
+	  my $repo = $data->{repository} && $data->{repository}{href};
+	  my $req_uri = ($repo && URI->new('.')->abs($req->{href}) eq $repo) ?
+	      URI->new($req_name)->abs($uri) : URI->new($req->{href} || $req_name)->abs($uri);
 	  my $req_data = $data{$req_uri} ||= getExtensionMetaData($req_uri);
 	  if ($req_data) {
 	    my $req_version = $req_data->{version};
@@ -257,13 +280,14 @@ sub _populate_extension_pane {
   my $extension_dir=getExtensionsDir();
   my $row=0;
   my $text = $opts->{pane} || $d->add('Scrolled' => 'ROText',
-		     -scrollbars=>'oe',
-		     -takefocus=>0,
-		     -relief=>'flat',
-		     -wrap=>'word',
-		     -width=>60,
-		     -height=>20,
-		    );
+				      -scrollbars=>'oe',
+				      -takefocus=>0,
+				      -relief=>'flat',
+				      -wrap=>'word',
+				      -width=>60,
+				      -height=>20,
+				      -background => 'white',
+				     );
   $text->configure(-state=>'normal');
   $text->delete(qw(0.0 end));
   for my $name (@$list) {
@@ -516,12 +540,13 @@ sub _populate_extension_pane {
 sub manageExtensions {
   my ($tred,$opts)=@_;
   $opts||={};
-  my $mw = $tred->{top} || return;
+  my $mw = $opts->{top} || $tred->{top} || return;
+  my $UPGRADE = 'Check updates';
   my $DOWNLOAD_NEW = 'Get new extensions';
   my $INSTALL = 'Install Selected';
   my $d = $mw->DialogBox(-title => $opts->{install} ? 'Install New Extensions' : 'Manage Extensions',
 			 -buttons => ['Close',
-				      $opts->{install} ? $INSTALL : $DOWNLOAD_NEW]
+				      $opts->{install} ? $INSTALL : ($UPGRADE, $DOWNLOAD_NEW)]
 			);
   $d->maxsize(0.9*$d->screenwidth,0.9*$d->screenheight);
   my $enable = _populate_extension_pane($tred,$d,$opts);
@@ -544,38 +569,52 @@ sub manageExtensions {
 		  -variable => \$progress)->pack(-expand =>1, -fill=>'x',-pady => 5);
 	  $d->Busy(-recurse=>1);
 	  eval {
-	    installExtensions(\@selected,{tk => $d, progress=>\$progress});
+	    installExtensions(\@selected,{
+	      tk => $d,
+	      progress=>\$progress,
+	      quiet=>$opts->{only_upgrades},
+	    });
 	  };
 	}
-	main::errorMessage($d,$@) if $@;
+	$d->ErrorReport(
+	  -title   => "Installation error",
+	  -message => "The following error occurred during package installation:",
+	  -body    => "$@",
+	  -buttons => [qw(OK)],
+	 ) if $@;
 	$d->Unbusy;
 	$d->{selected_button}=$INSTALL;
       }
      );
   } elsif ($opts->{repositories} and @{$opts->{repositories}}) {
-    $d->Subwidget('B_'.$DOWNLOAD_NEW)->configure(
-      -command => sub {
-	my $progress;
-	my $progressbar = $d->add('ProgressBar',
-				  -from=>0,
-				  -to => 1,
-				  -colors => [0,'darkblue'],
-				  -width => 15,
-				  -variable => \$progress)->pack(-expand =>1, -fill=>'x',-pady => 5);
-	if (manageExtensions($tred,{ install=>1,
-				     progress=>\$progress,
-				     progressbar=>$progressbar,
-				     installed => $opts->{versions},
-				     repositories => $opts->{repositories} }) eq $INSTALL) {
-	  $enable = _populate_extension_pane($tred,$d,$opts);
-	  if (ref($opts->{reload_macros})) {
-	    ${$opts->{reload_macros}}=1;
-	  }
-	}
-	$progressbar->packForget;
-	$progressbar->destroy;
-      }
+    for my $but ($DOWNLOAD_NEW,$UPGRADE) {
+      my $upgrades = $but eq $UPGRADE ? 1 : 0;
+      $d->Subwidget('B_'.$but)->configure(
+      -command => [sub {
+		     my ($upgrades)=@_;
+		     my $progress;
+		     my $progressbar = $d->add('ProgressBar',
+					       -from=>0,
+					       -to => 1,
+					       -colors => [0,'darkblue'],
+					       -width => 15,
+					       -variable => \$progress)->pack(-expand =>1, -fill=>'x',-pady => 5);
+		     if (manageExtensions($tred,{ install=>1,
+						  only_upgrades=>$upgrades,
+						  progress=>\$progress,
+						  progressbar=>$progressbar,
+						  installed => $opts->{versions},
+						  repositories => $opts->{repositories} }) eq $INSTALL) {
+		       $enable = _populate_extension_pane($tred,$d,$opts);
+		       if (ref($opts->{reload_macros})) {
+			 ${$opts->{reload_macros}}=1;
+		       }
+		     }
+		     $progressbar->packForget;
+		     $progressbar->destroy;
+		   },$upgrades]
      );
+    }
   }
   require Tk::DialogReturn;
   $d->BindEscape(undef,'Close');
@@ -606,7 +645,7 @@ sub installExtensions {
     # DO NOT MODIFY THIS FILE
     #
     # This file only lists installed extensions.
-    # ! before extension name means the module is enabled
+    # ! before extension name means the module is disabled
     #
 EOF
   }
@@ -615,26 +654,57 @@ EOF
     my $name = $url; $name=~s{.*/}{}g;
     my $dir = File::Spec->catdir($extension_dir,$name);
     if (-d $dir) {
-      next if ($opts->{tk}->QuestionQuery(
+      next unless ($opts->{quiet} or
+	$opts->{tk}->QuestionQuery(
 	-title => 'Reinstall?',
 	-label => "Extension $name is already installed in $dir.\nDo you want to upgrade/reinstall it?",
 	-buttons =>['Install/Upgrade', 'Cancel']
-       ) eq 'Cancel');
+       ) =~ /Install/);
       uninstallExtension($name); # or just rmtree
     }
     mkdir $dir;
     my ($zip_file,$unlink) = eval { IOBackend::fetch_file($url.'.zip') };
     if ($@) {
-      main::errorMessage($opts->{tk},"Downloading ${url}.zip failed:\n".$@);
+      my $err = "Downloading ${url}.zip failed:\n".$@;
+      if ($opts->{tk}) {
+	$opts->{tk}->ErrorReport(
+	  -title   => "Installation error",
+	  -message => "The following error occurred during package installation:",
+	  -body    => $err,
+	  -buttons => [qw(OK)],
+	 ) if $@;
+      } else {
+	warn $err;
+      }
       next;
     }
     my $zip = Archive::Zip->new();
     unless ($zip->read( $zip_file ) == Archive::Zip::AZ_OK()) {
-      main::errorMessage($opts->{tk},"Reading ${url}.zip failed!\n");
+      my $err = "Reading ${url}.zip failed!\n";
+      if ($opts->{tk}) {
+	$opts->{tk}->ErrorReport(
+	  -title   => "Installation error",
+	  -message => "The following error occurred during package installation:",
+	  -body    => $err,
+	  -buttons => [qw(OK)],
+	 ) if $@;
+      } else {
+	warn $err;
+      }
       next;
     }
     unless ($zip->extractTree( '', $dir.'/' ) == Archive::Zip::AZ_OK()) {
-      main::errorMessage($opts->{tk},"Extracting files from ${url}.zip failed!\n");
+      my $err = "Extracting files from ${url}.zip failed!\n";
+      if ($opts->{tk}) {
+	$opts->{tk}->ErrorReport(
+	  -title   => "Installation error",
+	  -message => "The following error occurred during package installation:",
+	  -body    => $err,
+	  -buttons => [qw(OK)],
+	 ) if $@;
+      } else {
+	warn $err;
+      }
       next;
     }
     @extension_file = ((grep { !/^\!?\Q$name\E\s*$/ } @extension_file),$name);
