@@ -384,8 +384,9 @@ sub set_config {
   }
   $libDir=tilde_expand($confs->{libdir}) if (exists $confs->{libdir});
   $extensionsDir=tilde_expand($confs->{extensionsdir}) if ();
-  unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
-
+  if ($libDir) {
+    unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
+  }
   $extensionsDir=tilde_expand(length($confs->{extensionsdir})
 				? $confs->{extensionsdir} : '~/.tred.d/extensions');
   $extensionRepos = val_or_def($confs,'extensionrepos','http://ufal.mff.cuni.cz/~pajas/tred/extensions');
