@@ -543,11 +543,12 @@ sub manageExtensions {
   my $mw = $opts->{top} || $tred->{top} || return;
   my $UPGRADE = 'Check updates';
   my $DOWNLOAD_NEW = 'Get new extensions';
-  my $REPOSITORIES = 'Manage Repositories';
+  my $REPOSITORIES = 'Edit Repositories';
   my $INSTALL = 'Install Selected';
   my $d = $mw->DialogBox(-title => $opts->{install} ? 'Install New Extensions' : 'Manage Extensions',
-			 -buttons => ['Close',
-				      $opts->{install} ? $INSTALL : ($REPOSITORIES, $UPGRADE, $DOWNLOAD_NEW)]
+			 -buttons => [ ($opts->{install} ? $INSTALL : ($UPGRADE, $DOWNLOAD_NEW, $REPOSITORIES)),
+				       'Close'
+				      ]
 			);
   $d->maxsize(0.9*$d->screenwidth,0.9*$d->screenheight);
   my $enable = _populate_extension_pane($tred,$d,$opts);
