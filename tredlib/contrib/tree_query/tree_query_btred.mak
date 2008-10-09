@@ -199,6 +199,7 @@ sub reconfigure {
 sub search_first {
   my ($self, $opts)=@_;
   $opts||={};
+  local $SIG{__DIE__} = sub { confess(@_) };
   my $query = $opts->{query} || $root;
   $self->{query}=$query;
   $self->{evaluator} = Tree_Query::BtredEvaluator->new($query,
@@ -236,6 +237,7 @@ sub show_next_result {
     Open($self->{current_result}->[0]);
   } else {
     if ($self->{filelist}) {
+#      SetCurrentFileList($self->{filelist});
       GotoFileNo(0);
     } else {
       GotoTree(0);
@@ -1581,9 +1583,10 @@ sub claim_search_win {
     my $n=$self->[NODE];
     my $fsfile = $grp->{FSFile};
     while ($n) {
-      $n = $n->following 
-	|| (TredMacro::NextTree() && $this && ($fsfile=$grp->{FSFile}))
-	||  (TredMacro::NextFile() && $this && ($fsfile=$grp->{FSFile}));
+      $n = $n->following
+	|| (TredMacro::NextTree() && $this ) 
+	||  (TredMacro::NextFile() && ($fsfile=$grp->{FSFile}) && $this)
+	  ;
       last if $conditions->($n,$fsfile);
     }
     return $self->[NODE]=$n;
