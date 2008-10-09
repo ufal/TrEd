@@ -543,10 +543,11 @@ sub manageExtensions {
   my $mw = $opts->{top} || $tred->{top} || return;
   my $UPGRADE = 'Check updates';
   my $DOWNLOAD_NEW = 'Get new extensions';
+  my $REPOSITORIES = 'Manage Repositories';
   my $INSTALL = 'Install Selected';
   my $d = $mw->DialogBox(-title => $opts->{install} ? 'Install New Extensions' : 'Manage Extensions',
 			 -buttons => ['Close',
-				      $opts->{install} ? $INSTALL : ($UPGRADE, $DOWNLOAD_NEW)]
+				      $opts->{install} ? $INSTALL : ($REPOSITORIES, $UPGRADE, $DOWNLOAD_NEW)]
 			);
   $d->maxsize(0.9*$d->screenwidth,0.9*$d->screenheight);
   my $enable = _populate_extension_pane($tred,$d,$opts);
@@ -615,11 +616,61 @@ sub manageExtensions {
 		   },$upgrades]
      );
     }
+    $d->Subwidget('B_'.$REPOSITORIES)->configure(
+      -command => sub {	manageRepositories($d, $opts->{repositories} ); }
+     );
+
   }
   require Tk::DialogReturn;
   $d->BindEscape(undef,'Close');
   $d->BindButtons();
   return $d->Show();
+}
+
+sub manageRepositories {
+  my ($top, $repos)=@_;
+  my $d = $top->DialogBox(
+    -title=> "Manage Extension Repositories",
+    -buttons => [qw(Add Remove Save Cancel)]);
+
+  my $l = $d->add('Listbox',
+		  -width=>60,
+		  -background=>'white',
+		 )->pack(-fill=>'both',-expand => 1);
+ $l->insert(0, @$repos);
+  $d->Subwidget('B_Add')->configure(
+    -command => sub {
+      my $url = $d->StringQuery(
+	-label => 'Repository URL:',
+	-title => 'Add Repository',
+	-default => ($l->get('anchor')||''),
+	-select=>1,
+      );
+      if ($url) {
+	if ((ref(eval{ getExtensionList($url) }) and !$@
+	     or
+	     ($d->QuestionQuery(-title=>'Repository error',
+				-label => 'No repository was found on a given URL!',
+				-buttons => ['Cancel', 'Add Anyway']
+			       ) =~ /Anyway/))
+	    and !grep($_ eq $url, $l->get(0,'end'))) {
+	  $l->insert('anchor',$url);
+	}
+      }
+    }
+   );
+  $d->Subwidget('B_Remove')->configure(
+    -command => sub {
+      $l->delete($_) for grep $l->selectionIncludes($_), 0..$l->index('end')
+    }
+   );
+  $d->Subwidget('B_Save')->configure(
+    -command => sub {
+      @$repos = $l->get(0,'end');
+      $d->{selected_button}='Save';
+    }
+   );
+  return $d->Show;
 }
 
 sub installExtensions {

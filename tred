@@ -4906,13 +4906,10 @@ sub savePrintConfig {
 
   $win->{FSFile}->changeAppData('tred.print.filename',$s->{psFile});
   if ($save_to_tredrc) {
-    my $config = getConfigFromFile();
-    updateRuntimeConfig($grp,$config,
-			{
-			  ';' => 'Options saved from the Print dialog',
-			  %$printOptions
-			});
-    saveConfig($grp,$config);
+    saveRuntimeConfig($grp,{
+      ';' => 'Options saved from the Print dialog',
+      %$printOptions
+     });
   }
 }
 
@@ -7110,11 +7107,11 @@ sub getConfigFromFile {
 }
 
 sub saveRuntimeConfig {
-  my $grp = shift;
+  my ($grp,$update) = @_;
   # Save configuration
   print STDERR "Saving some configuration options.\n" if $tredDebug;
   my $config = getConfigFromFile() || [];
-  updateRuntimeConfig($grp,$config);
+  updateRuntimeConfig($grp,$config,$update);
   saveConfig($grp,$config);
 }
 sub updateRuntimeConfig {
@@ -11685,10 +11682,19 @@ sub reloadMacros {
 sub manage_extensions {
   my ($grp,$do_reload) = @_;
   my $reload_macros;
+  my $repos = [ split /\s+/, $extensionRepos ];
   manageExtensions($grp, {
-    repositories => [ split /\s+/, $extensionRepos ],
+    repositories => $repos,
     reload_macros => \$reload_macros,
   });
+  my $new = $extensionRepos;
+  $new = join ' ', @$repos;
+  if ($new=~/\S/ and $new ne $extensionRepos) {
+    $extensionRepos=$new;
+    saveRuntimeConfig($grp,{
+      extensionRepos => $extensionRepos,
+    });
+  }
   if ($do_reload and $reload_macros) {
     reloadMacros($grp);
   }
