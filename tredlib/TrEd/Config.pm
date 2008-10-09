@@ -32,6 +32,7 @@ BEGIN {
   $vLineFont
   $libDir
   $extensionsDir
+  $preinstalledExtensionsDir
   $extensionRepos
   $iconPath
   $appIcon
@@ -401,6 +402,8 @@ sub set_config {
 	$def_res_path.="/resources";
       }
     }
+    $preinstalledExtensionsDir=File::Spec->rel2abs(File::Spec->catdir('..','tred-extensions'),$def_res_path);
+
     $def_res_path= tilde_expand(q(~/.tred.d)) . $resourcePathSplit . $def_res_path ;
 
     if (exists $confs->{resourcepath}) {

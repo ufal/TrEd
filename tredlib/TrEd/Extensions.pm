@@ -24,6 +24,8 @@ BEGIN {
 				      getExtensionMacroPaths
 				      manageExtensions
                                       getExtensionSampleDataPaths
+				      getPreInstalledExtensionsDir
+				      getPreInstalledExtensionList
 				   ) ] );
   our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
   our @EXPORT = qw(  );
@@ -34,6 +36,9 @@ BEGIN {
 
 sub getExtensionsDir {
   return $TrEd::Config::extensionsDir;
+}
+sub getPreInstalledExtensionsDir {
+  return $TrEd::Config::preinstalledExtensionsDir;
 }
 
 sub getExtensionList {
@@ -54,50 +59,67 @@ sub getExtensionList {
 }
 
 sub initExtensions {
-  my ($list)=@_;
+  my ($list,$extension_dir)=@_;
   if (@_==0) {
     $list=getExtensionList();
   } elsif (!ref($list) eq 'ARRAY') {
     carp('Usage: initExtensions( [ extension_name(s)... ] )');
   }
-  my $extension_dir=getExtensionsDir();
+  $extension_dir||=getExtensionsDir();
+  my (%m,%r);
+  @r{ Fslib::ResourcePaths() } = ();
+  @m{ @TrEd::Macros::macro_include_paths } = ();
   for my $name (grep { !/^!/ } @$list) {
     my $dir = File::Spec->catdir($extension_dir,$name,'resources');
-    if (-d $dir) {
+    if (-d $dir and !exists($r{$dir})) {
       Fslib::AddResourcePath($dir);
+      $r{$dir}=1;
     }
     $dir = File::Spec->catdir($extension_dir,$name);
-    if (-d $dir) {
-      push @TrEd::Macros::macro_include_paths, $dir
+    if (-d $dir and !exists($m{$dir})) {
+      push @TrEd::Macros::macro_include_paths, $dir;
+      $m{$dir}=1;
     }
   }
   PMLBackend::configure();
 }
 
 sub getExtensionMacroPaths {
-  my ($list)=@_;
+  my ($list,$extension_dir)=@_;
   if (@_==0) {
     $list=getExtensionList();
   } elsif (!ref($list) eq 'ARRAY') {
     carp('Usage: configureExtensionMacroPaths( [ extension_name(s)... ] )');
   }
-  my $extension_dir=getExtensionsDir();
+  $extension_dir||=getExtensionsDir();
   return
-#  grep { -f $_ }
+    #  grep { -f $_ }
   map { glob($_.'/*/contrib.mac'), ( -f $_.'/contrib.mac' ? $_.'/contrib.mac' : ()) }
   map { File::Spec->catfile($extension_dir,$_,'contrib') }
   grep { !/^!/ }
   @$list;
 }
 
+sub getPreInstalledExtensionList {
+  my ($except)=@_;
+  $except||=[];
+  my $preinst_dir = getPreInstalledExtensionsDir();
+  my $pre_installed = ((-d $preinst_dir) && getExtensionList($preinst_dir)) || [];
+  my %preinst;
+  @preinst{ grep !/^!/, @$pre_installed } = ();
+  delete @preinst{ map { /^!?(\S+)/ ? $1 : $_ } @$except };
+  @$pre_installed = grep exists($preinst{$_}), @$pre_installed;
+  return $pre_installed;
+}
+
 sub getExtensionSampleDataPaths {
-  my ($list)=@_;
+  my ($list,$extension_dir)=@_;
   if (@_==0) {
     $list=getExtensionList();
   } elsif (!ref($list) eq 'ARRAY') {
     carp('Usage: configureExtensionSampleDataPaths( [ extension_name(s)... ] )');
   }
-  my $extension_dir=getExtensionsDir();
+  $extension_dir||=getExtensionsDir();
   return
   grep -d $_,
   map File::Spec->catfile($extension_dir,$_,'sample'),
@@ -106,13 +128,13 @@ sub getExtensionSampleDataPaths {
 }
 
 sub getExtensionMetaData {
-  my ($name)=@_;
+  my ($name,$extensions_dir)=@_;
   my $metafile;
   if (UNIVERSAL::isa($name,'URI')) {
     $metafile = URI->new('package.xml')->abs($name.'/');
   } else {
     $metafile =
-      File::Spec->catfile(getExtensionsDir(),$name,'package.xml');
+      File::Spec->catfile($extensions_dir||getExtensionsDir(),$name,'package.xml');
     return unless -f $metafile;
   }
   my $data =  eval { PMLInstance->load({
@@ -167,7 +189,7 @@ sub _requires {
 sub _populate_extension_pane {
   my ($tred,$d,$opts)=@_;
   my $list;
-  my (%enable,%required_by,%embeded,%requires,%data);
+  my (%enable,%required_by,%embeded,%requires,%data,%pre_installed);
   my ($progress,$progressbar)=($opts->{progress},$opts->{progressbar});
   if ($opts->{install}) {
     my @list;
@@ -185,7 +207,7 @@ sub _populate_extension_pane {
     }
     my $i=0;
     my %in_def_repo; @in_def_repo{map $_->[2], @list}=();
-    my %seen;
+    my (%seen);
   PKG:
     while ($i<@list) {
       my ($repo,$short_name,$uri) = @{$list[$i]};
@@ -216,7 +238,7 @@ sub _populate_extension_pane {
 		   and (!$min or _cmp_revisions($installed_req_ver,$min)>=0)
 		   and (!$max or _cmp_revisions($installed_req_ver,$max)<=0));
 	  my $repo = $data->{repository} && $data->{repository}{href};
-	  my $req_uri = ($repo && URI->new('.')->abs($req->{href}) eq $repo) ?
+	  my $req_uri = ($repo && (!$req->{href} || (URI->new('.')->abs($req->{href}) eq $repo))) ?
 	      URI->new($req_name)->abs($uri) : URI->new($req->{href} || $req_name)->abs($uri);
 	  my $req_data = $data{$req_uri} ||= getExtensionMetaData($req_uri);
 	  if ($req_data) {
@@ -257,18 +279,20 @@ sub _populate_extension_pane {
     $list = [ map $_->[2], @list ];
   } else {
     $list = getExtensionList();
+    my $pre_installed = getPreInstalledExtensionList($list);
     if ($progressbar) {
       $progressbar->configure(
-	-to => scalar(@$list),
-	-blocks => scalar(@$list),
+	-to => scalar(@$list+@$pre_installed),
+	-blocks => scalar(@$list+@$pre_installed),
        );
     }
-    for my $name (@$list) {
+    @pre_installed{ @$pre_installed } = ();
+    for my $name (@$list, @$pre_installed) {
       $enable{$name} = 1;
       if ($name=~s{^!}{}) {
 	  $enable{$name} = 0;
 	}
-      my $data = $data{$name} = getExtensionMetaData($name);
+      my $data = $data{$name} = getExtensionMetaData($name, exists($pre_installed{$name}) ? getPreInstalledExtensionsDir() : ());
       $$progress++ if $progress;
       $progressbar->update if $progressbar;
       if ($data and ref $data->{require}) {
@@ -276,8 +300,9 @@ sub _populate_extension_pane {
       }
       $required_by{$_}{$name}=1 for @{$requires{$name}};
     }
+    push @$list, @$pre_installed;
   }
-  my $extension_dir=getExtensionsDir();
+  my $extension_dir=$opts->{extensions_dir} || getExtensionsDir();
   my $row=0;
   my $text = $opts->{pane} || $d->add('Scrolled' => 'ROText',
 				      -scrollbars=>'oe',
@@ -399,6 +424,9 @@ sub _populate_extension_pane {
 				    },\%enable,\%required_by,$name,\%requires],
 		       -variable=>\$enable{$name})->pack(-fill=>'x')
     } else {
+      if (exists $pre_installed{$name}) {
+	$bf->Label(-text=>,"PRE-INSTALLED")->pack(-fill=>'both', -side=>'right', -padx => 5);
+      } else {
       $bf->Checkbutton(-text=>'Enable',
 		       -compound=>'left',
 		       -selectcolor=>undef,
@@ -440,49 +468,51 @@ sub _populate_extension_pane {
 				      setExtension(\@enable,1) if (@enable)
 				    },$name,$opts,\%required_by,\%requires],
 		       -variable=>\$enable{$name})->pack(-fill=>'both',-side=>'left',-padx => 5);
-      $bf->Button(-text=>'Uninstall',
-		  -compound=>'left',
-		  -height => 18,
-		  -image => main::icon($tred,'remove'),
-		  -command => [sub {
-				 my ($name,$required_by,$opts,$d,$embeded)=@_;
-				 my @remove=_required_by($name,$opts->{versions},$required_by);
-				 my $quiet;
-				 if (@remove>1) {
-				   $quiet=1;
-				   my $res = $d->QuestionQuery(
-				     -title => 'Remove related packages?',
-				     -label => "The following packages require '$name':\n\n".
-				       join ("\n",grep { $_ ne $name } sort @remove),
-				     -buttons =>['Ignore dependencies', 'Remove all', 'Cancel']
-				    );
-				   if ($res=~/^Ignore/) {
-				     @remove=($name);
-				   } elsif ($res =~ /^Cancel/) {
-				     return;
+	$bf->Button(-text=>'Uninstall',
+		    -compound=>'left',
+		    -height => 18,
+		    -image => main::icon($tred,'remove'),
+		    -command => [sub {
+				   my ($name,$required_by,$opts,$d,$embeded)=@_;
+				   my @remove=_required_by($name,$opts->{versions},$required_by);
+				   my $quiet;
+				   if (@remove>1) {
+				     $quiet=1;
+				     my $res = $d->QuestionQuery(
+				       -title => 'Remove related packages?',
+				       -label => "The following packages require '$name':\n\n".
+					 join ("\n",grep { $_ ne $name } sort @remove),
+				       -buttons =>['Ignore dependencies', 'Remove all', 'Cancel']
+				      );
+				     if ($res=~/^Ignore/) {
+				       @remove=($name);
+				     } elsif ($res =~ /^Cancel/) {
+				       return;
+				     }
 				   }
-				 }
-				 $text->configure(-state=>'normal');
-				 for my $n (@remove) {
-				   if (uninstallExtension($n,{tk=>$d, quiet=>$quiet})) {
-				     delete $opts->{versions}{$n};
+				   $text->configure(-state=>'normal');
+				   for my $n (@remove) {
+				     if (uninstallExtension($n,{tk=>$d, quiet=>$quiet})) {
+				       delete $opts->{versions}{$n};
 				     $text->DeleteTextTaggedWith($n);
-				     #for (@{$embeded->{$n}}) {
-				     #  eval { $_->destroy };
-				     #}
-				     delete $embeded->{$n};
-				     ${$opts->{reload_macros}}=1 if ref( $opts->{reload_macros} );
+				       #for (@{$embeded->{$n}}) {
+				       #  eval { $_->destroy };
+				       #}
+				       delete $embeded->{$n};
+				       ${$opts->{reload_macros}}=1 if ref( $opts->{reload_macros} );
+				     }
 				   }
-				 }
-				 $text->configure(-state=>'disabled');
-			       },$name,\%required_by,$opts,$d], #,\%embeded
-		 )->pack(-fill=>'both',
-			 -side=>'right',
-			 -padx => 5);
+				   $text->configure(-state=>'disabled');
+				 },$name,\%required_by,$opts,$d], #,\%embeded
+		   )->pack(-fill=>'both',
+			   -side=>'right',
+			   -padx => 5);
+      }
     }
     $text->insert('end',' ',[$bf]);
     $text->windowCreate('end',-window => $bf,-padx=>5);
     $text->tagConfigure($bf,-justify=>'right');
+#    $text->tagConfigure('preinst',-justify=>'right');
     $text->Insert("\n");
     $text->Insert("\n");
     $text->tagAdd($name,$start.' - 1 line','end -1 char');
@@ -679,7 +709,7 @@ sub installExtensions {
   croak(q{Usage: installExtensions(\@urls,\%opts)}) unless ref($urls) eq 'ARRAY';
   return unless @$urls;
   $opts||={};
-  my $extension_dir=getExtensionsDir();
+  my $extension_dir=$opts->{extensions_dir} || getExtensionsDir();
   unless (-d $extension_dir) {
     mkdir $extension_dir ||
       die "Installation failed: cannot create extension directory $extension_dir: $!";
@@ -772,9 +802,9 @@ EOF
 }
 
 sub setExtension {
-  my ($name,$enable)=@_;
+  my ($name,$enable,$extension_dir)=@_;
   my %names; @names{ (ref($name) eq 'ARRAY' ? @$name : $name) } = ();
-  my $extension_dir=getExtensionsDir();
+  $extension_dir||=getExtensionsDir();
   my $extension_list_file =
     File::Spec->catfile($extension_dir,'extensions.lst');
   if (-f $extension_list_file) {
@@ -800,7 +830,7 @@ sub uninstallExtension {
   require File::Path;
   return unless defined $name and length $name;
   $opts||={};
-  my $extension_dir=getExtensionsDir();
+  my $extension_dir=$opts->{extensions_dir} || getExtensionsDir();
   my $dir = File::Spec->catdir($extension_dir,$name);
   if (-d $dir) {
     return if ($opts->{tk} and !$opts->{quiet} and
