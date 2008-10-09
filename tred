@@ -11628,8 +11628,13 @@ sub loadMacros {
   }
 
   my $extensions = getExtensionList();
+  my $preinst_dir = getPreInstalledExtensionsDir();
+  my $pre_installed =  getPreInstalledExtensionList($extensions);
+
   initExtensions($extensions);
-  foreach my $path (getExtensionSampleDataPaths($extensions)) {
+  initExtensions($pre_installed,$preinst_dir);
+  foreach my $path (getExtensionSampleDataPaths($extensions),
+		    getExtensionSampleDataPaths($pre_installed,$preinst_dir)) {
     foreach my $f (glob(File::Spec->catfile($path,'*.fl'))) {
       print "Reading $f\n" if $tredDebug;
       $fl=Filelist->new(undef,$f);
@@ -11643,7 +11648,9 @@ sub loadMacros {
   }
 
   print STDERR ("Reading extension macros...\n") unless $quiet;
-  for my $ext_contrib (getExtensionMacroPaths($extensions)) {
+  for my $ext_contrib (getExtensionMacroPaths($extensions),
+		       getExtensionMacroPaths($pre_installed,$preinst_dir)) {
+    
     if (-f $ext_contrib) {
       print STDERR ("Reading extension macros from $ext_contrib...\n") unless $quiet;
       push @TrEd::Macros::macros,"\n","package TredMacro;\n";
