@@ -5832,10 +5832,27 @@ sub startMain {
 
   $IOBackend::lwp_user_agent = TrEd::UserAgent->new($top);
 
-  # a workaround for focus being lost after popup menu usage on Win32
   if ($^O eq 'MSWin32') {
+    # a workaround for focus being lost after popup menu usage on Win32
+
     require Tk::Menu;
     $top->bind('Tk::Menu', '<<MenuSelect>>', sub { if ($Tk::popup) { $Tk::popup->Unpost; } });
+
+    # a workaround for dialog buttons showing only partial labels in Windows
+    require Tk::DialogBox;
+    {
+      my $old=\&Tk::Widget::DialogBox;
+      *Tk::Widget::DialogBox = sub {
+	my $d = &$old;
+	if ($d) {
+	  for my $w ( grep $_->isa('Tk::Button'), $d->Subwidget ) {
+	    $w->configure(-padx=>7, -pady=>2, -width=>0);
+	  }
+	}
+	return $d;
+      };
+    }
+
   }
 
 #  eval {
