@@ -56,9 +56,13 @@ if [ ! -r "$meta" ]; then
     exit 4;
 fi
 
-if ! validate_pml_stream -p "$tooldir/../resources" "$meta"; then
-    echo "Package meta file $meta is not a valid PML tred_package instance!"
-    exit 5;
+if which validate_pml_stream 2>/dev/null; then 
+    if ! validate_pml_stream -p "$tooldir/../resources" "$meta"; then
+	echo "Package meta file $meta is not a valid PML tred_package instance!"
+	exit 5;
+    fi
+else 
+    echo "WARNING: will not validate package.xml (PML validator validate_pml_stream not found in PATH)"
 fi
 
 zip="$(readlink -fen "$target_dir")/${name}.zip"
