@@ -4359,7 +4359,7 @@ sub NewUserToolbar {
 }
 sub GetUserToolbar {
   my ($name)=@_;
-  return $grp->{framegroup}{UserToolbarHash}{$name};
+  return main::getUserToolbar($grp->{framegroup},$name);
 }
 sub RemoveUserToolbar {
   my ($name)=@_;

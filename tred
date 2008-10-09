@@ -3182,7 +3182,7 @@ sub selectFilelistNoUpdate {
   my ($grp_or_win,$list_name,$noResetPosition)=@_;
   my ($grp,$win)=grp_win($grp_or_win);
   my $fl= isFocused($win) ? switchFilelist($grp,$list_name) : findFilelist($list_name);
-  print "Switching filelist to $list_name\n" if $tredDebug;
+  print "Selecting filelist '$list_name' (found: $fl)\n" if $tredDebug;
   return unless defined($fl);
   unless ($fl == $win->{currentFilelist}) {
     # save file position in the current file-list
@@ -3250,6 +3250,7 @@ sub looseFilePositionInFilelist {
 # but returns filelist of a given name as a by-product
 sub switchFilelist {
   my ($grp,$list_name)=@_;
+  print "Switching filelist to '$list_name'\n" if $tredDebug;
   return undef unless ref($grp);
   my $fl=undef;
   if (ref($list_name)) {
@@ -7065,14 +7066,22 @@ sub newUserToolbar {
   }
 }
 
+sub getUserToolbar {
+  my ($grp_or_win,$name)=@_;
+  my $grp=cast_to_grp($grp_or_win);
+  return $grp->{UserToolbarHash}{$name};
+}
+
 sub removeUserToolbar {
   my ($grp_or_win,$name)=@_;
   my $grp=cast_to_grp($grp_or_win);
   my $tb = delete $grp->{UserToolbarHash}{$name};
+  print "remove toolbar $name => $tb\n" if $tredDebug;
   return unless $tb;
   if (keys %{$grp->{UserToolbarHash}}) {
     $tb->packForget;
   } else {
+    $tb->packForget;
     $grp->{UserToolbars}->packForget;
     $grp->{UserToolbarSep}->packForget;
   }
