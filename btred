@@ -389,6 +389,8 @@ if ($include_macro) {
 }
 
 my $extensions = getExtensionList();
+my $preinst_dir = getPreInstalledExtensionsDir();
+my $pre_installed;
 {
   my (%e,%d);
   @e{ split /,/,$enable_extensions }=();
@@ -399,15 +401,25 @@ my $extensions = getExtensionList();
 	:
 	  (exists($d{'*'}) || exists($d{$_}) ? '!'.$_ : $_)
       } @$extensions;
+ $pre_installed =  getPreInstalledExtensionList($extensions);
+  @$pre_installed =
+    map { /^!(.*)/ ?
+	    (exists($e{'*'}) || exists($e{$1}) ? $1 : $_)
+	      :
+		(exists($d{'*'}) || exists($d{$_}) ? '!'.$_ : $_)
+	      } @$pre_installed;
 }
 if ($list_extensions) {
   print map "$_\n", @$extensions;
+  print map "$_\t(pre-installed)\n", @$pre_installed;
   exit;
 }
 
 initExtensions($extensions);
+initExtensions($pre_installed,$preinst_dir);
 _msg("Reading extension macros...\n") unless $quiet;
-for my $ext_contrib (getExtensionMacroPaths($extensions)) {
+for my $ext_contrib (getExtensionMacroPaths($extensions),
+		     getExtensionMacroPaths($pre_installed,$preinst_dir)) {
   _msg("Reading extension macros from $ext_contrib...\n") unless $quiet;
   push @TrEd::Macros::macros,"\n","package TredMacro;\n";
   read_macros($ext_contrib,$libDir,1);
