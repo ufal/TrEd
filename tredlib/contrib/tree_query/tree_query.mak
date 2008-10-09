@@ -1479,9 +1479,10 @@ sub SelectSearch {
   } elsif ($choice =~ /^Treebank/) {
     $S=Tree_Query::HTTPSearch->new();
   } elsif ($choice =~ /^File/) {
-    if ($file=~s/^File:\s*//) {
+    if ($file=~s/^File: //) {
       $S=Tree_Query::TrEdSearch->new({file => $file});
-    } elsif ($file=~s/^List:\s*|\([^\)]* files\)$//g) {
+    } elsif ($file=~s/^List: //) {
+      $file =~ s/ \([^\)]* files\)$//g;
       $S=Tree_Query::TrEdSearch->new({filelist => $file});
     }
     #    } elsif ($choice =~ /^List/) {
@@ -1612,13 +1613,14 @@ sub CreateSearchToolbar {
 	      -relief => $main::buttonsRelief,
 	      -borderwidth=> $main::buttonBorderWidth,
 	      -image => main::icon($grp->{framegroup},'16x16/remove'),
-	      -command => MacroCallback(sub {
-					  DestroyUserToolbar($ident);
-					  my ($s) = grep { $_->identify eq $ident } @SEARCHES;
-					  @SEARCHES = grep { $_ != $s } @SEARCHES;
-					  $SEARCH = undef if $SEARCH and $SEARCH == $s;
-					  ChangingFile(0);
-					})
+	      -command => MacroCallback([sub {
+					   my $ident=shift;
+					   DestroyUserToolbar($ident);
+					   my ($s) = grep { $_->identify eq $ident } @SEARCHES;
+					   @SEARCHES = grep { $_ != $s } @SEARCHES;
+					   $SEARCH = undef if $SEARCH and $SEARCH == $s;
+					   ChangingFile(0);
+					 },$ident])
 	     )->pack(-side=>'right');
   my $label;
   $tb->Label(-textvariable=>\$label,-font=>'C_small')->pack(-side=>'right',-padx => 5);
