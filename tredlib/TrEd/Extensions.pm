@@ -234,6 +234,7 @@ sub _populate_extension_pane {
       if (!exists($seen{$uri}) and $data->{require}) {
 	$seen{$uri}=1;
 	for my $req ($data->{require}->values('extension')) {
+	  Encode::_utf8_off($_) for grep defined, $req->{name}, $req->{href};
 	  my $req_name = $req->{name};
 	  my $installed_req_ver = $opts->{installed}{$req_name};
 	  my ($min,$max) = ($req->{min_version},$req->{max_version});
@@ -505,7 +506,7 @@ sub _populate_extension_pane {
 				       ${$opts->{reload_macros}}=1 if ref( $opts->{reload_macros} );
 				     }
 				   }
-				   $text->Subwidget('scrolled')->configure(-state=>'disabled');
+				   #$text->Subwidget('scrolled')->configure(-state=>'disabled');
 				 },$name,\%required_by,$opts,$d], #,\%embeded
 		   )->pack(-fill=>'both',
 			   -side=>'right',
@@ -556,14 +557,14 @@ sub _populate_extension_pane {
     $row++;
   }
   $text->tagConfigure('label', -foreground => 'darkblue', -font => 'C_bold');
-  $text->tagConfigure('desc', -foreground => 'black', -font => 'C_normal');
-  $text->tagConfigure('name', -foreground => '#333', -font => 'C_normal');
+  $text->tagConfigure('desc', -foreground => 'black', -font => 'C_default');
+  $text->tagConfigure('name', -foreground => '#333', -font => 'C_default');
   $text->tagConfigure('title', -foreground => 'black', -font => 'C_bold');
   $text->tagConfigure('copyright', -foreground => '#666', -font => 'C_small');
 
   $text->configure(-height=>20);
   $text->pack(-expand=>1,-fill=>'both');
-  $text->Subwidget('scrolled')->configure(-state=>'disabled');
+  #$text->Subwidget('scrolled')->configure(-state=>'disabled');
   unless ($opts->{pane}) {
     $text->TextSearchLine(-parent => $d, -label=>'S~earch')->pack(qw(-fill x));
     $opts->{pane}=$text;
@@ -723,7 +724,7 @@ sub installExtensions {
     File::Spec->catfile($extension_dir,'extensions.lst');
   my @extension_file;
   if (-f $extension_list_file) {
-    open my $fh, '<:utf8', $extension_list_file ||
+    open my $fh, '<', $extension_list_file ||
       die "Installation failed: cannot read extension list $extension_list_file: $!";
     chomp( @extension_file = <$fh> );
     close $fh;
@@ -739,6 +740,7 @@ EOF
   require Archive::Zip;
   for my $url (@$urls) {
     my $name = $url; $name=~s{.*/}{}g;
+    Encode::_utf8_off($name);
     my $dir = File::Spec->catdir($extension_dir,$name);
     if (-d $dir) {
       next unless ($opts->{quiet} or
@@ -800,7 +802,7 @@ EOF
       $opts->{tk}->update if $opts->{tk};
     }
   }
-  open my $fh, '>:utf8', $extension_list_file ||
+  open my $fh, '>', $extension_list_file ||
     die "Installation failed: cannot write to extension list $extension_list_file: $!";
   print $fh ($_."\n") for @extension_file;
   close $fh;
@@ -813,11 +815,11 @@ sub setExtension {
   my $extension_list_file =
     File::Spec->catfile($extension_dir,'extensions.lst');
   if (-f $extension_list_file) {
-    open my $fh, '<:utf8', $extension_list_file ||
+    open my $fh, '<', $extension_list_file ||
       die "Configuring extension failed: cannot read extension list $extension_list_file: $!";
     my @list = <$fh>;
     close $fh;
-    open $fh, '>:utf8', $extension_list_file ||
+    open $fh, '>', $extension_list_file ||
       die "Configuring extenson failed: cannot write extension list $extension_list_file: $!";
     for (@list) {
       if (/^!?(\S+)\s*$/ and exists($names{$1})) {
@@ -849,11 +851,11 @@ sub uninstallExtension {
   my $extension_list_file =
     File::Spec->catfile($extension_dir,'extensions.lst');
   if (-f $extension_list_file) {
-    open my $fh, '<:utf8', $extension_list_file ||
+    open my $fh, '<', $extension_list_file ||
       die "Uninstall failed: cannot read extension list $extension_list_file: $!";
     my @list = <$fh>;
     close $fh;
-    open $fh, '>:utf8', $extension_list_file ||
+    open $fh, '>', $extension_list_file ||
       die "Uninstall failed: cannot write extension list $extension_list_file: $!";
     for (@list) {
       next if /^!?\Q$name\E\s*$/;
