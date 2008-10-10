@@ -230,7 +230,7 @@ sub end_response {
   $client->flush;
 }
 
-
+use File::Glob qw(:glob);
 use FindBin;
 my $libDir;
 if (exists $ENV{TREDHOME}) {
