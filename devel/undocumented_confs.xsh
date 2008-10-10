@@ -1,7 +1,9 @@
 #!/usr/bin/env xsh2
 
 quiet;
+validation 1;
 open documentation/manual/tred.xml;
+my $IDs := hash @id //*;
 for my $id in { open my$f,"devel/grep_confs.sh|"; my @f=<$f>; chomp @f; @f } { 
-  unless id($id) echo $id
+  unless { exists($IDs->{$id}) } echo $id
 }

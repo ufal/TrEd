@@ -2913,9 +2913,10 @@ Return a FSFile object representing the currently processed file.
 
 =cut
 
-=item C<Open(filename)>
+=item C<Open(filename,flags)>
 
-Open a given FSFile in TrEd.
+Open a given FSFile in TrEd. Flags is an optional HASH reference
+that may contain various flags internally used by TrEd.
 
 =cut
 
