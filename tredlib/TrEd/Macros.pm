@@ -8,7 +8,7 @@ BEGIN {
   use TrEd::Config;
   use TrEd::Basics;
   import TrEd::Config qw($defaultMacroFile $defaultMacroEncoding $macroDebug $hookDebug);
-
+  use Encode;
   use TrEd::Convert;
   use Exporter  ();
   use vars qw($VERSION @ISA @EXPORT @EXPORT_OK $exec_code @macros $useEncoding
@@ -222,6 +222,7 @@ sub read_macros {
     @macros=();
     $exec_code=undef;
     print STDERR "Reading $defaultMacroFile\n" if $macroDebug;
+    Encode::_utf8_off($defaultMacroFile);
     push @macros,"\n#line 1 \"$defaultMacroFile\"\n";
     my $fh;
     print "ERROR: Cannot open macros: $defaultMacroFile!\n", return 0
@@ -245,6 +246,8 @@ sub read_macros {
 
 sub preprocess {
   my ($F,$file,$macros,$contexts)=@_;
+  Encode::_utf8_off($file);
+
 #
 # new "pragmas":
 #
@@ -349,9 +352,10 @@ sub preprocess {
 	  my $conditional_include = $1 eq 'if' ? 1 : 0;
 	  my $enc = $3;
 	  my $f = $2;
+	  Encode::_utf8_off($f);
 	  my $found;
 	  for my $path ($libDir, @macro_include_paths) {
-	    my $mf="$path/$2";
+	    my $mf="$path/$f";
 	    if (-f $mf) {
 	      read_macros($mf,$libDir,1,$enc,@$contexts);
 	      push @$macros,"\n#line $line \"$file\"\n";
@@ -368,6 +372,8 @@ sub preprocess {
 	  my $enc = $3;
 	  my $pattern = $2;
 	  my $if=$1;
+	  Encode::_utf8_off($pattern);
+
 	  my @includes;
 	  if ($pattern=~/^<(.*)>$/) {
 	    my $glob = $1;
@@ -392,6 +398,8 @@ sub preprocess {
 	  }
 	} elsif (/^\#\s*(if)?include\s+([^\r\n]+?\S)\s*(?:encoding\s+(\S+)\s*)?$/) {
 	  my ($if,$f,$enc) = ($1,$2,$3);
+	  Encode::_utf8_off($f);
+
 	  if ($f=~m%^/%) {
 	    read_macros($f,$libDir,1,$enc,@$contexts);
 	    push @$macros,"\n#line $line \"$file\"\n";
@@ -477,7 +485,10 @@ sub initialize_macros {
     my $macros = "";
     $macros .= "use strict;"   if $strict;
     $macros .= "use warnings; no warnings 'redefine';" if $warnings;
-    $macros.="{\n".$utf.join("",@macros)."\n}; 1;\n";
+    $macros.="{\n".$utf.join("",
+			     map { Encode::_utf8_off($_); $_ }
+			     @macros
+			    )."\n}; 1;\n";
     print STDERR "FirstEvaluation of macros\n" if $macroDebug;
     if (defined($safeCompartment)) {
       set_macro_variable('grp',$win);
