@@ -1589,7 +1589,7 @@ sub AddToAlt {
   } elsif (IsAlt($node->{$attr})) {
     @{$node->{$attr}} = uniq(@{$node->{$attr}},@_);
   } else {
-    $node->{$attr} = Fslib::Alt->new($node->{$attr},uniq(@_));
+    $node->{$attr} = Fslib::Alt->new($node->{$attr},@_);
   }
 }
 
@@ -3670,6 +3670,7 @@ macros and returns an absolute path to the first directory that matches.
 sub FindMacroDir {
   my ($dir)=@_;
   confess( "Usage: FindMacroDir(rel_dir)" ) unless defined $dir and length $dir;
+  Encode::_utf8_off($dir); # make sure it does not carry an UTF8 flag!
   for my $macro_dir ($libDir, @TrEd::Macros::macro_include_paths) {
     my $candidate = File::Spec->catdir($macro_dir, 'contrib', $dir);
     if (-d $candidate) {
