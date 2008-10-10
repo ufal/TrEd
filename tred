@@ -5883,10 +5883,12 @@ sub startMain {
     $top->optionAdd("\*$_.disabledBackground","lightgray");
     $top->optionAdd("\*$_.disabledForeground","gray20");
   }
-  $top->optionAdd("\*Scrollbar.width","10");
-  $top->optionAdd("\*Scrollbar.elementBorderWidth","1");
-  $top->optionAdd("\*Scrollbar.borderWidth","1");
-  $top->optionAdd("\*Scrollbar.troughColor","gray80");
+  if ($^O ne 'MSWin32') {
+    $top->optionAdd("\*Scrollbar.width","10");
+    $top->optionAdd("\*Scrollbar.elementBorderWidth","1");
+    $top->optionAdd("\*Scrollbar.borderWidth","1");
+    $top->optionAdd("\*Scrollbar.troughColor","gray80");
+  }
   {
     # make sure button flashes are visible
     my $bg = $top->optionGet('Button.background','Background');
