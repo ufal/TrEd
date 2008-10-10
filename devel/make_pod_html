@@ -41,7 +41,8 @@ done
     pushd $dir/../tredlib/contrib/pml >/dev/null
     pod="$pod_dir/PML_mak.pod"
     rm -f "$pod";
-    for m in PML PML_T PML_T_Edit PML_T_View PML_A PML_A_Edit PML_A_View; do
+    for m in PML; do 
+	# PML_T PML_T_Edit PML_T_View PML_A PML_A_Edit PML_A_View; do
 	podselect ${m}.mak >> "$pod"
 	if [ -f ${m}.inc ]; then
 	    podselect ${m}.inc >> "$pod"
