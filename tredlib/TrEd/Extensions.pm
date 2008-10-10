@@ -15,6 +15,7 @@ BEGIN {
   require Tk::BindButtons;
   require Tk::ProgressBar;
   require Tk::ErrorReport;
+  require Tk::QueryDialog;
 
   our @ISA = qw(Exporter);
   our %EXPORT_TAGS = ( 'all' => [ qw(
