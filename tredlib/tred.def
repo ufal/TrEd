@@ -2882,7 +2882,7 @@ sub UndeclareAttributes {
 
 =head2 FSFile I/O API
 
-See also FSFile object methods defined in L<Fslib>.
+See also FSFile object methods defined in the C<Fslib> module.
 
 =over 4
 
@@ -3660,7 +3660,7 @@ sub CallerDir {
       : DirPart( (caller)[1] );
 }
 
-=item C<FindMacroDir($rel_dir)
+=item C<FindMacroDir($rel_dir)>
 
 Searches for a given relative path in directories with user-defined
 macros and returns an absolute path to the first directory that matches.
