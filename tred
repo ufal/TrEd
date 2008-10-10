@@ -68,6 +68,8 @@ use Tk::Wm;
 use IO;
 use Cwd;
 use File::Spec;
+use File::Glob qw(:glob);
+
 use constant EMPTY => q{};
 use constant {
   UNDO_ACTIVE_NODE => 1,
@@ -5843,6 +5845,19 @@ sub startMain {
     {
       my $old=\&Tk::Widget::DialogBox;
       *Tk::Widget::DialogBox = sub {
+	my $d = &$old;
+	if ($d) {
+	  for my $w ( grep $_->isa('Tk::Button'), $d->Subwidget ) {
+	    $w->configure(-padx=>7, -pady=>2, -width=>0);
+	  }
+	}
+	return $d;
+      };
+    }
+    require Tk::Dialog;
+    {
+      my $old=\&Tk::Widget::Dialog;
+      *Tk::Widget::Dialog = sub {
 	my $d = &$old;
 	if ($d) {
 	  for my $w ( grep $_->isa('Tk::Button'), $d->Subwidget ) {

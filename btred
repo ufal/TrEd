@@ -17,6 +17,7 @@ use Getopt::Long;
 use Pod::Usage;
 use IO;
 use IO::File;
+use File::Glob qw(:glob);
 
 if ($^V lt v5.6.0) {
   print STDERR '-' x 50,"\n";
