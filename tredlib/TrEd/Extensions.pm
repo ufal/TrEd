@@ -54,7 +54,7 @@ sub getExtensionList {
       File::Spec->catfile(getExtensionsDir(),'extensions.lst');
     return unless -f $url;
   }
-  my $fh = IOBackend::open_uri($url,'UTF-8') || return [];
+  my $fh = IOBackend::open_uri($url) || return [];
   my @extensions = grep { /^!?[[:alnum:]_-]+\s*$/ } <$fh>;
   s/\s+$// for @extensions;
   IOBackend::close_uri($fh);
@@ -505,7 +505,7 @@ sub _populate_extension_pane {
 				       ${$opts->{reload_macros}}=1 if ref( $opts->{reload_macros} );
 				     }
 				   }
-				   $text->configure(-state=>'disabled');
+				   $text->Subwidget('scrolled')->configure(-state=>'disabled');
 				 },$name,\%required_by,$opts,$d], #,\%embeded
 		   )->pack(-fill=>'both',
 			   -side=>'right',
@@ -556,12 +556,14 @@ sub _populate_extension_pane {
     $row++;
   }
   $text->tagConfigure('label', -foreground => 'darkblue', -font => 'C_bold');
+  $text->tagConfigure('desc', -foreground => 'black', -font => 'C_normal');
+  $text->tagConfigure('name', -foreground => '#333', -font => 'C_normal');
   $text->tagConfigure('title', -foreground => 'black', -font => 'C_bold');
   $text->tagConfigure('copyright', -foreground => '#666', -font => 'C_small');
 
   $text->configure(-height=>20);
   $text->pack(-expand=>1,-fill=>'both');
-  $text->configure(-state=>'disabled');
+  $text->Subwidget('scrolled')->configure(-state=>'disabled');
   unless ($opts->{pane}) {
     $text->TextSearchLine(-parent => $d, -label=>'S~earch')->pack(qw(-fill x));
     $opts->{pane}=$text;
@@ -727,11 +729,11 @@ sub installExtensions {
     close $fh;
   } else {
     push @extension_file, split /\n\s*/, <<'EOF';
-    # DO NOT MODIFY THIS FILE
-    #
-    # This file only lists installed extensions.
-    # ! before extension name means the module is disabled
-    #
+# DO NOT MODIFY THIS FILE
+#
+# This file only lists installed extensions.
+# ! before extension name means the module is disabled
+#
 EOF
   }
   require Archive::Zip;
