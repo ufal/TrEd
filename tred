@@ -39,10 +39,10 @@ use vars qw($svn_version $version $VERSION $about $opt_u $opt_h $opt_c
 	    $tred_d;
            );
 
-$svn_version='$Revision$ ';
+$svn_version='$Revision: 3645$ ';
 $version =  $svn_version;
 $version =~ s{^\$Revision:\s*|\$ $}{}g;
-$version =  "1.".$version;
+$version = '1.'.$version unless $version=~/\./;
 $VERSION = $version;
 
 $about=
@@ -6844,7 +6844,7 @@ sub startMain {
     warn "Could not write version information to $version_file: $!\n";
     $ver = $VERSION; # do not bother the user in this case
   }
-  if (!$ver and $ver ne $VERSION) {
+  if (!$ver or $ver ne $VERSION) {
     if (userQuery($top, "TrEd was "
 		    .($ver ? "upgraded" : "installed or upgraded")
 		    ." recently.\n\n".
