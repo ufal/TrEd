@@ -8,8 +8,8 @@ BEGIN {
   use TrEd::Config;
   use TrEd::Basics;
   import TrEd::Config qw($defaultMacroFile $defaultMacroEncoding $macroDebug $hookDebug);
-  use Encode;
   use TrEd::Convert;
+  use Encode ();
   use Exporter  ();
   use vars qw($VERSION @ISA @EXPORT @EXPORT_OK $exec_code @macros $useEncoding
               $macrosEvaluated $safeCompartment %defines $warnings $strict
