@@ -6856,10 +6856,11 @@ sub startMain {
   }
 
   $top->Busy(-recurse=> 1);
-  eval { loadMacros() };
-  errorMessage($group{focusedWindow},$@) if $@;
+  eval { loadMacros($grp) };
+  errorMessage($top,$@) if $@;
   print "Starting in context $group{focusedWindow}->{macroContext}\n" if $tredDebug;
   doEvalHook($group{focusedWindow},"initialize_bindings_hook");
+
   update_macro_menus(\%group);
   update_minor_modes(\%group);
   updateStylesheetMenu(\%group);
@@ -8706,6 +8707,7 @@ sub determineNodeType {
   my $type = $node->type;
   return $type if $type;
   doEvalHook($win,'determine_node_type_hook',$node);
+  $type = $node->type;
   return $type if $type;
   __debug("Determining node type for $node\n");
   eval {
@@ -10215,7 +10217,7 @@ sub redraw_win {
   }
   $TrEd::TreeView::on_get_root_style= undef; #forget the reference on $win
   $TrEd::TreeView::on_get_node_style= undef;
-  doEvalHook($win,"after_redraw_hook");
+  doEvalHook($win,"after_redraw_hook",$win->treeView);
 
   #------------------------------------------------------------
   #}
@@ -11652,6 +11654,7 @@ sub valueLineClick {
 }
 
 sub loadMacros {
+  my ($grp)=@_;
   read_macros($macroFile,$libDir); # read macros
   if ($opt_I) {
     print STDERR ("Reading additional macros from $opt_I...\n") unless $opt_q;
@@ -11710,8 +11713,10 @@ sub reloadMacros {
     }
   }
   %{$grp->{UserToolbarHash}}=();
-  loadMacros();
+  loadMacros($grp);
   doEvalHook($grp->{focusedWindow},"macros_reloaded_hook");
+  doEvalHook($grp->{focusedWindow},"initialize_bindings_hook");
+
   update_macro_menus($grp);
   update_macrolist_view($grp);
   get_nodes_all($grp);
