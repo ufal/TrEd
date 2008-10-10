@@ -57,18 +57,34 @@ my $mk_data_folder = 1;
 my ($status,$status2,$progress); # watched text variables
 my $Log; # text widget
 
-require Tk::DialogBox;
 {
-  my $old=\&Tk::Widget::DialogBox;
-  *Tk::Widget::DialogBox = sub {
-    my $d = &$old;
-    if ($d) {
-      for my $w ( grep $_->isa('Tk::Button'), $d->Subwidget ) {
-	$w->configure(-padx=>7, -pady=>2, -width=>0);
-      }
+  no warnings;
+  require Tk::DialogBox;
+  {
+    my $old=\&Tk::Widget::DialogBox;
+    *Tk::Widget::DialogBox = sub {
+      my $d = &$old;
+      if ($d) {
+	for my $w ( grep $_->isa('Tk::Button'), $d->Subwidget ) {
+	  $w->configure(-padx=>7, -pady=>2, -width=>0);
 	}
-    return $d;
-  };
+      }
+      return $d;
+    };
+  }
+  require Tk::Dialog;
+  {
+    my $old=\&Tk::Widget::Dialog;
+    *Tk::Widget::Dialog = sub {
+      my $d = &$old;
+      if ($d) {
+	for my $w ( grep $_->isa('Tk::Button'), $d->Subwidget ) {
+	  $w->configure(-padx=>7, -pady=>2, -width=>0);
+	}
+      }
+      return $d;
+    };
+  }
 }
 
 sub InstallExtensions {
