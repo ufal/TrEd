@@ -53,24 +53,33 @@ my $icon = File::Spec->rel2abs('tred/tredlib/tred.xpm',$install_base);
 my $license_file = File::Spec->rel2abs('tred/LICENSE',$install_base);
 my $extensions_repo = File::Spec->rel2abs('extensions',$install_base);
 
-push @INC,
-  map File::Spec->rel2abs('tred/'.$_,$install_base),
-  qw(tredlib tredlib/libs/tk tredlib/libs/pml-base tredlib/libs/fslib);
 my $mk_data_folder = 1;
 my ($status,$status2,$progress); # watched text variables
 my $Log; # text widget
 
-
-sub Install {
-#  Install_PPM_Modules();
-#  Install_TrEd();
-#  MakeShortcuts();
+require Tk::DialogBox;
+{
+  my $old=\&Tk::Widget::DialogBox;
+  *Tk::Widget::DialogBox = sub {
+    my $d = &$old;
+    if ($d) {
+      for my $w ( grep $_->isa('Tk::Button'), $d->Subwidget ) {
+	$w->configure(-padx=>7, -pady=>2, -width=>0);
+      }
+	}
+    return $d;
+  };
 }
 
 sub InstallExtensions {
+  my ($d,$pane,$progress,$progressbar)=@_;
+
+  push @INC,
+  map File::Spec->rel2abs($_,$install_target),
+  qw(tredlib tredlib/libs/tk tredlib/libs/pml-base tredlib/libs/fslib);
+
   require Fslib;
   require TrEd::Extensions;
-  my ($d,$pane,$progress,$progressbar)=@_;
 
   require TrEd::Utils;
   TrEd::Utils::find_win_home();
@@ -79,9 +88,9 @@ sub InstallExtensions {
   TrEd::Config::set_default_config_file_search_list();
   TrEd::Config::read_config();
 #  print $TrEd::Config::extensionsDir,"\n";
-  Fslib::AddResourcePath(File::Spec->rel2abs('tred/resources',$install_base));
+  Fslib::AddResourcePath(File::Spec->rel2abs('resources',$install_target));
 
-  my $list = TrEd::Extensions::getExtensionList();
+  my $list = TrEd::Extensions::getExtensionList() || [];
   if ($progressbar) {
     $progressbar->configure(
       -to => scalar(@$list),
