@@ -6,6 +6,8 @@ use strict;
 use warnings;
 use Carp;
 use File::Spec;
+use File::Glob qw(:glob);
+
 use URI;
 
 BEGIN {

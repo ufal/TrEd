@@ -59,6 +59,7 @@ EOF
   exit 0;
 }
 
+use File::Glob qw(:glob);
 use FindBin;
 my $rb=$FindBin::RealBin;
 if (exists $ENV{TREDHOME}) {

@@ -4,6 +4,7 @@ BEGIN {
   use Cwd;
   use Fslib;
   use File::Spec;
+  use File::Glob qw(:glob);
   use TrEd::Config;
   use TrEd::Basics;
   import TrEd::Config qw($defaultMacroFile $defaultMacroEncoding $macroDebug $hookDebug);

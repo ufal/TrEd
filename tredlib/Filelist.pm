@@ -28,6 +28,7 @@ $VERSION = "0.1";
 
 use Carp;
 use vars qw( $VERSION @EXPORT @EXPORT_OK );
+use File::Glob qw(:glob);
 
 =pod
 
