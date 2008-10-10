@@ -287,7 +287,8 @@ my $finish_b;
   my $bf = $page->Frame()->pack(qw(-fill x -padx 10 -pady 10 -side bottom));
   #$bf->Button(-text=>' Abort ', -command => [\&prev_page,$name])->pack(-side => 'left',-padx=>15,-pady=>15);
   if (-d $extensions_repo) {
-    $finish_b=$bf->Button(-text=>' Continue > ', 
+    $finish_b=$bf->Button(-text=>' Continue > ',
+			  -state=>'disabled',
 			  -command => [\&next_page,$name])->pack(-side => 'right',-padx=>15,-pady=>15);
   } else {
     $finish_b = $bf->Button(-text=>' Finish ',
