@@ -54,7 +54,7 @@ sub getExtensionList {
       File::Spec->catfile(getExtensionsDir(),'extensions.lst');
     return unless -f $url;
   }
-  my $fh = IOBackend::open_uri($url) || return [];
+  my $fh = eval { IOBackend::open_uri($url) } || return [];
   my @extensions = grep { /^!?[[:alnum:]_-]+\s*$/ } <$fh>;
   s/\s+$// for @extensions;
   IOBackend::close_uri($fh);
@@ -69,9 +69,10 @@ sub initExtensions {
     carp('Usage: initExtensions( [ extension_name(s)... ] )');
   }
   $extension_dir||=getExtensionsDir();
-  my (%m,%r);
+  my (%m,%r,%i);
   @r{ Fslib::ResourcePaths() } = ();
   @m{ @TrEd::Macros::macro_include_paths } = ();
+  @i{ @INC } = ();
   for my $name (grep { !/^!/ } @$list) {
     my $dir = File::Spec->catdir($extension_dir,$name,'resources');
     if (-d $dir and !exists($r{$dir})) {
@@ -82,6 +83,11 @@ sub initExtensions {
     if (-d $dir and !exists($m{$dir})) {
       push @TrEd::Macros::macro_include_paths, $dir;
       $m{$dir}=1;
+    }
+    $dir = File::Spec->catdir($extension_dir,$name,'libs');
+    if (-d $dir and !exists($i{$dir})) {
+      push @INC, $dir;
+      $i{$dir}=1;
     }
   }
   PMLBackend::configure();
@@ -331,7 +337,7 @@ sub _populate_extension_pane {
       if ($data->{icon}) {
 	my ($path,$unlink,$format);
 	if (UNIVERSAL::isa($name,'URI')) {
-	  ($path,$unlink) = IOBackend::fetch_file(URI->new($data->{icon})->abs($name.'/'));
+	  ($path,$unlink) = eval { IOBackend::fetch_file(URI->new($data->{icon})->abs($name.'/')) };
 	} else {
 	  $path = File::Spec->rel2abs($data->{icon},
 				      File::Spec->catdir($extension_dir,$name)
@@ -450,11 +456,11 @@ sub _populate_extension_pane {
 					@enable=_requires($name,$opts->{versions},$requires);
 				      } else {
 					@disable=_required_by($name,$opts->{versions},$required_by);
-					if (@disable>1) {
+					if ((grep $enable{$_}, @disable)) {
 					  my $res = $d->QuestionQuery(
 					    -title => 'Disable related packages?',
 					    -label => "The following packages require '$name':\n\n".
-					      join ("\n",grep { $_ ne $name } sort @disable),
+					      join ("\n",grep { $_ ne $name } sort grep $enable{$_}, @disable),
 					    -buttons =>['Ignore dependencies', 'Disable all', 'Cancel']
 					   );
 					  if ($res=~/^Ignore/) {
@@ -747,8 +753,9 @@ EOF
 	$opts->{tk}->QuestionQuery(
 	-title => 'Reinstall?',
 	-label => "Extension $name is already installed in $dir.\nDo you want to upgrade/reinstall it?",
-	-buttons =>['Install/Upgrade', 'Cancel']
-       ) =~ /Install/);
+	-buttons =>['Install/Upgrade', 'All',  'Cancel']
+       ) =~ /(Install|All)/);
+      $opts->{quiet}=1 if $1 eq 'All';
       uninstallExtension($name); # or just rmtree
     }
     mkdir $dir;
