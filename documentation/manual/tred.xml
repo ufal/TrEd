@@ -23,24 +23,44 @@
       <ulink url="http://ufal.mff.cuni.cz/padt/">The Prague Arabic Dependency Treebank</ulink>.
     </para>
     <para>
-      TrEd provides various ways to customize the tree layout and
-      appearance. It's functionality may be further extended by
-      user-defined macros (small program subroutines written in Perl)
-      associated with keyboard shortcuts and/or menu items. TrEd also
-      provides wide range of pre-defined macros, which greatly
-      simplifies writing new macros. By writing a suitable set of
-      macros, TrEd may be easily turned from a general-purpose software
-      into a specialized tool for a particular purpose.
+      TrEd's default behavior can be customized
+      (extended or narrowed)
+      using so called annotation contexts
+      that can provide different interface
+      for different types of data or annotation.
+      A context usually consists of a set of macros
+      (subroutines programmed in Perl)
+      that can be bound to keyboard shortcuts, menus, or toolbars 
+      or automatically triggered on certain events (e.g. when the user opens a file).
+      The visual representation of trees in TrEd 
+      can be customized independently on the annotation context by 
+      user-defined stylesheets.
+    </para>
+    <para>
+      TrEd comes with an extensive library of pre-defined macros, which greatly
+      simplifies writing new contexts.
     </para>
     <para>
       TrEd supports various input and output formats. Some of them
-      are of general nature (one of them is <ulink url="http://ufal.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
-      developed by Michal Kren and sufficient enough for most purposes),
-      while other are bound to a particular project. Support for other
+      are of general nature (e.g. a XML-based format
+      called <link linkend="pmlbackend">PML</link>
+      or a simple
+      text-based format called <ulink url="http://ufal.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
+      developed by Michal Kren),
+      while other are bound to a particular project. Support for new
       formats can be added by writing a custom I/O Backend (a Perl
       module able to convert data from their format-specific
       representation into the internal representation used by TrEd,
-      and save them back in the original format).
+      and save them back in the original format)
+      or by providing a pair of XSLT (1.0) stylesheets
+      that convert a given XML-based format
+      to PML and back.
+    </para>
+    <para>Annotatin contexts, libraries of macros, styles, 
+      I/O transformations, resources (such as dictionaries, PML schemas, etc.), example
+      data, etc. can be easily deployed to TrEd users
+      using so called <link xref="extension_packages">Extension Packages</link>
+      that are easy to deploy, install and update.
     </para>
     <para>There is also a non-graphical (off-line) variant of TrEd,
       usefull for batch processing of tree-like data. It is called
@@ -1394,9 +1414,14 @@ Tk: 804.027
     <section>
       <title>Session</title>
       <para>
-	This menu lets user switch between currently open files,
+	This menu lets user 
+	manage TrEd extensions, switch between currently open files,
 	change current file-list and toggle some file-related
 	options.</para>
+      <section>
+	<title>Manage Extensions</title>
+	<para>TODO</para>
+      </section>
       <section>
 	<title>Options</title>
 	<variablelist id="dontcloseonopen">
@@ -48453,7 +48478,14 @@ sub SubtreeFuncAssign {
 	  PML backend has its own configuration file
 	  <filename>pmlbackend_conf.xml</filename> which is looked for
 	  in the directories listed in <link
-	  linkend="resourcepath">ResourcePath</link>.  The
+	  linkend="resourcepath">ResourcePath</link>.
+	  The <literal>transform_map</literal> section of the configuration file is automatically merged
+	  with all files named
+	  <filename>pmlbackend_conf.inc</filename> found in
+	  <link linkend="resourcepath">ResourcePath</link>
+	  (e.g. in a <filename>resource</filename> subdirectory
+	  of an <link xref="extension_packages">extension package</link>).
+	  The
 	  configuration file may specify transformation rules for
 	  transparent conversion from legacy XML format to PML and
 	  back. The configuration file is a PML file and may look
@@ -48551,6 +48583,7 @@ sub SubtreeFuncAssign {
 	    </listitem>
 	    <listitem>
 	      <para>
+		[TODO: extensions]
 		Create a <literal>pmlbackend_conf.xml</literal> in one
 		of the <link
 		linkend="resourcepath"><literal>ResourcePath</literal></link>
@@ -48854,6 +48887,10 @@ sub SubtreeFuncAssign {
 	</itemizedlist>
       </para>
     </section>
+  </section>
+  <section id="extension_packages">
+    <title>Creating Extensions</title>
+    <para>TODO</para>
   </section>
 </article>
 <!-- Keep this comment at the end of the file
