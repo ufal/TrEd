@@ -6395,6 +6395,7 @@ sub startMain {
   $group{selectedContext} =  'TredMacro' unless exists($keyBindings{ $group{selectedContext} });
   $group{ContextsMenu}=$group{MenubarFrame}->Optionmenu(-options => [],
  	       -textvariable=> \$group{selectedContext},
+               -font => 'C_small',
  	       -command=> [sub { my ($grp,$context) = @_;
  				 switchContext($grp->{focusedWindow}, $context);
  			       },\%group],
@@ -6402,7 +6403,9 @@ sub startMain {
  	       -borderwidth=> 2)->pack(qw/-side right -padx 5/);
 
   $group{ContextsMenu}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
-  $group{ContextsMenuLabel}=$group{MenubarFrame}->Label(-text=>'Context:',-underline=>5)->pack(qw/-side right/);
+  $group{ContextsMenuLabel}=$group{MenubarFrame}->Label(-text=>'Context:',
+							-font => 'C_small',
+							-underline=>5)->pack(qw/-side right/);
   $group{Balloon}->attach($group{ContextsMenu}, -balloonmsg=> "macro context");
 
   $group{vLineFrame}=$top->Frame();
@@ -6747,6 +6750,7 @@ sub startMain {
 
   $group{StylesheetMenu}=$group{Toolbar}->
     Optionmenu(-options => [],
+	       -font => 'C_small',
 	       -textvariable=> \$group{selectedStylesheet},
 	       -command=> [sub { my ($grp,$stylesheet) = @_;
 				 switchStylesheet($grp, $stylesheet);
@@ -6762,7 +6766,9 @@ sub startMain {
   $group{Balloon}->attach($group{attrButton},
 			  -balloonmsg=> "customize display patterns\nof the selected stylesheet\n(e.g. change tree appearance, labels etc.)");
   $group{StylesheetMenu}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
-  $group{StylesheetMenuLabel}=$group{Toolbar}->Label(qw/-text Style: -underline 2/)->pack(qw/-side right/);
+  $group{StylesheetMenuLabel}=$group{Toolbar}->Label(qw/-text Style:
+							-font C_small
+							-underline 2/)->pack(qw/-side right/);
   $group{Balloon}->attach($group{StylesheetMenu},
 			  -balloonmsg=> "stylesheet (tree appearance)");
 
