@@ -445,7 +445,7 @@ Tk: 804.027
 	    In other words: it is a finite ordered set of objects called nodes (sometimes, but
 	    not in this manual, also called <firstterm>verteces</firstterm>),  
 	    each of the nodes but one is connected to another node
-	    called it's <firstterm>parent</firstterm>-node. This connection
+	    called its <firstterm>parent</firstterm>-node. This connection
 	    is called an <firstterm>edge</firstterm>. Such a structure is then called a tree if edges
 	    never form a cycle, i.e.
 	    by following an edge-path (e.g. a sequence of adjacent edges
@@ -473,7 +473,7 @@ Tk: 804.027
 	      <listitem>
 		<para>
 		  First son is linked with its next sibling (if any),
-		  called it's right-sibling node (or <firstterm>lbrother</firstterm>).
+		  called its right-sibling node (or <firstterm>lbrother</firstterm>).
 		  This sibling is again connected to another
 		  sibling, etc, so that all siblings are connected and
 		  this connection contains no cycle.
@@ -5007,7 +5007,7 @@ sub CreateImages {
 	      If this option is set to <literal>1</literal>,
 	      then any lines that would connect such an orphan node with its parent
 	      are instead connected to the nearest ancestor of the node that
-	      belongs to the list. The orphan node however remains on it's
+	      belongs to the list. The orphan node however remains on its
 	      level in the tree (see also <link linkend="skiphiddenlevels"><literal>SkipHiddenLevels</literal></link>).
 	      (Note that this only affects the way a tree is drawn,
 	      it does not relate in any way to tree-navigation and
@@ -5905,7 +5905,7 @@ sub CreateImages {
 	  <listitem>
 	    <para>This option can contain a (colon-separated on UNIX,
 	      comma-separated on Windows) list of directories
-	      where <application>TrEd</application>, it's
+	      where <application>TrEd</application>, its
 	      I/O backends, and macros should look for additional resources
 	      they might need (such as DTDs, XML/PML schemata, XSLT stylesheets, etc.). By default, this option is set to 
 	      <literal>resources</literal> subdirectory of the
@@ -6200,7 +6200,7 @@ sub CreateImages {
 	  <listitem>
 	    <para>This option may provide <ulink url="regexps.html">regular expression</ulink>
 	      matching protocols for which lock-files should never be
-	      created. By default, it's value is set to
+	      created. By default, its value is set to
 	      <literal>^(https?|zip|tar)$</literal>.
 	    </para>
 	  </listitem>
@@ -7127,7 +7127,7 @@ sub CreateImages {
 	  <listitem>
 	    <para>is the active node in the current tree.
 	      Macros may use this variable to access the active node,
-	      it's attributes, methods etc. They also may assign
+	      its attributes, methods etc. They also may assign
 	      to this variable to activate a different node.
 	    </para>
 	  </listitem>
@@ -7170,7 +7170,7 @@ sub CreateImages {
 	  suppose for a while, that the value of <literal
 	  moreinfo="none">$node-&gt;{<replaceable>attrib</replaceable>}</literal>
 	  is an AVS structure with attribute
-	  <replaceable>level2-attrib</replaceable> and it's value is a
+	  <replaceable>level2-attrib</replaceable> and its value is a
 	  list of structures with an attribute
 	  <replaceable>level3-attrib</replaceable> whose value (of
 	  whatever type it is) we want to get and possibly change.  To
@@ -48988,8 +48988,10 @@ sub SubtreeFuncAssign {
       <para>
 	Beside the <literal>package.xml</literal> file,
 	an extension can contain arbitrary files,
-	some of which, however, have special meaning to TrEd.
+	some of which, however, have special meaning to TrEd:
       </para>
+      <itemizedlist>
+	<listitem>
       <para>If the extension contains a directory
       <filename>contrib</filename>,
       TrEd looks
@@ -48998,32 +49000,39 @@ sub SubtreeFuncAssign {
       or in its first level subdirectories
       and attempts to loads these
       files as files with macros.
-      Also, all <programlisting>#include &lt;<replaceable>contrib/filename</replaceable>></programlisting>
-      directives used in Macros
-      (of any extension) look for  <replaceable>contrib/filename</replaceable>
-      in all extensions. It is therefore recommended
+      Also, an <programlisting>#include &lt;<replaceable>contrib/filename</replaceable>></programlisting>
+      directive used in a macro file
+      of any extension looks for  <replaceable>contrib/filename</replaceable>
+      in all (!) extensions. 
+      To avoid filename clashes, 
+      it is therefore recommended
       to put 
       <filename>contrib.mac</filename>
-      and other macro files  to
-      a subdirectory (usually named after the extension),
-      e.g. to create directory structure like this:
+      and all other macro files of an extension to
+      a subdirectory (usually named after the extension)
+      of <filename>contrib</filename>,
+      e.g. to create the directory structure like this:
       <programlisting>contrib/
 contrib/sample_extension/
 contrib/sample_extension/contrib.mac
 contrib/sample_extension/sample_macros1.mak
 contrib/sample_extension/sample_macros2.mak
       </programlisting>
-      Then e.g.
+      Then
       <programlisting>#include &lt;<replaceable>contrib/sample_extension/sample_macros2.mak</replaceable>></programlisting>
-      can be use include the macro file <filename>sample_macros2.mak</filename>
+      can be used to include the macro file <filename>sample_macros2.mak</filename>
       provided by this extension from a macro file of some other extension.
       </para>
+	</listitem>
+	<listitem>
       <para>
 	If the package contains a directory named
 	<literal>libs</literal>,
 	TrEd adds this directory to the
 	Perl module search path (<literal>@INC</literal>).
       </para>
+	</listitem>
+	<listitem>
       <para>
 	If the package contains a directory named
 	<literal>resources</literal>,
@@ -49031,6 +49040,8 @@ contrib/sample_extension/sample_macros2.mak
 	of resource paths 
 	(see <link linkend="resourcepath">resourcePath configuration option</link>).
       </para>
+	</listitem>
+	<listitem>
       <para>
 	If the resource folder contains
 	a PML file name <literal>pmlbackend_conf.inc</literal>
@@ -49042,6 +49053,8 @@ contrib/sample_extension/sample_macros2.mak
 	and are used as described
 	in section <xref linkend="pmlbackend_xslt"/>.
       </para>
+	</listitem>
+      </itemizedlist>
     </section>
     <section id="extension_repo">
       <title>Extension Repository</title>
