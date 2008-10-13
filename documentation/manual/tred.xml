@@ -59,7 +59,7 @@
     <para>Annotatin contexts, libraries of macros, styles, 
       I/O transformations, resources (such as dictionaries, PML schemas, etc.), example
       data, etc. can be easily distributed to TrEd users
-      as so called <link xref="extension_packages">Extension Packages</link>
+      as so called <link linkend="extension_packages">Extension Packages</link>
       that are easy to create, deploy, install, and update.
     </para>
     <para>There is also a non-graphical (off-line) variant of TrEd,
@@ -3032,7 +3032,7 @@ Tk: 804.027
       <firstterm>horizontal mode</firstterm>. In this mode
       the parent nodes apear above the childnodes and the horizontal
       position of nodes reflects the global ordering of nodes
-      or, for <link xref="balancetree">balanced</link> trees,
+      or, for <link linkend="balancetree">balanced</link> trees,
       the ordering of siblings with parents placed in between them.
       In the horizontal mode, node labels are placed below the nodes
       and edge labels are placed on the flowline between the
@@ -3466,7 +3466,7 @@ Tk: 804.027
 	    <entry>
 		<para>
 		  Has the same effect as the
-		  <link xref="balancetree">BalanceTree</link>
+		  <link linkend="balancetree">BalanceTree</link>
 		  configuration option.
 		  Use <literal>#{balance}</literal> or
 		  <literal>#{balance:1}</literal> to set the option
@@ -3480,7 +3480,7 @@ Tk: 804.027
 	    <entry>
 		<para>
 		  Has the same effect as the
-		  <link xref="basexpos">BaseXPos</link>
+		  <link linkend="basexpos">BaseXPos</link>
 		  configuration option.
 		  Usage: <literal>#{baseXPos:<replaceable>value</replaceable>}</literal>.
 		</para>
@@ -3491,7 +3491,7 @@ Tk: 804.027
 	    <entry>
 		<para>
 		  Has the same effect as the
-		  <link xref="baseypos">BaseYPos</link>
+		  <link linkend="baseypos">BaseYPos</link>
 		  configuration option.
 		  Usage: <literal>#{baseYPos:<replaceable>value</replaceable>}</literal>.
 		</para>
@@ -3502,7 +3502,7 @@ Tk: 804.027
 	    <entry>
 		<para>
 		  Has the same effect as the
-		  <link xref="nodexpos">NodeXSkip</link>
+		  <link linkend="nodexpos">NodeXSkip</link>
 		  configuration option.
 		  Usage: <literal>#{nodeXSkip:<replaceable>value</replaceable>}</literal>.
 		</para>
@@ -3513,7 +3513,7 @@ Tk: 804.027
 	    <entry>
 		<para>
 		  Has the same effect as the
-		  <link xref="nodeypos">NodeYSkip</link>
+		  <link linkend="nodeypos">NodeYSkip</link>
 		  configuration option.
 		  Usage: <literal>#{nodeYSkip:<replaceable>value</replaceable>}</literal>.
 		</para>
@@ -3527,7 +3527,7 @@ Tk: 804.027
 		  The value can be float.
 		  Default coeficient is 1 (single line spacing).
 		  This style has the same effect as the
-		  <link xref="basexpos">LineSpacing</link>
+		  <link linkend="basexpos">LineSpacing</link>
 		  configuration option.
 		  Usage: <literal>#{lineSpacing:<replaceable>value</replaceable>}</literal>.
 		</para>
@@ -3538,7 +3538,7 @@ Tk: 804.027
 	    <entry>
 		<para>
 		  Has the same effect as the
-		  <link xref="skiphiddenparents">SkipHiddenParents</link>
+		  <link linkend="skiphiddenparents">SkipHiddenParents</link>
 		  configuration option.
 		  Usage: <literal>#{skipHiddenParents}</literal>
 		  or <literal>#{skipHiddenParents:1}</literal> to turn
@@ -3552,7 +3552,7 @@ Tk: 804.027
 	    <entry>
 		<para>
 		  Has the same effect as the
-		  <link xref="skiphiddenparents">SkipHiddenLevels</link>
+		  <link linkend="skiphiddenparents">SkipHiddenLevels</link>
 		  configuration option.
 		  Usage: <literal>#{skipHiddenLevels}</literal>
 		  or <literal>#{skipHiddenLevels:1}</literal> to turn
@@ -48502,7 +48502,7 @@ sub SubtreeFuncAssign {
 	  <filename>pmlbackend_conf.inc</filename> found in
 	  <link linkend="resourcepath">ResourcePath</link>
 	  (e.g. in a <filename>resource</filename> subdirectory
-	  of an <link xref="extension_packages">extension package</link>).
+	  of an <link linkend="extension_packages">extension package</link>).
 	  The
 	  configuration file may specify transformation rules for
 	  transparent conversion from legacy XML format to PML and
@@ -48957,9 +48957,9 @@ sub SubtreeFuncAssign {
   <version>]]><replaceable>3.1</replaceable><![CDATA[</version>
   <copyright year="]]><replaceable>2008</replaceable><![CDATA[">]]><replaceable>Petr Pajas</replaceable><![CDATA[</copyright>
   <description>]]><replaceable>This is extension provides an example of how a TrEd extension might look like.</replaceable><![CDATA[</description>
-  <require>
+  <require>]]><replaceable><![CDATA[
     <extension name="pdt20" min_version="1.0" href="http://ufal.mff.cuni.cz/~pajas/tred/extensions/pdt20"/>
-    <extension name="padt" min_version="1.0" href="http://ufal.mff.cuni.cz/~pajas/tred/extensions/padt"/>
+    <extension name="padt" min_version="1.0" href="http://ufal.mff.cuni.cz/~pajas/tred/extensions/padt"/>]]></replaceable><![CDATA[
   </require>
 </tred_extension>
 ]]>
