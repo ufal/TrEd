@@ -1804,7 +1804,7 @@ sub updatePostponed {
 				       -state=> 'disabled',
 				       -background=> '#444444'
 				      );
-    $grp->{PostponedFileMenu}->command(-label => "Manage Extensions",
+    $grp->{PostponedFileMenu}->command(-label => "Manage Extensions...",
 				       -underline=> 0,
 				       -command=> [\&manage_extensions,$grp,1]);
 

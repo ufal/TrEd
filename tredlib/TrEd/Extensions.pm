@@ -54,7 +54,9 @@ sub getExtensionList {
       File::Spec->catfile(getExtensionsDir(),'extensions.lst');
     return unless -f $url;
   }
-  my $fh = eval { IOBackend::open_uri($url) } || return [];
+  my $fh = eval { IOBackend::open_uri($url) };
+  warn $@ if ($@);
+  return [] unless $fh;
   my @extensions = grep { /^!?[[:alnum:]_-]+\s*$/ } <$fh>;
   s/\s+$// for @extensions;
   IOBackend::close_uri($fh);
