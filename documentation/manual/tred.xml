@@ -26,19 +26,19 @@
       TrEd's default behavior can be customized
       (extended or narrowed)
       using so called annotation contexts
-      that can provide different interface
+      that can provide different interfaces
       for different types of data or annotation.
       A context usually consists of a set of macros
       (subroutines programmed in Perl)
-      that can be bound to keyboard shortcuts, menus, or toolbars 
-      or automatically triggered on certain events (e.g. when the user opens a file).
+      that can be bound to keyboard shortcuts, menus, toolbars,
+      or certain automatically triggered events.
+      TrEd comes with an extensive library of pre-defined macros, which greatly
+      simplifies writing new contexts.
+    </para>
+    <para>
       The visual representation of trees in TrEd 
       can be customized independently on the annotation context by 
       user-defined stylesheets.
-    </para>
-    <para>
-      TrEd comes with an extensive library of pre-defined macros, which greatly
-      simplifies writing new contexts.
     </para>
     <para>
       TrEd supports various input and output formats. Some of them
@@ -58,9 +58,9 @@
     </para>
     <para>Annotatin contexts, libraries of macros, styles, 
       I/O transformations, resources (such as dictionaries, PML schemas, etc.), example
-      data, etc. can be easily deployed to TrEd users
-      using so called <link xref="extension_packages">Extension Packages</link>
-      that are easy to deploy, install and update.
+      data, etc. can be easily distributed to TrEd users
+      as so called <link xref="extension_packages">Extension Packages</link>
+      that are easy to create, deploy, install, and update.
     </para>
     <para>There is also a non-graphical (off-line) variant of TrEd,
       usefull for batch processing of tree-like data. It is called
@@ -1419,8 +1419,26 @@ Tk: 804.027
 	change current file-list and toggle some file-related
 	options.</para>
       <section>
-	<title>Manage Extensions</title>
-	<para>TODO</para>
+	<title>Manage Extensions...</title>
+	<para>This menu command starts a extension manager
+	in a separate window
+	(<xref linkend="fig_extension_repo"/>).
+	The extension manager can be used
+	to enable, disable, or upgrade currently installed extensions,
+	to install new extensions from <link linkend="extension_repo">web repositories</link>
+	and to manage a list of repositories.
+	</para>
+	<figure id="fig_extension_repo" float="0">
+	  <title>Extension Manager</title>
+	  <mediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/extension_manager.png" format="PNG"/>
+	    </imageobject>
+	    <textobject>
+	      <phrase>screenshot</phrase>
+	    </textobject>
+	  </mediaobject>
+	</figure>
       </section>
       <section>
 	<title>Options</title>
@@ -48406,10 +48424,10 @@ sub SubtreeFuncAssign {
 	<title>Introduction</title>
       <para>
 	This backend provies  support for a generic XML-based
-	format called PML (the Prague Markup
-	Language), used for capturing rich linguistic annotation.
-	PML is the primary data format of the Prague Dependency
-	Treebank 2.0.
+	format called PML (the <ulink url="http://ufal.mff.cuni.cz/jazz/PML/index_en.html">Prague Markup
+	Language</ulink>), used for capturing rich linguistic annotation.
+	PML is the base of the data format of the <ulink url="http://ufal.mff.cuni.cz/pdt2.0/">Prague Dependency
+	Treebank 2.0</ulink>.
       </para>
       <para>
 	Since all XML data can be easily transformed into PML and back
@@ -48583,7 +48601,6 @@ sub SubtreeFuncAssign {
 	    </listitem>
 	    <listitem>
 	      <para>
-		[TODO: extensions]
 		Create a <literal>pmlbackend_conf.xml</literal> in one
 		of the <link
 		linkend="resourcepath"><literal>ResourcePath</literal></link>
@@ -48591,6 +48608,13 @@ sub SubtreeFuncAssign {
 		add a transformation rule to it with 
 		the input and output XSLT stylesheets and
 		an XPath test approximating documents in the format.
+		If writing an <link linkend="extension_format">extension</link>,
+		one can create a file 
+		<literal>pmlbackend_conf.inc</literal>
+		in the <literal>resources</literal>
+		directory of the extension, instead.
+	      </para>
+	      <para>
 		Instead of specifying the output XSLT stylesheet one may
 		also define an identity output transformation
 		which simply writes back the data in PML.
@@ -48889,8 +48913,240 @@ sub SubtreeFuncAssign {
     </section>
   </section>
   <section id="extension_packages">
-    <title>Creating Extensions</title>
-    <para>TODO</para>
+    <title>Extension Packages</title>
+    <para>
+      TrEd extension packages are used
+      to package related annotation contexts (macros and Perl modules they use),
+      stylesheets, resources (e.g. PML schemas),
+      XSLT transformations, etc. to 
+      TrEd users. Extension pacakges are deployed
+      using package repositories on the web.
+      The users can install extensions from TrEd by adding
+      the URL to the repository to a list of
+      repositories using a Repository Manager
+      accessible from the <link linkend="extension_manager">Extension Manager</link>
+      and selecting the extensions of their choice.
+      Extensions can depend on other
+      extensions and the TrEd installer
+      attempts to resolve the dependencies automatically.
+    </para>
+    <para>
+      The following sections describe in detail the content and format of an extension
+      package and the format of a web repository.
+    </para>
+    <section id="extension_format">
+      <title>Extension Package Format and Content</title>
+      <para>
+	An extension package is simply a ZIP file that among other files contains
+	in the root directory a PML file named <literal>package.xml</literal>
+	conforming to the PML schema <literal>tred_extension_schema.xml</literal>
+	that can be found in the <filename>resources</filename> subdirectory
+	of a TrEd installation.
+	The information provided in the <literal>package.xml</literal> file
+	is used by the Extension Manager to present the extension to the user.
+	The <literal>package.xml</literal> file
+	can look  like this:
+      </para>
+      <programlisting><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<tred_extension xmlns="http://ufal.mff.cuni.cz/pdt/pml/">
+  <head>
+    <schema href="tred_extension_schema.xml"/>
+  </head>
+  <pkgname>]]><replaceable>sample_extension</replaceable><![CDATA[</pkgname>
+  <title>]]><replaceable>A Sample TrEd Extension</replaceable><![CDATA[</title>
+  <version>]]><replaceable>3.1</replaceable><![CDATA[</version>
+  <copyright year="]]><replaceable>2008</replaceable><![CDATA[">]]><replaceable>Petr Pajas</replaceable><![CDATA[</copyright>
+  <description>]]><replaceable>This is extension provides an example of how a TrEd extension might look like.</replaceable><![CDATA[</description>
+  <require>
+    <extension name="pdt20" min_version="1.0" href="http://ufal.mff.cuni.cz/~pajas/tred/extensions/pdt20"/>
+    <extension name="padt" min_version="1.0" href="http://ufal.mff.cuni.cz/~pajas/tred/extensions/padt"/>
+  </require>
+</tred_extension>
+]]>
+      </programlisting>
+      <para>
+	An extension is uniquely identified by its short name
+	(identifier), which in the above example is
+	<replaceable>sample_extension</replaceable>. Extension
+	creators should attempt to avoid name colisions by choosing
+	dinstinctive names.  To the users, the extension is presented
+	by their long name, that can be a short descriptive phrase
+	(<replaceable>A Sample TrEd Extension</replaceable> in the
+	case above).  Extensions are versioned so that TrEd can offer
+	the user upgrades if newer version of an installed extension
+	becomes available in some repository.  The
+	<literal>package.xml</literal> file should further contain a
+	description element (which may contain a short paragraph of
+	unformatted text) and copyright information.  Finally, a list
+	of other extensions required by this extension may be given
+	(in our example they are extensions <literal>pdt20</literal>
+	and <literal>padt</literal> both in versions at least 1.0);
+	optionally, an URL can be given to provide a direct link to
+	the required extension for the case when the user may not have the
+	corresponding repositories configured.
+      </para>
+      <para>
+	Beside the <literal>package.xml</literal> file,
+	an extension can contain arbitrary files,
+	some of which, however, have special meaning to TrEd.
+      </para>
+      <para>If the extension contains a directory
+      <filename>contrib</filename>,
+      TrEd looks
+      for all files named <filename>contrib.mac</filename>
+      located either directly in the <filename>contrib</filename> directory
+      or in its first level subdirectories
+      and attempts to loads these
+      files as files with macros.
+      Also, all <programlisting>#include &lt;<replaceable>contrib/filename</replaceable>></programlisting>
+      directives used in Macros
+      (of any extension) look for  <replaceable>contrib/filename</replaceable>
+      in all extensions. It is therefore recommended
+      to put 
+      <filename>contrib.mac</filename>
+      and other macro files  to
+      a subdirectory (usually named after the extension),
+      e.g. to create directory structure like this:
+      <programlisting>contrib/
+contrib/sample_extension/
+contrib/sample_extension/contrib.mac
+contrib/sample_extension/sample_macros1.mak
+contrib/sample_extension/sample_macros2.mak
+      </programlisting>
+      Then e.g.
+      <programlisting>#include &lt;<replaceable>contrib/sample_extension/sample_macros2.mak</replaceable>></programlisting>
+      can be use include the macro file <filename>sample_macros2.mak</filename>
+      provided by this extension from a macro file of some other extension.
+      </para>
+      <para>
+	If the package contains a directory named
+	<literal>libs</literal>,
+	TrEd adds this directory to the
+	Perl module search path (<literal>@INC</literal>).
+      </para>
+      <para>
+	If the package contains a directory named
+	<literal>resources</literal>,
+	TrEd adds this directory to its list
+	of resource paths 
+	(see <link linkend="resourcepath">resourcePath configuration option</link>).
+      </para>
+      <para>
+	If the resource folder contains
+	a PML file name <literal>pmlbackend_conf.inc</literal>
+	with transformation rules for the 
+	<link linkend="PMLBackend">PMLBackend</link>,
+	the transformatino rules 
+	are prepended to the list of transformation rules
+	contained in <literal>pmlbackend_conf.xml</literal>
+	and are used as described
+	in section <xref linkend="pmlbackend_xslt"/>.
+      </para>
+    </section>
+    <section id="extension_repo">
+      <title>Extension Repository</title>
+      <para>
+	Extension repository is a local directory 
+	or a directory located on the web accessible by
+	HTTP prococol that contains the following files:
+      </para>
+      <itemizedlist>
+	<listitem>
+	  <para>a file named
+	  <literal>extensions.lst</literal>
+	  containing a list of short package
+	  names of extensions available in this repository.
+	  Each extension name must be given on a separate line.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>for each package listed in
+	  <literal>extensions.lst</literal>, a ZIP file
+	  <literal><replaceable>pkgname</replaceable>.zip</literal>
+	  where <replaceable>pkgname</replaceable> is the short name of
+	  the extension, containing the extension data (and most notably the file
+	  <literal><replaceable>package.xml</replaceable></literal>).
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>for each package listed in <literal>extensions.lst</literal>
+	  a subdirectory <literal><replaceable>pkgname</replaceable></literal>
+	  (where <literal><replaceable>pkgname</replaceable></literal> is the name of the extension)
+	  containing a file <literal><replaceable>package.xml</replaceable></literal>
+	  (described above) which should be exactly same as the one contained in the ZIP package
+	  of the extension.
+	  </para>
+	</listitem>
+      </itemizedlist>
+      <para>When TrEd reads the content of a repository, it first
+      fetches the file <literal>extensions.lst</literal> and for each
+      entry listed there it requests the file
+      <literal><replaceable>pkgname</replaceable>/package.xml</literal>.
+      If the user chooses to install or upgrade a given package, the
+      ZIP file
+      <literal><replaceable>pkgname</replaceable>.zip</literal> is
+      requested and extracted to a subdirectory
+      <literal>.tred.d/extensions/<replaceable>pkgname</replaceable>/</literal>
+      in the user's home directory (<filename>Application Data</filename> on Windows).
+      </para>
+    </section>
+    <section>
+      <title>Developing Extensions</title>
+      <para>
+	The file <literal>devel/pack_extension.sh</literal>
+	contains a Bash script that simplifies creating an extension package from a given directory,
+	copying the result to a repository directory, and incrementing package versions.
+	It takes two arguments: a path to a directory with the extension
+	(containing the <literal>pacakge.xml</literal> file and other files pertaining by the extension)
+	and a path to a directory containing a package repository.
+	The script performs the following steps:
+      </para>
+      <itemizedlist>
+	<listitem>
+	  <para>Check that there is a valid <literal>pacakge.xml</literal> file
+	  (validation requires the script <literal>validate_pml_stream</literal>
+	  from the <ulink url="http://ufal.mff.cuni.cz/jazz/PML">PML Project</ulink>).
+	  </para>
+	  <para>compress the the content of the extension directory into a ZIP archive</para>
+	  <para>check if a similarly named ZIP file is already contained in the repository:
+	  <itemizedlist>
+	    <listitem>
+	      <para>If not, it creates an entry in <literal>extensions.lst</literal> in the repository,
+	  copies the ZIP file to the repository and creates there the corresponding subfolder with the
+	  <literal>package.xml</literal> file.</para>
+	    </listitem>
+	    <listitem>
+	      <para>If yes, it compares the MD5 checksum of the newly created ZIP file
+	      with the one already in the repository. If the MD5s are equal, it 
+	      does nothing. Otherwise the least significant part of the
+	      package version is incremented in the 
+	      file <literal>package.xml</literal> in the extension directory,
+	      a new ZIP file is created with the updated <literal>package.xml</literal>
+	      and both the ZIP and the 
+	      <literal>package.xml</literal> are copied to the repository directory.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	  </para>
+	</listitem>
+      </itemizedlist>
+      <tip>
+	<para>
+	  To test a development version of an extension
+	  from a live working copy, one can
+	  e.g. go to the <literal>~/.tred.d/extensions</literal>
+	  directory and replace the subdirectory corresponding to the
+	  (relevant part of the) extension
+	  with a symlink to the working copy. 
+	  Using a symlink rather than a direct copy
+	  protects the actual working copy from being deleted
+	  by TrEd if <literal>Uninstall</literal>
+	  is performed on the extension from the 
+	  <link linkend="extension_manager">Extension Manager</link>
+	  (only the symlink gets deleted).
+	</para>
+      </tip>
+    </section>
   </section>
 </article>
 <!-- Keep this comment at the end of the file
