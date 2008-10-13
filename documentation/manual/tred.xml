@@ -1418,7 +1418,7 @@ Tk: 804.027
 	manage TrEd extensions, switch between currently open files,
 	change current file-list and toggle some file-related
 	options.</para>
-      <section>
+      <section id="extension_manger">
 	<title>Manage Extensions...</title>
 	<para>This menu command starts a extension manager
 	in a separate window
