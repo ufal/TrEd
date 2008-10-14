@@ -4,6 +4,8 @@
 
 package NonProjectivity;
 
+BEGIN { import TredMacro; }
+
 =item non_proj_edges($node,$only_visible?,$ord?,$filterNode?,$returnParents?,$subord?,$filterGap?)
 
 Returns hash-ref containing all non-projective edges in the subtree
