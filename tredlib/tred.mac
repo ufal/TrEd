@@ -356,7 +356,7 @@ sub RunCallback {
 }
 
 {
-  my (@exit_hooks,@open_file_hooks);
+  my (@exit_hooks,@open_file_hooks, @reload_macros_hooks);
 
   # the hook may be either a sub name, CODE ref or ARRAY ref, where
   # the first element of the array is the name/CODE-ref to execute

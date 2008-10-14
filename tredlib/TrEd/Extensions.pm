@@ -321,12 +321,13 @@ sub _populate_extension_pane {
 				      -takefocus=>0,
 				      -relief=>'flat',
 				      -wrap=>'word',
-				      -width=>60,
+				      -width=>70,
 				      -height=>20,
 				      -background => 'white',
 				     );
   $text->configure(-state=>'normal');
   $text->delete(qw(0.0 end));
+  my $generic_icon;
   for my $name (@$list) {
     my $short_name = UNIVERSAL::isa($name,'URI') ?
       do { my $n=$name; $n=~s{.*/}{}; $n } : $name;
@@ -345,25 +346,39 @@ sub _populate_extension_pane {
 				      File::Spec->catdir($extension_dir,$name)
 				       );
 	}
-	if (-f $path) {
+	{ #DEBUG; 
+	  $path||='';
+	  print "$name => $data->{icon}\n";
+	}
+
+	if (defined($path) and -f $path) {
 	  require Tk::JPEG;
 	  require Tk::PNG;
 	  eval {
 	    my $img = $text->Photo(
 	      -file => $path,
 	      -format => $format,
-	      -width=>160,
+	      -width=>0,
 	      -height=>0,
 	     );
-	    $image = $text->Label(-image=> $img);
+	    $image = $text->Label(-image=> $img,-background=>'white');
 	  };
 	  warn $@ if $@;
 	  unlink $path if $unlink;
 	}
+      } else {
+	require Tk::JPEG;
+	require Tk::PNG;
+	eval {
+	  $generic_icon ||= main::icon($tred,'extension');
+	  $image = $text->Label(-image=> $generic_icon,-background=>'white');
+	};
+	warn $@ if $@;
       }
       $text->insert('end',"\n");
-      $text->windowCreate('end',-window => $image,-padx=>5) if $image;
-
+      if ($image) {
+	$text->windowCreate('end',-window => $image,-padx=>5)
+      }
       $text->insert('end',$data->{title},[qw(title)]);
       $text->insert('end',' ('.$short_name.(defined($data->{version}) && length($data->{version})
 			  ? ' '.$data->{version} : ''
@@ -530,29 +545,46 @@ sub _populate_extension_pane {
     $text->tagAdd($name,$start.' - 1 line','end -1 char');
 
     $text->tagBind($name,'<Any-Enter>' => [sub {
-					     my ($text,$name,$bf)=@_;
+					     my ($text,$name,$bf,$image)=@_;
 					     $bf->configure(-background=>'lightblue');
+					     $image->configure(-background=>'lightblue') if $image;
 					     $text->tagConfigure($name,-background=>'lightblue');
 					     $bf->focus;
 					     $bf->focusNext;
-					   },$name,$bf]);
+					   },$name,$bf,$image]);
     $bf->bind('<Any-Enter>' => [sub {
-			      my ($bf,$text,$name)=@_;
+			      my ($bf,$text,$name,$image)=@_;
 			      $bf->configure(-background=>'lightblue');
+			      $image->configure(-background=>'lightblue') if $image;
 			      $text->tagConfigure($name,-background=>'lightblue');
 			      $bf->focus;
 			      $bf->focusNext;
-			    },$text,$name]);
+			    },$text,$name,$image]);
+    $image->bind('<Any-Enter>' => [sub {
+			      my ($image,$text,$name,$bf)=@_;
+			      $bf->configure(-background=>'lightblue');
+			      $image->configure(-background=>'lightblue') if $image;
+			      $text->tagConfigure($name,-background=>'lightblue');
+			    },$text,$name,$bf])
+      if $image;
     $text->tagBind($name,'<Any-Leave>' => [sub {
-					     my ($text,$name,$bf)=@_;
+					     my ($text,$name,$bf,$image)=@_;
 					     $bf->configure(-background=>'white');
+					     $image->configure(-background=>'white') if $image;
 					     $text->tagConfigure($name,-background=>'white');
-					   },$name,$bf]);
+					   },$name,$bf,$image]);
     $bf->bind('<Any-Leave>' => [sub {
 			      my ($bf,$text,$name)=@_;
 			      $bf->configure(-background=>'white');
+			      $image->configure(-background=>'white') if $image;
 			      $text->tagConfigure($name,-background=>'white');
-			    },$text,$name]);
+			    },$text,$name,$image]);
+    $image->bind('<Any-Leave>' => [sub {
+			      my ($image,$text,$name,$bf)=@_;
+			      $bf->configure(-background=>'white');
+			      $image->configure(-background=>'white') if $image;
+			      $text->tagConfigure($name,-background=>'white');
+			    },$text,$name,$bf]) if $image;
     for my $w ($bf,$bf->children) {
       $w->bind('<4>',         [$text,'yview','scroll',-1,'units']);
       $w->bind('<5>',         [$text,'yview','scroll',1,'units']);

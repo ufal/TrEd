@@ -19,8 +19,7 @@ function make_zip () {
 	    "${z}" \
 	    `find -L -not -wholename "*/.svn*"` \
 	    -x '*~' \
-	    -x '#*' 
-	
+	    -x '#*' 	
     then
 	echo "Failed to create package $z!"
 	exit 6;
@@ -55,6 +54,9 @@ if [ ! -r "$meta" ]; then
     echo "Didn't find package meta file in $meta"
     exit 4;
 fi
+
+icon=`perl -ne 'print $1 if m{<icon>([^<]+)</icon>}' "$meta" /dev/null`
+echo "Icon $icon"
 
 if which validate_pml_stream 2>/dev/null; then 
     if ! validate_pml_stream -p "$tooldir/../resources" "$meta"; then
@@ -96,6 +98,11 @@ if [ ! -d "$target_dir"/"$name" ]; then
     mkdir "$target_dir"/"$name"
 fi
 cp "$meta" "$target_dir/$name"
+
+if [ -f "$name/$icon" ]; then
+    echo "Copying icon $name/$icon"
+    cp --parents "$name/$icon" "$target_dir"
+fi
 
 echo Creating "$zip"
 make_zip "$zip" "$package_dir"
