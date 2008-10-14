@@ -209,6 +209,7 @@ sub download_ap {
       $status2="Download sucessfully completed.";
       $status3='Press Continue to install ActivePerl.';
       $action='install_ap';
+      $continue_b->configure(-state => 'normal');
     }
   } else {
     $status='Downloading ActivePerl - failed';

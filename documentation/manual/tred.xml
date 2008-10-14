@@ -140,6 +140,12 @@
 	  <para><ulink url="http://www.activestate.com/Products/Download/Download.plex?id=ActivePerl">http://www.activestate.com/Products/Download/Download.plex?id=ActivePerl</ulink></para>
 	</listitem>
       </itemizedlist>
+      <para>If the ActivePerl Installer complains about 
+      being unable to create entries in the windows registry due to 
+      missing permissions, just press <literal>Ignore</literal>.
+      In that case you may need to point TrEd Installer to
+      the directory in which you installed ActivePerl, as described below.
+      </para>
       </section>
       <section>
 	<title>Step 2: installation of <application>TrEd</application></title>
@@ -607,6 +613,65 @@ Tk: 804.028
 	  </para>
 	</listitem>
       </varlistentry>
+      <varlistentry id="minor_mode">
+	<term>minor mode</term>
+	<listitem>
+	  <para>
+	    The concept of minor modes is borrowed from <ulink
+	    url="http://www.gnu.org/software/emacs/">GNU Emacs</ulink>
+	    editor. 
+	    Minor modes use hooks to provide additional
+	    functionality that is independent of the current
+	    annotation context. 
+	    Different minor modes can be used for different views.
+	    Currently TrEd ships with
+	    the following minor modes:
+	    <variablelist>
+	      <varlistentry>
+		<term>neigh_sent</term>
+		<listitem>
+		  <para>shows 
+		  in the text view above the tree
+		  the information from
+		  a configurable number of preceding and following trees,
+		  </para>
+		</listitem>
+	      </varlistentry>
+	      <varlistentry>
+		<term>neigh_trees</term>
+		<listitem>
+		  <para>
+		    shows the active tree
+		    and a configurable number of
+		    neighboring trees on the left and right.
+		  </para>
+		</listitem>
+	      </varlistentry>
+	      <varlistentry>
+		<term>move</term>
+		<listitem>
+		  <para>allows the user to manually adjust
+		  position of nodes in the view by dragging
+		  the nodes and pressing
+		  Shift or Control before drop to move
+		  the current node or the whole subtree to the 
+		  position of the drop.
+		  </para>
+		</listitem>
+	      </varlistentry>
+	      <varlistentry>
+		<term>reslt</term>
+		<listitem>
+		  <para>is a helper minor mode used by
+		  tree query macros to colour nodes that match
+		  the query.
+		  </para>
+		</listitem>
+	      </varlistentry>
+	    </variablelist>
+	  </para>
+	</listitem>
+      </varlistentry>
       <varlistentry>
 	<term>stylesheet</term>
 	<listitem>
@@ -709,7 +774,8 @@ Tk: 804.028
 	  <para>
 	    This part of the window displays additional textual
 	    information associated with the tree displayed in the
-	    active view (e.g. the <quote>sentence</quote> represented by the tree).
+	    active view (e.g. the <quote>sentence</quote> represented by the tree),
+	    and optionally some surrounding context.
 	  </para>
 	</listitem>
 	<listitem>
@@ -746,24 +812,36 @@ Tk: 804.028
 	    Toolbar buttons provide shortcuts for the following
 	    actions:
 	    Open file, Save file, Reload file,
-	    Undo, Redo, Previous File, Next File, Print, Find, Find Next, Find Previous.
-	  </para>
-	</listitem>
-	<listitem>
-	  <para>
-	    These two buttons move view to the previous and next tree
-	    in the current file.
-	    The four buttons that follow are used for view management. 
-	  </para>
-	</listitem>
-	<listitem>
-	  <para>
-	    These buttons allow to create new views by splitting the
-	    current view vertically or horizontaly, to remove the
-	    current view, and to tie all views so that if one moves to
+	    Previous File (in filelist),
+	    Next File (in filelist),
+	    Print,
+	    Undo, Redo, Find, Find Next, Find Previous,
+	    Previous Tree,
+	    Next Tree, 
+	    Split View Vertically,
+	    Split View Horizontally,
+	    Remove Current View.
+	    The last button with the icon of a lock,
+	    ties all views so that if one moves to
 	    the next/previons tree or file in the current view, the
 	    same operation is automatically performed in all other
 	    views.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    This button displays a menu of available <link linkend="minor_mode">Minor modes</link>
+	    and the label on the right shows which minor modes are active.
+	    If a minor mode is configurable,
+	    double-clicking on the label opens a configuration dialog.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    The scale slider allows to zoom the tree in the current
+	    view in or out. Clicking on the slider with the right
+	    button returns the slider to the center position of 100%
+	    scale.
 	  </para>
 	</listitem>
       </orderedlist>
