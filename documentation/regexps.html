@@ -1,7 +1,8 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
-<html>
+<?xml version="1.0"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <title>Regualar Expressions</title>
+    <link href="blue.css" rel="stylesheet"/>
   </head>
   <body>
     <h1>Regular Expressions</h1>
@@ -16,36 +17,36 @@
     </p>
     <dl>
       <dt><tt>\</tt></dt>	
-      <dd>Quote the next metacharacter</dd>
+      <dd><p>Quote the next metacharacter</p></dd>
       <dt><tt>^</tt></dt>
-      <dd>Match the beginning of the string</dd>
+      <dd><p>Match the beginning of the string</p></dd>
       <dt><tt>.</tt></dt>	
-      <dd>Match any character</dd>
+      <dd><p>Match any character</p></dd>
       <dt><tt>$</tt></dt>
-      <dd>Match the end of the string</dd>
+      <dd><p>Match the end of the string</p></dd>
       <dt><tt>|</tt></dt>	
-      <dd>Alternation</dd>
+      <dd><p>Alternation</p></dd>
       <dt><tt>()</tt></dt>
-      <dd>Grouping</dd>
+      <dd><p>Grouping</p></dd>
       <dt><tt>[]</tt></dt>
-      <dd> Character class</dd>
+      <dd><p> Character class</p></dd>
     </dl>
     <p>
       The following standard quantifiers are recognized:
     </p>
     <dl>
       <dt><tt>*</tt></dt>
-      <dd> Match 0 or more times</dd>
+      <dd><p> Match 0 or more times</p></dd>
       <dt><tt>+</tt></dt>
-      <dd>Match 1 or more times</dd>
+      <dd><p>Match 1 or more times</p></dd>
       <dt><tt>?</tt></dt>
-      <dd>Match 1 or 0 times</dd>
+      <dd><p>Match 1 or 0 times</p></dd>
       <dt><tt>{n}</tt></dt>
-      <dd>Match exactly n times</dd>
+      <dd><p>Match exactly n times</p></dd>
       <dt><tt>{n,}</tt></dt>
-      <dd>Match at least n times</dd>
+      <dd><p>Match at least n times</p></dd>
       <dt><tt>{n,m}</tt></dt>
-      <dd>Match at least n but not more than m times</dd>
+      <dd><p>Match at least n but not more than m times</p></dd>
     </dl>
     <p>
       (If a curly bracket occurs in any other context, it is treated as a
@@ -62,17 +63,17 @@
     </p>
     <dl>      
       <dt>*?</dt>      
-      <dd>Match 0 or more times</dd>
+      <dd><p>Match 0 or more times</p></dd>
       <dt><tt>+?</tt></dt>
-      <dd>Match 1 or more times</dd>
+      <dd><p>Match 1 or more times</p></dd>
       <dt><tt>??</tt></dt>
-      <dd>Match 0 or 1 time</dd>
+      <dd><p>Match 0 or 1 time</p></dd>
       <dt><tt>{n}?</tt></dt>
-      <dd>Match exactly n times</dd>
+      <dd><p>Match exactly n times</p></dd>
       <dt><tt>{n,}?</tt></dt>
-      <dd>Match at least n times</dd>
+      <dd><p>Match at least n times</p></dd>
       <dt><tt>{n,m}?</tt></dt>
-      <dd>Match at least n but not more than m times</dd>
+      <dd><p>Match at least n but not more than m times</p></dd>
     </dl>
     <p>
       Because patterns are processed as double quoted strings, the following
@@ -80,35 +81,35 @@
     </p>
     <dl>
       <dt><tt>\t</tt></dt>
-      <dd>tab                   (HT, TAB)</dd>
+      <dd><p>tab                   (HT, TAB)</p></dd>
       <dt><tt>\n</tt></dt>
-      <dd>newline               (LF, NL)</dd>
+      <dd><p>newline               (LF, NL)</p></dd>
       <dt><tt>\r</tt></dt>
-      <dd>return                (CR)</dd>
+      <dd><p>return                (CR)</p></dd>
       <dt><tt>\f</tt></dt>
-      <dd>form feed             (FF)</dd>
+      <dd><p>form feed             (FF)</p></dd>
       <dt><tt>\a</tt></dt>
-      <dd>alarm (bell)          (BEL)</dd>
+      <dd><p>alarm (bell)          (BEL)</p></dd>
       <dt><tt>\e</tt></dt>
-      <dd>escape (think troff)  (ESC)</dd>
+      <dd><p>escape (think troff)  (ESC)</p></dd>
       <dt><tt>\033</tt></dt>
-      <dd>octal char (think of a PDP-11)</dd>
+      <dd><p>octal char (think of a PDP-11)</p></dd>
       <dt><tt>\x1B</tt></dt>
-      <dd>hex char</dd>
+      <dd><p>hex char</p></dd>
       <dt><tt>\c[</tt></dt>
-      <dd>control char</dd>
+      <dd><p>control char</p></dd>
       <dt><tt>\l</tt></dt>
-      <dd>lowercase next char</dd>
+      <dd><p>lowercase next char</p></dd>
       <dt><tt>\u</tt></dt>
-      <dd>uppercase next char</dd>
+      <dd><p>uppercase next char</p></dd>
       <dt><tt>\L</tt></dt>
-      <dd>lowercase till \E</dd>
+      <dd><p>lowercase till \E</p></dd>
       <dt><tt>\U</tt></dt>
-      <dd>uppercase till \E</dd>
+      <dd><p>uppercase till \E</p></dd>
       <dt><tt>\E</tt></dt>
-      <dd>end case modification</dd>
+      <dd><p>end case modification</p></dd>
       <dt><tt>\Q</tt></dt>
-      <dd>quote regexp metacharacters till \E</dd>
+      <dd><p>quote regexp metacharacters till \E</p></dd>
     </dl>
     <p>
       If <tt>UseCzechLocales</tt> is set to non-zero value in TrEd's
@@ -119,17 +120,17 @@
     </p>
     <dl>
       <dt><tt>\w</tt></dt>
-      <dd>Match a "word" character (alphanumeric plus "_")</dd>
+      <dd><p>Match a "word" character (alphanumeric plus "_")</p></dd>
       <dt><tt>\W</tt></dt>
-      <dd>Match a non-word character</dd>
+      <dd><p>Match a non-word character</p></dd>
       <dt><tt>\s</tt></dt>
-      <dd>Match a whitespace character</dd>
+      <dd><p>Match a whitespace character</p></dd>
       <dt><tt>\S</tt></dt>
-      <dd>Match a non-whitespace character</dd>
+      <dd><p>Match a non-whitespace character</p></dd>
       <dt><tt>\d</tt></dt>
-      <dd>Match a digit character</dd>
+      <dd><p>Match a digit character</p></dd>
       <dt><tt>\D</tt></dt>
-      <dd>Match a non-digit character</dd>
+      <dd><p>Match a non-digit character</p></dd>
     </dl>
     <p>Note that `\w' matches a single alphanumeric character, not a whole
       word.  To match a word you'd need to say `\w+'.
@@ -144,13 +145,13 @@
     </p>
     <dl>
       <dt><tt>\b</tt></dt>
-      <dd>Match a word boundary</dd>
+      <dd><p>Match a word boundary</p></dd>
       <dt><tt>\B</tt></dt>
-      <dd>Match a non-(word boundary)</dd>
+      <dd><p>Match a non-(word boundary)</p></dd>
       <dt><tt>\A</tt></dt>
-      <dd>Match at only beginning of string</dd>
+      <dd><p>Match at only beginning of string</p></dd>
       <dt><tt>\Z</tt></dt>
-      <dd>Match at only end of string (or before newline at the end)</dd>
+      <dd><p>Match at only end of string (or before newline at the end)</p></dd>
     </dl>
     <p>A word boundary (`\b') is defined as a spot between two characters that
       has a `\w' on one side of it and a `\W' on the other side of it (in
@@ -161,7 +162,7 @@
     </p>
     <p>
       When the bracketing construct `<tt>( ... )</tt>' is used,
-      <tt>\&lt;digit></tt>
+      <tt>\&lt;digit&gt;</tt>
       matches the
       digit'th substring. If you want
       to use parentheses to delimit a subpattern (e.g., a set of alternatives)
@@ -194,18 +195,18 @@
     
     <dl>
       <dt><tt>(?#text)</tt></dt>
-      <dd>
+      <dd><p>
 	A comment.  The text is ignored.  If the `<tt>/x</tt>' switch is used to
-	enable whitespace formatting, a simple `<tt>#</tt>' will suffice.
+	enable whitespace formatting, a simple `<tt>#</tt>' will suffice.</p>
       </dd>
       <dt><tt>(?:regexp)</tt></dt>
-      <dd>
+      <dd><p>
 	This groups things like "<tt>()</tt>" but doesn't make backreferences like
-	"<tt>()</tt>" does.
+	"<tt>()</tt>" does.</p>
       </dd>
       
       <dt>(?!regexp)</dt>
-      <dd> 
+      <dd> <p>
 	A zero-width negative lookahead assertion.  For example
 	`<tt>foo(?!bar)</tt>' matches any occurrence of "foo" that isn't followed
 	by "bar".  Note however that lookahead and lookbehind are NOT the
@@ -216,18 +217,19 @@
 	"foobar" will match.  You would have to do something like
 	`<tt>(?!foo)...bar</tt>' for that. We say "like" because there's the case
 	of your "bar" not having three characters before it.  You could
-	cover that this way: `<tt>(?:(?!foo)...|^..?)bar</tt>'.
+	cover that this way: `<tt>(?:(?!foo)...|^..?)bar</tt>'.</p>
       </dd>
       <dt>(?ix)</dt>
-      <dd>
+      <dd><p>
 	One or more embedded pattern-match modifiers. If you need a
 	case insensitive pattern you only need to include 
 	`<tt>(?i)</tt>' at the front of	the pattern.
+	</p>
 	<dl>
 	  <dt>x</dt>
-	  <dd>Use extended regular expressions.</dd>
+	  <dd><p>Use extended regular expressions.</p></dd>
 	  <dt>i</dt>
-	  <dd>Do case-insensitive pattern matching.</dd>
+	  <dd><p>Do case-insensitive pattern matching.</p></dd>
 	</dl>
       </dd>
     </dl>
