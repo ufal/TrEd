@@ -13,6 +13,9 @@ use Tk::ProgressBar;
 use Tk::ROText;
 use Tk::NoteBook;
 use Tk::LabFrame;
+require Tk::Photo;
+require Tk::JPEG;
+require Tk::PNG;
 
 use File::Spec;
 use File::Basename;
@@ -135,7 +138,6 @@ sub InstallExtensions {
 
 sub icon {
   my ($t,$name)=@_;
-  require Tk::PNG;
   my $file = File::Spec->rel2abs('tred/tredlib/icons/crystal/'.$name.'.png',$install_base);
   $t->{top}->Photo(-file => $file,-format=>'png');
 }
