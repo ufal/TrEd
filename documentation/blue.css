@@ -18,6 +18,7 @@ code, .programlisting, .literallayout, .literal {
 
 .programlisting, .literallayout {
 	background: #d5dee6;
+	padding: 4pt 4pt 4pt 4pt;
 }
 
 /* navigace */
@@ -61,8 +62,19 @@ span.off     {  }
 
 dt { font-weight: bold }
 
-.framed { 
-   background-color: #ffffcc;
+.framed, .note, .warning, .tip  { 
    border: dashed 1pt;
    padding: 0 12pt 0 12pt;
+}
+
+.framed, .note, .tip  { 
+   background-color: #ffffcc;
+}
+
+.warning {
+   background-color: #ffdede;
+}
+
+.framed > h3, .note > h3, .warning > h3, .tip > h3 {
+  margin: 12pt 0 0 0;
 }
