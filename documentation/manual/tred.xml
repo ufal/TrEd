@@ -677,7 +677,6 @@ Tk: 804.028
   <section id="overview">
     <title>Overview of <application>TrEd's</application> user
     interface</title>
-    
     <mediaobject>
       <imageobject>
 	<imagedata fileref="pics/tred_overview.png" format="PNG" role="html"/>
@@ -2054,13 +2053,13 @@ Tk: 804.028
 	<term>
 	  <inlinemediaobject>
 	    <imageobject>
-	      <imagedata fileref="pics/filefloppy.png" format="PNG" role="html"/>
+	      <imagedata fileref="pics/filesave.png" format="PNG" role="html"/>
 	    </imageobject>
 	    <imageobject>
-	      <imagedata fileref="pics/filefloppy.eps" format="EPS" role="latex"/>
+	      <imagedata fileref="pics/filesave.eps" format="EPS" role="latex"/>
 	    </imageobject>
 	    <imageobject>
-	      <imagedata fileref="pics/filefloppy" format="linespecific"/>
+	      <imagedata fileref="pics/filesave" format="linespecific"/>
 	    </imageobject>
 	    <textobject><phrase>file-save</phrase></textobject>
 	  </inlinemediaobject>
@@ -2100,71 +2099,6 @@ Tk: 804.028
 	      is called instead (in case of success).
 	    </para>
 	  </note>
-	  
-	</listitem>
-      </varlistentry>
-      <varlistentry>
-	<term>
-	  <inlinemediaobject>
-	    <imageobject>
-	      <imagedata fileref="pics/redo.png" format="PNG" role="html"/>
-	    </imageobject>
-	    <imageobject>
-	      <imagedata fileref="pics/redo.eps" format="EPS" role="latex"/>
-	    </imageobject>
-	    <imageobject>
-	      <imagedata fileref="pics/redo" format="linespecific"/>
-	    </imageobject>
-	    <textobject><phrase>redo</phrase></textobject>
-	  </inlinemediaobject>
-	</term>
-	<listitem>
-	  <para>Redo last undone operation on the current tree.</para>
-	</listitem>
-      </varlistentry>
-      <varlistentry>
-	<term>
-	  <inlinemediaobject>
-	    <imageobject>
-	      <imagedata fileref="pics/undo.png" format="PNG" role="html"/>
-	    </imageobject>
-	    <imageobject>
-	      <imagedata fileref="pics/undo.eps" format="EPS" role="latex"/>
-	    </imageobject>
-	    <imageobject>
-	      <imagedata fileref="pics/undo" format="linespecific"/>
-	    </imageobject>
-	    <textobject><phrase>undo</phrase></textobject>
-	  </inlinemediaobject>
-	</term>
-	<listitem>
-	  <para>Undo last operation on the current
-	    tree. (See also <link linkend="maxundo">MaxUndo</link>
-	    configuration option.)</para>
-	</listitem>
-      </varlistentry>
-      <varlistentry>
-	<term>
-	  <inlinemediaobject>
-	    <imageobject>
-	      <imagedata fileref="pics/viewmag-.png" format="PNG" role="html"/>
-	    </imageobject>
-	    <imageobject>
-	      <imagedata fileref="pics/viewmag-.eps" format="EPS" role="latex"/>
-	    </imageobject>
-	    <imageobject>
-	      <imagedata fileref="pics/viewmag-" format="linespecific"/>
-	    </imageobject>
-	    <textobject><phrase>find-prev</phrase></textobject>
-	  </inlinemediaobject>
-	</term>
-	<listitem>
-	  <para>
-	    <menuchoice moreinfo="none">
-	      <guimenu moreinfo="none">Node</guimenu>
-	      <guimenuitem moreinfo="none">Find Previous</guimenuitem>
-	    </menuchoice>
-	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -2195,6 +2129,30 @@ Tk: 804.028
 	<term>
 	  <inlinemediaobject>
 	    <imageobject>
+	      <imagedata fileref="pics/finish.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/finish.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/finish" format="linespecific"/>
+	    </imageobject>
+	    <textobject><phrase>end</phrase></textobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <para>
+	  <menuchoice moreinfo="none">
+	      <guimenu moreinfo="none">File</guimenu>
+	      <guimenuitem moreinfo="none">Next File</guimenuitem>
+	    </menuchoice>
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
 	      <imagedata fileref="pics/fileprint.png" format="PNG" role="html"/>
 	    </imageobject>
 	    <imageobject>
@@ -2213,6 +2171,47 @@ Tk: 804.028
 	      <guimenuitem moreinfo="none">Print ...</guimenuitem>
 	    </menuchoice>
 	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/undo.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/undo.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/undo" format="linespecific"/>
+	    </imageobject>
+	    <textobject><phrase>undo</phrase></textobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <para>Undo last operation on the current
+	    tree. (See also <link linkend="maxundo">MaxUndo</link>
+	    configuration option.)</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/redo.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/redo.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/redo" format="linespecific"/>
+	    </imageobject>
+	    <textobject><phrase>redo</phrase></textobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <para>Redo last undone operation on the current tree.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -2267,22 +2266,22 @@ Tk: 804.028
 	<term>
 	  <inlinemediaobject>
 	    <imageobject>
-	      <imagedata fileref="pics/finish.png" format="PNG" role="html"/>
+	      <imagedata fileref="pics/viewmag-.png" format="PNG" role="html"/>
 	    </imageobject>
 	    <imageobject>
-	      <imagedata fileref="pics/finish.eps" format="EPS" role="latex"/>
+	      <imagedata fileref="pics/viewmag-.eps" format="EPS" role="latex"/>
 	    </imageobject>
 	    <imageobject>
-	      <imagedata fileref="pics/finish" format="linespecific"/>
+	      <imagedata fileref="pics/viewmag-" format="linespecific"/>
 	    </imageobject>
-	    <textobject><phrase>end</phrase></textobject>
+	    <textobject><phrase>find-prev</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
 	  <para>
-	  <menuchoice moreinfo="none">
-	      <guimenu moreinfo="none">File</guimenu>
-	      <guimenuitem moreinfo="none">Next File</guimenuitem>
+	    <menuchoice moreinfo="none">
+	      <guimenu moreinfo="none">Node</guimenu>
+	      <guimenuitem moreinfo="none">Find Previous</guimenuitem>
 	    </menuchoice>
 	  </para>
 	</listitem>
@@ -2331,56 +2330,6 @@ Tk: 804.028
 	  <menuchoice moreinfo="none">
 	    <guimenu moreinfo="none">View</guimenu>
 	    <guimenuitem moreinfo="none">Next Tree</guimenuitem>
-	  </menuchoice>
-	  </para>
-	</listitem>
-      </varlistentry>
-      <varlistentry>
-	<term>
-	  <inlinemediaobject>
-	    <imageobject>
-	      <imagedata fileref="pics/tick.png" format="PNG" role="html"/>
-	    </imageobject>
-	    <imageobject>
-	      <imagedata fileref="pics/tick.eps" format="EPS" role="latex"/>
-	    </imageobject>
-	    <imageobject>
-	      <imagedata fileref="pics/tick" format="linespecific"/>
-	    </imageobject>
-	    <textobject><phrase>check</phrase></textobject>
-	  </inlinemediaobject>
-	</term>
-	<listitem>
-	  <para>
-	  <menuchoice moreinfo="none">
-	    <guimenu moreinfo="none">View</guimenu>
-	    <guimenuitem moreinfo="none">Customize
-	      Tree...</guimenuitem>
-	  </menuchoice>
-	  </para>
-	</listitem>
-      </varlistentry>
-      <varlistentry>
-	<term>
-	  <inlinemediaobject>
-	    <imageobject>
-	      <imagedata fileref="pics/contents.png" format="PNG" role="html"/>
-	    </imageobject>
-	    <imageobject>
-	      <imagedata fileref="pics/contents.eps" format="EPS" role="latex"/>
-	    </imageobject>
-	    <imageobject>
-	      <imagedata fileref="pics/contents" format="linespecific"/>
-	    </imageobject>
-	    <textobject><phrase>contents</phrase></textobject>
-	  </inlinemediaobject>
-	</term>
-	<listitem>
-	  <para>
-	  <menuchoice moreinfo="none">
-	    <guimenu moreinfo="none">View</guimenu>
-	    <guimenuitem moreinfo="none">List
-	      of sentences...</guimenuitem>
 	  </menuchoice>
 	  </para>
 	</listitem>
@@ -2484,6 +2433,57 @@ Tk: 804.028
 	  </para>
 	</listitem>
       </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/wizard.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/wizard.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/wizard" format="linespecific"/>
+	    </imageobject>
+	    <textobject><phrase>check</phrase></textobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <para>
+	  <menuchoice moreinfo="none">
+	    <guimenu moreinfo="none">View</guimenu>
+	    <guimenuitem moreinfo="none">Customize
+	      Tree...</guimenuitem>
+	  </menuchoice>
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/contents.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/contents.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/contents" format="linespecific"/>
+	    </imageobject>
+	    <textobject><phrase>contents</phrase></textobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <para>
+	  <menuchoice moreinfo="none">
+	    <guimenu moreinfo="none">View</guimenu>
+	    <guimenuitem moreinfo="none">List
+	      of sentences...</guimenuitem>
+	  </menuchoice>
+	  </para>
+	</listitem>
+      </varlistentry>
+
     </variablelist>
   </section>
   <section id="mouse-and-keyboard">
@@ -6928,7 +6928,7 @@ sub CreateImages {
 	      unless the value of the variable <literal moreinfo="none">$FileChanged</literal> (see <xref linkend="defaultmacros"/>) is set to 0,
 	      the save-status of the current file is turned to <literal moreinfo="none">modified</literal>
 	      (as indicated by the state of the
-		<inlinemediaobject><imageobject><imagedata fileref="pics/filefloppy.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/filefloppy.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/filefloppy" format="linespecific"/></imageobject><textobject><phrase>save-file</phrase></textobject></inlinemediaobject>
+		<inlinemediaobject><imageobject><imagedata fileref="pics/filesave.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/filesave.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/filesave" format="linespecific"/></imageobject><textobject><phrase>save-file</phrase></textobject></inlinemediaobject>
 		button). 
 	    </para>
 	  </listitem>
