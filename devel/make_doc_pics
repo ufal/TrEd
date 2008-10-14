@@ -1,13 +1,13 @@
 #!/bin/sh
-for s in `ls tredlib/icons/default/*.xpm`; do
+for s in `ls tredlib/icons/crystal/*.png`; do
   o="$(basename "$s")"
-  gif="documentation/pics/${o%.xpm}.gif"
+  gif="documentation/pics/${o%.png}.gif"
   echo $s
+  cp $s "documentation/pics/";
   convert $s $gif
-  convert $s ${gif%.gif}.png
 
   # convert (at least here) doesn't handle None (i.e. transparent) consistentnly
-  cat $s | sed 's/ None",/ white",/' > ${gif%.gif}.xpm
-  convert ${gif%.gif}.xpm ${gif%.gif}.eps
-  rm ${gif%.gif}.xpm
+#  cat $s | sed 's/ None",/ white",/' > ${gif%.gif}.xpm
+  convert ${s} ${gif%.gif}.eps
+#  rm ${gif%.gif}.xpm
 done

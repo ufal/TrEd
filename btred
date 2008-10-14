@@ -2077,15 +2077,15 @@ btred is an off-line TrEd macro processor which applies macros on given files
 =item B<--macro-file|-m> filename
 
 File with macro definitions to load.  If no macro-file is given,
-standard macro file (by default F<tred.mac>) is used.
+standard macro file (by default C<tred.mac>) is used.
 
 =item B<--include-macro-file|-I> filename
 
 A file containing additional set of macros to load. This option is
 typically used instead of C<--macro-file> to allow loading macros
-B<both> from C<filename> B<and> the default macro set (F<tred.mac>).
+B<both> from C<filename> B<and> the default macro set (C<tred.mac>).
 C<--macro-file> can still be used in combination with
-B<--include-macro-file> to supply a replacement for F<tred.mac>.
+B<--include-macro-file> to supply a replacement for C<tred.mac>.
 
 =item B<--execute|-e> perl-code
 
