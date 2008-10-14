@@ -11664,11 +11664,6 @@ sub valueLineClick {
 sub loadMacros {
   my ($grp)=@_;
   read_macros($macroFile,$libDir); # read macros
-  if ($opt_I) {
-    print STDERR ("Reading additional macros from $opt_I...\n") unless $opt_q;
-    push @TrEd::Macros::macros,"\n","package TredMacro;\n";
-    read_macros($opt_I,$libDir,1);
-  }
 
   my $extensions = getExtensionList();
   my $preinst_dir = getPreInstalledExtensionsDir();
@@ -11700,6 +11695,13 @@ sub loadMacros {
       read_macros($ext_contrib,$libDir,1);
     }
   }
+
+  if ($opt_I) {
+    print STDERR ("Reading additional macros from $opt_I...\n") unless $opt_q;
+    push @TrEd::Macros::macros,"\n","package TredMacro;\n";
+    read_macros($opt_I,$libDir,1);
+  }
+
   print STDERR "done.\n" unless $opt_q;
 }
 
