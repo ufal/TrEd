@@ -11633,7 +11633,7 @@ sub valueLineClick {
   my (@tags)=
     $w->tagNames($w->index($Ev->xy));
   my $ret;
-  if ($but eq 'Double-ButtonPress-1' and $modif eq '') {
+  if ($but eq 'Double-1' and $modif eq '') {
     doEvalHook($win,"value_line_click_hook", $but, $modif, \@tags);
     $ret = doEvalHook($win,"value_line_doubleclick_hook", @tags);
     if (ref($ret) and ref($ret) =~ /^FSNode/) {
@@ -11773,7 +11773,7 @@ TrEd - a graphical visualizer and editor of tree graphs
 =head1 SYNOPSIS
 
  tred [-q] [-c <config-file>] [-m|-I <macro-file>] [-t context]
-      [-l <filelist>] [-n encoding] [other-options] [file[##ID|#N] ...]
+      [-l <filelist>] [-n encoding] [other-options] [file[##N|##N.M|#ID] ...]
 
 or
 
@@ -11788,15 +11788,18 @@ TrEd is a graphical visualizer and editor of tree graphs.
 
 =head2 Filename arguments
 
-Filenames on the command-line may be optionally followed by suffixes
-of the following forms:
+Each filename on the command-line or in a file list may be optionally
+followed by a suffix which identifies a node to be selected when the
+file is opened.  The suffix can be of one of the following following
+forms:
 
 #ID     where ID is an identifier of a node (for file formats that have
         identifiers, e.g. PML).
 
-##N     where N is a number. This makes TrEd to go to the N-th tree in
-	the given file after the file is opened.
+##N     where N is a number. This selects the root of the N-th tree
 
+##N.M   where N and M are numbers. This selects the M-th node in 
+        the depth-first order in the N-th tree.
 
 =head2 Options
 
