@@ -356,12 +356,41 @@ sub RunCallback {
 }
 
 {
-  my (@exit_hooks,@open_file_hooks, @reload_macros_hooks);
+  my (@start_hooks,
+      @init_hooks,
+      @initialize_bindings_hooks,
+      @exit_hooks,
+      @open_file_hooks,
+      @reload_macros_hooks);
 
   # the hook may be either a sub name, CODE ref or ARRAY ref, where
   # the first element of the array is the name/CODE-ref to execute
   # and the rest are arguments to be passed to it
 
+  sub register_init_hook ($) {
+    my ($hook)=@_;
+    push @init_hooks,$hook;
+  }
+  sub unregister_init_hook ($) {
+    my ($hook)=@_;
+    @init_hooks=grep { $_ ne $hook } @init_hooks;
+  }
+  sub register_initialize_bindings_hook ($) {
+    my ($hook)=@_;
+    push @initialize_bindings_hooks,$hook;
+  }
+  sub unregister_initialize_bindings_hook ($) {
+    my ($hook)=@_;
+    @initialize_bindings_hooks=grep { $_ ne $hook } @initialize_bindings_hooks;
+  }
+  sub register_start_hook ($) {
+    my ($hook)=@_;
+    push @start_hooks,$hook;
+  }
+  sub unregister_start_hook ($) {
+    my ($hook)=@_;
+    @start_hooks=grep { $_ ne $hook } @start_hooks;
+  }
   sub register_exit_hook ($) {
     my ($hook)=@_;
     push @exit_hooks,$hook;
@@ -386,7 +415,27 @@ sub RunCallback {
     my ($hook)=@_;
     @reload_macros_hooks=grep { $_ ne $hook } @reload_macros_hooks;
   }
-
+  sub init_hook {
+    my @args = @_;
+    foreach my $sub (@init_hooks) {
+      return 'stop' if RunCallback($sub,@args) eq 'stop';
+    }
+    return;
+  }
+  sub initialize_bindings_hook {
+    my @args = @_;
+    foreach my $sub (@initialize_bindings_hooks) {
+      return 'stop' if RunCallback($sub,@args) eq 'stop';
+    }
+    return;
+  }
+  sub start_hook {
+    my @args = @_;
+    foreach my $sub (@start_hooks) {
+      return 'stop' if RunCallback($sub,@args) eq 'stop';
+    }
+    return;
+  }
   sub open_file_hook {
     my @args = @_;
     foreach my $sub (@open_file_hooks) {
