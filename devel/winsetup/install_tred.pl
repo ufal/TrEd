@@ -45,9 +45,10 @@ my $upgrade = 0;
 my $install_base=File::Spec->rel2abs($FindBin::RealBin.'../../../..');
 chdir $install_base;
 
-my $package_dir_58 = File::Spec->catfile($install_base,'packages58_win32');
-my $package_dir_510 = File::Spec->catfile($install_base,'packages510_win32');
+my $package_dir_58 = File::Spec->catdir($install_base,'packages58_win32');
+my $package_dir_510 = File::Spec->catdir($install_base,'packages510_win32');
 my $package_dir = $] >= 5.010 ? $package_dir_510 : $package_dir_58;
+my $package_xml = File::Spec->catfile($package_dir,'package.xml');
 my $install_packages = 1;
 my $install_tred_path= File::Spec->catfile($install_base,'tred');
 my $install_target = 'c:\tred';
@@ -528,7 +529,7 @@ sub Install_PPM_Modules {
     $my_repo = eval {
       $ppm->repo_add(
 		     name => $tmp_repo,
-		     packlist_uri => URI::file->new_abs($package_dir),
+		     packlist_uri => URI::file->new_abs($package_xml),
 		    );
     };
     if ($@) {
@@ -546,8 +547,8 @@ sub Install_PPM_Modules {
       open my $list,'<', File::Spec->catfile($package_dir,'packages_list');
       <$list>
     }};
+    s/^\s+|\s+$//g for @features;
     Log("done.\n");
-    chomp @features;
 
     my @remove = grep /^!/, @features;
     @features = grep !/^!/, @features;

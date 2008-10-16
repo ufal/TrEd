@@ -252,10 +252,11 @@ sub install_tk {
     $status2 = "Please wait for PPM installer to finish\n";
     $status3 = "This may take a while...";
     $mw->update;
-    my $ppm = File::Spec->rel2abs('ppm.bat',dirname($perl));
+    my $ppm = File::Spec->rel2abs('ppm',dirname($perl));
+    print "Perl: $perl\n";
     print "PPM: $ppm\n";
     print "Tk.ppd: $tk_ppd\n";
-    if (job($ppm,qq(install "$tk_ppd"))==0) {
+    if (job($perl,qq("$ppm" install "$tk_ppd"))==0) {
       $status3="Success.";
     } else {
       $status3="There were errors.";
@@ -270,7 +271,7 @@ sub install_tk {
 	    "Apply the button 'Mark for install [+]' on the package and\n".
 	    "then the button 'Run marked actions [Ctrl+Enter]' to install it";
 	  $mw->update;
-	  job($ppm,'');
+	  job($perl,qq("$ppm"));
 	  $status2="PPM ended.";
 	  $status3="";
 	  $mw->update;
@@ -559,6 +560,7 @@ sub system_noblock {
   my ($cmd,$args,$cb,$opts)=@_;
   my $job = Win32::Job->new;
   $opts ||= {no_window=>1};
+  print "Starting job: $cmd $args\n";
   $job->spawn($cmd,"$cmd $args",$opts);
   $job->watch(sub {
 		if (defined($cb) and $cb->()) {
