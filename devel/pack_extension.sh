@@ -58,6 +58,25 @@ fi
 icon=`perl -ne 'print $1 if m{<icon>([^<]+)</icon>}' "$meta" /dev/null`
 echo "Icon $icon"
 
+
+size=
+s=`du -sb --exclude '*/.svn*' --exclude '*~' --exclude '#*' "$package_dir"|cut -f1`
+while [ $s != "$size" ]; do
+    size=$s
+    echo "Updating package size to: $size"
+perl -MXML::LibXML -e '
+  ($f,$size)=@ARGV;
+  $p=XML::LibXML->new->parse_file($f);
+  if ($p->documentElement->getAttribute("install_size")!=$size) {
+    $p->documentElement->setAttribute("install_size","$size");
+    rename $f, $f."~";
+    $p->toFile($f);
+  }
+' "$meta" $size;
+  s=`du -sb --exclude '*/.svn*' --exclude '*~' --exclude '#*' "$package_dir"|cut -f1`
+done
+
+
 if which validate_pml_stream 2>/dev/null; then 
     if ! validate_pml_stream -p "$tooldir/../resources" "$meta"; then
 	echo "Package meta file $meta is not a valid PML tred_package instance!"
@@ -107,6 +126,15 @@ fi
 echo Creating "$zip"
 make_zip "$zip" "$package_dir"
 
+zip_size=`du -sb "$zip"|cut -f1`
+echo "Zip size: $zip_size"
+perl -MXML::LibXML -e '
+  $f=shift;
+  print "File: $f\n";
+  $p=XML::LibXML->new->parse_file($f);
+  $p->documentElement->setAttribute("package_size","'$zip_size'");
+  $p->toFile($f);
+' "$target_dir/$name/package.xml"
 
 ext_list="$target_dir/extensions.lst"
 if ! [ -f "$ext_list" ] || ! grep -Eq "^\!?$name *\$" "$ext_list"; then
