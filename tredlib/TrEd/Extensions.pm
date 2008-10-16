@@ -197,6 +197,22 @@ sub _requires {
   return values %req;
 }
 
+{
+  sub _fmt_size {
+    my ($size)=@_;
+    my $unit;
+    for (qw(B KiB MiB)) {
+      $unit=$_;
+      if ($size<1024) {
+	last;
+      } else {
+	$size=$size/1024;
+      }
+    }
+    return sprintf("%d %s",$size,$unit||'GiB');
+  }
+}
+
 sub _populate_extension_pane {
   my ($tred,$d,$opts)=@_;
   my $list;
@@ -239,9 +255,10 @@ sub _populate_extension_pane {
 	next PKG;
       }
       $requires{$uri} = [];
-      if (!exists($seen{$uri}) and $data->{require}) {
+      my $require = $data && ref($data->{require}) && $data->{require};
+      if (!exists($seen{$uri}) and $require) {
 	$seen{$uri}=1;
-	for my $req ($data->{require}->values('extension')) {
+	for my $req ($require->values('extension')) {
 	  Encode::_utf8_off($_) for grep defined, $req->{name}, $req->{href};
 	  my $req_name = $req->{name};
 	  my $installed_req_ver = $opts->{installed}{$req_name};
@@ -307,8 +324,9 @@ sub _populate_extension_pane {
       my $data = $data{$name} = getExtensionMetaData($name, exists($pre_installed{$name}) ? getPreInstalledExtensionsDir() : ());
       $$progress++ if $progress;
       $progressbar->update if $progressbar;
-      if ($data and ref $data->{require}) {
-	$requires{$name} = $data->{require} ? [map { $_->{name} } $data->{require}->values('extension')] : [];
+      my $require = $data && ref($data->{require}) && $data->{require};
+      if ($require) {
+	$requires{$name} = $require ? [map { $_->{name} } $require->values('extension')] : [];
       }
       $required_by{$_}{$name}=1 for @{$requires{$name}};
     }
@@ -384,6 +402,7 @@ sub _populate_extension_pane {
 			  ? ' '.$data->{version} : ''
 			 ).')',[qw(name)]);
       $text->insert('end',"\n");
+      my $require = $data->{require};
 #      $text->insert('end','Name: ',[qw(label)],$name,[qw(name)],"\n");
       my $desc = $data->{description} || 'N/A';
       $desc=~s/\s+/ /g;
@@ -537,6 +556,17 @@ sub _populate_extension_pane {
       }
     }
     $text->insert('end',' ',[$bf]);
+    {
+      if ($data and ($data->{install_size} or $data->{package_size})) {
+	$text->insert('end', '(Size: ');
+	if (UNIVERSAL::isa($name,'URI')) {
+	  $text->insert('end', _fmt_size($data->{package_size}). ' package') if $data->{package_size};
+	  $text->insert('end', ' / ') if $data->{package_size} && $data->{install_size};
+	}
+	$text->insert('end', _fmt_size($data->{install_size}).' installed') if $data->{install_size};
+	$text->insert('end', ") ");
+    }
+    }
     $text->windowCreate('end',-window => $bf,-padx=>5);
     $text->tagConfigure($bf,-justify=>'right');
 #    $text->tagConfigure('preinst',-justify=>'right');
