@@ -2,7 +2,6 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <meta name="generator" content="HTML Tidy for Linux/x86 (vers 1st December 2004), see www.w3.org" />
     <title>Tree Editor TrEd</title>
     <link href="blue.css" rel="stylesheet" />
     <link rel="alternate" title="TrEd ChangeLog RSS"
@@ -67,43 +66,52 @@
       <p class="version"><b>Current version:</b> </p>
       <dl>
       <dt id="download_windows">Windows</dt>
+        <dd class="framed">
+	  <b>The following packages are not intended for use with Perl from CygWin or Strawberry Perl.
+	    For those perl distributions, follow the Unix installation instructions
+	    (but we do not guarantee it will work).
+	  </b>
+        </dd>
       <dd>
       <dl>
         <dt>
           <tt>
             <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred_wininst_en.exe">tred_wininst_en.exe</a>
-	    (SIZE_OF:tred_wininst_en.exe) - bundeled with ActivePerl installer
+	    (SIZE_OF:tred_wininst_en.exe) - TrEd + Extensions + Modules + ActivePerl
           </tt>
         </dt>
-        <dd><p>This is a self-extracting <a href="http://www.7-zip.org/">7Zip archive</a>
-          with an installation package for Microsoft Windows based on 
-	  <a href="http://www.activestate.com/store/activeperl/download/">ActivePerl&nbsp;5.8.8</a>.
-	  Alternativelly, you may download a non-self-extracting 7Zip
-          here: <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred_wininst_en.7z">tred_wininst_en.7z</a>
-	  (SIZE_OF:tred_wininst_en.7z)
-          </p>
+        <dd><p><small>This is a full instalation package for TrEd for Microsoft Windows.
+	This self-extracting <a href="http://www.7-zip.org/">7Zip archive</a>
+	contains TrEd, required Perl Modules, standard TrEd Extensions, and 
+	<a href="http://www.activestate.com/store/activeperl/download/">ActivePerl&nbsp;5.8.8</a>.
+	(Plain 7Zip <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred_wininst_en.7z">here</a>)</small>
+      </p>
 	</dd>
         <dt>
           <tt>
             <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred_wininst_en_noAP.exe">tred_wininst_en_noAP.exe</a>
-	    (SIZE_OF:tred_wininst_en_noAP.exe) - no ActivePerl installer
+	    (SIZE_OF:tred_wininst_en_noAP.exe) - TrEd + Extensions + Modules
           </tt>
         </dt>
-	<dd><p>
+	<dd><p><small>
 	  Use this smaller package if you already have ActivePerl &gt;= 5.8.8
 	  installed on your computer (please, do check the version),
 	  e.g. for regular updates.
-	  Non-self-extracting 7Zip is
-          here: <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred_wininst_en_noAP.7z">tred_wininst_en_noAP.7z</a>
-	  (SIZE_OF:tred_wininst_en_noAP.7z)
-	  <p>
-	  </dd>
-        <dd>
-	  <b>These packages are not intended for use with Perl from CygWin or Strawberry Perl.
-	    For those perl distributions, follow the Unix installation instructions
-	    (but we do not guarantee anything).
-	  </b>
-        </dd>
+	  (Plain 7Zip <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred_wininst_en_noAP.7z">here</a>)</small>
+	  </p>
+	</dd>
+        <dt>
+          <tt>
+            <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred_wininst_en_small.exe">tred_wininst_en_small.exe</a>
+	    (SIZE_OF:tred_wininst_en_small.exe) - TrEd + Modules
+          </tt>
+        </dt>
+	<dd><p><small>
+	  This even smaller package does not include TrEd extensions.
+	  Extensions can be downloaded and installed separately from TrEd.
+	  (Plain 7Zip <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred_wininst_en_small.7z">here</a>)</small>
+	  </p>
+	</dd>
       </dl>
       </dd>
       <dt id="download_unix">Unix, Linux, Mac OS X</dt>
@@ -115,23 +123,25 @@
 	    (SIZE_OF:tred-current.tar.gz)
           </tt>
         </dt>
-        <dd>This is the latest TrEd distribution package (including
+        <dd><p><small>This is the latest TrEd distribution package (including
           documentation). It runs on all supported platforms, but is
           mainly intended for Linux/Unix users.  It requires Perl
           5.8.3 or newer and some Perl modules provided in a
           dependency package below.  After installing all
           dependencies, simply ungzip+untar this package and run
-          <tt>tred/tred</tt>.</dd>
+          <tt>tred/tred</tt>.
+	</small></p>
+	</dd>
         <dt>
           <tt>
             <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred-dep-unix.tar.gz">tred-dep-unix.tar.gz</a>
 	    (SIZE_OF:tred-dep-unix.tar.gz)
           </tt>
         </dt>
-        <dd>This package bundles sources for Linux/Unix dependencies for TrEd
+        <dd><p><small>This package bundles sources for Linux/Unix dependencies for TrEd
           (mostly Perl modules). The <tt>install</tt> script
           contained in the package automates compilation and
-	  installation of all these dependencies.
+	  installation of all these dependencies.</small></p>
         </dd>
       </dl>
       </dd>
@@ -140,11 +150,14 @@
     <div class="extensions" id="extensions">
       <h2>Extensions</h2>
       <p>
-	<a href="http://ufal.mff.cuni.cz/~pajas/tred/extensions/extensions.html">Here</a>  is a list
+	Click the following link for a list
 	of TrEd Extension Packages currently
 	available in the 
-	<a href="http://ufal.mff.cuni.cz/~pajas/tred/extensions/">default extension repository</a>
+	default extension repository
       </p>
+      <center>
+	<a href="http://ufal.mff.cuni.cz/~pajas/tred/extensions/">http://ufal.mff.cuni.cz/~pajas/tred/extensions/</a>
+      </center>
       </div>
     <div class="w3c_valid">
       <hr />
