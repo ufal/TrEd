@@ -14,16 +14,21 @@ function make_zip () {
     fi
     rm -f "$z"
     
+    touch "$z"
     if 
 	! zip -9 \
-	    "${z}" \
+	    "${z}.part" \
 	    `find -L -not -wholename "*/.svn*"` \
 	    -x '*~' \
 	    -x '#*' 	
     then
+	rm "$z"
+	rm "${z}.part"
 	echo "Failed to create package $z!"
 	exit 6;
     fi
+    chmod --reference="$z" "${z}.part"
+    mv "${z}.part" "$z"
     popd
 }
 
