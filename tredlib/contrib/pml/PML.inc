@@ -188,7 +188,7 @@ sentence.
     my @trees = GetTrees();
     if($to =~ /^[0-9]+$/){ # number
       TredMacro::GotoTree($to) if $to <= @trees and $to != 0;
-    } else{ # id
+    }elsif(length $to){ # id
       for(my$i=0;$i<@trees;$i++){
 	if($trees[$i]->{id} =~ /\Q$to\E$/){
 	  TredMacro::GotoTree($i+1);
