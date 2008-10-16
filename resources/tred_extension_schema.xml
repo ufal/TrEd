@@ -6,6 +6,8 @@
   <root name="tred_extension" type="te-extension.type"/>
   <type name="te-extension.type">
     <structure>
+      <member as_attribute="1" name="install_size"><cdata format="nonNegativeInteger"/></member>
+      <member as_attribute="1"  name="package_size"><cdata format="nonNegativeInteger"/></member>
       <member name="pkgname" required="1"><cdata format="NMTOKEN"/></member>
       <member name="repository">
 	<structure>
@@ -25,6 +27,14 @@
       </member>
       <member name="require" type="te-require.type"/>
       <member name="description"><cdata format="any"/></member>
+      <member name="otherinfo">
+	<list ordered="1">
+	  <container>
+	    <attribute name="name"><cdata format="any"/></attribute>
+	    <cdata format="any"/>
+	  </container>
+	</list>
+      </member>
     </structure>
   </type>
   <type name="te-require.type">
