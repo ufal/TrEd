@@ -1075,8 +1075,7 @@ Tk: 804.028
 	  <term><guimenuitem moreinfo="none">Reload stylesheets ...</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Reloads display stylesheets from the file
-	      <filename moreinfo="none">~/.tred-stylesheets</filename>.
+	      Reloads display stylesheets
 	      This command is useful
 	      if you have changed the stylesheets in a text
 	      editor or in an another running instance of
@@ -3239,10 +3238,18 @@ Tk: 804.028
       into the displayed dialog entry. The new stylesheet
       immediatelly appears as the selected item in the list.
     </para>
+    <warning>
+      <para>
+	Although the API for stylesheets is case sensitive, for compatibility with
+	Microsoft Windows, there must not be two
+	stylesheets whose names differ only in case.
+      </para>
+    </warning>
     <para>
       While a file-specific stylesheet is stored directly in the FS
-      file, named stylesheets are all saved in a file called <filename moreinfo="none">.tred-stylesheets</filename> in user's home
-      directory.  This file is updated every time a named stylesheet
+      file, named stylesheets are all saved in
+      similarly named files in <filename moreinfo="none">.tred.d/stylesheets/</filename> in user's home
+      directory.  Stylesheet files are updated every time a named stylesheet
       is added removed or edited. Currently selected named stylesheet
       can be completely removed from the list by selecting <guilabel moreinfo="none">&lt;Delete Current&gt;</guilabel> item from the
       pattern-set list.
