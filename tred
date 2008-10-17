@@ -26,7 +26,7 @@ use vars qw($svn_version $version $VERSION $about $opt_u $opt_h $opt_c
 	    $macroFile @filelists %filelist_from_extension
 	    @openfiles $treeViewOpts $opt_m
             @backends @ISA @EXPORT @open_types @save_types $opt_l $opt_s
-            $stylesheetFile $opt_S
+            $opt_S
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
             $valueLine $appName $ioBackends %menuBindings %keyBindings
             $NewFileNo $stderr $stdout
@@ -291,9 +291,9 @@ import Fslib;
 import Fslib qw(&Index $FSError);
 import PMLSchema qw(:constants); # too late (we'll need () after PML_.._DECL)
 require TrEd::UserAgent;
+sub uniq { my %a; grep { !($a{$_}++) } @_ }
 
-
-$stylesheetFile = $opt_S ne EMPTY ? $opt_S : $ENV{HOME}."/.tred-stylesheets";
+initStylesheetPaths([split($Fslib::resourcePathSplit,$opts_S,-1)]);
 
 $Fslib::resourcePath=
   join($Fslib::resourcePathSplit,
@@ -695,11 +695,6 @@ my %default_binding = (
  );
 
 ApplyGlobalConfig();
-
-print STDERR "Resource path: $Fslib::resourcePath\n" unless $opt_q;
-
-
-sub uniq { my %a; grep { !($a{$_}++) } @_ }
 
 # it seems, that under Windoze setting LC_NUMERIC back to us does not
 # work, so I recommend not to use czech locales there, unless you
@@ -5041,7 +5036,7 @@ sub switchStylesheet {
     $stylesheet=QueryString($grp,"Stylesheet name", "Name: ");
     if (!defined($stylesheet)) {
       $stylesheet=$prevstylesheet;
-    } elsif (exists($grp->{stylesheets}->{$stylesheet})) {
+    } elsif (grep /^\Q$stylesheet\E$/i, keys %{$grp->{stylesheets}}) {
       errorMessage($win,
 		   "Stylesheet named '$stylesheet' already exists!\n",1);
       $stylesheet=$prevstylesheet;
@@ -5051,7 +5046,7 @@ sub switchStylesheet {
       $grp->{stylesheets}->{$stylesheet}->{context}=$context;
       $grp->{stylesheets}->{$stylesheet}->{patterns}=$patterns;
       updateStylesheetMenu($grp);
-      saveStyleSheets($grp,$stylesheetFile);
+      saveStyleSheetFile($grp,$defaultStylesheetPath,$stylesheet);
     }
     applyWindowStylesheet($win,$stylesheet);
     $grp->{selectedStylesheet} = $stylesheet if isFocused($win);
@@ -5068,7 +5063,6 @@ sub switchStylesheet {
 			 -buttons => ['Yes', 'No']);
     if ($answer eq 'Yes') {
       deleteStylesheet($grp,$stylesheet);
-      saveStyleSheets($grp,$stylesheetFile);
     } else {
       $grp->{selectedStylesheet} = $stylesheet if isFocused($win);
       return 0;
@@ -5912,7 +5906,8 @@ sub startMain {
   if ($TrEd::Convert::support_unicode) {
     $top->useinputmethods(1);
   }
-  readStyleSheets(\%group,$stylesheetFile);
+  my $preparedExtensions = prepareExtensions(\%group);
+  loadStyleSheets(\%group);
 
   $group{autoSaveCallback}=$top->repeat($autoSave*60000,
 					       [\&autoSaveAll,\%group]) if $autoSave>0;
@@ -6092,17 +6087,19 @@ sub startMain {
   $group{FileMenu}->command(-label=>'Reload config ...',
 			    -underline=> 3,
 			    -command=> [sub {
+					  my ($grp)=@_;
 					  read_config();
-					  reconfigure($_[0]);
-					  get_nodes_all($_[0]);
-					  redraw_all($_[0]);
+					  reconfigure($grp);
+					  get_nodes_all($grp);
+					  redraw_all($grp);
 					},\%group]);
   $group{FileMenu}->command(-label=>'Reload stylesheets ...',
 			    -underline=> 9,
 			    -command=> [sub {
-					  readStyleSheets($_[0],$stylesheetFile);
-					  get_nodes_all($_[0]);
-					  redraw_all($_[0]);
+					  my ($grp)=@_;
+					  loadStyleSheets($grp);
+					  get_nodes_all($grp);
+					  redraw_all($grp);
 					},\%group]);
   $group{FileMenu}->separator();
   $group{FileMenu}->command(-label=>'Quit',
@@ -6864,8 +6861,9 @@ sub startMain {
   }
 
   $top->Busy(-recurse=> 1);
-  eval { loadMacros($grp) };
+  eval { loadMacros($grp,{preparedExtensions=>$preparedExtensions}) };
   errorMessage($top,$@) if $@;
+  print STDERR "Resource path: $Fslib::resourcePath\n" unless $opt_q;
   print "Starting in context $group{focusedWindow}->{macroContext}\n" if $tredDebug;
   doEvalHook($group{focusedWindow},"initialize_bindings_hook");
 
@@ -7819,6 +7817,7 @@ sub reconfigure {
   foreach (@{$grp->{treeWindows}}) {
     $_->treeView->apply_options($treeViewOpts);
   }
+
   ApplyGlobalConfig($grp);
 }
 
@@ -8143,7 +8142,7 @@ sub stylesheetUsingWindows {
 
 sub deleteStylesheet {
   my ($grp,$stylesheet)=@_;
-  delete $grp->{stylesheets}->{$stylesheet};
+  removeStylesheetFile($grp,$defaultStylesheetPath,$stylesheet);
   updateStylesheetMenu($grp);
   foreach my $win (stylesheetUsingWindows($grp,$stylesheet)) {
     if ($grp->{focusedWindow} == $win) {
@@ -9533,7 +9532,7 @@ EOF
     if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
       $win->{FSFile}->notSaved(1);
     } else {
-      saveStyleSheets($grp,$stylesheetFile);
+      saveStyleSheet($grp,$defaultStylesheetPath,$win->{stylesheet});
     }
     get_nodes_fsfile($grp,$win->{FSFile});
     update_value_line($grp);
@@ -11661,16 +11660,31 @@ sub valueLineClick {
   Tk->break;
 }
 
+sub prepareExtensions {
+  my $extensions = getExtensionList();
+  my $pre_installed =  getPreInstalledExtensionList($extensions);
+  initExtensions($extensions);
+  initExtensions($pre_installed, getPreInstalledExtensionsDir());
+  return [$extensions,$pre_installed];
+}
+
 sub loadMacros {
-  my ($grp)=@_;
+  my ($grp,$opts)=@_;
+  $opts||={};
   read_macros($macroFile,$libDir); # read macros
 
-  my $extensions = getExtensionList();
   my $preinst_dir = getPreInstalledExtensionsDir();
-  my $pre_installed =  getPreInstalledExtensionList($extensions);
 
-  initExtensions($extensions);
-  initExtensions($pre_installed,$preinst_dir);
+  my ($extensions,$pre_installed);
+  if (ref($opts->{preparedExtensions})) {
+    ($extensions,$pre_installed)=@{$opts->{preparedExtensions}}
+  } else {
+    $extensions = getExtensionList();
+    $pre_installed =  getPreInstalledExtensionList($extensions);
+    initExtensions($extensions);
+    initExtensions($pre_installed,$preinst_dir);
+  }
+
   foreach my $path (getExtensionSampleDataPaths($extensions),
 		    getExtensionSampleDataPaths($pre_installed,$preinst_dir)) {
     foreach my $f (glob(File::Spec->catfile($path,'*.fl'))) {
@@ -11831,9 +11845,12 @@ B<--include-macro-file> to supply a replacement for F<tred.mac>.
 
 TrEd configuration file (overrides ~/.tredrc).
 
-=item B<--stylesheet-file> filename
+=item B<--stylesheet-file> path
 
-TrEd stylesheet configuration file (overrides ~/.tred-stylesheets).
+Path may be either a file name, in which case it must point to a TrEd
+stylesheet configuration file in the old format or ~/.tred-stylesheets
+(obsolete), or a directory, in which case each file in the directory
+must be a TrEd stylesheet.
 
 =item B<--resource-dir|-Z> dirnames
 

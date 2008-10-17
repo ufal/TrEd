@@ -71,7 +71,8 @@ sub initExtensions {
     carp('Usage: initExtensions( [ extension_name(s)... ] )');
   }
   $extension_dir||=getExtensionsDir();
-  my (%m,%r,%i);
+  my (%m,%r,%i,%s);
+  @s{ @TrEd::Utils::stylesheetPaths } = ();
   @r{ Fslib::ResourcePaths() } = ();
   @m{ @TrEd::Macros::macro_include_paths } = ();
   @i{ @INC } = ();
@@ -90,6 +91,11 @@ sub initExtensions {
     if (-d $dir and !exists($i{$dir})) {
       push @INC, $dir;
       $i{$dir}=1;
+    }
+    $dir = File::Spec->catdir($extension_dir,$name,'stylesheets');
+    if (-d $dir and !exists($s{$dir})) {
+      push @TrEd::Utils::stylesheetPaths, $dir;
+      $s{$dir}=1;
     }
   }
   PMLBackend::configure();
