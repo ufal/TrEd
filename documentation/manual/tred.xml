@@ -9432,6 +9432,29 @@ contrib/sample_extension/sample_macros2.mak
 	</listitem>
 	<listitem>
       <para>
+	If the package contains a directory named
+	<literal>stylesheets</literal>,
+	TrEd adds this directory to its list
+	of directories to load stylesheets from. Each file
+	in this directory should be a text file
+	containing a TrEd stylesheet
+	in the <link linkend="pattern_syntax">TrEd stylesheet syntax</link>.
+	The name of the stylesheet in TrEd is the same as the basename of the file.
+	If a similarly named stylesheet is already loaded
+	(e.g. from some directory appearing earlier in the stylesheet directory list),
+	the stylesheet is ignored.
+	If the stylesheet name contains non-ascii or non-alphanumeric characters,
+	they must be <ulink url="http://en.wikipedia.org/wiki/Percent-encoding">URI-escaped</ulink>.
+	If the user modifies a stylesheet loaded from an extension,
+	TrEd saves the modified version into the user's private
+	stylesheet directory <filename>~/tred.d/stylesheets</filename>,
+	which always appears first in the stylesheet directory list,
+	so the modified version has precedence.
+      </para>
+	</listitem>
+
+	<listitem>
+      <para>
 	If the resource folder contains
 	a PML file name <literal>pmlbackend_conf.inc</literal>
 	with transformation rules for the 

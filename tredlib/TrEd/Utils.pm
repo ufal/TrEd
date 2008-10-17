@@ -7,10 +7,12 @@ use strict;
 use Carp;
 use Data::Dumper;
 use List::Util qw(first min max);
+use File::Spec;
+use URI::Escape;
 require Exporter;
 
 our @ISA = qw(Exporter);
-
+use vars qw(@stylesheetPaths $defaultStylesheetPath);
 use constant {
   STYLESHEET_FROM_FILE  => "<From File>",
   NEW_STYLESHEET        => "<New From Current>",
@@ -27,10 +29,17 @@ use constant {
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = ( 'all' => [ qw(
+  @stylesheetPaths
+  $defaultStylesheetPath
   fetch_from_win32_reg
   find_win_home
+  loadStyleSheets
+  initStylesheetPaths
   readStyleSheets
   saveStyleSheets
+  removeStylesheetFile
+  readStyleSheetFile
+  saveStyleSheetFile
   getStylesheetPatterns
   setStylesheetPatterns
   updateStylesheetMenu
@@ -82,37 +91,134 @@ sub find_win_home {
   }
 }
 
-sub saveStyleSheets {
-  my ($gui,$stylesheetFile)=@_;
+sub saveStyleSheetFile {
+  my ($gui,$dir,$name)=@_;
+  if (-f $dir) {
+    # old interface
+    return saveStyleSheets($gui,$dir);
+  }
+  unless (-d $dir) {
+    mkdir $dir || do {
+      print STDERR "Cannot create styleheet directory: $dir: $!";
+      return 0
+    };
+  }
+  my $stylesheetFile = File::Spec->catfile($dir,URI::Escape::uri_escape_utf8($name));
   open my $f, '>:utf8',$stylesheetFile || do {
-    print STDERR "cannot write to stylesheet file: $stylesheetFile\n";
+    print STDERR "cannot write to stylesheet file: $stylesheetFile: $!\n";
     return 0;
   };
-  foreach my $stylesheet (sort keys (%{$gui->{stylesheets}})) {
-    next if $stylesheet eq STYLESHEET_FROM_FILE();
-    print $f "#"x 50,"\n";
-    print $f "stylesheet: $stylesheet\n";
-    for ($gui->{stylesheets}->{$stylesheet}) {
-      if ($_->{context} =~ /\S/) {
-	print $f map { "context: ".$_."\n" } split /\n/, $_->{context};
-      }
-      print $f map { local $_=$_; tr/\n/\013/; $_."\n" } 
-	map { /^#/ ? 'node:'.$_ : $_ } @{$_->{patterns}};
-      print $f map { 'hint:'.$_."\n" } split /\n/, $_->{hint};
-    }
-    print $f "\n\n";
+  my $s = $gui->{stylesheets}->{$name};
+  if ($s->{context} =~ /\S/) {
+    $s->{context}=~s/^\s+|\s+$//g;
+    print $f "context: ".$s->{context}."\n";
   }
+  print $f @{$s->{patterns}};
+  print $f "\nhint:". $s->{hint};
+}
+
+sub readStyleSheetFile {
+  my ($gui,$stylesheetFile,$opts)=@_;
+  $opts||={};
+  my (undef,undef,$f) = File::Spec->splitpath($stylesheetFile);
+  my $name = URI::Escape::uri_unescape($f);
+  my $ss =  $gui->{stylesheets}||={};
+  return if $opts->{no_overwrite} and grep /^\Q$name\E$/i, keys %$ss;
+  open my $f, '<:utf8',$stylesheetFile || do {
+    print STDERR "cannot read stylesheet file: $stylesheetFile: $!\n";
+    return;
+  };
+  my $s = $ss->{$name} ||= {};
+  local $/;
+  ($s->{hint},$s->{context},$s->{patterns})=splitPatterns(<$f>);
   close $f;
+
+  return $s;
+}
+
+sub removeStylesheetFile {
+  my ($gui,$path,$name)=@_;
+  delete $gui->{stylesheets}->{$name};
+  if (-d $path) {
+    my $stylesheetFile = File::Spec->catfile($path,URI::Escape::uri_escape_utf8($name));
+    unlink $stylesheetFile.'~';
+    rename $stylesheetFile, $stylesheetFile.'~';
+  } elsif (-f $path) {
+    saveStyleSheets($gui,$path);
+  }
+}
+
+sub saveStyleSheets {
+  my ($gui,$where)=@_;
+  if (-d $where || ! -e $where) {
+    if (!-d $where) {
+      mkdir $where || do {
+	print STDERR "cannot create stylesheet directory: $where: $!\n";
+	return 0;
+      };
+    }
+    foreach my $stylesheet (keys (%{$gui->{stylesheets}})) {
+      next if $stylesheet eq STYLESHEET_FROM_FILE();
+      saveStyleSheetFile($gui,$where,$stylesheet);
+    }
+  } else {
+    open my $f, '>:utf8',$where || do {
+      print STDERR "cannot write to stylesheet file: $where: $!\n";
+      return 0;
+    };
+    foreach my $stylesheet (sort keys (%{$gui->{stylesheets}})) {
+      next if $stylesheet eq STYLESHEET_FROM_FILE();
+      print $f "#"x 50,"\n";
+      print $f "stylesheet: $stylesheet\n";
+      for ($gui->{stylesheets}->{$stylesheet}) {
+	if ($_->{context} =~ /\S/) {
+	  print $f map { "context: ".$_."\n" } split /\n/, $_->{context};
+	}
+	print $f map { local $_=$_; tr/\n/\013/; $_."\n" } 
+	  map { /^#/ ? 'node:'.$_ : $_ } @{$_->{patterns}};
+	print $f map { 'hint:'.$_."\n" } split /\n/, $_->{hint};
+      }
+      print $f "\n\n";
+    }
+    close $f;
+  }
 }
 
 sub readStyleSheets {
-  my ($gui,$filename)=@_;
+  my ($gui,$file,$opts)=@_;
+  if (-f $file) {
+    readStyleSheetsOld($gui,$file,$opts);
+  } elsif (-d $file) {
+    readStyleSheetsNew($gui,$file,$opts);
+  }
+}
+
+
+sub readStyleSheetsNew {
+  my ($gui,$dir,$opts)=@_;
+  $opts||={};
+  opendir(my $dh, $dir) || do {
+    print STDERR "cannot read stylesheet directory: $dir: $!\n";
+    return 0;
+  };
+  $gui->{stylesheets}={} unless $opts->{no_overwrite};
+  while (my $f = readdir($dh)){
+    next if $f =~ /~$|^#|#$|^\./;
+    my $stylesheetFile = File::Spec->catfile($dir,$f);
+    next unless -f $stylesheetFile;
+    readStyleSheetFile($gui,$stylesheetFile,$opts);
+  }
+  return 1;
+}
+
+sub readStyleSheetsOld {
+  my ($gui,$filename,$opts)=@_;
   open my $f, '<:utf8',$filename || do {
     print STDERR "no stylesheet file: $filename\n";
     return 0;
   };
   my $stylesheet="Default";
-  $gui->{stylesheets}={};
+  $gui->{stylesheets}={} unless $opts and $opts->{no_overwrite};
   while (<$f>) {
     s/\s+$//;
     next unless /\S/;
@@ -359,6 +465,40 @@ sub fileSchema {
   return $fsfile->metaData('schema');
 }
 
+sub initStylesheetPaths{
+  my ($userPaths)=@_;
+  $defaultStylesheetPath = $ENV{HOME}."/.tred-stylesheets";
+  my $stylesheetDir = File::Spec->catfile($ENV{HOME},'.tred.d','stylesheets');
+  if (!-d $stylesheetDir and -f $defaultStylesheetPath) {
+    print STDERR "Converting old stylesheets from $defaultStylesheetPath to $stylesheetDir...\n";
+    my $gui = { stylesheets => {} };
+    readStyleSheets($gui,$defaultStylesheetPath);
+    if (mkdir $stylesheetDir) {
+      saveStyleSheets($gui,$stylesheetDir);
+      print STDERR "done.\n";
+    } else {
+      print STDERR "failed to create $stylesheetDir: $!.\n";
+      $stylesheetDir=$defaultStylesheetPath;
+    }
+  }
+  $defaultStylesheetPath=$stylesheetDir if -d $stylesheetDir;
+  my %uniq;
+  if (ref($userPaths) and @$userPaths) {
+    @stylesheetPaths = grep { !($uniq{$_}++) } ( (map { length($_) ? $_ : ($defaultStylesheetPath) } @$userPaths), @stylesheetPaths ),
+    $defaultStylesheetPath=$stylesheetPaths[0];
+  } else {
+    @stylesheetPaths = grep { !($uniq{$_}++) } ($defaultStylesheetPath,@stylesheetPaths);
+  }
+}
+
+sub loadStyleSheets {
+  my ($gui)=@_;
+  my $later=0;
+  for my $p (@stylesheetPaths) {
+    readStyleSheets($gui, $p, {no_overwrite=>$later});
+    $later=1;
+  }
+}
 
 
 1;

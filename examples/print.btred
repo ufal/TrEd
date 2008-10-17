@@ -17,7 +17,7 @@ sub RedrawStatusLine {}
 
 package TredMacro;
 use Tk;
-
+use File::Spec;
 require TrEd::Utils;
 require TrEd::TreeView;
 require TrEd::Print;
@@ -37,15 +37,13 @@ my %opts =
     focusedWindow => $grp,
   };
   $grp->{framegroup} = $gui; 
-  
-  my $stylesheetFile = (defined($opts{stylesheet}) and length($opts{stylesheet})) ? 
-    $opts{stylesheet} : $ENV{HOME}."/.tred-stylesheets";
-  TrEd::Utils::readStyleSheets($gui,$stylesheetFile);
 
   package main;
-  import TrEd::Utils qw(getStylesheetPatterns
-			setStylesheetPatterns
-			STYLESHEET_FROM_FILE);
+  import TrEd::Utils ':all';
+
+  initStylesheetPaths([split($Fslib::resourcePathSplit,$opts{'stylesheet-paths'},-1)]);
+  loadStyleSheets($gui);
+
   sub __run_hook {
     my $treeview = shift;
     my $win = shift;
@@ -213,6 +211,11 @@ and possibly other hooks are called from this context).
 =item C<--stylesheet> stylesheet
 
 Name of the stylesheet to use.
+
+=item C<--stylesheet-paths> path(s)
+
+A colon- (semicolon- or Windows) separated list of paths to look for
+stylesheet files.
 
 =item C<--range> range
 

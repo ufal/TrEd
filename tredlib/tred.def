@@ -2449,28 +2449,55 @@ sub DeleteStylesheet {
   main::deleteStylesheet($grp->{framegroup},$stylesheet) if GUI();
 }
 
-=item C<SaveStylesheets()>
+=item C<SaveStylesheet(name)>
 
-Save all TrEd's stylesheets (to ~/.tred-stylesheets).
+Save given TrEd's stylesheet (to ~/.tred.d/stylesheets/name).
 
 =cut
 
 sub SaveStylesheets {
   my ($patterns,$stylesheet) = @_;
-  main::saveStyleSheets($grp->{framegroup},$main::stylesheetFile) if GUI();
+  main::saveStyleSheet($grp->{framegroup},$main::defaultStylesheetPath,$stylesheet) if GUI();
 }
 
-=item C<ReloadStyleseets(filename?)>
+=item C<SaveStylesheets()>
 
-Reload stylesheets from a given file. If no filename is specified, the
-default path "~/.tred-stylesheets" is used.
+Save all TrEd's stylesheets (to ~/.tred.d/stylesheets/).
+
+=cut
+
+sub SaveStylesheets {
+  my ($patterns) = @_;
+  main::saveStyleSheets($grp->{framegroup},$main::defaultStylesheetPath) if GUI();
+}
+
+=item C<ReloadStylesheet(name,dir?)>
+
+Reload a given stylesheet. If no dir is specified, the
+default path "~/.tred.d/stylesheets/" is used.
+
+=cut
+
+sub ReloadStylesheet {
+  my ($name,$dir) = @_;
+  $dir = $main::defaultStylesheetPath unless defined $dir;
+  if (GUI()) {
+    require URI::Escape;
+    my $file = File::Spec->catfile($dir,URI::Escape::uri_escape_utf8($name));
+    main::readStyleSheetFile($grp->{framegroup},$file);
+  }
+}
+
+=item C<ReloadStylesheets(dir?)>
+
+Reload stylesheets from a given file or directory. If no filename is
+specified, the default path "~/.tred.d/stylesheets/" is used.
 
 =cut
 
 sub ReloadStylesheets {
   my ($filename) = @_;
-  $filename = $main::stylesheetFile unless defined $filename;
-  main::readStyleSheets($grp->{framegroup},$filename) if GUI();
+  main::loadStyleSheets($grp->{framegroup}) if GUI();
 }
 
 =item C<GetStylesheetPatterns(stylesheet)>
