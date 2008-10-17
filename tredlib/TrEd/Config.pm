@@ -391,21 +391,22 @@ sub set_config {
   $extensionsDir=tilde_expand(length($confs->{extensionsdir})
 				? $confs->{extensionsdir} : '~/.tred.d/extensions');
   $extensionRepos = val_or_def($confs,'extensionrepos','http://ufal.mff.cuni.cz/~pajas/tred/extensions');
-  {
-    my $def_res_path=$libDir;
-    if ($^O eq 'Win32') {
-      $def_res_path=~s/[\\\/](?:lib[\\\/]tred|tredlib)$//;
-      $def_res_path.="\\resources";
-    } else {
-      unless ($def_res_path=~s{/lib/tred$}{/share/tred}) {
-	$def_res_path=~s/\/(?:tredlib)$//;
-	$def_res_path.="/resources";
-      }
+
+  my $def_share_path=$libDir;
+  if ($^O eq 'Win32') {
+    $def_share_path=~s/[\\\/](?:lib[\\\/]tred|tredlib)$//;
+  } else {
+    unless ($def_share_path=~s{/lib/tred$}{/share/tred}) {
+      $def_share_path=~s/\/(?:tredlib)$//;
     }
-    $preinstalledExtensionsDir=File::Spec->rel2abs(File::Spec->catdir('..','tred-extensions'),$def_res_path);
+  }
+  $preinstalledExtensionsDir = File::Spec->catdir($def_share_path,'tred-extensions');
 
-    $def_res_path= tilde_expand(q(~/.tred.d)) . $resourcePathSplit . $def_res_path ;
-
+  {
+    my $def_res_path = File::Spec->catdir($def_share_path,'resources');
+    $def_res_path = tilde_expand(q(~/.tred.d)) . $resourcePathSplit . $def_res_path ;
+    my @r = split $resourcePathSplit, $Fslib::resourcePath;
+    my $r;
     if (exists $confs->{resourcepath}) {
       my $path = 
 	join $resourcePathSplit,
@@ -415,12 +416,14 @@ sub set_config {
       } elsif ($path=~/\Q$resourcePathSplit\E$/) {
 	$path.=$def_res_path;
       }
-      $Fslib::resourcePath = $path;
+      $r = $path;
     } else {
-      $Fslib::resourcePath = $def_res_path;
+      $r = $def_res_path;
     }
+    unshift @r, split($resourcePathSplit,$r),
+    my %r;
+    $Fslib::resourcePath = join $resourcePathSplit, grep { defined and length } map { exists($r{$_}) ? () : ($r{$_}=$_) } @r
   }
-
 
   if ($confs->{backgroundimage} ne "" 
       and ! -f $confs->{backgroundimage}
