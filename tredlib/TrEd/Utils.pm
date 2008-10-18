@@ -109,12 +109,14 @@ sub saveStyleSheetFile {
     return 0;
   };
   my $s = $gui->{stylesheets}->{$name};
-  if ($s->{context} =~ /\S/) {
+  if (defined($s->{context}) and $s->{context} =~ /\S/) {
     $s->{context}=~s/^\s+|\s+$//g;
     print $f "context: ".$s->{context}."\n";
   }
-  print $f @{$s->{patterns}};
-  print $f "\nhint:". $s->{hint};
+  print $f map { /\n\s*$/ ? $_ : $_."\n" } @{$s->{patterns}}
+    if ref($s->{patterns});
+  print $f "\nhint:". $s->{hint} if defined($s->{hint}) and length($s->{hint});
+  close $f;
 }
 
 sub readStyleSheetFile {
