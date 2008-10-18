@@ -428,6 +428,7 @@ sub _populate_extension_pane {
     $text->configure(-height=>$end);
 
     $embeded{$name}=[$bf,$image ? $image : ()];
+    $enable{$name}=1 if $opts->{only_upgrades};
     if (UNIVERSAL::isa($name,'URI')) {
       $bf->Checkbutton(-text=> exists($opts->{installed}{$short_name})
 			 ? 'Upgrade' : 'Install',
