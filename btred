@@ -2073,6 +2073,22 @@ btred is an off-line TrEd macro processor which applies macros on given files
 
 =head1 OPTIONS
 
+=head2 Filename arguments
+
+Each filename on the command-line or in a file list may be optionally
+followed by a suffix which identifies a node to be selected when the
+file is opened (this means that C<$this> will point the the selected
+node and C<$root> will point to the root of that tree). The suffix can
+be of one of the following following forms:
+
+#ID     where ID is an identifier of a node (for file formats that have
+        identifiers, e.g. PML).
+
+##N     where N is a number. This selects the root of the N-th tree
+
+##N.M   where N and M are numbers. This selects the M-th node in 
+        the depth-first order in the N-th tree.
+
 =over 8
 
 =item B<--macro-file|-m> filename

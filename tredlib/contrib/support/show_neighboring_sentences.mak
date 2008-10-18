@@ -47,7 +47,8 @@ DeclareMinorMode 'Show_Neighboring_Sentences' => {
   configure => \&edit_configuration,
   post_hooks => {
     get_value_line_hook => sub {
-      my ($fsfile,$no)=@_;
+      my ($fsfile,$no,$type)=@_;
+      return unless $type eq 'value_line';
       if (!defined $_[-1]) {
 	# value line not supplied by hook, we provide the standard one
 	$_[-1] = $grp->treeView->value_line($fsfile,$no,1,1,$grp);
