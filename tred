@@ -2550,10 +2550,10 @@ sub PrevDisplayed { # same as Next but obey $showHidden
 }
 
 sub get_value_line {
-  my ($win,$fsfile,$no,$no_numbers,$tags)=@_;
+  my ($win,$fsfile,$no,$no_numbers,$tags,$type)=@_;
   my $vl;
   if ($fsfile) {
-    $vl=doEvalHook($win,"get_value_line_hook",$fsfile,$no);
+    $vl=doEvalHook($win,"get_value_line_hook",$fsfile,$no,$type);
     if (defined($vl)) {
       if (ref($vl)) {
 	unless ($tags) {
@@ -3107,7 +3107,7 @@ sub update_value_line {
   my $win=$grp->{focusedWindow}; # only focused window uses the value line
   update_tree_pos($grp);
   my $vl = set_value_line($grp,get_value_line($win,$win->{FSFile},
-					    $win->{treeNo},1,1));
+					    $win->{treeNo},1,1,'value_line'));
   update_value_line_current($win,$win->{currentNode});
   return $vl;
 }
@@ -4874,7 +4874,7 @@ sub printDialog {
       #5
       TrEd::Config::tilde_expand($s{psFile}),
       #6
-      $s{printSentenceInfo} ? sub { get_value_line($win,$_[0],$_[1],1,0) } : undef,
+      $s{printSentenceInfo} ? sub { get_value_line($win,$_[0],$_[1],1,0,'print') } : undef,
       #7
       $s{printFileInfo} ? 1 : 0,
       #8 
@@ -8293,7 +8293,7 @@ sub reloadSentenceView {
 			 ));
 
     my $v = get_value_line($grp->{focusedWindow},
-			   $grp->{focusedWindow}->{FSFile},$i,1,1);
+			   $grp->{focusedWindow}->{FSFile},$i,1,1,'sent_list');
     my %tags;
     @tags{ map { @$_[1..$#$_] } @$v }=();
     foreach my $tag (keys(%tags)) {
@@ -10202,7 +10202,7 @@ sub redraw_win {
 #  $vl=$win->treeView->value_line($win->{FSFile},$win->{treeNo},1,0,$win);
 #  $vl=$win->treeView->value_line($win->{FSFile},$win->{treeNo},1,1,$win);
   if ($win->{FSFile} and $win->treeView->get_drawSentenceInfo) {
-    $vl=get_value_line($win,$win->{FSFile},$win->{treeNo},1,0);
+    $vl=get_value_line($win,$win->{FSFile},$win->{treeNo},1,0,'html');
   }
   $win->{redrawn}=1; # may be used to check that this function was called (e.g. during a hook)
                      # do not forget to reset the value first

@@ -561,6 +561,35 @@ Tk: 804.028
 	</listitem>
       </varlistentry>
       <varlistentry>
+	<term>value line</term>
+	<listitem>
+	  <para>This term refers to the text
+	  field 
+	  that appears 
+	  above all tree views in the main window of TrEd,
+	  just below toolbars.
+	  Its content is controlled by stylesheets
+	  and hooks.
+	  It is typically used to display 
+	  textual representation of the tree
+	  in the current view, e.g. a sentence.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>status line</term>
+	<listitem>
+	  <para>Status line is a text
+	  field that appears 
+	  at the bottom of the main window of TrEd.
+	  It is content is controlled by hooks and is typically used to display 
+	  additional information about the
+	  active node in the current view computed using by macros,
+	  etc.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
 	<term>macro</term>
 	<listitem>
 	  <para><application>TrEd</application> by default offers only a small
@@ -8078,12 +8107,25 @@ sub MakeSentence {
 	    </row><row id="get_value_line_hook">
 	      <entry><literal moreinfo="none">get_value_line_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>fsfile</replaceable>,<replaceable>treeNo</replaceable></literal></para><para>Supply custom value-line content based on given
-		<replaceable>fsfile</replaceable> and
-		<replaceable>treeNo</replaceable>.
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>fsfile</replaceable>,<replaceable>treeNo</replaceable>,<replace>type</replace></literal></para><para>Supply custom value-line content based on given
+		<replaceable>fsfile</replaceable>,
+		<replaceable>treeNo</replaceable>, and 
+		<replaceable>type</replaceable>,
+		where type determines the situation
+		in which the hook is used:
+		<literal>value_line</literal> (value is used 
+		as the content of the value line, i.e.
+		the text field
+		above tree views),
+		<literal>print</literal> (value used for a label
+		under a printed tree),
+		<literal>sent_list</literal> (value used
+		in the list of sentences),
+		<literal>html</literal>
+		(value used for HTML export).
+		</para><para>
 		The value returned from the hook may be either 
-		a string to appear in the value line on the top
-		of TrEd's main window or an array reference
+		a string or an array reference
 		consisting of a list of array references
 		representing individual nodes. In the later case,
 		the array references representing individual nodes
@@ -8091,11 +8133,11 @@ sub MakeSentence {
 		<literal moreinfo="none">[<replaceable>text</replaceable>,
 		  <replaceable>node</replaceable>,<replaceable>options...</replaceable>]</literal>
 		where <replaceable>text</replaceable> is a text
-		to appear on the value-line,
+		to be used,
 		<replaceable>node</replaceable>
 		is the node represented by the array reference
-		and <literal moreinfo="none">options</literal> is arbitrary set 
-		of strings. If these strings are of the form
+		and <literal moreinfo="none">options...</literal> is arbitrary set 
+		of strings (tags). If these strings are of the form
 		<literal moreinfo="none">-option =&gt; value</literal>
 		where <literal moreinfo="none">option</literal> is
 		one of <literal moreinfo="none">foreground</literal>,
@@ -8103,7 +8145,11 @@ sub MakeSentence {
 		<literal moreinfo="none">underline</literal>,
 		they are used to alter visual appearance
 		of the corresponding part of the text displayed on the
-		value-line. All other strings are ignored.
+		value-line. All other strings are used as tags	
+		(<literal>value_line</literal> type only)
+		and are passed to hooks
+		like
+		<link linkend="value_line_doubleclick_hook">value_line_doubleclick_hook</link> or <link linkend="value_line_click_hook">value_line_click_hook</link> if the user clicks the corresponding part of the text.
 	      </para></entry>
 	    </row><row id="goto_file_hook">
 	      <entry><literal moreinfo="none">goto_file_hook</literal></entry>
@@ -8442,7 +8488,7 @@ sub MakeSentence {
 	      <entry><literal moreinfo="none">value_line_doubleclick_hook</literal></entry>
 	      <entry>yes</entry>
 	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>@tags</replaceable></literal></para><para>Called when the user double-clicks the text
-		in the value-line, i.e. text field displayed above the tree.
+		in the value line, i.e. text field above the tree view.
 		Arguments are the tags associated with
 		the clicked part of the text. Tag may be arbitrary
 		strings associated with the text in the
