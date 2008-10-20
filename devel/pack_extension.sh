@@ -82,13 +82,13 @@ perl -MXML::LibXML -e '
 done
 
 
-if which validate_pml_stream 2>/dev/null; then 
+if which validate_pml_stream 2>/dev/null && validate_pml_stream -c; then 
     if ! validate_pml_stream -p "$tooldir/../resources" "$meta"; then
 	echo "Package meta file $meta is not a valid PML tred_package instance!"
 	exit 5;
     fi
 else 
-    echo "WARNING: will not validate package.xml (PML validator validate_pml_stream not found in PATH)"
+    echo "WARNING: will not validate package.xml (PML validator validate_pml_stream not found in PATH or not working)"
 fi
 
 zip="$(readlink -fen "$target_dir")/${name}.zip"
