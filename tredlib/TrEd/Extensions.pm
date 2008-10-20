@@ -18,6 +18,7 @@ BEGIN {
   require Tk::ProgressBar;
   require Tk::ErrorReport;
   require Tk::QueryDialog;
+  require TrEd::Version;
 
   our @ISA = qw(Exporter);
   our %EXPORT_TAGS = ( 'all' => [ qw(
@@ -253,6 +254,9 @@ sub _populate_extension_pane {
 	$progressbar->update if $progressbar;
       }
       if ($data and
+#	    (!@req_tred or
+#	      !grep { $main::VERSION } @req_tred
+#	    ) and
 	    (!$installed_ver and $data->{version})
 	    or ($installed_ver and $data->{version} and _cmp_revisions($installed_ver,$data->{version})<0)) {
 	$i++
@@ -268,7 +272,7 @@ sub _populate_extension_pane {
 	  Encode::_utf8_off($_) for grep defined, $req->{name}, $req->{href};
 	  my $req_name = $req->{name};
 	  my $installed_req_ver = $opts->{installed}{$req_name};
-	  my ($min,$max) = ($req->{min_version},$req->{max_version});
+	  my ($min,$max) = ($req->{min_version}||'',$req->{max_version}||'');
 	  next if ($installed_req_ver
 		   and (!$min or _cmp_revisions($installed_req_ver,$min)>=0)
 		   and (!$max or _cmp_revisions($installed_req_ver,$max)<=0));
@@ -280,7 +284,7 @@ sub _populate_extension_pane {
 	    my $req_version = $req_data->{version};
 	    unless ((!$min or _cmp_revisions($req_version,$min)>=0)
 		  and (!$max or _cmp_revisions($req_version,$max)<=0)) {
-	      my $res = $d->QuestionQuery(
+	      my $res = $d->parent->QuestionQuery(
 		-title => 'Error',
 		-label => "Package $short_name from $repo\nrequires package $req_name "
 		  ." in version $min..$max, but only $req_version is available",
@@ -292,7 +296,7 @@ sub _populate_extension_pane {
 	      }
 	    }
 	  } else {
-	    my $res = $d->QuestionQuery(
+	    my $res = $d->parent->QuestionQuery(
 	      -title => 'Error',
 	      -label => "Package $short_name from $repo\nrequires package $req_name "
 		." which is not available",
@@ -430,20 +434,39 @@ sub _populate_extension_pane {
     $embeded{$name}=[$bf,$image ? $image : ()];
     $enable{$name}=1 if $opts->{only_upgrades};
     if (UNIVERSAL::isa($name,'URI')) {
-      $bf->Checkbutton(-text=> exists($opts->{installed}{$short_name})
-			 ? 'Upgrade' : 'Install',
-		       -compound=>'left',
-		       -selectcolor=>undef,
-		       -indicatoron => 0,
-		       -background=>'white',
-		       -relief => 'flat',
-		       -borderwidth => 0,
-#		       -padx => 5,
-#		       -pady => 5,
-		       -height => 18,
-		       -selectimage => main::icon($tred,"checkbox_checked"),
-		       -image => main::icon($tred,"checkbox"),
-		       -command => [sub {
+      my @req_tred = $data && $data->{require} && $data->{require}->values('tred');
+      my $requires_different_tred='';
+      for my $r (@req_tred) {
+	if ($r->{min_version}) {
+	  if (TrEd::Version::CMP_TRED_VERSION_AND($r->{min_version})<0) {
+	    $requires_different_tred.=' and ' if $requires_different_tred;
+	    $requires_different_tred='at least '.$r->{min_version}
+	  }
+	}
+	if ($r->{max_version}) {
+	  if (TrEd::Version::CMP_TRED_VERSION_AND($r->{max_version})>0) {
+	    $requires_different_tred.=' and ' if $requires_different_tred;
+	    $requires_different_tred='at most '.$r->{max_version}
+	  }
+	}
+      }
+      if (length $requires_different_tred) {
+	$bf->Label(-text=>'Requires TrEd '.$requires_different_tred.' (this is '.TrEd::Version::TRED_VERSION().')')->pack(-fill=>'x');
+      } else {
+	$bf->Checkbutton(-text=> exists($opts->{installed}{$short_name})
+			   ? 'Upgrade' : 'Install',
+			 -compound=>'left',
+			 -selectcolor=>undef,
+			 -indicatoron => 0,
+			 -background=>'white',
+			 -relief => 'flat',
+			 -borderwidth => 0,
+			 #		       -padx => 5,
+			 #		       -pady => 5,
+			 -height => 18,
+			 -selectimage => main::icon($tred,"checkbox_checked"),
+			 -image => main::icon($tred,"checkbox"),
+			 -command => [sub {
 				      my ($enable,$required_by,$name,$requires)=@_;
 				      # print "Enable: $enable->{$name}, $name, ",join(",",map { $_->{name} } @$requires),"\n";;
 				      if ($enable->{$name}==1) {
@@ -475,7 +498,9 @@ sub _populate_extension_pane {
 					}
 				      }
 				    },\%enable,\%required_by,$name,\%requires],
-		       -variable=>\$enable{$name})->pack(-fill=>'x')
+			 -variable=>\$enable{$name}
+			)->pack(-fill=>'x')
+      }
     } else {
       if (exists $pre_installed{$name}) {
 	$bf->Label(-text=>,"PRE-INSTALLED")->pack(-fill=>'both', -side=>'right', -padx => 5);

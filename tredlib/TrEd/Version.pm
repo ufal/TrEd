@@ -1,4 +1,4 @@
-gpackage TrEd::Version;
+package TrEd::Version;
 # pajas@ufal.mff.cuni.cz          17 øíj 2008
 
 use 5.008;
@@ -17,11 +17,7 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw( TRED_VERSION );
 
-our $SVN_REVISION='$Revision: 3645 $ ';
-
-our $VERSION =  $SVN_REVISION;
-$VERSION =~ s{^\$Revision:\s*|\$ $}{}g;
-$VERSION = '1.'.$VERSION unless $VERSION=~/\./;
+our $VERSION = "SVN_VERSION"; # DO NOT MODIFY THIS LINE !!
 
 # Preloaded methods go here.
 
@@ -31,6 +27,7 @@ sub TRED_VERSION {
 
 sub CMP_TRED_VERSION_AND {
   my ($version)=@_;
+  return 1 if $VERSION eq 'SVN_VERSION';
   return ($VERSION <=> $version);
 }
 
