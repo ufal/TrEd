@@ -1,4 +1,4 @@
-package TrEd::Version;
+gpackage TrEd::Version;
 # pajas@ufal.mff.cuni.cz          17 øíj 2008
 
 use 5.008;
@@ -17,7 +17,7 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw( TRED_VERSION );
 
-our $SVN_REVISION='$Revision: 3645$ ';
+our $SVN_REVISION='$Revision: 3645 $ ';
 
 our $VERSION =  $SVN_REVISION;
 $VERSION =~ s{^\$Revision:\s*|\$ $}{}g;
