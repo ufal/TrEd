@@ -11706,15 +11706,17 @@ sub loadMacros {
     
     if (-f $ext_contrib) {
       print STDERR ("Reading extension macros from $ext_contrib...\n") unless $quiet;
-      push @TrEd::Macros::macros,"\n","package TredMacro;\n";
+      push @TrEd::Macros::macros,qq(\n#line 0 "$ext_contrib"\n{\npackage TredMacro;\n);
       read_macros($ext_contrib,$libDir,1);
+      push @TrEd::Macros::macros,qq(\n} # end of "$ext_contrib"\n);
     }
   }
 
   if ($opt_I) {
     print STDERR ("Reading additional macros from $opt_I...\n") unless $opt_q;
-    push @TrEd::Macros::macros,"\n","package TredMacro;\n";
+    push @TrEd::Macros::macros,qq(\n#line 0 "$opt_I"\n{\npackage TredMacro;\n);
     read_macros($opt_I,$libDir,1);
+    push @TrEd::Macros::macros,qq(\n} # end of "$opt_I"\n);
   }
 
   print STDERR "done.\n" unless $opt_q;
