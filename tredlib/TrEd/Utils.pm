@@ -140,12 +140,15 @@ sub readStyleSheetFile {
 
 sub removeStylesheetFile {
   my ($gui,$path,$name)=@_;
-  delete $gui->{stylesheets}->{$name};
   if (-d $path) {
     my $stylesheetFile = File::Spec->catfile($path,URI::Escape::uri_escape_utf8($name));
-    unlink $stylesheetFile.'~';
-    rename $stylesheetFile, $stylesheetFile.'~';
+    if (-f $stylesheetFile) {
+      delete $gui->{stylesheets}->{$name};
+      unlink $stylesheetFile.'~';
+      rename $stylesheetFile, $stylesheetFile.'~';
+    }
   } elsif (-f $path) {
+    delete $gui->{stylesheets}->{$name};
     saveStyleSheets($gui,$path);
   }
 }
