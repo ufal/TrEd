@@ -6099,6 +6099,7 @@ sub startMain {
 			    -command=> [sub {
 					  my ($grp)=@_;
 					  loadStyleSheets($grp);
+					  updateStylesheetMenu($grp);
 					  get_nodes_all($grp);
 					  redraw_all($grp);
 					},\%group]);
@@ -11723,7 +11724,7 @@ sub loadMacros {
 }
 
 sub reloadMacros {
-  my ($grp)=@_;
+  my ($grp,$opts)=@_;
   doEvalHook($grp->{focusedWindow},"reload_macros_hook");
   delete $grp->{minorModes};
   delete $grp->{minorPreHooks};
@@ -11740,7 +11741,7 @@ sub reloadMacros {
     }
   }
   %{$grp->{UserToolbarHash}}=();
-  loadMacros($grp);
+  loadMacros($grp,$opts);
   doEvalHook($grp->{focusedWindow},"macros_reloaded_hook");
   doEvalHook($grp->{focusedWindow},"initialize_bindings_hook");
 
@@ -11767,7 +11768,18 @@ sub manage_extensions {
     });
   }
   if ($do_reload and $reload_macros) {
-    reloadMacros($grp);
+
+    # reload stylesheets
+    @TrEd::Utils::stylesheetPaths=();
+    initStylesheetPaths([split($Fslib::resourcePathSplit,$opts_S,-1)]);
+
+    my $preparedExtensions = prepareExtensions($grp);
+
+    loadStyleSheets($grp);
+    updateStylesheetMenu($grp);
+
+    # reload macros
+    reloadMacros($grp,{preparedExtensions => $preparedExtensions});
   }
 }
 
