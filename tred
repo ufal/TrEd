@@ -19,7 +19,7 @@ if ($^V lt v5.8.3) {
   print STDERR '-' x 50,"\n\n";
 }
 
-use vars qw($svn_version $version $VERSION $about $opt_u $opt_h $opt_c
+use vars qw($svn_version $version $about $opt_u $opt_h $opt_c
 	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_p
 	    $opt_n $opt_D $opt_v $opt_H $opt_I $opt_Z $opt_e
             $libDir $docDir
@@ -38,12 +38,6 @@ use vars qw($svn_version $version $VERSION $about $opt_u $opt_h $opt_c
 	    $manpage $listoptions $no_backups $no_locks %optmap $carp
 	    $tred_d;
            );
-
-$svn_version='$Revision: 3645$ ';
-$version =  $svn_version;
-$version =~ s{^\$Revision:\s*|\$ $}{}g;
-$version = '1.'.$version unless $version=~/\./;
-$VERSION = $version;
 
 $about=
   "Copyright (c) 2000-2008 by Petr Pajas\n".
@@ -174,10 +168,6 @@ if ($list_options) {
 
 $no_secondary = $opt_Y;
 
-if ($opt_v) {
-  print "TrEd $VERSION\nPerl: $]\nPlatform: $^O\nTk: $Tk::VERSION\n\n";
-  exit;
-}
 
 # Default values of $libDir used to search for macro-file (tred.mac)
 # and default-macro file (tred.def) are specified here. They may be
@@ -211,6 +201,16 @@ if (-d $libDir) {
   unshift @INC,$libDir;
 }
 
+{
+  require TrEd::Version;
+  import TrEd::Version;
+  $VERSION = TRED_VERSION();
+  if ($opt_v) {
+    print "TrEd $VERSION\nPerl: $]\nPlatform: $^O\nTk: $Tk::VERSION\n\n";
+    exit;
+  }
+}
+
 
 {
   require TrEd::Utils;
@@ -218,6 +218,7 @@ if (-d $libDir) {
   find_win_home();
 
   my $ld=$libDir;
+
   require TrEd::Config;
   import TrEd::Config;
   import TrEd::Config qw(&read_config &apply_config &set_default_config_file_search_list);
