@@ -28,7 +28,8 @@ use vars qw($all_trees $all_nodes $no_all_trees $no_all_nodes
 	    $strip_suffix $append_suffix $output_format $term_encoding
 	    $config_file $start_context @preload_modules $btred $break
 	    $request_reload_macros $quiet $really_quiet %optmap
-	    $keep_empty_servers
+	    $keep_empty_servers 
+	    $disable_extensions $enable_extensions $request_list_extensions
 	    $version $print_version $listedfiles $regexp_files $list_options
             $olddist $count_files $logdir $userlogin $no_secondary $include_macro
 	   );
@@ -55,6 +56,9 @@ Getopt::Long::Configure ("bundling");
 	 "really-quiet|Q" => \$really_quiet,
 	 "macro-file|m=s" => \$macro_file,
 	 "include-macro-file|I=s" => \$include_macro,
+	 "list-extensions" => \$request_list_extensions,
+	 "enable-extensions=s" => \$enable_extensions,
+	 "disable-extensions=s" => \$disable_extensions,
 	 "execute|e=s"    => \$code,
 	 "context|t=s" => \$start_context,
 	 "hub=s"          => \$hubname,
@@ -429,6 +433,8 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
 	  ($server_debug ? "-D " : "").
 	  (join "",map { "-M $_ " } @preload_modules).
 	  ($macro_file ? "-m \"".rel2abs($macro_file)."\" " : "").
+	  ($enable_extensions ? qq(--enable-extensions "$enable_extensions" ) : "").
+	  ($disable_extensions ? qq(--disable-extensions "$disable_extensions" ) : "").
 	  ($include_macro ? "-I \"".rel2abs($include_macro)."\" " : "").
 	  ($term_encoding ? "-d $term_encoding " : "").
 	  "-L $srv->{port}";
@@ -781,6 +787,14 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
     if ($macro_file) {
       $request="$control STATE=Filename\n".$macro_file."\n";
     }
+    if ($enable_extensions) {
+      $request="$control STATE=ENABLE_EXTENSIONS\n".$enable_extensions."\n";
+    }
+    if ($disable_extensions) {
+      $request="$control STATE=DISABLE_EXTENSIONS\n".$disable_extensions."\n";
+    }
+  } elsif ($request_list_extensions) {
+    $request_type="LIST_EXTENSIONS";
   } elsif ($count_files) {
     $request_type="COUNT";
   } elsif ($request_list) {
@@ -1175,7 +1189,8 @@ To start remote servers and a hub:
            [--allow-no-trees] [--no-secondary-files]
            [--no-server-check] [--no-server-start] [--no-hub-start]
            [--old-dist-method] [--safe-mode] [--server-debug]
-           [-m|-I macro-file] [-M module] [--btred path-to-btred]
+           [-m|-I macro-file] [--disable-extensions list] [--enable-extensions list]
+           [-M module] [--btred path-to-btred]
            [--ssh ssh-command] [--local]
            [--key-file] [--hub hub] [--port port] [file [...]]
 
@@ -1191,7 +1206,7 @@ To manage files on the servers:
 
   ntred --list-files|--list-changed-files
 
-  ntred --reload-files
+  ntred --reload-files [--disable-extensions list] [--enable-extensions list]
 
   ntred --reload-macros [-m macro-file]
 
@@ -1433,6 +1448,22 @@ load macros from B<both> C<filename> B<and> the default macro set from
 (C<tred.mac>). C<--macro-file> can still be used in combination with
 B<--include-macro-file> to supply a replacement for C<tred.mac>.
 
+=item B<--enable-extensions> list
+
+Give a comma-separated list of installed TrEd extension names to
+temporarily enable if disabled in the extension configuration.
+Use '*' to enable all currently enabled extensions.
+
+This option can only be used with C<--init> or C<--reload-macros>.
+
+=item B<--disable-extensions> list
+
+Give a comma-separated list of installed TrEd extension names to
+temporarily disable if enabled in the extension configuration.
+Use '*' to disable all currently enabled extensions.
+
+This option can only be used with C<--init> or C<--reload-macros>.
+
 =item B<--key-file>
 
 Allows to specify a file where the the session-key for a client's
@@ -1575,6 +1606,9 @@ If C<-m> (C<--macro-file>) is specified, the servers use the given
 macro-file instead of the original one (specified when initializing
 btred servers). Note, that the file (with exactly the same path) must
 be visible from all server hosts.
+
+Options C<--disable-extensions> and C<--enable-extensions> can be used
+to define a set of extensions to use.
 
 =item B<--load-files>
 
