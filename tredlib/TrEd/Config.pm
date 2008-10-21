@@ -400,10 +400,14 @@ sub set_config {
       $def_share_path=~s/\/(?:tredlib)$//;
     }
   }
-  $preinstalledExtensionsDir = File::Spec->catdir($def_share_path,'tred-extensions');
+  $preinstalledExtensionsDir = 
+    $def_share_path =~ m{/share/tred$} ? $def_share_path.'-extensions' :
+      File::Spec->catdir($def_share_path,'tred-extensions');
 
   {
-    my $def_res_path = File::Spec->catdir($def_share_path,'resources');
+    my $def_res_path = 
+      $def_share_path =~ m{/share/tred$} ? $def_share_path :
+	File::Spec->catdir($def_share_path,'resources');
     $def_res_path = tilde_expand(q(~/.tred.d)) . $resourcePathSplit . $def_res_path ;
     my @r = split $resourcePathSplit, $Fslib::resourcePath;
     my $r;
