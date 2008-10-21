@@ -383,52 +383,11 @@ $fileNo=0;
 #$TrEd::Basics::on_node_change= \&updateTredMacroGlobals;
 #$TrEd::Basics::on_current_change= \&updateTredMacroGlobals;
 
-_msg("Reading macros from $macroFile...\n") unless $quiet;
-read_macros($macroFile,$libDir);	# read macros
-
-my $extensions = getExtensionList();
-my $preinst_dir = getPreInstalledExtensionsDir();
-my $pre_installed;
-{
-  my (%e,%d);
-  @e{ split /,/,$enable_extensions }=();
-  @d{ split /,/,$disable_extensions }=();
-@$extensions =
-  map { /^!(.*)/ ?
-	  (exists($e{'*'}) || exists($e{$1}) ? $1 : $_)
-	:
-	  (exists($d{'*'}) || exists($d{$_}) ? '!'.$_ : $_)
-      } @$extensions;
- $pre_installed =  getPreInstalledExtensionList($extensions);
-  @$pre_installed =
-    map { /^!(.*)/ ?
-	    (exists($e{'*'}) || exists($e{$1}) ? $1 : $_)
-	      :
-		(exists($d{'*'}) || exists($d{$_}) ? '!'.$_ : $_)
-	      } @$pre_installed;
-}
 if ($list_extensions) {
-  print map "$_\n", @$extensions;
-  print map "$_\t(pre-installed)\n", @$pre_installed;
+  prepareExtensions({list_to=>\*STDOUT});
   exit;
-}
-
-initExtensions($extensions);
-initExtensions($pre_installed,$preinst_dir);
-_msg("Reading extension macros...\n") unless $quiet;
-for my $ext_contrib (getExtensionMacroPaths($extensions),
-		     getExtensionMacroPaths($pre_installed,$preinst_dir)) {
-  _msg("Reading extension macros from $ext_contrib...\n") unless $quiet;
-  push @TrEd::Macros::macros,qq(\n#line 0 "$ext_contrib"\n{\npackage TredMacro;\n);
-  read_macros($ext_contrib,$libDir,1);
-  push @TrEd::Macros::macros,qq(\n} # end of "$ext_contrib"\n);
-}
-
-if ($include_macro) {
-  _msg("Reading additional macros from $include_macro...\n") unless $quiet;
-  push @TrEd::Macros::macros,qq(\n#line 0 "$include_macro"\n{\npackage TredMacro;\n);
-  read_macros($include_macro,$libDir,1);
-  push @TrEd::Macros::macros,qq(\n} # end of "$include_macro"\n);
+} else {
+  loadMacros();
 }
 
 if ($dump_macros) {
@@ -906,14 +865,16 @@ sub startMain {
 	  }
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'RELOAD_MACROS') {
-	  my $f=$request{STATE_Filename};
-	  $f =~ s/[\n\r]+$//;
+	  my ($f,$d,$e)= map $request{$_}, qw(STATE_Filename STATE_DISABLE_EXTENSIONS STATE_ENABLE_EXTENSIONS);
+	  defined && s/[\n\r]+$// for ($f,$d,$e);
 	  # chomp $f;
 	  $macroFile = $f if $f;
+	  $enable_extensions = $e;
+	  $disable_extensions = $d;
 	  _msg "Reloading macros from $macroFile libdir=$libDir at client's request\n";
 	  %TrEd::Macros::defines=(BTRED => 1); # reset defines
 	  eval {
-	    read_macros($macroFile,$libDir); # read macros
+	    loadMacros();
 	  };
 #	  _msg(@TrEd::Macros::macros);
 	  if ($@) {
@@ -926,6 +887,11 @@ sub startMain {
 	  _msg "Counting all open files at client's request\n";
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
 	  $hub->print("$host:$port has ",scalar(@files)," files\n");
+	  _end_response($control,$hub);
+	} elsif ($request{REQUEST_TYPE} eq 'LIST_EXTENSIONS') {
+	  _msg "Listing extensions on client's request\n";
+	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+	  prepareExtensions({list_to=>$hub});
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'LIST') {
 	  local $no_secondary = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
@@ -2050,6 +2016,65 @@ sub _set_encoding {
   }
 }
 
+sub prepareExtensions {
+  my ($opts)=@_;
+  $opts||={};
+  my $extensions = getExtensionList();
+  my $preinst_dir = getPreInstalledExtensionsDir();
+  my $pre_installed;
+  {
+    my (%e,%d);
+    @e{ split /,/,$enable_extensions }=();
+    @d{ split /,/,$disable_extensions }=();
+    if ($macro) {
+      _msg("Using -m implies all extensions disabled...\n") unless $quiet;
+    }
+    @$extensions =
+      map { /^!(.*)/ ?
+	      (exists($e{'*'}) || exists($e{$1}) ? $1 : $_)
+		: $macro ?
+		  (exists($e{'*'}) || exists($e{$_}) ? $_ : '!'.$_)
+		    : (exists($d{'*'}) || exists($d{$_}) ? '!'.$_ : $_)
+		  } @$extensions;
+    $pre_installed =  getPreInstalledExtensionList($extensions);
+    @$pre_installed =
+    map { /^!(.*)/ ?
+	    (exists($e{'*'}) || exists($e{$1}) ? $1 : $_)
+	      : $macro ?
+		(exists($e{'*'}) || exists($e{$_}) ? $_ : '!'.$_)
+		  : (exists($d{'*'}) || exists($d{$_}) ? '!'.$_ : $_)
+		} @$pre_installed;
+  }
+  if (my $fh = $opts->{list_to}) {
+    $fh->print( map "$_\n", @$extensions );
+    $fh->print( map "$_\t(pre-installed)\n", @$pre_installed );
+  }
+  return ($extensions,$pre_installed,$preinst_dir);
+}
+sub loadMacros {
+
+  _msg("Reading macros from $macroFile...\n") unless $quiet;
+  read_macros($macroFile,$libDir);	# read macros
+
+  my ($extensions,$pre_installed,$preinst_dir) = prepareExtensions();
+  initExtensions($extensions);
+  initExtensions($pre_installed,$preinst_dir);
+  _msg("Reading extension macros...\n") unless $quiet;
+  for my $ext_contrib (getExtensionMacroPaths($extensions),
+		       getExtensionMacroPaths($pre_installed,$preinst_dir)) {
+    _msg("Reading extension macros from $ext_contrib...\n") unless $quiet;
+    push @TrEd::Macros::macros,qq(\n#line 0 "$ext_contrib"\n{\npackage TredMacro;\n);
+    read_macros($ext_contrib,$libDir,1);
+    push @TrEd::Macros::macros,qq(\n} # end of "$ext_contrib"\n);
+  }
+  if ($include_macro) {
+    _msg("Reading additional macros from $include_macro...\n") unless $quiet;
+    push @TrEd::Macros::macros,qq(\n#line 0 "$include_macro"\n{\npackage TredMacro;\n);
+    read_macros($include_macro,$libDir,1);
+    push @TrEd::Macros::macros,qq(\n} # end of "$include_macro"\n);
+  }
+}
+
 __END__
 
 =head1 btred
@@ -2097,8 +2122,13 @@ be of one of the following following forms:
 
 =item B<--macro-file|-m> filename
 
-File with macro definitions to load.  If no macro-file is given,
-standard macro file (by default C<tred.mac>) is used.
+File with macro definitions to load instead of the standard macro file
+(by default C<tred.mac>).
+
+WARNING: since extensions may require the standard macro file, using
+this option automatically disables all extensions. One may use
+C<--enable-extensions extension-list...> to selectively enable
+required extensions.
 
 =item B<--include-macro-file|-I> filename
 
@@ -2396,7 +2426,7 @@ Use '*' to enable all currently enabled extensions.
 =item B<--disable-extensions> list
 
 Give a comma-separated list of installed TrEd extension names to
-temporarily disable if enabled in the extension configuration. 
+temporarily disable if enabled in the extension configuration.
 Use '*' to disable all currently enabled extensions.
 
 =item B<--list-extensions>
