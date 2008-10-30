@@ -294,7 +294,7 @@ import PMLSchema qw(:constants); # too late (we'll need () after PML_.._DECL)
 require TrEd::UserAgent;
 sub uniq { my %a; grep { !($a{$_}++) } @_ }
 
-initStylesheetPaths([split($Fslib::resourcePathSplit,$opts_S,-1)]);
+initStylesheetPaths([split($Fslib::resourcePathSplit,$opt_S,-1)]);
 
 $Fslib::resourcePath=
   join($Fslib::resourcePathSplit,
