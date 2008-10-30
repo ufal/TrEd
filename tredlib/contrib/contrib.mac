@@ -61,10 +61,22 @@ The synopsis for a package named 'Foo' is as follows:
 #ifdef TRED
 
 sub file_opened_hook {
-  __guess_context('file_opened_hook',@_)
+  my $context = __guess_context('file_opened_hook',@_);
+  if (defined $context and $context ne 'TredMacro' and
+      exists(&{$context."::file_opened_hook"})
+	and \&{$context."::file_opened_hook"} != \&file_opened_hook
+       ) {
+    &{$context."::file_opened_hook"}(@_);
+  }
 }
 sub file_resumed_hook {
-  __guess_context('file_resumed_hook',@_)
+  __guess_context('file_resumed_hook',@_);
+  if (defined $context and $context ne 'TredMacro' and
+      exists(&{$context."::file_resumed_hook"})
+	and \&{$context."::file_resumed_hook"} != \&file_resumed_hook
+) {
+    &{$context."::file_resumed_hook"}(@_);
+  }
 }
 sub __guess_context {
   my ($hook)=@_;
@@ -74,7 +86,8 @@ sub __guess_context {
   foreach my $sub (@TredMacro::AUTO_CONTEXT_GUESSING) {
     my $ret = &$sub;
     if (defined($ret)) {
-      return SwitchContext($ret);
+      SwitchContext($ret);
+      return $ret;
     }
   }
 
@@ -85,6 +98,7 @@ sub __guess_context {
     SwitchContext('TredMacro');
     SetCurrentStylesheet(STYLESHEET_FROM_FILE());
   }
+  return;
 }
 
 #endif TRED

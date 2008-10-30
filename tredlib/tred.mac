@@ -85,7 +85,7 @@ sub EditBoxQuery {
   my $d;
   my $ed;
 
-  my ($title,$var,$hintText,$opts)=@_;
+  my ($title,$text,$hintText,$opts)=@_;
   $opts ||={};
 
   $d=ToplevelFrame()->DialogBox(-title => $title,
@@ -103,7 +103,7 @@ sub EditBoxQuery {
   if (!$opts->{-widget} or !eval { $ed=$d->Scrolled(@{$opts->{-widget}},@opts); }) {
     $ed=$d->Scrolled('Text',@opts);
   }
-  $ed->insert('0.0',$var);
+  $ed->insert('0.0',$text);
   $ed->update;
   $ed->SetCursor($opts->{-cursor}) if $opts->{-cursor};
   eval { $ed->highlight('0.0','end') if $opts->{-highlight} };
@@ -116,10 +116,10 @@ sub EditBoxQuery {
   $ed->focus;
   RunCallback($opts->{-init},$d,$ed) if $opts->{-init};
   if (main::ShowDialog($d) =~ /OK/) {
-    $var=$ed->get('0.0','end');
-    chomp($var);
+    $text=$ed->get('0.0','end');
+    chomp($text);
     $d->destroy();
-    return $var;
+    return $text;
   } else {
     $d->destroy();
     return;
