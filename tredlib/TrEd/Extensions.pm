@@ -73,9 +73,9 @@ sub initExtensions {
   }
   $extension_dir||=getExtensionsDir();
   my (%m,%r,%i,%s);
-  @s{ @TrEd::Utils::stylesheetPaths } = ();
+  @s{ grep defined, @TrEd::Utils::stylesheetPaths } = () if defined @TrEd::Utils::stylesheetPaths;
   @r{ Fslib::ResourcePaths() } = ();
-  @m{ @TrEd::Macros::macro_include_paths } = ();
+  @m{ grep defined, @TrEd::Macros::macro_include_paths } = () if defined @TrEd::Macros::macro_include_paths;
   @i{ @INC } = ();
   for my $name (grep { !/^!/ } @$list) {
     my $dir = File::Spec->catdir($extension_dir,$name,'resources');
@@ -119,9 +119,9 @@ sub getExtensionMacroPaths {
 }
 
 sub getPreInstalledExtensionList {
-  my ($except)=@_;
+  my ($except,$preinst_dir)=@_;
   $except||=[];
-  my $preinst_dir = getPreInstalledExtensionsDir();
+  $preinst_dir ||= getPreInstalledExtensionsDir();
   my $pre_installed = ((-d $preinst_dir) && getExtensionList($preinst_dir)) || [];
   my %preinst;
   @preinst{ grep !/^!/, @$pre_installed } = ();

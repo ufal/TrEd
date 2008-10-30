@@ -16,4 +16,6 @@ Tk-CodeText
 Parse-RecDescent
 Graph
 Graph-ChuLiuEdmonds
-PerlIO-gzip
+Class-Std
+Graph-ReadWrite
+version

@@ -148,7 +148,6 @@ sub trees2pdf {
     -colors => 1,
     ($opts{-psMedia} eq 'BBox') ?
       (-hMargin => 0, -vMargin => 0) : (),
-    
     %opts,
    );
   ChangingFile(0);
