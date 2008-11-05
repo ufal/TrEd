@@ -370,15 +370,15 @@ sub _populate_extension_pane {
 	if (UNIVERSAL::isa($name,'URI')) {
 	  ($path,$unlink) = eval { IOBackend::fetch_file(URI->new($data->{icon})->abs($name.'/')) };
 	} else {
+	  my $dir = exists($pre_installed{ $name }) ? getPreInstalledExtensionsDir() : $extension_dir;
 	  $path = File::Spec->rel2abs($data->{icon},
-				      File::Spec->catdir($extension_dir,$name)
+				      File::Spec->catdir($dir,$name)
 				       );
 	}
 	{ #DEBUG; 
 	  $path||='';
 	  print "$name => $data->{icon}\n";
 	}
-
 	if (defined($path) and -f $path) {
 	  require Tk::JPEG;
 	  require Tk::PNG;
