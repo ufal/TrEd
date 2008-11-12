@@ -8297,16 +8297,20 @@ sub reloadSentenceView {
     my $v = get_value_line($grp->{focusedWindow},
 			   $grp->{focusedWindow}->{FSFile},$i,1,1,'sent_list');
     my %tags;
-    @tags{ map { @$_[1..$#$_] } @$v }=();
-    foreach my $tag (keys(%tags)) {
-      if ($tag=~/^\s*-/) {
-	eval {
-	  $t->tagConfigure(
-			   $tag => (map { (/^\s*(-[[:alnum:]]+)\s*=>\s*(.*\S)\s*$/) }
-				    split(/,/,$tag)));
-	};
-	print $@ if $@;
+    if (ref($v)) {
+      @tags{ map { @$_[1..$#$_] } @$v }=();
+      foreach my $tag (keys(%tags)) {
+	if ($tag=~/^\s*-/) {
+	  eval {
+	    $t->tagConfigure(
+	      $tag => (map { (/^\s*(-[[:alnum:]]+)\s*=>\s*(.*\S)\s*$/) }
+			 split(/,/,$tag)));
+	  };
+	  print $@ if $@;
+	}
       }
+    } else {
+      $v = [ map [$_], split /(\n)/, $v ];
     }
     my $collapse=0;
     $t->insert('end',"(".($i+1).") ",['treeno',"start-tree-".($i+1)],
