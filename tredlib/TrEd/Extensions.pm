@@ -13,11 +13,14 @@ use URI;
 BEGIN {
   require Exporter;
   require Fslib;
-  require Tk::DialogReturn;
-  require Tk::BindButtons;
-  require Tk::ProgressBar;
-  require Tk::ErrorReport;
-  require Tk::QueryDialog;
+
+  if (exists &Tk::MainLoop) {
+    require Tk::DialogReturn;
+    require Tk::BindButtons;
+    require Tk::ProgressBar;
+    require Tk::ErrorReport;
+    require Tk::QueryDialog;
+  }
   require TrEd::Version;
 
   our @ISA = qw(Exporter);
