@@ -5288,7 +5288,6 @@ sub prepareFonts {
 sub addBindTags {
   my $w=shift @_;
   $w->bindtags([@_,$w,ref($w),$w,$w->toplevel,'all']);
-
 }
 
 sub cascadeMenus {
