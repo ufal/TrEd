@@ -48,7 +48,6 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
   parseFileSuffix
   getNodeByNo
   applyWindowStylesheet
-  fileSchema
 
   STYLESHEET_FROM_FILE
   NEW_STYLESHEET
@@ -463,11 +462,6 @@ sub getNodeByNo {
     $root=$root->following();
   }
   return $root;
-}
-
-sub fileSchema {
-  my ($fsfile)=@_;
-  return $fsfile->metaData('schema');
 }
 
 sub initStylesheetPaths{

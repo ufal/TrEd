@@ -31,6 +31,7 @@ BEGIN {
     &absolutize_path
     &uniq
     &chooseNodeType
+    &fileSchema
   );
   use strict;
   use PMLSchema;
@@ -259,6 +260,11 @@ sub can_have_children {
     return 1 if $content_decl and $content_decl->get_role eq '#CHILDNODES';
   }
   return 0;
+}
+
+sub fileSchema {
+  my ($fsfile)=@_;
+  return $fsfile->metaData('schema');
 }
 
 sub chooseNodeType {
