@@ -10,7 +10,9 @@
 #
 ##############################################################################
 
-#use strict;
+use strict;
+
+BEGIN {
 
 if ($^V lt v5.8.3) {
   print STDERR '-' x 50,"\n";
@@ -19,10 +21,10 @@ if ($^V lt v5.8.3) {
   print STDERR '-' x 50,"\n\n";
 }
 
-use vars qw($svn_version $version $about $opt_u $opt_h $opt_c
+use vars qw($svn_version $version $about $opt_u $opt_h $opt_c $opt_y
 	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_p
-	    $opt_n $opt_D $opt_v $opt_H $opt_I $opt_Z $opt_e
-            $libDir $docDir
+	    $opt_n $opt_D $opt_v $opt_H $opt_I $opt_Z $opt_e $opt_Y
+            $libDir $docDir $list_options $opt_auto_save
 	    $macroFile @filelists %filelist_from_extension
 	    @openfiles $treeViewOpts $opt_m
             @backends @ISA @EXPORT @open_types @save_types $opt_l $opt_s
@@ -36,7 +38,7 @@ use vars qw($svn_version $version $about $opt_u $opt_h $opt_c
 	    $no_secondary
 	    %HELP %vertical_key_arrow_map 
 	    $manpage $listoptions $no_backups $no_locks %optmap $carp
-	    $tred_d;
+	    $tred_d $VERSION
            );
 
 $about=
@@ -74,6 +76,7 @@ use constant {
   UNDO_CURRENT_TREE_AND_TREE_ORDER => 6,
   UNDO_ACTIVE_ROOT_AND_TREE_ORDER => 7,
   UNDO_DATA => 8,
+  UNDO_CURRENT_TREE => 9,
 };
 
 use Tk::widgets
@@ -188,9 +191,6 @@ print "Libdir: $libDir\n" if ($libDir and !$opt_q);
 
 $macroFile=undef;
 
-_set_encoding(\*STDERR,':utf8',"STDERR");
-_set_encoding(\*STDOUT,':utf8',"STDOUT");
-
 ########## Config file #############
 # this must be done before read_config is first used
 @filelists=();
@@ -234,6 +234,10 @@ if (-d $libDir) {
   }
 }
 
+} # BEGIN
+
+_set_encoding(\*STDERR,':utf8',"STDERR");
+_set_encoding(\*STDOUT,':utf8',"STDOUT");
 
 
 if (defined $opt_c) {
@@ -957,7 +961,7 @@ sub set_grp_history {
   if ($e->can('history')){
     push @$list,[$e,$h] if (ref($list));
     $grp->{"hist_$h"}=[] unless ref($grp->{"hist_$h"});
-    $e->history($hist);
+    $e->history($h);
   }
 }
 
@@ -1115,7 +1119,8 @@ sub gotoFile {
 }
 
 sub update_filelist_views {
-  my ($grp,$fl,$reload)=@_;
+  my ($grp_or_win,$fl,$reload)=@_;
+  my ($grp,$win) = grp_win($grp_or_win);
   if ($grp->{Filelist} and ($grp->{filelistCurrentFilelist} == $fl)) {
     update_a_filelist_view($grp,$grp->{Filelist},$fl,$win->{currentFileNo},$reload);
   }
@@ -1560,7 +1565,7 @@ sub closeFile {
       my $f = $fsfile->filename();
       print STDERR "Removing $f from list of open files\n"  if $tredDebug;
       @openfiles=grep { $_ ne $fsfile } @openfiles;
-      addToRecent($grp,$f) unless $opts{-norecent} or $fsfile->appData('norecent');
+      addToRecent($win->{framegroup},$f) unless $opts{-norecent} or $fsfile->appData('norecent');
       my $autosave = autosave_filename($f);
       unlink $autosave if defined $autosave;
       removeLock($fsfile,$f);
@@ -1961,7 +1966,7 @@ sub openStandaloneFile {
       my $pos=insertToFilelist($win,
 			       $win->{currentFilelist},
 			       $win->{currentFileNo},
-			       $file.$goto);
+			       $file);
       $win->{currentFileNo} = $pos if $pos >= 0;
       update_filelist_views($grp,$win->{currentFilelist},0);
     }
@@ -2427,7 +2432,7 @@ sub saveFile {
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
 
   my $refs_to_save={};
-  if (!askSaveReferences($win,$win->{FSFile},$refs_to_save,$file) or
+  if (!askSaveReferences($win,$win->{FSFile},$refs_to_save,$f) or
       doEvalHook($win,"file_save_hook",$f) eq 'stop') {
     updateTitle($win->{framegroup});
     $win->toplevel->Unbusy() unless $insideEval;
@@ -2975,7 +2980,7 @@ sub update_macro_menus {
     my $menu = $grp->{MacroMenu}->menu;
     $menu->delete(qw(0 end));
     foreach my $context (sort(keys(%keyBindings))) {
-      $menu->Cascade( -label => $context, 
+      $menu->Cascade( -label => $context,
 		      -menuitems=>
 			cascadeMenus(map { $keyBindings{$context}->{$_}=~/(?:$context\-\>)?(.*)/;
 					   [Button => $1,
@@ -2993,7 +2998,7 @@ sub update_macro_menus {
     my $menu = $grp->{UserMenu}->menu;
     $menu->delete(qw(0 end));
     foreach my $context ("TredMacro",grep { $_ ne "TredMacro" } sort(keys(%menuBindings))) {
-      my %macro_to_key = reverse %{ $keyBindings{$context} };
+      my %macro_to_key = reverse %{ $keyBindings{$context}||{} };
       $menu->Cascade( -label => $context,
 		 -menuitems=>
 		   cascadeMenus(map {
@@ -3893,7 +3898,7 @@ sub generateSortedMacroTable {
     grep { defined($_->[2]) }
     map {
     my ($macro,$key) = @{ $Menus->{$_} };
-    [ $_, ($Keys{$key} eq $macro ? $key : $macro_to_key{$macro}), $macro ]
+    [ $_, ($Keys->{$key} eq $macro ? $key : $macro_to_key{$macro}), $macro ]
   } keys %{ $Menus };
   if ($include_anonymous) {
     push @macroTable,
@@ -4350,7 +4355,7 @@ sub updatePrintDialogState {
 	$w->{font}->addItem($_);
       }
       $w->{font}->toplevel->afterIdle(sub{
-					if (exists($grp->{ttfonts}->{$initTTFont})) {
+					if (exists($grp->{ttfonts}->{$s->{initTTFont}})) {
 					  $s->{ttFont} = $s->{initTTFont};
 					} else {
 					  $s->{ttFont} = EMPTY;
@@ -4660,11 +4665,11 @@ sub printDialog {
 			-font=> $font,
 			-textvariable=> \$s{psFile})
     ->pack(qw/-padx 10 -side left -expand yes -fill x/);
-  $d->bind('<Alt-r>',[sub{shift;shift->{psFile}->focus},\$w]);
+  $d->bind('<Alt-r>',[sub{shift;shift->{psFile}->focus},\%w]);
   set_grp_history($grp, $w{psFile}, 'printFile',$e_hist);
   if ($s{psFile} ne EMPTY) {
-    my $start = rindex($fil,"/")+1;
-    my $end = rindex($fil,".");
+    my $start = rindex($s{psFile},"/")+1;
+    my $end = rindex($s{psFile},".");
     if ($start<$end) {
       $w{psFile}->selectionClear();
       $w{psFile}->selectionRange($start,$end);
@@ -5353,7 +5358,7 @@ sub newTrEdWindow {
   $win->{macroContext}= $opt_t && exists($keyBindings{$opt_t}) 
     ? $opt_t : 'TredMacro';
   $win->{stylesheet} = STYLESHEET_FROM_FILE();
-  $windows = $grp->{treeWindows};
+  my $windows = $grp->{treeWindows};
   my $focused_win = $grp->{focusedWindow};
   if ($focused_win) {
     @$windows = map { ( $_ == $focused_win) ? ($_,$win) : $_ } @$windows;
@@ -5918,7 +5923,7 @@ sub startMain {
   $group{selectedContext}=  $opt_t || 'TredMacro';
   $group{buildTGTSfromCSTS}=$opt_R;
 
-  if (not $opt_G and defined($geometry)) {
+  if (not $opt_G and defined($geometry) and length($geometry)) {
     if ($geometry=~/^(.*)x(.*)\+([0-9]+)\+([0-9]+)/) {
         $geometry
 	 = "$1x$2+".min($3,$top->vrootwidth-$1).
@@ -6159,7 +6164,7 @@ sub startMain {
 			   my $win=$_[0]->{focusedWindow};
 			   $win->treeView->set_clearTextBackground($treeViewOpts->{clearTextBackground});
 			   get_nodes_win($win);
-			   redraw_win($grp->{focusedWindow});
+			   redraw_win($win);
 			 },\%group]],
 ## obsolete
 # 	 [Checkbutton=> 'Highlight Attributes', -underline=> 1,
@@ -6820,7 +6825,8 @@ sub startMain {
   $group{focusedWindow}->canvas->focus;
 
 #  print STDERR "Binding canvas destroy...\n" if $tredDebug;
-#   $top->bind($top, '<Destroy>',
+#   addBindTags($top,'TrEdMW');
+#   $top->bind('TrEdMW','<Destroy>',
 # 		      [ sub {
 # 			  shift;
 # 			  my $grp=shift;
@@ -6862,7 +6868,7 @@ sub startMain {
   }
 
   $top->Busy(-recurse=> 1);
-  eval { loadMacros($grp,{preparedExtensions=>$preparedExtensions}) };
+  eval { loadMacros(\%group,{preparedExtensions=>$preparedExtensions}) };
   errorMessage($top,$@) if $@;
   print STDERR "Resource path: $Fslib::resourcePath\n" unless $opt_q;
   print "Starting in context $group{focusedWindow}->{macroContext}\n" if $tredDebug;
@@ -6969,7 +6975,7 @@ sub startMain {
 
 
   print STDERR "Binding keystrokes...\n" if $tredDebug;
-  $group{Menubar}->bind('<Escape>', [sub { shift->menu->Leave(); Tk->break; }] );
+  $group{Menubar}->bind('<Escape>', sub { eval{shift->menu->Leave()}; Tk->break; } );
 
   foreach my $prefix ('Alt','Meta') {
     $top->
@@ -7073,8 +7079,8 @@ sub startMain {
     $group{ $def->[2] || 'Toolbar' }->bind('my', $key => [ $def->[0], \%group ]);
   }
 
-
   print STDERR "done.\nStarting main loop.\n" if $tredDebug;
+  print STDERR "Ready.\n" unless $opt_q;
   MainLoop;
   if ($group{top}) {
     saveRuntimeConfig(\%group);
@@ -7176,6 +7182,15 @@ sub updateRuntimeConfig {
     my $s = $grp->{lastActionBookmark};
     $s=~s/\\/\\\\/g;
     push @$conf,"LastAction\t=\t".$s."\n";
+  }
+  if ($grp->{top}) {
+    eval {
+      $geometry=$grp->{top}->geometry();
+      print "geometry is $geometry\n" if $tredDebug;
+      if ($^O eq "MSWin32" and $grp->{top}->state() eq 'zoomed') {
+	$geometry=~s/\+[-0-9]+\+[-0-9]+/+-3+-3/;
+      }
+    };
   }
   do {
     my $s;
@@ -7497,7 +7512,7 @@ sub doSaveFileAs {
 	  }
 	} elsif ($lock ne 'none') {
 	  if (userQuery($win,
-			"File $f was $lock!",
+			"File $filename was $lock!",
 			-bitmap=> 'question',
 			-title => "Saving to a locked file?",
 			-buttons => ['Steal lock and save','Cancel']) eq 'Cancel') {
@@ -7758,6 +7773,7 @@ sub _is_same_file {
 
 sub saveConfig {
  my ($win,$config)=@_;
+ my $top;
  if (ref($win)=~/^Tk::/) {
    $top = $win->toplevel;
  } else {
@@ -7766,7 +7782,7 @@ sub saveConfig {
  if (-f $configFile and -w $configFile) {
     my $renamed = rename $configFile, "${configFile}~";
     if (open(my $fh,">$configFile")) {
-      print STDERR "SAVING CONFIG TO: $configFile\n";
+      print STDERR "Saving tred configuration to: $configFile\n";
       print $fh (@$config);
       close($fh);
       return;
@@ -7789,7 +7805,7 @@ sub saveConfig {
 			# -default=> 'Yes' # problem: Windows 'yes', UNIX 'Yes'
 		       )=~ m(yes)i) or 
 	 (!defined($top) and ! -f $trc and !defined($opt_c)))) {
-     $renamed = rename $trc, "${trc}~";
+     my $renamed = rename $trc, "${trc}~";
      if (open(my $fh,">".$trc)) {
        print STDERR "SAVING CONFIG TO: $trc\n";
        print $fh (@$config);
@@ -8760,8 +8776,9 @@ sub editAttrsDialog_schema {
     $node_type = $base_type;
   }
 
+  my $dlg_title = $attr_path ne EMPTY ? "Edit Attribute '$attr_path'" : "Edit Node";
   my $result = $win->toplevel->TrEdNodeEditDlg({
-    title => ($attr_path ne EMPTY ? "Edit Attribute '$attr_path'" : "Edit Node"),
+    title => $dlg_title,
     type => $base_type,
     object => $node,
     path => $attr_path,
@@ -8780,18 +8797,18 @@ sub editAttrsDialog_schema {
 			   # __debug("enable_attr_hook: $base_path, $path\n");
 			   $path = $base_path.$path if $base_path ne EMPTY;
 			   doEvalHook($win,'enable_attr_hook',$path,"normal",$node) eq 'stop' ? 0 : 1
-			 }, $win,$base_path,$node ],
+			 }, $win,$base_type,$node ],
     choices_callback => [ sub {
 			   my ($win,$base_path,$node,$path,$mtype,$editor)=@_;
 			   $path = $base_path.$path if $base_path ne EMPTY;
 			   return doEvalHook($win,'attr_choices_hook',$path,$node,$mtype,$editor);
-			 }, $win,$base_path,$node ],
+			 }, $win,$base_type,$node ],
     validate_callback => [ sub {
 			   my ($win,$base_path,$node,$txt,$path,$mtype,$editor)=@_;
 			   $path = $base_path.$path if $base_path ne EMPTY;
 			   my $res = doEvalHook($win,'attr_validate_hook',$txt,$path,$node,$mtype,$editor);
 			   defined $res ? $res : 1;
-			 }, $win,$base_path,$node ],
+			 }, $win,$base_type,$node ],
 
     search_field => length $attr_path ? 0 : 1,
     knit_support => 1,
@@ -9696,7 +9713,7 @@ sub findNodeDialog {
   my $result= ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
   if ($result=~ /Find/) {
     %$template = (); # cleanup template
-    foreach $t (@atord) {
+    foreach my $t (@atord) {
       my $val = decode($e{$t}->get);
       $template->{$t}=$val if $val ne EMPTY;
     }
@@ -10137,7 +10154,7 @@ sub doEditAttr {
   my $l= $d->Label(-text=> $attr,
 		    -anchor=> 'e',
 		    -justify=> 'right')->pack(-side=>'left');
-  my $e= $d->$Entry(@Entry,
+  my $e= $d->$Entry(@Eopts,
 		    -relief=> 'sunken',
 		    -width=> 40,
 		    -state=> $enabled ? 'normal' : 'disabled',
@@ -10289,11 +10306,9 @@ sub follow_mouse {
 
 sub follow_mouse_press {
   my ($w, $grp)= @_;
-  if ($scroll) {
-    my $win=findCanvasWindow($grp,$w);
-    my $e = $w->XEvent;
-    initScrollOrigin($w,$win,$e->x,$e->y);
-  }
+  my $win=findCanvasWindow($grp,$w);
+  my $e = $w->XEvent;
+  initScrollOrigin($w,$win,$e->x,$e->y);
 }
 sub initScrollOrigin {
   my ($w, $win, $X, $Y)=@_;
@@ -10559,7 +10574,6 @@ sub _evalHook {
   # Save current position (as last action position)
   my $bookmark=bookmarkThis($grp);
 
-  my $undo=prepare_undo($win,"Hook $context"."->".$hook,UNDO_DISPLAYED_TREES) if ($with_undo and $win and $win->{FSFile});
 
   local $insideEval=1;
   my $old_ctxt = TrEd::Macros::save_ctxt();
@@ -10590,6 +10604,7 @@ sub _evalHook {
       }
     }
   }
+  my $undo=prepare_undo($win,"Hook $context"."->".$hook,UNDO_DISPLAYED_TREES) if ($with_undo and $win and $win->{FSFile});
   my $result=do_eval_hook($win,$context,$hook,@_);
   warn "$@\n" if $@;
   if (ref($minor_modes)) {
@@ -10630,7 +10645,7 @@ sub examineEvent {
   if ($eA eq $eK) {
     $key .= " [$eA]" if ($eA ne $key);
   } else {
-    $rot =  $rotated ? ' /rotated because of vertical mode/ ' : '';
+    my $rot =  $rotated ? ' /rotated because of vertical mode/ ' : '';
     if ($eA eq $key) {
       $key .= " [$eK]$rot";
     } elsif ($eK eq $key) {
@@ -10661,9 +10676,9 @@ sub examineBindingsDialog {
   my $bindings='None';
   my $d = $grp->{top}->DialogBox(-title=> "Examine key bindings",
 				 -buttons=> ["Close"]);
-  $d->Label(-text=> $attr,
-		    -anchor=> 'e',
-		    -justify=> 'right')->pack(-side=>'left');
+#   $d->Label(-text=> $attr,
+# 		    -anchor=> 'e',
+# 		    -justify=> 'right')->pack(-side=>'left');
   $d->BindEscape;
   $d->Label(qw/-wraplength 6i -justify left -text/,
 	    "Press any key to see it's binding in the current context.")->
@@ -10688,8 +10703,7 @@ sub examineBindingsDialog {
   while (my ($key, $def) = each %default_binding) {
     $d->bind($key => [ $set_bindings_func, $def->[1] ]);
   }
-
-  ShowDialog($d,$e,$grp->{top});
+  $d->Show;
   $d->destroy;
   undef $d;
 }
@@ -10811,9 +10825,10 @@ sub resolveKey {
   my $grp=$_[0];
   my $win = $grp->{focusedWindow};
   my $minor_modes=$win->{minorModes};
+  my $bindings;
   if ($minor_modes) {
     foreach my $minor_mode (@$minor_modes) {
-      my $bindings = $grp->{minorKeyPriorityBindings}{$minor_mode};
+      $bindings = $grp->{minorKeyPriorityBindings}{$minor_mode};
       foreach my $key (@_) {
 	if ($bindings and exists $bindings->{$key}) {
 	  return($bindings->{$key},$key);
@@ -10863,7 +10878,7 @@ sub resolveEvent {
     print STDERR "Maybe: $prefix$K\n";
   }
   if ($K =~ /^XF86_Switch_VT_(\d+)$/) {
-    print STDERR "Translating $shift $K to SHIFT+F$1\n" if $keyboardDebug;
+    print STDERR "Translating $prefix $K to SHIFT+F$1\n" if $keyboardDebug;
     $prefix='SHIFT+';
     $K='F'.$1;
   }
@@ -10931,7 +10946,6 @@ sub tieGotoTree {
       return 0;
     }
   }
-  return $result;
 }
 
 sub tieNextTree {
@@ -10973,12 +10987,11 @@ sub tiePrevTree {
   } else {
     if ($grp->{focusedWindow}->{FSFile}) {
       my $result = prevTree($grp->{focusedWindow});
-      return $result;      
+      return $result;
     } else {
       return 0;
     }
   }
-  return $result;
 }
 
 sub currentNext {
@@ -11262,7 +11275,7 @@ sub prepare_redo {
     return prepare_undo($win,$message,UNDO_TREE_ORDER);
   } elsif ($what == UNDO_CURRENT_TREE_AND_TREE_ORDER or
 	   $what == UNDO_ACTIVE_ROOT_AND_TREE_ORDER or
-	   $what == UNDO_DATA_TREE_AND_TREE_ORDER) {
+	   $what == UNDO_DATA_AND_TREE_ORDER) {
     return prepare_undo($win,$message,UNDO_DATA_AND_TREE_ORDER,$snapshot->[1]);
   } else {
     ErrorMessage($win, "Unknown undo type: $what\n");
@@ -11354,7 +11367,7 @@ sub undo {
 	@{$fsfile->treeList}=@{$snapshot->[1]};
 	# $fsfile->treeList->[$treeNo]=$prev;
       } elsif ($what == UNDO_ACTIVE_ROOT_AND_TREE_ORDER or
-	       $what == UNDO_DATA_ROOT_AND_TREE_ORDER) {
+	       $what == UNDO_DATA_AND_TREE_ORDER) {
 	restore_data_from_snapshot($snapshot->[0]);
 	my %r; $r{ @{$snapshot->[1]} }=();
 	for (@{$fsfile->treeList}) {
@@ -11694,7 +11707,7 @@ sub loadMacros {
 		    getExtensionSampleDataPaths($pre_installed,$preinst_dir)) {
     foreach my $f (glob(File::Spec->catfile($path,'*.fl'))) {
       print "Reading $f\n" if $tredDebug;
-      $fl=Filelist->new(undef,$f);
+      my $fl=Filelist->new(undef,$f);
       $filelist_from_extension{$fl}=1;
 
       next unless $fl;
@@ -11704,26 +11717,32 @@ sub loadMacros {
     }
   }
 
-  print STDERR ("Reading extension macros...\n") unless $quiet;
+  print STDERR ("Reading extension macros:") unless $opt_q;
   for my $ext_contrib (getExtensionMacroPaths($extensions),
 		       getExtensionMacroPaths($pre_installed,$preinst_dir)) {
     
     if (-f $ext_contrib) {
-      print STDERR ("Reading extension macros from $ext_contrib...\n") unless $quiet;
+      if ($tredDebug) {
+	print STDERR ("Reading extension macros from $ext_contrib...\n");
+      } elsif (!$opt_q) {
+	my $name = $ext_contrib;
+	$name=~s{.*/extensions/([^/]+)/contrib.*}{$1};
+	print STDERR (" $name");
+      }
       push @TrEd::Macros::macros,qq(\n#line 0 "$ext_contrib"\n{\npackage TredMacro;\n);
       read_macros($ext_contrib,$libDir,1);
       push @TrEd::Macros::macros,qq(\n} # end of "$ext_contrib"\n);
     }
   }
-
+  print STDERR " ... done\n" if !$opt_q and !$tredDebug;
   if ($opt_I) {
-    print STDERR ("Reading additional macros from $opt_I...\n") unless $opt_q;
+    print STDERR ("Reading additional macros from $opt_I...") unless $opt_q;
     push @TrEd::Macros::macros,qq(\n#line 0 "$opt_I"\n{\npackage TredMacro;\n);
     read_macros($opt_I,$libDir,1);
     push @TrEd::Macros::macros,qq(\n} # end of "$opt_I"\n);
+    print STDERR "done.\n" unless $opt_q;
   }
 
-  print STDERR "done.\n" unless $opt_q;
 }
 
 sub reloadMacros {
@@ -11774,7 +11793,7 @@ sub manage_extensions {
 
     # reload stylesheets
     @TrEd::Utils::stylesheetPaths=();
-    initStylesheetPaths([split($Fslib::resourcePathSplit,$opts_S,-1)]);
+    initStylesheetPaths([split($Fslib::resourcePathSplit,$opt_S,-1)]);
 
     my $preparedExtensions = prepareExtensions($grp);
 

@@ -371,17 +371,33 @@ sub get_schema_for_type {
   return $decl && $decl->get_schema;
 }
 
+sub _get_fsfile {
+  my ($self)=@_;
+  my $file = $self->{file};
+  my $fl;
+  if ($file) {
+    return first { $_->filename eq $file } GetOpenFiles();
+  } elsif ($fl = GetFileList($self->{filelist})) {
+    my %fl;
+    my @files = $fl->files;
+    print "@files\n";
+    @fl{ @files } = ();
+    my $fsfile = ((first { exists($fl{$_->filename}) } GetOpenFiles())||
+	     $files[0] && Open(AbsolutizeFileName($files[0],$fl->filename),{-preload=>1}))
+      || return;
+    return $fsfile;
+  }
+}
+
 sub get_schema {
   my ($self)=@_;
-  my $file = $self->{file} || return;
-  my $fsfile = (first { $_->filename eq $file } GetOpenFiles()) || return;
+  my $fsfile = $self->_get_fsfile || return;
   return PML::Schema($fsfile);
 }
 
 sub get_schemas {
   my ($self)=@_;
-  my $file = $self->{file} || return;
-  my $fsfile = (first { $_->filename eq $file } GetOpenFiles()) || return;
+  my $fsfile = $self->_get_fsfile || return;
   return uniq map PML::Schema($_), ($fsfile,  GetSecondaryFiles($fsfile));
 }
 

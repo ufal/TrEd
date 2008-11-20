@@ -3229,6 +3229,24 @@ sub GetFileList {
 }
 #endif
 
+=item C<AbsolutizeFileName($relative_path,$base_path)>
+
+Converts a relative path to an absolute path.  The returned value is
+an absolute path or URI, computed relative to a given base_path (file
+name or URI). The function is able to strip TrEd position suffixes
+(##N, ##N.M, and #ID) from the relative path and reattach them to the
+returned absolute path.
+
+=cut
+
+sub AbsolutizeFileName {
+  my ($filename,$relfile) = @_;
+  return unless defined $filename;
+  ($filename,$suffix)=TrEd::Utils::parseFileSuffix($filename);
+  return Fslib::ResolvePath($relfile,$filename).$suffix;
+}
+
+
 =item C<SetCurrentFileList($name,$win?)>
 
 This macro is only available in TrEd. Selects the filelist of a given

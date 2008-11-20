@@ -129,7 +129,7 @@ sub save {
   return unless ref($self);
   do {
     local *F;
-    print "Saving to: ",$self->filename,"\n";
+    print "Saving filelist ".$self->name." to: ",$self->filename,"\n";
     if (defined ($self->filename) and $self->filename ne "") {
       open F,">".$self->filename ||
 	warn "Couldn't save filelist to '".$self->filename."': $!\n";
