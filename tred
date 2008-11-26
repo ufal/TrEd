@@ -7371,18 +7371,49 @@ sub askSaveReferences {
   $filename = $fsfile->filename unless defined $filename;
   my (@refs);
   my $schema = fileSchema($fsfile) || return 1;
-  my $references = $schema->{reference} || return 1;
+  my $references = [ $schema->get_named_references ];
+  return 1 unless @$references;
+  my $name2id = $fsfile->metaData('refnames');
+  my $id2href = $fsfile->metaData('references');
   foreach my $reference (@$references) {
     my $name = $reference->{name};
-    my $refid = $fsfile->metaData('refnames')->{$name};
+    my $refid = $name2id->{$name};
     if ($refid) {
-      my $href = $fsfile->metaData('references')->{$refid};
+      my $href = $id2href->{$refid};
+      my $r;
       if ($href and $reference->{readas} =~ /^(dom|pml)$/ and 
-	  ref($fsfile->appData('ref')) and $fsfile->appData('ref')->{$refid}) {
-	push @refs, $href." [$refid, $name]";
+	  ref($fsfile->appData('ref')) and $r=$fsfile->appData('ref')->{$refid}) {
+	push @refs, [$href." [$refid, $name]",
+		     $r,$refid,$name];
       }
     }
   }
+  my $i=0;
+  while ($i<@refs) {
+    my $r = $refs[$i][1];
+    if (UNIVERSAL::isa($r,'PMLInstance')) {
+      my $schema = $r->get_schema;
+      my $references = [ $schema->get_named_references ];
+      next unless @$references;
+      my $name2id = $r->get_refname_hash();
+      my $id2href = $r->get_references_hash();
+      foreach my $reference (@$references) {
+	my $name = $reference->{name};
+	my $refid = $name2id->{$name};
+	if ($refid) {
+	  my $href = $id2href->{$refid};
+	  if ($href and $reference->{readas} =~ /^(dom|pml)$/) {
+	    my $r2 = $r->get_ref($refid);
+	    $refid=$refs[$i][2].'/'.$refid;
+	    $name=$refs[$i][3].'/'.$name;
+	    push @refs, [$href." [$refid, $name]",
+		     $r2,$refid,$name] if $r2;
+	  }
+	}
+      }
+    }
+  } continue { $i++ }
+  @refs=map $_->[0],@refs;
   # CURSOR
   return 1 unless @refs;
   my $initdir = dirname($filename);
