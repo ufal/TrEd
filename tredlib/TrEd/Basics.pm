@@ -325,16 +325,26 @@ sub chooseNodeType {
       my $schema = fileSchema($fsfile);
       @tree_types = $schema->find_types_by_role('#TREES');
     }
-    foreach my $tt (map { $_->get_content_decl } @tree_types) {
+    foreach my $tt (@tree_types) {
       if (!ref($tt)) {
 	die("I'm confused - found role #TREES on something which is neither a list nor a sequence...\n".
 	  Dumper($tt));
-      } elsif ($tt->get_decl_type == PML_LIST_DECL()) {
+      }
+      my $tt_is = $tt->get_decl_type;
+      if ($tt_is == PML_ELEMENT_DECL) {
+	$tt = $tt->get_content_decl;
+	$tt_is = $tt->get_decl_type;
+      } elsif ($tt_is == PML_MEMBER_DECL) {
+	$tt = $tt->get_content_decl;
+	$tt_is = $tt->get_decl_type;
+      }
+
+      if ($tt_is == PML_LIST_DECL()) {
 	$ntype = $tt->get_content_decl;
 	undef $ntype unless $ntype and $ntype->get_role eq '#NODE'
 	  and (!$has_children or can_have_children($ntype));
-      } elsif ($tt->get_decl_type == PML_SEQUENCE_DECL()) {
-	my $elements = 
+      } elsif ($tt_is == PML_SEQUENCE_DECL()) {
+	my $elements =
 	  @ntypes =
 	    grep { !$has_children or can_have_children($_->[1]) }
 	    grep { $_->[1]->get_role eq '#NODE' }
@@ -345,7 +355,7 @@ sub chooseNodeType {
 	    $ntype=$ntype->[1] if $ntype;
 	  }
       } else {
-	die ("I'm confused - found role #CHILDNODES on something which is neither a list nor a sequence...\n".
+	die ("I'm confused - found role #TREES on something which is neither a list nor a sequence...\n".
 	  Dumper($tt));
       }
     }
