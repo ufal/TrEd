@@ -32,7 +32,7 @@
       <member name="write_single_LM" type="bool.type"/>
       <member name="decorate" type="bool.type"/>
       <member name="validate_cdata" type="bool.type"/>
-      <member name="indent" type="nonNegativeInteger"/>
+      <member name="indent"><cdata format="nonNegativeInteger"/></member>
     </structure>
   </type>
   <type name="transform_map.type">
