@@ -1647,7 +1647,7 @@ sub saveFile {
       }
     }
   } elsif ($fsfile->metaData('schema') and $reffiles_to_save ne 'NONE') {
-    _msg "Looking for resources $reffiles_to_save\n" unless $Quiet;
+    # _msg "Looking for reffiles $reffiles_to_save\n" unless $Quiet;
     my $refnames = $fsfile->metaData('refnames');
     my $references = $fsfile->metaData('references');
     if (ref($refnames) and ref($references)) {
