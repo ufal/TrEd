@@ -366,6 +366,7 @@ DeclareMinorMode 'Tree_Query_Results' => {
     },
     get_value_line_hook => sub {
       my ($fsfile,$no)=@_;
+      map_results($fsfile->tree($no),$fsfile->filename,$no);
       if (!defined $_[-1]) {
 	# value line not supplied by hook, we provide the standard one
 	$_[-1] = $grp->treeView->value_line($fsfile,$no,1,1,$grp);
@@ -376,7 +377,8 @@ DeclareMinorMode 'Tree_Query_Results' => {
 	for my $item (@$vl) {
 	  for (@$item[1..$#$item]) {
 	    if (defined($m=$Tree_Query::is_match{$_})) {
-	      # @$item = $item->[0],grep !/^-foreground => /, @$item[1..$#$item];
+	      # print "match: $m $_\n";
+	      @$item = $item->[0],grep !/^-foreground => /, @$item[1..$#$item];
 	      push @$item,'-foreground => #'.$Tree_Query::colors[$m];
 	      last;
 	    }
@@ -1370,7 +1372,10 @@ our @last_results;
 # determine which nodes are part of the current result
 sub map_results {
   return unless $SEARCH;
-  my $map = $SEARCH->map_nodes_to_query_pos(FileName(),CurrentTreeNumber(),$root);
+  my ($root,$filename,$tree_number)=@_;
+  $filename = FileName() unless defined $filename;
+  $tree_number = CurrentTreeNumber() unless defined $tree_number;
+  my $map = $SEARCH->map_nodes_to_query_pos($filename,$tree_number,$root);
   %is_match = defined($map) ? %$map : ();
 }
 
