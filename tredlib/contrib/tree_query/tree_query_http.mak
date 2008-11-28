@@ -569,6 +569,7 @@ sub show_result {
       for my $win (@wins) {
 	$grp=$win;
 	my $idx = GetMinorModeData('Tree_Query_Results','index');
+	local $win->{noRedraw}=1;
 	if (!defined($idx) or $idx>$#{$self->{last_query_nodes}}) {
 	  $idx = $self->_assign_first_result_index_not_shown($seen,$win);
 	  SetMinorModeData('Tree_Query_Results','index',$idx);
@@ -579,7 +580,8 @@ sub show_result {
 	} else {
 	  CloseFileInWindow($win);
 	}
-	Redraw($win);
+	$win->{noRedraw}=0;
+	Redraw($win) unless $win==$save[2];
       }
     } elsif ($dir eq 'next') {
       my $no = $self->{current_result_no};
@@ -590,6 +592,7 @@ sub show_result {
       for my $win (@wins) {
 	$grp=$win;
 	my $idx = GetMinorModeData('Tree_Query_Results','index');
+	local $win->{noRedraw}=1;
 	if (!defined($idx) or $idx>$#{$self->{last_query_nodes}}) {
 	  $idx = $self->_assign_first_result_index_not_shown($seen,$win);
 	  SetMinorModeData('Tree_Query_Results','index',$idx);
@@ -600,12 +603,14 @@ sub show_result {
 	} else {
 	  CloseFileInWindow($win);
 	}
-	Redraw($win);
+	$win->{noRedraw}=0;
+	Redraw($win) unless $win==$save[2];
       }
     } elsif ($dir eq 'current') {
       for my $win (@wins) {
 	$grp=$win;
 	my $idx = GetMinorModeData('Tree_Query_Results','index');
+	local $win->{noRedraw}=1;
 	if (!defined($idx) or $idx>$#{$self->{last_query_nodes}}) {
 	  $idx = $self->_assign_first_result_index_not_shown($seen,$win);
 	  SetMinorModeData('Tree_Query_Results','index',$idx);
@@ -616,7 +621,8 @@ sub show_result {
 	} else {
 	  CloseFileInWindow($win);
 	}
-	Redraw($win);
+	$win->{noRedraw}=0;
+	Redraw($win) unless $win==$save[2];
       }
     }
   };
