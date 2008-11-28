@@ -3111,6 +3111,7 @@ sub update_tree_pos {
 sub update_value_line {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow}; # only focused window uses the value line
+  return if $win->{noRedraw};
   update_tree_pos($grp);
   my $vl = set_value_line($grp,get_value_line($win,$win->{FSFile},
 					    $win->{treeNo},1,1,'value_line'));
@@ -10235,7 +10236,7 @@ sub nodeBoxOptions {
 
 sub redraw_win {
   my ($win)=@_;
-  return if $insideEval;
+  return if ($win->{noRedraw} or $insideEval);
   if ($win == $win->{framegroup}->{focusedWindow}) {
     saveFileStateUpdate($win);
     resetUndoStatus($win);
