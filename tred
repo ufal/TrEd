@@ -10877,6 +10877,7 @@ sub resolveKey {
   }
   if ($minor_modes) {
     foreach my $minor_mode (@$minor_modes) {
+      $bindings = $grp->{minorKeyBindings}{$minor_mode};
       foreach my $key (@_) {
 	if ($bindings and exists $bindings->{$key}) {
 	  return($bindings->{$key},$key);
