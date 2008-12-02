@@ -429,13 +429,14 @@ sub draw_canvas {
       for (qw(first last)) {
 	if ($arrow eq $_ or $arrow eq 'both') {
 	  @c=$_ eq 'first' ? @coords[0..3] : @coords[-2,-1,-4,-3];
-	  my $angle = 180*atan2($c[2]-$c[0],$c[1]-$c[3])/3.14159265;
+	  my $angle = 180*atan2($c[2]-$c[0],$c[1]-$c[3])/3.14159265-90;
+	  $angle+=360 if ($angle<0);
 	  $draw->save;
 	  $draw->translate(@c[0,1]);
 	  $draw->linedash();
 	  $draw->linecap(0);
 	  $draw->linejoin(0);
-	  $draw->rotate($_ eq 'first' ? -$angle : $angle-90);
+	  $draw->rotate($angle);
 	  $draw->move(0,0);
 	  $draw->line($ars->[1],$ars->[2], $ars->[0],0, $ars->[1],-$ars->[2], 0,0);
 	  $draw->close;
