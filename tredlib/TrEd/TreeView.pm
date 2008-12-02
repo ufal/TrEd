@@ -1653,10 +1653,33 @@ sub redraw {
       split '&',$line_style->{'-arrowshape'};
     my @fill=split '&',$line_style->{'-fill'};
     my @width=split '&',$line_style->{'-width'};
-
-    my @dash= map { ref($_) && @_==1 ? '' : $_ }
-      map { /\d/ ? [split /,/,$_] : $_ } 
-      split '&',$line_style->{'-dash'};
+    my @dash;
+    for my $d (split '&',$line_style->{'-dash'}) {
+      print "$d\n";
+      if ($d=~/\d\s+,/) {
+	push @dash, [split ',',$d];
+      } elsif ($d!~/\d/) {
+	my $w = $width[1+$#dash] || $self->get_lineWidth;
+	# manually transform the dash (we do this because itemcget -dash returns garbage and we need a correct value for printing
+	my @d;
+	for (split '',$d) {
+	  if ($d eq '.') {
+	    push @d, $w,2*$w;
+	  } elsif ($d eq ',') {
+	    push @d, 2*$w,2*$w;
+	  } elsif ($d eq '-') {
+	    push @d, 3*$w,2*$w;
+	  } elsif ($d eq '_') {
+	    push @d, 4*$w,2*$w;
+	  } elsif ($d eq ' ' and @d) {
+	    $d[-1]+=$w;
+	  }
+	}
+	push @dash,\@d;
+      } else {
+	push @dash,'';
+      }
+    }
     my @smooth=split '&',$line_style->{'-smooth'};
     my %nodehash;
     my $coords=$line_style->{'-coords'};
