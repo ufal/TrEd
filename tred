@@ -959,9 +959,9 @@ sub get_entry_type {
 sub set_grp_history {
   my ($grp,$e,$h,$list)=@_;
   if ($e->can('history')){
-    push @$list,[$e,$h] if (ref($list));
-    $grp->{"hist_$h"}=[] unless ref($grp->{"hist_$h"});
-    $e->history($h);
+    push @$list,[$e,$h] if (ref($list)); # just maintains a list of histories
+    my $hist = $grp->{"hist_$h"} ||= [];
+    $e->history($hist);
   }
 }
 
@@ -4478,7 +4478,7 @@ sub printDialog {
   my $win = $grp->{focusedWindow};
   return unless $win->{FSFile};
   my ($Entry,@Entry) = get_entry_type();
-  my $e_hist;
+  my $e_hist=[];
 
   my (%w,%s); # widgets, state
   $s{command}=$printOptions->{defaultPrintCommand};
