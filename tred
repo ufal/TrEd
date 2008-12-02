@@ -1880,12 +1880,11 @@ sub updateScaleFactor {
 
 sub updateTitle {
   my ($grp)=@_;
-  my $win = $grp->{focusedWindow};
   return unless ref($grp);
-  if (defined($win->{currentFileNo}) and 
-      ref($win->{FSFile})) {
+  my $win = $grp->{focusedWindow};
+  if (ref($win->{FSFile})) {
     my $filelist_info=EMPTY;
-    if ($win->{currentFilelist}) {
+    if (defined($win->{currentFileNo}) and $win->{currentFilelist}) {
       my $current = $win->{currentFileNo}+1;
       my $all = $win->{currentFilelist}->file_count();
       $filelist_info=$win->{currentFilelist}->name()."($current/$all): ";
@@ -3575,6 +3574,7 @@ sub filelistDialog {
     if ($win->{FSFile}) {
       errorMessage($win,"Cannot manage file-lists while visiting a file not belonging to any file-list! ".
 		   "Please, switch to a file-list (e.g. using Session->Default) and try again.",1);
+      $grp->{top}->Unbusy();
       return;
     } else {
       selectFilelist($grp,'Default');
