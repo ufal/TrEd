@@ -2078,6 +2078,19 @@ sub merge_status {
   $status1->{report} .= "\n".$status2->{report} if $status2->{report} ne EMPTY;
 }
 
+sub _is_same_filename {
+  my ($f1,$f2)=@_;
+  return 1 if $f1 eq $f2;
+  if (!ref($f1) and !ref($f2) and -f $f1 and -f $f2) {
+    return _is_same_file($f1,$f2);
+  }
+  $f1 = IOBackend::make_URI($f1) unless UNIVERSAL::isa($f1,'URI');
+  $f2 = IOBackend::make_URI($f2) unless UNIVERSAL::isa($f2,'URI');
+  return 1 if $f1 eq $f2;
+  return 1 if $f1->canonical eq $f2->canonical;
+  return 0;
+}
+
 sub openFile {
   my ($grp_or_win,$fname,%opts)= @_;
   my ($grp,$win)=grp_win($grp_or_win);
@@ -2106,7 +2119,7 @@ sub openFile {
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
 
   # File already open in current window? Simple!
-  if ($fsfile and $fsfile->filename() eq $f) {
+  if ($fsfile and _is_same_filename($fsfile->filename(),$f)) {
     unless ($opts{-preload}) {
       updateTitle($grp);
       applyFileSuffix($win,$goto);
@@ -2141,7 +2154,7 @@ sub openFile {
   # Search open files for requested file, resume if available
   unless ($opts{-justheader}) {
     foreach my $of ($fsfile,@openfiles) {
-      if (ref($of) and $of->filename() eq $f) {
+      if (ref($of) and _is_same_filename($of->filename,$f)) {
 	print "Opening postponed file\n" if $tredDebug;
 	unless ($opts{-preload}) {
 	  resumeFile($win,$of,$opts{-keep});
