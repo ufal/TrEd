@@ -94,6 +94,11 @@ BEGIN {
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
   @config_file_search_list=();
+
+  *find_exe = eval {
+      require File::Which;
+      \&File::Which::which
+  } || sub {};
 }
 use vars (@EXPORT);
 
@@ -141,10 +146,6 @@ $printOptions={
 };
 
 my $resourcePathSplit = ($^O eq "MSWin32") ? ',' : ':';
-
-sub find_exe {
-  local $_ = `/usr/bin/which $_[0] 2>/dev/null`; chomp; /\S/ ? $_ : undef
-}
 
 sub set_default_config_file_search_list {
   require FindBin;
@@ -376,7 +377,6 @@ sub set_config {
   # print "USING FONT $font\n";
   $treeViewOpts->{font}=$font;
   $vLineFont=val_or_def($confs,"vlinefont",$font);
-
   if ($confs->{perllib}) {
     foreach my $perllib (split/\:/,$confs->{perllib}) {
       $perllib = tilde_expand($perllib);
@@ -428,7 +428,6 @@ sub set_config {
     my %r;
     $Fslib::resourcePath = join $resourcePathSplit, grep { defined and length } map { exists($r{$_}) ? () : ($r{$_}=$_) } @r
   }
-
   if ($confs->{backgroundimage} ne "" 
       and ! -f $confs->{backgroundimage}
       and  -f $libDir."/".$confs->{backgroundimage}) {
@@ -445,7 +444,6 @@ sub set_config {
   $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? tilde_expand($confs->{defaultmacrofile}) : "$libDir/tred.def";
   $defaultMacroEncoding=val_or_def($confs,"defaultmacroencoding",'utf8');
   $sortAttrs	     =	val_or_def($confs,"sortattributes",1);
-
   for my $opt (keys %$printOptions) {
     $printOptions->{$opt} = val_or_def($confs,lc($opt),$printOptions->{$opt});
   }
@@ -538,7 +536,6 @@ sub set_config {
   $IOBackend::kioclient_opts = val_or_def($confs,"kioclientopts", undef);
   $IOBackend::curl = val_or_def($confs,"curl", undef);
   $IOBackend::curl_opts = val_or_def($confs,"curlopts", undef);
-
   if (!$IOBackend::zcat) {
     if ($IOBackend::gzip) {
       $IOBackend::zcat=$IOBackend::gzip;
@@ -547,7 +544,6 @@ sub set_config {
       $IOBackend::zcat = "$libDir/../bin/zcat";
     }
   }
-
   $cstsToFs = val_or_def($confs,"cststofs",undef);
   $fsToCsts = val_or_def($confs,"fstocsts",undef);
 
