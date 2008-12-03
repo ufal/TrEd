@@ -2455,9 +2455,9 @@ Save given TrEd's stylesheet (to ~/.tred.d/stylesheets/name).
 
 =cut
 
-sub SaveStylesheets {
+sub SaveStylesheet {
   my ($patterns,$stylesheet) = @_;
-  main::saveStyleSheet($grp->{framegroup},$main::defaultStylesheetPath,$stylesheet) if GUI();
+  main::saveStyleSheetFile($grp->{framegroup},$main::defaultStylesheetPath,$stylesheet) if GUI();
 }
 
 =item C<SaveStylesheets()>
