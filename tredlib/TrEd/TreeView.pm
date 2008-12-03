@@ -1655,7 +1655,6 @@ sub redraw {
     my @width=split '&',$line_style->{'-width'};
     my @dash;
     for my $d (split '&',$line_style->{'-dash'}) {
-      print "$d\n";
       if ($d=~/\d\s+,/) {
 	push @dash, [split ',',$d];
       } elsif ($d!~/\d/) {
