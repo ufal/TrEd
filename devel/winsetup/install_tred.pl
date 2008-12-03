@@ -571,28 +571,8 @@ sub Install_PPM_Modules {
     for (@best) {
       Log("best ".$_->name_version."\n");
     }
-    my @packages = $ppm->packages_missing( want => [map { [$_,0] } @features] );
-    for (@packages) {
-      Log("pkg ".$_->name_version."\n");
-    }
-    if (@packages) {
-      my $what = @packages > 1 ? (@packages . " PPM packages") : " PPM package";
-      my $activity = ppm_status("begin", "Installing $what");
-      eval {
-	$ppm->install(packages => \@packages ); # force => 1 
-      };
-      if ($@) {
-	Log("\nERROR:",$@,"\n");
-	$activity->end('fail');
-	$fail=1;
-      } else {
-	$activity->end;
-      }
-    } else {
-      Log("No packages to install.\n");
-    }
     Log("Finding packages for upgrade...");
-    @packages=();
+    my @packages;
     for my $best (@best) {
       for my $area_name ($ppm->areas) {
 	my $area = $ppm->area($area_name);
@@ -622,6 +602,27 @@ sub Install_PPM_Modules {
       }
     } else {
       Log("No packages to upgrade.\n");
+    }
+
+    @packages = $ppm->packages_missing( want => [map { [$_,0] } @features] );
+    for (@packages) {
+      Log("pkg ".$_->name_version."\n");
+    }
+    if (@packages) {
+      my $what = @packages > 1 ? (@packages . " PPM packages") : " PPM package";
+      my $activity = ppm_status("begin", "Installing $what");
+      eval {
+	$ppm->install(packages => \@packages ); # force => 1 
+      };
+      if ($@) {
+	Log("\nERROR:",$@,"\n");
+	$activity->end('fail');
+	$fail=1;
+      } else {
+	$activity->end;
+      }
+    } else {
+      Log("No packages to install.\n");
     }
 
   };
