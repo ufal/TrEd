@@ -9586,7 +9586,7 @@ EOF
     if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
       $win->{FSFile}->notSaved(1);
     } else {
-      saveStyleSheet($grp,$defaultStylesheetPath,$win->{stylesheet});
+      saveStyleSheetFile($grp,$defaultStylesheetPath,$win->{stylesheet});
     }
     get_nodes_fsfile($grp,$win->{FSFile});
     update_value_line($grp);
