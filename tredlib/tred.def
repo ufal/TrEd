@@ -3701,7 +3701,7 @@ is computed based on the caller's directory and returned.
 
 sub CallerDir {
   return
-    @_>1
+    @_>0
       ? File::Spec->rel2abs($_[0], DirPart( (caller)[1] ))
       : DirPart( (caller)[1] );
 }
