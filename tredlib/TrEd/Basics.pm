@@ -7,7 +7,12 @@ BEGIN {
   import TrEd::MinMax qw(first);
 
   use Exporter  ();
-  use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
+  use vars qw($VERSION @ISA @EXPORT @EXPORT_OK
+	      $on_tree_change
+	      $on_node_change
+	      $on_current_change
+	      $on_error
+	    );
   @ISA=qw(Exporter);
   $VERSION = "0.1";
   @EXPORT = qw(
@@ -32,11 +37,13 @@ BEGIN {
     &uniq
     &chooseNodeType
     &fileSchema
+    &getSecondaryFiles
   );
-  use strict;
   use PMLSchema;
 }
 
+use strict;
+use warnings;
 sub uniq { my %a; grep { !($a{$_}++) } @_ }
 
 
@@ -265,6 +272,21 @@ sub can_have_children {
 sub fileSchema {
   my ($fsfile)=@_;
   return $fsfile->metaData('schema');
+}
+
+sub getSecondaryFiles {
+  my ($fsfile)=@_;
+  my $requires = $fsfile->metaData('fs-require');
+  my @secondary;
+  if ($requires) {
+    foreach my $req (@$requires) {
+      my $req_fs = ref($fsfile->appData('ref')) ? $fsfile->appData('ref')->{$req->[0]} : undef;
+      if (ref($req_fs) eq 'FSFile') {
+	push @secondary,$req_fs;
+      }
+    }
+  }
+  return uniq @secondary;
 }
 
 sub chooseNodeType {
