@@ -227,7 +227,7 @@ Only those secondary files that are already open are returned.
 sub GetSecondaryFiles {
   my ($fsfile)=@_;
   $fsfile||=$grp->{FSFile};
-  return main::getSecondaryFiles($grp,$fsfile);
+  return exists(&main::getSecondaryFiles) ? main::getSecondaryFiles($fsfile) : ()
 }
 
 

@@ -1571,7 +1571,7 @@ sub closeFile {
       removeLock($fsfile,$f);
 
       # remove dependency
-      for my $req_fs (getSecondaryFiles($win,$fsfile)) {
+      for my $req_fs (getSecondaryFiles($fsfile)) {
 	if (ref($req_fs->appData('fs-part-of'))) {
 	  @{$req_fs->appData('fs-part-of')} = grep { $_ != $fsfile } @{$req_fs->appData('fs-part-of')};
 	}
@@ -1592,23 +1592,6 @@ sub closeFile {
     }
   }
   return 1;
-}
-
-sub getSecondaryFiles {
-  my $win = cast_to_win(shift());
-  my $fsfile = (@_ ? shift() : $win->{FSFile});
-  return unless $fsfile;
-  my $requires = $fsfile->metaData('fs-require');
-  my @secondary;
-  if ($requires) {
-    foreach my $req (@$requires) {
-      my $req_fs = ref($fsfile->appData('ref')) ? $fsfile->appData('ref')->{$req->[0]} : undef;
-      if (ref($req_fs) eq 'FSFile') {
-	push @secondary,$req_fs;
-      }
-    }
-  }
-  return uniq @secondary;
 }
 
 sub plainErrorMessage {
@@ -2109,11 +2092,11 @@ sub openFile {
 
   $opts{-keep} ||= $grp->{keepfiles};
   if (!$opts{-keep} and $opts{-keep_related}) {
-#    print map { $_->filename."\n" } getSecondaryFiles($win,$fsfile), @{$fsfile->appData('fs-part-of')}
+#    print map { $_->filename."\n" } getSecondaryFiles($fsfile), @{$fsfile->appData('fs-part-of')}
 #      if $fsfile;
     $opts{-keep}=1 if
       $fsfile and
-	first { $_->filename eq $f } (getSecondaryFiles($win,$fsfile), @{$fsfile->appData('fs-part-of')});
+	first { $_->filename eq $f } (getSecondaryFiles($fsfile), @{$fsfile->appData('fs-part-of')});
   }
 
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
