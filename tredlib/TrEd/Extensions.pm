@@ -380,7 +380,7 @@ sub _populate_extension_pane {
 	}
 	{ #DEBUG; 
 	  $path||='';
-	  print "$name => $data->{icon}\n";
+	  # print STDERR "Extensions.pm: $name => $data->{icon}\n";
 	}
 	if (defined($path) and -f $path) {
 	  require Tk::JPEG;
