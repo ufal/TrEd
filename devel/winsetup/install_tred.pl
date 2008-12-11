@@ -578,12 +578,15 @@ sub Install_PPM_Modules {
 	my $area = $ppm->area($area_name);
 	my $name=$best->name;
 	my $pkg = $area->package($name);
+	print "$name: ",$pkg->version," <=> ",$best->version,"\n";
 	if ($pkg and
 	    $pkg->name eq $name and
 	    $pkg->version ne $best->version and
 	    $best->better_than($pkg)) {
 	  Log("upgrade $name\n");
 	  push @packages,$best;
+	} else {
+	  Log("keep $name\t".$pkg->version."\n");
 	}
       }
     }
