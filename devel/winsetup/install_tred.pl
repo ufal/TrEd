@@ -500,6 +500,21 @@ sub Fail {
   }
 }
 
+sub _better_than {
+  my ($pkg1,$pkg2)=@_;
+  return 0 unless $pkg1 and $pkg2;
+  my @v1=split /\./,$pkg1->version;
+  my @v2=split /\./,$pkg2->version;
+  while (@v1 or @v2) {
+    my $v1 = shift(@v1)||0;
+    my $v2 = shift(@v2)||0;
+    for ($v1,$v2) { $_=0 unless /^\s*\d+\s*$/ }
+    return 0 if ($v1<$v2);
+    return 1 if ($v1>$v2);
+  }
+  return 0;
+}
+
 sub Install_PPM_Modules {
   my $ppm = ActivePerl::PPM::Client->new;
   return unless $install_packages;
@@ -578,15 +593,17 @@ sub Install_PPM_Modules {
 	my $area = $ppm->area($area_name);
 	my $name=$best->name;
 	my $pkg = $area->package($name);
-	print "$name: ",$pkg->version," <=> ",$best->version,"\n";
+#	if ($pkg) {
+#	  Log("$name: ",$pkg->version," <=> ",$best->version,"\n");
+#	}
 	if ($pkg and
 	    $pkg->name eq $name and
 	    $pkg->version ne $best->version and
-	    $best->better_than($pkg)) {
+	    eval{ _better_than($best,$pkg) }) {
 	  Log("upgrade $name\n");
 	  push @packages,$best;
 	} else {
-	  Log("keep $name\t".$pkg->version."\n");
+	  Log("keep $name\t".$pkg->version."\n") if $pkg;
 	}
       }
     }
