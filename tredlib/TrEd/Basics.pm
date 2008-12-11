@@ -210,6 +210,7 @@ sub setCurrent {
 sub _messageBox {
   my ($top,$title,$msg,$nobug)=@_;
   require Tk::ErrorReport;
+  $nobug||='';
   $top->ErrorReport(
     -title   => $title,
     -msgtype => ($nobug eq 'warn' ? "WARNING" : "ERROR"),
@@ -353,10 +354,7 @@ sub chooseNodeType {
 	  Dumper($tt));
       }
       my $tt_is = $tt->get_decl_type;
-      if ($tt_is == PML_ELEMENT_DECL) {
-	$tt = $tt->get_content_decl;
-	$tt_is = $tt->get_decl_type;
-      } elsif ($tt_is == PML_MEMBER_DECL) {
+      if ($tt_is == PML_ELEMENT_DECL or $tt_is == PML_MEMBER_DECL or $tt_is == PML_TYPE_DECL) {
 	$tt = $tt->get_content_decl;
 	$tt_is = $tt->get_decl_type;
       }
