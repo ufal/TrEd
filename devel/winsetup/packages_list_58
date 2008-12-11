@@ -10,6 +10,8 @@ XML-LibXML-Common
 XML-LibXML
 XML-LibXML-Iterator
 XML-LibXSLT
+XML-CompactTree
+XML-CompactTree-XS
 XML-Writer
 Syntax-Highlight-Perl
 Tk-CodeText
