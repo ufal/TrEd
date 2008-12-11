@@ -1196,7 +1196,7 @@ sub nextOrPrevFile {
     my $f = $filename = filelistFullFileName($win,$pos);
     ($prev_filename) = parseFileSuffix($prev_filename);
     ($f) = parseFileSuffix($f);
-    while (_is_same_filename($f eq $prev_filename)) {
+    while (_is_same_filename($f, $prev_filename)) {
       $pos+=$delta;
       $f=$filename=filelistFullFileName($win,$pos);
       ($f) = parseFileSuffix($f);
