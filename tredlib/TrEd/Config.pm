@@ -233,6 +233,9 @@ sub set_config {
   my ($confs)=@_;
 
   $appName=val_or_def($confs,"appname","TrEd ver. ".$main::VERSION);
+
+  $ENV{PML_COMPILE}=val_or_def($confs,"pml_compile",$ENV{PML_COMPILE}||0);
+
   $buttonsRelief=val_or_def($confs,"buttonsrelief",'flat');
   $menubarRelief=val_or_def($confs,"menubarrelief",'flat');
   $buttonBorderWidth=val_or_def($confs,"buttonsborder",2);
