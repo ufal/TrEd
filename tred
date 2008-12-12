@@ -5381,7 +5381,7 @@ sub newTreeView {
 		   $treeViewOpts->{backgroundColor} 
 		   ? (-background=> $treeViewOpts->{backgroundColor}) : ()
 		  );
-  canvasBindMouseWheelVert($canvas);
+  canvasBindMouseWheelVert($canvas,"");
   canvasBindMouseWheelHoriz($canvas,"Shift");
   canvasBindMouseScale($grp,$canvas,"Control");
   createCanvasBindings($grp,$canvas);
@@ -5554,12 +5554,11 @@ sub canvasBindMouseScale {
     updateScaleFactor($grp);
     Tk->break;
   };
-  if ($Tk::platform eq 'MSWin32') {
-    $grp->{top}->bind("<${modifier}MouseWheel>", [ $sub, $grp, Tk::Ev("D")]);
-    # just for case:
-    $w->CanvasBind("<${modifier}MouseWheel>", [ $sub, $grp, Tk::Ev("D")]);
-  } else {
-    $w->CanvasBind("<${modifier}MouseWheel>", [ $sub, $grp, Tk::Ev("D")]);
+  for my $widget ($Tk::platform eq 'MSWin32' ?
+		  ($grp->{top},$w) : ($w)) {
+    $widget->Tk::bind("<${modifier}MouseWheel>", [ $sub, $grp, Tk::Ev("D")]);
+  }
+  if ($Tk::platform ne 'MSWin32') {
     $w->CanvasBind("<${modifier}4>", [ $sub, $grp, 60]);
     $w->CanvasBind("<${modifier}5>", [ $sub, $grp, -60]);
   }
@@ -5568,40 +5567,47 @@ sub canvasBindMouseScale {
 
 sub canvasBindMouseWheelVert {
     my($w,$modifier)= @_;
+    $modifier||="";
     $modifier.="-" if ($modifier);
-    $w->CanvasBind("<$modifier"."MouseWheel>",
-              [ sub { 
-		  print "hallp\n";
-		  $_[0]->yview('scroll',-($_[1]/120)*3,'units') }, Tk::Ev("D")]);
-#    if ($Tk::platform eq 'unix') {
-    $w->CanvasBind("<$modifier"."4>", sub { $_[0]->yview('scroll', -3, 'units')
-					      unless $Tk::strictMotif; 
-					    Tk->break;
-					  });
-    $w->CanvasBind("<$modifier"."5>", sub { $_[0]->yview('scroll', 3, 'units')
-					      unless $Tk::strictMotif;
-					    Tk->break;
-					  });
-    if ($modifier eq EMPTY) {
-      $w->CanvasBind("<6>", sub { $_[0]->xview('scroll', -3, 'units')
-				    unless $Tk::strictMotif; });
-      $w->CanvasBind("<7>", sub { $_[0]->xview('scroll', 3, 'units')
-				    unless $Tk::strictMotif; });
+    for my $widget ($Tk::platform eq 'MSWin32' ?
+		    ($w->toplevel,$w) : ($w)) {
+      $widget->Tk::bind("<$modifier"."MouseWheel>",
+			[ sub {
+			    $_[1]->yview('scroll',-($_[2]/120),'units')
+			  }, $w, Tk::Ev("D")]);
     }
-
-#    }
+    if ($Tk::platform ne 'MSWin32') {
+      $w->CanvasBind("<$modifier"."4>", sub { $_[0]->yview('scroll', -3, 'units')
+						unless $Tk::strictMotif; 
+					      Tk->break;
+					    });
+      $w->CanvasBind("<$modifier"."5>", sub { $_[0]->yview('scroll', 3, 'units')
+						unless $Tk::strictMotif;
+					      Tk->break;
+					    });
+      if ($modifier eq EMPTY) {
+	$w->CanvasBind("<6>", sub { $_[0]->xview('scroll', -3, 'units')
+				      unless $Tk::strictMotif; });
+	$w->CanvasBind("<7>", sub { $_[0]->xview('scroll', 3, 'units')
+				      unless $Tk::strictMotif; });
+      }
+    }
 }
 
 sub canvasBindMouseWheelHoriz {
     my($w,$modifier)= @_;
+    $modifier||="";
     $modifier.="-" if ($modifier);
-    $w->CanvasBind("<$modifier"."MouseWheel>",
-              [ sub { $_[0]->xview('scroll',-($_[1]/120)*3,'units') }, Tk::Ev("D")]);
-    if ($Tk::platform eq 'unix') {
-        $w->CanvasBind("<$modifier"."4>", sub { $_[0]->xview('scroll', -3, 'units')
-				      unless $Tk::strictMotif; });
-        $w->CanvasBind("<$modifier"."5>", sub { $_[0]->xview('scroll', 3, 'units')
-				      unless $Tk::strictMotif; });
+    for my $widget ($Tk::platform eq 'MSWin32' ?
+		    ($w->toplevel,$w) : ($w)) {
+      $widget->Tk::bind("<$modifier"."MouseWheel>",
+			  [ sub { $_[1]->xview('scroll',-($_[2]/120),'units') }, $w, Tk::Ev("D")]);
+    }
+    if ($Tk::platform ne 'MSWin32') {
+      $w->CanvasBind("<$modifier"."4>", sub { $_[0]->xview('scroll', -3, 'units')
+						unless $Tk::strictMotif; });
+      $w->CanvasBind("<$modifier"."5>", sub { $_[0]->xview('scroll', 3, 'units')
+						unless $Tk::strictMotif; });
     }
 }
 
