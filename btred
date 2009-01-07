@@ -2031,18 +2031,18 @@ sub prepareExtensions {
     }
     @$extensions =
       map { /^!(.*)/ ?
-	      (exists($e{'*'}) || exists($e{$1}) ? $1 : $_)
+	      (exists($e{'*'}) && !exists($d{$1}) || exists($e{$1}) ? $1 : $_)
 		: $macro ?
-		  (exists($e{'*'}) || exists($e{$_}) ? $_ : '!'.$_)
-		    : (exists($d{'*'}) || exists($d{$_}) ? '!'.$_ : $_)
+		  (exists($e{'*'}) && !exists($d{$_}) || exists($e{$_}) ? $_ : '!'.$_)
+		    : (exists($d{'*'}) && !exists($e{$_}) || exists($d{$_}) ? '!'.$_ : $_)
 		  } @$extensions;
     $pre_installed =  getPreInstalledExtensionList($extensions);
     @$pre_installed =
     map { /^!(.*)/ ?
-	    (exists($e{'*'}) || exists($e{$1}) ? $1 : $_)
+	    (exists($e{'*'}) && !exists($d{$1}) || exists($e{$1}) ? $1 : $_)
 	      : $macro ?
-		(exists($e{'*'}) || exists($e{$_}) ? $_ : '!'.$_)
-		  : (exists($d{'*'}) || exists($d{$_}) ? '!'.$_ : $_)
+		(exists($e{'*'}) && !exists($d{$_}) || exists($e{$_}) ? $_ : '!'.$_)
+		  : (exists($d{'*'}) && !exists($e{$_})|| exists($d{$_}) ? '!'.$_ : $_)
 		} @$pre_installed;
   }
   if (my $fh = $opts->{list_to}) {
