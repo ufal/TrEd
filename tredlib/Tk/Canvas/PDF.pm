@@ -418,8 +418,24 @@ sub draw_canvas {
       }
       # draw line
       if ($smooth and @c>=6) {
-	$draw->move(@c[0,1]);
-	$draw->curve(@c);
+	my @p;
+	if ($c[0]==$c[-2] and $c[1]==$c[-1]) {
+	  @p=(($c[-4]+$c[0])/2,($c[-3]+$c[1])/2);
+	  unshift @c, @p;
+	  @c[-2,-1]=@p;
+	} else {
+	  @p = @c[0,1];
+	}
+	my @m = @c[2,3];
+	shift @c for 0..3;
+	do {{
+	  my @d = @c>=4 ? (($m[0]+$c[0])/2,($m[1]+$c[1])/2)  : @c[0,1];
+	  $draw->move(@p);
+	  $draw->curve(@p,@m,@d);
+	  @m=@c[0,1];
+	  @p=@d;
+	  shift @c for 0,1;
+	}} while (@c>=2);
       } else {
 	$draw->move(@c[0,1]);
 	$draw->line(@c[2..$#c]);
