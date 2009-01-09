@@ -231,6 +231,8 @@ sub errorMessage {
     my $top;
     if (ref($win)=~/^Tk::/) {
       $top = $win->toplevel;
+    } elsif (ref($win) eq 'MainWindow') {
+      $top = $win;
     } elsif (exists($win->{framegroup}) and
 	ref($win->{framegroup}) and
       exists($win->{framegroup}{top}) and
