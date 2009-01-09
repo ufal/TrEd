@@ -3556,10 +3556,12 @@ Tk: 804.028
 		  Has the same effect as the
 		  <link linkend="balancetree">BalanceTree</link>
 		  configuration option.
-		  Use <literal>#{balance}</literal> or
-		  <literal>#{balance:1}</literal> to set the option
-		  on, <literal>#{balance:0}</literal> or none
-		  to set it off.
+		  Use either <literal>#{balance}</literal> or
+		  <literal>#{balance:1}</literal> for
+		  balanced trees horizontally compressed,
+		  <literal>#{balance:spread}</literal>
+		  for non-compressed balanced trees or
+		  <literal>#{balance:0}</literal> for ordered trees. 
 		</para>
 	      </entry>
 	    </row>
@@ -3847,6 +3849,15 @@ Tk: 804.028
 		  <literal>left</literal>.</para>
 	    </entry>
           </row>
+	  <row>
+	    <entry><literal moreinfo="none">NodeLabel-skipempty</literal></entry>
+	    <entry><para>This option controls whether an empty node
+	    label should be skipped to make the nearest preceding and
+	    following non-empty labels vertically adjacent. This produces
+	    considerably more compact trees.
+	  </para>
+	    </entry>
+	  </row>
 	  <row>
 	    <entry><literal moreinfo="none">NodeLabel-valign</literal></entry>
 	    <entry><para>This instruction
@@ -4997,9 +5008,16 @@ sub CreateImages {
 	<varlistentry id="balancetree">
 	  <term><literal moreinfo="none">BalanceTree</literal></term>
 	  <listitem>
-	    <para>If this option is set to 1, the tree will be
+	    <para>If this option is set to 1 or 'spread', the tree will be
 	      auto-balanced, disregarding a node-ordering
-	      attribute.
+	      attribute. The value 'spread' indicates,
+	      that the balanced tree should be spread so that
+	      the projections of the leaf nodes to the
+	      lowest level of the tree do not overlap;
+	      that is, there must be a partition of the canvas
+	      into vertical stripes such that each stripe
+	      contains exactly one leaf node along with all its
+	      node labels (and the stripes do not overlap).
 	    </para>
 	  </listitem>
 	</varlistentry>
