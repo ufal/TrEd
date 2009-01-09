@@ -648,7 +648,7 @@ sub Install_PPM_Modules {
     $fail=1;
   }
   {
-    my $activity = ppm_status('begin',"Rremoving temporary repository '$tmp_repo'");
+    my $activity = ppm_status('begin',"Removing temporary repository '$tmp_repo'");
     eval {
       $ppm->repo_delete($my_repo);
     };
