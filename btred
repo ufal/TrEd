@@ -149,7 +149,7 @@ if ($usage) {
 #  exit 0;
 }
 if ($help) {
-  pod2usage(-exitstatus => 0, -verbose => 1);
+  pod2usage(-exitstatus => 0, -verbose => 99, -sections => '.*');
 }
 if ($manpage) {
   pod2usage(-exitstatus => 0, -verbose => 2);
@@ -2404,7 +2404,7 @@ Symbol name or a name=value pair to be used by macro-preprocessor
 file). Multiple definitions symbols may be separated by a comma and
 the option may be repeated.
 
-=item B<--no-secondary-files>
+=item B<--no-secondary-files|-Y>
 
 Neither load or save "secondary" files. Normally, secondary files (if
 loaded) are saved along with their primary files (the exactly same
