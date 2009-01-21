@@ -6283,6 +6283,15 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry id="skipstartupversioncheck">
+	  <term><literal moreinfo="none">SkipStartupVersionCheck</literal></term>
+	  <listitem>
+	    <para>
+	      If set to 1, TrEd will not test if it was upgraded since
+	      last run and thus will not ask about managing extensions.
+	    </para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry id="libdir">
 	  <term><literal moreinfo="none">LibDir</literal></term>
 	  <listitem>
