@@ -91,6 +91,7 @@ BEGIN {
   $ioBackends
   $htmlBrowser
   $showSidePanel
+  $skipStartupVersionCheck
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
   @config_file_search_list=();
@@ -590,6 +591,8 @@ sub set_config {
   $noLockProto                =	val_or_def($confs,"nolockprotocols",'^(https?|zip|tar)$');
   $ioBackends                 =	val_or_def($confs,"iobackends",undef);
   $htmlBrowser                =	val_or_def($confs,"htmlbrowser",undef);
+
+  $skipStartupVersionCheck    =	val_or_def($confs,"skipstartupversioncheck",undef);
 
   # ADD NEW OPTIONS HERE
 

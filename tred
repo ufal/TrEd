@@ -6859,7 +6859,7 @@ sub startMain {
     warn "Could not write version information to $version_file: $!\n";
     $ver = $VERSION; # do not bother the user in this case
   }
-  if (!$ver or $ver ne $VERSION) {
+  if (!$skipStartupVersionCheck and ( !$ver or $ver ne $VERSION )) {
     if (userQuery($top, "TrEd was "
 		    .($ver ? "upgraded" : "installed or upgraded")
 		    ." recently.\n\n".
