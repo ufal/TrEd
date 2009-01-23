@@ -18,7 +18,7 @@ fi
 tred_url="http://ufal.mff.cuni.cz/~pajas/tred/tred-current.tar.gz"
 tred_dep="http://ufal.mff.cuni.cz/~pajas/tred/tred-dep-unix.tar.gz"
 
-TOOL_DIR=$(readlink -f "$(dirname $0)/..")
+TOOL_DIR="$(dirname $(readlink -f "$0"))/.."
 install_from_cpan="${TOOL_DIR}/install_from_cpan.pl"
 
 CPAN_DIR=
@@ -173,7 +173,7 @@ echo TRED_DIR: "$TRED_DIR"
 
 ACTION=""
 fail () {
-    echo "$ACTION failed: abortin!" 1>&2
+    echo "$ACTION failed: aborting!" 1>&2
     exit 3;
 }
 
@@ -221,13 +221,12 @@ fi
 
 action  "Installing TrEd dependencies"
 
-if [ -z "$PREFIX" ] && [ "x$SYSTEM" = x1 ] ; then 
-    inst_opts=()
-else
-    inst_opts=(--prefix "$PREFIX")
+inst_opts=(--tmp "$TRED_BUILD_DIR/tmp")
+if [ -n "$PREFIX" ]; then 
+    inst_opts+=(--prefix "$PREFIX")
 fi
 
-./install --check-utils "${inst_opts[@]}" | fail
+./install --check-utils "${inst_opts[@]}" || fail
 
 ./install -b "${inst_opts[@]}" 2>&1 | tee "${TRED_DIR}/install.log"
 
@@ -251,7 +250,7 @@ for cmd in tred btred ntred; do
     cat <<EOF > "$RUN_TRED_DIR"/"start_$cmd"
 #!/bin/sh
 
-source "\$(dirname \$0)/init_tred_environment"
+. "\$(dirname "\$(readlink -f \$0)")/init_tred_environment"
 "\${TRED_DIR}/${cmd}" "\$@"
 EOF
     chmod 755 "$RUN_TRED_DIR"/"start_$cmd"

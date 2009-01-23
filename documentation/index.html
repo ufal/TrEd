@@ -123,6 +123,33 @@
       <dl>
         <dt>
           <tt>
+            <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred_install.bash">tred_install.sh</a>
+	    (SIZE_OF:tred_install.bash)
+          </tt>
+        </dt>
+        <dd><p><small>This installation script automatically fetches
+	latest TrEd and its dependencies for you.</small></p>
+	<p><small>It downloads the packages below,
+	uncompresses tred into a given folder and
+	installs all dependencies either locally to TrEd's directory
+	or to a given prefix. It also creates two
+	wrapper scripts start_tred, start_btred, and start_ntred which configure
+	library and module paths accordingly and start the appropriate tool).
+      </small></p>
+      <p><small>Read help:</small></p>
+      <pre><small>  bash tred_install.bash --help | less</small></pre>
+      <p><small>Install as user (everything under ~/tred)</small></p>
+      <pre>   bash tred_install.bash --tred-prefix ~
+  ~/tred/start_tred</pre>
+  <p>Install as root to system paths:</p>
+<pre><small> bash /tred_install.bash --tred-prefix /opt --system
+  /usr/bin/start_tred
+      </small></pre>
+	</dd>
+      </dl>
+      <dl>
+        <dt>
+          <tt>
             <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred-current.tar.gz">tred-current.tar.gz</a>
 	    (SIZE_OF:tred-current.tar.gz)
           </tt>
