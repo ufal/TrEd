@@ -671,6 +671,8 @@ sub compute_level {
       $node_info->{$node}{"P"}=$parent;
       $level = $plevel + 1 + $style->{'Node'}{'-rellevel'};
     }
+  } else {
+    $level += $style->{'Node'}{'-rellevel'};
   }
   $node_info->{$node}{"Level"}= $level;
   return $level;
