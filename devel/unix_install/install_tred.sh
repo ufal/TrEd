@@ -1,5 +1,5 @@
 #!/bin/bash
-# install_Fslib.sh     pajas@ufal.mff.cuni.cz     2009/01/19 11:03:51
+# install_tred.sh     pajas@ufal.mff.cuni.cz     2009/01/19 11:03:51
 #
 # Copyright (c) by Petr Pajas
 #
@@ -10,6 +10,11 @@
 #
 #
 
+if [ -z "$BASH" ]; then
+    echo "Please run this script using bash interpreter, not sh!" 1>&2
+    exit 1;
+fi
+
 tred_url="http://ufal.mff.cuni.cz/~pajas/tred/tred-current.tar.gz"
 tred_dep="http://ufal.mff.cuni.cz/~pajas/tred/tred-dep-unix.tar.gz"
 
@@ -18,10 +23,11 @@ install_from_cpan="${TOOL_DIR}/install_from_cpan.pl"
 
 CPAN_DIR=
 PARSED_OPTS=$(
-  getopt -n 'install_Fslib.sh' --shell bash \
-    -o Dqhuv \
+  getopt -n 'install_tred.sh' --shell bash \
+    -o Dqhuvptcs \
+    -l system \
     -l prefix: \
-    -l tred-dir: \
+    -l tred-prefix: \
     -l cpan-dir: \
     -l debug \
     -l quiet \
@@ -43,8 +49,10 @@ DEBUG=0
 QUIET=0
 PREFIX=
 TRED_TARGET_DIR=
+SYSTEM=0
 while true ; do
     case "$1" in
+	-s|--system) SYSTEM=1; shift; ;;
 	-p|--prefix) PREFIX="$2"; shift 2; ;;
 	-t|--tred-prefix) TRED_TARGET_DIR="$2"; shift 2; ;;
 	-c|--cpan-dir) CPAN_DIR="$2"; shift 2; ;;
@@ -61,7 +69,7 @@ while true ; do
     esac
 done
 
-function usage () {
+usage () {
     echo "$0 version $VERSION" 
     cat <<USAGE
 $0 [-h|--help]|[-u|--usage]|[-v|--version]
@@ -70,45 +78,45 @@ $0 [-D|--debug] [-q|--quiet] --prefix <lib_prefix> --tred-prefix <prefix_for_tre
 USAGE
 }
 
-function help () {
-    echo "install_Fslib.sh version $VERSION" 
+help () {
+    echo "install_tred.sh version $VERSION" 
     usage
     cat <<HELP
   DESCRIPTION:
-      This script fetches and installs TrEd and it's dependencies.
 
-      TrEd is installed into a folder named tred/ under a directory
-      given in --tred-prefix or --prefix.  If --prefix is given, all
-      missing libraries and Perl modules are installed under a given
-      prefix into standard paths (<PREFIX>/bin, <PREFIX>/lib,
-      <PREFIX>/lib/perl5).
-
-      The following scripts are created to run tred, btred and ntred
-      with the apropriate environment variable setting:
-   
-         start_tred, start_btred, start_ntred
+      This script fetches and installs TrEd and it's dependencies to
+      given directory prefixes and creates wrapper scripts start_tred,
+      start_btred, start_ntred with the apropriate environment
+      variable setting.
 
   EXAMPLES:
-      ./install_tred --tred-prefix /opt --prefix=/usr
+      ./install_tred --tred-prefix ~
+          This installs:
+            - TrEd into ~/tred/
+            - C libraries to ~/dependencies/lib/
+            - Perl modules to ~/tred/dependencies/lib/perl5/
+            - wrapper start_* scripts to ~/tred/
+
+      ./install_tred --tred-prefix /opt --prefix /usr
           This installs:
             - TrEd into /opt/tred/
             - C libraries to /usr/lib/
             - Perl modules to /usr/lib/perl5/
-            - run_*tred scripts to /usr/bin/
+            - wrapper start_* scripts to /usr/bin/
 
-      ./install_tred --tred-prefix /opt
+      ./install_tred --tred-prefix /opt --system
           This installs:
             - TrEd into /opt/tred/
-            - C libraries to /opt/tred/dependencies/lib/
-            - Perl modules to /opt/tred/dependencies/lib/perl5/
-            - run_*tred scripts to /opt/tred/
+            - C libraries to /usr/lib/
+            - Perl modules to $Config{installsitelib}
+            - wrapper start_* scripts to /usr/bin/
 
       ./install_tred --prefix /usr/local
           This installs:
             - TrEd into /usr/local/tred/
             - C libraries to /usr/local/lib/
             - Perl modules to /usr/local/lib/perl5/
-            - run_*tred scripts to /usr/local/bin/
+            - start_*tred scripts to /usr/local/bin/
 
   OPTIONS:
       -t|--tred-prefix <dir>
@@ -144,13 +152,17 @@ EOF
     usage;
     exit 3;
 elif [ -z "$PREFIX" ]; then
-    PREFIX="${TRED_TARGET_DIR}/tred/dependencies"
-    RUN_TRED_DIR="${TRED_TARGET_DIR}/tred"
+    if [ "x$SYSTEM" = x1 ]; then
+	RUN_TRED_DIR="${TRED_TARGET_DIR}/tred"
+    else
+	PREFIX="${TRED_TARGET_DIR}/tred/dependencies"
+	RUN_TRED_DIR="${TRED_TARGET_DIR}/tred"
+    fi
 elif [ -z "$TRED_TARGET_DIR" ]; then
     TRED_TARGET_DIR="$PREFIX"
-    RUN_TRED_TRED="${PREFIX}/bin"
+    RUN_TRED_DIR="${PREFIX}/bin"
 else
-    RUN_TRED_TRED="${PREFIX}/bin"
+    RUN_TRED_DIR="${PREFIX}/bin"
 fi
 
 TRED_DIR="${TRED_TARGET_DIR}/tred"
@@ -160,12 +172,12 @@ echo TRED_TARGET_DIR: "$TRED_TARGET_DIR"
 echo TRED_DIR: "$TRED_DIR"
 
 ACTION=""
-function fail () {
+fail () {
     echo "$ACTION failed: abortin!" 1>&2
     exit 3;
 }
 
-function action () {
+action () {
     ACTION="$@"
     echo "*** $ACTION ..." 1>&2
 }
@@ -173,12 +185,13 @@ function action () {
 TRED_BUILD_DIR="$1"
 remove_build_dir=0
 if [ -z "$TRED_BUILD_DIR" ]; then
-    TRED_BUILD_DIR="$PREFIX/tred_build"
+    TRED_BUILD_DIR="$TRED_DIR/.build"
     remove_build_dir=1
 fi
 
 action "Preparing build directory $TRED_BUILD_DIR"
 [ -d "$TRED_BUILD_DIR" ] || mkdir -p "$TRED_BUILD_DIR" || fail
+
 pushd "$TRED_BUILD_DIR"
 
 action "Downloading TrEd"
@@ -207,16 +220,23 @@ if [ ! -d "$PREFIX" ]; then
 fi
 
 action  "Installing TrEd dependencies"
-./install --check-utils --prefix="$PREFIX" | fail
 
-./install -b --prefix="$PREFIX" 2>&1 | tee "${TRED_DIR}/install.log"
+if [ -z "$PREFIX" ] && [ "x$SYSTEM" = x1 ] ; then 
+    inst_opts=()
+else
+    inst_opts=(--prefix "$PREFIX")
+fi
+
+./install --check-utils "${inst_opts[@]}" | fail
+
+./install -b "${inst_opts[@]}" 2>&1 | tee "${TRED_DIR}/install.log"
 
 cat <<EOF > "$RUN_TRED_DIR"/init_tred_environment
 # Setup paths for installed TrEd dependencies
 export TRED_DIR="${TRED_TARGET_DIR}/tred"
 PATH="${PREFIX%/}/bin:\${PATH}"
 EOF
-./install --bash-env --prefix="$PREFIX" >> "$RUN_TRED_DIR"/init_tred_environment
+./install --bash-env "${inst_opts[@]}" >> "$RUN_TRED_DIR"/init_tred_environment
 
 popd >/dev/null # packages-unix
 
