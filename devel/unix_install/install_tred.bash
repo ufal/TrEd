@@ -31,11 +31,11 @@ else
 fi
 fetch_url () {
     if [ "$HAVE_WGET" == 1 ]; then
-	echo "Fetching $1 into $2 using LWP::Simple..."
-	perl -MLWP::Simple -e '($url,$file)=@ARGV; $res=mirror($url,$file); die "Failed to fetch $url into $file" unless $res==RC_OK or $res==RC_NOT_MODIFIED' "$1" "$2"
-    else
 	echo "Fetching $1 into $2 using wget..."
 	wget -O "$2" "$1"
+    else
+	echo "Fetching $1 into $2 using LWP::Simple..."
+	perl -MLWP::Simple -e '($url,$file)=@ARGV; $res=mirror($url,$file); die "Failed to fetch $url into $file" unless $res==RC_OK or $res==RC_NOT_MODIFIED' "$1" "$2"
     fi
 }
 
