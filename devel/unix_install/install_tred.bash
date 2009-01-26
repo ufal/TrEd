@@ -15,6 +15,13 @@ if [ -z "$BASH" ]; then
     exit 1;
 fi
 
+if ! perl -M5.008.003 -e1; then
+    echo
+    echo "Aborting: TrEd requires Perl >= v5.8.3" 1>&2
+    exit 2;
+fi
+
+
 tred_url="http://ufal.mff.cuni.cz/~pajas/tred/tred-current.tar.gz"
 tred_dep="http://ufal.mff.cuni.cz/~pajas/tred/tred-dep-unix.tar.gz"
 tred_svn="svn://anonymous@svn.ms.mff.cuni.cz/TrEd/trunk"
@@ -53,6 +60,7 @@ PRINT_VERSION=0
 DEBUG=0
 QUIET=0
 PREFIX=
+TRED_DIR=
 TRED_TARGET_DIR=
 SYSTEM=0
 USE_SVN=0
@@ -64,6 +72,7 @@ while [ $# -gt 0 ]; do
 	-S|--svn) USE_SVN=1; shift; ;;
 	-s|--system) SYSTEM=1; shift; ;;
 	-p|--prefix) PREFIX=$(readlink_nf "$2"); shift 2; ;;
+	-T|--tred-dir) TRED_DIR=$(readlink_nf "$2"); shift 2; ;;
 	-t|--tred-prefix) TRED_TARGET_DIR=$(readlink_nf "$2"); shift 2; ;;
 	-c|--cpan-dir) CPAN_DIR=$(readlink_nf "$2"); shift 2; ;;
 	-D|--debug) DEBUG=1; shift ;;
@@ -84,7 +93,7 @@ usage () {
     cat <<USAGE
 $0 [-h|--help]|[-u|--usage]|[-v|--version]
 or
-$0 [-D|--debug] [-q|--quiet] --prefix <lib_prefix> --tred-prefix <prefix_for_tred> [<build_dir>]
+$0 [-D|--debug] [-q|--quiet] --prefix <lib_prefix> --tred-prefix <directory_for_tred> [<build_dir>]
 USAGE
 }
 
@@ -100,28 +109,31 @@ help () {
       variable setting.
 
   EXAMPLES:
-      ./install_tred --tred-prefix ~
+      ./install_tred.bash --tred-dir ~/TrEd
           This installs:
-            - TrEd into ~/tred/
-            - C libraries to ~/dependencies/lib/
-            - Perl modules to ~/tred/dependencies/lib/perl5/
-            - wrapper start_* scripts to ~/tred/
+            - TrEd into ~/TrEd/
+            - C libraries to ~/TrEd/dependencies/lib/
+            - Perl modules to ~/TrEd/dependencies/lib/perl5/
+            - wrapper start_* scripts to ~/TrEd/
 
-      ./install_tred --tred-prefix /opt --prefix /usr
+      ./install_tred.bash --tred-prefix ~
+            - same as ./install_tred.bash --tred-dir ~/tred
+
+      ./install_tred.bash --tred-dir /opt/tred --prefix /usr
           This installs:
             - TrEd into /opt/tred/
             - C libraries to /usr/lib/
             - Perl modules to /usr/lib/perl5/
             - wrapper start_* scripts to /usr/bin/
 
-      ./install_tred --tred-prefix /opt --system
+      ./install_tred.bash --tred-dir /opt/tred --system
           This installs:
             - TrEd into /opt/tred/
             - C libraries to /usr/lib/
             - Perl modules to $Config{installsitelib}
             - wrapper start_* scripts to /usr/bin/
 
-      ./install_tred --prefix /usr/local
+      ./install_tred.bash --prefix /usr/local
           This installs:
             - TrEd into /usr/local/tred/
             - C libraries to /usr/local/lib/
@@ -129,13 +141,16 @@ help () {
             - start_*tred scripts to /usr/local/bin/
 
   OPTIONS:
+      -T|--tred-dir <tred_dir>
+          install TrEd into the directory <dir>
+
       -t|--tred-prefix <dir>
-          install TrEd into the subdirectory <dir>/tred/
+          same as --tred-dir <dir>/tred/
 
       -p|--prefix <prefix>
           install dependencies under a given <prefix>
-          (defaults to <dir>/tred/dependencies, where
-          <dir> is the path provided as --tred-prefix)
+          (defaults to <tred_dir>/dependencies, where
+          <tred_dir> is the path provided in --tred-dir)
 
       -l|--libs-only
           install only missing libraries/modules (do not install TrEd)
@@ -160,32 +175,41 @@ if [ "$PRINT_VERSION" = 1 ]; then echo Version: $VERSION; exit; fi
 if [ "$PRINT_HELP" = 1 ]; then help; exit; fi
 if [ "$PRINT_USAGE" = 1 ]; then usage; exit; fi
 
-if [ -z "$PREFIX" ] && [ -z "$TRED_TARGET_DIR" ]; then
+if [ -z "$PREFIX" ] && [ -z "$TRED_TARGET_DIR" ] && [ -z "$TRED_DIR" ]; then
     cat <<EOF 1>&2
 Do not know where to install: please specify a prefix (--prefix)!
 
 EOF
     usage;
     exit 3;
-elif [ -z "$PREFIX" ]; then
-    if [ "x$SYSTEM" = x1 ]; then
-	RUN_TRED_DIR="${TRED_TARGET_DIR}/tred"
-    else
-	PREFIX="${TRED_TARGET_DIR}/tred/dependencies"
-	RUN_TRED_DIR="${TRED_TARGET_DIR}/tred"
+elif [ -n "$TRED_DIR" ] && [ -n "$TRED_TARGET_DIR" ]; then
+    cat <<EOF 1>&2
+Cannot specify both --tred-prefix and --tred-dir!
+
+EOF
+    usage;
+    exit 3;
+fi
+
+if [ -n "$TRED_TARGET_DIR" ]; then
+    TRED_DIR="${TRED_TARGET_DIR}/tred"
+fi
+
+if [ -z "$PREFIX" ]; then
+    if [ "x$SYSTEM" != x1 ]; then
+	PREFIX="${TRED_DIR}/dependencies"
     fi
-elif [ -z "$TRED_TARGET_DIR" ]; then
+    RUN_TRED_DIR="${TRED_DIR}/bin"
+elif [ -z "$TRED_DIR" ]; then
     TRED_TARGET_DIR="$PREFIX"
+    TRED_DIR="${TRED_TARGET_DIR}/tred"
     RUN_TRED_DIR="${PREFIX}/bin"
 else
     RUN_TRED_DIR="${PREFIX}/bin"
 fi
 
-TRED_DIR="${TRED_TARGET_DIR}/tred"
-
 echo PREFIX: "$PREFIX"
 if [ ! "x$LIBS_ONLY" = "x1" ]; then
-    echo TRED_TARGET_DIR: "$TRED_TARGET_DIR"
     echo TRED_DIR: "$TRED_DIR"
 fi
 
@@ -222,18 +246,16 @@ pushd "$TRED_BUILD_DIR"
 if [ "x$LIBS_ONLY" = x1 ]; then
     echo "Skipping TrEd installation (--libs-only)"
 elif [ "x$USE_SVN" = x1 ]; then
-    [ -d "$TRED_TARGET_DIR" ] || mkdir -p "$TRED_TARGET_DIR" || fail
-    pushd "$TRED_TARGET_DIR"
-    if [ -d tred/.svn ]; then
+    [ -d "$TRED_DIR" ] || mkdir -p "$TRED_DIR" || fail
+    pushd "$TRED_DIR"
+    if [ -d .svn ]; then
 	echo
-	echo "Found ${TRED_TARGET_DIR}/tred/.svn, trying SVN Update"
-	pushd tred
+	echo "Found ${TRED_DIR}/.svn, trying SVN Update"
 	action "Updating existing working copy of TrEd from SVN"
 	svn up || fail
-	popd
     else
 	action "Checking out TrEd from SVN"
-	svn co "$tred_svn" tred || fail
+	svn co "$tred_svn" . || fail
     fi
     popd
 else
@@ -241,9 +263,9 @@ else
     fetch_url "$tred_url" tred-current.tar.gz|| fail
     tred_tar_gz="$PWD/tred-current.tar.gz"
     action  "Unpacking TrEd to $TRED_DIR"
-    [ -d "$TRED_TARGET_DIR" ] || mkdir -p "$TRED_TARGET_DIR" || fail
-    pushd "$TRED_TARGET_DIR"
-    tar xzf "$tred_tar_gz" || fail
+    [ -d "$TRED_DIR" ] || mkdir -p "$TRED_DIR" || fail
+    pushd "$TRED_DIR"
+    tar xzf "$tred_tar_gz" --strip-components 1 || fail
     popd
     rm tred-current.tar.gz
 fi
@@ -276,7 +298,7 @@ fi
 
 cat <<EOF > "$RUN_TRED_DIR"/init_tred_environment
 # Setup paths for installed TrEd dependencies
-export TRED_DIR="${TRED_TARGET_DIR}/tred"
+export TRED_DIR="${TRED_DIR}"
 export TRED_DEPENDENCIES="${PREFIX%/}"
 PATH="\${TRED_DEPENDENCIES}/bin:\${PATH}"
 EOF
@@ -312,14 +334,14 @@ EOF
 . "\$(dirname "\$(perl -MCwd -e 'print Cwd::abs_path(shift)' \$0)")/init_tred_environment"
 cd "$TRED_DIR" || exit 1
 svn up || exit 2
-bash devel/unix_install/install_tred.bash --libs-only --prefix "$TRED_DEPENDENCIES" || exit 3
+bash devel/unix_install/install_tred.bash --libs-only --tred-dir "$TRED_DIR" --prefix "$TRED_DEPENDENCIES" || exit 3
 EOF
         chmod 755 "$RUN_TRED_DIR"/"upgrade_tred"
     fi
 
 fi
 echo
-echo "NOTE: The installation of dependencies is logged in ${TRED_TARGET_DIR}/tred/install.log"
+echo "NOTE: The installation of dependencies is logged in ${TRED_DIR}/install.log"
 echo
 echo
 echo "************************************************************"
