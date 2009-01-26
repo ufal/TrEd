@@ -18,7 +18,12 @@ fi
 tred_url="http://ufal.mff.cuni.cz/~pajas/tred/tred-current.tar.gz"
 tred_dep="http://ufal.mff.cuni.cz/~pajas/tred/tred-dep-unix.tar.gz"
 
-TOOL_DIR="$(dirname $(readlink -f "$0"))/.."
+# readlink -f does not work on Mac OSX, so here is a Perl-based workaround:
+readlink_nf () {
+    perl -MCwd -e 'print Cwd::abs_path(shift)' "$1"
+}
+
+TOOL_DIR="$(dirname $(readlink_nf "$0"))/.."
 install_from_cpan="${TOOL_DIR}/install_from_cpan.pl"
 
 CPAN_DIR=
@@ -250,7 +255,7 @@ for cmd in tred btred ntred; do
     cat <<EOF > "$RUN_TRED_DIR"/"start_$cmd"
 #!/bin/sh
 
-. "\$(dirname "\$(readlink -f \$0)")/init_tred_environment"
+. "\$(dirname "\$(readlink_nf \$0)")/init_tred_environment"
 "\${TRED_DIR}/${cmd}" "\$@"
 EOF
     chmod 755 "$RUN_TRED_DIR"/"start_$cmd"
