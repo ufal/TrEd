@@ -50,10 +50,10 @@ fetch_url () {
 TOOL_DIR="$(dirname $(readlink_nf "$0"))/.."
 install_from_cpan="${TOOL_DIR}/install_from_cpan.pl"
 
-CPAN_DIR=
+#CPAN_DIR=
 if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
 
-VERSION=0.1
+VERSION=0.4
 PRINT_USAGE=0
 PRINT_HELP=0
 PRINT_VERSION=0
@@ -78,7 +78,7 @@ while [ $# -gt 0 ]; do
 	-T|--tred-dir) TRED_DIR=$(readlink_nf "$2"); shift 2; ;;
 	-t|--tred-prefix) TRED_TARGET_DIR=$(readlink_nf "$2"); shift 2; ;;
 	-T|--tred-dir) TRED_DIR=$(readlink_nf "$2"); shift 2; ;;
-	-c|--cpan-dir) CPAN_DIR=$(readlink_nf "$2"); shift 2; ;;
+#	-c|--cpan-dir) CPAN_DIR=$(readlink_nf "$2"); shift 2; ;;
 	-D|--debug) DEBUG=1; shift ;;
 	-q|--quiet) QUIET=1; shift ;;
 	-u|--usage) PRINT_USAGE=1; shift ;;
