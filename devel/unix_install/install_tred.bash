@@ -66,10 +66,12 @@ SYSTEM=0
 USE_SVN=0
 LIBS_ONLY=0
 TRED_DIR=
+NO_LIBS=0
 args=()
 while [ $# -gt 0 ]; do
     case "$1" in
 	-l|--libs-only) LIBS_ONLY=1; shift; ;;
+	-n|--no-libs) NO_LIBS=1; shift; ;;
 	-S|--svn) USE_SVN=1; shift; ;;
 	-s|--system) SYSTEM=1; shift; ;;
 	-p|--prefix) PREFIX=$(readlink_nf "$2"); shift 2; ;;
@@ -273,45 +275,46 @@ else
     rm tred-current.tar.gz
 fi
 
-action  "Downloading TrEd dependencies"
-fetch_url "$tred_dep" tred-dep-unix.tar.gz || fail
-
-action  "Unpacking TrEd dependencies"
-tar xzf tred-dep-unix.tar.gz || fail
-rm tred-dep-unix.tar.gz
-
-pushd packages_unix
-
-if [ ! -d "$PREFIX" ]; then
-    action  "Creating $PREFIX"
-    mkdir -p "$PREFIX" || fail
-fi
-
-action  "Installing TrEd dependencies"
-
-mkdir -p "$TRED_BUILD_DIR/tmp"
-inst_opts=(--tmp "$TRED_BUILD_DIR/tmp")
-if [ -n "$PREFIX" ]; then 
-    inst_opts+=(--prefix "$PREFIX")
-fi
-
-./install --check-utils "${inst_opts[@]}" || fail
-
-./install -b "${inst_opts[@]}" 2>&1 | tee "${TRED_DIR}/install.log"
-
 action "Creating directory for start scripts: $RUN_TRED_DIR"
 mkdir -p "$RUN_TRED_DIR" || fail
 
-cat <<EOF > "$RUN_TRED_DIR"/init_tred_environment
+if [ "x$NO_LIBS" != x1 ]; then
+
+    action  "Downloading TrEd dependencies"
+    fetch_url "$tred_dep" tred-dep-unix.tar.gz || fail
+    
+    action  "Unpacking TrEd dependencies"
+    tar xzf tred-dep-unix.tar.gz || fail
+    rm tred-dep-unix.tar.gz
+    pushd packages_unix
+
+    if [ ! -d "$PREFIX" ]; then
+	action  "Creating $PREFIX"
+	mkdir -p "$PREFIX" || fail
+    fi
+
+    action  "Installing TrEd dependencies"    
+    mkdir -p "$TRED_BUILD_DIR/tmp"
+    inst_opts=(--tmp "$TRED_BUILD_DIR/tmp")
+    if [ -n "$PREFIX" ]; then 
+	inst_opts+=(--prefix "$PREFIX")
+    fi
+
+    ./install --check-utils "${inst_opts[@]}" || fail
+    
+    ./install -b "${inst_opts[@]}" 2>&1 | tee "${TRED_DIR}/install.log"
+
+    cat <<EOF > "$RUN_TRED_DIR"/init_tred_environment
 # Setup paths for installed TrEd dependencies
 export TRED_DIR="${TRED_DIR}"
 export TRED_DEPENDENCIES="${PREFIX%/}"
 PATH="\${TRED_DEPENDENCIES}/bin:\${PATH}"
 EOF
-./install --bash-env "${inst_opts[@]}" | sed "s|${PREFIX}|\${TRED_DEPENDENCIES}|g" \
-   >> "$RUN_TRED_DIR"/init_tred_environment
+    ./install --bash-env "${inst_opts[@]}" | sed "s|${PREFIX}|\${TRED_DEPENDENCIES}|g" \
+	>> "$RUN_TRED_DIR"/init_tred_environment
 
-popd >/dev/null # packages-unix
+    popd >/dev/null # packages-unix
+fi
 
 popd >/dev/null # "$TRED_BUILD_DIR"
 
@@ -338,9 +341,14 @@ EOF
 	cat <<EOF > "$RUN_TRED_DIR"/"upgrade_tred"
 #!/bin/sh
 . "\$(dirname "\$(perl -MCwd -e 'print Cwd::abs_path(shift)' \$0)")/init_tred_environment"
-cd "$TRED_DIR" || exit 1
-svn up || exit 2
-bash devel/unix_install/install_tred.bash --libs-only --tred-dir "$TRED_DIR" --prefix "$TRED_DEPENDENCIES" || exit 3
+if [ -n "$TRED_DIR" ] && [ -n "$TRED_DEPENDENCIES" ]; then
+  cd "$TRED_DIR" || exit 1
+  svn up || exit 2
+  bash devel/unix_install/install_tred.bash --libs-only --tred-dir "\$TRED_DIR" --prefix "\$TRED_DEPENDENCIES" "$@" || exit 3
+else
+  echo "Error: init_tred_environment failed to set up TRED_DIR and TRED_DEPENDENCIES paths, aborting!"
+  exit 1
+fi
 EOF
         chmod 755 "$RUN_TRED_DIR"/"upgrade_tred"
     fi
