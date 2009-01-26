@@ -253,8 +253,8 @@ if [ "x$remove_build_dir" = x1 ]; then
     echo "Removing temporary build dir: $TRED_BUILD_DIR"
     rm -fr "$TRED_BUILD_DIR"
 fi
-
 for cmd in tred btred ntred; do
+    echo "Creating start script for $cmd:"  "$RUN_TRED_DIR"/"start_$cmd"
     cat <<EOF > "$RUN_TRED_DIR"/"start_$cmd"
 #!/bin/sh
 
@@ -263,5 +263,14 @@ for cmd in tred btred ntred; do
 EOF
     chmod 755 "$RUN_TRED_DIR"/"start_$cmd"
 done
-
-echo "Note: all stdout+stderr output from the installation of dependencies is captured in ${TRED_TARGET_DIR}/tred/install.log"
+echo
+echo "NOTE: The installation of dependencies is logged in ${TRED_TARGET_DIR}/tred/install.log"
+echo
+echo
+echo "************************************************************"
+echo "*             INSTALLATION IS NOW COMPLETE                 *"
+echo "************************************************************"
+echo
+echo
+echo "You can type ${RUN_TRED_DIR}/start_tred to start TrEd."
+echo
