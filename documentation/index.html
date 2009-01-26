@@ -120,29 +120,38 @@
       </dd>
       <dt id="download_unix">Unix, Linux, Mac OS X</dt>
       <dd>
+	  <p  class="framed">
+	  <small>
+	  <b>NOTE: Perl >= 5.8.2 and basic development tools,
+	(such as <tt>make</tt>, <tt>patch</tt>, and a C compiler <tt>(gcc)</tt>) are required to build TrEd dependencies!
+	  </b>
+	  </small>
+	  </p>
       <dl>
         <dt>
           <tt>
-            <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred_install.bash">tred_install.bash</a>
+            <a href="http://ufal.mff.cuni.cz/~pajas/tred/install_tred.bash">install_tred.bash</a>
 	    (6KB)
           </tt>
         </dt>
-        <dd><p><small>This installation script automatically fetches
-	latest TrEd and its dependencies for you.</small></p>
+        <dd><p><small>This installation script automatically fetches and builds
+	latest TrEd and its dependencies for you.
+	</small></p>
 	<p><small>It downloads the packages below,
 	uncompresses tred into a given folder and
-	installs all dependencies either locally to TrEd's directory
+	compiles and installs all dependencies either locally to TrEd's directory
 	or to a given prefix. It also creates two
 	wrapper scripts start_tred, start_btred, and start_ntred which configure
-	library and module paths accordingly and start the appropriate tool).
+	library and module paths accordingly and start the corresponding tool.
+	You may symlink these scripts to a folder in your PATH.
       </small></p>
       <p><small>Read help:</small></p>
-      <pre><small>  bash tred_install.bash --help | less</small></pre>
-      <p><small>Install as user (everything under ~/tred)</small></p>
-      <pre>   bash tred_install.bash --tred-prefix ~
-  ~/tred/start_tred</pre>
+      <pre><small>  bash install_tred.bash --help | less</small></pre>
+      <p><small>Install as user (everything under $HOME/tred)</small></p>
+      <pre><small>  bash install_tred.bash --tred-prefix ~
+  ~/tred/start_tred</small></pre>
   <p>Install as root to system paths:</p>
-<pre><small> bash /tred_install.bash --tred-prefix /opt --system
+<pre><small>  bash /install_tred.bash --tred-prefix /opt --system
   /usr/bin/start_tred
       </small></pre>
 	</dd>
