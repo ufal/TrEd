@@ -255,7 +255,7 @@ for cmd in tred btred ntred; do
     cat <<EOF > "$RUN_TRED_DIR"/"start_$cmd"
 #!/bin/sh
 
-. "\$(dirname "\$(readlink_nf \$0)")/init_tred_environment"
+. "\$(dirname "\$(perl -MCwd -e 'print Cwd::abs_path(shift)' \$0)")/init_tred_environment"
 "\${TRED_DIR}/${cmd}" "\$@"
 EOF
     chmod 755 "$RUN_TRED_DIR"/"start_$cmd"
