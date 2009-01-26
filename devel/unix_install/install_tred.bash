@@ -27,24 +27,8 @@ TOOL_DIR="$(dirname $(readlink_nf "$0"))/.."
 install_from_cpan="${TOOL_DIR}/install_from_cpan.pl"
 
 CPAN_DIR=
-PARSED_OPTS=$(
-  getopt -n 'install_tred.sh' --shell bash \
-    -o Dqhuvptcs \
-    -l system \
-    -l prefix: \
-    -l tred-prefix: \
-    -l cpan-dir: \
-    -l debug \
-    -l quiet \
-    -l help \
-    -l usage \
-    -l version \
-  -- "$@"
-)
 
 if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
-
-eval set -- "$PARSED_OPTS"
 
 VERSION=0.1
 PRINT_USAGE=0
@@ -55,24 +39,25 @@ QUIET=0
 PREFIX=
 TRED_TARGET_DIR=
 SYSTEM=0
-while true ; do
+args=()
+while [ $# -gt 0 ]; do
     case "$1" in
 	-s|--system) SYSTEM=1; shift; ;;
-	-p|--prefix) PREFIX="$2"; shift 2; ;;
-	-t|--tred-prefix) TRED_TARGET_DIR="$2"; shift 2; ;;
-	-c|--cpan-dir) CPAN_DIR="$2"; shift 2; ;;
+	-p|--prefix) PREFIX=$(readlink_nf "$2"); shift 2; ;;
+	-t|--tred-prefix) TRED_TARGET_DIR=$(readlink_nf "$2"); shift 2; ;;
+	-c|--cpan-dir) CPAN_DIR=$(readlink_nf "$2"); shift 2; ;;
 	-D|--debug) DEBUG=1; shift ;;
 	-q|--quiet) QUIET=1; shift ;;
 	-u|--usage) PRINT_USAGE=1; shift ;;
 	-h|--help) PRINT_HELP=1; shift ;;
 	-v|--version) PRINT_VERSION=1; shift ;;
-#	-o|--output) OUTPUT="$2"; shift 2 ; break ;;
-#	-x|--extra) EXTRA="$2";  # will be "" if argument omitted
-#          	    shift 2 ;;
 	--) shift ; break ;;
-	*) echo "Internal error while processing command-line options!" ; exit 1 ;;
+	-*) echo "Unknown command-line option: $1" ; exit 1 ;;
+        *) args+=("$1"); shift ;;
     esac
 done
+
+eval set -- "${args[@]}"
 
 usage () {
     echo "$0 version $VERSION" 
@@ -189,7 +174,9 @@ action () {
 
 TRED_BUILD_DIR="$1"
 remove_build_dir=0
-if [ -z "$TRED_BUILD_DIR" ]; then
+if [ -n "$TRED_BUILD_DIR" ]; then
+    TRED_BUILD_DIR=$(readlink_nf "$TRED_BUILD_DIR")
+else
     TRED_BUILD_DIR="$TRED_DIR/.build"
     remove_build_dir=1
 fi
@@ -226,6 +213,7 @@ fi
 
 action  "Installing TrEd dependencies"
 
+mkdir -p "$TRED_BUILD_DIR/tmp"
 inst_opts=(--tmp "$TRED_BUILD_DIR/tmp")
 if [ -n "$PREFIX" ]; then 
     inst_opts+=(--prefix "$PREFIX")
