@@ -65,6 +65,7 @@ TRED_TARGET_DIR=
 SYSTEM=0
 USE_SVN=0
 LIBS_ONLY=0
+TRED_DIR=
 args=()
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -74,6 +75,7 @@ while [ $# -gt 0 ]; do
 	-p|--prefix) PREFIX=$(readlink_nf "$2"); shift 2; ;;
 	-T|--tred-dir) TRED_DIR=$(readlink_nf "$2"); shift 2; ;;
 	-t|--tred-prefix) TRED_TARGET_DIR=$(readlink_nf "$2"); shift 2; ;;
+	-T|--tred-dir) TRED_DIR=$(readlink_nf "$2"); shift 2; ;;
 	-c|--cpan-dir) CPAN_DIR=$(readlink_nf "$2"); shift 2; ;;
 	-D|--debug) DEBUG=1; shift ;;
 	-q|--quiet) QUIET=1; shift ;;
@@ -174,6 +176,7 @@ HELP
 if [ "$PRINT_VERSION" = 1 ]; then echo Version: $VERSION; exit; fi
 if [ "$PRINT_HELP" = 1 ]; then help; exit; fi
 if [ "$PRINT_USAGE" = 1 ]; then usage; exit; fi
+
 
 if [ -z "$PREFIX" ] && [ -z "$TRED_TARGET_DIR" ] && [ -z "$TRED_DIR" ]; then
     cat <<EOF 1>&2
@@ -295,6 +298,9 @@ fi
 ./install --check-utils "${inst_opts[@]}" || fail
 
 ./install -b "${inst_opts[@]}" 2>&1 | tee "${TRED_DIR}/install.log"
+
+action "Creating directory for start scripts: $RUN_TRED_DIR"
+mkdir -p "$RUN_TRED_DIR" || fail
 
 cat <<EOF > "$RUN_TRED_DIR"/init_tred_environment
 # Setup paths for installed TrEd dependencies
