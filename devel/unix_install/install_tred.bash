@@ -23,11 +23,26 @@ readlink_nf () {
     perl -MCwd -e 'print Cwd::abs_path(shift)' "$1"
 }
 
+wget --help >/dev/null 2>&1 
+if [ $? == 0 ]; then
+    HAVE_WGET=1
+else
+    HAVE_WGET=0
+fi
+fetch_url () {
+    if [ "$HAVE_WGET" == 1 ]; then
+	echo "Fetching $1 into $2 using LWP::Simple..."
+	perl -MLWP::Simple -e '($url,$file)=@ARGV; $res=mirror($url,$file); die "Failed to fetch $url into $file" unless $res==RC_OK or $res==RC_NOT_MODIFIED' "$1" "$2"
+    else
+	echo "Fetching $1 into $2 using wget..."
+	wget -O "$2" "$1"
+    fi
+}
+
 TOOL_DIR="$(dirname $(readlink_nf "$0"))/.."
 install_from_cpan="${TOOL_DIR}/install_from_cpan.pl"
 
 CPAN_DIR=
-
 if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
 
 VERSION=0.1
@@ -187,7 +202,7 @@ action "Preparing build directory $TRED_BUILD_DIR"
 pushd "$TRED_BUILD_DIR"
 
 action "Downloading TrEd"
-wget -O tred-current.tar.gz "$tred_url" || fail
+fetch_url "$tred_url" tred-current.tar.gz|| fail
 tred_tar_gz="$PWD/tred-current.tar.gz"
 
 action  "Unpacking TrEd to $TRED_DIR"
@@ -198,7 +213,7 @@ popd
 rm tred-current.tar.gz
 
 action  "Downloading TrEd dependencies"
-wget -O tred-dep-unix.tar.gz "$tred_dep"  || fail
+fetch_url "$tred_dep" tred-dep-unix.tar.gz || fail
 
 action  "Unpacking TrEd dependencies"
 tar xzf tred-dep-unix.tar.gz || fail
