@@ -65,6 +65,7 @@ use IO;
 use Cwd;
 use File::Spec;
 use File::Glob qw(:glob);
+use URI::file;
 
 use constant EMPTY => q{};
 use constant {
@@ -1895,6 +1896,36 @@ sub updateTitle {
       $grp->{$b}->configure(-state => 'disabled');
     }
     $grp->{top}->title("$appName");
+  }
+}
+
+sub updateHelpMenu {
+  my ($grp,$opts)=@_;
+  $opts||={};
+  my $m =$grp->{HelpMenu}->menu;
+  my $hm = $m && eval { $m->entrycget($m->index('Extension manuals'),'-menu') };
+  return unless $hm;
+  $hm->delete(0,'last');
+  my $preinst_dir = getPreInstalledExtensionsDir();
+  my ($extensions,$pre_installed) = @{
+    $opts->{preparedExtensions} ||
+    prepareExtensions($grp) ||
+    [[],[]]
+  };
+  my %m;
+  foreach my $m (
+    (map [ $_, getExtensionDocPaths([$_]) ], @$extensions),
+    (map [ $_, getExtensionDocPaths([$_],$preinst_dir) ], @$pre_installed)) {
+    $m{$m->[0]} = $m->[1] unless exists $m{$m->[0]};
+  }
+  for my $ext (sort keys %m) {
+    my $index = File::Spec->catfile($m{$ext},'index.html');
+    if (-f $index) {
+      my $url = URI::file->new($index);
+      $hm->add('command',
+	       -label => $ext,
+	       -command => [\&open_url_in_browser,$url]);
+    }
   }
 }
 
@@ -6366,6 +6397,11 @@ sub startMain {
 	  -command=> [\&help_topic,\%group,'_TOC_']
 	 ],
 	 [
+	  Cascade => q(Extension manuals),
+	  -underline=> 0,
+	  -menuitems => [ ],
+	 ],
+	 [
 	  Button=> 'About',
 	  -underline=> 0,
 	  -command=> [\&About,\%group]
@@ -6867,6 +6903,7 @@ sub startMain {
 		  -title => "TrEd Upgraded",
 		  -buttons => ["Manage Extensions","Later"]) =~ /Manage/) {
       manage_extensions(\%group,0);
+      $preparedExtensions = prepareExtensions(\%group);
     }
   }
 
@@ -6881,6 +6918,8 @@ sub startMain {
   update_minor_modes(\%group);
   updateStylesheetMenu(\%group);
   updatePostponed(\%group);
+  updateHelpMenu(\%group, {preparedExtensions=>$preparedExtensions});
+
 
   if (doEvalHook($group{focusedWindow},"init_hook") eq 'stop') {
     $top->Unbusy;
@@ -11834,7 +11873,8 @@ sub manage_extensions {
 
     loadStyleSheets($grp);
     updateStylesheetMenu($grp);
-
+    updateHelpMenu($grp,{preparedExtensions => $preparedExtensions});
+    
     # reload macros
     reloadMacros($grp,{preparedExtensions => $preparedExtensions});
   }
