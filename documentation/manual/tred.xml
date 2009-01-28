@@ -196,7 +196,7 @@
       </section>
     </section>
     <section id="install-unix">
-      <title>Linux and UNIX-based systems</title>
+      <title>Linux, MacOS X, and other UNIX-like systems</title>
       <para>
 	Almost every today's <application moreinfo="none">UNIX/Linux</application> system contains a
 	<application moreinfo="none">Perl</application> installation,
@@ -223,7 +223,7 @@
       <para>
 	TrEd along with all the required Perl modules and libraries can be installed
 	in one step using an installer script <ulink url="http://ufal.mff.cuni.cz/~pajas/tred/install_tred.bash"><literal>install_tred.bash</literal></ulink>, as follows:
-	<programlisting format="linespecific">$ <userinput moreinfo="none">wget http://ufal.mff.cuni.cz/~pajas/tred/install_tred.bash</userinput>
+	<programlisting format="linespecific">$ <userinput moreinfo="none">wget <ulink url="http://ufal.mff.cuni.cz/~pajas/tred/install_tred.bash">http://ufal.mff.cuni.cz/~pajas/tred/install_tred.bash</ulink></userinput>
 $ <userinput>bash install_tred.bash --tred-dir ~/tred</userinput>
 </programlisting>
 	 This installs TrEd under <filename>~/tred</filename> and all missing modules and libraries
@@ -9551,7 +9551,22 @@ contrib/sample_extension/sample_macros2.mak
 	so the modified version has precedence.
       </para>
 	</listitem>
-
+	<listitem>
+      <para>
+	If the package contains a directory named
+	<literal>documentation</literal>
+	and this directory contains an HTML or XHTML file named <literal>index.html</literal>,
+	TrEd adds a menu item 
+	<menuchoice>
+	  <guimenu>Help</guimenu>
+	  <guisubmenu>Extension manuals</guisubmenu>
+	  <guimenuitem><replaceable>extension name</replaceable></guimenuitem>
+	</menuchoice>
+	that opens this file in the default browser. This index file
+	can be just a table of contents, pointing to other files
+	within the extension via relative URLs.
+      </para>
+	</listitem>
 	<listitem>
       <para>
 	If the resource folder contains

@@ -31,6 +31,7 @@ BEGIN {
 				      getExtensionMacroPaths
 				      manageExtensions
                                       getExtensionSampleDataPaths
+                                      getExtensionDocPaths
 				      getPreInstalledExtensionsDir
 				      getPreInstalledExtensionList
 				   ) ] );
@@ -138,12 +139,27 @@ sub getExtensionSampleDataPaths {
   if (@_==0) {
     $list=getExtensionList();
   } elsif (!ref($list) eq 'ARRAY') {
-    carp('Usage: configureExtensionSampleDataPaths( [ extension_name(s)... ] )');
+    carp('Usage: getExtensionSampleDataPaths( [ extension_name(s)... ] )');
   }
   $extension_dir||=getExtensionsDir();
   return
   grep -d $_,
   map File::Spec->catfile($extension_dir,$_,'sample'),
+  grep !/^!/,
+  @$list;
+}
+
+sub getExtensionDocPaths {
+  my ($list,$extension_dir)=@_;
+  if (@_==0) {
+    $list=getExtensionList();
+  } elsif (!ref($list) eq 'ARRAY') {
+    carp('Usage: getExtensionDocPaths( [ extension_name(s)... ] )');
+  }
+  $extension_dir||=getExtensionsDir();
+  return
+  grep -d $_,
+  map File::Spec->catfile($extension_dir,$_,'documentation'),
   grep !/^!/,
   @$list;
 }
