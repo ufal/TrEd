@@ -2998,6 +2998,16 @@ sub update_status_info {
 			      update_attribute_view($win);
 			    });
 }
+
+# sorts first by number of initial underscores, then alphabetically;
+# the values are pased as array refs [ key, data ... ]
+sub _u_sort {
+  return
+    map { $_->[2] }
+    sort { ($b->[0]<=>$a->[0]) || ($a->[1] cmp $b->[1]) }
+    map { $_->[0] =~ /^(_*)(.*)$/s && [ length($1), $2, $_ ] } @_;
+}
+
 sub update_macro_menus {
   my ($grp)=@_;
   $grp->{ContextsMenu}->configure(-options => [getContexts()])
@@ -3030,7 +3040,8 @@ sub update_macro_menus {
 		   cascadeMenus(map {
 		     my $v = $menuBindings{$context}->{$_};
 		     my $key = defined($v->[1]) ? $v->[1] : $macro_to_key{$v->[0]};
-		     [Button=> "$_",
+		     my $label = $_; $label=~s/^_+//;
+		     [Button=> $label,
 		      -command=> [sub {
 				    doEvalMacro($_[0]->{focusedWindow},
 						$_[1]);
@@ -3038,7 +3049,7 @@ sub update_macro_menus {
 				  $grp,
 				  $v->[0]],
 		      $key ? (-accelerator=> "(".$key.")") : ()]}
-				  sort(keys(%{$menuBindings{$context}}))));
+				  map $_->[1], _u_sort(map [$_,$_], keys(%{$menuBindings{$context}}))));
     }
   }
 }
@@ -3951,7 +3962,7 @@ sub generateSortedMacroTable {
   } elsif ($order_by eq 'P') {
     return sort { $a->[2] cmp $b->[2] } @macroTable;
   } else {
-    return sort { $a->[0] cmp $b->[0] } @macroTable;
+    return _u_sort(@macroTable);
   }
 }
 
@@ -3965,6 +3976,7 @@ sub macrolistCreateItems {
     $e= $t->addchild(EMPTY, -data => $entry->[2]);
     my $col0 = $entry->[1];
     my $col2 = (defined($entry->[0]) ? $entry->[0] : 'ANONYMOUS');
+    $col2=~s/^_+//;
     ($col0,$col2)=($col2,$col0) if $swap;
     $t->itemCreate($e, 0, -itemtype=>'text', -text=>$col0, -style=>$style);
     $t->itemCreate($e, 1, -itemtype=>'text', -text=>$entry->[2],-style=>$style) if $see_macro;
