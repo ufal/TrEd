@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd" [
+<!ENTITY void "">
+]>
 <?xml-stylesheet href="docbook-css-0.4/driver.css" type="text/css"?>
 <article lang="en">
   <articleinfo>
@@ -198,8 +200,8 @@
       <para>
 	Almost every today's <application moreinfo="none">UNIX/Linux</application> system contains a
 	<application moreinfo="none">Perl</application> installation,
-	so we expect that you already have a working <application moreinfo="none">Perl</application> setup (version &gt;= 5.8.8 is
-	recommended). 
+	so we expect that you already have a working <application moreinfo="none">Perl</application> setup (version &gt;= 5.8.3 is required
+	but at least 5.8.8 is recommended). 
       </para>
       <para>
 	<application moreinfo="none">TrEd</application> further requires at least the following Perl
@@ -212,16 +214,27 @@
 	  <listitem><simpara><literal>Tie-IxHash</literal></simpara></listitem>
 	  <listitem><simpara><literal>Tk</literal> (for GUI)</simpara></listitem>
 	  <listitem><simpara><literal>Compress-Zlib</literal> (for printing to PDF)</simpara></listitem>
-	  <listitem><simpara><literal>XML-LibXML</literal> (for various I/O backends)</simpara></listitem>
+	  <listitem><simpara><literal>XML-LibXML</literal> (requires <ulink url="http://xmlsoft.org">libxml2</ulink>)</simpara></listitem>
 	  <listitem><simpara><literal>XML-Simple</literal></simpara></listitem>	  
 	  <listitem><simpara><literal>XML-Writer</literal></simpara></listitem>
 	  <listitem><simpara><literal>Archive-Zip</literal></simpara></listitem>
 	</itemizedlist>
-	All the above modules and their dependencies can be obtained
-	and installed in a single step using the
-	<command moreinfo="none">./install</command> script of the <ulink url="http://ufal.mff.cuni.cz/~pajas/tred/tred-dep-unix.tar.gz">tred-dep-unix.tar.gz</ulink>
-	package as described below. The install script compiles and
-	installs all required modules.
+      </para>
+      <para>
+	TrEd along with all the required Perl modules and libraries can be installed
+	in one step using an installer script <ulink url="http://ufal.mff.cuni.cz/~pajas/tred/install_tred.bash"><literal>install_tred.bash</literal></ulink>, as follows:
+	<programlisting format="linespecific">$ <userinput moreinfo="none">wget http://ufal.mff.cuni.cz/~pajas/tred/install_tred.bash</userinput>
+$ <userinput>bash install_tred.bash --tred-dir ~/tred</userinput>
+</programlisting>
+	 This installs TrEd under <filename>~/tred</filename> and all missing modules and libraries
+	 under <filename>~/tred/dependencies</filename>. TrEd should be started using a wrapper script
+	 <filename>~/tred/bin/start_tred</filename> which configures correct library paths.
+      </para>
+      <para>The installation script offers several options that allow custom choice of installation paths
+      and also supports installation of development versions of TrEd from SVN.
+      Use 
+      <programlisting format="linespecific">$ <userinput moreinfo="none">bash install_tred.bash --help</userinput></programlisting>
+      for more information.
 	<!--
 	<note role="PDT20">
 	  <para>
@@ -236,6 +249,19 @@
 	</note>
 	-->
       </para>
+	  <para>
+	    Check your installation with:
+	    <programlisting format="linespecific">$ <userinput moreinfo="none">~/tred/bin/start_tred -v</userinput>
+TrEd 1.3587 2008-10-01 14:16:32Z
+Perl: 5.008008
+Platform: linux
+Tk: 804.028
+</programlisting>
+	    If you get a similar output, you have successfully installed <application moreinfo="none">TrEd</application> 
+	    on your system. You can add <filename>~/tred/bin</filename> to your PATH or symlink all <filename>~/tred/bin/start_*</filename> scripts to some
+	    directory in your PATH, e.g. <filename>~/bin</filename>.
+	  </para>
+<!--
       <orderedlist continuation="restarts" inheritnum="ignore">
 	<listitem>
 	  <para>
@@ -278,12 +304,12 @@ Password:
 	    you'd like to use a different prefix (e.g. because you
 	    don't have root permissions on the box), use
 	    
-	    <programlisting format="linespecific">$ <userinput moreinfo="none">./install --prefix=<replaceable>directory-prefix</replaceable></userinput></programlisting>
+	    <programlisting format="linespecific">$ <userinput moreinfo="none">./install -&void;-prefix=<replaceable>directory-prefix</replaceable></userinput></programlisting>
 
 	    and ensure the environment variable settings suggested by
 	    the installation script at the end of the installation.
 	    You can review all options of the installation script with
-	    <command moreinfo="none">./install --help</command>.
+	    <command moreinfo="none">./install -&void;-help</command>.
 	  </para>
 	</listitem>
  	<listitem>
@@ -299,17 +325,6 @@ Password:
 	    <programlisting format="linespecific">$ <userinput moreinfo="none">cp -R tred /opt</userinput></programlisting>
 	    or 
 	    <programlisting format="linespecific">$ <userinput moreinfo="none">cp -R tred /home/<replaceable>yourname</replaceable></userinput></programlisting>
-	    <!--
-	    <note role="PDT20">
-	      <para>
-		If you have the <productname class="trade">Prague
-		  Dependency Treebank 2.0</productname> CD-ROM, you'll find the
-		unpacked installation package in the directory
-		<filename moreinfo="none">tools/tred/tred</filename>
-		on the CD-ROM.
-	      </para>
-	    </note>
-	    -->
 	  </para>
 	</listitem>
 	<listitem>
@@ -333,20 +348,32 @@ Tk: 804.028
 	    If you get a similar output, you have successfully installed <application moreinfo="none">TrEd</application> 
 	    on your system.
 	  </para>
+	</listitem>
+      </orderedlist>
+	  -->
+	    <!--
+	    <note role="PDT20">
+	      <para>
+		If you have the <productname class="trade">Prague
+		  Dependency Treebank 2.0</productname> CD-ROM, you'll find the
+		unpacked installation package in the directory
+		<filename moreinfo="none">tools/tred/tred</filename>
+		on the CD-ROM.
+	      </para>
+	    </note>
+	    -->
 	  <note>
  	    <para>
 	      Unfortunatelly, another commonly used package contains
 	      an executable named <command moreinfo="none">tred</command>, namely the
 	      <application moreinfo="none">GraphViz</application> package by AT&amp;T.
-	      Although we think we used the name first, we do not see
-	      much reason in arguing with them about renaming
-	      their program to something else. If you are affected
-	      by this name collision, simply rename one of the
-	      executables (either the one of
-	      <application moreinfo="none">TrEd</application> of the one of
-	      <application moreinfo="none">GraphViz</application>) to something else.
+	      This tool requires standard input, so if you attempt to start TrEd using
+	      the command <command>tred</command> and it just hangs, 
+	      you may be running the <application moreinfo="none">GraphViz</application>
+	      tool, not the tree editor TrEd.
  	    </para>
  	  </note>
+	  <!--
 	  <note>
 	    <para>If the <command moreinfo="none">tred</command>
 	      executable fails to start at all, try changing the first line
@@ -360,8 +387,7 @@ Tk: 804.028
 	      were installed.
 	    </para>
 	  </note>
-	</listitem>
-      </orderedlist>
+	  -->
     </section>
   </section>
   <section id="terminology">
@@ -8134,7 +8160,7 @@ sub MakeSentence {
 	    </row><row id="get_value_line_hook">
 	      <entry><literal moreinfo="none">get_value_line_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>fsfile</replaceable>,<replaceable>treeNo</replaceable>,<replace>type</replace></literal></para><para>Supply custom value-line content based on given
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>fsfile</replaceable>,<replaceable>treeNo</replaceable>,<replaceable>type</replaceable></literal></para><para>Supply custom value-line content based on given
 		<replaceable>fsfile</replaceable>,
 		<replaceable>treeNo</replaceable>, and 
 		<replaceable>type</replaceable>,
