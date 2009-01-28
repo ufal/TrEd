@@ -9,13 +9,13 @@ use Getopt::Long;
 use XML::XSH2 qw(xsh_init open_doc);
 
 # Default options
-my %opt = (index => 1, toplink => 'ToC');
-GetOptions(\%opt, qw(css=s toplink|backlink=s help index! infile:s outfile:s title:s))
+my %opt = (index => 1, toplink => 'ToC',topurl=>'#TOP');
+GetOptions(\%opt, qw(css=s toplink|backlink=s topurl=s help index! infile:s outfile:s title:s))
     || pod2usage();
 pod2usage(-verbose => 2) if $opt{help};
 
 my $toplink = $opt{toplink} ?
-    sprintf '<p><a href="#TOP" class="toplink">%s</a></p>', $opt{toplink} : '';
+    sprintf('<p><a href="%s" class="toplink">%s</a></p>', $opt{topurl}, $opt{toplink}) : '';
 
 
 my $linkparser = new Pod::Hyperlink::BounceURL;
