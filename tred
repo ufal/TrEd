@@ -8879,18 +8879,14 @@ sub editAttrsDialog_schema {
 	      ]},
     enable_callback => [ sub {
 			   my ($win,$base_path,$node,$path)=@_;
-			   # __debug("enable_attr_hook: $base_path, $path\n");
-			   $path = $base_path.'/'.$path if $base_path ne EMPTY;
-			   doEvalHook($win,'enable_attr_hook',$path,"normal",$node) eq 'stop' ? 0 : 1
+			   return doEvalHook($win,'enable_attr_hook',$path,"normal",$node) eq 'stop' ? 0 : 1
 			 }, $win,$attr_path,$node ],
     choices_callback => [ sub {
 			   my ($win,$base_path,$node,$path,$mtype,$editor)=@_;
-			   $path = $base_path.'/'.$path if $base_path ne EMPTY;
 			   return doEvalHook($win,'attr_choices_hook',$path,$node,$mtype,$editor);
 			 }, $win,$attr_path,$node ],
     validate_callback => [ sub {
 			   my ($win,$base_path,$node,$txt,$path,$mtype,$editor)=@_;
-			   $path = $base_path.'/'.$path if $base_path ne EMPTY;
 			   my $res = doEvalHook($win,'attr_validate_hook',$txt,$path,$node,$mtype,$editor);
 			   defined $res ? $res : 1;
 			 }, $win,$attr_path,$node ],
