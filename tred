@@ -7864,8 +7864,13 @@ sub saveConfig {
  } else {
    $top = $win->{top};
  }
- if (-f $configFile and -w $configFile) {
-    my $renamed = rename $configFile, "${configFile}~";
+ my ($default_trc)=File::Spec->catfile($libDir,'tredrc');
+ if (_is_same_file($configFile,$default_trc)) {
+   $configFile = File::Spec->catfile($ENV{HOME},'.tredrc');
+ }
+ my $exists = -e $configFile ? 1 : 0;
+ if (!$exists or (-f $configFile and -w $configFile)) {
+    my $renamed = rename $configFile, "${configFile}~" if $exists;
     if (open(my $fh,">$configFile")) {
       print STDERR "Saving tred configuration to: $configFile\n";
       print $fh (@$config);
