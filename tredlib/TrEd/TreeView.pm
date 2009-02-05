@@ -450,7 +450,7 @@ sub value_line_list {
 	      $styles{-foreground} = $style
 	    }
 	  } elsif ($_ ne '') {
-	    push @vl,[$_,$node,'text',map { encode("$_ => $styles{$_}") } keys %styles];
+	    push @vl,[$_,$node,'text',map { $_ eq 'tag' ? split(/,/,encode($styles{$_})) : encode("$_ => $styles{$_}") } keys %styles];
 	    $add_space=1;
 	  }
 	}
