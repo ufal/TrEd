@@ -159,6 +159,9 @@ help () {
       -l|--libs-only
           install only missing libraries/modules (do not install TrEd)
 
+      -s|--system
+          install to system paths (root only)
+
       -S|--svn
           install TrEd from SVN rather than from a released package.
 
@@ -299,10 +302,13 @@ if [ "x$NO_LIBS" != x1 ]; then
     if [ -n "$PREFIX" ]; then 
 	inst_opts+=(--prefix "$PREFIX")
     fi
+    if [ "x$SYSTEM" != x1 ]; then
+	inst_opts+=(-b)
+    fi
 
     ./install --check-utils "${inst_opts[@]}" || fail
     
-    ./install -b "${inst_opts[@]}" 2>&1 | tee "${TRED_DIR}/install.log"
+    ./install "${inst_opts[@]}" 2>&1 | tee "${TRED_DIR}/install.log"
 
     cat <<EOF > "$RUN_TRED_DIR"/init_tred_environment
 # Setup paths for installed TrEd dependencies
