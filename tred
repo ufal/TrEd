@@ -5877,7 +5877,7 @@ sub startMain {
   }
   $group{top} = $top;
 
-  $IOBackend::lwp_user_agent = TrEd::UserAgent->new($top);
+  $IOBackend::lwp_user_agent = TrEd::UserAgent->new($top, keep_alive=>1);
 
   if ($^O eq 'MSWin32') {
     # a workaround for focus being lost after popup menu usage on Win32
