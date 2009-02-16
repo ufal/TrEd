@@ -6414,10 +6414,75 @@ sub startMain {
 	  -menuitems => [ ],
 	 ],
 	 [
+	  Cascade => q(Library manuals),
+	  -underline=> 0,
+	  -menuitems => [
+	    [
+	      Button=> q(TrEd API: Pre-defined macros),
+	      -underline=> 0,
+	      -command=> [\&help_topic,\%group,'defaultmacros']
+	    ],
+	    [
+	      Button=> q(PML.mak),
+	      -underline=> 0,
+	      -command => [ \&open_url_in_browser, $docDir.'/PML_mak.html' ],
+	    ],
+	    [
+	      Button=> q(Fslib),
+	      -underline=> 0,
+	      -command => [ \&open_url_in_browser, $docDir.'/Fslib.html' ],
+	    ],
+	    [
+	      Button=> q(PMLSchema),
+	      -underline=> 0,
+	      -command => [ \&open_url_in_browser, $docDir.'/PMLSchema.html' ],
+	    ],
+	    [
+	      Button=> q(PMLInstance),
+	      -underline=> 0,
+	      -command => [ \&open_url_in_browser, $docDir.'/PMLInstance.html' ],
+	    ],
+	   ],
+	 ],
+	 [
+	  Cascade => q(Command-line tools),
+	  -underline=> 0,
+	  -menuitems => [
+	    [
+	      Button=> q(BTrEd Tutorial for PDT 2.0),
+	      -underline=> 0,
+	      -command => [ \&open_url_in_browser,
+			    $docDir.'/bn-tutorial.html'
+			   ],
+	     ],
+	    [
+	      Button=> q(TrEd Manual Page),
+	      -underline=> 0,
+	      -command=> [\&help_topic,\%group,'commandline']
+	     ],
+	    [
+	      Button=> q(BTrEd Manual Page),
+	      -underline=> 0,
+	      -command => [ \&open_url_in_browser,
+			    $docDir.'/btred.html'
+			   ],
+	     ],
+	    [
+	      Button=> q(NTrEd Manual Page),
+	      -underline=> 0,
+	      -command => [ \&open_url_in_browser,
+			    $docDir.'/ntred.html'
+			   ],
+	     ],
+	   ]
+	 ],
+	 [ 'Separator' => 'EMPTY' ],
+	 [
 	  Button=> 'About',
 	  -underline=> 0,
 	  -command=> [\&About,\%group]
 	 ],
+	 [ 'Separator' => 'EMPTY' ],
 	 [
 	  Button=> 'Examine bindings',
 	  -underline=> 0,
@@ -9127,13 +9192,14 @@ sub open_url_in_browser {
 	$htmlBrowser='kfmclient openURL %u';
       }
     } # detect GNOME
-    elsif ($ENV{GNOME_DESKTOP_SESSION_ID} ne EMPTY) {
+    elsif ($ENV{GNOME_DESKTOP_SESSION_ID} ne EMPTY and
+	   which('gnome-open') ne EMPTY) {
       $htmlBrowser='gnome-open %u';
     } # generic
-    elsif ($ENV{BROWSER} ne EMPTY) {
+    elsif ($ENV{BROWSER} ne EMPTY and which($ENV{BROWSER}) ne EMPTY) {
       $htmlBrowser=$ENV{BROWSER};
     }
-    elsif ($htmlBrowser = first {which($_) ne EMPTY} 
+    elsif ($htmlBrowser = first {which($_) ne EMPTY}
 	     qw(firefox mozilla netscape opera htmlview)) {
       # already assigned
     } else {
@@ -9346,9 +9412,8 @@ B<Rules interpolation:>
   any other text - interpolates to itself
 
 H<RootStyles>
-  C<balance             >- draw "balanced" Penn-treebank like tree, instead of
-  C<                    >  ordering nodes according to a dedicated attribute
-  C<                    >  (can only be used in a rootstyle pattern)
+  C<balance             >- #{balance:1} draws a balanced rather than ordered tree;
+  C<                    >  #{balance:spread} is the same but projective on leafs (useful e.g. for Penn Treebank)
   C<vertical            >- draw the tree L<vertically#vertical-mode>
   C<baseXPos            >- X-coordinate of the root node
   C<baseYPos            >- Y-coordinate of the root node
@@ -11747,6 +11812,20 @@ sub valueLineClick {
       Tk->break;
       return;
     } elsif ($ret ne 'stop') {
+      my %nodes = map { $_=>$_ } @{ $win->{Nodes} };
+      for my $t (reverse @tags) {
+#	print STDERR "tag: $t\n";
+	if (exists $nodes{$t}) {
+	#  print STDERR "found $t\n";
+	  my $node = $nodes{$t};
+	  setCurrent($win,$node);
+	  ensureCurrentIsDisplayed($win);
+	  centerTo($win,$node);
+	  Tk->break;
+	  return;
+	}
+      }
+      # fallback
       my $node=$win->{root};
       while ($node) {
 	if (index(join(EMPTY,@tags),${node})>=0) {
