@@ -69,7 +69,7 @@
 
 
 sub new_tree_after {
-  DetermineNodeType($root=NewTreeAfter());
+  DetermineNodeType(NewTreeAfter());
 }
 sub new_rbrother {
   my $save = $this;
