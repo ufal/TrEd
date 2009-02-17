@@ -1937,7 +1937,8 @@ sub newFileFromCurrent {
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
   my $cur=$win->{FSFile};
   my $new=$cur->clone(0);
-  $new->changeFilename('unnamed'.sprintf('%03d',$NewFileNo++));
+
+  $new->changeURL('unnamed'.sprintf('%03d',$NewFileNo++));
   $cur=undef;
   my $answer = askSaveFile($win,1,1);
   return 0 if $answer == -1;
@@ -1948,8 +1949,6 @@ sub newFileFromCurrent {
   push @openfiles, $win->{FSFile};
   updatePostponed($grp);
 
-  # add file to filelist
-  $win->{currentFileNo}= max2(0,$win->{currentFileNo});
   updateTitle($grp);
   get_nodes_win($win);
   $win->{redrawn}=0; # if redraw is called during the hook, we will know it
@@ -2423,7 +2422,23 @@ sub saveFile {
   my ($win,$f)=@_;
   $win=cast_to_win($win);
   return unless $win->{FSFile};
-  $f=$win->{FSFile}->filename unless defined($f);
+  unless (defined($f)) {
+    $f=$win->{FSFile}->filename;
+    if ($f =~ /^unnamed\d+$/) {
+      my $ret =  saveFileAs($win);
+      if ($ret) {
+	# now we may add the file to the current filelist?
+	$win->{currentFileNo} = max2(0,$win->{currentFileNo});
+	my $pos=insertToFilelist($win,
+				 $win->{currentFilelist},
+				 $win->{currentFileNo},
+				 $win->{FSFile}->filename);
+	$win->{currentFileNo} = $pos if $pos >= 0;
+	update_filelist_views($win,$win->{currentFilelist},0);
+      }
+      return $ret;
+    }
+  }
 
   my $lock = checkLock($win->{FSFile},$f);
   if ($lock =~ /^locked|^stolen|^opened/) {
@@ -6409,6 +6424,11 @@ sub startMain {
 	  -command=> [\&help_topic,\%group,'_TOC_']
 	 ],
 	 [
+	  Button=> q(TrEd Home Page),
+	  -underline=> 0,
+	  -command=> [\&open_url_in_browser,'http://ufal.mff.cuni.cz/~pajas/tred/']
+	 ],
+	 [
 	  Cascade => q(Extension manuals),
 	  -underline=> 0,
 	  -menuitems => [ ],
@@ -7601,10 +7621,13 @@ sub saveFileAs {
   $initdir=cwd if ($initdir eq './');
   $initdir=~s!${TrEd::Convert::Ds}$!!m;
 
+  my $cur = $fsfile->backend || '';
+  $cur=~s/Backend$//;
+  $cur=qq{ ($cur)} if $cur;
   my $response=userQuery($win, "\nPlease,\nchoose one of the following output formats.\n\n".
 			 "\nWARNING:\nsome formats may be incompatible with the current file.\n",
 			 -title => "Save As ...",
-			 -buttons => ["Use current","FS","CSTS","TrXML","TEIXML","Storable","Cancel"]);
+			 -buttons => ["Use current".$cur,"FS","CSTS","TrXML","TEIXML","Storable","Cancel"]);
   return if ($response eq "Cancel");
 
   if ($response eq 'FS') {
@@ -7621,7 +7644,7 @@ sub saveFileAs {
   } 
 
   my $filetypes;
-  if ($response eq 'Use current') {
+  if ($response =~ /^Use current/) {
     my ($backend) = grep { $backend_map{$_} eq $fsfile->backend} keys %backend_map;
     if ($backend) {
       $filetypes = $save_types{$backend};
@@ -7637,7 +7660,7 @@ sub saveFileAs {
 				     -d $initdir ? (-initialdir=> $initdir) : (),
      				     $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
   return doSaveFileAs($win,$fsfile,$file,
-		    ($response ne 'Use current') ? $backend_map{lc($response)} : $fsfile->backend,
+		    ($response !~ /^Use current/) ? $backend_map{lc($response)} : $fsfile->backend,
 		    'ask','ask'
 		   );
 }
@@ -7682,6 +7705,7 @@ sub doSaveFileAs {
     $fsfile->changeFileFormat(($filename=~/\.gz$/ ? "gz-compressed " : EMPTY).
 				     $fsfile->backend);
     updateTitle($win->{framegroup});
+    updatePostponed($win->{framegroup});
     if (saveFile($win,$filename)==1) {
       removeLock($fsfile,$old_file,1) if ($lock_change);
 
