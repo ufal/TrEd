@@ -96,41 +96,37 @@ sub prevTree {
 
 sub newTree {
   my ($win)=@_;
-
-#  my $nr=FSNode->new(); # blessing new root
-#  splice(@{$win->{FSFile}->treeList}, $win->{treeNo}, 0, $nr);
-#  $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
-  $win->{root}=$win->{FSFile}->new_tree($win->{treeNo});
-  $win->{FSFile}->notSaved(1);
+  my $fsfile = $win->{FSFile};
+  $win->{treeNo}=0 if $fsfile->lastTreeNo<0;
+  $win->{root}=$fsfile->new_tree($win->{treeNo});
+  $fsfile->notSaved(1);
   &$on_tree_change($win,'newTree',$win->{root}) if $on_tree_change;
   return 1;
 }
 
 sub newTreeAfter {
   my ($win)=@_;
-
-#  my $nr=FSNode->new(); # blessing new root
-#  splice(@{$win->{FSFile}->treeList}, ++$win->{treeNo}, 0, $nr);
-#  $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
-  $win->{root}=$win->{FSFile}->new_tree(++$win->{treeNo});
-  $win->{FSFile}->notSaved(1);
+  my $fsfile = $win->{FSFile};
+  my $no = $win->{treeNo} = max(0,min($win->{treeNo},$fsfile->lastTreeNo)+1);
+  $win->{root}=$fsfile->new_tree($no);
+  $fsfile->notSaved(1);
   &$on_tree_change($win,'newTreeAfter',$win->{root}) if $on_tree_change;
   return 1;
 }
 
 sub pruneTree {
   my ($win)=@_;
-
-  return unless ($win->{FSFile} and $win->{FSFile}->treeList->[$win->{treeNo}]);
+  my $fsfile = $win->{FSFile};
+  return unless ($fsfile and $fsfile->treeList->[$win->{treeNo}]);
   $win->{root}=undef;
-#  $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
-#  splice(@{$win->{FSFile}->treeList}, $win->{treeNo}, 1);
+#  $win->{root}=$fsfile->treeList->[$win->{treeNo}];
+#  splice(@{$fsfile->treeList}, $win->{treeNo}, 1);
 #  DeleteTree($win->{root});
   my $no = $win->{treeNo};
-  $win->{FSFile}->destroy_tree($win->{treeNo});
-  $win->{treeNo}=max(0,min($win->{treeNo},$win->{FSFile}->lastTreeNo));
-  $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
-  $win->{FSFile}->notSaved(1);
+  $fsfile->destroy_tree($win->{treeNo});
+  $win->{treeNo}=max(0,min($win->{treeNo},$fsfile->lastTreeNo));
+  $win->{root}=$fsfile->treeList->[$win->{treeNo}];
+  $fsfile->notSaved(1);
   &$on_tree_change($win,'pruneTree',$win->{treeNo}) if $on_tree_change;
   return 1;
 }
