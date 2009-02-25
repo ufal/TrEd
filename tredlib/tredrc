@@ -3,9 +3,31 @@
 ;; Note: ';' (semicolon) starts a comment
 
 ;; ------------------------------------------------------------
-;; Toolbar icon theme
+;; Fonts
 ;; ------------------------------------------------------------
-; IconPath="crystal" ;; use "default" for the old black and white icon theme
+
+;; Font may be specified in various ways:
+;;   1) using the old X11 syntax, e.g.
+;;
+;;      Font = -*-helvetica-medium-r-normal--12-*-*-*-*-*-iso8859-2
+;;
+;;   2) using "<feature>:<value>,..."  syntax (where feature is one of family,
+;;      size, weight, slant, underline, overstrike), e.g.
+;;
+;;      Font = "family:Arial,size:10,weight:bold"
+;;
+;;   3) using '{<fontname>} <point-size>', e.g.
+;;
+;;       Font = "{Times New Roman} 10"
+;;
+;;   4) using '{<fontname>} -<pixel-size>', e.g.
+;;
+;;       Font = "{Times New Roman} -10"
+;;
+;; The option
+;;    Font      - sets font for tree labels and attribute values
+;;    GUIFont   - sets general font used in TrEd GUI
+;;    vLineFont - sets font of the value line and status line
 
 ;; ------------------------------------------------------------
 ;; Colors may be given either by name of the color or using a 
@@ -119,6 +141,11 @@
 ;; reverseNodeOrder = 0			;; draw nodes in reverse order
 
 ;; ------------------------------------------------------------
+;; Toolbar icon theme
+;; ------------------------------------------------------------
+; IconPath="crystal" ;; use "default" for the old black and white icon theme
+
+;; ------------------------------------------------------------
 ;; Menubar look
 ;; possible values: reliefs are raised, sunken, flat, ridge, solid,
 ;; and groove
@@ -128,36 +155,6 @@
 ; MenubarRelief = flat
 ; ButtonBorderWidth = 2
 
-;; ------------------------------------------------------------
-;; Fonts
-;; ------------------------------------------------------------
-
-;; Font may be specified in two ways: on X11 (Unix) platforms you may
-;; give a (possibly incomplete) X11 font-spec, i.e.:
-
-;  Font = -*-helvetica-medium-r-normal--12-*-*-*-*-*-iso8859-2
-
-;; The the font spec must in this case start with a dash `-'.
-;;
-;; You may also specify font attributes in the following way (works on
-;; all platforms, but has limitations):
-;; 
-;;	"<attribut>:<value>,..."
-;;
-;; attributes may be these: family, size, weight, slant, underline, overstrike
-;; size is given in points (! not pixels !)
-;; values for weight: normal, bold
-;; values for slant: roman, italic
-;; values for underline and overstrake: 0,1
-
-;; Example (Windows):
-;  Font = "family:Arial,size:10,weight:bold"
-
-;; Example (UNIX):
-;  Font = -*-helvetica-medium-r-normal--12-*-*-*-*-*-iso8859-2
-
-;; Font used for value line
-; VLineFont = "-*-helvetica-medium-r-normal--12-*-*-*-*-*-iso8859-2"
 
 ;; --------- PostScript Printing Options ---------
 ;; PostScript font (in ascii PFA format) and postscript

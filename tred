@@ -984,10 +984,7 @@ sub get_grp_histories {
 }
 
 sub bookmarkFilelist {
-  foreach (@filelists) {
-    return $_ if ref and $_->name eq 'Bookmarks';
-  }
-  return undef;
+  return findFilelist('Bookmarks')
 }
 
 sub setConfig {
@@ -1113,7 +1110,9 @@ sub gotoFile {
   my $last_no = $win->{currentFileNo};
   $win->{currentFileNo} = $fn;
   my ($fs,$status) = openFile($win,filelistFullFileName($win,$fn),
-			      -norecent => $no_recent, -noredraw => $no_redraw);
+			      -norecent => $no_recent, -noredraw => $no_redraw,
+			      -keep_related=>1
+			     );
   $win->{currentFileNo} = $last_no unless $status;
   update_filelist_views($grp,$win->{currentFilelist},0);
   return $status;
@@ -1520,7 +1519,7 @@ sub closeFile {
   my $fsfile;
   if ($opts{-fsfile}) {
     $fsfile = $opts{-fsfile};
-    __debug("Closing ",$opts{-fsfile}->filename,"\n");
+    __debug("Closing ",$opts{-fsfile}->filename,"; keep postponed: $opts{-keep_postponed}\n");
   } else {
     $fsfile = $win->{FSFile};
   }
@@ -1539,7 +1538,10 @@ sub closeFile {
   } else {
     my @part_of = findToplevelFileFor($win->{framegroup},$fsfile);
     if ($part_of[0]!=$fsfile) {
-      closeFile($win,%opts,-fsfile=>$_,-keep_postponed=>0) for @part_of;
+      return unless askSaveFile($win,0,1,$fsfile)==0;
+      for (@part_of) {
+	closeFile($win,%opts,-fsfile=>$_,-keep_postponed=>0)||return
+      }
     }
   }
   my @wins;
@@ -1558,7 +1560,17 @@ sub closeFile {
     delete $w->{currentNode} if (exists $w->{currentNode});
     $w->{treeView}->clear_pinfo();
     set_value_line($w->{framegroup},EMPTY) if (isFocused($w));
+    unless ($opts{-no_update}) {
+      get_nodes_win($w);
+      redraw_win($w);
+    }
   }
+
+  unless ($opts{-no_update}) {
+    updateTitle($win->{framegroup});
+    updatePostponed($win->{framegroup});
+  }
+
   if ($opts{-keep_postponed} and $fsfile) {
     print STDERR "Postponing ".$fsfile->filename()."\n"  if $tredDebug;
   } else {
@@ -1578,18 +1590,16 @@ sub closeFile {
 	}
 	unless (fsfileDisplayingWindows($win->{framegroup},$req_fs)) {
 	  print STDERR "Attempting to close dependent ".$req_fs->filename."\n" if $tredDebug;
-	  closeFile($win,  %opts, -fsfile => $req_fs,-keep_postponed => 0);
+	  my $answer = askSaveFile($win,1,1,$req_fs);
+	  return if $answer == -1;
+	  if ($answer == 1) {
+	    print STDERR "Keeping dependent ".$req_fs->filename."\n" if $tredDebug;
+	  } else {
+	    closeFile($win,  %opts, -fsfile => $req_fs,-keep_postponed => 0) || return;
+	  }
 	}
       }
       undef $fsfile;
-    }
-  }
-  unless ($opts{-no_update}) {
-    updateTitle($win->{framegroup});
-    updatePostponed($win->{framegroup});
-    foreach my $w (@wins) {
-      get_nodes_win($w);
-      redraw_win($w);
     }
   }
   return 1;
@@ -1723,8 +1733,8 @@ sub bookmarkThis {
 }
 
 sub addBookmark {
-  my ($grp)=@_;
-  my $bl=bookmarkFilelist();
+  my ($grp,$to_filelist)=@_;
+  my $bl=defined($to_filelist) ? findFilelist($to_filelist) : bookmarkFilelist();
   return unless ref($bl);
   my $f=bookmarkThis($grp);
   if (defined($f)) {
@@ -1756,9 +1766,15 @@ sub updateBookmarks {
     print STDERR "Updating bookmark menu\n"  if $tredDebug;
     my $menu= $grp->{BookmarksFileMenu}->menu;
     $menu->delete(0,'end');
-    $grp->{BookmarksFileMenu}->command(-label=> 'Add to bookmarks',
+    $grp->{BookmarksFileMenu}->command(-label=> 'Add to Bookmarks filelist',
 				       -underline=> 0,
 				       -command=> [ \&addBookmark,$grp ]);
+    my $b_menu = $grp->{BookmarksFileMenu}->cascade(-label=> 'Add to other file list...',
+						    -underline=> 7,
+						    -menuitems => [ ],
+						   );
+    createFilelistsMenu($grp, $b_menu, \&addBookmark, $grp);
+
     $grp->{BookmarksFileMenu}->separator();
     if (defined($grp->{lastActionBookmark})) {
       $grp->{BookmarksFileMenu}->command(-label => "Last action",
@@ -1845,14 +1861,39 @@ sub updatePostponed {
 				       -background=> '#444444'
 				      );
 
-    $i='A';
-    foreach my $fl (sort {lc($a->name()) cmp lc($b->name())} @filelists) { 
-      $grp->{PostponedFileMenu}->command(-label => "$i.  ".$fl->name(),
-					 -underline=> 0,
-					 -command=> [\&selectFilelist,$grp,$fl->name()]);
-      $i++;
-    }
+    createFilelistsMenu($grp, $grp->{PostponedFileMenu}, \&selectFilelist, $grp);
+
   }
+  my $b_menu= $grp->{BookmarksFileMenu}->menu->entrycget('Add to other *','-menu');
+  if ($b_menu) {
+    $b_menu->delete(0,'end');
+    createFilelistsMenu($grp, $b_menu, \&addBookmark, $grp);
+  }
+}
+
+
+# for each filelist add an entry to a given menu
+# using -command => [ @command, $filelist_name ]
+# as menu callback
+sub createFilelistsMenu {
+  my ($grp,$menu,@command)=@_;
+  my $i='A';
+  foreach my $fl (sort {lc($a->name()) cmp lc($b->name())} @filelists) { 
+    $menu->command(-label => "$i.  ".$fl->name(),
+		   -underline=> 0,
+		   -command=> [@command,$fl->name()]);
+    $i++;
+  }
+  $menu->separator();
+  $menu->command(-label => 'Create New Filelist',
+		 # -underline=> 0,
+		 -command=> [sub {
+			       my $name = createNewFilelist(shift);
+			       if (defined $name) {
+				 my $sub = shift;
+				 $sub->(@_, $name);
+			       }
+			     },$grp,@command]);
 }
 
 sub updateScaleFactor {
@@ -2122,11 +2163,14 @@ sub openFile {
 
   $opts{-keep} ||= $grp->{keepfiles};
   if (!$opts{-keep} and $opts{-keep_related}) {
-#    print map { $_->filename."\n" } getSecondaryFiles($fsfile), @{$fsfile->appData('fs-part-of')}
-#      if $fsfile;
+    if ($tredDebug and $fsfile) {
+      print STDERR "got -keep_related flag for open $f:\n";
+      print STDERR map { $_->filename."\n" } getSecondaryFiles($fsfile), @{$fsfile->appData('fs-part-of')};
+    }
     $opts{-keep}=1 if
       $fsfile and
 	first { $_->filename eq $f } (getSecondaryFiles($fsfile), @{$fsfile->appData('fs-part-of')});
+    print STDERR "keep: $opts{-keep}\n" if $tredDebug;
   }
 
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
@@ -2421,9 +2465,16 @@ sub autoSaveAll {
 sub saveFile {
   my ($win,$f)=@_;
   $win=cast_to_win($win);
-  return unless $win->{FSFile};
+  my $fsfile;
+  if (UNIVERSAL::isa($f,'FSFile')) {
+    $fsfile = $f;
+    $f=$f->filename;
+  } else {
+    $fsfile = $win->{FSFile};
+  }
+  return unless $fsfile;
   unless (defined($f)) {
-    $f=$win->{FSFile}->filename;
+    $f=$fsfile->filename;
     if ($f =~ /^unnamed\d+$/) {
       my $ret =  saveFileAs($win);
       if ($ret) {
@@ -2432,7 +2483,7 @@ sub saveFile {
 	my $pos=insertToFilelist($win,
 				 $win->{currentFilelist},
 				 $win->{currentFileNo},
-				 $win->{FSFile}->filename);
+				 $fsfile->filename);
 	$win->{currentFileNo} = $pos if $pos >= 0;
 	update_filelist_views($win,$win->{currentFilelist},0);
       }
@@ -2440,7 +2491,7 @@ sub saveFile {
     }
   }
 
-  my $lock = checkLock($win->{FSFile},$f);
+  my $lock = checkLock($fsfile,$f);
   if ($lock =~ /^locked|^stolen|^opened/) {
     if (userQuery($win,
 		  "File $f was $lock!",
@@ -2473,7 +2524,7 @@ sub saveFile {
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
 
   my $refs_to_save={};
-  if (!askSaveReferences($win,$win->{FSFile},$refs_to_save,$f) or
+  if (!askSaveReferences($win,$fsfile,$refs_to_save,$f) or
       doEvalHook($win,"file_save_hook",$f) eq 'stop') {
     updateTitle($win->{framegroup});
     $win->toplevel->Unbusy() unless $insideEval;
@@ -2483,7 +2534,7 @@ sub saveFile {
     IOBackend::rename_uri($f,$f."~") unless $f=~/^ntred:/
   };
   print STDERR $@;
-  $win->{FSFile}->changeAppData('refs_save',$refs_to_save);
+  $fsfile->changeAppData('refs_save',$refs_to_save);
   my $result;
   my $stop;
   my @warnings;
@@ -2491,18 +2542,18 @@ sub saveFile {
   {
     local $SIG{__WARN__} = sub { my $msg = shift; chomp $msg; push @warnings,$msg; };
     eval { 
-      $result = $win->{FSFile}->writeFile($f);
+      $result = $fsfile->writeFile($f);
     };
     $err = $@;
     # called from within the eval so all errors and warnings
     # are shown as warnings on the output
     $stop = doEvalHook($win,"after_save_hook",$f,$result);
   }
-  $win->{FSFile}->changeAppData('refs_save',undef);
+  $fsfile->changeAppData('refs_save',undef);
   if (!$result or $stop eq "stop_fatal") {
     $win->toplevel->Unbusy() unless $insideEval;
-    $win->{FSFile}->notSaved(1);
-    saveFileStateUpdate($win);
+    $fsfile->notSaved(1);
+    saveFileStateUpdate($win) if $fsfile == $win->{FSFile};
     errorMessage($win,"Error while saving file to '$f'!\nI'll try to recover the original from backup.\n"._last_err($err."\n".(@warnings ? join("\n",'WARNINGS:',@warnings) : ''))."\n"."Check file and directory permissions.\nSee also the console error output.");
     undef $!;
     eval {
@@ -2519,7 +2570,7 @@ sub saveFile {
   } else {
     IOBackend::unlink_uri($f."~") if $no_backups;
   }
-  setFSLockInfo($win->{FSFile}, setLock($f)) if $lockFiles;
+  setFSLockInfo($fsfile, setLock($f)) if $lockFiles;
   my $autosave=autosave_filename($f);
   unlink $autosave if defined($autosave);
   $win->toplevel->Unbusy() unless $insideEval;
@@ -2529,11 +2580,11 @@ sub saveFile {
     # file is considered saved
     $ret = -1;
   } elsif ($stop eq "stop_nonfatal") {
-    $win->{FSFile}->notSaved(1);
+    $fsfile->notSaved(1);
     $ret = -1;
   }
   addToRecent($win->{framegroup},$f);
-  saveFileStateUpdate($win);
+  saveFileStateUpdate($win) if $fsfile == $win->{FSFile};
   return $ret;
 }
 
@@ -3475,6 +3526,26 @@ sub removeFromFilelist {
   }
 }
 
+sub createNewFilelist {
+  my ($grp,$top)=@_;
+  my $name = QueryString($top || $grp,"File-list name", "Name: ");
+  if ($top) {
+    $top->deiconify; $top->focus; $top->raise;
+  }
+  if (findFilelist($name)) {
+    userQuery($top || $grp,
+	      "File-list named '$name' already exists.\n",
+	      -title => "File-list already exists",
+	      -buttons => ["OK"]);
+    return;
+  } else {
+    addFilelist(Filelist->new($name));
+    switchFilelist($grp,$name);
+    updatePostponed($grp);
+    return $name;
+  }
+}
+
 sub addNewFilelist {
   my ($grp,$fl,$top)=@_;
   return if not defined($fl) or $fl eq EMPTY;
@@ -3858,21 +3929,8 @@ sub filelistDialog {
 		@pad,
 		-command=> [sub {
 			   my ($grp,$d,$filelistref)=@_;
-			   my $name = QueryString($d,"File-list name", "Name: ");
-			   $d->deiconify;
-			   $d->focus;
-			   $d->raise;
-			   if (findFilelist($name)) {
-			     userQuery($d,
-				       "File-list named '$name' already exists.\n",
-				       -title => "File-list already exists",
-				       -buttons => ["OK"]);
-			   } else {
-			     addFilelist(Filelist->new($name));
-			     $$filelistref=$name;
-			     switchFilelist($grp,$name);
-			     updatePostponed($grp);
-			   }
+			   my $name = createNewFilelist($grp,$d);
+			   $$filelistref=$name if defined $name;
 			 },$grp,$d,\$filelist ])
     ->pack(@b_pack);
 
@@ -5935,7 +5993,7 @@ sub startMain {
 #    $top->InitStderr;
 #  } unless -t \*STDOUT;
 #  undef $@;
-
+  $top->optionAdd("*font",$guiFont) if $guiFont;
   for (qw(ROText Text Entry HistEntry SimpleHistEntry
 	  Listbox HList CodeText)) {
     $top->optionAdd("\*$_.background","white");
@@ -7056,7 +7114,7 @@ sub startMain {
 	map { my ($pkg, $f, $line) = caller($_); "  $_: file $f line $line\n" } 1..5;
       die "Caught SIGINT, stopping current evaluation.\nSee the error output for details...\n";
     } else {
-      print STDERR "Caught SIGINT, closing all files\n";
+      print STDERR "Caught SIGINT, closing all files without saving\n";
       closeAllFiles(\%group);
       print STDERR "Good bye!\n";
       $top->destroy;
@@ -7611,9 +7669,9 @@ EOF
 }
 
 sub saveFileAs {
-  my ($win)= @_;
+  my ($win,$fsfile)= @_;
   my $initdir;
-  my $fsfile = $win->{FSFile};
+  $fsfile ||= $win->{FSFile};
   return unless $fsfile;
   my $file=$fsfile->filename;
 
@@ -7917,19 +7975,20 @@ sub closeAllFiles {
 # return 0 if file saved, 1 if file should be kept and undef if no
 
 sub askSaveFile {
-  my ($win,$keepbutton,$cancelbutton)=@_;
+  my ($win,$keepbutton,$cancelbutton,$fsfile)=@_;
+  $fsfile ||= $win->{FSFile};
   return 0 unless
-    ref($win->{FSFile}) and
-      $win->{FSFile}->notSaved;
+    ref($fsfile) and
+      $fsfile->notSaved;
   my $answer=userQuery($win,
-			$win->{FSFile}->filename().
+			$fsfile->filename().
 			"\n\nFile may be changed!\nDo you want to save it?",
 			-bitmap=> 'question',
 			-title => "Should I save the file?",
 			-buttons => ['Yes', 'No', $keepbutton ? 'Keep' : (),
 				     $cancelbutton ? 'Cancel' : ()]);
   if ($answer eq 'Yes') {
-    return saveFile($win) == -1 ? -1 : 0;
+    return saveFile($win,$fsfile) == -1 ? -1 : 0;
   } elsif ($answer eq 'Keep') {
     return 1;
   } elsif ($answer eq 'Cancel') {
@@ -8008,6 +8067,7 @@ sub reconfigure {
   addToRecent($grp);
   prepareFonts($grp);
   updateTitle($grp);
+  $grp->{top}->optionAdd("*font",$guiFont) if $guiFont;
   $grp->{valueLine}->configure(-font=> $vLineFont);
   $grp->{statusLine}->configure(-font=> $vLineFont) if $grp->{statusLine};
   foreach (@{$grp->{treeWindows}}) {
@@ -10380,6 +10440,7 @@ sub nodeBoxOptions {
 sub redraw_win {
   my ($win)=@_;
   return if ($win->{noRedraw} or $insideEval);
+  print STDERR "redraw $win\n" if $tredDebug;
   if ($win == $win->{framegroup}->{focusedWindow}) {
     saveFileStateUpdate($win);
     resetUndoStatus($win);
