@@ -29,6 +29,7 @@ BEGIN {
   $activeTextColor
   $treeViewOpts
   $font
+  $guiFont
   $vLineFont
   $libDir
   $extensionsDir
@@ -381,6 +382,7 @@ sub set_config {
   # print "USING FONT $font\n";
   $treeViewOpts->{font}=$font;
   $vLineFont=val_or_def($confs,"vlinefont",$font);
+  $guiFont=val_or_def($confs,"guifont",undef);
   if ($confs->{perllib}) {
     foreach my $perllib (split/\:/,$confs->{perllib}) {
       $perllib = tilde_expand($perllib);
