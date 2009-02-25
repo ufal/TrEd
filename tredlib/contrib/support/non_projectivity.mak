@@ -37,7 +37,7 @@ sub non_proj_edges {
 # sub-ref to a filter accepting a node parameter (which nodes of the subtree should be skipped)
 # sub-ref to a function accepting a node parameter returning a list of possible upper nodes
 # on the edge from the node
-# sub-ref to a function accepting two node parameters returning one iff the first one is
+# sub-ref to a function accepting two node parameters returning 1 iff the first one is
 # subordinated to the second
 # sub-ref to a filter accepting a node parameter for nodes in a potential gap
 
