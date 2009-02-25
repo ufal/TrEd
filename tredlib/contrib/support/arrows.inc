@@ -29,7 +29,13 @@ Add these lines to your macro context:
          {
            # an arrow without a target
            -deltax => 10,
-           -deltay => '(n-p)/2',
+           -deltay => '(ny-py)/2',
+           # ...
+         },
+         {
+           # an arrow with modified origin
+           -originx => 'nx+10',
+           -originy => 'ny+10',
            # ...
          },
       ],
@@ -64,7 +70,8 @@ sub DrawArrows_cleanup {
   return;
 }
 
-
+#         -originx => 'xn',
+#         -originy => 'yn',
 # 	  -deltax => $rotate_dfr_doc,
 # 	  -deltay => 30,
 # 	  -target => PML::SearchForNodeById($coref)[0],
@@ -86,11 +93,13 @@ sub DrawArrows {
     my $raise = $edge->{-raise}||$opts->{-raise}||25;
     my $frac  = $edge->{-frac}||$opts->{-frac}||0.12;
     my $target = $edge->{-target};
+    my $originx = $edge->{-originx} || 'xn';
+    my $originy = $edge->{-originy} || 'yn';
     my ($dx,$dy)=@$edge{qw(-deltax -deltay)};
     $dx||=0; $dy||=0;
     if ($node == $target) {
       # same node
-      push @{$props{-coords}},qq(n,n,n+$dx,n+$dy,n+$raise+$dx,n+$dy,n+$raise+$dx,n+$raise+$dy,n+$dx,n+$raise+$dy,n-$raise+$dx,n+$raise+$dy,n-$raise+$dx,n+$dy,n,n);
+      push @{$props{-coords}},qq($originx,$originy,$originx+$dx,$originy+$dy,$originx+$raise+$dx,$originy+$dy,$originx+$raise+$dx,$originy+$raise+$dy,$originx+$dx,$originy+$raise+$dy,$originx-$raise+$dx,$originy+$raise+$dy,$originx-$raise+$dx,$originy+$dy,$originx,$originy);
     } elsif (defined($target) and $displayed_nodes_hash{$target}) {
       # same sentence
       my $arr = $arrows->{$node}||=[];
@@ -98,20 +107,38 @@ sub DrawArrows {
       my $T="[! FileUserData('DrawArrows')->{\$this}[$i] !]";
       push @$arr,$target;
       $i++;
-      my $X="(x$T-xn)";
-      my $Y="(y$T-yn)";
+      my $X="(x$T-$originx)";
+      my $Y="(y$T-$originy)";
       my $D="sqrt($X**2+$Y**2)";
       my $c = <<COORDS;
 
-n,n,
-(x$T+xn)/2 - $Y*($raise/$D+$frac) + $dx,
-(y$T+yn)/2 + $X*($raise/$D+$frac) + $dy,
+$originx,$originy,
+(x$T+$originx)/2 - $Y*($raise/$D+$frac) + $dx,
+(y$T+$originy)/2 + $X*($raise/$D+$frac) + $dy,
 x$T,y$T
 
 COORDS
       push @{$props{-coords}},$c;
     } elsif ($dx||$dy) { # should be always the same document, if it exists at all
-      push @{$props{-coords}},"n,n,n+$dx,n+$dy";
+      if ($edge->{-smooth}) {
+      my $xT="$originx+$dx";
+      my $yT="$originy+$dy";
+      my $X="($xT-$originx)";
+      my $Y="($yT-$originy)";
+      my $D="sqrt($X**2+$Y**2)";
+      my $c = <<COORDS;
+
+$originx,$originy,
+($xT+$originx)/2 - $Y*($raise/$D+$frac),
+($yT+$originy)/2 + $X*($raise/$D+$frac),
+$xT,$yT
+
+COORDS
+
+	push @{$props{-coords}},$c;
+      } else {
+	push @{$props{-coords}},"$originx,$originy,$originx+$dx,$originy+$dy";
+      }
     } else {
       next;
     }
