@@ -87,7 +87,7 @@ sub GetNodeByID {
   return GetNodeHash($fsfile)->{$rf};
 }
 
-=item SearchForNodeById()
+=item SearchForNodeById($id)
 
 Searches for node with given id. Returns the node and the number of
 the tree.
@@ -178,25 +178,36 @@ sub ClearNodesHash {
 
 =item GotoTree()
 
-Ask user for sentence identificator (number or id) and go to the
+Ask user for sentence or node identificator (tree number or id) and go to the
 sentence.
 
 =cut
 
   sub GotoTree {
-    my$to=QueryString("Give a Tree Number or ID","Tree Identificator");
+    my$to=QueryString("Give a Tree Number or ID","Tree or Node Identificator");
     my @trees = GetTrees();
-    if($to =~ /^[0-9]+$/){ # number
-      TredMacro::GotoTree($to) if $to <= @trees and $to != 0;
+    ChangingFile(0);
+    if($to =~ /^(\d+)(?:\.(\d+))$/){ # number
+      my ($tree_no,$node_no) = ($1,$2);
+      if ($tree_no <= @trees and $tree_no > 0) {
+	my $ret = TredMacro::GotoTree($tree_no);
+	$this = [$root, $root->descendants]->[$node_no] if defined $node_no and length $node_no;
+	return $ret;
+      }
     }elsif(length $to){ # id
-      for(my$i=0;$i<@trees;$i++){
+      my ($node,$tree_no) = SearchForNodeById($to);
+      if ($node) {
+	my $ret = TredMacro::GotoTree($tree_no);
+	$this=$node;
+	return $ret;
+      }
+      # fallback: go to the first node with matching ID ending
+      for my $i (0..@trees){
 	if($trees[$i]->{id} =~ /\Q$to\E$/){
-	  TredMacro::GotoTree($i+1);
-	  last;
+	  return TredMacro::GotoTree($i+1);
 	}
       }
     }
-    ChangingFile(0);
   }#GotoTree
 
 =item NonProjEdges($node,$ord?,$filterNode?,$returnParents?,$subord?,$filterGap?)
