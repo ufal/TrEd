@@ -29,6 +29,7 @@ my %opts =
       s/^--/-/;
       $_;
     } @ARGV;
+my $output_dirname = delete $opts{'-out-dir'};
 
 # fake GUI
 {
@@ -138,17 +139,28 @@ sub trees2pdf {
    }
  }
 
-  local $main::append_suffix = '.pdf' unless defined $main::append_suffix;
+  local $main::append_suffix = '.'.lc($opts{-format}||'PDF') unless defined $main::append_suffix;
+  my $range = $opts{-range};
+  if (!defined $range) {
+    $range = '1-';
+  } elsif ($range eq '.') {
+    $range = CurrentTreeNumber()+1;
+  }
+  my $out_file = main::save_transform_filename(FileName());
+  if (defined $output_dirname) {
+    use File::Spec;
+    $out_file = File::Spec->catfile($output_dirname,FilePart($out_file));
+  }
   Print(
-    -range => '1-',
     -toFile => 1,
-    -filename =>  main::save_transform_filename(FileName()),
+    -filename =>  $out_file,
     -format => 'PDF',
     -noRotate => 1,
     -colors => 1,
     ($opts{-psMedia} eq 'BBox') ?
       (-hMargin => 0, -vMargin => 0) : (),
     %opts,
+    -range => $range,
    );
   ChangingFile(0);
 }
@@ -169,8 +181,12 @@ btred -qm print.btred [<btred-options>] -o <print-options> -- <file(s)>
 This script similar functionality as the Print dialog in TrEd.
 
 By default the script creates an A4 PDF file consisting of all trees
-of the current file. The filename of the resuting PDF is the name of
-the source file with the .pdf suffix added to it. 
+of the current file. 
+
+The resulting files are named based on the input filename using the
+usual btred file-renaming flags (-r, -s, -p, -a). Unless -a flag is
+given to btred, the extension '.format' (where format is the lowercase
+name of the output format) is used (e.g. '.pdf' or '.eps').
 
 The default behavior can be changed by many options.
 
@@ -198,6 +214,10 @@ On the btred command line, the print options go between -o and --.
 
 =over 3
 
+=item C<--out-dir> directory
+
+Save all resulting files to a given directory.
+
 =item C<--quiet> 1|0
 
 Be more quiet.
@@ -219,7 +239,9 @@ stylesheet files.
 =item C<--range> range
 
 Lists trees to be printed (e.g. C<5,-3,9-12,15-> prints trees
-5,1,2,3,9,10,11,12,15,16,...)
+5,1,2,3,9,10,11,12,15,16,...). Use C<.> (dot) as range to print only
+the current tree from each file (i.e. the tree specified using
+tree-number suffix of the file URL).
 
 =item C<--command> command
 
@@ -311,8 +333,8 @@ automatically).
 Specifies target given media size (used for PostScript and PDF).
 Possible values:
 
-User (dimensions specified in -fmtHeight and -fmtWidth), BBox
-(bounding box of the tree with only -hMargin and -vMargin added),
+User (dimensions specified in --fmtHeight and --fmtWidth), BBox
+(bounding box of the tree with only --hMargin and --vMargin added),
 Letter, LetterSmall, Legal, Statement, Tabloid, Ledger, Folio, Quarto,
 Executive, A0, A1, A2, A3, A4, A4Small, A5, A6, A7, A8, A9, A10, B0,
 B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, ISOB0, ISOB1, ISOB2, ISOB3,
