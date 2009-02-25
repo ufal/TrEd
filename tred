@@ -66,6 +66,7 @@ use Cwd;
 use File::Spec;
 use File::Glob qw(:glob);
 use URI::file;
+use URI::Escape;
 
 use constant EMPTY => q{};
 use constant {
@@ -803,6 +804,8 @@ if ($opt_l) {
     addNewFilelist(undef,$bookmarks);
   }
 }
+
+loadStdFilelists();
 
 $insideEval=0;
 
@@ -1773,7 +1776,7 @@ sub updateBookmarks {
 						    -underline=> 7,
 						    -menuitems => [ ],
 						   );
-    createFilelistsMenu($grp, $b_menu, \&addBookmark, $grp);
+    createFilelistsMenu($grp, $b_menu, [\&addBookmark, $grp], 1);
 
     $grp->{BookmarksFileMenu}->separator();
     if (defined($grp->{lastActionBookmark})) {
@@ -1793,6 +1796,7 @@ sub updateBookmarks {
       $i++;
     }
   }
+  updateTitle($grp); # e.g. after adding/removing a bookmark to/from a filelist
 }
 
 sub updatePostponed {
@@ -1861,13 +1865,13 @@ sub updatePostponed {
 				       -background=> '#444444'
 				      );
 
-    createFilelistsMenu($grp, $grp->{PostponedFileMenu}, \&selectFilelist, $grp);
+    createFilelistsMenu($grp, $grp->{PostponedFileMenu}, [\&selectFilelist, $grp]);
 
   }
   my $b_menu= $grp->{BookmarksFileMenu}->menu->entrycget('Add to other *','-menu');
   if ($b_menu) {
     $b_menu->delete(0,'end');
-    createFilelistsMenu($grp, $b_menu, \&addBookmark, $grp);
+    createFilelistsMenu($grp, $b_menu, [\&addBookmark, $grp],1);
   }
 }
 
@@ -1876,24 +1880,28 @@ sub updatePostponed {
 # using -command => [ @command, $filelist_name ]
 # as menu callback
 sub createFilelistsMenu {
-  my ($grp,$menu,@command)=@_;
+  my ($grp,$menu,$command,$skip_filelists_from_extensions)=@_;
   my $i='A';
-  foreach my $fl (sort {lc($a->name()) cmp lc($b->name())} @filelists) { 
+  foreach my $fl (sort {lc($a->name()) cmp lc($b->name())} 
+		  grep { !($skip_filelists_from_extensions and exists $filelist_from_extension{$_}) }
+		  @filelists) {
     $menu->command(-label => "$i.  ".$fl->name(),
 		   -underline=> 0,
-		   -command=> [@command,$fl->name()]);
+		   -command=> [@$command,$fl->name()]);
     $i++;
   }
   $menu->separator();
   $menu->command(-label => 'Create New Filelist',
 		 # -underline=> 0,
 		 -command=> [sub {
-			       my $name = createNewFilelist(shift);
-			       if (defined $name) {
+			       my $fl = createNewFilelist(shift);
+			       if (defined $fl) {
 				 my $sub = shift;
+				 my $name = $fl->name;
 				 $sub->(@_, $name);
+				 saveStdFilelist($fl);
 			       }
-			     },$grp,@command]);
+			     },$grp,@$command]);
 }
 
 sub updateScaleFactor {
@@ -1934,7 +1942,7 @@ sub updateTitle {
     for my $b (qw(nextFileButton prevFileButton
                   printButton reloadButton findButton
                   findNextButton findPrevButton sentButton)) {
-      $grp->{$b}->configure(-state => 'disabled');
+      $grp->{$b}->configure(-state => 'disabled') if $grp->{$b};
     }
     $grp->{top}->title("$appName");
   }
@@ -3539,10 +3547,11 @@ sub createNewFilelist {
 	      -buttons => ["OK"]);
     return;
   } else {
-    addFilelist(Filelist->new($name));
-    switchFilelist($grp,$name);
+    my $fl = Filelist->new($name);
+    addFilelist($fl);
+    switchFilelist($grp,$fl->name);
     updatePostponed($grp);
-    return $name;
+    return $fl;
   }
 }
 
@@ -3929,8 +3938,8 @@ sub filelistDialog {
 		@pad,
 		-command=> [sub {
 			   my ($grp,$d,$filelistref)=@_;
-			   my $name = createNewFilelist($grp,$d);
-			   $$filelistref=$name if defined $name;
+			   my $fl = createNewFilelist($grp,$d);
+			   $$filelistref=$fl->name if defined $fl;
 			 },$grp,$d,\$filelist ])
     ->pack(@b_pack);
 
@@ -7404,12 +7413,18 @@ sub updateRuntimeConfig {
 
     my $i=0;
     foreach (@filelists) {
-      next if exists $filelist_from_extension{$_};
-      if (ref($_) and defined($_->filename) and $_->filename ne EMPTY) {
+      next if $filelist_from_extension{$_}==1;
+      my $fn = ref($_) && $_->filename;
+      next if ($fn eq 'Default' or $fn =~ /^CmdLine-\d+$/);
+      unless (defined($fn) and length($fn)) {
+	saveStdFilelist($_);
+      } else {
 	$_->save;
-	$s=$_->filename();
-	$s=~s/\\/\\\\/g;
-	push @$conf,"filelist".$i++."\t\t=\t".$s."\n";
+	if (!$filelist_from_extension{$_}) { # note: this equals 2 for "StdFilelist" loaded from ~/.tred.d
+	  $s=$_->filename();
+	  $s=~s/\\/\\\\/g;
+	  push @$conf,"filelist".$i++."\t\t=\t".$s."\n";
+	}
       }
     }
   };
@@ -12054,6 +12069,40 @@ sub manage_extensions {
     
     # reload macros
     reloadMacros($grp,{preparedExtensions => $preparedExtensions});
+  }
+}
+
+sub loadStdFilelists {
+  my $dir = File::Spec->catdir($tred_d,'filelists');
+  return unless -d $dir;
+  my %name = map { $_->name => $_ } @filelists;
+  for my $f (glob(File::Spec->catdir($dir,'*'))) {
+    my $name = filename($f);
+    $name =~ s/\.fl$//i; # strip .fl suffix if any
+    $name = URI::Escape::uri_unescape($name);
+    if (exists $name{$name}) {
+      warn("Ignoring filelist $f, filelist named $name already loaded from ",$name{$name}->filename,"\n");
+    } else {
+      my $fl=Filelist->new($name,$f);
+      if ($fl) {
+	$fl->load();
+	print STDERR "Reading filelist ".$fl->name." from ".$fl->filename."\n" if $tredDebug;
+	addNewFilelist(undef,$fl);
+	$filelist_from_extension{$fl}=1;
+      }
+    }
+  }
+}
+
+sub saveStdFilelist {
+  my ($fl)=@_;
+  my $dir = File::Spec->catdir($tred_d,'filelists');
+  mkdir $dir unless -d $dir;
+  my $name = $fl->name;
+  $name = URI::Escape::uri_unescape($name);
+  if (defined $name and length $name) {
+    $fl->filename(File::Spec->catdir($dir,$name));
+    $fl->save;
   }
 }
 
