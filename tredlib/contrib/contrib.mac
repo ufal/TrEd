@@ -60,6 +60,8 @@ The synopsis for a package named 'Foo' is as follows:
 
 #ifdef TRED
 
+use vars qw(@AUTO_CONTEXT_GUESSING);
+
 sub file_opened_hook {
   my $context = __guess_context('file_opened_hook',@_);
   if (defined $context and $context ne 'TredMacro' and
@@ -70,7 +72,7 @@ sub file_opened_hook {
   }
 }
 sub file_resumed_hook {
-  __guess_context('file_resumed_hook',@_);
+  my $context = __guess_context('file_resumed_hook',@_);
   if (defined $context and $context ne 'TredMacro' and
       exists(&{$context."::file_resumed_hook"})
 	and \&{$context."::file_resumed_hook"} != \&file_resumed_hook
