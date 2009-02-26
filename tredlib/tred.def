@@ -21,6 +21,9 @@ BEGIN {
 }
 use vars @FORCE_EXPORT;
 
+# use strict
+
+;
 # The following is a workaround for a nasty bug of Class::Std in case somewants to use it
 sub isa { &UNIVERSAL::isa }
 sub can { &UNIVERSAL::can }
@@ -3247,6 +3250,7 @@ returned absolute path.
 sub AbsolutizeFileName {
   my ($filename,$relfile) = @_;
   return unless defined $filename;
+  my $suffix;
   ($filename,$suffix)=TrEd::Utils::parseFileSuffix($filename);
   return Fslib::ResolvePath($relfile,$filename).$suffix;
 }
@@ -3949,7 +3953,7 @@ sub Print {
     local $grp->{currentNode} = $this;
     local $grp->{root} = $root;
     local $grp->{treeNo} = $grp->{treeNo};
-    local $win->{Nodes} = $win->{Nodes};
+    local $grp->{Nodes} = $grp->{Nodes};
     
     my $canvas=ToplevelFrame()->Canvas();
     $opts{-range}=CurrentTreeNumber()+1 if ($opts{-range} eq "");
