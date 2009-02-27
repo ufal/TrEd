@@ -698,8 +698,8 @@ sub manageExtensions {
   my ($tred,$opts)=@_;
   $opts||={};
   my $mw = $opts->{top} || $tred->{top} || return;
-  my $UPGRADE = 'Check updates';
-  my $DOWNLOAD_NEW = 'Get new extensions';
+  my $UPGRADE = 'Check Updates';
+  my $DOWNLOAD_NEW = 'Get New Extensions';
   my $REPOSITORIES = 'Edit Repositories';
   my $INSTALL = 'Install Selected';
   my $d = $mw->DialogBox(-title => $opts->{install} ? 'Install New Extensions' : 'Manage Extensions',
