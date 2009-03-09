@@ -77,6 +77,7 @@ sub remove_split {
     my %pi=$frame->packInfo();
     $pframe=$pi{-in};
   }
+  return unless $pframe;
   my $wd=$pframe->width;
   my $ht=$pframe->height;
   my $separator=(grep {ref($_) eq 'Tk::Separator'} $pframe->packSlaves())[0];
@@ -115,7 +116,7 @@ sub remove_split {
 	}
       }
       unless ($brother_canvas) {
-	warn "No canvas found in the other frame!!\n"; 
+	warn "No canvas found in the other frame!!\n";
       }
     } else { warn "No other canvas found in the frame!!\n"; }
   }
