@@ -5476,7 +5476,7 @@ sub About {
 sub newTrEdWindow {
   my ($grp)=@_;
 
-  my $win= new TrEd::Window(newTreeView($grp),framegroup=>$grp);
+  my $win= TrEd::Window->new(newTreeView($grp),framegroup=>$grp);
   $win->{macroContext}= $opt_t && exists($keyBindings{$opt_t}) 
     ? $opt_t : 'TredMacro';
   $win->{stylesheet} = STYLESHEET_FROM_FILE();
@@ -7415,7 +7415,8 @@ sub updateRuntimeConfig {
     foreach (@filelists) {
       next if $filelist_from_extension{$_}==1;
       my $fn = ref($_) && $_->filename;
-      next if ($fn eq 'Default' or $fn =~ /^CmdLine-\d+$/);
+      my $name = ref($_) && $_->name;
+      next if ($name eq 'Default' or $name =~ /^CmdLine-\d+$/);
       unless (defined($fn) and length($fn)) {
 	saveStdFilelist($_);
       } else {
