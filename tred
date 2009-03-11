@@ -742,6 +742,8 @@ use POSIX qw(locale_h);
   setlocale(LC_NUMERIC,"C");
 };
 
+setlocale(LC_MESSAGES,"C");
+
 if ($]>=5.008) {
   eval {
     require I18N::Langinfo;
