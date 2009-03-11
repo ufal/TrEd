@@ -95,8 +95,8 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "allow-host|b=s" => \$allow_host,
 	    "server-host=s" => \$host,
 	    "server-port|L=i"  => \$start_server,
-	    "enable-extensions=s" => \$enable_extensions,
-	    "disable-extensions=s" => \$disable_extensions,
+	    "enable-extensions|j=s" => \$enable_extensions,
+	    "disable-extensions|J=s" => \$disable_extensions,
 	    "list-extensions" => \$list_extensions,
 	    "help|h" => \$help,
 	    "list-options" => \$list_options,
@@ -338,6 +338,8 @@ if ($TrEd::Config::useCzechLocales) {
   setlocale(LC_NUMERIC,"C");
   setlocale(LANG,"cs_CZ");
 }
+
+setlocale(LC_MESSAGES,"C");
 
 if ($]>=5.008) {
   eval {
@@ -2417,13 +2419,13 @@ called knitting - an operation where the stand-off annotation is
 handled by a IO backend and the resulting knitted file appears to
 btred as a single unit.
 
-=item B<--enable-extensions> list
+=item B<--enable-extensions|-j> list
 
 Give a comma-separated list of installed TrEd extension names to
 temporarily enable if disabled in the extension configuration.
 Use '*' to enable all currently enabled extensions.
 
-=item B<--disable-extensions> list
+=item B<--disable-extensions|-J> list
 
 Give a comma-separated list of installed TrEd extension names to
 temporarily disable if enabled in the extension configuration.

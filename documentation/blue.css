@@ -12,11 +12,11 @@ h5.title, h6.title {
 	color: #121244; /* 1-2 */
 }
 
-code, .programlisting, .literallayout, .literal {
+code, .programlisting, .literallayout, .literal, .synopsis {
 	color: #050530;
 }
 
-.programlisting, .literallayout {
+.programlisting, .literallayout , .synopsis{
   background: #d5dee6;
   padding: 4pt 4pt 4pt 4pt;
 }
@@ -68,6 +68,7 @@ span.off     {  }
 dt { font-weight: bold }
 
 .framed, .note, .warning, .tip  { 
+   background-color: #ffffcc;
    border: dashed 1pt;
    padding: 6pt 12pt 6pt 12pt;
    margin: 0 0 0 0;
