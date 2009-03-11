@@ -29,13 +29,13 @@ Add these lines to your macro context:
          {
            # an arrow without a target
            -deltax => 10,
-           -deltay => '(ny-py)/2',
+           -deltay => '(yn-yp)/2',
            # ...
          },
          {
            # an arrow with modified origin
-           -originx => 'nx+10',
-           -originy => 'ny+10',
+           -originx => 'xn+10',
+           -originy => 'yn+10',
            # ...
          },
       ],

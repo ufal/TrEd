@@ -18,6 +18,7 @@ use Pod::Usage;
 use IO;
 use IO::File;
 use File::Glob qw(:glob);
+use Cwd;
 
 if ($^V lt v5.6.0) {
   print STDERR '-' x 50,"\n";
@@ -45,9 +46,8 @@ use vars qw($quiet $Quiet $debug $carp $csts_xargs $strip_prefix $add_prefix
 	    @resource_paths @define_symbols $dump_macros
 	    $strict $warnings $no_backups
 	    $list_extensions $enable_extensions $disable_extensions
+	    $host_port_file
 	   );
-
-
 
 ## Passing -o args... -- to TredMacro
 @TredMacro::ARGV=grep { /^-o$/.../^--$/ } @ARGV;
@@ -94,7 +94,8 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "validate-fs|V" => \$validate_fs,
 	    "allow-host|b=s" => \$allow_host,
 	    "server-host=s" => \$host,
-	    "server-port|L=i"  => \$start_server,
+	    "server-port|L=s"  => \$start_server,
+	    "print-host-port=s"  => \$host_port_file,
 	    "enable-extensions|j=s" => \$enable_extensions,
 	    "disable-extensions|J=s" => \$disable_extensions,
 	    "list-extensions" => \$list_extensions,
@@ -515,20 +516,20 @@ sub _copy_output {
 
 sub _revert_redirect_stdout {
   my ($old)=@_;
-  open $old, ">&STDOUT" or die "Cannot dup STDOUT: $!";
+  open $old, ">&STDOUT" or warn "Cannot dup STDOUT: $!";
 }
 
 sub _revert_redirect_stderr {
   my ($old)=@_;
-  open $old, ">&STDERR" or die "Cannot dup STDERR: $!";
+  open $old, ">&STDERR" or warn "Cannot dup STDERR: $!";
 }
 
 sub _redirect_stdout {
   my ($new_out)=@_;
   local *MOUT=*$new_out;
   my $old;
-  open $old, ">&STDOUT" or die "Cannot dup STDOUT: $!";
-  open(STDOUT, "+>&MOUT") or die "Cannot redirect STDOUT: $!";
+  open $old, ">&STDOUT" or warn "Cannot dup STDOUT: $!";
+  open(STDOUT, "+>&MOUT") or warn "Cannot redirect STDOUT: $!";
 #  $new_out->autoflush(1);
   return $old;
 }
@@ -537,8 +538,8 @@ sub _redirect_stderr {
   my ($new_out)=@_;
   local *MOUT=*$new_out;
   my $old;
-  open $old, ">&STDERR" or die "Cannot dup STDERR: $!";
-  open(STDERR, "+>&MOUT") or die "Cannot redirect STDERR: $!";
+  open $old, ">&STDERR" or warn "Cannot dup STDERR: $!";
+  open(STDERR, "+>&MOUT") or warn "Cannot redirect STDERR: $!";
   $new_out->autoflush(1);
   return $old;
 }
@@ -579,16 +580,33 @@ sub startMain {
     }
 
     my $port=$start_server;
+    my $max_port = ($port =~ s/-([0-9]+)$// ? $1 : undef);
     use Sys::Hostname;
     chomp ($host=hostname()) unless defined $host; #$ENV{HOSTNAME};
-    my $server = new IO::Socket::INET (LocalHost => $host,
-				       LocalPort => $port,
-				       Proto => 'tcp',
-				       Listen => 5,
-				       Reuse => 1,
-					     );
-    die "Cannot open socket at $host:$port!\n" unless $server;
+    my $server;
+    while (1) {
+      $server = new IO::Socket::INET (LocalHost => $host,
+				      LocalPort => $port,
+				      Proto => 'tcp',
+				      Listen => 5,
+				      Reuse => 1,
+				     );
+      last if $server or !defined($max_port) or $port>=$max_port;
+      $port++;
+    }
+    die "Cannot open socket at $host:$port: $!\n" unless $server;
+
+
+    if ($host_port_file) {
+      open my $fh, '>', $host_port_file;
+      print $fh "HOST=$host PORT=$port\n";
+      close $fh;
+    }
+
     _msg("Waiting for hub on $host:$port\n");
+
+
+
     $allow_host=~s/\s//g;
     # resolve peer IP
     if ($allow_host) {
@@ -617,9 +635,12 @@ sub startMain {
       my $state='default';
       my $request;
       my %request;
+      my $server_no = undef;
       # --- reading request from hub ---
       while (<$hub>) {
-        if (/^\Q$control\E REQUEST_TYPE=(.*)/) {
+        if (/^\Q$control\E SERVER_NO=([0-9]+)/) {
+	  $server_no = $1;
+        } elsif (/^\Q$control\E REQUEST_TYPE=(.*)/) {
 	  $request_no++;
 	  _msg("Receiving request $request_no: $1\n");
 	  %request = (); # clear
@@ -725,6 +746,7 @@ sub startMain {
 	  $SIG{USR1} = sub { die "BTRED: $host: User break!\n" };
 	  $grp->{macroContext} = $context;
 
+	  set_macro_variable('NTRED_SERVER_NO' => $server_no);
 	  doEvalMacro($grp,"package $context;\n"."#line 1 \"$request{REQUEST_TYPE}\"\n".$request{STATE_MACRO});
 
 	  # execute hooks and the code of the query
@@ -1259,18 +1281,23 @@ sub startMain {
     $post.= q[  $TredMacro::this = $TredMacro::this->following_visible($TredMacro::grp->{FSFile}->FS); ]."\n}"
       if (not $all_nodes and $all_nonhidden_nodes);
     $post.= q[ }} while TredMacro::NextTree(); }] if ($all_trees);
-    my $premacro= <<EOL;
+    my $cwd = fastcwd();
+    my $premacro= <<EOL ;
+#line 1 "$cwd/{btred ...}"
 package $context;
 sub _btred_eval_ {
 $pre
+#line 1 "$cwd/{btred -e}"
 $code;
+#line 4 "$cwd/{btred ...}"
 $post
 }
 
+#line 1 "$cwd/{btred -i}"
 $initial_code;
 EOL
 
-   _msg "<script>\n$premacro;\n</script>\n" unless $quiet;
+   _msg "<script>\n$premacro;\n</script>\n" if $tredDebug;
    doEvalMacro($grp,$premacro);
 
     exit if doEvalHook($grp,"start_hook") eq 'stop'; # run start_hook

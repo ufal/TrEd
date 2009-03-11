@@ -14,13 +14,14 @@ use Getopt::Long;
 use Pod::Usage;
 use IO::Socket;
 use IO::Select;
+use Cwd;
 
 use vars qw($all_trees $all_nodes $no_all_trees $no_all_nodes
 	    $all_nonhidden_nodes $macro_file $allow_no_trees
 	    $code $hubname $hubport $init $nocheck $noservers $nohub
 	    $client_key_file $verbose $srvlist $kill $ps_kill $ps_break $filelist
 	    $srvlistfile $request_quit $request_dump $request_upload
-	    $safe_mode $help $usage $manpage $ssh $run_local $server_debug
+	    $safe_mode $help $usage $manpage $ssh $qsub $run_local $server_debug
 	    $maxservers $max_server_retries $request_reload $request_reload_changed
 	    $request_load $request_close $glob $reffiles_to_save
 	    $request_list $request_list_changed $request_save $request_list_secondary
@@ -38,7 +39,8 @@ $version='$Revision$ ';
 
 $usage=1 unless @ARGV;
 $ssh='ssh -o ConnectTimeout=10';
-$max_server_retries = 10;
+$qsub='qsub';
+#$max_server_retries = 10;
 
 use POSIX qw(setlocale);
 
@@ -64,6 +66,7 @@ Getopt::Long::Configure ("bundling");
 	 "hub=s"          => \$hubname,
 	 "port=i"         => \$hubport,
 	 "init|i"           => \$init,
+	 "qsub=s"           => \$qsub,
 	 "ssh=s"           => \$ssh,
 	 "local"           => \$run_local,
 	 "btred=s"           => \$btred,
@@ -296,6 +299,8 @@ sub kill_srv {
     $signal = 'TERM' unless defined($signal);
     #msg "Sending signal $signal to ssh connection to $srv->{host}.$srv->{port} (pid $srv->{pid})\n";
     kill $signal, $srv->{pid};
+  } elsif ($srv->{protocol} eq 'qsub') {
+    system('qdel',$srv->{fullname});
   }
 }
 
@@ -310,6 +315,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
     if (open(my $f, $srvlistfile)) {
       while (<$f>) {
 	s/^\s+//;
+	s/\s+$//;
 	next if (/^#/ || !/\S/);
 	chomp; push @servers,$_;
       }
@@ -334,23 +340,40 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
   # kill servers and start a hub
   # ==================================================
     msg "Killing all servers\n";
-    my %servers;
+    my %hosts;
     my $signal = defined($kill || $ps_kill) ? '-TERM' : '-USR1';
-    foreach (@servers) {
-      my ($machine)=split /:/;
-      next if $servers{$machine};
-      $servers{$machine}=1;
-      my $cmd;
-      if (defined($ps_kill) or defined($ps_break)) {
-	$btred ||= '[b]tred';
-	$cmd = 'ps x -o pid,command --no-headers |sed "s/^[ \t]*//"|grep -e "'.$btred.'" | cut -f1 -d" " | xargs -r kill '.$signal;
-      } else {
-	$btred ||= 'btred';
-	$cmd = "killall $signal $btred";
+    foreach my $server (@servers) {
+      my $protocol = 'ssh';
+      if ($server=~s{^\s*([a-z]+)://}{}) {
+	$protocol = $1;
       }
-      my $sh = $run_local ? $cmd : "$ssh '$machine' '$cmd'";
-      msg "$sh\n";
-      system($sh);   #'$btred'
+      if ($protocol eq 'ssh') {
+	my ($host)=split /:/,$server;
+	next if $hosts{$host};
+	$hosts{$host}=1;
+	my $cmd;
+	if (defined($ps_kill) or defined($ps_break)) {
+	  $btred ||= '[b]tred';
+	  $cmd = 'ps x -o pid,command --no-headers |sed "s/^[ \t]*//"|grep -e "'.$btred.'" | cut -f1 -d" " | xargs -r kill '.$signal;
+	} else {
+	  $btred ||= 'btred';
+	  $cmd = "killall $signal $btred";
+	}
+	my $sh = $run_local ? $cmd : "$ssh '$host' '$cmd'";
+	msg "$sh\n";
+	system($sh);		#'$btred'
+      } elsif ($protocol eq 'qsub') {
+	my ($name,$port) = split /:/, $server, 2;
+	my @jobs;
+	if ($port =~ /(\d+)-(\d+)/) {
+	  @jobs = map { "ntred-${name}-$_" } $1..$2;
+	} else {
+	  @jobs = "ntred-${name}-${port}";
+	}
+	system('qdel',@jobs);
+      } else {
+	warn "Unknown server protocol $protocol for server $protocol://$server; ignoring\n";
+      }
     }
     msg "Killing hub\n";
     local $SIG{TERM}=sub {}; # protecting myself :-)
@@ -366,33 +389,55 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
   die "No files given!\n" unless $keep_empty_servers || @files;
 
   my $logdir ||= $ENV{NTRED_LOGDIR} || $ENV{TMP} || $ENV{TEMP} || "/tmp";
+  my $tmp_dir = File::Temp->newdir("$ENV{HOME}/.ntred_d_XXXXX");
 
   my @running;
-  my %servers;
+  my %hosts;
   # check that the server machines are actually running
-  foreach (@servers) {
-    my ($server,$port) = split /:/;
-    next if $server !~ /\S/;
-    unless (exists $servers{$server}) {
-      $servers{$server}=0;
-      $port ||= 1600;
-      if ($nocheck or $run_local) {
-	$servers{$server}=1;
+  foreach my $server (@servers) {
+    my $protocol = 'ssh';
+    $server =~ s{\s+$}{};
+    if ($server=~s{^\s*([a-z]+)://}{}) {
+      $protocol = $1;
+    }
+    if ($protocol eq 'qsub') {
+      my ($name,$port) = split /:/, $server,2;
+      next if exists $hosts{$server};
+      my @ports;
+      if ($port =~ /(\d+)-(\d+)/) {
+	@ports = ($1..$2);
       } else {
-	msg "checking $server\n";
-	my $cmd = "$ssh $server 'sh -c \"echo -n RUNNING 2>/dev/null\"'";
-	msg "$cmd\n";
-	my $result=`$cmd`;
-	if ($result =~ /RUNNING$/) {
-	  $servers{$server}=1;
-	    msg "Server $server - running\n";
+	@ports = ($port);
+      }
+      for my $p (@ports) {
+	push @running, { port => $p, fullname => "ntred-${name}-${p}", protocol => $protocol };
+      }
+    } elsif ($protocol eq 'ssh') {
+      my ($host,$port) = split /:/, $server;
+      next if $host !~ /\S/;
+      unless (exists $hosts{$host}) {
+	$hosts{$host}=0;
+	$port ||= 1600;
+	if ($nocheck or $run_local) {
+	  $hosts{$host}=1;
 	} else {
-	  msg "Server $server - down\n";
-	  next;
+	  msg "checking $host\n";
+	  my $cmd = "$ssh $host 'sh -c \"echo -n RUNNING 2>/dev/null\"'";
+	  msg "$cmd\n";
+	  my $result=`$cmd`;
+	  if ($result =~ /RUNNING$/) {
+	    $hosts{$host}=1;
+	    msg "Server $host - running\n";
+	  } else {
+	    msg "Server $host - down\n";
+	    next;
+	  }
 	}
       }
+      push @running, { host => $host, port => $port, fullname => "$host:$port", protocol => $protocol } if $hosts{$host};
+    } else {
+      warn "Unknown server protocol $protocol for server $protocol://$server; ignoring\n";
     }
-    push @running, { host => $server, port => $port, fullname => "$server:$port" } if $servers{$server};
     last if ($maxservers>0 && @running >= $maxservers);
   }
 
@@ -416,8 +461,18 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
     # generate the session key for servers
     $server_key=generate_random_block();
 
+    my $i = 0;
+    $SIG{TERM} = sub {
+      print STDERR "Caught SIGTERM\n";
+      for my $srv (@running) {
+	kill_srv($srv,'TERM') if $srv->{running};
+      }
+      undef $tmp_dir;
+    };
+
     foreach my $srv (@running) {
-      msg "Starting btred server on $srv->{host} port $srv->{port}\n";
+      $i++;
+      msg "Starting btred server [$i] on $srv->{host} port $srv->{port}\n";
       # as for now, we only make use of the secure pipe to the server
       # in order to pass it the session key
 
@@ -425,6 +480,11 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
       my $rb=$FindBin::RealBin;
       $rb=~s{/$}{};
       $btred ||= "$rb/btred";
+
+      if ($srv->{protocol} eq 'qsub' or $srv->{port} =~ /-/) {
+	$srv->{host_port_file}  = "$tmp_dir/ntred-server.$i";
+      }
+
       my $cmd = "$btred -O -P ".
 	  ($run_local ? '--server-host '.$srv->{host}.' ' : ()).
    	  ($safe_mode ? "-F " : "").
@@ -433,18 +493,47 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
 	  ($server_debug ? "-D " : "").
 	  (join "",map { "-M $_ " } @preload_modules).
 	  ($macro_file ? "-m \"".rel2abs($macro_file)."\" " : "").
-	  ($enable_extensions ? qq(--enable-extensions "$enable_extensions" ) : "").
-	  ($disable_extensions ? qq(--disable-extensions "$disable_extensions" ) : "").
+	  ($enable_extensions ? qq(--enable-extensions "$enable_extensions " ) : "").
+	  ($disable_extensions ? qq(--disable-extensions "$disable_extensions " ) : "").
 	  ($include_macro ? "-I \"".rel2abs($include_macro)."\" " : "").
 	  ($term_encoding ? "-d $term_encoding " : "").
-	  "-L $srv->{port}";
+	  ($srv->{host_port_file} ? qq(--print-host-port '$srv->{host_port_file}' ) : '').
+	  "-L $srv->{port} ";
       if ($run_local) {
-	$cmd = "$cmd 2> $logdir/ntred-server-$srv->{host}-$srv->{port}.log";
+	$cmd = "$cmd 2> $logdir/ntred-server-$i.log";
+      } elsif ($srv->{protocol} eq 'qsub') {
+	my $fh;
+	my $start_script = qq{$tmp_dir/start_$i.sh};
+	print STDERR "creating start script: $start_script\n";
+	if (open my $fh, '>', $start_script) {
+	  print $fh <<'EOF';
+#!/bin/bash\n";
+if [ -f $HOME/.bash_profile ]; then
+  . $HOME/.bash_profile
+elif [ -f $HOME/.profile ]; then
+  . $HOME/.profile
+fi
+EOF
+	  print $fh "echo '$control SESSION-KEY=".block_to_hex($server_key)."' | ".$cmd."\n";
+	  print "exit 0\n";
+	  close $fh;
+
+	  $cmd = "$qsub -N '$srv->{fullname}' -S /bin/bash -cwd -o '$tmp_dir/ntred-server-$i.out' -e '$tmp_dir/ntred-server-$i.log' '$start_script'";
+	  print STDERR "$cmd\n";
+	  if (system($cmd)==0) {
+	    $srv->{running}=1;
+	  } else {
+	    warn "qsub failed!\n";
+	  }
+	} else {
+	  warn "Cannot create qsub start script: $start_script\n";
+	}
+	next;
       } else {
-	$cmd = "$ssh '$srv->{host}' '$cmd' 2> $logdir/ntred-server-$srv->{host}-$srv->{port}.log";
+	$cmd = "$ssh '$srv->{host}' '$cmd' 2> $logdir/ntred-server-$i.log";
       }
-      {
-	# fork in order to avoid getting stuck waiting towrite into a dead pipe
+      if ($srv->{protocol} eq 'ssh') {
+	# fork in order to avoid getting stuck waiting to write into a dead pipe
 	$srv->{pid} = fork;
 	if (!defined($srv->{pid})) {
 	  die "Fatal error: couldn't fork: $!\n";
@@ -452,10 +541,11 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
 	  # this child is only responsible for starting the server and
 	  # passing it the session key via a pipe
 	  msg "$cmd\n";
-	  if (open ($srv->{ssh},"| ".$cmd)) {
-	    $srv->{ssh}->autoflush(1);
-	    $srv->{ssh}->print("$control SESSION-KEY=".block_to_hex($server_key)."\n");
-	    close $srv->{ssh};
+	  my $ssh_fh;
+	  if (open ($ssh_fh,"| ".$cmd)) {
+	    $ssh_fh->autoflush(1);
+	    $ssh_fh->print("$control SESSION-KEY=".block_to_hex($server_key)."\n");
+	    close $ssh_fh;
 	    exit 0;
 	  } else {
 	    exit 1;
@@ -486,13 +576,54 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
 					  );
   die $! unless $test_socket;
   msg "Opening connections to servers...\n";
+  my $i = 0;
  SERVER:
   foreach my $srv (@running) {
+    $i++;
+    my $retries = $max_server_retries || ($srv->{protocol} eq 'qsub' ? 20 : 10);
     next unless $srv->{running};
     my $not_ready = 0;
     msg "Opening connection to $srv->{fullname}\n";
     my $server;
     do {{
+      if (!$srv->{stdout} and $srv->{host_port_file}) {
+	while (!-f $srv->{host_port_file} or -z $srv->{host_port_file}) {
+	  sleep 4;
+	  $not_ready++;
+	  last if $not_ready>=$retries;
+	  msg("server $srv->{protocol}://$srv->{fullname} not yet ready\n");
+	}
+	my $ok = $not_ready<$retries;
+	msg(($ok ? "Found" : "Did not find")." $srv->{host_port_file}\n");
+	my $fh;
+	if ($ok and open($fh, '<', $srv->{host_port_file})) {
+	  msg("Reading $tmp_dir/ntred-server.$i\n");
+	  $not_ready = 0;
+	  $srv->{stdout} = 1;
+	  my $hostport = <$fh>;
+	  msg("got $hostport\n");
+	  chomp $hostport;
+	  if ($hostport=~/^HOST=(.*) PORT=(.*)$/) {
+	    $srv->{host} = $1;
+	    $srv->{port} = $2;
+	    msg("Updating host and port for server [$i]: $srv->{host}:$srv->{port}");
+	  }
+	  close $fh;
+	} else {
+	  msg("server [$i] $srv->{fullname} not ready - giving up.\n");
+	  kill_srv($srv);
+	  $srv->{socket} = undef;
+	  $srv->{pid} = undef;
+	  next SERVER;
+	}
+      }
+      unless ($srv->{host}) {
+	  kill_srv($srv);
+	  $srv->{socket} = undef;
+	  $srv->{pid} = undef;
+	  next SERVER;
+      }
+
       $server= new IO::Socket::INET (PeerAddr => $srv->{host},
 				     PeerPort => $srv->{port},
 				     Proto => 'tcp',
@@ -507,17 +638,15 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
 	  exit 1;
 	}
       } 
-      elsif ($not_ready>=$max_server_retries) {
-	msg("$srv->{fullname} not ready - giving up.\n");
-	if ($srv->{pid}) {
-	  kill_srv($srv);
-	}
+      elsif ($not_ready>=$retries) {
+	msg("server [$i] $srv->{fullname} not ready - giving up.\n");
+	kill_srv($srv);
 	$srv->{socket} = undef;
 	$srv->{pid} = undef;
 	next SERVER;
-      } 
+      }
       else {
-	msg("$srv->{fullname} not ready\n");
+	msg("$srv->{fullname} at $srv->{host}:$srv->{port} not ready\n");
 	$not_ready++;
 	sleep 2;
       }
@@ -676,11 +805,14 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
     #print STDERR "Request: $request\n\n";
     # ---------- distributing the request -------------
       msg "Distributing the request to the servers...\n";
+      my $server_no = 1;
       foreach my $server (@running) {
 	next unless $server->{socket};
 	msg " - to $server->{fullname}\n";
+	$server->{socket}->print("$control SERVER_NO=$server_no\n" );
 	$server->{socket}->print($request);
 	$server->{socket}->flush;
+	$server_no ++;
       }
 
       # ----------- reading and forwarding the response ---------------
@@ -733,8 +865,8 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
     #msg("Reading macros from $macro_file ...\n");
     $TrEd::Macros::defaultMacroFile='/dev/null'; # don't read this one
     #$TrEd::Config::macroDebug=1;
-    TrEd::Macros::read_macros($macro_file,$libDir) if $macro_file; # read macros
-    TrEd::Macros::read_macros($include_macro,$libDir) if $include_macro; # read macros
+    TrEd::Macros::read_macros(rel2abs($macro_file),$libDir) if $macro_file; # read macros
+    TrEd::Macros::read_macros(rel2abs($include_macro),$libDir) if $include_macro; # read macros
     #msg("done.\n");
     if ($TrEd::Macros::exec_code=~/^\S*[nb]tred\s(.*)$/) {
       local @ARGV=split /\s+/,$1;
@@ -762,6 +894,10 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
   if ($all_trees) {
     $code = "if (\$root) { do {{ $code }} while TredMacro::NextTree() }";
   }
+
+  $code =
+    qq(\n#line 1 ").fastcwd().qq(/{ntred -e}"\n)
+    .$code;
 
   my $request="";
   my $request_type;
