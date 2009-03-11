@@ -70,8 +70,9 @@ DeclareMinorMode 'Show_Neighboring_Trees' => {
 	my @unsorted;
 	my ($res,$cur);
 	if ($sub) {
-	  ($res,$cur)=$sub->($fsfile,$i,$prevcurrent,$show_hidden);
-	} else {
+	  ($res,$cur)=@{$sub->($fsfile,$i,$prevcurrent,$show_hidden) || []};
+	}
+	if (!defined $res) {
 	  ($res,$cur)=$fsfile->nodes($i,$prevcurrent,$show_hidden);
 	}
 	$current=$cur if ($i==$no);
