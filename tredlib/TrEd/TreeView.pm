@@ -2465,7 +2465,7 @@ sub interpolate_text_field {
   # as in TrEd::Macros
   no strict 'refs';
   my @save = (${'TredMacro::this'},${'TredMacro::root'},${'TredMacro::grp'});
-  my $root; $root=$node && $node->root;
+  my $root; $root=($node && $node->root);
   (${'TredMacro::this'},${'TredMacro::root'},${'TredMacro::grp'})=
     ($node,$root,$grp_ctxt);
   my $cached = $PATTERN_CODE_CACHE{$text};

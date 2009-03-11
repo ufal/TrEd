@@ -39,6 +39,7 @@ use vars qw($svn_version $version $about $opt_u $opt_h $opt_c $opt_y
 	    %HELP %vertical_key_arrow_map 
 	    $manpage $listoptions $no_backups $no_locks %optmap $carp
 	    $tred_d $VERSION
+	    $enable_extensions $disable_extensions
            );
 
 $about=
@@ -143,6 +144,8 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
   "no-locks" => \$no_locks,
   "autosave=i" => \$opt_auto_save,
   "carp" => \$carp,
+  "enable-extensions=s" => \$enable_extensions,
+  "disable-extensions=s" => \$disable_extensions,
 );
 $optparser->getoptions(%optmap) or $opt_u=1;
 
@@ -6597,6 +6600,30 @@ sub startMain {
 			 [Checkbutton => 'view', -underline => 0,
 			  -variable => \$TrEd::TreeView::Debug],
 			]
+	 ],
+	 [
+	  Cascade=> 'Profiler',
+	  -underline => 0,
+	  -menuitems => [
+			 [Button => 'Start', -underline => 2,
+			  -command => [sub {
+			    eval {
+			      $ENV{NYTPROF}='start=no:compress=0';
+			      require Devel::NYTProf;
+			    };
+			    if ($@) {
+			      errorMessage($_[0]->{top},$@);
+			      return;
+			    }
+			    DB::enable_profile();
+			  },\%group]
+			 ],
+			 [Button => 'Stop', -underline => 2,
+			  -command => sub {
+			    DB::disable_profile();
+			  }
+			 ],
+			]
 	 ]
 	]);
 
@@ -11950,6 +11977,31 @@ sub valueLineClick {
 sub prepareExtensions {
   my $extensions = getExtensionList();
   my $pre_installed =  getPreInstalledExtensionList($extensions);
+
+  my (%e,%d);
+  @e{ split /,/,$enable_extensions }=();
+  @d{ split /,/,$disable_extensions }=();
+
+#   if (defined $opt_m) {
+#     warn("Using -m implies all extensions disabled...\n") unless $opt_q;
+#  }
+
+  @$extensions =
+    map { /^!(.*)/ ?
+	    (exists($e{'*'}) && !exists($d{$1}) || exists($e{$1}) ? $1 : $_)
+	      : $opt_m ?
+		(exists($e{'*'}) && !exists($d{$_}) || exists($e{$_}) ? $_ : '!'.$_)
+		  : (exists($d{'*'}) && !exists($e{$_}) || exists($d{$_}) ? '!'.$_ : $_)
+		} @$extensions;
+
+  @$pre_installed =
+      map { /^!(.*)/ ?
+	      (exists($e{'*'}) && !exists($d{$1}) || exists($e{$1}) ? $1 : $_)
+		: $opt_m ?
+		  (exists($e{'*'}) && !exists($d{$_}) || exists($e{$_}) ? $_ : '!'.$_)
+		    : (exists($d{'*'}) && !exists($e{$_})|| exists($d{$_}) ? '!'.$_ : $_)
+		  } @$pre_installed;
+
   initExtensions($extensions);
   initExtensions($pre_installed, getPreInstalledExtensionsDir());
   return [$extensions,$pre_installed];
@@ -11966,10 +12018,7 @@ sub loadMacros {
   if (ref($opts->{preparedExtensions})) {
     ($extensions,$pre_installed)=@{$opts->{preparedExtensions}}
   } else {
-    $extensions = getExtensionList();
-    $pre_installed =  getPreInstalledExtensionList($extensions);
-    initExtensions($extensions);
-    initExtensions($pre_installed,$preinst_dir);
+    ($extensions,$pre_installed)=@{ prepareExtensions() };
   }
 
   foreach my $path (getExtensionSampleDataPaths($extensions),
