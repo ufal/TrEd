@@ -308,7 +308,8 @@ if [ "x$NO_LIBS" != x1 ]; then
 
     ./install --check-utils "${inst_opts[@]}" || fail
     
-    ./install "${inst_opts[@]}" 2>&1 | tee "${TRED_DIR}/install.log"
+    set -o pipefail
+    ./install "${inst_opts[@]}" 2>&1 | tee "${TRED_DIR}/install.log" || fail
 
     cat <<EOF > "$RUN_TRED_DIR"/init_tred_environment
 # Setup paths for installed TrEd dependencies
@@ -360,6 +361,8 @@ EOF
     fi
 
 fi
+
+
 echo
 echo "NOTE: The installation of dependencies is logged in ${TRED_DIR}/install.log"
 echo
