@@ -83,7 +83,7 @@ sub DrawArrows_cleanup {
 # 	  -smooth => 1,
 # 	  -fill => CustomColor('arrow_'.$_) },
 
-my @opts = qw(-tag -arrow -arrowshape -width -smooth -fill -dash);
+my @opts = qw(-tag -arrow -arrowshape -width -smooth -fill -dash -hint);
 sub DrawArrows {
   my ($node,$styles,$edges,$opts)=@_;
   my $i;
@@ -143,7 +143,7 @@ COORDS
       next;
     }
     for my $p (@opts) {
-      push @{$props{$p}}, $edge->{$p}||$opts->{$p}||'';
+      push @{$props{$p}}, ($edge->{$p}||$opts->{$p}||'');
     }
   }
   if (defined($props{-coords}) and @{$props{-coords}}) {

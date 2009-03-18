@@ -4199,6 +4199,23 @@ Tk: 804.028
 		values for individual lines should be separated by
 		<literal moreinfo="none">&amp;</literal>
 		  in the same order in which lines are specified in <literal>Line-coords</literal>.
+		  The individual tag values must not contain
+		  <literal moreinfo="none">&amp;</literal>.
+
+              </para>
+	    </entry>
+	  </row>
+	  <row id="Line-hint">
+	    <entry><literal moreinfo="none">Line-hint</literal></entry>
+	    <entry><para>Values are arbitrary strings
+		  that will be shown when the user hovers mouse pointer
+		  over the line.
+		  If multiple lines pertain to a node,
+		  values for individual lines should be separated by
+		  <literal moreinfo="none">&amp;</literal>
+		  in the same order in which lines are specified in <literal>Line-coords</literal>.
+		  For this reason the text for no line must not contain
+		  <literal moreinfo="none">&amp;</literal>.
               </para>
 	    </entry>
 	  </row>
@@ -9470,7 +9487,7 @@ sub SubtreeFuncAssign {
 	(in our example they are extensions <literal>pdt20</literal>
 	and <literal>padt</literal> both in versions at least 1.0);
 	optionally, an URL can be given to provide a direct link to
-	the required extension for the case when the user may not have the
+	the required extension for the case when the user does not have the
 	corresponding repositories configured.
       </para>
       <para>
