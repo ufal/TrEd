@@ -9623,6 +9623,7 @@ U<Edges (lines)>
   C<Line-arrow          >- side of an edge to put an arrow on: first, both, last
   C<Line-smooth         >- 1 if the line should be drawn as a curve, 0 otherwise.
   C<Line-tag            >- tags passed to line_click_hook (see the L<documentation#Line-tag>)
+  C<Line-hint           >- text to show when pointer hovers over the line (see the L<documentation#Line-hint>)
   C<Line-...            >- where C<...> is any of C<dash>, C<activedash>, C<dashoffset>,
   C<                    >  C<fill>, C<activefill>, C<width>, and C<activewidth>
   C<                    >  specifying visual properties of edges. Values and
@@ -12398,6 +12399,6 @@ this program and also on-line at http://www.gnu.org/copyleft/gpl.html .
 
 Petr Pajas <pajas@matfyz.cz>
 
-Copyright 2000-2008 Petr Pajas, All rights reserved.
+Copyright 2000-2008 Petr Pajas.
 
 =cut

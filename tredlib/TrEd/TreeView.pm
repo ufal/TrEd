@@ -1510,7 +1510,7 @@ sub redraw {
   while ( my($k,$v)= each %DefaultNodeStyle ) {
     $RootStyle{$k}={@$v};
   }
-
+  my %arrow_hints;
   my $canvas = $self->realcanvas;
 
   $self->clear_pinfo();
@@ -1655,24 +1655,25 @@ sub redraw {
       split '&',$line_style->{'-arrowshape'};
     my @fill=split '&',$line_style->{'-fill'};
     my @width=split '&',$line_style->{'-width'};
+    my @hints=split '&',$line_style->{'-hint'};
     my @dash;
     for my $d (split '&',$line_style->{'-dash'}) {
-      if ($d=~/\d\s+,/) {
+      if ($d=~/\d\s*,/) {
 	push @dash, [split ',',$d];
       } elsif ($d!~/\d/) {
-	my $w = $width[1+$#dash] || $self->get_lineWidth;
+	my $w = $width[1+$#dash] || $self->get_lineWidth || 1;
 	# manually transform the dash (we do this because itemcget -dash returns garbage and we need a correct value for printing
 	my @d;
 	for (split '',$d) {
-	  if ($d eq '.') {
+	  if ($_ eq '.') {
 	    push @d, $w,2*$w;
-	  } elsif ($d eq ',') {
+	  } elsif ($_ eq ',') {
 	    push @d, 2*$w,2*$w;
-	  } elsif ($d eq '-') {
+	  } elsif ($_ eq '-') {
 	    push @d, 3*$w,2*$w;
-	  } elsif ($d eq '_') {
+	  } elsif ($_ eq '_') {
 	    push @d, 4*$w,2*$w;
-	  } elsif ($d eq ' ' and @d) {
+	  } elsif ($_ eq ' ' and @d) {
 	    $d[-1]+=$w;
 	  }
 	}
@@ -1681,6 +1682,7 @@ sub redraw {
 	push @dash,'';
       }
     }
+
     my @smooth=split '&',$line_style->{'-smooth'};
     my %nodehash;
     my $coords=$line_style->{'-coords'};
@@ -1708,6 +1710,7 @@ sub redraw {
 	$l=$canvas->
 	  createLine(@c, @opts);
       };
+
       if ($@) {
 	use Data::Dumper;
 	print STDERR "createLine: ",
@@ -1720,6 +1723,9 @@ sub redraw {
 	$gen_info->{'tag:'.$l}=$tag[$lin];
 	$canvas->lower($l,'all');
 	$canvas->raise($l,'line');
+	if (exists($hints[$lin]) and length($hints[$lin])) {
+	  $arrow_hints{$l}=$hints[$lin];
+	}
       }
    }
 
@@ -2090,12 +2096,11 @@ sub redraw {
 	       -balloonposition => 'mouse',
 	       -msg =>
 	       {
+	        %arrow_hints,
 		map {
 		  if (defined($_)) {
 		    my $node=$self->get_obj_pinfo($_);
-		    my $msg=
-		      $self->interpolate_text_field($node,
-						    $hint,$grp);
+		    my $msg= $self->interpolate_text_field($node, $hint,$grp);
 		    if (defined $msg) {
 		      $msg=~s/\${([^}]+)}/_present_attribute($node,$1)/eg;
 		      ($_ => encode($msg));

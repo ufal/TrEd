@@ -515,7 +515,7 @@ elif [ -f $HOME/.profile ]; then
 fi
 EOF
 	  print $fh "echo '$control SESSION-KEY=".block_to_hex($server_key)."' | ".$cmd."\n";
-	  print "exit 0\n";
+	  print $fh "exit 0\n";
 	  close $fh;
 
 	  $cmd = "$qsub -N '$srv->{fullname}' -S /bin/bash -cwd -o '$tmp_dir/ntred-server-$i.out' -e '$tmp_dir/ntred-server-$i.log' '$start_script'";
@@ -578,6 +578,7 @@ EOF
   msg "Opening connections to servers...\n";
   my $i = 0;
  SERVER:
+  my $queue_not_ready=0; # this is a countdown for all servers
   foreach my $srv (@running) {
     $i++;
     my $retries = $max_server_retries || ($srv->{protocol} eq 'qsub' ? 20 : 10);
@@ -589,16 +590,15 @@ EOF
       if (!$srv->{stdout} and $srv->{host_port_file}) {
 	while (!-f $srv->{host_port_file} or -z $srv->{host_port_file}) {
 	  sleep 4;
-	  $not_ready++;
-	  last if $not_ready>=$retries;
+	  $queue_not_ready++;
+	  last if $queue_not_ready>=$retries;
 	  msg("server $srv->{protocol}://$srv->{fullname} not yet ready\n");
 	}
-	my $ok = $not_ready<$retries;
+	my $ok = $queue_not_ready<$retries;
 	msg(($ok ? "Found" : "Did not find")." $srv->{host_port_file}\n");
 	my $fh;
 	if ($ok and open($fh, '<', $srv->{host_port_file})) {
 	  msg("Reading $tmp_dir/ntred-server.$i\n");
-	  $not_ready = 0;
 	  $srv->{stdout} = 1;
 	  my $hostport = <$fh>;
 	  msg("got $hostport\n");
@@ -1004,6 +1004,7 @@ EOF
   } else {
     $request_type="EVAL_CODE";
     my @files =  get_files();
+
     msg "ARGS: @ARGV\n";
     $request="$control STATE=ENCODING\n"._enc2bytes('utf8',$term_encoding)."\n" if $term_encoding;
     $request.="$control STATE=CODE\n"._enc2bytes('utf8',_enc2utf8($term_encoding || 'utf8',$code))."\n";
@@ -1256,9 +1257,9 @@ sub get_file_list {
       my $first = 1;
       while (<$f>) {
 	s/^\s+//;
+	s/[\n\r]+$//;
 	next if /^#/ or ($first and defined($fl) and !m{[/.]} and ! -f r2a($fl,$_));
 	$first = 0;
-	s/[\n\r]+$//;
 	push @files, (m{^/|^[[:alnum:]]+://} ? $_ : r2a($fl,$_));
       }
       close $f;
@@ -1280,12 +1281,12 @@ sub get_files {
       my $first = 1;
       while (<$f>) {
 	s/^\s+//;
+	s/[\n\r]+$//;
 	next if /^#/ or ($first and defined($fl) and !m{[/.]} and ! -f r2a($fl,$_));
 	$first = 0;
 	s{^ntred://}{};
 	s{@(\d+)##?1(\.\d+)?$}{##$1$2};
-	s/[\n\r]+$//;
-	push @files, (m{^/|^[[:alnum:]]+://} ? $_ : rel2abs($_));
+	push @files, (m{^/|^[[:alnum:]]+://} ? $_ : r2a($fl,$_));
       }
       close $f;
     }
@@ -1495,6 +1496,20 @@ A comma separated list of hosts to run btred servers. The hostname may
 be optionally followed by a comma and a port number thus making it
 possible to run several btred servers on one host. If the port number
 is omitted, it defaults to 1600. See also C<--serverlist>.
+
+Ports may be given as a range, e.g. 1600-1800; in this case btred
+server will use the first port from the range that is free.
+
+Special syntax can be used to start btred servers over SGE cluster
+using the task queue (qsub and qdel commands must be in PATH):
+
+  qsub://<job_prefix>:<port_range>
+
+In this case ntred schedules one btred server task on the SGE queue
+for each port in the range. It waits at most two seconds times
+C<--max-retries> for the first server to start. Tasks of the servers
+that are not running by that time are abandoned and deleted from the
+queue.
 
 =item B<--serverlist> filename
 
