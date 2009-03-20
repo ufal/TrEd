@@ -747,8 +747,8 @@ eval {
      };
 
   setlocale(LC_MESSAGES,"C");
-}
-  warn $@ if $@;
+};
+warn $@ if $@;
 
 if ($]>=5.008) {
   eval {
