@@ -713,39 +713,42 @@ ApplyGlobalConfig();
 use locale;
 use POSIX qw(locale_h);
 
-($TrEd::Config::useLocales) && do {
-  $ENV{LC_ALL}=undef;
-  setlocale(LC_ALL,undef);
+eval {
+  ($TrEd::Config::useLocales) && do {
+    $ENV{LC_ALL}=undef;
+    setlocale(LC_ALL,undef);
 
-  if ($TrEd::Convert::support_unicode) {
-    my $lc_collate=setlocale(LC_COLLATE);
-    if ($lc_collate !~ /\.utf-?8/i) {
-      setlocale(LC_COLLATE,$lc_collate.".UTF-8");
+    if ($TrEd::Convert::support_unicode) {
+      my $lc_collate=setlocale(LC_COLLATE);
+      if ($lc_collate !~ /\.utf-?8/i) {
+	setlocale(LC_COLLATE,$lc_collate.".UTF-8");
+      }
+      my $lc_ctype=setlocale(LC_CTYPE);
+      $lc_ctype=~s/\.utf-?8//i; # Tk doesn't support this
+      setlocale(LC_CTYPE,$lc_ctype);
     }
-    my $lc_ctype=setlocale(LC_CTYPE);
-    $lc_ctype=~s/\.utf-?8//i; # Tk doesn't support this
-    setlocale(LC_CTYPE,$lc_ctype);
-  }
-  setlocale(LC_NUMERIC,"C");
-};
+    setlocale(LC_NUMERIC,"C");
+  };
 
-($TrEd::Config::useCzechLocales or
- setlocale('LANG') =~ /^cs_CZ|^czech/) && do {
-  $ENV{LC_ALL}=undef;
-  setlocale(LC_ALL,undef);
+  ($TrEd::Config::useCzechLocales or
+     setlocale('LANG') =~ /^cs_CZ|^czech/) && do {
+       $ENV{LC_ALL}=undef;
+       setlocale(LC_ALL,undef);
 
-  if ($TrEd::Convert::support_unicode) {
-    setlocale(LC_COLLATE,"cs_CZ.UTF-8");
-    setlocale('LANG',"cs_CZ.UTF-8");
-    setlocale('LC_CTYPE',"cs_CZ");
-  } else {
-    setlocale(LC_COLLATE,"cs_CZ");
-    setlocale('LANG',"cs_CZ");
-  }
-  setlocale(LC_NUMERIC,"C");
-};
+       if ($TrEd::Convert::support_unicode) {
+	 setlocale(LC_COLLATE,"cs_CZ.UTF-8");
+	 setlocale('LANG',"cs_CZ.UTF-8");
+	 setlocale('LC_CTYPE',"cs_CZ");
+       } else {
+	 setlocale(LC_COLLATE,"cs_CZ");
+	 setlocale('LANG',"cs_CZ");
+       }
+       setlocale(LC_NUMERIC,"C");
+     };
 
-setlocale(LC_MESSAGES,"C");
+  setlocale(LC_MESSAGES,"C");
+}
+  warn $@ if $@;
 
 if ($]>=5.008) {
   eval {
