@@ -323,24 +323,26 @@ use Exporter;
 # work, so I recommend not to use czech locales there, unless you
 # really want the decimal points to be replaced by commas in
 # postscript:)
-($TrEd::Config::useLocales) && do {
-  use locale;
-  use POSIX qw(locale_h);
-  $ENV{LC_ALL}=undef;
-  setlocale(LC_ALL,undef);
-  setlocale(LC_NUMERIC,"C");
+eval {
+  ($TrEd::Config::useLocales) && do {
+    use locale;
+    use POSIX qw(locale_h);
+    $ENV{LC_ALL}=undef;
+    setlocale(LC_ALL,undef);
+    setlocale(LC_NUMERIC,"C");
+  };
+
+  if ($TrEd::Config::useCzechLocales) {
+    no strict;
+    use locale;
+    use POSIX qw(locale_h);
+    setlocale(LC_COLLATE,"cs_CZ");
+    setlocale(LC_NUMERIC,"C");
+    setlocale(LANG,"cs_CZ");
+  }
+  setlocale(LC_MESSAGES,"C");
 };
-
-if ($TrEd::Config::useCzechLocales) {
-  no strict;
-  use locale;
-  use POSIX qw(locale_h);
-  setlocale(LC_COLLATE,"cs_CZ");
-  setlocale(LC_NUMERIC,"C");
-  setlocale(LANG,"cs_CZ");
-}
-
-setlocale(LC_MESSAGES,"C");
+warn $@ if $@;
 
 if ($]>=5.008) {
   eval {
