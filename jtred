@@ -21,7 +21,7 @@ function usage {
     cat <<-__USAGE
 	Usage:
 	  ${0##*/} [-jB btred ] [-js packet-size] [-jn job-name]
-	    [-jS sleep-interval] [-jt lrc-tmp-dir] [-jw work-dir]
+	    [-jS sleep-interval] [-jt lrc-tmp-dir] [-jw work-dir] [-jq]
 	    { -l file-list | file... } -jb btred-options...
 	Defaults:
 	  btred           $btred
@@ -30,6 +30,7 @@ function usage {
 	  sleep-interval  $sleep
 	  tmp-dir         $tmp
 	  work-dir        $work
+        -jq shows only btred messages.
 	Do not enter any files nor file-lists after -jb.
 	Do not use wildcards in filelists.
 	__USAGE
@@ -53,9 +54,10 @@ if (( ${#@} == 0 )) ; then
 fi
 
 # parse options
+quiet=0
 file_i=0 # index to file array
 while ((${#@})) ; do
-    if [[ ! ${1:0:3} =~ ^-(j[BsnSltwb]|l) ]] ; then
+    if [[ ! ${1:0:3} =~ ^-(j[BsnSltwbq]|l) ]] ; then
         file[$((file_i++))]=$1 # not an option, thus a file
     elif (( ${#1} > 3 )) || [[ $1 == -l?* ]]; then
         idx=2
@@ -81,10 +83,12 @@ while ((${#@})) ; do
         l) filelist=$value ;;
         t) tmp=$value ;;
         w) work=$value ;;
+        q) quiet=1 ;;
         b) break ;; # following options go to btred
     esac
     shift
 done
+
 
 # check whether we can proceed
 if  (( ! $file_i )) && [[ -z $filelist || ! -r $filelist ]] ; then
@@ -117,8 +121,13 @@ for i in `seq 0 $(( ${#btred_flags[@]}-1 ))`; do
     btred_flags[i]="'${btred_flags[i]}'"
 done
 
-renice 10 $$ >&2
+function mute () {
+    if (( ! $quiet )) ; then
+        cat 1>&2
+    fi
+}
 
+renice 10 $$ | mute
 # prepare btred scripts
 (
     if (( ${#file} )) ; then
@@ -143,11 +152,11 @@ renice 10 $$ >&2
 
 # run scripts
 for script in "$tmp"/"$job_name".$$.???? ; do
-    qsub -S /bin/bash -cwd -V -p -25 -o "$outdir"/"${script##*/}".o -e "$errdir"/"${script##*/}".e "$script" >&2
+    qsub -S /bin/bash -cwd -V -p -25 -o "$outdir"/"${script##*/}".o -e "$errdir"/"${script##*/}".e "$script" | mute
     sleep $sleep;
 done;
 
-echo Waiting for jobs to finish... >&2
+eval echo Waiting for jobs to finish... | mute
 while qstat -r -j "$job_name".$$.'*' > /dev/null 2>&1; do sleep 2 ; done
 
 # send stderr of scripts to stderr and stdout of them to stdout
