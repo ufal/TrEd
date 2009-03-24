@@ -6982,6 +6982,22 @@ sub startMain {
   $group{Balloon}->attach($group{tieWinddowsButton},
 			  -balloonmsg=> "tie all views");
 
+  $group{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+    ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
+
+  $group{toggleUserToolbarButton}=
+    $group{Toolbar}->Menubutton(-takefocus=>0,
+				-tearoff=>0,
+				-text=> "Toggle User Toolbars",
+				-relief=> $buttonsRelief,
+				-indicatoron => 0,
+				-state => 'disabled',
+				-image=>icon(\%group,"1downarrow"),
+				-borderwidth=> $buttonBorderWidth)->pack(-side=>'left');
+  $group{Balloon}->attach($group{toggleUserToolbarButton},
+			  -balloonmsg=> "toggle user toolbars");
+
+
   ##########################
 
 
@@ -7340,11 +7356,78 @@ sub newUserToolbar {
     $grp->{UserToolbarSep}->pack(-after => $grp->{Toolbar},-fill=> 'x');
     $grp->{UserToolbars}->pack(-after => $grp->{UserToolbarSep},-fill=> 'x');
   }
+  my $toolbar;
   if (exists $grp->{UserToolbarHash}{$name}) {
     die "User Toolbar named $name already exists!";
   } else {
-    return  $grp->{UserToolbarHash}{$name}=$grp->{UserToolbars}->Frame->pack(-fill => 'x');
+    $toolbar = $grp->{UserToolbarHash}{$name}=$grp->{UserToolbars}->Frame->pack(-fill => 'x');
+    $grp->{UserToolbarState}{$name}=1;
   }
+  updateToolbarMenu($grp);
+  return $toolbar;
+}
+
+sub updateToolbarMenu {
+  my ($grp)=@_;
+  my $menu = $grp->{toggleUserToolbarButton}->menu();
+  $menu->delete(0,'last');
+  my $enabled=0;
+  for my $name (sort keys %{$grp->{UserToolbarHash}}) {
+    $enabled=1;
+    $menu->add('checkbutton',
+	       -label => $name.' toolbar',
+	       -variable => \$grp->{UserToolbarState}{$name},
+	       -command => [\&toggleUserToolbar,$grp,$name],
+	      );
+  }
+  $grp->{toggleUserToolbarButton}->configure(-state => $enabled ? 'normal' : 'disabled');
+}
+
+sub toggleUserToolbar {
+  my ($grp,$name)=@_;
+  if ( $grp->{UserToolbarState}{$name} ) {
+    showUserToolbar($grp,$name);
+  } else {
+    hideUserToolbar($grp,$name);
+  }
+}
+
+sub hideUserToolbar {
+  my ($grp,$name)=@_;
+  my $tb =  getUserToolbar($grp,$name);
+  if ($tb) {
+    my $height = $tb->height;
+    my %info = $tb->packInfo;
+    my $master = $info{-in};
+    $master->packPropagate(1);
+    $tb->packForget;
+    $master->update;
+    $master->GeometryRequest($master->width,($master->reqheight-$height));
+    $master->update;
+    $grp->{UserToolbarState}{$name}=0;
+    return $tb;
+  }
+  return 0;
+}
+sub showUserToolbar {
+  my ($grp,$name)=@_;
+  my $tb =  getUserToolbar($grp,$name);
+  if ($tb) {
+    $tb->pack(-fill=>'x');
+    $grp->{UserToolbarState}{$name}=1;
+    return $tb;
+  }
+  return 0;
+}
+
+sub userToolbarVisible {
+  my ($grp,$name)=@_;
+  my $tb =  getUserToolbar($grp,$name);
+  if ($tb) {
+    return $grp->{UserToolbarState}{$name};
+    #return $tb->ismapped && $tb->manager ? 1 : 0;
+  }
+  return;
 }
 
 sub getUserToolbar {
@@ -7357,6 +7440,7 @@ sub removeUserToolbar {
   my ($grp_or_win,$name)=@_;
   my $grp=cast_to_grp($grp_or_win);
   my $tb = delete $grp->{UserToolbarHash}{$name};
+  delete $grp->{UserToolbarState}{$name};
   print "remove toolbar $name => $tb\n" if $tredDebug;
   return unless $tb;
   if (keys %{$grp->{UserToolbarHash}}) {
@@ -7366,6 +7450,7 @@ sub removeUserToolbar {
     $grp->{UserToolbars}->packForget;
     $grp->{UserToolbarSep}->packForget;
   }
+  updateToolbarMenu($grp);
   return $tb;
 }
 
@@ -9543,7 +9628,11 @@ B<Rules interpolation:>
 
   any other text - interpolates to itself
 
-H<RootStyles>
+H<Root Styles>
+
+B<SYNTAX:>  C<#{name:value}> or C<#{name}>
+
+
   C<balance             >- #{balance:1} draws a balanced rather than ordered tree;
   C<                    >  #{balance:spread} is the same but projective on leafs (useful e.g. for Penn Treebank)
   C<vertical            >- draw the tree L<vertically#vertical-mode>
@@ -9561,7 +9650,6 @@ H<RootStyles>
   C<columnsep[i]        >- space before i-th column in vertical mode
   C<stackOrder          >- comma separated list of item tags defining a z-axis
                            ordering of canvas items (lowest first)
-
 H<Styles>
 
 B<SYNTAX:>  C<#{object-feature:value}>
