@@ -57,8 +57,11 @@ fi
 quiet=0
 file_i=0 # index to file array
 while ((${#@})) ; do
+    option=''
     if [[ ! ${1:0:3} =~ ^-(j[BsnSltwbq]|l) ]] ; then
         file[$((file_i++))]=$1 # not an option, thus a file
+    elif [[ $1 == -jq ]] ; then
+        quiet=1
     elif (( ${#1} > 3 )) || [[ $1 == -l?* ]]; then
         idx=2
         if [[ $1 == -l?* ]] ; then
@@ -83,7 +86,6 @@ while ((${#@})) ; do
         l) filelist=$value ;;
         t) tmp=$value ;;
         w) work=$value ;;
-        q) quiet=1 ;;
         b) break ;; # following options go to btred
     esac
     shift
@@ -91,7 +93,7 @@ done
 
 
 # check whether we can proceed
-if  (( ! $file_i )) && [[ -z $filelist || ! -r $filelist ]] ; then
+if  (( ! $file_i )) && [[ ! -f $filelist || -z $filelist || ! -r $filelist ]] ; then
     echo Ivalid file-list. >&2
     exit 68
 elif [[ $job_name =~ ^[0-9]|/ ]] ; then
