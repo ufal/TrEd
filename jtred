@@ -1,9 +1,9 @@
 #!/bin/bash
 # Author: Jan Stepanek
 
-version='1.1'
+version='1.2'
 
-if [ -z "$SGE_ROOT" ] || [ ! -d "$SGE_ROOT"] ; then
+if [ -z "$SGE_ROOT" ] || [ ! -d "$SGE_ROOT" ] ; then
     echo "SGE_ROOT is not set, this machine does not seem to be a SGE cluster queue manager!" >&2
     exit 66
 fi
@@ -125,8 +125,14 @@ renice 10 $$ >&2
         # list all files, quote special chars
         ls --quoting-style=shell "${file[@]}"
     fi
-    if [[ $filelist ]] ; then 
+    if [[ $filelist ]] ; then
+        dir=$(readlink -f $filelist)
+        dir=${dir%/*}
         while read -r line ; do # -r prevents '\' from evaluation
+            if [[ ${line:0:1} != / ]] ; then
+                # convert relative path to absolute FROM the filelist dir
+                line="$dir/$line"
+            fi
             ls --quoting-style=shell "$line" # quote special chars
         done < "$filelist"
    fi # list all files from filelist
