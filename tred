@@ -9368,7 +9368,8 @@ sub open_url_in_browser {
   if ( $htmlBrowser eq 'DO_NOT_RUN') {
   } elsif ($^O eq 'MSWin32' and 
 	   eval { require ActiveState::Browser; 1 }) {
-    ActiveState::Browser::open($url);
+    print STDERR "ActiveState::Browser::open '$url'\n" if $tredDebug;
+    ActiveState::Browser::open("$url");
   } elsif ( $htmlBrowser ne EMPTY) {
     $htmlBrowser.=" %u" unless ($htmlBrowser =~ /\%[uf1]/);
     my $cmd = $htmlBrowser;
