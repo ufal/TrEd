@@ -7001,7 +7001,7 @@ sub startMain {
 				-image=>icon(\%group,"1downarrow"),
 				-borderwidth=> $buttonBorderWidth)->pack(-side=>'left');
   $group{Balloon}->attach($group{toggleUserToolbarButton},
-			  -balloonmsg=> "toggle user toolbars");
+			  -balloonmsg=> "toggle user-defined toolbars");
 
 
   ##########################
