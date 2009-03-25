@@ -9366,6 +9366,9 @@ sub help_topic {
 sub open_url_in_browser {
   my $url = shift;
   if ( $htmlBrowser eq 'DO_NOT_RUN') {
+  } elsif ($^O eq 'MSWin32' and 
+	   eval { require ActiveState::Browser; 1 }) {
+    ActiveState::Browser::open($url);
   } elsif ( $htmlBrowser ne EMPTY) {
     $htmlBrowser.=" %u" unless ($htmlBrowser =~ /\%[uf1]/);
     my $cmd = $htmlBrowser;
@@ -9374,7 +9377,11 @@ sub open_url_in_browser {
     print STDERR "$cmd\n" if $tredDebug;
     if ($^O eq 'MSWin32') {
       $cmd = 'start '.$cmd unless $cmd=~/^\s*start\s/;
-      return system $cmd;
+      if ($cmd=~/iexplore.exe/i) {
+	$cmd=~s/ -nohome//g;
+	$cmd='start /B '.$cmd;
+      }
+      return system($cmd);
     } else {
       return system $cmd.' &';
     }
@@ -9388,13 +9395,10 @@ sub open_url_in_browser {
 					    $browser_key.
 					    q(\shell\open\command));
       }
-      if ($htmlBrowser ne EMPTY) {
-	$htmlBrowser = 'start '.$htmlBrowser 
-	  unless $htmlBrowser=~/^\s*start\s/;
-      } else {
+      unless ($htmlBrowser ne EMPTY) {
 	warn "Could not determine default browser.\n".
 	  "Contextual help may not jump to the correct paragraph.";
-	$htmlBrowser='start "%1"';
+	$htmlBrowser='start /B "%1"';
       }
     }
     elsif ($^O eq 'darwin') {
@@ -9656,6 +9660,7 @@ B<SYNTAX:>  C<#{name:value}> or C<#{name}>
   C<columnsep[i]        >- space before i-th column in vertical mode
   C<stackOrder          >- comma separated list of item tags defining a z-axis
                            ordering of canvas items (lowest first)
+
 H<Styles>
 
 B<SYNTAX:>  C<#{object-feature:value}>
