@@ -96,6 +96,7 @@ Getopt::Long::Configure ("bundling");
 	 "add-suffix|a=s" => \$append_suffix,
 	 "output-format|f=s" => \$output_format,
 	 "config-file|c=s" => \$config_file,
+	 "ntred-config-file=s" => \$ntred_config_file,
 	 "servers=s"    => \$srvlist,
 	 "safe-mode|F" => \$safe_mode,
 	 "serverlist=s"    => \$srvlistfile,
@@ -122,13 +123,14 @@ Getopt::Long::Configure ("bundling");
 	);
 GetOptions(%optmap) or $usage=1;
 
-if (-f "$ENV{HOME}/.ntredrc") {
+$ntred_config_file ||="$ENV{HOME}/.ntredrc";
+if (-f $ntred_config_file) {
   my %any_opt = map { my $k = $_;
 		      my $opts = $_;
 		      $opts=~s/=.*//;
 		      map { ( $_ => $k ) } split /\|/,$opts
 		    } keys %optmap;
-  open my $fh, '<', "$ENV{HOME}/.ntredrc";
+  open my $fh, '<',  $ntred_config_file;
   while (<$fh>) {
     chomp;
     s/#.*|^\s*|\s*$//g;
@@ -139,10 +141,10 @@ if (-f "$ENV{HOME}/.ntredrc") {
 	  ${$optmap{$key}} = $2;
 	}
       } else {
-	warn "Ignoring unknown .ntredrc option $1\n";
+	warn "Ignoring unknown option in $ntred_config_file: $1\n";
       }
     } elsif (/\S/) {
-      warn "Ignoring .ntredrc line $_\n";
+      warn "Ignoring bogus line in $ntred_config_file: $_\n";
     }
   }
   close $fh;
@@ -1408,6 +1410,19 @@ servers. The rest of the error output from a server is stored in a
 file <logdir>/ntred-server-<host>.log (where <logdir> can be specified
 using C<--logdir>, NTRED_LOGDIR or TMP or TEMP environment variable
 and defaults to /tmp if none of the previous exists).
+
+=head1 CONFIG FILE
+
+Options for ntred can be specified on the command line or in a config
+file (default is ~/.ntredrc, but --ntred-config-file option can be use
+to set a custom config file). The format of this file is simple: each
+non-empty line should be of the form:
+
+ option = value
+
+with leading and trailing white-space ignored and with all characters
+following a '#' ignored. Option names for the config file are the same
+as command-line options, but without leading - or --.
 
 =head1 OPTIONS
 
