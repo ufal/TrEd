@@ -122,6 +122,31 @@ Getopt::Long::Configure ("bundling");
 	);
 GetOptions(%optmap) or $usage=1;
 
+if (-f "$ENV{HOME}/.ntredrc") {
+  my %any_opt = map { my $k = $_;
+		      my $opts = $_;
+		      $opts=~s/=.*//;
+		      map { ( $_ => $k ) } split /\|/,$opts
+		    } keys %optmap;
+  open my $fh, '<', "$ENV{HOME}/.ntredrc";
+  while (<$fh>) {
+    chomp;
+    s/#.*|^\s*|\s*$//g;
+    if (/^([-A-Za-z_]+)\s*=\s*(\S.*)$/) {
+      my $key = $any_opt{$1};
+      if (defined $key ) {
+	if (!defined ${$optmap{$key}}) {
+	  ${$optmap{$key}} = $2;
+	}
+      } else {
+	warn "Ignoring unknown .ntredrc option $1\n";
+      }
+    } elsif (/\S/) {
+      warn "Ignoring .ntredrc line $_\n";
+    }
+  }
+  close $fh;
+}
 
 if ($print_version) {
   my $ver=$version;
