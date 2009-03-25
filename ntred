@@ -29,7 +29,7 @@ use vars qw($all_trees $all_nodes $no_all_trees $no_all_nodes
 	    $strip_suffix $append_suffix $output_format $term_encoding
 	    $config_file $start_context @preload_modules $btred $break
 	    $request_reload_macros $quiet $really_quiet %optmap
-	    $keep_empty_servers 
+	    $keep_empty_servers $ntred_config_file
 	    $disable_extensions $enable_extensions $request_list_extensions
 	    $version $print_version $listedfiles $regexp_files $list_options
             $olddist $count_files $logdir $userlogin $no_secondary $include_macro
