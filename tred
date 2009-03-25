@@ -903,6 +903,7 @@ sub __debug {
 sub get_open_filename {
   my $w = shift;
   my %opts=@_;
+  my $ret;
   if ($openFilenameCommand) {
     my $c = $openFilenameCommand;
     my $types = ref($opts{-filetypes}) ?
@@ -912,12 +913,17 @@ sub get_open_filename {
     $c=~s/\%t/"$title"/g;
     $c=~s/\%m/"$types"/g;
     $c=~s/\%d/"$initialdir"/g;
-    my $ret = `$c`;
+    $ret = `$c`;
     s/\s+$// for $ret;
-    return $ret;
   } else {
-    $w->getOpenFile(%opts);
+    require Encode;
+    $ret = $w->getOpenFile(%opts);
+    if (Encode::is_utf8($ret)) {
+      warn("Tk dialog returned a UTF-8 string as a filename, forcing bytes using iso-8859-1!\n");
+      $ret=Encode::encode('iso-8859-1',$ret);
+    }
   }
+  return $ret;
 }
 
 sub get_save_filename {
