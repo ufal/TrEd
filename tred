@@ -1640,6 +1640,13 @@ sub plainErrorMessage {
   }
 }
 
+sub _deleteMenu {
+  my ($menu,$item)=@_;
+  my $entry = $menu->entrycget($item,'-menu');
+  $menu->delete($item);
+  $entry->destroy if $entry;
+}
+
 # a simple dialog with one big text entry
 sub textDialog {
   my ($grp_or_win,$dialog_opts,$label1_opts,$label2_opts,$text_opts,$msg,$bind)=@_;
@@ -1653,7 +1660,7 @@ sub textDialog {
   my $t=$d->Scrolled(
     (delete $text_opts->{-readonly} ? 'ROText' : 'Text'),
     qw/-relief sunken -borderwidth 2 -scrollbars oe/,%$text_opts);
-  $t->Subwidget('scrolled')->menu->delete('File');
+  _deleteMenu($t->Subwidget('scrolled')->menu,'File');
   $t->pack(qw/-side top -expand yes -fill both/);
   $t->BindMouseWheelVert();
   if ($bind) {
@@ -1973,7 +1980,7 @@ sub updateHelpMenu {
   my $hm = $m && eval { $m->entrycget($m->index('Extension manuals'),'-menu') };
   return unless $hm;
   $hm->delete(0,'end');
-  $hm->destroy for $hm->children;
+  $_->destroy for $hm->children;
   my $preinst_dir = getPreInstalledExtensionsDir();
   my ($extensions,$pre_installed) = @{
     $opts->{preparedExtensions} ||
@@ -3124,7 +3131,7 @@ sub update_macro_menus {
   }
   if ($grp->{UserMenu}) {
     my $menu = $grp->{UserMenu}->menu;
-    $menu->delete(qw(0 end));
+    $menu->delete(0,'end');
     $_->destroy for $menu->children;
     foreach my $context ("TredMacro",grep { $_ ne "TredMacro" } sort(keys(%menuBindings))) {
       my %macro_to_key = reverse %{ $keyBindings{$context}||{} };
@@ -6670,7 +6677,7 @@ sub startMain {
 		  -height => $valueLineHeight,
 	          ($valueLineReverseLines ? () : (-wrap => $valueLineWrap))
 	      );
-  $group{valueLine}->Subwidget('scrolled')->menu->delete('File');
+  _deleteMenu($group{valueLine}->Subwidget('scrolled')->menu,'File');
   my $bf = $group{bottomFrame}=$top->Frame;
   if ($displayStatusLine) {
 #c		  -background white
@@ -6684,7 +6691,7 @@ sub startMain {
 		 ),
 	       -relief => 'sunken',
 	       -font => $vLineFont);
-    $sl->menu->delete('File');
+    _deleteMenu($sl->menu,'File');
     $sl->bind('<1>',
 			    [sub {
 				my ($w,$grp)=@_;
@@ -7381,7 +7388,8 @@ sub newUserToolbar {
 sub updateToolbarMenu {
   my ($grp)=@_;
   my $menu = $grp->{toggleUserToolbarButton}->menu();
-  $menu->delete(0,'last');
+  $menu->delete(0,'end');
+  $_->destroy for $menu->children;
   my $enabled=0;
   for my $name (sort keys %{$grp->{UserToolbarHash}}) {
     $enabled=1;
@@ -8244,7 +8252,7 @@ sub editConfig {
 		      qw/-relief sunken -borderwidth 2
 			-height 20 -scrollbars oe/);
   my $edit = $t->Subwidget('scrolled');
-  $edit->menu->delete('File');
+  _deleteMenu($edit->menu,'File');
   if ($text_opt[0] eq 'CodeText') {
     my $syntax = $edit->menu->entrycget('View','-menu')->entrycget('Syntax','-menu');
     my $last = $syntax->index('last');
@@ -9005,7 +9013,7 @@ sub populateSentencesDialog {
 		     -height 20 -scrollbars oe/,
 	     -font=>$font
 	    );
-  $t->Subwidget('scrolled')->menu->delete('File');
+  _deleteMenu($t->Subwidget('scrolled')->menu,'File');
   disable_scrollbar_focus($t);
   $t->pack(qw/-expand yes -fill both/);
   $t->BindMouseWheelVert();
@@ -9775,7 +9783,7 @@ EOF
 		       qw/-scrollbars osoe -height 35
 			  -relief sunken -borderwidth 2/);
   my $edit = $e->Subwidget('scrolled');
-  $edit->menu->delete('File');
+  _deleteMenu($edit->menu,'File');
   if ($text_opt[0] eq 'CodeText') {
     $edit->bindtags([$edit,ref($edit),$edit->toplevel,'all']);
     $edit->bind('<Tab>', sub { shift->focusNext; Tk->break });
