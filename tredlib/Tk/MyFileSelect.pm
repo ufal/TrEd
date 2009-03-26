@@ -97,6 +97,7 @@ sub Populate {
   if (defined $cw->{'fileTypes'}) {
     my $typeMenu = $typeMenuBtn->cget(-menu);
     $typeMenu->delete(0, 'end');
+    $_->destroy for $typeMenu->children;
     foreach my $ft (@filetypes) {
       my $title  = $ft->[0];
       my $filter = join(' ', @{ $ft->[1] });

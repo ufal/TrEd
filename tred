@@ -1709,6 +1709,7 @@ sub addToRecent {
   if ($grp->{RecentFileMenu}) {
     my $menu= $grp->{RecentFileMenu}->cget(-menu);
     $menu->delete(0,'end');
+    $_->destroy for $menu->children;
     my $i=0;
     foreach my $rf (@recentFiles) {
       $grp->{RecentFileMenu}->command(-label => "$i.  $rf",
@@ -1783,6 +1784,7 @@ sub updateBookmarks {
     print STDERR "Updating bookmark menu\n"  if $tredDebug;
     my $menu= $grp->{BookmarksFileMenu}->menu;
     $menu->delete(0,'end');
+    $_->destroy for $menu->children;
     $grp->{BookmarksFileMenu}->command(-label=> 'Add to Bookmarks filelist',
 				       -underline=> 0,
 				       -command=> [ \&addBookmark,$grp ]);
@@ -1819,6 +1821,7 @@ sub updatePostponed {
     print STDERR "Updating session menu\n"  if $tredDebug;
     my $menu= $grp->{PostponedFileMenu}->menu;
     $menu->delete(0,'end');
+    $_->destroy for $menu->children;
     $grp->{PostponedFileMenu}->command(-label=> 'Extensions',
 				       -state=> 'disabled',
 				       -background=> '#444444'
@@ -1885,6 +1888,7 @@ sub updatePostponed {
   my $b_menu= $grp->{BookmarksFileMenu}->menu->entrycget('Add to other *','-menu');
   if ($b_menu) {
     $b_menu->delete(0,'end');
+    $_->destroy for $b_menu->children;
     createFilelistsMenu($grp, $b_menu, [\&addBookmark, $grp],1);
   }
 }
@@ -1968,7 +1972,8 @@ sub updateHelpMenu {
   my $m =$grp->{HelpMenu}->menu;
   my $hm = $m && eval { $m->entrycget($m->index('Extension manuals'),'-menu') };
   return unless $hm;
-  $hm->delete(0,'last');
+  $hm->delete(0,'end');
+  $hm->destroy for $hm->children;
   my $preinst_dir = getPreInstalledExtensionsDir();
   my ($extensions,$pre_installed) = @{
     $opts->{preparedExtensions} ||
@@ -3102,7 +3107,6 @@ sub update_macro_menus {
     if $grp->{ContextsMenu};
   if ($grp->{MacroMenu}) {
     my $menu = $grp->{MacroMenu}->menu;
-    $menu->delete(qw(0 end));
     foreach my $context (sort(keys(%keyBindings))) {
       $menu->Cascade( -label => $context,
 		      -menuitems=>
@@ -3121,6 +3125,7 @@ sub update_macro_menus {
   if ($grp->{UserMenu}) {
     my $menu = $grp->{UserMenu}->menu;
     $menu->delete(qw(0 end));
+    $_->destroy for $menu->children;
     foreach my $context ("TredMacro",grep { $_ ne "TredMacro" } sort(keys(%menuBindings))) {
       my %macro_to_key = reverse %{ $keyBindings{$context}||{} };
       $menu->Cascade( -label => $context,
@@ -12021,6 +12026,7 @@ sub update_minor_modes {
   if ($grp_or_win == $grp and $grp->{minorModesMenu}) {
     my $menu= $grp->{minorModesMenu}->cget('-menu');
     $menu->delete(0,'end');
+    $_->destroy for $menu->children;
     my $i=0;
     foreach my $name (sort keys %{$grp->{minorModes}||{}}) {
       $grp->{minorModesMenu}->command(-label => _minor_ctxt_abbrev($grp,$name).":  $name",
