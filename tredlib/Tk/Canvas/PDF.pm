@@ -452,9 +452,12 @@ sub draw_canvas {
 	  $draw->linedash();
 	  $draw->linecap(0);
 	  $draw->linejoin(0);
-	  $draw->rotate($angle);
+	  $draw->rotate(($angle+180) % 360);
 	  $draw->move(0,0);
-	  $draw->line($ars->[1],$ars->[2], $ars->[0],0, $ars->[1],-$ars->[2], 0,0);
+	  $draw->linewidth(0);
+	  $draw->poly(0,0,-$ars->[1],$ars->[2]+$width,
+	  	      -$ars->[0],0,
+	  	      -$ars->[1], -$ars->[2]-$width, 0,0);
 	  $draw->close;
 	  $draw->fillstroke;
 	  $draw->restore;
