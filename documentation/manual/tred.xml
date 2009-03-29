@@ -4097,10 +4097,29 @@ Tk: 804.028
 	      <para>
 		The coordinates may be either absolute or relative to
 		the node, its parent, or if necessary to any node in
-		the tree. In fact, usual arithmetic expressions may be
-		used to compute coordinates. Use letter
+		the tree. In fact, 
+		each corrdinate can be specified as an
+		arithmetic expressions 
+		involving the operations 
+		<literal>+</literal>, <literal>-</literal>,
+		<literal>*</literal>, <literal>/</literal>,
+                <literal>%</literal> (modulus),
+		functions 
+		<literal>abs()</literal>,
+		<literal>sgn()</literal>, and
+		<literal>sqrt()</literal>, and
+		the ternary operator
+		<literal>condition ? exp-if-true : exp-if-else</literal>
+		where condition can be a boolean expression
+		involving 
+		<literal>&&</literal> as conjunction, <literal>||</literal>
+		as disjunction,
+		and <literal>==</literal>, <literal>&lt;</literal>
+		<literal>&gt;</literal>,
+		<literal>&lt;=</literal>, and
+		<literal>&gt;=</literal> as numeric comparison operators. Use the letter
 		<literal moreinfo="none">n</literal> to refer to the coordinate of the
-		current node on the current axes and letter
+		current node on the current axes and the letter
 		<literal moreinfo="none">p</literal> to refer to the coordinate of the
 		parent node of the current node.  Use
 		<literal moreinfo="none">xn</literal> and <literal moreinfo="none">yn</literal>, or
