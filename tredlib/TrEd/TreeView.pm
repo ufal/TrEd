@@ -1174,7 +1174,7 @@ sub node_coords {
   my $shape = $node_style->{'-shape'};
   if ($shape ne 'polygon') {
     my ($nw,$nh);
-    if ($node_style->{'-surroundtext'}) {
+    if ($node_style->{'-surroundtext'} and $NI->{"TextBoxCoords"}) {
       @ret = @{$NI->{"TextBoxCoords"}};
       my $addw = $NI->{"NodeSurroundWidth"};
       my $addh = $NI->{"NodeSurroundHeight"};
@@ -1422,6 +1422,8 @@ sub parse_coords_spec {
   return $coords;
 }
 
+sub sgn { $_[0]<0 ? -1 : $_[0]==0 ? 0 : 1 }
+
 {
   my ($HAVE_PARENT,$XP,$YP,$XN,$YN); # persistent variables for precompiled subs
 sub eval_coords_spec {
@@ -1438,7 +1440,7 @@ sub eval_coords_spec {
     return($cached->());
   } else {
     $c=~s{([xy][np])}{ \U\$$1 }g;
-    if ($c=~/[np]/) {
+    if ($c=~/(?<![a-z])[np]/) {
       my $x=0;
       my $cc;
       $c=join ',',
@@ -1446,14 +1448,14 @@ sub eval_coords_spec {
 	  $x=!$x;
 	  $cc = $_;
 	  if ($x) {
-	    $cc=~s{([np])}{ \$X\U$1 }g;
+	    $cc=~s{(?<![a-z])([np])}{ \$X\U$1 }g;
 	  } else {
-	      $cc=~s{([np])}{ \$Y\U$1 }g;
+	      $cc=~s{(?<![a-z])([np])}{ \$Y\U$1 }g;
 	    }
 	  $cc
 	} split/,/,$c;
     }
-    if ($c=~/^(?:,| \$[XY]N | \$[XY](P) |[-\s+\?:.\/*%\(\)0-9]|&&|\|\||!|\>|\<(?!>)|==|\>=|\<=|sqrt\(|abs\()*$/) {
+    if ($c=~/^(?:,|sqrt\(|abs\(|sgn\(| \$[XY]N | \$[XY](P) |[-\s+\?:.\/*%\(\)0-9]|&&|\|\||!|\>|\<(?!>)|==|\>=|\<=)*$/) {
       if ($1) {
 	$cached = $COORD_SPEC_CACHE{$key} = eval "sub{ \$HAVE_PARENT ? ( $c ) : () }";
       } else {

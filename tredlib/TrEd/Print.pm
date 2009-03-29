@@ -380,7 +380,10 @@ sub print_trees {
 	  } else {
 	    $valtext = $treeView->value_line($fsfile,$printList[$t]-1,1,0);
 	  }
-	  $treeView->redraw($fsfile,undef,$nodes,$valtext,undef,$grp_ctx);
+	  {
+	    local $grp_ctx->{treeView}=$treeView if $grp_ctx;
+	    $treeView->redraw($fsfile,undef,$nodes,$valtext,undef,$grp_ctx);
+	  }
 	};
 	my $width=$c->fpixels($treeView->get_canvasWidth)+10;
 	my $height=$c->fpixels($treeView->get_canvasHeight)+10;
@@ -497,7 +500,10 @@ sub print_trees {
 	  } else {
 	    $valtext = $treeView->value_line($fsfile,$printList[$t]-1,1,0);
 	  }
-	  $treeView->redraw($fsfile,undef,$nodes,$valtext,undef,$grp_ctx);
+	  {
+	    local $grp_ctx->{treeView}=$treeView if $grp_ctx;
+	    $treeView->redraw($fsfile,undef,$nodes,$valtext,undef,$grp_ctx);
+	  }
 	};
 
 	my $rotate = !$toEPS && !$noRotate
