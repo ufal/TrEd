@@ -187,7 +187,7 @@ sentence.
     my$to=QueryString("Give a Tree Number or ID","Tree or Node Identificator");
     my @trees = GetTrees();
     ChangingFile(0);
-    if($to =~ /^(\d+)(?:\.(\d+))$/){ # number
+    if($to =~ /^(\d+)(?:\.(\d+))?$/){ # number
       my ($tree_no,$node_no) = ($1,$2);
       if ($tree_no <= @trees and $tree_no > 0) {
 	my $ret = TredMacro::GotoTree($tree_no);
