@@ -688,7 +688,11 @@ sub _populate_extension_pane {
   $text->pack(-expand=>1,-fill=>'both');
   #$text->Subwidget('scrolled')->configure(-state=>'disabled');
   unless ($opts->{pane}) {
-    $text->TextSearchLine(-parent => $d, -label=>'S~earch')->pack(qw(-fill x));
+    $text->TextSearchLine(-parent => $d,
+			  -label=>'S~earch',
+			  -prev_img =>main::icon($tred,'16x16/up'),
+			  -next_img =>main::icon($tred,'16x16/down'),
+			 )->pack(qw(-fill x));
     $opts->{pane}=$text;
   }
   $text->see('0.0');
