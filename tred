@@ -445,11 +445,12 @@ use Exporter;
 	 );
 
 @open_types=
-  (["Supported",  [qw/.fs .pls .t .a .xml .fs.gz .pls.gz .t.gz .a.gz .xml.gz/]],
+  (["Supported",  [qw/.fs .pls .pml .t .a .fs.gz .pls.gz .pml.gz .t.gz .a.gz/]],
    ["FS files",           [qw/.fs .FS .Fs .fs.gz .FS.gz/]],
    ["CSTS files",           [qw/.cst .csts .cst.gz .csts.gz/]],
    ["Perl Storable files",  [qw/.pls .pls.gz/]],
-   ["PDT-PML files",  [qw/.t .a .t.gz .a.gz .pml .pml.gz .xml .xml.gz/]],
+   ["PDT-PML files",  [qw/.t .a .t.gz .a.gz .m .m.gz .pml .pml.gz .xml .xml.gz/]],
+   ["XML files",           [qw/.xml .xml.gz .pml .pml.gz/]],
    ["All files",        '*']
   );
 
@@ -3019,6 +3020,21 @@ sub initSidePanel {
 	   $fsel->ReadDir($fsel->getCWD);
 	 },$grp,$fsel]
 	],
+	['Cascade' => '~Filter',
+	 -tearoff => 0,
+	 -menuitems => [
+	   map {
+	     [ Button => $_->[0],
+	       -command => [
+		 sub {
+		   my ($fsel,$filter)=@_;
+		   $fsel->SetFilter('',$filter);
+		 },$fsel,(ref($_->[1]) ? join(' ',@{$_->[1]}) : $_->[1])
+		],
+	      ]
+	   } @open_types
+	 ]
+	],
       ]
     );
     $fsel->Subwidget('filelist')->bind('<3>', sub { my ($w)=@_; $menu->Post($w->pointerxy); Tk->break; });
@@ -3753,8 +3769,8 @@ sub filelistDialog {
 			       )->pack(qw/-expand yes -fill both -side left/);
   $labframe->Subwidget('label')->configure(-underline => 0);
   my $fl= $labframe->MyFileSelect(-selectmode=> 'extended',
-				  -takefocus => 1,
-				  -filetypes=> \@open_types)
+				  -takefocus => 1
+				 )
     ->pack(qw/-expand yes -fill both -side left -padx 5 -pady 5/);
   $fl->Subwidget('filelist')->configure(-background => 'white', -setgrid => 1);
   $d->bind("<Alt-f>",[$fl->Subwidget('filelist')->Subwidget('scrolled'),'focus']);
@@ -8283,11 +8299,16 @@ sub editConfig {
 	     }
 	   });
   $t->pack(qw/-side top -expand yes -fill both/);
-  $t->TextSearchLine(-parent => $d, -label=>'S~earch')->pack(qw(-fill x));
 
   disable_scrollbar_focus($t);
   $t->BindMouseWheelVert();
   my $bottom=$d->Frame()->pack(qw/-side bottom -fill x/);
+  $t->TextSearchLine(-parent => $d,
+		     -label=>'S~earch',
+		     -prev_img =>icon($grp,'16x16/down'),
+		     -next_img =>icon($grp,'16x16/up'),
+		    )->pack(qw(-fill x -side top));
+
   $bottom->
     Button(-text=> "  Save and Apply  ",
 	   -underline => 2,
@@ -9010,15 +9031,23 @@ sub populateSentencesDialog {
   my $t= $d->
     Scrolled(qw/ROText -relief sunken -borderwidth 2 -setgrid true
 		     -wrap word
-		     -height 20 -scrollbars oe/,
+		     -height 20
+		     -scrollbars oe/,
 	     -font=>$font
 	    );
+
   _deleteMenu($t->Subwidget('scrolled')->menu,'File');
   disable_scrollbar_focus($t);
   $t->pack(qw/-expand yes -fill both/);
+  $t->TextSearchLine(-parent => $d,
+		     -label=>'S~earch',
+		     -prev_img =>icon($grp,'16x16/down'),
+		     -next_img =>icon($grp,'16x16/up'),
+		    )->pack(qw(-fill x));
+
   $t->BindMouseWheelVert();
   $grp->{sentDialogText}=$t;
-  my $bottom=$d->Frame()->pack(qw/-expand yes -fill both/);
+  my $bottom=$d->Frame()->pack(qw/-expand 0 -fill x/);
 
   if ($close_button) {
     $bottom->Button(-text=> "Close",
@@ -9053,7 +9082,6 @@ sub populateSentencesDialog {
 		  -variable => \$grp->{expandSentView},
 		  -command=>[ \&sentViewToggleCollapse,$grp,$t])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
-
   $d->BindButtons;
   reloadSentenceView($grp,$t,$selref);
 }
@@ -9891,7 +9919,10 @@ EOF
     $e->insert('0.0',$patterns."\n");
   }
   $e->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
-  $e->TextSearchLine(-parent => $cf,-label=>'S~earch')->pack(qw(-fill x -side bottom));
+  $e->TextSearchLine(-parent => $cf,-label=>'S~earch',
+		     -prev_img =>icon($grp,'16x16/down'),
+		     -next_img =>icon($grp,'16x16/up'),
+		    )->pack(qw(-fill x -side bottom));
 
   $cf->pack(qw/-padx 5 -side left -expand yes -fill both/);
 
