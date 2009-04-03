@@ -8305,8 +8305,8 @@ sub editConfig {
   my $bottom=$d->Frame()->pack(qw/-side bottom -fill x/);
   $t->TextSearchLine(-parent => $d,
 		     -label=>'S~earch',
-		     -prev_img =>icon($grp,'16x16/down'),
-		     -next_img =>icon($grp,'16x16/up'),
+		     -prev_img =>icon($grp,'16x16/up'),
+		     -next_img =>icon($grp,'16x16/down'),
 		    )->pack(qw(-fill x -side top));
 
   $bottom->
@@ -9041,8 +9041,8 @@ sub populateSentencesDialog {
   $t->pack(qw/-expand yes -fill both/);
   $t->TextSearchLine(-parent => $d,
 		     -label=>'S~earch',
-		     -prev_img =>icon($grp,'16x16/down'),
-		     -next_img =>icon($grp,'16x16/up'),
+		     -prev_img =>icon($grp,'16x16/up'),
+		     -next_img =>icon($grp,'16x16/down'),
 		    )->pack(qw(-fill x));
 
   $t->BindMouseWheelVert();
@@ -9920,8 +9920,8 @@ EOF
   }
   $e->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
   $e->TextSearchLine(-parent => $cf,-label=>'S~earch',
-		     -prev_img =>icon($grp,'16x16/down'),
-		     -next_img =>icon($grp,'16x16/up'),
+		     -prev_img =>icon($grp,'16x16/up'),
+		     -next_img =>icon($grp,'16x16/down'),
 		    )->pack(qw(-fill x -side bottom));
 
   $cf->pack(qw/-padx 5 -side left -expand yes -fill both/);
