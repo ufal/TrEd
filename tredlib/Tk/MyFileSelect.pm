@@ -46,7 +46,7 @@ sub Populate {
   $cw->ConfigSpecs(-filetypes        => ['PASSIVE', undef, undef, undef]);
 
   $cw->{fileTypes} = my $fileTypes = delete $args->{-filetypes};
-  my(@filetypes) = GetFileTypes($cw->{'fileTypes'});
+  my(@filetypes) = GetFileTypes($fileTypes);
   $cw->ConfigSpecs(
     -font => [ 'DESCENDANTS'],
     -showhidden => ['PASSIVE',undef,undef, 0],
@@ -80,21 +80,20 @@ sub Populate {
   $hlist->bind('<Double-1>', [ $cw, 'ChDir' ]);
   $hlist->bind('<Return>', [ $cw, 'ChDir' ]);
 
-  $cw->{'typeMenuBtn'} = my $typeMenuBtn =
-    $cw->Menubutton(-indicatoron => 1, -tearoff => 0,
-		    -takefocus => 1,
-		    -highlightthickness => 2,
-		    -relief => 'raised',
-		    -bd => 2,
-		    -anchor => 'w')
-      ->pack(qw /-side top -expand no -pady 0 -fill x/);
-
-
   $cw->Advertise(filelist => $hlist );
   $cw->Advertise(entry => $entry );
-  $cw->Advertise(typeMenuBtn => $typeMenuBtn );
 
   if (defined $cw->{'fileTypes'}) {
+
+    $cw->{'typeMenuBtn'} = my $typeMenuBtn =
+      $cw->Menubutton(-indicatoron => 1, -tearoff => 0,
+		      -takefocus => 1,
+		      -highlightthickness => 2,
+		      -relief => 'raised',
+		      -bd => 2,
+		      -anchor => 'w')
+	->pack(qw /-side top -expand no -pady 0 -fill x/);
+    $cw->Advertise(typeMenuBtn => $typeMenuBtn );
     my $typeMenu = $typeMenuBtn->cget(-menu);
     $typeMenu->delete(0, 'end');
     $_->destroy for $typeMenu->children;
@@ -110,8 +109,6 @@ sub Populate {
     $typeMenuBtn->configure(-state => 'normal');
   } else {
     $cw->configure(-filter => '*');
-    $typeMenuBtn->configure(-state => 'disabled',
-			    -takefocus => 0);
   }
 
   $cw->ChangeDir(defined($startDir) ? $startDir : ".");
@@ -196,10 +193,19 @@ sub UpdateEntry {
       unshift @subs, Win32API::File::getLogicalDrives();
       unshift @subs, undef;
     }
+    if (defined $ENV{HOME} and -d $ENV{HOME}) {
+      unshift @subs, ['HOME',$ENV{HOME}];
+      unshift @subs, undef;
+    }
     unshift (@subs,substr $dir,0,$i+1) 
       while (($i=index($dir,$splitchar,$i+1))>=0);
     foreach (@subs) {
-      if (defined($_)) {
+      if (ref($_)) {
+	$entries->command
+	  (-label => $_->[0],
+	   -command => ['ChangeDir', $cw, $_->[1]]
+	  );
+      } elsif (defined($_)) {
 	$entries->command
 	  (-label => $_,
 	   -command => ['ChangeDir', $cw, $_]
@@ -217,8 +223,10 @@ sub UpdateEntry {
 sub SetFilter {
     my($w, $title, $filter) = @_;
     $w->configure(-filter => $filter);
-    $w->{'typeMenuBtn'}->configure(-text => $title,
-				   -indicatoron => 1);
+    if ($w->{'typeMenuBtn'}) {
+      $w->{'typeMenuBtn'}->configure(-text => $title,
+				     -indicatoron => 1);
+    }
     $w->ChangeDir("");
 }
 

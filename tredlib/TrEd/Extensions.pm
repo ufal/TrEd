@@ -9,6 +9,7 @@ use File::Spec;
 use File::Glob qw(:glob);
 
 use URI;
+use URI::file;
 
 BEGIN {
   require Exporter;
@@ -904,7 +905,19 @@ EOF
       }
       next;
     }
-    unless ($zip->extractTree( '', $dir.'/' ) == Archive::Zip::AZ_OK()) {
+    if ($zip->extractTree( '', $dir.'/' ) == Archive::Zip::AZ_OK()) {
+      # try to restore executable bit
+      if ($^O ne 'MSWin32') {
+	for my $member ( $zip->members ) {
+	  my $exe_perms = ($member->unixFileAttributes & 0111);
+	  if ($exe_perms) {
+	    my $fn = File::Spec->catfile($dir,URI::file->new($member->fileName)->file);
+	    my $perms = ((stat $fn)[2] & 0777);
+	    chmod(($perms | $exe_perms), $fn) if $perms;
+	  }
+	}
+      }
+    } else {
       my $err = "Extracting files from ${url}.zip failed!\n";
       if ($opts->{tk}) {
 	$opts->{tk}->ErrorReport(
@@ -918,6 +931,7 @@ EOF
       }
       next;
     }
+    
     @extension_file = ((grep { !/^\!?\Q$name\E\s*$/ } @extension_file),$name);
     if (ref $opts->{progress}) {
       ${$opts->{progress}}++;
