@@ -6045,7 +6045,7 @@ sub startMain {
 #  } unless -t \*STDOUT;
 #  undef $@;
   $top->optionAdd("*font",$guiFont) if $guiFont;
-  for (qw(ROText Text Entry HistEntry SimpleHistEntry
+  for (qw(ROText Text TextUndo Entry HistEntry SimpleHistEntry
 	  Listbox HList CodeText)) {
     $top->optionAdd("\*$_.background","white");
     $top->optionAdd("\*$_.foreground","black");
