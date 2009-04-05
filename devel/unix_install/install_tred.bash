@@ -53,7 +53,7 @@ install_from_cpan="${TOOL_DIR}/install_from_cpan.pl"
 #CPAN_DIR=
 if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
 
-VERSION=0.4
+VERSION=0.5
 PRINT_USAGE=0
 PRINT_HELP=0
 PRINT_VERSION=0
@@ -77,7 +77,6 @@ while [ $# -gt 0 ]; do
 	-p|--prefix) PREFIX=$(readlink_nf "$2"); shift 2; ;;
 	-T|--tred-dir) TRED_DIR=$(readlink_nf "$2"); shift 2; ;;
 	-t|--tred-prefix) TRED_TARGET_DIR=$(readlink_nf "$2"); shift 2; ;;
-	-T|--tred-dir) TRED_DIR=$(readlink_nf "$2"); shift 2; ;;
 #	-c|--cpan-dir) CPAN_DIR=$(readlink_nf "$2"); shift 2; ;;
 	-D|--debug) DEBUG=1; shift ;;
 	-q|--quiet) QUIET=1; shift ;;
@@ -186,6 +185,7 @@ if [ "$PRINT_USAGE" = 1 ]; then usage; exit; fi
 if [ -z "$PREFIX" ] && [ -z "$TRED_TARGET_DIR" ] && [ -z "$TRED_DIR" ]; then
     cat <<EOF 1>&2
 Do not know where to install: please specify a prefix (--prefix)!
+Note: at least parent directories must exist!
 
 EOF
     usage;
@@ -216,10 +216,12 @@ else
     RUN_TRED_DIR="${PREFIX}/bin"
 fi
 
+
 echo PREFIX: "$PREFIX"
 if [ ! "x$LIBS_ONLY" = "x1" ]; then
     echo TRED_DIR: "$TRED_DIR"
 fi
+echo RUN_TRED_DIR: "$RUN_TRED_DIR"
 
 ACTION=""
 fail () {
@@ -291,7 +293,7 @@ if [ "x$NO_LIBS" != x1 ]; then
     rm tred-dep-unix.tar.gz
     pushd packages_unix
 
-    if [ ! -d "$PREFIX" ]; then
+    if [ -n "$PREFIX" ] && [ ! -d "$PREFIX" ]; then
 	action  "Creating $PREFIX"
 	mkdir -p "$PREFIX" || fail
     fi
@@ -314,9 +316,13 @@ if [ "x$NO_LIBS" != x1 ]; then
     cat <<EOF > "$RUN_TRED_DIR"/init_tred_environment
 # Setup paths for installed TrEd dependencies
 export TRED_DIR="${TRED_DIR}"
+EOF
+    if [ -n "$PREFIX" ]; then
+	cat <<EOF >> "$RUN_TRED_DIR"/init_tred_environment
 export TRED_DEPENDENCIES="${PREFIX%/}"
 PATH="\${TRED_DEPENDENCIES}/bin:\${PATH}"
 EOF
+   fi
     ./install --bash-env "${inst_opts[@]}" | sed "s|${PREFIX}|\${TRED_DEPENDENCIES}|g" \
 	>> "$RUN_TRED_DIR"/init_tred_environment
 
