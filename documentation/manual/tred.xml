@@ -4112,7 +4112,7 @@ Tk: 804.028
 		<literal>condition ? exp-if-true : exp-if-else</literal>
 		where condition can be a boolean expression
 		involving 
-		<literal>&&</literal> as conjunction, <literal>||</literal>
+		<literal>&amp;&amp;</literal> as conjunction, <literal>||</literal>
 		as disjunction,
 		and <literal>==</literal>, <literal>&lt;</literal>
 		<literal>&gt;</literal>,
