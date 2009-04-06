@@ -5899,11 +5899,17 @@ sub createCanvasBindings {
     $canvas->bind($tag, '<1>'=> [sub {node_down(@_) },$grp,0]);
     $canvas->bind($tag, '<B1-Motion>'=> [sub {node_move(@_) },$grp,0]);
     $canvas->bind($tag, '<ButtonRelease-1>'=> [sub {node_release(@_)},$grp,0]);
-  }
-
-  # Text 1 modif
-  foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('text', "<$_-Button-1>"=> [sub {text_click_modif(@_)},$grp,$_]);
+    foreach (qw(Shift Control Alt Meta)) {
+      $canvas->bind($tag, "<$_-B1-Motion>"=> [sub {node_motion_modif(@_)},$grp]);
+      $canvas->bind($tag, "<$_-B2-Motion>"=> [sub {node_motion_modif(@_)},$grp,"$_-2"]);
+      $canvas->bind($tag, "<$_-B3-Motion>"=> [sub {node_motion_modif(@_)},$grp,"$_-3"]);
+      $canvas->bind($tag, "<$_-ButtonRelease-1>"=> [sub {node_release_modif(@_)},$grp,$_]);
+      $canvas->bind($tag, "<$_-ButtonRelease-2>"=> [sub {node_release_modif(@_)},$grp,"$_-2"]);
+      $canvas->bind($tag, "<$_-ButtonRelease-3>"=> [sub {node_release_modif(@_)},$grp,"$_-3"]);
+      $canvas->bind($tag, "<$_-Button-1>"=> [sub {text_click_modif(@_)},$grp,$_]);
+      $canvas->bind($tag, "<$_-Button-2>"=> [sub {text_click_modif(@_); Tk->break; },$grp,"$_-2"]);
+      $canvas->bind($tag, "<$_-Button-3>"=> [sub {text_click_modif(@_); Tk->break; },$grp,"$_-3"]);
+    }
   }
 
   # Text Dobule-1
@@ -5912,18 +5918,9 @@ sub createCanvasBindings {
     $canvas->bind('text', "<$_-Double-1>"=> [sub {text_doubleclick_modif(@_)},$grp,$_]);
   }
 
-  # TextBg
-  foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('textbg', "<$_-Button-1>"=> [sub {text_click_modif(@_); Tk->break; },$grp,$_]);
-  }
   $canvas->bind('textbg', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },$grp]);
   foreach (qw(Shift Control Alt Meta)) {
     $canvas->bind('textbg', "<$_-Double-1>"=> [sub {text_doubleclick_modif(@_); Tk->break; },$grp,$_]);
-  }
-
-  # TextBg 3
-  foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('textbg', "<$_-Button-3>"=> [sub {text_click_modif(@_); Tk->break; },$grp,"$_-3"]);
   }
 
   # Double-1  
