@@ -40,7 +40,50 @@ use vars qw($svn_version $version $about $opt_u $opt_h $opt_c $opt_y
 	    $manpage $listoptions $no_backups $no_locks %optmap $carp
 	    $tred_d $VERSION
 	    $enable_extensions $disable_extensions
+            $command
            );
+
+use Getopt::Long;
+use Pod::Usage;
+
+my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
+%optmap =  (
+  'quiet|q' => \$opt_q,
+  'macro-file|m=s' => \$opt_m,
+  'config-file|c=s' => \$opt_c,
+  'filelist|l=s' => \$opt_l,
+  'context|t=s' => \$opt_t,
+  'file-encoding|n=s' => \$opt_n,
+  'split-window|p=i' => \$opt_p,
+  'version|v' => \$opt_v,
+  'help|h' => \$opt_h,
+  'usage|u' => \$opt_u,
+  'window-embed|W=s' => \$opt_W,
+  'no-geometry|G' => \$opt_G,
+  'include-macro-file|I=s' => \$opt_I,
+  'show-hidden-nodes|H' => \$opt_H,
+  'debugging|D' => \$opt_D,
+  'no-secondary-files|Y' => \$opt_Y,
+  'extra-backends|B=s' => \$opt_B,
+  'tectogrammatical-trees|R' => \$opt_R,
+  'csts-tree-attributes|X=s' => \$opt_X,
+  'stylesheet|s=s' => \$opt_s ,
+  'stylesheet-file|S=s' => \$opt_S,
+  'resource-dir|Z=s' => \$opt_Z,
+  'define-symbol|y=s' => \$opt_y,
+  'execute|e=s' => \$opt_e,
+  'man' => \$manpage,
+  "list-options" => \$list_options,
+  "no-backups" => \$no_backups,
+  "no-locks" => \$no_locks,
+  "autosave=i" => \$opt_auto_save,
+  "carp" => \$carp,
+  "enable-extensions=s" => \$enable_extensions,
+  "disable-extensions=s" => \$disable_extensions,
+  "command|C" => \$command,
+);
+$optparser->getoptions(%optmap) or $opt_u=1;
+
 
 $about=
   "Copyright (c) 2000-2008 by Petr Pajas\n".
@@ -110,44 +153,6 @@ use Tk::Font;
 Tk::CmdLine::SetArguments();
 
 # Once we got rid of them we call getopt to read all the other options
-use Getopt::Long;
-use Pod::Usage;
-my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
-%optmap =  (
-  'quiet|q' => \$opt_q,
-  'macro-file|m=s' => \$opt_m,
-  'config-file|c=s' => \$opt_c,
-  'filelist|l=s' => \$opt_l,
-  'context|t=s' => \$opt_t,
-  'file-encoding|n=s' => \$opt_n,
-  'split-window|p=i' => \$opt_p,
-  'version|v' => \$opt_v,
-  'help|h' => \$opt_h,
-  'usage|u' => \$opt_u,
-  'window-embed|W=s' => \$opt_W,
-  'no-geometry|G' => \$opt_G,
-  'include-macro-file|I=s' => \$opt_I,
-  'show-hidden-nodes|H' => \$opt_H,
-  'debugging|D' => \$opt_D,
-  'no-secondary-files|Y' => \$opt_Y,
-  'extra-backends|B=s' => \$opt_B,
-  'tectogrammatical-trees|R' => \$opt_R,
-  'csts-tree-attributes|X=s' => \$opt_X,
-  'stylesheet|s=s' => \$opt_s ,
-  'stylesheet-file|S=s' => \$opt_S,
-  'resource-dir|Z=s' => \$opt_Z,
-  'define-symbol|y=s' => \$opt_y,
-  'execute|e=s' => \$opt_e,
-  'man' => \$manpage,
-  "list-options" => \$list_options,
-  "no-backups" => \$no_backups,
-  "no-locks" => \$no_locks,
-  "autosave=i" => \$opt_auto_save,
-  "carp" => \$carp,
-  "enable-extensions=s" => \$enable_extensions,
-  "disable-extensions=s" => \$disable_extensions,
-);
-$optparser->getoptions(%optmap) or $opt_u=1;
 
 $SIG{__DIE__} = sub { confess(@_) } if $carp;
 
@@ -192,7 +197,7 @@ if (exists $ENV{TREDHOME}) {
 } elsif (-d "$FindBin::RealBin/../lib/tred") {
   $libDir="$FindBin::RealBin/../lib/tred";
 }
-print "Libdir: $libDir\n" if ($libDir and !$opt_q);
+print "Libdir: $libDir\n" if ($libDir and $opt_D);
 
 $macroFile=undef;
 
@@ -240,6 +245,35 @@ if (-d $libDir) {
 }
 
 } # BEGIN
+
+my $pid_file = File::Spec->catfile($tred_d,'tred.pid');
+use Fcntl;
+
+if ($command) {
+  if (open(my $fh, '<',$pid_file)) {
+    my $pid = <$fh>;
+    close $fh;
+    if ($pid and kill(0,$pid)) {
+      my $cmd_file = File::Spec->catfile($tred_d,'cmd_'.$pid);
+      if (sysopen(my $fh, $cmd_file, O_TRUNC|O_CREAT|O_WRONLY, 0600)) {
+	print $fh join("\0",@ARGV);
+	close $fh;
+	kill "USR2", $pid;
+      }
+      exit(0);
+    }
+  }
+  if ($ARGV[0] eq 'open') {
+    shift;
+  } else {
+    exit(1);
+  }
+}
+if (open(my $fh, '>',$pid_file)) {
+  print $fh $$;
+  close $fh;
+}
+
 
 _set_encoding(\*STDERR,':utf8',"STDERR");
 _set_encoding(\*STDOUT,':utf8',"STDOUT");
@@ -845,7 +879,21 @@ startMain();	# display first tree
 
 print STDERR "TrEd ended.\n" unless $opt_q;
 
-exit;
+exit_tred();
+
+sub exit_tred {
+  if (open(my $fh, '<',$pid_file)) {
+    my $pid = <$fh>;
+    if ($pid==$$) {
+      unlink $pid_file;
+    }
+  }
+  if (@_) {
+    POSIX::_exit(@_);
+  } else {
+    exit();
+  }
+}
 
 ############################
 ############################
@@ -5494,14 +5542,21 @@ sub About {
 	$grp->{focusedWindow}->{FSFile}->filename."\n".
 	  "Format: ".$grp->{focusedWindow}->{FSFile}->fileFormat.", ".$grp->{focusedWindow}->{FSFile}->lastTreeNo." trees\n";
     $contextinfo="Current context: ".$grp->{focusedWindow}->{macroContext}."\n";
-    my %colinf=(Shadow=> [], Hilite=>, XHilite=> []);
+    my %colinf=(Shadow=> [], Hilite=> [], XHilite=> []);
+    my $some_color;
     foreach ($grp->{focusedWindow}->{FSFile}->FS->attributes) {
-      push @{$colinf{$grp->{focusedWindow}->{FSFile}->FS->color($_)}},$_
-	unless ($grp->{focusedWindow}->{FSFile}->FS->color($_) eq 'normal');
+      my $color = $grp->{focusedWindow}->{FSFile}->FS->color($_);
+      unless ($color eq 'normal') {
+	push @{$colinf{$color}},$_ ;
+	$some_color=1;
+      }
     }
-    $colinf="Coloured attributes:\n    Highlited: ".join(",",@{$colinf{Hilite}}).
-      "\n    XHighlited: ".join(",",@{$colinf{XHilite}}).
+    if ($some_color) {
+      $colinf="Coloured attributes:".
+	"\n    Highlited: ".join(",",@{$colinf{Hilite}}).
+	"\n    XHighlited: ".join(",",@{$colinf{XHilite}}).
 	"\n    Shadow: ".join(",",@{$colinf{Shadow}})."\n";
+    }
   }
 
   doEvalHook($grp->{focusedWindow},"about_file_hook",\$message);
@@ -7167,7 +7222,7 @@ sub startMain {
   if (doEvalHook($group{focusedWindow},"init_hook") eq 'stop') {
     $top->Unbusy;
     print STDERR "Stopped by init_hook\n";
-    exit;
+    exit_tred();
   }
   my $stylesheet=$opt_s || STYLESHEET_FROM_FILE();
   $group{selectedStylesheet}=$stylesheet;
@@ -7206,7 +7261,7 @@ sub startMain {
       closeAllFiles(\%group);
       print STDERR "Good bye!\n";
       $top->destroy;
-      POSIX::_exit 1;
+      exit_tred(1);
     }
   };
 
@@ -7246,7 +7301,7 @@ sub startMain {
   if (doEvalHook($group{focusedWindow},"start_hook") eq 'stop') {
     $top->Unbusy;
     print STDERR "Stopped by start_hook\n";
-    exit;
+    exit_tred();
   }
 
   # Starting ------------------------------------------
@@ -7366,6 +7421,10 @@ sub startMain {
 
   print STDERR "done.\nStarting main loop.\n" if $tredDebug;
   print STDERR "Ready.\n" unless $opt_q;
+  $SIG{USR2} = sub {
+    $group{top}->afterIdle([\&handleUSR2Signal,\%group]);
+  };
+
   MainLoop;
   if ($group{top}) {
     saveRuntimeConfig(\%group);
@@ -7375,6 +7434,32 @@ sub startMain {
   $top=undef;
   $group{top} = undef;
   print STDERR "Done.\n" if $tredDebug;
+}
+
+# SIGUSR2 (afterIdle) signal handler:
+# we use SIGUSR2 to notify TrEd about
+# an incomming command (tred -C)
+#
+sub handleUSR2Signal {
+  my ($grp)=@_;
+  my $cmd_file = File::Spec->catfile($tred_d,'cmd_'.$$);
+  if (-f $cmd_file) {
+    if (((stat($cmd_file))[2] &022)==0) {
+      open my $fh, '<', $cmd_file || return;
+      my $cmd = <$fh>;
+      unlink $cmd_file || warn("WARN: Failed to unlink $cmd_file\n");
+      my @cmd=split("\0",$cmd);
+      if (($cmd[0]||'') eq 'open' and @cmd==2) {
+	openStandaloneFile($grp,$cmd[1]);
+	return;
+      } else {
+	warn("WARN: Ignoring unknown command from $cmd_file\n");
+      }
+    } else {
+      warn("WARN: Ignoring command from $cmd_file: dangerous file permissions!\n");
+    }
+  }
+  #plainErrorMessage($grp,"USR2 Signal Caught");
 }
 
 sub newUserToolbar {
@@ -12327,6 +12412,10 @@ TrEd - a graphical visualizer and editor of tree graphs
 
 or
 
+  tred -C <command>
+
+or
+
   tred -u          for usage
   tred -h          for help
   tred --man       for the manual page
@@ -12354,6 +12443,16 @@ forms:
 =head2 Options
 
 =over 8
+
+=item B<-C> command
+
+Perform a given command on a running instance of TrEd.
+Currently only one command is supported:
+
+  open <filename>
+
+If there is no TrEd instance running, the filename is opened in a new
+instance.
 
 =item B<--filelist|-l> filename
 
