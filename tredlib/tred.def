@@ -213,7 +213,12 @@ C<$grp-E<gt>{FSFile}-E<gt>trees>.
 =cut
 
 sub GetTrees {
-  return $grp->{FSFile}->trees;
+  my $fsfile = $grp->{FSFile};
+  if ($fsfile) {
+    return $fsfile->trees;
+  } else {
+    croak("Cannot get trees: no FSFile\n");
+  }
 }
 
 =item C<GetSecondaryFiles($fsfile?)>
