@@ -1083,6 +1083,9 @@ sub recalculate_positions {
 
     $NI->{"After"}=$xSkipAfter;
     $NI->{"Before"}=$xSkipBefore;
+    if ($node_style->{'-xbreak'}) {
+      $xpos = $baseXPos;
+    }
     if ($balance) {
       #$xSkipBefore+
       $xpos = $node_style->{'-extrabeforeskip'};
