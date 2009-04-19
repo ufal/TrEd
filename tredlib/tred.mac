@@ -519,7 +519,7 @@ sub _quick_pml_type {
 	   0..int(($#$spec-1)/2)
 	).qq(</structure>)
     } elsif ($spec->[0] eq 'choice') {
-      q(<choice>).join("\n", map qq(<value>$_</value>), @$spec[1..$#$spec]).qq(</structure>)
+      q(<choice>).join("\n", map qq(<value>$_</value>), @$spec[1..$#$spec]).qq(</choice>)
     } else {
       die "quick_pml(): unknown or unsupported declaration type '$spec->[0]'";
     }
