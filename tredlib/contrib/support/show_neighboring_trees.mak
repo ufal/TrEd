@@ -14,10 +14,12 @@ my $cfg = QuickPML(
     'structure',
     context_before => 'nonNegativeInteger',
     context_after => 'nonNegativeInteger',
+    alignment => ['choice' => 'horizontal', 'vertical'],
    ],
   Fslib::Struct->new({
     context_before=>5,
     context_after=>5,
+    alignment=>'horizontal',
   }));
 
 sub edit_configuration {
@@ -32,10 +34,11 @@ sub edit_configuration {
   ChangingFile(0);
 }
 sub configure {
-  my ($before,$after)=@_;
+  my ($before,$after,$alignment)=@_;
   for my $c (get_config()) {
     $c->{context_before}=int($before);
     $c->{context_after}=int($after);
+    $c->{alignment}=$alignment if $alignment;
   }
 }
 sub get_config {
@@ -43,14 +46,23 @@ sub get_config {
 }
 
 
+my %segment;
+my $vertical;
 DeclareMinorMode 'Show_Neighboring_Trees' => {
   abbrev => 'neigh_trees',
   configure => \&edit_configuration,
   post_hooks => {
+    node_style_hook => sub {
+      my ($node,$styles)=@_;
+      AddStyle($styles,'Node',-segment => $segment{$node}.'/0') if $vertical;
+    },
     get_nodelist_hook => sub {
       my ($fsfile,$no,$prevcurrent,$show_hidden)=@_;
+      %segment=();
+      my $config = get_config();
       my ($context_before,$context_after) =
-	map { $_->{context_before}, $_->{context_after} } get_config();
+	map { $_->{context_before}, $_->{context_after} } $config;
+      $vertical = ($config->{alignment}||'horizontal') eq 'vertical' ? 1 : 0;
       my $from=max(0,$no-$context_before);
       my $to=min($no+$context_after,$fsfile->lastTreeNo);
       my $sub = UNIVERSAL::can(CurrentContext(),'get_nodelist_hook')
@@ -81,6 +93,7 @@ DeclareMinorMode 'Show_Neighboring_Trees' => {
 	} else {
 	  push @$nodes,@$res;
 	}
+	$segment{$_}=$i-$from for @$res;
       }
       $current ||= $fsfile->tree($no);
       $_[-1] = [$nodes,$current];
