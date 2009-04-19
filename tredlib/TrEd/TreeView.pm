@@ -1552,7 +1552,10 @@ sub redraw {
   # styling patterns should be interpolated here for each node and
   # the results stored within node_pinfo
   my $filter_nodes = 0;
+  my $segment_nodes = 0;
   my %skip_nodes;
+  my %segment;
+
   my $style_info = ($self->{style_info}||={});
   my $k=0;
   foreach $node (@{$nodes}) {
@@ -1582,39 +1585,15 @@ sub redraw {
     # CAUTION: this change propagates up to the caller
     @$nodes = grep { !$skip_nodes{$_} } @$nodes;
   }
-
-  #------------------------------------------------------------
-  #}
-  #my $t1= new Benchmark;
-  #my $td= timediff($t1, $t0);
-  #print "Applying styles the code took:",timestr($td),"\n";
-  #}
-  #------------------------------------------------------------
-
-
-  #------------------------------------------------------------
-  #{
-  #use Benchmark;
-  #my $t0= new Benchmark;
-  #for (my $i=0;$i<=50;$i++) {
-  #------------------------------------------------------------
-  my $vertical_tree = $self->set_verticalTree(
-    $self->get_displayMode
-      ? (($self->get_displayMode+1)/2)
-      : exists($Opts{vertical}) ? $Opts{vertical} : 0 );
-  if ($vertical_tree) {
-    recalculate_positions_vert($self,$fsfile,$nodes,\%Opts,$grp);
-  } else {
-    recalculate_positions($self,$fsfile,$nodes,\%Opts,$grp);
+  my (@segments);
+  for my $node (@$nodes) {
+    my $segment = $style_info->{$node}{Node}{'-segment'};
+    unless (defined $segment and length $segment) {
+      $segment = '0/0';
+    }
+    my ($i,$j)=split('/',$segment,2);
+    push @{$segments[$i][$j]}, $node;
   }
-
-  #------------------------------------------------------------
-  #}
-  #my $t1= new Benchmark;
-  #my $td= timediff($t1, $t0);
-  #print "recalculate_positions: the code took:",timestr($td),"\n";
-  #}
-  #------------------------------------------------------------
 
   $canvas->configure(-background => $self->get_backgroundColor) if (defined $self->get_backgroundColor);
   $canvas->addtag('delete','all');
@@ -1623,8 +1602,10 @@ sub redraw {
   }
   $canvas->delete('delete');
 
-  $gen_info->{'lastX'}= 0;
-  $gen_info->{'lastY'}= 0;
+  my $vertical_tree = $self->set_verticalTree(
+    $self->get_displayMode
+      ? (($self->get_displayMode+1)/2)
+      : exists($Opts{vertical}) ? $Opts{vertical} : 0 );
 
   my $lineSpacing=$Opts{lineSpacing} || $self->get_lineSpacing;
 
@@ -1639,6 +1620,47 @@ sub redraw {
   my $xmargin=$self->get_xmargin;
   my $drawBoxes=$self->get_drawBoxes;
   my  $drawEdgeBoxes=$self->get_drawEdgeBoxes;
+
+
+
+  my ($baseXPos,$baseYPos)=($Opts{baseXPos}||$self->get_baseXPos,$Opts{baseYPos}||$self->get_baseYPos);
+  for my $seg_i (0..$#segments) {
+    for my $seg_j (0..$#{$segments[$seg_i]}) {
+      $canvas->addtag('seg:prev','all');
+      $nodes = $segments[$seg_i][$seg_j];
+      next unless ref($nodes) and @$nodes;
+  #------------------------------------------------------------
+  #}
+  #my $t1= new Benchmark;
+  #my $td= timediff($t1, $t0);
+  #print "Applying styles the code took:",timestr($td),"\n";
+  #}
+  #------------------------------------------------------------
+
+  if ($vertical_tree) {
+    recalculate_positions_vert($self,$fsfile,$nodes,\%Opts,$grp);
+  } else {
+    recalculate_positions($self,$fsfile,$nodes,\%Opts,$grp);
+  }
+
+
+  #------------------------------------------------------------
+  #{
+  #use Benchmark;
+  #my $t0= new Benchmark;
+  #for (my $i=0;$i<=50;$i++) {
+  #------------------------------------------------------------
+
+  #------------------------------------------------------------
+  #}
+  #my $t1= new Benchmark;
+  #my $td= timediff($t1, $t0);
+  #print "recalculate_positions: the code took:",timestr($td),"\n";
+  #}
+  #------------------------------------------------------------
+
+  $gen_info->{'lastX'}= 0;
+  $gen_info->{'lastY'}= 0;
 
   foreach $node (@{$nodes}) {
     my $NI=$node_info->{$node};
@@ -2005,6 +2027,20 @@ sub redraw {
       }
     }
   }
+      
+      my @bbox = $canvas->bbox('!stripe&&!seg:prev');
+      %$gen_info=();
+      $Opts{baseXPos}=$bbox[2]+$baseXPos;
+      eval { $canvas->addtag(qq(seg:$seg_i/$seg_j),'!seg:prev'); 1 } ||
+	$canvas->addtag(qq(seg:$seg_i/$seg_j),'all');
+    } #for $seg_j
+    my @bbox = $canvas->bbox('!stripe');
+    $Opts{baseXPos} = $baseXPos;
+    $Opts{baseYPos} = $bbox[3]+$baseYPos;
+  } # for $seg_i
+
+  {
+
 
   my @bbox = $canvas->bbox('!stripe');
   $self->{canvasWidth}=$bbox[2]+$self->get_xmargin;
@@ -2152,12 +2188,12 @@ sub redraw {
     $canvas->lower('bgimage','all')  if ($canvas->find('withtag','bgimage'));
   }
 
-  undef $@;
+      undef $@;
 
-  @bbox = $canvas->bbox('!stripe'); # now including the file and sentence info
-  $self->{canvasWidth}=$bbox[2]+$self->get_xmargin;
-  $self->{canvasHeight}=$bbox[3]+$self->get_ymargin;
-
+    @bbox = $canvas->bbox('!stripe'); # now including the file and sentence info
+    $self->{canvasWidth}=$bbox[2]+$self->get_xmargin;
+    $self->{canvasHeight}=$bbox[3]+$self->get_ymargin;
+  }
   if ($stipple ne "") {
     $canvas->createRectangle(-1000,-1000,
 			     max2(5000,$self->{canvasWidth}),max2(5000,$self->{canvasHeight}),
