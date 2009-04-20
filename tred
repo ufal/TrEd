@@ -95,6 +95,9 @@ $about=
 ($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown');
 ($userlogin =~ /\S/) || warn "Couldn\'t deterbmine user\'s login name\n";
 use Carp;
+
+use XML::LibXML; # this is for Darwin (we want to load our libxml2
+                 # before some dependency of Tk loads the system one)
 use Tk;
 
 # work around a bug in Tk
