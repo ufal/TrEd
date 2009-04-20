@@ -5728,9 +5728,6 @@ sub CreateImages {
 	      displayed or edited. There are two possible formats of values
 	      for this option:
 	      <orderedlist continuation="restarts" inheritnum="ignore">
-		<listitem><para>Standard X font-spec, with possible wildcards, e.g.:
-		    <literal moreinfo="none">-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-iso8859-2</literal>
-		  </para></listitem>
 		<listitem><para>Font attribute-oriented format, which is a 
 		    comma-separated list of pairs of the form
 		    <literal moreinfo="none">font-attribute:value</literal>. The attributes are:
@@ -5801,13 +5798,16 @@ sub CreateImages {
 
 		      </tgroup>
 		    </informaltable>
-		</listitem>
-	      </orderedlist>	
-	    </para>
 		  <note>
 		    <title>Example</title>		 
-		    <literallayout class="normal" format="linespecific">Font = Times-12:bold:slant=italic:antialias=0</literallayout>
+		    <literallayout class="normal" format="linespecific">Font = {Lucida Grande}-12:bold:slant=italic:antialias=0</literallayout>
 		  </note>	  
+		</listitem>
+		<listitem><para>OBSOLETE: Standard X font-spec, with possible wildcards, e.g.:
+		<literal moreinfo="none">-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-iso8859-2</literal>
+		</para></listitem>
+	      </orderedlist>	
+	    </para>
 	  </listitem>
 	</varlistentry>      
 	<varlistentry id="vlinefont">
@@ -5817,6 +5817,40 @@ sub CreateImages {
 	      Font used for displaying the text in the value line above
 	      tree. The same formats as for Font are allowed for this
 	      option. If not specified, Font is used. 
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="guifont">
+	  <term><literal moreinfo="none">GUIFont</literal></term>
+	  <listitem>
+	    <para>
+	      General font used in the GUI (buttons, menus, etc.)
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="guifont_small">
+	  <term><literal moreinfo="none">GUIFont_small</literal></term>
+	  <listitem>
+	    <para>
+	      Small font used for small elements in the GUI (toolbar, context and stylesheet menu)
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="guifont_other">
+	  <term><literal moreinfo="none">GUIFont_<replaceable>type</replaceable></literal></term>
+	  <listitem>
+	    <para>
+	      These options can be used to change other fonts used for formatted text in the GUI 
+	      (e.g. in the extension manager
+	      or stylesheet pattern help). Types are:
+	      <simplelist type="horiz">
+		<member>heading</member>
+		<member>fixed</member>
+		<member>default</member>
+		<member>bold</member>
+		<member>italic</member>
+		<member>small_bold</member>
+	      </simplelist>
 	    </para>
 	  </listitem>
 	</varlistentry>
