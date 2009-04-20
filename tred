@@ -5461,49 +5461,59 @@ sub onCurrentChange {
 }
 
 sub prepareFont {
-  my ($grp,$font,$fn)=@_;
-  print STDERR "Preparing fonts.\n" if $tredDebug;
-  if ($$font!~/^\s*-/ and $$font!~/^\s*\{/) {
-    my @a=split(/\s*,\s*/,$$font);
+  my ($grp,$spec,$name)=@_;
+  my $mw = $grp->{top};
+  my $fonts = $grp->{fonts}||={};
+
+  return $spec if $spec=~/^\s*-/; # X11Font
+  my @spec;
+  if ($spec!~/^\s*\{/) {
+    my @a=split(/\s*,\s*/,$spec);
     my ($option,$value);
-    my @b;
     foreach (@a) {
       ($option, $value)= split(/\s*:\s*/, $_, 2);
-      push @b, "-".$option, $value if ($option=~/^(?:size|weight|family|slant|underline|overstrike)$/);
+      push @spec, "-".$option, $value if ($option=~/^(?:size|weight|family|slant|underline|overstrike)$/);
     }
-      # try
-    eval { $grp->{top}->fontDelete($fn) }; 
-      # error would be displayed otherwise if yet undefined
-      # and I'm lazy to remember or find out how to check
-      # :)
-    $grp->{top}->fontCreate($fn,@b);
-    $$font=$fn;
+  } else {
+    @spec=$mw->fontActual($spec);
   }
-  #
-  # There were problems with the following lines, so I'm skipping them  
-  #
-  # else {
-  #  $grp->{top}->fontCreate('C_normal',$grp->{top}->fontActual($$font));
-  #  $$font='C_normal';
-  # }
+
+  if ($fonts->{$name}) {
+    $fonts->{$name}->configure(@spec);
+  } else {
+    eval { $mw->fontDelete($name) };
+    $fonts->{$name} = $mw->fontCreate($name,@spec);
+  }
+  return $name;
 }
+
 
 sub prepareFonts {
   my ($grp)=@_;
-  prepareFont($grp,\$font,'C_normal');
-  $treeViewOpts->{font}=$font;
-  prepareFont($grp,\$vLineFont,'C_vline');
-  eval { # eval, in case fonts already exist
-    $grp->{top}->fontCreate(qw/C_small -family sans -size 7/);
-    $grp->{top}->fontCreate(qw/C_small_bold -family sans -weight bold -size 7/);
-    $grp->{top}->fontCreate(qw/C_heading -family sans -weight bold -size 11/);
-    $grp->{top}->fontCreate(qw/C_fixed   -family courier   -size 9/);
-    $grp->{top}->fontCreate(qw/C_default -family sans -size 9/);
-    $grp->{top}->fontCreate(qw/C_bold    -family sans -size 9 -weight bold/);
-    $grp->{top}->fontCreate(qw/C_italic  -family sans -size 9 -slant italic/);
-  };
+  print STDERR "Preparing fonts.\n" if $tredDebug;
 
+  my %c_font_defaults=(
+    small       => 'family:sans,size:7',
+    small_bold  => 'family:sans,weight:bold,size:7',
+    heading     => 'family:sans,weight:bold,size:11',
+    fixed       => 'family:courier,size:9',
+    default     => 'family:sans,size:9',
+    bold        => 'family:sans,size:9,weight:bold',
+    italic      => 'family:sans,size:9,slant:italic',
+   );
+  my $mw = $grp->{top};
+  if ($guiFont) {
+    $guiFont = prepareFont($grp,$guiFont,'C_gui');
+    eval { $mw->optionAdd("*font",$guiFont); };
+  }
+  $treeViewOpts->{font} = $font = prepareFont($grp,$font,'C_normal');
+  $vLineFont = prepareFont($grp,$vLineFont,'C_vline');
+  for my $name (qw(small small_bold heading fixed default bold italic)) {
+    my $fnt = $c_fonts{$name} || $c_font_defaults{$name};
+    prepareFont($grp,$fnt,'C_'.$name);
+  }
 }
+
 
 sub addBindTags {
   my $w=shift @_;
@@ -6099,7 +6109,6 @@ sub startMain {
 #    $top->InitStderr;
 #  } unless -t \*STDOUT;
 #  undef $@;
-  $top->optionAdd("*font",$guiFont) if $guiFont;
   for (qw(ROText Text TextUndo Entry HistEntry SimpleHistEntry
 	  Listbox HList CodeText)) {
     $top->optionAdd("\*$_.background","white");

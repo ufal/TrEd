@@ -93,6 +93,7 @@ BEGIN {
   $htmlBrowser
   $showSidePanel
   $skipStartupVersionCheck
+  %c_fonts
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
   @config_file_search_list=();
@@ -371,10 +372,11 @@ sub set_config {
     $font=$confs->{font};
     $font=~s/-\*-\*$/-$fontenc/;
   } else {
-    if ($^O=~/^MS/) { 
+    if ($^O=~/^MS/) {
       $font='family:Arial,size:10';
     } elsif ($fontenc eq 'iso10646-1') {
-      $font='-*-arial unicode ms-medium-r-normal-*-12-*-*-*-*-*-iso10646-1';
+      $font='{Arial Unicode Ms} 10';
+      #$font='-*-arial unicode ms-medium-r-normal-*-12-*-*-*-*-*-iso10646-1';
     } else {
       $font='-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-'.$fontenc;
     }
@@ -383,6 +385,10 @@ sub set_config {
   $treeViewOpts->{font}=$font;
   $vLineFont=val_or_def($confs,"vlinefont",$font);
   $guiFont=val_or_def($confs,"guifont",undef);
+  for my $name (qw(small small_bold heading fixed default bold italic)) {
+    $c_fonts{$name}=val_or_def($confs,"guifont_".$name,undef);
+  }
+
   if ($confs->{perllib}) {
     foreach my $perllib (split/\:/,$confs->{perllib}) {
       $perllib = tilde_expand($perllib);
