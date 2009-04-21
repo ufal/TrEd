@@ -1747,7 +1747,7 @@ sub redraw {
 	# $self->store_id_pinfo($l,$line);
 	$NI->{"Line$lin"}=$l;
 	$self->store_obj_pinfo($l,$node);
-	$gen_info->{'tag:'.$l}=$tag[$lin];
+	$gen_info->{tag}{$l}=$tag[$lin];
 	$canvas->lower($l,'all');
 	$canvas->raise($l,'line');
 	if (exists($hints[$lin]) and length($hints[$lin])) {
@@ -2027,9 +2027,9 @@ sub redraw {
       }
     }
   }
-      
+
       my @bbox = $canvas->bbox('!stripe&&!seg:prev');
-      %$gen_info=();
+      %$gen_info=(attr=>$gen_info->{attr}, tag=>$gen_info->{tag});
       $Opts{baseXPos}=$bbox[2]+$baseXPos;
       eval { $canvas->addtag(qq(seg:$seg_i/$seg_j),'!seg:prev'); 1 } ||
 	$canvas->addtag(qq(seg:$seg_i/$seg_j),'all');
@@ -2345,7 +2345,7 @@ sub draw_text_line {
 	  $canvas->itemconfigure($bid,@opts2);
 	}; print STDERR $@ if $@;
 	$self->store_obj_pinfo($bid,$node);
-	$gen_info->{"attr:$bid"}=$c;
+	$gen_info->{attr}{$bid}=$c;
       }
       $xskip+=$self->getTextWidth($last);
       $node_info->{$node}{"Text[$c][$i][$j]"}="text[$c][$i][$j]";
