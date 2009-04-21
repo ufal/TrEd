@@ -5981,31 +5981,20 @@ sub createCanvasBindings {
   }
 
   # Text Dobule-1
-  $canvas->bind('text', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },$grp]);
-  foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('text', "<$_-Double-1>"=> [sub {text_doubleclick_modif(@_)},$grp,$_]);
+  for my $tag (qw(text textbg)) {
+    $canvas->bind($tag, '<Double-1>'=> [sub { editAttr(@_); Tk->break; },$grp]);
+    foreach (qw(Shift Control Alt Meta)) {
+      $canvas->bind($tag, "<$_-Double-1>"=> [sub {text_doubleclick_modif(@_); Tk->break; },$grp,$_]);
+      for my $but (2,3) {
+	$canvas->bind($tag, "<$_-Double-$but>"=> [sub {text_doubleclick_modif(@_); Tk->break; },$grp,"$_-$but"]);
+      }
+    }
   }
 
-  $canvas->bind('textbg', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },$grp]);
-  foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('textbg', "<$_-Double-1>"=> [sub {text_doubleclick_modif(@_); Tk->break; },$grp,$_]);
-  }
-
-  # Double-1  
+  # Double-1
   $canvas->bind('point', "<Double-1>"=> [sub { editAttrs(@_); Tk->break; },$grp]);
   foreach (qw(Shift Control Alt Meta)) {
     $canvas->bind('point', "<$_-Double-1>"=> [sub { node_doubleclick_modif(@_); Tk->break; },$grp,$_]);
-  }
-  
-  # Text Dobule-1
-  $canvas->bind('text', "<Double-1>"=> [sub { editAttr(@_); Tk->break; },$grp]);
-  foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('text', "<$_-Double-1>"=> [sub {text_doubleclick_modif(@_); Tk->break; },$grp,$_]);
-  }
-
-  # TextBg Double-3
-  foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('textbg', "<$_-Double-3>"=> [sub {text_doubleclick_modif(@_); Tk->break; },$grp,"$_-3"]);
   }
 
   # Line clicks
@@ -10405,15 +10394,29 @@ sub findFirstTemplated {
   $grp->{stopSearch}=0;
 
   $node=nextNodeInSearchFilelist($grp,$node,\$tree) if ($skipfirst);
+  my @paths = keys (%$template);
+  NODE:
   while ($node) {
-    unless (first {
-                    !cmpTemplateField($grp,$node->attr($_),$template->{$_})
-		  } keys (%$template)) {
-      gotoTree($win,$tree);
-      setCurrent($win, $node);
-      centerTo($win,$node);
-      return $node;
+  PATH:
+    for my $path (@paths) {
+      my @v = $node->all($path);
+      if (@v==0) {
+	@v=('');
+      }
+      for my $v (@v) {
+	if (cmpTemplateField($grp,$v,$template->{$path})) {
+	  next PATH;
+	} else {
+	  next NODE;
+	}
+      }
+      next NODE;
     }
+    gotoTree($win,$tree);
+    setCurrent($win, $node);
+    centerTo($win,$node);
+    return $node;
+  } continue {
     $node=nextNodeInSearchFilelist($grp,$node,\$tree);
   }
   return undef;
@@ -10498,14 +10501,29 @@ sub findPrevTemplated {
 
   $node=prevNodeInSearchFilelist($grp,$node,\$tree) if ($skipfirst);
 
+  my @paths = keys (%$template);
+  NODE:
   while ($node) {
-    unless (grep (!cmpTemplateField($grp,$node->attr($_),$template->{$_}), keys (%$template)))
-      {
-	gotoTree($win, $tree);
-	setCurrent($win, $node);
-	centerTo($win,$node);
-	return $node;
+  PATH:
+    for my $path (@paths) {
+      my @v = $node->all($path);
+      if (@v==0) {
+	@v=('');
       }
+      for my $v (@v) {
+	if (cmpTemplateField($grp,$v,$template->{$path})) {
+	  next PATH;
+	} else {
+	  next NODE;
+	}
+      }
+      next NODE;
+    }
+    gotoTree($win, $tree);
+    setCurrent($win, $node);
+    centerTo($win,$node);
+    return $node;
+  } continue {
     $node=prevNodeInSearchFilelist($grp,$node,\$tree);
   }
   return undef;
@@ -10552,9 +10570,9 @@ sub text_doubleclick_modif {
   my ($t)=$tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($t);
   setCurrent($win,$node);
-  $attr=$tv->get_gen_pinfo("attr:$t");
+  $attr=$tv->get_gen_pinfo("attr")||{};
 
-  doEvalHookWithUndo($win,"text_doubleclick_hook",$node,$attr,$mod, $w->XEvent);
+  doEvalHookWithUndo($win,"text_doubleclick_hook",$node,$attr->{$t},$mod, $w->XEvent);
 }
 
 sub text_click_modif {
@@ -10568,9 +10586,9 @@ sub text_click_modif {
   my $node=$tv->get_obj_pinfo($t);
   setCurrent($win,$node);
   ensureCurrentIsDisplayed($win);
-  $attr=$tv->get_gen_pinfo("attr:$t");
+  $attr=$tv->get_gen_pinfo("attr")||{};
 
-  doEvalHookWithUndo($win,"text_click_hook",$node,$attr,$mod, $w->XEvent);
+  doEvalHookWithUndo($win,"text_click_hook",$node,$attr->{$t},$mod, $w->XEvent);
 }
 
 sub line_click {
@@ -10583,9 +10601,9 @@ sub line_click {
   my $node=$tv->get_obj_pinfo($t);
   setCurrent($win,$node);
   ensureCurrentIsDisplayed($win);
-  my $tag=$tv->get_gen_pinfo("tag:$t");
+  my $tag=$tv->get_gen_pinfo("tag")||{};
     
-  doEvalHookWithUndo($win,"line_click_hook",$node,$tag,$button, $double,$modif, $w->XEvent);
+  doEvalHookWithUndo($win,"line_click_hook",$node,$tag->{$t},$button, $double,$modif, $w->XEvent);
 }
 
 
@@ -10611,8 +10629,8 @@ sub editAttr {
   my $node=$tv->get_obj_pinfo($t);
   setCurrent($win,$node);
   ensureCurrentIsDisplayed($win);
-  my $attr=$tv->get_gen_pinfo("attr:$t");
-  doEditAttr($win,$node,$attr) if defined $attr;
+  my $attr=$tv->get_gen_pinfo("attr")||{};
+  doEditAttr($win,$node,$attr->{$t}) if defined $attr->{$t};
 }
 
 
