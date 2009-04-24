@@ -7453,6 +7453,20 @@ sub handleUSR2Signal {
       if (($cmd[0]||'') eq 'open' and @cmd==2) {
 	openStandaloneFile($grp,$cmd[1]);
 	return;
+      } elsif (($cmd[0]||'') eq 'reload' and @cmd==2) {
+	my ($fsfile) = grep { _is_same_filename($_->filename, $cmd[1]) } @openfiles;
+	if ($fsfile) {
+	  if ($grp->{focusedWindow}->{FSFile} != $fsfile) {
+	    my ($win)=fsfileDisplayingWindows($grp,$fsfile);
+	    if ($win) {
+	      focusCanvas($win->canvas(),$grp);
+	    } else {
+	      openStandaloneFile($grp,$fsfile->filename,-keep=>1);
+	    }
+	  }
+	  reloadFile($grp);
+	}
+	return;
       } else {
 	warn("WARN: Ignoring unknown command from $cmd_file\n");
       }
