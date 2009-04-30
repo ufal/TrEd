@@ -106,6 +106,7 @@ if (defined $Tk::encodeFallback and $Tk::encodeFallback == Encode::FB_PERLQQ() a
   $Tk::encodeFallback    = Encode::PERLQQ();
 }
 
+
 use Tk::Config ();
 use Tk::Wm;
 use IO;
@@ -212,6 +213,13 @@ $macroFile=undef;
 # We *must* at least find TrEd::Config module to learn the correct libDir!!.
 if (-d $libDir) {
   unshift @INC,$libDir;
+}
+
+# make Alt_L and Alt_R work correctly on Darwin
+if ($^O eq 'darwin') {
+  my $xmodmap = File::Spec->catfile($libDir,'xmodmap.darwin');
+  print STDERR "Using xmodmap: $xmodmap\n" unless $opt_q;
+  system('xmodmap', $xmodmap) if -f $xmodmap;
 }
 
 {
@@ -6592,7 +6600,7 @@ sub startMain {
 	 ],
 	 [
 	  Cascade => q(Extension manuals),
-	  -underline=> 0,
+	  -underline=> 1,
 	  -menuitems => [ ],
 	 ],
 	 [
