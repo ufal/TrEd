@@ -5991,6 +5991,9 @@ sub createCanvasBindings {
   # Text Dobule-1
   for my $tag (qw(text textbg)) {
     $canvas->bind($tag, '<Double-1>'=> [sub { editAttr(@_); Tk->break; },$grp]);
+    for my $but (2,3) {
+      $canvas->bind($tag, "<Double-$but>"=> [sub {text_doubleclick_modif(@_); Tk->break; },$grp,"$but"]);
+    }
     foreach (qw(Shift Control Alt Meta)) {
       $canvas->bind($tag, "<$_-Double-1>"=> [sub {text_doubleclick_modif(@_); Tk->break; },$grp,$_]);
       for my $but (2,3) {
@@ -5999,7 +6002,7 @@ sub createCanvasBindings {
     }
   }
 
-  # Double-1
+  # point Double-1
   $canvas->bind('point', "<Double-1>"=> [sub { editAttrs(@_); Tk->break; },$grp]);
   foreach (qw(Shift Control Alt Meta)) {
     $canvas->bind('point', "<$_-Double-1>"=> [sub { node_doubleclick_modif(@_); Tk->break; },$grp,$_]);

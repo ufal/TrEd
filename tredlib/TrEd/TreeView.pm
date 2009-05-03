@@ -1711,6 +1711,7 @@ sub redraw {
     }
 
     my @smooth=split '&',$line_style->{'-smooth'};
+    my @obj=split '&',$line_style->{'-object'};
     my %nodehash;
     my $coords=$line_style->{'-coords'};
     $coords = $self->parse_coords_spec($node,$coords,$nodes,\%nodehash,$grp);
@@ -1736,8 +1737,62 @@ sub redraw {
       eval {
 	$l=$canvas->
 	  createLine(@c, @opts);
-      };
+	if ($obj[$lin]) {
+	  #
+	  # Line-object:...&ratio=.4;shape=rectangle;coords=<coords>;tag=...
+	  #                |..another object
+	  #
+	  my $spline = $smooth[$lin] ? TkMakeBezierCurve(\@c,12) : \@c;
+	  my @L=(0);		# length to n'th point of $spline
+	  my ($dx,$dy);
+	  for my $i (1..(@$spline/2-1)) {
+	    no integer;
+	    $dx = $spline->[2*$i]-$spline->[2*($i-1)];
+	    $dy = $spline->[2*$i+1]-$spline->[2*($i-1)+1];
+	    $L[$i] = $L[$i-1] + sqrt($dx*$dx + $dy*$dy);
+	  }
+	  for my $obj (split /\|/,$obj[$lin]) {
+	    my %obj_spec = split /[=;]/,$obj;
+	    my @obj_coords = split /,/, delete $obj_spec{coords};
+	    # my $seg = delete $obj_spec{line_segment};
+	    my $ratio = delete $obj_spec{ratio};
+	    my $shape = delete $obj_spec{shape} || 'oval';
 
+	    # using binary search to find
+	    # a nearest point in the spline
+	    my $d;
+	    {
+	      no integer;
+	      $d = $L[-1]*$ratio;
+	    }
+	    my ($j,$k,$i)=(0,$#L);
+	    while ($j<$k) {
+	      $i = ($j+$k)/2;
+	      if ($L[$i]<$d) {
+		$j=$i+1;
+	      } elsif ($L[$i]>$d) {
+		$k=$i-1;
+	      } else {
+		last;
+	      }
+	    }
+	    my ($x,$y);
+	    if ($j<$k || $i==$#L) {
+	      ($x,$y)=@$spline[2*$i,2*$i+1];
+	    } else {
+	      no integer;
+	      $ratio = ($d-$L[$i])/($L[$i+1]-$L[$i]);
+	      ($x,$y)=($spline->[2*$i]*(1-$ratio)+$spline->[2*$i+2]*$ratio,
+		       $spline->[2*$i+1]*(1-$ratio)+$spline->[2*$i+3]*$ratio);
+	    }
+	    $i=0;
+	    $canvas->create($shape,
+			    map((($i=($i+1)%2)?$_+$x:$_+$y), @obj_coords),
+			    map(('-'.$_=>$obj_spec{$_}),keys %obj_spec)
+			   );
+	  }
+	}
+      };
       if ($@) {
 	use Data::Dumper;
 	print STDERR "createLine: ",
@@ -2631,6 +2686,176 @@ sub prepare_raw_text_field {
 #    return $text;
   }
 }
+
+
+
+ #--------------------------------------------------------------
+ #
+ # TkBezierPoints --
+ #
+ #	Given four control points, create a larger set of points
+ #	for a Bezier spline based on the points.
+ #
+ # Results:
+ #	The array at *coordPtr gets filled in with 2*numSteps
+ #	coordinates, which correspond to the Bezier spline defined
+ #	by the four control points.  Note:  no output point is
+ #	generated for the first input point, but an output point
+ #	*is* generated for the last input point.
+ #
+ # Side effects:
+ #	None.
+ #
+ #--------------------------------------------------------------
+
+ sub TkBezierPoints {
+   my ($control, $numSteps, $coordPtr) = @_;
+   # double control[];			# Array of coordinates for four
+   # control points:  x0, y0, x1, y1,
+   # ... x3 y3. 
+   # int numSteps;			# Number of curve points to
+   # generate.  
+   # register double *coordPtr;		# Where to put new points. 
+   my $i;
+   my ($u, $u2, $u3, $t, $t2, $t3);
+
+   for ($i = 1; $i <= $numSteps; $i++) {
+     $t = $i/$numSteps;
+     $t2 = $t*$t;
+     $t3 = $t2*$t;
+     $u = 1.0 - $t;
+     $u2 = $u*$u;
+     $u3 = $u2*$u;
+     push @$coordPtr, $control->[0]*$u3
+       + 3.0 * ($control->[2]*$t*$u2
+		  + $control->[4]*$t2*$u) + $control->[6]*$t3;
+     push @$coordPtr, $control->[1]*$u3
+       + 3.0 * ($control->[3]*$t*$u2 + $control->[5]*$t2*$u)
+	 + $control->[7]*$t3;
+   }
+ }
+
+ #--------------------------------------------------------------
+ #
+ # TkMakeBezierCurve --
+ #
+ #	Given a set of points, create a new set of points that fit
+ #	parabolic splines to the line segments connecting the original
+ #	points.  Produces output points in either of two forms.
+ #
+ #	Note: in spite of this procedure's name, it does *not* generate
+ #	Bezier curves.  Since only three control points are used for
+ #	each curve segment, not four, the curves are actually just
+ #	parabolic.
+ #
+ # Results:
+ #	Either or both of the xPoints or dblPoints arrays are filled
+ #	in.  The return value is the number of points placed in the
+ #	arrays.  Note:  if the first and last points are the same, then
+ #	a closed curve is generated.
+ #
+ # Side effects:
+ #	None.
+ #
+ #--------------------------------------------------------------
+
+sub TkMakeBezierCurve {
+  my ($coords, $numSteps)=@_;
+  # Tk_Canvas canvas;			# Canvas in which curve is to be
+  # drawn.
+  # double *coords;			# Array of input coordinates:  x0,
+  # y0, x1, y1, etc.. 
+  # int numPoints;			# Number of points at coords. 
+  # int numSteps;			# Number of steps to use for each
+  # spline segments (determines
+  # smoothness of curve). 
+  # double retPoints[];			# Array of points to fill in as
+  # doubles, in the form x0, y0,
+  # x1, y1, ....  NULL means don't
+  # fill in anything in this form. 
+  # Caller must make sure that this
+  # array has enough space. 
+  my ($closed,$i);
+  my $numPoints = @$coords/2;
+  my @control;
+  my @retPoints;
+
+  # If the curve is a closed one then generate a special spline
+  # that spans the last points and the first ones.  Otherwise
+  # just put the first point into the output.
+
+  if (($coords->[0] == $coords->[-2])
+	and ($coords->[1] == $coords->[-1])) {
+    $closed = 1;
+    $control[0] = 0.5*$coords->[-4] + 0.5*$coords->[0];
+    $control[1] = 0.5*$coords->[-3] + 0.5*$coords->[1];
+    $control[2] = 0.167*$coords->[-4] + 0.833*$coords->[0];
+    $control[3] = 0.167*$coords->[-3] + 0.833*$coords->[1];
+    $control[4] = 0.833*$coords->[0] + 0.167*$coords->[2];
+    $control[5] = 0.833*$coords->[1] + 0.167*$coords->[3];
+    $control[6] = 0.5*$coords->[0] + 0.5*$coords->[2];
+    $control[7] = 0.5*$coords->[1] + 0.5*$coords->[3];
+    push @retPoints, $control[0];
+    push @retPoints, $control[1];
+    TkBezierPoints(\@control, $numSteps, \@retPoints);
+  } else {
+    $closed = 0;
+    push @retPoints, $coords->[0];
+    push @retPoints, $coords->[1];
+  }
+  my ($x1,$y1,$x2,$y2,$x3,$y3);
+  for ($i = 2; $i < $numPoints; $i++) {
+    ($x1,$y1,$x2,$y2,$x3,$y3)=@$coords[2*$i-4..2*$i+1];
+    # Set up the first two control points.  This is done
+    # differently for the first spline of an open curve
+    # than for other cases.
+
+    if (($i == 2) and !$closed) {
+      $control[0] = $x1;
+      $control[1] = $y1;
+      $control[2] = 0.333*$x1 + 0.667*$x2;
+      $control[3] = 0.333*$y1 + 0.667*$y2;
+    } else {
+      $control[0] = 0.5*$x1 + 0.5*$x2;
+      $control[1] = 0.5*$y1 + 0.5*$y2;
+      $control[2] = 0.167*$x1 + 0.833*$x2;
+      $control[3] = 0.167*$y1 + 0.833*$y2;
+    }
+
+    # Set up the last two control points.  This is done
+    # differently for the last spline of an open curve
+    # than for other cases.
+
+    if (($i == ($numPoints-1)) and !$closed) {
+      $control[4] = 0.667*$x2 + 0.333*$x3;
+      $control[5] = 0.667*$y2 + 0.333*$y3;
+      $control[6] = $x3;
+      $control[7] = $y3;
+    } else {
+      $control[4] = 0.833*$x2 + 0.167*$x3;
+      $control[5] = 0.833*$y2 + 0.167*$y3;
+      $control[6] = 0.5*$x2 + 0.5*$x3;
+      $control[7] = 0.5*$y2 + 0.5*$y3;
+    }
+
+    # If the first two points coincide, or if the last
+    # two points coincide, then generate a single
+    # straight-line segment by outputting the last control
+    # point.
+
+    if ((abs($x1 - $x2)<0.0001 and abs($y1 - $y2)<0.0001)
+     or (abs($x2 - $x3)<0.0001 and abs($y2 - $y3)<0.0001)) {
+      push @retPoints, $control[6];
+      push @retPoints, $control[7];
+      next;
+    }
+    #
+    # Generate a Bezier spline using the control points.
+    TkBezierPoints(\@control, $numSteps, \@retPoints);
+  }
+  return \@retPoints;
+}
+
 
 1;
 
