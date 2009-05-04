@@ -6800,6 +6800,8 @@ sub startMain {
     $group{minorModesMenu}->configure(-menu => $menu);
     $group{minorModesLabelFrame} = $bf->Frame()->pack(-side => 'left',-expand => 'no',-padx=>5);
     $group{minorModesLabels}={};
+    $group{Balloon}->attach($group{minorModesMenu},
+			    -balloonmsg=> "Enable/disable additional features\n(a.k.a. minor modes)");
   }
   {
     $group{canvasScale}=0;
@@ -12194,6 +12196,9 @@ sub update_minor_modes {
 	 )->pack(-side=>'right');
       $l->bind('<Double-1>',[\&configure_minor_mode,$grp,$name]);
       if ($grp->{minorModes}{$name}{configure}) {
+	$grp->{Balloon}->attach($l,
+				-balloonmsg=> "Double-click to configure '$name'");
+
 	$l->bind('<Enter>',[qw(configure -state active)]);
 	$l->bind('<Leave>',[qw(configure -state normal)]);
       }
