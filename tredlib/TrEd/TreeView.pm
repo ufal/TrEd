@@ -1727,22 +1727,24 @@ sub redraw {
       my $l;
       my $arrow_shape = $arrowshape[$lin] || $self->get_lineArrowShape;
       my @opts = ($self->line_options($node,$fsfile->FS,$can_dash),
-		     -tags => ['line','scale_width','scale_arrow'],
+		     -tags => ['line','scale_width','scale_arrow',
+			       split(/,/,$tag[$lin])
+			      ],
 		     -arrow =>  $arrow[$lin] || $self->get_lineArrow,
                      (defined($arrow_shape) ? (-arrowshape => $arrow_shape) : ()),
 		     -width =>  $width[$lin] || $self->get_lineWidth,
 		     ($fill[$lin] ? ('-fill'  => $fill[$lin]) : ()),
 		     (($dash[$lin] && $can_dash) ? ('-dash'  => $dash[$lin]) : ()),
-		     '-smooth'  =>  ($smooth[$lin] || 0));
+		 );
       eval {
-	$l=$canvas->
-	  createLine(@c, @opts);
 	if ($obj[$lin]) {
 	  #
-	  # Line-object:...&ratio=.4;shape=rectangle;coords=<coords>;tag=...
+	  # Line-object:...&step=4%;shape=rectangle;coords=<coords>;tag=...
 	  #                |..another object
 	  #
-	  my $spline = $smooth[$lin] ? TkMakeBezierCurve(\@c,12) : \@c;
+	  my $spline = $smooth[$lin] ? TkMakeBezierCurve(\@c,12,
+							 ($arrow[$lin] && $arrow[$lin] ne 'none')
+							) : \@c;
 	  my @L=(0);		# length to n'th point of $spline
 	  my ($dx,$dy);
 	  for my $i (1..(@$spline/2-1)) {
@@ -1755,42 +1757,73 @@ sub redraw {
 	    my %obj_spec = split /[=;]/,$obj;
 	    my @obj_coords = split /,/, delete $obj_spec{coords};
 	    # my $seg = delete $obj_spec{line_segment};
-	    my $ratio = delete $obj_spec{ratio};
+	    my $step = delete $obj_spec{step};
+	    my $start = delete($obj_spec{start})||0;
+	    my $stop = delete($obj_spec{stop})||'100%';
+	    my $repeat = delete($obj_spec{repeat}) || 1;
+	    my $rotate = delete($obj_spec{rotate});
 	    my $shape = delete $obj_spec{shape} || 'oval';
-
-	    # using binary search to find
-	    # a nearest point in the spline
-	    my $d;
 	    {
 	      no integer;
-	      $d = $L[-1]*$ratio;
-	    }
-	    my ($j,$k,$i)=(0,$#L);
-	    while ($j<$k) {
-	      $i = ($j+$k)/2;
-	      if ($L[$i]<$d) {
-		$j=$i+1;
-	      } elsif ($L[$i]>$d) {
-		$k=$i-1;
-	      } else {
-		last;
+	      for ($start,$step,$stop) {
+		if (s/%\s*$//) {
+		  $_ = $L[-1]*($_/100);
+		}
+		$_+=$L[-1] if $_<0;
 	      }
 	    }
-	    my ($x,$y);
-	    if ($j<$k || $i==$#L) {
-	      ($x,$y)=@$spline[2*$i,2*$i+1];
-	    } else {
-	      no integer;
-	      $ratio = ($d-$L[$i])/($L[$i+1]-$L[$i]);
-	      ($x,$y)=($spline->[2*$i]*(1-$ratio)+$spline->[2*$i+2]*$ratio,
-		       $spline->[2*$i+1]*(1-$ratio)+$spline->[2*$i+3]*$ratio);
+
+	    my $d = $start;
+	    my $tag=delete($obj_spec{tag});
+	    $tag=[split /,/,$tag] if $tag;
+	    my $j = 0;
+
+	    while ($repeat>0 and $d<=$stop) {
+
+	      $j++ while ($j<$#L and $L[$j]<$d);
+
+	      my ($x,$y,$rx,$ry);
+	      if ($j==0) {
+		($x,$y)=@$spline[2*$j,2*$j+1];
+		if ($rotate) {
+		  no integer;
+		  my $rl = $L[$j+1]-$L[$j];
+		  my $r = $d-$L[$j];
+		  ($rx,$ry)=(($spline->[2*$j+2]-$spline->[2*$j])/$rl,
+			     ($spline->[2*$j+3]-$spline->[2*$j+1])/$rl);
+		}
+	      } else {
+		no integer;
+		my $rl = ($L[$j]-$L[$j-1])||1;
+		my $r = $d-$L[$j-1];
+		($rx,$ry)=(($spline->[2*$j]-$spline->[2*$j-2])/$rl,
+			   ($spline->[2*$j+1]-$spline->[2*$j-1])/$rl);
+		($x,$y)=($spline->[2*$j-2]+$r*$rx, $spline->[2*$j-1]+$r*$ry);
+	      }
+	      
+	      { 
+		no integer;
+		my $i=0;
+		$canvas->create($shape,
+				(($rotate and @obj_coords>=4)
+				   ? (map {
+				     (int($x+($rx*$obj_coords[2*$_]-$ry*$obj_coords[2*$_+1])),
+				      int($y+($rx*$obj_coords[2*$_+1]+$ry*$obj_coords[2*$_]))
+				     ) } (0..int(@obj_coords/2)))
+				     : (map(int(($i=($i+1)%2) ? $_+$x : $_+$y), @obj_coords))),
+				-tag => $tag,
+				map(('-'.$_=>$obj_spec{$_}),keys %obj_spec)
+			       );
+	      }
+	      last unless $repeat;
+	      $d += $step;
+	      last if $d>$stop;
+	      $repeat--;
 	    }
-	    $i=0;
-	    $canvas->create($shape,
-			    map((($i=($i+1)%2)?$_+$x:$_+$y), @obj_coords),
-			    map(('-'.$_=>$obj_spec{$_}),keys %obj_spec)
-			   );
 	  }
+	  $l=$canvas->createLine(@$spline, @opts, -smooth=>0);
+	} else {
+	  $l=$canvas->createLine(@c, @opts,'-smooth'=>($smooth[$lin] || 0));
 	}
       };
       if ($@) {
@@ -2718,7 +2751,7 @@ sub prepare_raw_text_field {
    # register double *coordPtr;		# Where to put new points. 
    my $i;
    my ($u, $u2, $u3, $t, $t2, $t3);
-
+   no integer;
    for ($i = 1; $i <= $numSteps; $i++) {
      $t = $i/$numSteps;
      $t2 = $t*$t;
@@ -2760,7 +2793,7 @@ sub prepare_raw_text_field {
  #--------------------------------------------------------------
 
 sub TkMakeBezierCurve {
-  my ($coords, $numSteps)=@_;
+  my ($coords, $numSteps,$has_arrow)=@_;
   # Tk_Canvas canvas;			# Canvas in which curve is to be
   # drawn.
   # double *coords;			# Array of input coordinates:  x0,
@@ -2776,7 +2809,8 @@ sub TkMakeBezierCurve {
   # Caller must make sure that this
   # array has enough space. 
   my ($closed,$i);
-  my $numPoints = @$coords/2;
+  no integer;
+  my $numPoints = int(@$coords/2);
   my @control;
   my @retPoints;
 
@@ -2784,7 +2818,7 @@ sub TkMakeBezierCurve {
   # that spans the last points and the first ones.  Otherwise
   # just put the first point into the output.
 
-  if (($coords->[0] == $coords->[-2])
+  if (!$has_arrow and ($coords->[0] == $coords->[-2])
 	and ($coords->[1] == $coords->[-1])) {
     $closed = 1;
     $control[0] = 0.5*$coords->[-4] + 0.5*$coords->[0];
