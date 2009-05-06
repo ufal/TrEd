@@ -817,7 +817,7 @@ sub conv_from_locale {
 print STDERR "Creating filelists...\n" if $tredDebug;
 {
   my $default= new Filelist('Default');
-  $default->add(0,absolutize(@ARGV)) if @ARGV;
+  $default->add(0,map quotemeta($_),absolutize(@ARGV)) if @ARGV;
   addNewFilelist(undef,$default);
 }
 
@@ -3691,6 +3691,7 @@ sub addNewFilelist {
     }
   }
   if ($old_name ne $fl->name) {
+    print STDERR "Saving filelist ".$fl->name." to: ",$fl->filename,"\n" unless $opt_q;
     $fl->save; # filelist renamed
   }
   if ($l) {
@@ -8298,7 +8299,7 @@ sub saveConfig {
  if (!$exists or (-f $configFile and -w $configFile)) {
     my $renamed = rename $configFile, "${configFile}~" if $exists;
     if (open(my $fh,">$configFile")) {
-      print STDERR "Saving tred configuration to: $configFile\n";
+      print STDERR "Saving tred configuration to: $configFile\n" unless $opt_q;
       print $fh (@$config);
       close($fh);
       return;
