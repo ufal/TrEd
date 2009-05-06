@@ -1758,6 +1758,7 @@ sub redraw {
 	    my @obj_coords = split /,/, delete $obj_spec{coords};
 	    # my $seg = delete $obj_spec{line_segment};
 	    my $step = delete $obj_spec{step};
+	    my $force = delete $obj_spec{force};
 	    my $start = delete($obj_spec{start})||0;
 	    my $stop = delete($obj_spec{stop})||'100%';
 	    my $repeat = delete($obj_spec{repeat}) || 1;
@@ -1765,11 +1766,13 @@ sub redraw {
 	    my $shape = delete $obj_spec{shape} || 'oval';
 	    {
 	      no integer;
-	      for ($start,$step,$stop) {
-		if (s/%\s*$//) {
-		  $_ = $L[-1]*($_/100);
+	      for ($start,$step,$stop,$force) {
+		if (defined) {
+		  if (s/%\s*$//) {
+		    $_ = $L[-1]*($_/100);
+		  }
+		  $_+=$L[-1] if $_<0;
 		}
-		$_+=$L[-1] if $_<0;
 	      }
 	    }
 
@@ -1777,6 +1780,12 @@ sub redraw {
 	    my $tag=delete($obj_spec{tag});
 	    $tag=[split /,/,$tag] if $tag;
 	    my $j = 0;
+	    if ($d>$stop and $force) {
+	      $d=$force;
+	      $repeat=1;
+	      $stop=$L[-1];
+	    }
+
 
 	    while ($repeat>0 and $d<=$stop) {
 
@@ -1809,7 +1818,7 @@ sub redraw {
 				   ? (map {
 				     (int($x+($rx*$obj_coords[2*$_]-$ry*$obj_coords[2*$_+1])),
 				      int($y+($rx*$obj_coords[2*$_+1]+$ry*$obj_coords[2*$_]))
-				     ) } (0..int(@obj_coords/2)))
+				     ) } (0..int(@obj_coords/2-1)))
 				     : (map(int(($i=($i+1)%2) ? $_+$x : $_+$y), @obj_coords))),
 				-tag => $tag,
 				map(('-'.$_=>$obj_spec{$_}),keys %obj_spec)
