@@ -7,7 +7,7 @@ tooldir=`dirname $(readlink -fen $0)`
 function make_zip () {
     z="$1"
     d="$2"
-    pushd "$d";
+    pushd "$d" > /dev/null
     if [ $? != 0 ]; then
 	echo "Cannot change dir to $d !"
 	exit 6;
@@ -29,7 +29,7 @@ function make_zip () {
     fi
     chmod --reference="$z" "${z}.part"
     mv "${z}.part" "$z"
-    popd
+    popd > /dev/null
 }
 
 
@@ -96,14 +96,45 @@ zip="$(readlink -fen "$target_dir")/${name}.zip"
 if [ -f "$target_dir/${name}/package.xml" ]; then
 
     if [ -f "${zip}" ]; then
-	zipmd5=`md5sum "$zip" |cut -f1 -d' '`
-	make_zip "${zip}.tmp" "$package_dir" >/dev/null
-	zipmd5_tmp=`md5sum "${zip}.tmp" |cut -f1 -d' '`
-	rm -f "${zip}.tmp";
-	if [ "$zipmd5" = "$zipmd5_tmp" ]; then
-	    echo PACKAGE "$zip" IS UP-TO-DATE
-	    exit;
+	tmp_dir=`mktemp -d`
+	if [ ! -d "$tmp_dir" ]; then
+	    echo "FAILED to create a temporary dir; exiting"
+	    exit 100;
 	fi
+	
+	mkdir "$tmp_dir/orig" || exit 100;
+	pushd "$tmp_dir/orig" > /dev/null || exit 100;
+	unzip "$zip" > /dev/null
+	sed -i 's, install_size="[0-9]*",,g' package.xml
+	popd > /dev/null
+
+	make_zip "$tmp_dir/new.zip" "$package_dir" >/dev/null
+
+	mkdir "$tmp_dir/new" || exit 100;
+	pushd "$tmp_dir/new" > /dev/null || exit 100;
+	unzip "$tmp_dir/new.zip" > /dev/null
+	sed -i 's, install_size="[0-9]*",,g' package.xml
+	popd > /dev/null
+
+	up_to_date=1
+	if diff -Nur "$tmp_dir/orig" "$tmp_dir/new" |grep -q .; then
+	    up_to_date=0;
+	fi
+	rm -rf "$tmp_dir"	
+	if [ $up_to_date = 1 ]; then
+	    echo PACKAGE "$zip" IS UP-TO-DATE
+	    exit;	    
+	fi
+	#zipmd5=`md5sum "$zip" |cut -f1 -d' '`
+	#zipmd5_tmp=`md5sum "${zip}.tmp" |cut -f1 -d' '`
+# 	rm -f "${zip}.tmp";
+	
+
+# 	if [ "$zipmd5" = "$zipmd5_tmp" ]; then
+# 	    echo PACKAGE "$zip" IS UP-TO-DATE
+# 	    exit;
+# 	fi
+	
     fi
 
     script='print $1 if m{<version>([0-9.]+)</version>}'
