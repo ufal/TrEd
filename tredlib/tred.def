@@ -381,7 +381,7 @@ sub GetVisibleNodes {
   return @n;
 }
 
-=item C<GetDisplayedNodes()>
+=item C<GetDisplayedNodes($win?)>
 
 Return the list of all nodes actually currently displayed in the
 current window in TrEd (which nodes are actually displayed can be
@@ -390,8 +390,9 @@ e.g. specified with get_nodelist_hook).
 =cut
 
 sub GetDisplayedNodes {
-  if (ref $grp->{Nodes}) {
-    return @{$grp->{Nodes}};
+  my $win = ref($_[0]) ? $_[0] : $grp;
+  if (ref $win->{Nodes}) {
+    return @{$win->{Nodes}};
   }
   return;
 }
@@ -518,34 +519,48 @@ sub LocateNode {
       }
       $i++;
     }
-    return ($fsfile->filename,0,GetNodeIndex($node));
+    my ($id_attr) = $node->type && $node->type->find_members_by_role('#ID');
+    return ($fsfile->filename,0,GetNodeIndex($node),
+	    $id_attr && $node->{ $id_attr->get_name }
+	   );
   }
 }
 
 =item C<ThisAddress(node?,fsfile?)>
 
-Return a given node's address string in a form of filename#tree_no.index
-(tree_no starts from 1 to reflect TrEd's UI convention).
+Return a given node's address string in a form of
+filename#tree_no.index (tree_no starts from 1 to reflect TrEd's UI
+convention).  If the correct tree number could not be determined (the
+node does not belong to any top-level tree in the file) and the node
+has an ID, the address is returned in the form filename#ID.
 
 If C<node> is not given, C<$this> is assumed. Should the node be from a
 different file than the current one, the second argument must specify
 the corresponding FSFile object.
 
-
 =cut
 
 
 sub ThisAddress {
-  my ($f,$i,$n)=&LocateNode;
-  return $f.'##'.$i.'.'.$n;
+  my ($f,$i,$n,$id)=&LocateNode;
+  if ($i==0 and $id) {
+    return $f.'#'.$id;
+  } else {
+    return $f.'##'.$i.'.'.$n;
+  }
 }
 
 =item C<ThisAddressNTRED(node?,fsfile?)>
 
 Return a given node's address string in a form of
 ntred://filename@tree_no#1.index (tree_no starts from 1 to reflect
-TrEd's UI convention). This address may be opened in TrEd to examine
-the tree in memory of a remote btred server.
+TrEd's UI convention). If the correct tree number could not be
+determined (the node does not belong to any top-level tree in the
+file) and the node has an ID, the address is returned in the form
+ntred://filename#ID.
+
+The returned address may be opened in TrEd to examine the tree in
+memory of a remote btred server.
 
 If C<node> is not given, C<$this> is assumed. Should the node be from a
 different file than the current one, the second argument must specify
@@ -554,8 +569,12 @@ the corresponding FSFile object.
 =cut
 
 sub ThisAddressNTRED {
-  my ($f,$i,$n)=&LocateNode;
-  return 'ntred://'.$f.'@'.$i.'##1.'.$n;
+  my ($f,$i,$n,$id)=&LocateNode;
+  if ($i==0 and $id) {
+    return 'ntred://'.$f.'#'.$id;
+  } else {
+    return 'ntred://'.$f.'@'.$i.'##1.'.$n;
+  }
 }
 
 =item C<FPosition(node?,fsfile?)>
@@ -4301,12 +4320,12 @@ sub MacroCallback {
       my $changes_file = $binding->{changing_file};
       if (ref($command) eq 'CODE') {
 	$macro = sub {
-	  &$command();
+	  &$command(@_);
 	  ChangingFile($changes_file);
 	};
       } else {
 	$macro = sub {
-	  $context->$command();
+	  $context->$command(@_);
 	  ChangingFile($changes_file);
 	}
       }

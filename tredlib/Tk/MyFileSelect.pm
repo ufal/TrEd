@@ -5,7 +5,11 @@ use vars qw($VERSION);
 $VERSION = '0.001';
 
 use Tk;
-use Tk qw(Ev);
+use Tk qw(Ev catch);
+
+use File::Spec;
+use File::Glob qw(:glob);
+use List::Util qw(max);
 
 require Tk::Frame;
 require Tk::Derived;
@@ -40,6 +44,7 @@ sub Populate {
   $cw->{selectmode} = my $selectmode =
     exists($args->{-selectmode}) ?
       delete($args->{-selectmode}) : 'browse';
+  $cw->{textentry} = my $selectmode = delete($args->{-textentry});
 
   $cw->SUPER::Populate( $args );
 
@@ -49,6 +54,8 @@ sub Populate {
   my(@filetypes) = GetFileTypes($fileTypes);
   $cw->ConfigSpecs(
     -font => [ 'DESCENDANTS'],
+    -foreground => 'SELF',
+    -background => 'SELF',
     -showhidden => ['PASSIVE',undef,undef, 0],
     -filter => ['PASSIVE', undef, undef, 
 		defined $cw->{'fileTypes'} ?
@@ -59,17 +66,60 @@ sub Populate {
 #    $cw->{entry} = my $entry = $cw->Entry(qw /-state disabled/,
 #  					-textvariable => \$cw->{cwd});
 #    $entry->pack(qw /-side top -expand yes -pady 0 -fill x/);
+  my $entry;
+  if ($cw->{textentry}) {
+    if (eval { require Tk::MatchEntry; 1 }) {
+      $entry = $cw->MatchEntry(
+	-label=>'Dir',
+	-choices=>[],
+	-complete=>1,
+	-wraparound => 1,
+	-autopopup=>1,
+	-fixedwidth => 0,
+	-autoshrink => 1,
+	-maxheight => 10,
+	-listcmd => sub {
+	  my ($w)=@_;
+	  my $dir = $w->Subwidget('entry')->get();
+	  my @dirs = glob(_tilde_expand($dir).'*/');
+	  $w->configure(-choices=>\@dirs);
+	  my $font = $w->cget('-font');
+	  $w->configure(-listwidth=>10+max(map $w->fontMeasure($font,$_),@dirs));
+	  $w->xview('end');
+	},
+	-entercmd => [sub {
+	  my ($cw,$w)=@_;
+	  $w->xview('end');
+	  $cw->EntryChDir;
+	},$cw],
+       );
+      $cw->{entry} = $entry->Subwidget('entry')->Subwidget('entry');
+    } else {
+      $entry = $cw->LabEntry(
+	-label=>'Dir',
+	-labelPack => [-side => 'left', -anchor => 'e'],
+	-background => 'white',
+	-foreground => 'black',
+      );
+      $entry->bind('<Return>', [ $cw, 'EntryChDir' ]);
+      $cw->{entry} = $entry->Subwidget('entry');
+    }
+    $cw->{entry}->configure(
+      -background => 'white',
+      -foreground => 'black',
+     );
 
-  $cw->{'entry'} = my $entry =
-    $cw->Menubutton(-indicatoron => 1, -tearoff => 0,
-		    -takefocus => 1,
-		    -highlightthickness => 2,
-		    -relief => 'raised',
-		    -bd => 2,
-		    -anchor => 'w')
-      ->pack(qw /-side top -expand no -pady 0 -fill x/);
-
-  $cw->{hlist} = my $hlist = 
+  } else {
+    $cw->{'entry'} = $entry =
+      $cw->Menubutton(-indicatoron => 1, -tearoff => 0,
+		      -takefocus => 1,
+		      -highlightthickness => 2,
+		      -relief => 'raised',
+		      -bd => 2,
+		      -anchor => 'w');
+  }
+  $entry->pack(qw /-side top -expand no -pady 0 -fill x/);
+  $cw->{hlist} = my $hlist =
     $cw->Scrolled('Listbox',
 		  %$args,
 		  -relief  => 'raised',
@@ -181,11 +231,31 @@ sub ChDir {
   $cw->ChangeDir($cw->Subwidget('filelist')->get('active'));
 }
 
+sub _tilde_expand {
+  my ($dir)=@_;
+  $dir =~ s/^~($rsplit)?/$ENV{HOME}$1/;
+  return $dir;
+}
+
+sub EntryChDir {
+  my ($cw)=@_;
+  my $dir = _tilde_expand($cw->{entry}->get());
+  if (-d $dir) {
+    $cw->ChangeDir($dir);
+  } else {
+    my @d=glob(File::Spec->catfile($dir.'*',''));
+    if (@d==1) {
+      $cw->ChangeDir($d[0]);
+      $cw->UpdateEntry($cw->{cwd});
+    }
+  }
+}
+
 sub UpdateEntry {
   my ($cw,$dir)=@_;
-
-  if (defined $cw->{'entry'}) {
-    my $entries = $cw->{entry}->cget(-menu);
+  my $entry = $cw->{'entry'};
+  if (UNIVERSAL::isa($entry,'Tk::Menubutton')) {
+    my $entries = $entry->cget(-menu);
     $entries->delete(0, 'end');
     my $i=-1;
     my @subs;
@@ -214,9 +284,15 @@ sub UpdateEntry {
 	$entries->separator();
       }
     }
-    $cw->{'entry'}->configure(-text => $dir);
+    $entry->configure(-text => $dir);
+  } elsif (UNIVERSAL::isa($entry,'Tk::Entry')) {
+    $entry->delete(0,'end');
+    $dir.=$splitchar unless ($dir=~/$rsplit$/);
+    $entry->insert(0,$dir);
+    $entry->xview('end');
   }
 }
+
 
 # This proc gets called whenever data(filter) is set
 #
