@@ -1,5 +1,6 @@
 !Tk-CursorControl
 Tk
+Tk-MatchEntry
 Win32-API
 File-Which
 Tie-IxHash

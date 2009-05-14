@@ -112,6 +112,7 @@ BEGIN{
   use Tk;
   use Tk::Wm;
   use Tk::Canvas::PDF;
+  use Tk::Canvas::SVG;
   *media = *Tk::Canvas::PDF::media;
   use Fslib;
 
@@ -238,7 +239,7 @@ sub print_trees {
       $printRange,		# print range
       $toFile,			# boolean: print to file
       $toEPS,			# boolean: create EPS
-      $toPDF,			# boolean: create EPS
+      $outputFormat,            # SVG/PDF/false (1 also means PDF)
       $fil,			# output file-name
       $snt,			# sentence
       $fileinfo,                # boolean: fileinfo
@@ -258,7 +259,8 @@ sub print_trees {
       $grp_ctx,
       $get_nodes_callback,
      )=@_;
-
+  my $toPDF = (($outputFormat eq 'PDF' or $outputFormat==1) ? 1 : 0);
+  my $toSVG=($outputFormat eq 'SVG' ? 1 : 0);
   return if (not defined($printRange));
 
   local $TrEd::Convert::FORCE_REMIX = 1;
@@ -293,7 +295,7 @@ sub print_trees {
       $prtFmtHeight = $media{$Media}[1];
   }
 
-  _msg("Printing (TO-FILE=$toFile, PDF=$toPDF, EPS=$toEPS, FIL=$fil, CMD=$cmd, MEDIA=$Media=$prtFmtWidth x $prtFmtHeight)\n");
+  _msg("Printing (TO-FILE=$toFile, SVG=$toSVG, PDF=$toPDF, EPS=$toEPS, FIL=$fil, CMD=$cmd, MEDIA=$Media=$prtFmtWidth x $prtFmtHeight)\n");
 
   if ($toPDF) {
     $pagewidth=$prtFmtWidth-2*$hMargin;
@@ -312,13 +314,24 @@ sub print_trees {
     $treeView = new TrEd::PDFTreeView($c);
     $treeView->apply_options($canvas_opts);
     $treeView->initPDF($P);
+  } elsif ($toSVG) {
+    $pagewidth=$prtFmtWidth-2*$hMargin;
+    $pageheight=$prtFmtHeight-2*$vMargin;
+    $P = Tk::Canvas::SVG->new(
+			      ($Media ne 'BBox') ?
+			      (-media => [0,0,$prtFmtWidth,$prtFmtHeight]) 
+			      : ()
+			     );
+
+    $treeView = new TrEd::TreeView($c);
+    $treeView->apply_options($canvas_opts);
   } else {
     $treeView = new TrEd::PSTreeView($c);
     $treeView->apply_options($canvas_opts);
     $treeView->setFontMetrics($fontSpec->{AFM},$fontSpec->{Size});
   }
 
-  unless ($toPDF or $printColors) {
+  unless ($toPDF or $toSVG or $printColors) {
     $treeView->apply_options({
 			      lineColor	       => 'black',
 			      currentNodeColor   => $bwModeNodeColor,
@@ -362,7 +375,7 @@ sub print_trees {
     $toplevel->Busy(-recurse => 1);
   }
   eval {
-    if ($toPDF) {
+    if ($toPDF or $toSVG) {
       my $scale;
       for (my $t=0;$t<=$#printList;$t++) {
 	$infotext="Printing $printList[$t]";
@@ -392,10 +405,18 @@ sub print_trees {
 	if ($Media eq 'BBox') {
 	  $pagewidth=$width;
 	  $pageheight=$height;
-	  if (@printList == 1) {
-	    $P->{PDF}->mediabox(0,0,$pagewidth+2*$hMargin,$pageheight+2*$vMargin)
+	  if ($toSVG) {
+	    if (@printList == 1) {
+	      $P->{Media}=[0,0,$pagewidth+2*$hMargin,$pageheight+2*$vMargin];
+	    } else {
+	      $P->{Media}=[0,0,$pagewidth+2*$hMargin,$pageheight+2*$vMargin];
+	    }
 	  } else {
-	    $P->{current_page}->mediabox(0,0,$pagewidth+2*$hMargin,$pageheight+2*$vMargin);
+	    if (@printList == 1) {
+	      $P->{PDF}->mediabox(0,0,$pagewidth+2*$hMargin,$pageheight+2*$vMargin)
+	    } else {
+	      $P->{current_page}->mediabox(0,0,$pagewidth+2*$hMargin,$pageheight+2*$vMargin);
+	    }
 	  }
 	}
 	if ($rotate) {
@@ -433,7 +454,11 @@ sub print_trees {
 	}
 ###	last; # only one page for now
       }
-      _msg("saving PDF to $fil\n");
+      if ($toSVG) {
+	_msg("saving SVG to $fil\n");
+      } else {
+	_msg("saving PDF to $fil\n");
+      }
       if ($toFile) {
 	$P->finish(-file => $fil);
       } else {
@@ -458,7 +483,7 @@ sub print_trees {
 	  #return 0;
 	};
       }
-      _msg("PDF done\n");
+      _msg($toSVG ? "SVG done\n" : "PDF done\n");
     } else {
       my $i;
       my %pso;
