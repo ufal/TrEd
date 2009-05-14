@@ -410,12 +410,19 @@ sub applyFileSuffix {
   return unless $fsfile and defined($goto) and $goto ne EMPTY;
 
   if ($goto=~/^##([0-9]+)/) {
-    $win->{treeNo}=min(max(0,$1-1),$fsfile->lastTreeNo);
+    my $no = int($1 - 1);
+    $win->{treeNo}=min(max(0,$no),$fsfile->lastTreeNo);
+    return 0 if $win->{treeNo} != $no;
   } elsif ($goto=~/^#([0-9]+)/) {
     # this is PDT 1.0-specific code, sorry
+    my $no;
     for (my $i=0;$i<=$fsfile->lastTreeNo;$i++) {
-      $win->{treeNo}=$i,last if ($fsfile->treeList->[$i]->{form} eq "#$1");
+      if ($fsfile->treeList->[$i]->{form} eq "#$1") {
+	$no=$i; last;
+      }
     }
+    return 0 unless defined $no;
+    $win->{treeNo}=$no;
   } elsif ($goto=~/^#([^#]+)$/) {
     my $id = $1;
     if (PMLSchema::CDATA->check_string_format($id,'ID')) {
@@ -424,13 +431,58 @@ sub applyFileSuffix {
 	my $node = $id_hash->{$id};
 	# we would like to use Fslib::Index() here, but can't
 	my $list = $fsfile->treeList;
-	my $n = first {
-	  $list->[$_]==$node->root
+	my $root = UNIVERSAL::can($node,'root') && $node->root;
+	my $n = defined($root) && first {
+	  $list->[$_]==$root;
 	} 0..$#$list;
+	if ($root and !defined($n)) {
+	  # hm, we have a node, but don't know to which tree
+	  # it belongs
+	  my $trees_type = $fsfile->metaData('pml_trees_type');
+	  my $root_type = $root->type;
+	  if ($trees_type and $root_type) {
+	    my $trees_type_is = $trees_type->get_decl_type;
+	    my %paths;
+	    my $is_sequence;
+	    my $found;
+	    my @elements;
+	    if ($trees_type_is == PMLSchema::PML_LIST_DECL()) {
+	      @elements = ['LM',$trees_type->get_content_decl];
+	    } elsif ($trees_type_is == PMLSchema::PML_SEQUENCE_DECL()) {
+	      @elements = map { [$_->get_name,$_->get_content_decl] } $trees_type->get_elements;
+	      $is_sequence=1;
+	    } else {
+	      return 0;
+	    }
+	    for my $el (@elements) {
+	      $paths{$el->[0]} = [$trees_type->get_schema->find_decl(
+		sub {
+		  $_[0] == $root_type
+		}, $el->[1],{})];
+	      $found = 1 if @{ $paths{$el->[0]} };
+	    }
+	    return 0 unless $found;
+	    TREE:
+	    for my $i (0..$#$list) {
+	      my $tree = $list->[$i];
+	      my $paths = $is_sequence ? $paths{$tree->{'#name'}} : $paths{LM};
+	      for my $p (@{$paths||[]}) {
+		for my $value ($tree->all($p)) {
+		  if ($value == $root) {
+		    $n = $i;
+		    last TREE;
+		  }
+		}
+	      }
+	    }
+	  }
+	}
 	if (defined($n)) {
 	  $win->{treeNo}=$n;
 	  $win->{currentNode}=$node;
-	  return;
+	  return 1;
+	} else {
+	  return 0;
 	}
       }
     }
@@ -440,16 +492,22 @@ sub applyFileSuffix {
     my $root=getNodeByNo($win,$1);
     if ($root) {
       $win->{currentNode}=$root;
+      return 1;
+    } else {
+      return 0;
     }
   } elsif ($goto=~/\.([^0-9#][^#]*)$/) {
     my $id = $1;
     if (PMLSchema::CDATA->check_string_format($id,'ID')) {
       my $id_hash = $fsfile->appData('id-hash');
       if (UNIVERSAL::isa($id_hash,'HASH') and exists($id_hash->{$id})) {
-	$win->{currentNode}=$id_hash->{$id};
+	return 1 if ($win->{currentNode}=$id_hash->{$id}); # assignment
+      } else {
+	return 0;
       }
     }
   }
+  return 1;
   # hey, caller, you should redraw after this!
 }
 

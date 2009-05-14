@@ -1,6 +1,6 @@
-#$Id$
-#   Tk::Canvas to PDF convertor.
-#   Copyright (c) 2003 by Petr Pajas
+#$Id: SVG.pm 3945 2009-03-29 22:11:13Z pajas $
+#   Tk::Canvas to SVG convertor.
+#   Copyright (c) 2009 by Petr Pajas
 #
 #   This library is free software; you can use, modify, and
 #   redistribute it under the terms of GPL - The General Public
@@ -8,7 +8,7 @@
 #   http://www.gnu.org/copyleft/gpl.html
 #
 
-package Tk::Canvas::PDF;
+package Tk::Canvas::SVG;
 use strict;
 use warnings;
 
@@ -22,14 +22,14 @@ BEGIN {
   eval "use Encode";
 
   %join = (
-	   bevel => 2,
-	   miter => 0,
-	   round => 1
+	   bevel => 'bevel',
+	   miter => 'miter',
+	   round => 'round',
 	  );
   %capstyle = (
-	   butt => 0,
-	   round => 1,
-	   projecting => 2
+	   butt => 'butt',
+	   round => 'round',
+	   projecting => 'square',
 	  );
   %media = (
 	  Letter => [612, 792],
@@ -93,7 +93,7 @@ BEGIN {
 
 =item $canvas->pdf(options)
 
-Export cavnas content to PDF. Options:
+Export cavnas content to SVG. Options:
 
 =over 4
 
@@ -113,7 +113,7 @@ a PostScript font metrics file (afm)
 
 =item -font => name
 
-PDF corefont filename
+SVG corefont filename
 
 =item -file => filename
 
@@ -157,18 +157,6 @@ sub color2gray {
 sub new {
   my ($class,%opts)=@_;
 
-  require PDF::API2;
-  my $pdf=PDF::API2->new;
-  my %fontmap;
-
-
-  my $unicode=$opts{-unicode}; # force unicode if possible
-  my $encoding=$opts{-encoding} || 'utf8';
-  $encoding = 'utf8' if $encoding =~ /^\s*unicode\s*$|^\s*utf-?8\s*$/i;
-  $encoding =~ s/^\s*windows-?/cp/i;
-  $encoding =~ s/^\s*latin-(\d+)?/latin$1/i;
-  $encoding =~ s/^\s*iso-?8859(\d+)/iso-8859-$1/i;
-
   my @media;
   if ($opts{-media}) {
     if (ref($opts{-media})) {
@@ -181,65 +169,13 @@ sub new {
   } else {
     @media=(0,0,@{$media{A4}});
   }
-  $pdf->mediabox(@media);
-  __debug("Media: @media, Encoding: $encoding\n");
-  if ($opts{-fontmap}) {
-    foreach my $fn (keys %{$opts{-fontmap}}) {
-      if ($opts{-fontmap}->{$fn}->[0] =~ /tt|truetype/i) {
-	if ($unicode or $encoding eq 'utf8') {
-	  $fontmap{$fn}=$pdf->ttfont($opts{-fontmap}->{$fn}->[1]); #!! ->unicode();
-	} else {
-	  $fontmap{$fn}=$pdf->ttfont($opts{-fontmap}->{$fn}->[1],
-				     -encode => $encoding);
-	}
-      } elsif ($opts{-fontmap}->{$fn}->[0] =~ /ps|postscript/i) {
-	$fontmap{$fn}=$pdf->psfont($opts{-fontmap}->{$fn}->[1],$opts{-fontmap}->{$fn}->[2],
-				   $encoding ne 'utf8' ?
-				   (-encode => $encoding) : ()
-				  );
-      } elsif ($opts{-fontmap}->{$fn}->[0] =~ /core|builtin/i) {
-	$fontmap{$fn}=$pdf->corefont($opts{-fontmap}->{$fn}->[1],
-				     $encoding ne 'utf8' ?
-				   (-encode => $encoding) : ()
-				    );
-      } else {
-	die "Canvas::PDF->pdf: unknown font type: $opts{-fontmap}->{$fn}";
-      }
-    }
-  }
-
-  my $font;
-  my $fontType;
-  if ($opts{-ttfont}) {
-    $fontType='TT';
-    if ($unicode or $encoding eq 'utf8') {
-      $font=$pdf->ttfont($opts{-ttfont}); #!! ->unicode();
-    } else {
-      $font=$pdf->ttfont($opts{-ttfont},-encode => $encoding);
-    }
-  } elsif ($opts{-psfont}) {
-    $fontType='PS';
-    $font=$pdf->psfont($opts{-psfont}->[0],$opts{-psfont}->[1],
-		       $encoding ne 'utf8' ?
-		       (-encode => $encoding) : ()
-		      );
-  } else {
-    $fontType='Core';
-    $font=$pdf->corefont('Helvetica',
-			 $encoding ne 'utf8' ?
-			 (-encode => $encoding) : ()
-			);
-  }
+  __debug("Media: @media\n");
 
   return bless {
 	  Debug => $opts{-debug},
-	  Encoding => $encoding,
-	  Unicode => $unicode,
-	  PDF => $pdf,
-	  FontMap => \%fontmap,
+	  Pages => [],
+	  FontMap => $opts{-fontmap},
 	  Media => \@media,
-	  DefaultFont => $font,
-	  DefaultFontType => $fontType
 	 },$class;
 }
 
@@ -254,49 +190,72 @@ sub pdf {
 
 sub new_page {
   my ($P,%opts)=@_;
-  $P->{current_page} = $P->{PDF}->page;
+
+  my $svg_page='';
+  if ($P->{current_page}) {
+    $P->{current_page}->end;
+  }
+  $P->{current_page} = XML::Writer->new(OUTPUT=>\$svg_page,DATA_INDENT=>1,DATA_MODE=>1);
+  push @{$P->{pages}}, \$svg_page;
 }
 
 sub finish {
   my ($P,%opts)=@_;
+  if ($P->{current_page}) {
+    $P->{current_page}->end;
+  }
   if ($opts{-file}) {
-    $P->{PDF}->saveas($opts{-file});
-    $P->{PDF}->end;
+    if(@{$P->{pages}}==1) {
+      open my $fh, '>:utf8', $opts{-file} || die "Cannot open file '$opts{-file}' for writing: $!";
+      print $fh ${$P->{pages}->[0]};
+      close $fh;
+    } elsif (@{$P->{pages}}>1) {
+      for my $i (0..$#{$P->{pages}}) {
+	my $fn = $opts{-file}.".page$1.svg";
+	open my $fh, '>:utf8', $fn || die "Cannot open file '$fn' for writing: $!";
+	print $fh ${$P->{pages}->[$i]};
+	close $fh;
+      }
+    }
   } else {
-    my $string = $P->{PDF}->stringify;
-    $P->{PDF}->end;
-    return $string;
+    return join("\n\n<!-- new_page -->\n\n",@{$P->{pages}});
   }
 }
 
 sub draw_canvas {
   my ($P,$canvas,%opts)=@_;
-  #!! old PDF::API:
-  # my $draw = $P->{current_page}->hybrid;
-  my $draw = $P->{current_page}->gfx;
-  if ($opts{-transform}) {
-    $draw->transform(%{$opts{-transform}});
-  }
-  if ($opts{-translate}) {
-    $draw->translate(@{$opts{-translate}});
-  }
-  if ($opts{-rotate}) {
-    $P->{current_page}->rotate($opts{-rotate});
-    $draw->rotate($opts{-rotate});
-  }
-  if ($opts{-scale}) {
-    $draw->scale(@{$opts{-scale}});
-  }
-  if ($opts{-skew}) {
-    $draw->skew(@{$opts{-skew}});
-  }
-  if ($opts{-matrix}) {
-    $draw->matrix(@{$opts{-matrix}});
-  }
 
-  $draw->linedash();
-  $draw->linecap(0);
-  $draw->linejoin(0);
+  my @media = @{$P->{Media}};
+  my $width = $media[2]-$media[0];
+  my $height = $media[3]-$media[1];
+  my $writer = $P->{current_page};
+  $writer->startTag('svg',
+		 xmlns=>"http://www.w3.org/2000/svg",
+		 version=>"1.2",
+		 baseProfile=>"tiny",
+		 width=>"${width}pt",
+		 height=>"${height}pt",
+		 viewBox=>"@media");
+  # if ($opts{-transform}) {
+  #   $draw->transform(%{$opts{-transform}});
+  # }
+  # if ($opts{-translate}) {
+  #   $draw->translate(@{$opts{-translate}});
+  # }
+  # if ($opts{-rotate}) {
+  #   $P->{current_page}->rotate($opts{-rotate});
+  #   $draw->rotate($opts{-rotate});
+  # }
+  # if ($opts{-scale}) {
+  #   $draw->scale(@{$opts{-scale}});
+  # }
+  # if ($opts{-skew}) {
+  #   $draw->skew(@{$opts{-skew}});
+  # }
+  # if ($opts{-matrix}) {
+  #   $draw->matrix(@{$opts{-matrix}});
+  # }
+
 
   my $x = 0;
   my $y = 0;
@@ -304,22 +263,20 @@ sub draw_canvas {
   my $h = $opts{-height} || $P->{Media}[3];
   my $i;
   foreach my $item ($canvas->find('all')) {
-    $draw->save;
     my $type=$canvas->type($item);
     my $state = $canvas->itemcget($item, '-state');
     next if $state eq 'hidden';
     $state = $state eq 'disabled' ? $state : '';
     my @coords=$canvas->coords($item);
-    __debug("$type: orig @coords");
+#    __debug("$type: orig @coords");
     # recalculate coords for bottom/up
     my $even=0;
-    foreach (@coords) {
-      $_=$h-$_ if $even;
-      $even=!$even;
-    }
-    __debug "$type: new @coords";
+    # foreach (@coords) {
+    #   $_=$h-$_ if $even;
+    #   $even=!$even;
+    # }
+#    __debug "$type: new @coords";
     if ($type eq 'text') {
-      $draw->textstart;
       my $anchor=$canvas->itemcget($item,'-anchor') || 'center';
       my $color=$canvas->itemcget($item,"-${state}fill");
       next unless defined($color); # transparent text = no text
@@ -328,59 +285,58 @@ sub draw_canvas {
       } else {
 	$color = lc($color);
       }
-      my %canvasfont = $canvas->fontActual($canvas->itemcget($item,"-font"));
+      my $fn = $canvas->itemcget($item,"-font");
+      my %canvasfont = $canvas->fontActual($fn);
       __debug "FONT:", (map {" $_ => $canvasfont{$_}, "} keys %canvasfont),"\n";
-      my $fn;
       my $font_lookup_string = lc($canvasfont{-family}." ".$canvasfont{-weight}." ".$canvasfont{-slant});
       if ($P->{FontMap}{$font_lookup_string}) {
 	$fn=$P->{FontMap}{$font_lookup_string};
-      } else {
-	warn ("'$font_lookup_string' font isn't mapped\n") if $P->{Debug};
-	$fn = $P->{DefaultFont};
       }
-      my $fnsize=abs($canvasfont{-size});
       my $text=$canvas->itemcget($item,"-text");
       my $textwidth=$canvas->itemcget($item,"-width");
 
-      # TODO: width
-      __debug "$anchor\n";
-      $draw->linewidth(1);
-      $draw->linedash();
-      $draw->font($fn,$fnsize);
-      $draw->fillcolor($color);
       my ($posx,$posy)=@coords;
-      my $ascent=$fn->ascender*$fnsize/1000;
-      my $descent=-$fn->descender*$fnsize/1000;
+      my $fnsize = $canvasfont{-size};
+      if ($fnsize<0) {
+	$fnsize = abs($fnsize)/$canvas->fpixels('1p');
+      }
+      my $ascent=$canvas->fontMetrics($fn,'-ascent');
+      my $descent=$canvas->fontMetrics($fn,'-descent');
       my $height=$ascent+$descent;
-#      my $height = $fn->capheight*$fnsize/1000;
-      my $width;
-
-      #!! old PDF::API2:
-      if (eval "Encode::is_utf8(\$text)" and not $@) {
-	$width = $fn->width($text)*$fnsize; #!! width_utf8
-      } elsif ($P->{Unicode}) {
-	eval "\$text= Encode::decode(\$P->{Encoding},\$text);";
-	$width = $fn->width($text)*$fnsize; #!! width_utf8
-      } else {
-	$width = $fn->width($text)*$fnsize;
-      }
-      __debug "Width: $width";
-      $posx-=$width/2;
-      $posy-=$height/2;
+      # my $width=$c->fontMeasure($fn,$text);
+      # $posx-=$width/2;
+      $posy+=$height/2;
       $anchor = '' if $anchor eq 'center';
-      if ($anchor =~ /s/) { $posy+=$height/2 }
-      elsif ($anchor =~ /n/) { $posy-=$height/2 }
-      if ($anchor =~ /e/) { $posx-=$width/2 }
-      elsif ($anchor =~ /w/) { $posx+=$width/2 }
+      my $text_anchor = 'middle';
 
-      $draw->translate($posx,$posy+$descent);
-      __debug "Text: $posx $posy $anchor";
-      if (eval "Encode::is_utf8(\$text)" and not $@ or $P->{Encoding} eq 'utf8') {
-	$draw->text($text,-utf8 => 1);
-      } else {
-	$draw->text($text);
+
+      if ($anchor =~ /s/) { $posy-=$height/2 }
+      elsif ($anchor =~ /n/) { $posy+=$height/2 }
+
+      if ($anchor =~ /e/) { $text_anchor='end' }
+      elsif ($anchor =~ /w/) { $text_anchor='start' }
+
+      $writer->startTag('text',
+			"text-anchor" => $text_anchor,
+			"font-family" => $canvasfont{-family},
+			"font-weight" => $canvasfont{-weight},
+			"font-size" => ($canvasfont{-size}<0 ? abs($canvasfont{-size}).'px' : $canvasfont{-size}.'pt'),
+			"font-slant" => $canvasfont{-slant},
+			"fill" => $color,
+			width => $textwidth,
+			x => $posx,
+			y => $posy-$descent,
+		       );
+      $writer->setDataMode(0);
+      for my $chunk (split /(\n)/,$text) {
+	if ($chunk eq "\n") {
+	  $writer->emptyTag('tbreak');
+	} else {
+	  $writer->characters($chunk);
+	}
       }
-      $draw->textend;
+      $writer->setDataMode(1);
+      $writer->endTag('text');
     } elsif ($type eq 'line') {
       my $color=$canvas->itemcget($item,"-${state}fill");
       next unless defined $color; # transparent line = no line
@@ -399,12 +355,14 @@ sub draw_canvas {
       my $ars = $canvas->itemcget($item,"-arrowshape") || [8,10,3];
 
       # TODO: dashoffset
-      $draw->linewidth($width);
-      $draw->linedash(@dash);
-      $draw->linejoin($join{$join});
-      $draw->linecap($capstyle{$capstyle});
-      $draw->strokecolor($color);
-      $draw->fillcolor($color);
+      my %attrs = (
+	'stroke-width' => $width,
+	'stroke-dasharray' => join(',',@dash),
+	'stroke-linejoin' => $join{$join},
+	'stroke-linecap' => $capstyle{$capstyle},
+	'stroke'=>$color,
+       );
+
       __debug "Line: @coords";
       my @c=@coords;
       # shorten line for arrows
@@ -418,50 +376,48 @@ sub draw_canvas {
 	}
       }
       # draw line
-      if ($smooth and @c>=6) {
-	my @p;
-	if ($c[0]==$c[-2] and $c[1]==$c[-1]) {
-	  @p=(($c[-4]+$c[0])/2,($c[-3]+$c[1])/2);
-	  unshift @c, @p;
-	  @c[-2,-1]=@p;
-	} else {
-	  @p = @c[0,1];
-	}
-	my @m = @c[2,3];
-	shift @c for 0..3;
-	do {{
-	  my @d = @c>=4 ? (($m[0]+$c[0])/2,($m[1]+$c[1])/2)  : @c[0,1];
-	  $draw->move(@p);
-	  $draw->curve(@p,@m,@d);
-	  @m=@c[0,1];
-	  @p=@d;
-	  shift @c for 0,1;
-	}} while (@c>=2);
+      my $path='';
+      if ($smooth and @c>5) {
+	no integer;
+	my @p = @c;
+	my $first=1;
+ 	while (@p>5) {
+	  my @d = (($p[2]+$p[0])/2,($p[3]+$p[1])/2,
+		   # $p[2],$p[3],
+		   ($p[4]+$p[2])/2,($p[5]+$p[3])/2);
+	  $path.=qq{M$p[0],$p[1]} if $first;
+	  $path.=qq{ C$d[0],$d[1] $d[2],$d[3] $p[4],$p[5]};
+ 	  splice @p,0,2;
+	  $first = 0;
+ 	}
       } else {
-	$draw->move(@c[0,1]);
-	$draw->line(@c[2..$#c]);
+	my @p = @c;
+	$path='M'.shift(@p).','.shift(@p);
+	while (@p) {
+	  $path.=' L'.shift(@p).','.shift(@p);
+	}
       }
-      $draw->stroke;
+      $writer->emptyTag('path',
+			d => $path,
+			fill=>'none',
+			%attrs,
+		       );
       # draw arrows
       for (qw(first last)) {
 	if ($arrow eq $_ or $arrow eq 'both') {
 	  @c=$_ eq 'first' ? @coords[0..3] : @coords[-2,-1,-4,-3];
 	  my $angle = 180*atan2($c[2]-$c[0],$c[1]-$c[3])/3.14159265-90;
 	  $angle+=360 if ($angle<0);
-	  $draw->save;
-	  $draw->translate(@c[0,1]);
-	  $draw->linedash();
-	  $draw->linecap(0);
-	  $draw->linejoin(0);
-	  $draw->rotate(($angle+180) % 360);
-	  $draw->move(0,0);
-	  $draw->linewidth(0);
-	  $draw->poly(0,0,-$ars->[1],$ars->[2]+$width,
-	  	      -$ars->[0],0,
-	  	      -$ars->[1], -$ars->[2]-$width, 0,0);
-	  $draw->close;
-	  $draw->fillstroke;
-	  $draw->restore;
+	  $writer->startTag('g',transform=>'translate('.join(',',@c[0,1]).')');
+	  $writer->startTag('g',transform=>'rotate('.(($angle+180) % 360).')');
+	  $writer->emptyTag('polygon',
+			    'stroke-width' => 0,
+			    'fill'=>$color,
+			    'points' => (join ' ',map "$_->[0],$_->[1]",
+					 ([0,0],[-$ars->[1],-$ars->[2]-$width],[-$ars->[0],0],[-$ars->[1],+$ars->[2]+$width])),
+			   );
+	  $writer->endTag('g');
+	  $writer->endTag('g');
 	}
       }
     } elsif ($type eq 'oval') {
@@ -481,20 +437,16 @@ sub draw_canvas {
       }
 
       # TODO: dashoffset
-
-      $draw->linewidth($width);
-      $draw->linedash(@dash);
-      $draw->strokecolor($outlinecolor) if defined $outlinecolor;
-      $draw->fillcolor($color) if defined $color;
-      my @c = (($coords[2]+$coords[0])/2,($coords[3]+$coords[1])/2,
-	       ($coords[2]-$coords[0])/2,($coords[3]-$coords[1])/2);
-      __debug "Ellipse: @c";
-      $draw->ellipse(@c);
-      if (defined($color)) {
-	$draw->fillstroke;
-      } else {
-	$draw->stroke;
-      }
+      $writer->emptyTag('ellipse',
+			cx=>($coords[2]+$coords[0])/2,
+			cy=>($coords[3]+$coords[1])/2,
+			rx=>abs($coords[2]-$coords[0])/2,
+			ry=>abs($coords[3]-$coords[1])/2,
+			'stroke-width'=>$width,
+			'stroke-dasharray' => join(',',@dash),
+			stroke => defined($outlinecolor) ? $outlinecolor : 'none',
+			fill => defined($color) ? $color : 'none',
+		       );
     } elsif ($type eq 'polygon') {
       my $width=$canvas->itemcget($item,'-width');
       my $join=$canvas->itemcget($item,'-joinstyle');
@@ -514,36 +466,37 @@ sub draw_canvas {
 
       my $smooth = $canvas->itemcget($item,"-smooth");
       # TODO: dashoffset
-      $draw->linewidth($width);
-      $draw->linedash(@dash);
-      $draw->linejoin($join{$join});
-      $draw->strokecolor($outlinecolor) if defined($color);
-      $draw->fillcolor($color) if defined($color);
+
+      my %attrs = (
+	'stroke-width' => $width,
+	'stroke-dasharray' => join(',',@dash),
+	'stroke-linejoin' => $join{$join},
+	'stroke' => defined($outlinecolor) ? $outlinecolor : 'none',
+	'fill' => defined($color) ? $color : 'none',
+      );
       __debug "Polygon: @coords\n";
+
       if ($smooth) {
 	no integer;
 	my @c=(@coords,@coords[0..3]);
 	my $first=1;
+	my $path='';
  	while (@c>5) {
 	  my @d = (($c[2]+$c[0])/2,($c[3]+$c[1])/2,$c[2],$c[3],($c[4]+$c[2])/2,($c[5]+$c[3])/2);
-	  $draw->move(@d[0,1]) if $first;
- 	  $draw->curve(@d[2,3,2,3,4,5]);
+	  $path.=qq{M$d[0],$d[1]} if $first;
+	  $path.=qq{ C$d[2],$d[3] $d[2],$d[3] $d[4],$d[5]};
  	  splice @c,0,2;
 	  $first = 0;
  	}
-	$draw->close();
-	if (defined $color) {
-	  $draw->fillstroke(0);
-	} else {
-	  $draw->stroke;
-	}
+	$writer->emptyTag('path',
+			  d=>$path.' z',
+			  %attrs,
+			 );
       } else {
-	$draw->poly(@coords,@coords[0,1]);
-	if (defined $color) {
-	  $draw->fillstroke(0);
-	} else {
-	  $draw->stroke;
-	}
+	$writer->emptyTag('polygon',
+			  'points'=> join(' ',map { $coords[2*$_].','.$coords[2*$_+1] } 0..(int(@coords/2)-1)),
+			  %attrs,
+			 );
       }
     } elsif ($type eq 'rectangle') {
       my $width=$canvas->itemcget($item,'-width');
@@ -561,25 +514,20 @@ sub draw_canvas {
 	$outlinecolor = lc($outlinecolor) if defined $outlinecolor;
       }
 
-      # TODO: dashoffset
-      $draw->linewidth($width);
-      $draw->linedash(@dash);
-      $draw->linejoin(0);
-      $draw->linecap(0);
-      $draw->strokecolor($outlinecolor) if defined($outlinecolor);
-      $draw->fillcolor($color) if defined($color);
-      __debug "Rectangle: @coords";
-      $draw->rectxy(@coords);
-      if (defined $color) {
-	$draw->fillstroke;
-      } else {
-	$draw->stroke;
-      }
+      $writer->emptyTag('rect',
+			'x' => $coords[0],
+			'y' => $coords[1],
+			'width' => $coords[2]-$coords[0],
+			'height' => $coords[3]-$coords[1],
+			'stroke-width' => $width,
+			'stroke-dasharray' => join(',',@dash),
+			'stroke' => defined($outlinecolor) ? $outlinecolor : 'none',
+			'fill' => defined($color) ? $color : 'none',
+		       );
     }
     # TODO image, ...
-  } continue {
-    $draw->restore;
   }
+  $writer->endTag('svg');
 }
 
 sub _canvas_to_pdf_dash {
@@ -594,9 +542,9 @@ sub _canvas_to_pdf_dash {
 
 package Tk::Canvas;
 
-sub pdf {
+sub svg {
   my $self = shift;
-  Tk::Canvas::PDF::pdf($self,@_);
+  Tk::Canvas::SVG::svg($self,@_);
 }
 
 1;

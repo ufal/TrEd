@@ -12,7 +12,7 @@ TrEd::NodeGroups - macros for v visualizing groups of nodes
   BEGIN{ import TredMacro };
 
   sub after_redraw_hook {
-    my @nodes = GetVisibleNodes();
+    my @nodes = GetDisplayedNodes();
     my $group1 = [ $nodes[0..$#$nodes/2] ];
     my $group2 = [ $nodes[$#$nodes/2..$#$nodes] ];
     my $group3 = [ $nodes[$#$nodes/3..2*$#$nodes/3] ];
@@ -204,6 +204,7 @@ sub draw_group {
   eval { $c->raise('group_line','stripe'); };
   eval { $c->lower('group_line','line'); };
   eval { $c->raise('group_line','textbg'); };
+  eval { $c->raise('point','group_line'); };
 }
 
 # define stipples

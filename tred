@@ -815,9 +815,13 @@ sub conv_from_locale {
 
 
 print STDERR "Creating filelists...\n" if $tredDebug;
+
 {
   my $default= new Filelist('Default');
-  $default->add(0,map quotemeta($_),absolutize(@ARGV)) if @ARGV;
+  $default->add(0,map {
+    my ($filename,$suffix)=parseFileSuffix($_);
+    IOBackend::make_abs_URI($filename)->as_string.$suffix
+    } @ARGV) if @ARGV;
   addNewFilelist(undef,$default);
 }
 
@@ -2477,10 +2481,12 @@ sub openFile {
   # add file to filelist
   updateTitle($grp) unless $opts{-preload};
 
+  my $save_current;
   unless ($opts{-preload}) {
     applyFileSuffix($win,$goto);
+    $save_current = $win->{currentNode};
     unhideCurrentNode($win);
-    get_nodes_win($win,1); # for the hook below
+    get_nodes_win($win, 1); # for the hook below
   }
   $win->{redrawn}=0; # if redraw is called during the hook, we will know it
   doEvalHook($win,"file_opened_hook") if ($fsfile and !$opts{-nohook});
@@ -2490,6 +2496,7 @@ sub openFile {
 	    $win->{macroContext} ne $opt_t);
     unless ($opts{-noredraw}) {
       unless ($win->{redrawn}) {
+	$win->{currentNode} = $save_current if $save_current;
 	get_nodes_win($win); # the hook may have changed something
 	redraw_win($win);
       }
@@ -3637,7 +3644,7 @@ sub removeFromFilelist {
 
 sub createNewFilelist {
   my ($grp,$top)=@_;
-  my $name = QueryString($top || $grp,"File-list name", "Name: ");
+  my $name = QueryString($top || $grp,"File-list name", "Name: ") || return;
   if ($top) {
     $top->deiconify; $top->focus; $top->raise;
   }
@@ -3826,18 +3833,49 @@ sub filelistDialog {
 
   my $labframe=$topframe->LabFrame(-label=> 'Files to add',
 				-labelside=> 'acrosstop'
-			       )->pack(qw/-expand yes -fill both -side left/);
+			       )->pack(qw/-expand no -fill both -side left/);
   $labframe->Subwidget('label')->configure(-underline => 0);
-  my $fl= $labframe->MyFileSelect(-selectmode=> 'extended',
-				  -takefocus => 1
-				 )
-    ->pack(qw/-expand yes -fill both -side left -padx 5 -pady 5/);
-  $fl->Subwidget('filelist')->configure(-background => 'white', -setgrid => 1);
-  $d->bind("<Alt-f>",[$fl->Subwidget('filelist')->Subwidget('scrolled'),'focus']);
+  my $fsel= $labframe->MyFileSelect(
+    -selectmode=> 'extended',
+    -takefocus => 1,
+    -textentry => 1,
+   )->pack(qw/-expand yes -fill both -side left -padx 5 -pady 5/);
+  $fsel->Subwidget('filelist')->configure(-background => 'white', -setgrid => 1);
+  my $show_hidden=0;
+  my $menu = $fsel->Menu(
+    -tearoff => 0,
+    -menuitems => [
+      ['Checkbutton' => '~Show hidden files',
+       -variable => \$show_hidden,
+       -command => [sub {
+		      my ($grp,$fsel)=@_;
+		      $fsel->configure(-showhidden=>$show_hidden);
+		      $fsel->ReadDir($fsel->getCWD);
+		    },$grp,$fsel]
+      ],
+      ['Cascade' => '~Filter',
+       -tearoff => 0,
+       -menuitems => [
+	 map {
+	     [ Button => $_->[0],
+	       -command => [
+		 sub {
+		   my ($fsel,$filter)=@_;
+		   $fsel->SetFilter('',$filter);
+		 },$fsel,(ref($_->[1]) ? join(' ',@{$_->[1]}) : $_->[1])
+		],
+	      ]
+	   } @open_types
+	  ]
+      ],
+     ]
+   );
+  $fsel->Subwidget('filelist')->bind('<3>', sub { my ($w)=@_; $menu->Post($w->pointerxy); Tk->break; });
+  
+  $d->bind("<Alt-f>",[$fsel->Subwidget('filelist')->Subwidget('scrolled'),'focus']);
 
   my $leftframe=$topframe->Frame();
   my $midframe=$topframe->Frame();
-
   my $rightframe=$topframe->Frame();
 
   my $ll= createFilelistBrowseEntry($grp,$rightframe,\$filelist);
@@ -3853,8 +3891,8 @@ sub filelistDialog {
 
   my $t= $rightframe->Scrolled(qw/HList -relief sunken
 				  -selectmode extended
-				  -width 60
-				  -height 15 -scrollbars oe/,
+				  -font C_small
+				  -scrollbars oe/,
 			       -separator=> "\t"
 			      )
     ->pack(qw/-expand yes -fill both -side top/);
@@ -3887,7 +3925,7 @@ sub filelistDialog {
 				    updateBookmarks($grp)
 				      if (ref($grp->{filelistCurrentFilelist}) and
 					  $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
-				  },$grp,$t,$fl])->pack(qw/-fill x -expand yes -pady 0.2c -side top/);
+				  },$grp,$t,$fsel])->pack(qw/-fill x -expand yes -pady 0.2c -side top/);
 
   $midframe->ImgButton(-text=> 'Remove',
 		       -image => icon($grp,"1leftarrow"),
@@ -3996,9 +4034,21 @@ sub filelistDialog {
 		@pad,
 		-underline=> 0,
 		-command=> [sub {
-			      my ($grp,$d)=@_;
-			      deleteFilelist($grp,$grp->{filelistCurrentFilelist});
-			    },$grp,$d ])
+			      my ($grp,$d,$filelistref)=@_;
+			      my $fl = $grp->{filelistCurrentFilelist};
+			      if ($fl and
+				    $fl->name ne 'Default'
+				      and userQuery($d,
+						    "Realy delete filelist '".$fl->name."'?\n",
+						    -bitmap=> 'question',
+						    -title => "Delete filelist?",
+						    -buttons => ['Delete','Cancel']) eq 'Delete'
+				     ) {
+				deleteFilelist($grp,$grp->{filelistCurrentFilelist});
+				$fl = $grp->{filelistCurrentFilelist};
+				$$filelistref=($fl && $fl->name || '');
+			      }
+			    },$grp,$d,\$filelist ])
     ->pack(@b_pack);
 
   $botframe->ImgButton(-text=> 'Save',
@@ -4080,7 +4130,7 @@ sub filelistDialog {
 
   $leftframe->pack(qw/-padx 5 -side left -fill y/);
   $midframe->pack(qw/-padx 5 -side left/);
-  $rightframe->pack(qw/-padx 5 -side left -fill y/);
+  $rightframe->pack(qw/-padx 5 -side left -expand yes -fill both/);
   $topframe->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
 
 
@@ -4473,6 +4523,7 @@ sub initTTFonts {
   my ($grp,$toplevel)=@_;
   print STDERR "Collecting TTF fonts..." if $tredDebug;
   my $opts={};
+  $grp->{ttfonts}=[];
   if ($toplevel and eval { require Tk::ProgressBar; }) {
     my $d= $toplevel->DialogBox(-title => 'Looking for TrueType fonts...',
 				-buttons => ['Cancel']
@@ -4498,6 +4549,7 @@ sub initTTFonts {
     $opts = { callback => sub {
 		my ($font,$i,$max)=@_;
 		die "Interrupted\n" if $cancel;
+		return unless $i%10==0 or $i==$max;
 		#_quick_update($grp);
 		$d->update;
 		$percent_done = int(100* $i / $max);
@@ -4554,7 +4606,7 @@ sub updatePrintDialogState {
   my %t=map { $_ => 1} keys %$w; # toggle
   my @disable;
   if ($s->{printTo} eq 'printer') {
-    @disable = qw(printOnePerFile printImageMagickResolution psFile format_PDF);
+    @disable = qw(printOnePerFile printImageMagickResolution psFile format_PDF format_SVG);
   } elsif ($s->{printTo} eq 'file') {
     @disable = qw(printImageMagickResolution command);
   } elsif ($s->{printTo} eq 'convert') {
@@ -4569,6 +4621,9 @@ sub updatePrintDialogState {
     push @disable,qw(printRange) unless $s->{printOnePerFile};
   } elsif ($s->{printFormat} eq 'PS') {
     push @disable,qw(font);
+  } elsif ($s->{printFormat} eq 'SVG') {
+    push @disable,qw(printTo_printer font);
+    push @disable,qw(printRange) unless $s->{printOnePerFile};
   } elsif ($s->{printFormat} eq 'PDF') {
     push @disable,qw(printTo_printer);
     unless ($grp->{ttfonts}) {
@@ -4595,7 +4650,7 @@ sub updatePrintDialogState {
     $extension = lc($s->{printFormat});
   }
   $s->{psFile}=~s/\.[^.]*$/.$extension/ if defined($extension) and
-    not($s->{printTo} eq 'convert' and $extension =~ /^(?:pdf|e?ps)$/);
+    not($s->{printTo} eq 'convert' and $extension =~ /^(?:svg|pdf|e?ps)$/);
 
   if ($s->{printOnePerFile}) {
     $s->{psFile}=~s/\.([^.]*)$/_\%n.$1/ if $s->{psFile}!~/[%]\d*n/;
@@ -4926,7 +4981,9 @@ sub printDialog {
 					     [
 					      ($s->{printFormat} eq 'PDF' ?
 					      ["PDF files", [qw/.pdf .PDF/]] :
-					      ["PostScript files", [qw/.ps .eps .PS .EPS/]]),
+					      ($s->{printFormat} eq 'SVG' ?
+					      ["SVG files", [qw/.svg .SVG/]] :
+					      ["PostScript files", [qw/.ps .eps .PS .EPS/]])),
 					      ["All files", '*']
 					     ]
 					    );
@@ -4981,9 +5038,10 @@ sub printDialog {
   # output format buttons
   my %fmtbuttons = ( PS => [$bf,'Create PostScript','ps',11],
 		     EPS =>[$bf,'Create EPS','eps',7],
-		     PDF =>[$pbf,'Create PDF','pdf',8]
+		     SVG =>[$bf,'Create SVG','svg',7],
+		     PDF =>[$pbf,'Create PDF','pdf',8],
 		   );
-  foreach (qw(PS EPS PDF)) {
+  foreach (qw(PS EPS SVG PDF)) {
     $w{"format_$_"} = $fmtbuttons{$_}[0]->
       Radiobutton(-text    => $fmtbuttons{$_}[1],
 		  -value   => $_,
@@ -4994,7 +5052,7 @@ sub printDialog {
 		  [\&updatePrintDialogState,$grp,\%w,\%s,$fmtbuttons{$_}[2],$d]
 		 );
   }
-  foreach (qw(PS EPS)) {
+  foreach (qw(PS EPS SVG)) {
     $w{"format_$_"}->pack(qw/-fill y -anchor nw/);
   }
   $w{format_PDF}->pack(qw/-anchor w -side left -fill y -expand 1/);
@@ -5100,7 +5158,7 @@ sub printDialog {
       #3
       ($s{printTo} eq 'convert' or $s{printFormat} eq 'EPS') ? 1 : 0,
       #4
-      ($s{printFormat} eq 'PDF') ? 1 : 0,
+      $s{printFormat},
       #5
       TrEd::Config::tilde_expand($s{psFile}),
       #6
@@ -5157,7 +5215,7 @@ sub printThis {
     $err = 0;
     ($one_per_file,$range,@print_opts)=printDialog($grp);
     return unless scalar(@print_opts)>1;
-    if ($print_opts[2] and (!$grp->{ttfonts} or !$grp->{ttfonts}->{$printOptions->{ttFont}})) {
+    if ($print_opts[2] eq 'PDF' and (!$grp->{ttfonts} or !$grp->{ttfonts}->{$printOptions->{ttFont}})) {
       plainErrorMessage($win,"You must select TrueType font for PDF!");
       $err = 1;
     }
@@ -6110,7 +6168,7 @@ sub startMain {
 #    $top->InitStderr;
 #  } unless -t \*STDOUT;
 #  undef $@;
-  for (qw(ROText Text TextUndo Entry HistEntry SimpleHistEntry
+  for (qw(ROText Text TextUndo Entry LabEntry HistEntry SimpleHistEntry
 	  Listbox HList CodeText)) {
     $top->optionAdd("\*$_.background","white");
     $top->optionAdd("\*$_.foreground","black");
@@ -7832,8 +7890,52 @@ sub urlDialog {
       defined($grp->{focusedWindow}->{FSFile})) {
     $grp->{lastURL} = $grp->{focusedWindow}->{FSFile}->filename();
   }
+  $grp->{lastURL}||='file://';
   $grp->{urlHist} = [] unless ref($grp->{urlHist});
-  my $file = QueryString($grp,"Enter URL", "URL: ",$grp->{lastURL},1,$grp->{urlHist});
+  my $opts={};
+  if ( eval { require Tk::MatchEntry; 1 } ) {
+    $opts = {
+      -entry =>
+      [
+      'MatchEntry',
+      -label=>undef,
+      -choices=>[],
+      -complete=>1,
+      -wraparound => 1,
+      -autopopup=>1,
+      -fixedwidth => 0,
+      -autoshrink => 1,
+      -maxheight => 10,
+      -listcmd => sub {
+	my ($w)=@_;
+	my $file = $w->Subwidget('entry')->get();
+	my @files;
+	if ($file !~ m{^\s*([[:alnum:]][[:alnum:]]+):}) {
+	  @files = glob(TrEd::Config::tilde_expand($file).'*');
+	} elsif ($file =~ m{^\s*file:}) {
+	  $file = URI->new($file eq 'file:' ? 'file:///' : $file);
+	  if (UNIVERSAL::isa($file, 'URI::file')) {
+	    @files = map { URI::file->new($_)->as_string } glob($file->file.'*');
+	  }
+	}
+	$w->configure(-choices=>\@files);
+	my $font = $w->cget('-font');
+	$w->configure(-listwidth=>10+max(map $w->fontMeasure($font,$_),@files));
+	$w->xview('end');
+      }],
+      -entry_config => sub {
+	$_[0]->Subwidget('entry')->Subwidget('entry')->configure(
+	  -background=>'white',
+	  -foreground=>'black',
+	);
+	$_[0]->focus;
+      },
+     };
+  } else {
+    undef $@;
+  }
+  my $file = QueryString($grp,"Enter URL", "URL: ",$grp->{lastURL},1,$grp->{urlHist},
+			 undef,$opts);
   if (defined $file and $file ne EMPTY) {
     $grp->{lastURL} = $file;
     return openStandaloneFile($grp,$file,-justheader => $header_only);
@@ -8465,7 +8567,7 @@ sub editConfig {
 }
 
 sub QueryString {
-  my ($grp, $title, $label,$default_text, $select, $hist,$before_label)=@_;
+  my ($grp, $title, $label,$default_text, $select, $hist,$before_label,$opts)=@_;
   my $top = (ref($grp) and UNIVERSAL::can($grp,'toplevel')) ? $grp->toplevel : $grp->{top};
   my $newvalue=encode($default_text);
   my $d=$top->DialogBox(-title=> $title,
@@ -8476,7 +8578,9 @@ sub QueryString {
   $d->bind('<Shift-Tab>',[sub { shift->focusPrev; }]);
 
   addBindTags($d,'dialog');
-  my ($Entry,@Eopts) = get_entry_type();
+  $opts||={};
+  my ($Entry,@Eopts) = @{delete($opts->{-entry}) || [get_entry_type()]};
+
   my $f = $d;
   if (defined $before_label) {
     my $l= $d->Label(-text=> encode($before_label),
@@ -8491,6 +8595,9 @@ sub QueryString {
 		-takefocus=> 1,
 		-font=> $font,
 		-textvariable=> \$newvalue);
+  if ($opts->{-entry_config}) {
+    $opts->{-entry_config}->($e);
+  }
   if ($e->can('history') and ref($hist)) {
     $e->history($hist);
   }
@@ -8502,7 +8609,6 @@ sub QueryString {
   $l->pack(-side=>'left');
   $e->pack(-side=>'right');
   $d->resizable(0,0);
-#  $e->focus;
   $d->BindButtons;
   my $result= ShowDialog($d,$e,$top);
   if ($result=~ /OK/) {
@@ -11735,7 +11841,7 @@ sub node_release {
     $w->coords($sel, $tv->node_coords($node,$win->{currentNode}));
     # print lower;
     $w->lower($sel,'point');
-  } else { redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo}); }
+  } else { redraw_win($win); }
 }
 
 sub node_release_modif {

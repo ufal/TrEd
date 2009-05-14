@@ -14,11 +14,13 @@ my $cfg = QuickPML(
     'structure',
     context_before => 'nonNegativeInteger',
     context_after => 'nonNegativeInteger',
+    follow_current_node => ['choice' => 'yes', 'no'],
     alignment => ['choice' => 'horizontal', 'vertical'],
    ],
   Fslib::Struct->new({
     context_before=>5,
     context_after=>5,
+    follow_current_node => 'yes',
     alignment=>'horizontal',
   }));
 
@@ -52,6 +54,41 @@ DeclareMinorMode 'Show_Neighboring_Trees' => {
   abbrev => 'neigh_trees',
   configure => \&edit_configuration,
   post_hooks => {
+    current_node_change_hook => sub {
+      my ($node)=@_;
+      my $config = get_config();
+      return unless $config->{follow_current_node} eq 'yes';
+      my $r=$node->root;
+      return if $r==$root;	# same tree
+      my @trees = GetTrees();
+      for my $i (0..$#trees) {
+	if ($trees[$i]==$r) {
+
+	  # store the node's current position in the window
+	  my $c = $grp->treeView->canvas;
+	  my ($x,$y )=
+	    map $grp->treeView->get_node_pinfo($node, $_),
+	      qw(XPOS YPOS);	# coordinates of the selected node
+	  my ($xv,$yv)=( 
+	    $c->xviewCoord($x),	# translate to window position
+	    $c->yviewCoord($y)
+	   );
+
+	  GotoTree($i+1);
+	  $this = $node;
+	  Redraw();
+
+	  # adjust view so that the node appears
+	  # on the exact same place
+	  ($x,$y)= 
+	    map $grp->treeView->get_node_pinfo($node, $_),
+	      qw(XPOS YPOS);
+	  $c->xviewCoord($x,$xv); # restore window position
+	  $c->yviewCoord($y,$yv);
+	  return;
+	}
+      }
+    },
     node_style_hook => sub {
       my ($node,$styles)=@_;
       AddStyle($styles,'Node',-segment => $segment{$node}.'/0') if $vertical;
