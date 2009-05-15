@@ -4014,7 +4014,7 @@ sub Print {
 	 $opts{-range},
 	 ($opts{-toFile} and $opts{-format} !~ /ImageMagick/i) ? 1 : 0,
 	 $opts{-format} =~ /ImageMagick|EPS/i ? 1 : 0,
-	 ($opts{-toFile} and $opts{-format} eq 'PDF') ? 1 : 0,
+	 ($opts{-toFile} and $opts{-format} =~ /^PDF$|^SVG$/) ? $opts{-format} : 0,
 	 $opts{-filename},
 	 $opts{-sentenceInfo},
 	 $opts{-fileInfo},
