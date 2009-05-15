@@ -261,7 +261,7 @@ If converting several files, it is recommended to use btred options
 C<--strip-prefix>, C<--add-prefix>, C<--strip-suffix>, C<--add-suffix>
 which this script obeys.
 
-=item C<--format> PS|PDF|EPS|ImageMagick
+=item C<--format> PS|PDF|SVG|EPS|ImageMagick
 
 Target format. Default is PDF.
 
@@ -330,7 +330,7 @@ automatically).
 
 =item C<--psMedia> media
 
-Specifies target given media size (used for PostScript and PDF).
+Specifies target given media size (used for PostScript, PDF, and SVG).
 Possible values:
 
 User (dimensions specified in --fmtHeight and --fmtWidth), BBox
