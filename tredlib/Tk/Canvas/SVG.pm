@@ -195,7 +195,7 @@ sub new_page {
   if ($P->{current_page}) {
     $P->{current_page}->end;
   }
-  $P->{current_page} = XML::Writer->new(OUTPUT=>\$svg_page,DATA_INDENT=>1,DATA_MODE=>1);
+  $P->{current_page} = XML::Writer->new(OUTPUT=>\$svg_page,DATA_INDENT=>1,DATA_MODE=>1,ENCODING=>'utf-8');
   push @{$P->{pages}}, \$svg_page;
 }
 
@@ -206,13 +206,24 @@ sub finish {
   }
   if ($opts{-file}) {
     if(@{$P->{pages}}==1) {
-      open my $fh, '>:utf8', $opts{-file} || die "Cannot open file '$opts{-file}' for writing: $!";
+      print "Print to $opts{-file}\n";
+      open(my $fh, '>:utf8', $opts{-file}) or die "Cannot open file '$opts{-file}' for writing: $!";
       print $fh ${$P->{pages}->[0]};
       close $fh;
     } elsif (@{$P->{pages}}>1) {
+      require File::Spec;
+      my $dir = $opts{-file};
+      unless (-d $dir) {
+	mkdir($dir) or die "Cannot create directory '$dir' for multi-page SVG: $!";
+      }
+      my $fn = File::Spec->catfile($dir,'index.html');
+      open(my $fh, '>:utf8', $fn) or die "Cannot open file '$fn' for writing: $!";
+      my $format = "page_%03d.svg";
+      print_html_template($fh,$opts{-file},scalar(@{$P->{pages}}),$format);
+      close $fh;
       for my $i (0..$#{$P->{pages}}) {
-	my $fn = $opts{-file}.".page$1.svg";
-	open my $fh, '>:utf8', $fn || die "Cannot open file '$fn' for writing: $!";
+	$fn = File::Spec->catfile($dir,sprintf($format,$i));
+	open(my $fh, '>:utf8', $fn) or die "Cannot open file '$fn' for writing: $!";
 	print $fh ${$P->{pages}->[$i]};
 	close $fh;
       }
@@ -225,17 +236,20 @@ sub finish {
 sub draw_canvas {
   my ($P,$canvas,%opts)=@_;
 
-  my @media = @{$P->{Media}};
+  my @media = @{$canvas->cget('-scrollregion')};
+#    @{$P->{Media}};
   my $width = $media[2]-$media[0];
   my $height = $media[3]-$media[1];
   my $writer = $P->{current_page};
+  $writer->xmlDecl("UTF-8");
   $writer->startTag('svg',
 		 xmlns=>"http://www.w3.org/2000/svg",
 		 version=>"1.2",
 		 baseProfile=>"tiny",
-		 width=>"${width}pt",
-		 height=>"${height}pt",
-		 viewBox=>"@media");
+		 width=>"${width}",
+		 height=>"${height}",
+		 #viewBox=>"@media"
+		);
   # if ($opts{-transform}) {
   #   $draw->transform(%{$opts{-transform}});
   # }
@@ -357,7 +371,7 @@ sub draw_canvas {
       # TODO: dashoffset
       my %attrs = (
 	'stroke-width' => $width,
-	'stroke-dasharray' => join(',',@dash),
+	'stroke-dasharray' => (join(',',@dash)||'none'),
 	'stroke-linejoin' => $join{$join},
 	'stroke-linecap' => $capstyle{$capstyle},
 	'stroke'=>$color,
@@ -443,7 +457,7 @@ sub draw_canvas {
 			rx=>abs($coords[2]-$coords[0])/2,
 			ry=>abs($coords[3]-$coords[1])/2,
 			'stroke-width'=>$width,
-			'stroke-dasharray' => join(',',@dash),
+			'stroke-dasharray' => (join(',',@dash)||'none'),
 			stroke => defined($outlinecolor) ? $outlinecolor : 'none',
 			fill => defined($color) ? $color : 'none',
 		       );
@@ -469,7 +483,7 @@ sub draw_canvas {
 
       my %attrs = (
 	'stroke-width' => $width,
-	'stroke-dasharray' => join(',',@dash),
+	'stroke-dasharray' => (join(',',@dash)||'none'),
 	'stroke-linejoin' => $join{$join},
 	'stroke' => defined($outlinecolor) ? $outlinecolor : 'none',
 	'fill' => defined($color) ? $color : 'none',
@@ -520,7 +534,7 @@ sub draw_canvas {
 			'width' => $coords[2]-$coords[0],
 			'height' => $coords[3]-$coords[1],
 			'stroke-width' => $width,
-			'stroke-dasharray' => join(',',@dash),
+			'stroke-dasharray' => (join(',',@dash)||'none'),
 			'stroke' => defined($outlinecolor) ? $outlinecolor : 'none',
 			'fill' => defined($color) ? $color : 'none',
 		       );
@@ -539,6 +553,70 @@ sub _canvas_to_pdf_dash {
   $dash =~ s/[{}]//;
   return split /\s*/,$dash;
 }
+
+sub print_html_template {
+  my ($fh, $title, $pages, $fn_format)=@_;
+  my $files = join ",", map '"'.sprintf($fn_format, $_).'"', 0..($pages-1);
+  print $fh <<"HTML";
+<html>
+  <head>
+    <script language="javascript">
+      var files = [
+        $files
+      ];
+      var current_tree = 0;
+      function height_inc ( amount ) {
+        var embed = document.getElementById("tree").getElementsByTagName("embed").item(0);
+        embed.height=parseInt(embed.height)+amount;
+      }
+      function next_tree ( delta ) {
+        var next = current_tree+delta;
+        if (next >= 0 && files.length > next) {
+
+          // in FF, we would just set 'src', but Opera
+          // and other require replacing the embed
+
+          var tree = document.getElementById("tree");
+          var oembed = tree.getElementsByTagName("embed").item(0);
+          var nembed = tree.ownerDocument.createElement("embed"); 
+          nembed.width = oembed.width;
+          nembed.height = oembed.height;
+          nembed.class = oembed.class;
+          nembed.type = oembed.type;
+          nembed.src=files[next];
+          tree.replaceChild(nembed,oembed);
+          current_tree = next;
+          update_title();
+        }
+      }
+      function update_title () {
+         document.getElementById("cur_tree").firstChild.nodeValue = current_tree + 1;
+         document.getElementById("tree_count").firstChild.nodeValue = files.length;
+      }
+    </script>
+  </head>
+<body onLoad="next_tree(0)">
+<h1>$title</h1>
+<form>
+  <input type="button" value="+" onClick="javascript:height_inc(30)"/>
+  <input type="button" value="-" onClick="javascript:height_inc(-30)"/>
+
+  <input type="button" value="<" onClick="javascript:next_tree(-1)"/>
+  <span id="cur_tree">0</span> of <span id="tree_count">0</span>
+  <input type="button" value=">" onClick="javascript:next_tree(1)"/>
+</form>
+
+<div id="tree" style="background:white;border: black solid 1px;">
+  <embed src="" width="100%" height="600"
+         type="image/svg+xml"
+         pluginspage="http://www.adobe.com/svg/viewer/install/" /> <!-- Adobe plugin for IE; Firefox supports SVG since 1.5 -->
+</div>
+</body>
+
+</html>
+HTML
+}
+
 
 package Tk::Canvas;
 
