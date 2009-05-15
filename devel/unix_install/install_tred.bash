@@ -181,10 +181,9 @@ if [ "$PRINT_VERSION" = 1 ]; then echo Version: $VERSION; exit; fi
 if [ "$PRINT_HELP" = 1 ]; then help; exit; fi
 if [ "$PRINT_USAGE" = 1 ]; then usage; exit; fi
 
-
-if [ -z "$PREFIX" ] && [ -z "$TRED_TARGET_DIR" ] && [ -z "$TRED_DIR" ]; then
+if !([ "x$SYSTEM" = x1 ] && [ "x$LIBS_ONLY" = x1 ]) && [ -z "$PREFIX" ] && [ -z "$TRED_TARGET_DIR" ] && [ -z "$TRED_DIR" ]; then
     cat <<EOF 1>&2
-Do not know where to install: please specify a prefix (--prefix)!
+Do not know where to install: please specify install target dir with --tred-dir!
 Note: at least parent directories must exist!
 
 EOF
@@ -197,6 +196,19 @@ Cannot specify both --tred-prefix and --tred-dir!
 EOF
     usage;
     exit 3;
+fi
+
+TRED_BUILD_DIR="$1"
+remove_build_dir=0
+
+if [ "x$SYSTEM" = x1 ] && [ "x$LIBS_ONLY" = x1 ] [ -z "$PREFIX" ] && [ -z "$TRED_TARGET_DIR" ] && [ -z "$TRED_DIR" ]; then
+   if [ -z "$TRED_BUILD_DIR" ]; then
+      TRED_BUILD_DIR=$(mktemp -d)
+      TRED_DIR="/usr/local"
+      remove_build_dir=1
+   else
+      TRED_DIR="$TRED_BUILD_DIR"
+   fi
 fi
 
 if [ -n "$TRED_TARGET_DIR" ]; then
@@ -239,8 +251,6 @@ action () {
     echo "*** $ACTION ..." 1>&2
 }
 
-TRED_BUILD_DIR="$1"
-remove_build_dir=0
 if [ -n "$TRED_BUILD_DIR" ]; then
     TRED_BUILD_DIR=$(readlink_nf "$TRED_BUILD_DIR")
 else
