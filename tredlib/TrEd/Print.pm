@@ -322,8 +322,8 @@ sub print_trees {
 			      (-media => [0,0,$prtFmtWidth,$prtFmtHeight]) 
 			      : ()
 			     );
-
-    $treeView = new TrEd::TreeView($c);
+    my $balloon=$c->toplevel->Balloon(-state=> 'balloon');
+    $treeView = new TrEd::TreeView($c,'CanvasBalloon'=> $balloon);
     $treeView->apply_options($canvas_opts);
   } else {
     $treeView = new TrEd::PSTreeView($c);
@@ -437,7 +437,8 @@ sub print_trees {
 			  -translate => [$hMargin+
 					 ($pagewidth-$height*$scale)/2,
 					 $vMargin+
-					 ($pageheight+$width*$scale)/2]
+					 ($pageheight+$width*$scale)/2],
+			  -balloon => $treeView->get_CanvasBalloon,
 			 );
 	} else {
 	  $P->draw_canvas($c,
@@ -449,7 +450,8 @@ sub print_trees {
 			  -translate => [$hMargin+
 					 ($pagewidth-$width*$scale)/2,
 					 $vMargin+
-					 ($pageheight-$height*$scale)/2]
+					 ($pageheight-$height*$scale)/2],
+			  -balloon => $treeView->get_CanvasBalloon,
 			 );
 	}
 ###	last; # only one page for now
