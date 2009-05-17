@@ -128,6 +128,18 @@ sub __debug {
 #  print join "",@_; print "\n";
 }
 
+sub color2svg {
+  my ($color,$grayscale)=@_;
+  if ($grayscale) {
+    $color = color2gray($color)
+  } elsif ($color=~/^#([0-9a-fA-F]{2})[0-9a-fA-F]{2}([0-9a-fA-F]{2})[0-9a-fA-F]{2}([0-9a-fA-F]{2})[0-9a-fA-F]{2}$/) {
+    $color=qq{#$1$2$3};
+  } else {
+    $color = lc($color);
+  }
+
+}
+
 sub color2gray {
   my ($color)=@_;
   unless (ref($color)) {
@@ -233,23 +245,53 @@ sub finish {
   }
 }
 
+sub item_title {
+  my ($self,$writer,$title)=@_;
+  if (defined($title) and $title=~/\S/) {
+    $writer->startTag('title');
+    $writer->characters($title);
+    $writer->endTag('title');
+  }
+}
 sub draw_canvas {
-  my ($P,$canvas,%opts)=@_;
+  my ($self,$canvas,%opts)=@_;
 
   my @media = @{$canvas->cget('-scrollregion')};
-#    @{$P->{Media}};
+#    @{$self->{Media}};
   my $width = $media[2]-$media[0];
   my $height = $media[3]-$media[1];
-  my $writer = $P->{current_page};
+  my $writer = $self->{current_page};
   $writer->xmlDecl("UTF-8");
   $writer->startTag('svg',
 		 xmlns=>"http://www.w3.org/2000/svg",
 		 version=>"1.2",
 		 baseProfile=>"tiny",
-		 width=>"${width}",
-		 height=>"${height}",
+		 #width=>"${width}",
+		 #height=>"${height}",
 		 #viewBox=>"@media"
 		);
+  my $balloon = $opts{-balloon};
+  my $hint;
+  if ($balloon) {
+    $hint = $balloon->GetOption('-balloonmsg',$canvas);
+    if ($hint) {
+      $writer->startTag('script', type=>"text/ecmascript");
+      $writer->characters(<<'SCRIPT');
+function set_visibility (id,show) {
+  obj = document.getElementById(id);
+  if (obj) {
+    if (show) {
+      obj.setAttribute("visibility","visible");
+    } else {
+      obj.setAttribute("visibility","hidden");
+    }
+  }
+}
+SCRIPT
+      $writer->endTag('script');
+    }
+  }
+  $hint ||= {};
   # if ($opts{-transform}) {
   #   $draw->transform(%{$opts{-transform}});
   # }
@@ -257,7 +299,7 @@ sub draw_canvas {
   #   $draw->translate(@{$opts{-translate}});
   # }
   # if ($opts{-rotate}) {
-  #   $P->{current_page}->rotate($opts{-rotate});
+  #   $self->{current_page}->rotate($opts{-rotate});
   #   $draw->rotate($opts{-rotate});
   # }
   # if ($opts{-scale}) {
@@ -273,15 +315,23 @@ sub draw_canvas {
 
   my $x = 0;
   my $y = 0;
-  my $w = $opts{-width} || $P->{Media}[2];
-  my $h = $opts{-height} || $P->{Media}[3];
+  my $w = $opts{-width} || $self->{Media}[2];
+  my $h = $opts{-height} || $self->{Media}[3];
   my $i;
   foreach my $item ($canvas->find('all')) {
     my $type=$canvas->type($item);
+    my $tags=$canvas->itemcget($item,'-tags');
+    my @coords=$canvas->coords($item);
+    my %item_opts;
+    if (defined $hint->{$item}) {
+      my $id = 'hint_i'.$item;
+      $item_opts{onmouseover}=qq{set_visibility('$id',1)};
+      $item_opts{onmouseout}=qq{set_visibility('$id',0)};
+    }
+    $writer->comment( join(', ',@$tags) );
     my $state = $canvas->itemcget($item, '-state');
     next if $state eq 'hidden';
     $state = $state eq 'disabled' ? $state : '';
-    my @coords=$canvas->coords($item);
 #    __debug("$type: orig @coords");
     # recalculate coords for bottom/up
     my $even=0;
@@ -294,26 +344,18 @@ sub draw_canvas {
       my $anchor=$canvas->itemcget($item,'-anchor') || 'center';
       my $color=$canvas->itemcget($item,"-${state}fill");
       next unless defined($color); # transparent text = no text
-      if ($opts{-grayscale}) {
-	$color = color2gray($color)
-      } else {
-	$color = lc($color);
-      }
+      $color = color2svg($color, $opts{-grayscale});
       my $fn = $canvas->itemcget($item,"-font");
       my %canvasfont = $canvas->fontActual($fn);
       __debug "FONT:", (map {" $_ => $canvasfont{$_}, "} keys %canvasfont),"\n";
-      my $font_lookup_string = lc($canvasfont{-family}." ".$canvasfont{-weight}." ".$canvasfont{-slant});
-      if ($P->{FontMap}{$font_lookup_string}) {
-	$fn=$P->{FontMap}{$font_lookup_string};
-      }
+      # my $font_lookup_string = lc($canvasfont{-family}." ".$canvasfont{-weight}." ".$canvasfont{-slant});
+      # if ($self->{FontMap}{$font_lookup_string}) {
+      # 	$fn=$self->{FontMap}{$font_lookup_string};
+      # }
       my $text=$canvas->itemcget($item,"-text");
       my $textwidth=$canvas->itemcget($item,"-width");
 
       my ($posx,$posy)=@coords;
-      my $fnsize = $canvasfont{-size};
-      if ($fnsize<0) {
-	$fnsize = abs($fnsize)/$canvas->fpixels('1p');
-      }
       my $ascent=$canvas->fontMetrics($fn,'-ascent');
       my $descent=$canvas->fontMetrics($fn,'-descent');
       my $height=$ascent+$descent;
@@ -331,6 +373,7 @@ sub draw_canvas {
       elsif ($anchor =~ /w/) { $text_anchor='start' }
 
       $writer->startTag('text',
+			'id' => 'i'.$item,
 			"text-anchor" => $text_anchor,
 			"font-family" => $canvasfont{-family},
 			"font-weight" => $canvasfont{-weight},
@@ -340,7 +383,9 @@ sub draw_canvas {
 			width => $textwidth,
 			x => $posx,
 			y => $posy-$descent,
+			%item_opts,
 		       );
+      $self->item_title($writer,$hint->{$item});
       $writer->setDataMode(0);
       for my $chunk (split /(\n)/,$text) {
 	if ($chunk eq "\n") {
@@ -354,11 +399,7 @@ sub draw_canvas {
     } elsif ($type eq 'line') {
       my $color=$canvas->itemcget($item,"-${state}fill");
       next unless defined $color; # transparent line = no line
-      if ($opts{-grayscale}) {
-	$color = color2gray($color);
-      } else {
-	$color = lc($color);
-      }
+      $color = color2svg($color, $opts{-grayscale});
       my $join=$canvas->itemcget($item,'-joinstyle');
       my $capstyle=$canvas->itemcget($item,'-capstyle');
       my $width=$canvas->itemcget($item,'-width');
@@ -393,17 +434,24 @@ sub draw_canvas {
       my $path='';
       if ($smooth and @c>5) {
 	no integer;
-	my @p = @c;
-	my $first=1;
- 	while (@p>5) {
-	  my @d = (($p[2]+$p[0])/2,($p[3]+$p[1])/2,
-		   # $p[2],$p[3],
-		   ($p[4]+$p[2])/2,($p[5]+$p[3])/2);
-	  $path.=qq{M$p[0],$p[1]} if $first;
-	  $path.=qq{ C$d[0],$d[1] $d[2],$d[3] $p[4],$p[5]};
- 	  splice @p,0,2;
-	  $first = 0;
- 	}
+	$path = qq{M$c[0],$c[1]};
+	my @p;
+	if ($c[0]==$c[-2] and $c[1]==$c[-1]) {
+	  @p=(($c[-4]+$c[0])/2,($c[-3]+$c[1])/2);
+	  unshift @c, @p;
+	  @c[-2,-1]=@p;
+	} else {
+	  @p = @c[0,1];
+	}
+	my @m = @c[2,3];
+	shift @c for 0..3;
+	do {{
+	  my @d = @c>=4 ? (($m[0]+$c[0])/2,($m[1]+$c[1])/2)  : @c[0,1];
+	  $path .= qq{ C$p[0],$p[1],$m[0],$m[1],$d[0],$d[1]};
+	  @m=@c[0,1];
+	  @p=@d;
+	  shift @c for 0,1;
+	}} while (@c>=2);
       } else {
 	my @p = @c;
 	$path='M'.shift(@p).','.shift(@p);
@@ -411,11 +459,15 @@ sub draw_canvas {
 	  $path.=' L'.shift(@p).','.shift(@p);
 	}
       }
-      $writer->emptyTag('path',
-			d => $path,
-			fill=>'none',
+      $writer->startTag('path',
+			'id' => 'i'.$item,
+			'd' => $path,
+			'fill' =>'none',
 			%attrs,
+			%item_opts,
 		       );
+      $self->item_title($writer,$hint->{$item});
+      $writer->endTag('path');
       # draw arrows
       for (qw(first last)) {
 	if ($arrow eq $_ or $arrow eq 'both') {
@@ -424,12 +476,16 @@ sub draw_canvas {
 	  $angle+=360 if ($angle<0);
 	  $writer->startTag('g',transform=>'translate('.join(',',@c[0,1]).')');
 	  $writer->startTag('g',transform=>'rotate('.(($angle+180) % 360).')');
-	  $writer->emptyTag('polygon',
+	  $writer->startTag('polygon',
+			    'id' => 'i'.$item,
 			    'stroke-width' => 0,
 			    'fill'=>$color,
 			    'points' => (join ' ',map "$_->[0],$_->[1]",
 					 ([0,0],[-$ars->[1],-$ars->[2]-$width],[-$ars->[0],0],[-$ars->[1],+$ars->[2]+$width])),
+			    %item_opts,
 			   );
+	  $self->item_title($writer,$hint->{$item});
+	  $writer->endTag('polygon');
 	  $writer->endTag('g');
 	  $writer->endTag('g');
 	}
@@ -441,17 +497,12 @@ sub draw_canvas {
       my $color=$canvas->itemcget($item,"-${state}fill");
       my $outlinecolor=$canvas->itemcget($item,"-${state}outline");
       $outlinecolor=$color if !defined($outlinecolor);
-
-      if ($opts{-grayscale}) {
-	$color = color2gray($color);
-	$outlinecolor = color2gray($outlinecolor);
-      } else {
-	$color = lc($color) if defined $color;
-	$outlinecolor = lc($outlinecolor) if defined $outlinecolor;
-      }
+      $color = color2svg($color, $opts{-grayscale});
+      $outlinecolor = color2svg($outlinecolor, $opts{-grayscale});
 
       # TODO: dashoffset
-      $writer->emptyTag('ellipse',
+      $writer->startTag('ellipse',
+			'id' => 'i'.$item,
 			cx=>($coords[2]+$coords[0])/2,
 			cy=>($coords[3]+$coords[1])/2,
 			rx=>abs($coords[2]-$coords[0])/2,
@@ -460,7 +511,10 @@ sub draw_canvas {
 			'stroke-dasharray' => (join(',',@dash)||'none'),
 			stroke => defined($outlinecolor) ? $outlinecolor : 'none',
 			fill => defined($color) ? $color : 'none',
+			%item_opts,
 		       );
+      $self->item_title($writer,$hint->{$item});
+      $writer->endTag('ellipse');
     } elsif ($type eq 'polygon') {
       my $width=$canvas->itemcget($item,'-width');
       my $join=$canvas->itemcget($item,'-joinstyle');
@@ -470,13 +524,10 @@ sub draw_canvas {
       my $outlinecolor=$canvas->itemcget($item,"-${state}outline");
       $outlinecolor=$color if !defined($outlinecolor);
 
-      if ($opts{-grayscale}) {
-	$color = color2gray($color) if defined $color;
-	$outlinecolor = color2gray($outlinecolor);
-      } else {
-	$color = lc($color) if defined $color;
-	$outlinecolor = lc($outlinecolor) if defined $outlinecolor;
-      }
+      $color = color2svg($color, $opts{-grayscale})
+	if defined $color;
+      $outlinecolor = color2svg($outlinecolor, $opts{-grayscale})
+	if defined $outlinecolor;
 
       my $smooth = $canvas->itemcget($item,"-smooth");
       # TODO: dashoffset
@@ -496,21 +547,30 @@ sub draw_canvas {
 	my $first=1;
 	my $path='';
  	while (@c>5) {
-	  my @d = (($c[2]+$c[0])/2,($c[3]+$c[1])/2,$c[2],$c[3],($c[4]+$c[2])/2,($c[5]+$c[3])/2);
+	  my @d = (($c[2]+$c[0])/2,($c[3]+$c[1])/2,
+		   $c[2],$c[3],($c[4]+$c[2])/2,($c[5]+$c[3])/2);
 	  $path.=qq{M$d[0],$d[1]} if $first;
 	  $path.=qq{ C$d[2],$d[3] $d[2],$d[3] $d[4],$d[5]};
  	  splice @c,0,2;
 	  $first = 0;
  	}
-	$writer->emptyTag('path',
+	$writer->startTag('path',
+			  'id' => 'i'.$item,
 			  d=>$path.' z',
 			  %attrs,
+			  %item_opts,
 			 );
+	$self->item_title($writer,$hint->{$item});
+	$writer->endTag('path');
       } else {
-	$writer->emptyTag('polygon',
+	$writer->startTag('polygon',
+			  'id' => 'i'.$item,
 			  'points'=> join(' ',map { $coords[2*$_].','.$coords[2*$_+1] } 0..(int(@coords/2)-1)),
 			  %attrs,
+			  %item_opts,
 			 );
+	$self->item_title($writer,$hint->{$item});
+	$writer->endTag('polygon');
       }
     } elsif ($type eq 'rectangle') {
       my $width=$canvas->itemcget($item,'-width');
@@ -520,15 +580,13 @@ sub draw_canvas {
       my $outlinecolor=$canvas->itemcget($item,"-${state}outline");
       $outlinecolor=$color if !defined($outlinecolor);
 
-      if ($opts{-grayscale}) {
-	$color = color2gray($color);
-	$outlinecolor = color2gray($outlinecolor);
-      } else {
-	$color = lc($color) if defined $color;
-	$outlinecolor = lc($outlinecolor) if defined $outlinecolor;
-      }
+      $color = color2svg($color, $opts{-grayscale})
+	if defined $color;
+      $outlinecolor = color2svg($outlinecolor, $opts{-grayscale})
+	if defined $outlinecolor;
 
-      $writer->emptyTag('rect',
+      $writer->startTag('rect',
+			'id' => 'i'.$item,
 			'x' => $coords[0],
 			'y' => $coords[1],
 			'width' => $coords[2]-$coords[0],
@@ -537,9 +595,63 @@ sub draw_canvas {
 			'stroke-dasharray' => (join(',',@dash)||'none'),
 			'stroke' => defined($outlinecolor) ? $outlinecolor : 'none',
 			'fill' => defined($color) ? $color : 'none',
+			%item_opts,
 		       );
+	$self->item_title($writer,$hint->{$item});
+	$writer->endTag('rect');
     }
     # TODO image, ...
+  }
+  foreach my $item ($canvas->find('all')) {
+    # HINT
+    if (defined $hint->{$item}) {
+      my @coords=$canvas->coords($item);
+
+      my $fn = $balloon->cget('-font');
+      my %canvasfont = $canvas->fontActual($fn);
+      my %svg_font = (
+	"font-family" => $canvasfont{-family},
+	"font-weight" => $canvasfont{-weight},
+	"font-size" => ($canvasfont{-size}<0 ? abs($canvasfont{-size}).'px' : $canvasfont{-size}.'pt'),
+	"font-slant" => $canvasfont{-slant},
+       );
+      my $id = 'hint_i'.$item;
+      $writer->startTag(
+	'g',
+	'visibility'=>'hidden',
+	'id' => $id,
+	%svg_font,
+      );
+      my $line_height = $balloon->fontMetrics($fn,'-linespace');
+      my ($x,$y)=@coords[0,1];
+      my $ascent=$canvas->fontMetrics($fn,'-ascent');
+      my @lines = split /\n/, $hint->{$item};
+      my $width = 0;
+      for my $line (@lines) {
+	my $lw = $balloon->fontMeasure($fn,$line);
+	$width=$lw if $lw>$width;
+      };
+      $x+=10;$y+=10;
+      $writer->emptyTag('rect',
+			'x' => $x,
+			'y' => $y,
+			'width' => $width+20,
+			'height' => scalar(@lines) * $line_height + 20,
+			'stroke-width' => 1,
+			'stroke' => 'black',
+			'fill' => 'lightyellow');
+      $y+=$ascent;
+      for my $line (@lines) {
+	$writer->startTag('text',
+			  x=>$x,
+			  y=>$y,
+			 );
+	$y+=$line_height;
+	$writer->characters($line);
+	$writer->endTag('text');
+      }
+      $writer->endTag('g');
+    }
   }
   $writer->endTag('svg');
 }
@@ -566,25 +678,25 @@ sub print_html_template {
       ];
       var current_tree = 0;
       function height_inc ( amount ) {
-        var embed = document.getElementById("tree").getElementsByTagName("embed").item(0);
-        embed.height=parseInt(embed.height)+amount;
+        var object = document.getElementById("tree").getElementsByTagName("object").item(0);
+        object.height=parseInt(object.height)+amount;
       }
       function next_tree ( delta ) {
         var next = current_tree+delta;
         if (next >= 0 && files.length > next) {
 
-          // in FF, we would just set 'src', but Opera
-          // and other require replacing the embed
+          // in FF, we would just set 'data', but Opera
+          // and other require replacing the object
 
           var tree = document.getElementById("tree");
-          var oembed = tree.getElementsByTagName("embed").item(0);
-          var nembed = tree.ownerDocument.createElement("embed"); 
-          nembed.width = oembed.width;
-          nembed.height = oembed.height;
-          nembed.class = oembed.class;
-          nembed.type = oembed.type;
-          nembed.src=files[next];
-          tree.replaceChild(nembed,oembed);
+          var oobject = tree.getElementsByTagName("object").item(0);
+          var nobject = tree.ownerDocument.createElement("object"); 
+          nobject.width = oobject.width;
+          nobject.height = oobject.height;
+          nobject.class = oobject.class;
+          nobject.type = oobject.type;
+          nobject.data=files[next];
+          tree.replaceChild(nobject,oobject);
           current_tree = next;
           update_title();
         }
@@ -607,7 +719,7 @@ sub print_html_template {
 </form>
 
 <div id="tree" style="background:white;border: black solid 1px;">
-  <embed src="" width="100%" height="600"
+  <object data="" width="100%" height="600"
          type="image/svg+xml"
          pluginspage="http://www.adobe.com/svg/viewer/install/" /> <!-- Adobe plugin for IE; Firefox supports SVG since 1.5 -->
 </div>
