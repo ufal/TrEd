@@ -4623,7 +4623,7 @@ sub updatePrintDialogState {
     push @disable,qw(font);
   } elsif ($s->{printFormat} eq 'SVG') {
     push @disable,qw(printTo_printer font);
-    push @disable,qw(printRange) unless $s->{printOnePerFile};
+    # push @disable,qw(printRange) unless $s->{printOnePerFile};
   } elsif ($s->{printFormat} eq 'PDF') {
     push @disable,qw(printTo_printer);
     unless ($grp->{ttfonts}) {
