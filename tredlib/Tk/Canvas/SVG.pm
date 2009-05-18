@@ -288,12 +288,10 @@ sub draw_canvas {
 		    xmlns=>"http://www.w3.org/2000/svg",
 		    version=>"1.1",
 		    onload=>'init(evt)',
-		    onmousedown=>"mouse_down(evt)",
-		    onmouseup=>"mouse_up(evt)",
 		    onmousemove=>"mouse_move(evt)",
 		    onmouseout=>"mouse_out(evt)",
-		    height=>"100%",
-		    width=>"100%",
+		    height=>"$height",
+		    width=>"$width",
 		    #preserveAspectRatio=>"xMinYMax",
 		    #viewBox=>"@media",
 		   );
@@ -303,14 +301,12 @@ sub draw_canvas {
     $hint = $balloon->GetOption('-balloonmsg',$canvas);
     if ($hint) {
       $writer->startTag('script', type=>"text/ecmascript");
-      $writer->characters(<<'SCRIPT');
+      $writer->cdata(<<'SCRIPT');
+
       var doc = null;
       var root = null;
       var last_target = null;
       var svgNs = "http://www.w3.org/2000/svg";
-      var is_down = 0;
-      var startx = 0;
-      var starty = 0;
 
       function init(event) {
          doc = event.target.ownerDocument;
@@ -318,46 +314,32 @@ sub draw_canvas {
 	 top.zoomSVG = zoom;
       }
       function mouse_out (event) {
-        mouse_move(event);
-        is_down = 0;
         hide_tooltip(event);
       }
-      function mouse_down (event) {
-        is_down = 1;
-	startx = event.screenX - root.currentTranslate.x;
-	starty = event.screenY - root.currentTranslate.y;
-      }
-      function mouse_up (event) {
-        is_down = 0;
-      }
       function mouse_move (event) { 
-         if (is_down) {
-           x = event.screenX;
-           y = event.screenY;
-	   root.currentTranslate.x = (x - startx);
-	   root.currentTranslate.y = (y - starty);
-         }
          show_tooltip(event);
       }
       function zoom (amount) {
-        root.currentScale += amount;
+        var old_scale = root.currentScale;
+        var new_scale = old_scale + amount;
+        var rescale = new_scale/old_scale;
+        root.currentScale = new_scale;
+	root.setAttribute('width',Number(root.getAttribute('width'))*rescale);
+	root.setAttribute('height',Number(root.getAttribute('height'))*rescale);
       }
       function hide_tooltip(event) {
-	 if (top.changeToolTip) {
+	 if (event.target == last_target && top.changeToolTip) {
 	    top.changeToolTip("");
 	 }
       }
       function show_tooltip(event) {
          var target = event.target;
 	 if (!top.placeTip) return;
-         var scale = 1/root.currentScale;
-         var translation = root.currentTranslate;
-	 var x = (event.clientX - translation.x)*scale;
-	 var y = (event.clientY - translation.y)*scale;
+	 var x = event.clientX;
+	 var y = event.clientY;
   	 top.placeTip(x,y);
          if ( last_target != target ) {
 	    last_target = target;
-
             var desc = target.getElementsByTagName('desc').item(0);
             if ( desc && desc.parentNode == target) {
                tooltip_text = desc.firstChild.nodeValue;
@@ -369,6 +351,7 @@ sub draw_canvas {
             }
          }
       }
+
 SCRIPT
       $writer->endTag('script');
     }
@@ -696,8 +679,9 @@ body {
   border: black solid 1pt;
 }
 
-#tree {
- background:white; 
+#tree iframe,
+#tree embed {
+ background:white;
  border: black solid 1px;
 }
     </style>
@@ -789,8 +773,8 @@ body {
       }
 
       function placeTip (x,y) {
-        tooltip.style.left="" + (findPosX(tree_obj) + x + 10) + "px";
-        tooltip.style.top="" + (findPosY(tree_obj) + y + 10) + "px"; 
+        tooltip.style.left="" + (findPosX(tree_obj) + x + 20) + "px";
+        tooltip.style.top="" + (findPosY(tree_obj) + y + 10) + "px";
       }
       function changeToolTip (html) {
         if ('' != html) {
@@ -803,36 +787,35 @@ body {
 -->
     </script>
   </head>
-<body onLoad="init()" onResize="fit_window()">
+<body onload="init()" onresize="fit_window()">
  <h1>$title</h1>
- <form>
+ <form action="">
   <table width="100%" class="toolbar">
     <tr>
       <td width="10%"></td>
       <td align="center">
         <p>
-          <input type="button" value="&lt;" onClick="next_tree(-1)"/>
+          <input type="button" value="&lt;" onclick="next_tree(-1)"/>
           <span id="cur_tree">0</span> of <span id="tree_count">0</span>
-          <input type="button" value=">" onClick="next_tree(1)"/>
+          <input type="button" value=">" onclick="next_tree(1)"/>
         </p>
       </td>
       <td width="10%">
         <p>
-          <input type="button" value="+" onClick="zoom_inc(0.1)"/>
-          <input type="button" value="-" onClick="zoom_inc(-0.1)"/>
+          <input type="button" value="+" onclick="zoom_inc(0.1)"/>
+          <input type="button" value="-" onclick="zoom_inc(-0.1)"/>
         </p>
       </td>
     </tr>
   </table>
  </form>
  <div id="tooltip"></div>
- <div id="tree">
-    <iframe src="page_000.svg" width="100%" frameborder="0" marginwidth="0"  marginheight="0" type="image/svg+xml">
-      <embed src="page_000.svg" width="100%" height="600" type="image/svg+xml" pluginspage="http://www.adobe.com/svg/viewer/install/"/> 
+ <div id="tree" style="text-align:center">
+    <iframe src="page_000.svg" width="98%" height="80%" frameborder="0" marginwidth="0"  marginheight="0" scrolling="yes">
+      <embed src="page_000.svg" width="98%" height="80%" type="image/svg+xml" pluginspage="http://www.adobe.com/svg/viewer/install/"/>
     </iframe>
   </div>
-</body>
-
+ </body>
 </html>
 HTML
 }
