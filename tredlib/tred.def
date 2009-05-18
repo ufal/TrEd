@@ -2300,6 +2300,21 @@ sub SaveUndo {
   main::save_undo($grp, main::prepare_undo($grp,'Macro: '.$_[0]));
 }
 
+=item C<ForgetRedo()>
+
+Disable redo. This is useful if you programmatically Undo user's
+action and do not want the user to be able to redo the action with
+Redo.
+
+=cut
+
+sub ForgetRedo {
+  my $stack=FileAppData('undostack');
+  if ($stack) {
+    splice @$stack, FileAppData('undo')+1; # remove redo
+  }
+}
+
 
 =item C<Find()>
 
@@ -3997,6 +4012,7 @@ sub Print {
 
     $TrEd::TreeView::on_get_root_style = [\&main::onGetRootStyle,$grp];
     $TrEd::TreeView::on_get_node_style = [\&main::onGetNodeStyle,$grp];
+    $TrEd::TreeView::on_redraw_done = [\&main::onRedrawDone,$grp];
 
     my $stylesheet = $opts{-stylesheet} || $grp->{stylesheet};
     my $ss = undef;
@@ -4048,7 +4064,7 @@ sub Print {
 
     $TrEd::TreeView::on_get_root_style = undef;
     $TrEd::TreeView::on_get_node_style = undef;
-
+    $TrEd::TreeView::on_redraw_done = undef;
     $canvas->destroy();
   } else {
     die "Cannot call PrintDialog from non-GUI version TrEd\n";

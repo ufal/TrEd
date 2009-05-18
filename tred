@@ -5233,9 +5233,7 @@ sub printThis {
   }
   local $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
   local $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
-  local $TrEd::TreeView::on_redraw_done = [
-    sub { doEvalHook($_[1],'after_redraw_hook') },$win
-  ];
+  local $TrEd::TreeView::on_redraw_done = [ \&onRedrawDone,$win ];
 
   my $fsfile = $win->{FSFile};
   my @range = ($one_per_file ? TrEd::Print::parse_print_list($fsfile,$range) : ($range));
@@ -5402,7 +5400,10 @@ sub onGetRootStyle {
   my ($treeview,$node,$styles,$opts,$win)=@_;
   doEvalHook($win,"root_style_hook",$node,$styles,$opts);
 }
-
+sub onRedrawDone {
+  my ($treeview,$win)=@_;
+  doEvalHook($win,"after_redraw_hook",$treeview);
+}
 sub onGetNodes {
   my ($treeview,$fsfile,$tree_no,$current,$win)=@_;
   doEvalHook($win,"get_nodelist_hook",
@@ -9193,9 +9194,7 @@ sub dumpSentView {
 	  local $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
 	  local $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
 	  local $TrEd::TreeView::on_get_nodes = [\&onGetNodes,$win];
-	  local $TrEd::TreeView::on_redraw_done = [
-	    sub { doEvalHook($_[1],'after_redraw_hook') },$win
-	  ];
+	  local $TrEd::TreeView::on_redraw_done = [\&onRedrawDone,$win];
 
 	  my $dpi = int($grp->{top}->fpixels('1i'));
 	  eval {
@@ -10792,6 +10791,7 @@ sub doEditAttr {
       get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
       redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
       $win->toplevel->Unbusy();
+      return 1;
     } else {
       doEvalHook($win,"after_edit_attr_hook",$node,$attr,0);
     }
@@ -10810,6 +10810,7 @@ sub doEditAttr {
       get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
       redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
       $grp->{top}->Unbusy();
+      return 1;
     } else {
       doEvalHook($win,"after_edit_attr_hook",$node,$attr,0);
     }
@@ -10894,7 +10895,7 @@ sub redraw_win {
   #------------------------------------------------------------
   $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
   $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
-  $TrEd::TreeView::on_redraw_done= undef;
+  $TrEd::TreeView::on_redraw_done= [\&onRedrawDone,$win];
   my $vl;
 #  $vl=$win->treeView->value_line($win->{FSFile},$win->{treeNo},1,0,$win);
 #  $vl=$win->treeView->value_line($win->{FSFile},$win->{treeNo},1,1,$win);
@@ -10914,14 +10915,13 @@ sub redraw_win {
 		: undef),
 	   $win
 	  );
-  # doEvalHook($win,"after_redraw_hook");
   if ($win->{FSFile}) {
     setCurrent($win,$win->{currentNode});
     ensureCurrentIsDisplayed($win);
   }
   $TrEd::TreeView::on_get_root_style= undef; #forget the reference on $win
   $TrEd::TreeView::on_get_node_style= undef;
-  doEvalHook($win,"after_redraw_hook",$win->treeView);
+  $TrEd::TreeView::on_redraw_done= undef;
 
   #------------------------------------------------------------
   #}

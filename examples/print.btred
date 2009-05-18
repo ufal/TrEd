@@ -60,6 +60,10 @@ my $output_dirname = delete $opts{'-out-dir'};
     my ($treeview,$node,$styles,$opts,$win)=@_;
     __run_hook($treeview,$win,"root_style_hook",$node,$styles,$opts);
   }
+  sub onRedrawDone {
+    my ($treeview,$win)=@_;
+    __run_hook($treeview,$win,"after_redraw_hook",$treeview);
+  }
   sub grp_win {
     my ($gw)=@_;
     my ($gui,$win);
