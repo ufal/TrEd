@@ -91,7 +91,7 @@ BEGIN {
 	 );
 }
 
-=item $canvas->pdf(options)
+=item $canvas->svg(options)
 
 Export cavnas content to SVG. Options:
 
@@ -192,7 +192,7 @@ sub new {
 }
 
 
-sub pdf {
+sub svg {
   my ($canvas,%opts)=@_;
   my $P = __PACKAGE__->new(%opts);
   $P->new_page(%opts);
@@ -245,12 +245,12 @@ sub finish {
   }
 }
 
-sub item_title {
+sub item_desc {
   my ($self,$writer,$title)=@_;
   if (defined($title) and $title=~/\S/) {
-    $writer->startTag('title');
+    $writer->startTag('desc');
     $writer->characters($title);
-    $writer->endTag('title');
+    $writer->endTag('desc');
   }
 }
 sub draw_canvas {
@@ -261,37 +261,7 @@ sub draw_canvas {
   my $width = $media[2]-$media[0];
   my $height = $media[3]-$media[1];
   my $writer = $self->{current_page};
-  $writer->xmlDecl("UTF-8");
-  $writer->startTag('svg',
-		 xmlns=>"http://www.w3.org/2000/svg",
-		 version=>"1.2",
-		 baseProfile=>"tiny",
-		 #width=>"${width}",
-		 #height=>"${height}",
-		 #viewBox=>"@media"
-		);
-  my $balloon = $opts{-balloon};
-  my $hint;
-  if ($balloon) {
-    $hint = $balloon->GetOption('-balloonmsg',$canvas);
-    if ($hint) {
-      $writer->startTag('script', type=>"text/ecmascript");
-      $writer->characters(<<'SCRIPT');
-function set_visibility (id,show) {
-  obj = document.getElementById(id);
-  if (obj) {
-    if (show) {
-      obj.setAttribute("visibility","visible");
-    } else {
-      obj.setAttribute("visibility","hidden");
-    }
-  }
-}
-SCRIPT
-      $writer->endTag('script');
-    }
-  }
-  $hint ||= {};
+
   # if ($opts{-transform}) {
   #   $draw->transform(%{$opts{-transform}});
   # }
@@ -313,6 +283,99 @@ SCRIPT
   # }
 
 
+  $writer->xmlDecl("UTF-8");
+  $writer->startTag('svg',
+		    xmlns=>"http://www.w3.org/2000/svg",
+		    version=>"1.1",
+		    onload=>'init(evt)',
+		    onmousedown=>"mouse_down(evt)",
+		    onmouseup=>"mouse_up(evt)",
+		    onmousemove=>"mouse_move(evt)",
+		    onmouseout=>"mouse_out(evt)",
+		    height=>"100%",
+		    width=>"100%",
+		    #preserveAspectRatio=>"xMinYMax",
+		    #viewBox=>"@media",
+		   );
+  my $balloon = $opts{-balloon};
+  my $hint;
+  if ($balloon) {
+    $hint = $balloon->GetOption('-balloonmsg',$canvas);
+    if ($hint) {
+      $writer->startTag('script', type=>"text/ecmascript");
+      $writer->characters(<<'SCRIPT');
+      var doc = null;
+      var root = null;
+      var last_target = null;
+      var svgNs = "http://www.w3.org/2000/svg";
+      var is_down = 0;
+      var startx = 0;
+      var starty = 0;
+
+      function init(event) {
+         doc = event.target.ownerDocument;
+         root = doc.documentElement;
+	 top.zoomSVG = zoom;
+      }
+      function mouse_out (event) {
+        mouse_move(event);
+        is_down = 0;
+        hide_tooltip(event);
+      }
+      function mouse_down (event) {
+        is_down = 1;
+	startx = event.screenX - root.currentTranslate.x;
+	starty = event.screenY - root.currentTranslate.y;
+      }
+      function mouse_up (event) {
+        is_down = 0;
+      }
+      function mouse_move (event) { 
+         if (is_down) {
+           x = event.screenX;
+           y = event.screenY;
+	   root.currentTranslate.x = (x - startx);
+	   root.currentTranslate.y = (y - starty);
+         }
+         show_tooltip(event);
+      }
+      function zoom (amount) {
+        root.currentScale += amount;
+      }
+      function hide_tooltip(event) {
+	 if (top.changeToolTip) {
+	    top.changeToolTip("");
+	 }
+      }
+      function show_tooltip(event) {
+         var target = event.target;
+	 if (!top.placeTip) return;
+         var scale = 1/root.currentScale;
+         var translation = root.currentTranslate;
+	 var x = (event.clientX - translation.x)*scale;
+	 var y = (event.clientY - translation.y)*scale;
+  	 top.placeTip(x,y);
+         if ( last_target != target ) {
+	    last_target = target;
+
+            var desc = target.getElementsByTagName('desc').item(0);
+            if ( desc && desc.parentNode == target) {
+               tooltip_text = desc.firstChild.nodeValue;
+	       if (tooltip_text == null) {
+	         top.changeToolTip('');
+	       } else {
+	         top.changeToolTip(tooltip_text.split(/\n/).join("<br />"));
+               }
+            }
+         }
+      }
+SCRIPT
+      $writer->endTag('script');
+    }
+  }
+  $hint ||= {};
+
+
   my $x = 0;
   my $y = 0;
   my $w = $opts{-width} || $self->{Media}[2];
@@ -323,11 +386,6 @@ SCRIPT
     my $tags=$canvas->itemcget($item,'-tags');
     my @coords=$canvas->coords($item);
     my %item_opts;
-    if (defined $hint->{$item}) {
-      my $id = 'hint_i'.$item;
-      $item_opts{onmouseover}=qq{set_visibility('$id',1)};
-      $item_opts{onmouseout}=qq{set_visibility('$id',0)};
-    }
     $writer->comment( join(', ',@$tags) );
     my $state = $canvas->itemcget($item, '-state');
     next if $state eq 'hidden';
@@ -385,7 +443,7 @@ SCRIPT
 			y => $posy-$descent,
 			%item_opts,
 		       );
-      $self->item_title($writer,$hint->{$item});
+      $self->item_desc($writer,$hint->{$item});
       $writer->setDataMode(0);
       for my $chunk (split /(\n)/,$text) {
 	if ($chunk eq "\n") {
@@ -403,7 +461,7 @@ SCRIPT
       my $join=$canvas->itemcget($item,'-joinstyle');
       my $capstyle=$canvas->itemcget($item,'-capstyle');
       my $width=$canvas->itemcget($item,'-width');
-      my @dash=_canvas_to_pdf_dash($width,$canvas->itemcget($item,"-${state}dash"));
+      my @dash=_canvas_to_svg_dash($width,$canvas->itemcget($item,"-${state}dash"));
       @dash=() if @dash<2;
       my $smooth = $canvas->itemcget($item,"-smooth");
       my $arrow = $canvas->itemcget($item,"-arrow");
@@ -466,7 +524,7 @@ SCRIPT
 			%attrs,
 			%item_opts,
 		       );
-      $self->item_title($writer,$hint->{$item});
+      $self->item_desc($writer,$hint->{$item});
       $writer->endTag('path');
       # draw arrows
       for (qw(first last)) {
@@ -484,7 +542,7 @@ SCRIPT
 					 ([0,0],[-$ars->[1],-$ars->[2]-$width],[-$ars->[0],0],[-$ars->[1],+$ars->[2]+$width])),
 			    %item_opts,
 			   );
-	  $self->item_title($writer,$hint->{$item});
+	  $self->item_desc($writer,$hint->{$item});
 	  $writer->endTag('polygon');
 	  $writer->endTag('g');
 	  $writer->endTag('g');
@@ -492,7 +550,7 @@ SCRIPT
       }
     } elsif ($type eq 'oval') {
       my $width=$canvas->itemcget($item,'-width');
-      my @dash=_canvas_to_pdf_dash($width,$canvas->itemcget($item,"-${state}dash"));
+      my @dash=_canvas_to_svg_dash($width,$canvas->itemcget($item,"-${state}dash"));
       @dash=() if @dash<2;
       my $color=$canvas->itemcget($item,"-${state}fill");
       my $outlinecolor=$canvas->itemcget($item,"-${state}outline");
@@ -513,12 +571,12 @@ SCRIPT
 			fill => defined($color) ? $color : 'none',
 			%item_opts,
 		       );
-      $self->item_title($writer,$hint->{$item});
+      $self->item_desc($writer,$hint->{$item});
       $writer->endTag('ellipse');
     } elsif ($type eq 'polygon') {
       my $width=$canvas->itemcget($item,'-width');
       my $join=$canvas->itemcget($item,'-joinstyle');
-      my @dash=_canvas_to_pdf_dash($width,$canvas->itemcget($item,"-${state}dash"));
+      my @dash=_canvas_to_svg_dash($width,$canvas->itemcget($item,"-${state}dash"));
       @dash=() if @dash<2;
       my $color=$canvas->itemcget($item,"-${state}fill");
       my $outlinecolor=$canvas->itemcget($item,"-${state}outline");
@@ -560,7 +618,7 @@ SCRIPT
 			  %attrs,
 			  %item_opts,
 			 );
-	$self->item_title($writer,$hint->{$item});
+	$self->item_desc($writer,$hint->{$item});
 	$writer->endTag('path');
       } else {
 	$writer->startTag('polygon',
@@ -569,12 +627,12 @@ SCRIPT
 			  %attrs,
 			  %item_opts,
 			 );
-	$self->item_title($writer,$hint->{$item});
+	$self->item_desc($writer,$hint->{$item});
 	$writer->endTag('polygon');
       }
     } elsif ($type eq 'rectangle') {
       my $width=$canvas->itemcget($item,'-width');
-      my @dash=_canvas_to_pdf_dash($width,$canvas->itemcget($item,"-${state}dash"));
+      my @dash=_canvas_to_svg_dash($width,$canvas->itemcget($item,"-${state}dash"));
       @dash=() if @dash<2;
       my $color=$canvas->itemcget($item,"-${state}fill");
       my $outlinecolor=$canvas->itemcget($item,"-${state}outline");
@@ -597,66 +655,15 @@ SCRIPT
 			'fill' => defined($color) ? $color : 'none',
 			%item_opts,
 		       );
-	$self->item_title($writer,$hint->{$item});
+	$self->item_desc($writer,$hint->{$item});
 	$writer->endTag('rect');
     }
     # TODO image, ...
   }
-  foreach my $item ($canvas->find('all')) {
-    # HINT
-    if (defined $hint->{$item}) {
-      my @coords=$canvas->coords($item);
-
-      my $fn = $balloon->cget('-font');
-      my %canvasfont = $canvas->fontActual($fn);
-      my %svg_font = (
-	"font-family" => $canvasfont{-family},
-	"font-weight" => $canvasfont{-weight},
-	"font-size" => ($canvasfont{-size}<0 ? abs($canvasfont{-size}).'px' : $canvasfont{-size}.'pt'),
-	"font-slant" => $canvasfont{-slant},
-       );
-      my $id = 'hint_i'.$item;
-      $writer->startTag(
-	'g',
-	'visibility'=>'hidden',
-	'id' => $id,
-	%svg_font,
-      );
-      my $line_height = $balloon->fontMetrics($fn,'-linespace');
-      my ($x,$y)=@coords[0,1];
-      my $ascent=$canvas->fontMetrics($fn,'-ascent');
-      my @lines = split /\n/, $hint->{$item};
-      my $width = 0;
-      for my $line (@lines) {
-	my $lw = $balloon->fontMeasure($fn,$line);
-	$width=$lw if $lw>$width;
-      };
-      $x+=10;$y+=10;
-      $writer->emptyTag('rect',
-			'x' => $x,
-			'y' => $y,
-			'width' => $width+20,
-			'height' => scalar(@lines) * $line_height + 20,
-			'stroke-width' => 1,
-			'stroke' => 'black',
-			'fill' => 'lightyellow');
-      $y+=$ascent;
-      for my $line (@lines) {
-	$writer->startTag('text',
-			  x=>$x,
-			  y=>$y,
-			 );
-	$y+=$line_height;
-	$writer->characters($line);
-	$writer->endTag('text');
-      }
-      $writer->endTag('g');
-    }
-  }
   $writer->endTag('svg');
 }
 
-sub _canvas_to_pdf_dash {
+sub _canvas_to_svg_dash {
   my ($linewidth,@dash)=@_;
   my $dash = join " ",@dash;
   my %d=('.' => 40, '-' => 120, ',' => 80, '_' => 160);
@@ -672,14 +679,49 @@ sub print_html_template {
   print $fh <<"HTML";
 <html>
   <head>
-    <script language="javascript">
+    <style type="text/css">
+
+body {
+  font-family: Arial, Sans Serif, sans;
+  font-size: 10pt;
+}
+
+#tooltip {
+  visibility: hidden;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 10px;
+  background: #ffffbb;
+  border: black solid 1pt;
+}
+
+#tree {
+ background:white; 
+ border: black solid 1px;
+}
+    </style>
+    <script type="text/javascript"><!--
       var files = [
         $files
       ];
       var current_tree = 0;
-      function height_inc ( amount ) {
-        var object = document.getElementById("tree").getElementsByTagName("object").item(0);
-        object.height=parseInt(object.height)+amount;
+      var tree_obj = null;
+      var tooltip = null;
+
+      function fit_window() {
+        height = document.body.clientHeight;
+	var object = tree_obj.getElementsByTagName("iframe").item(0);
+	if (object) {
+          object.height = height - findPosY(tree_obj) - 20;
+        }
+	var object = tree_obj.getElementsByTagName("embed").item(0);
+	if (object) {
+          object.height = height - findPosY(tree_obj) - 20;
+        }
+      }
+      function zoom_inc ( amount ) {
+	 window.zoomSVG( amount );
       }
       function next_tree ( delta ) {
         var next = current_tree+delta;
@@ -687,42 +729,108 @@ sub print_html_template {
 
           // in FF, we would just set 'data', but Opera
           // and other require replacing the object
-
-          var tree = document.getElementById("tree");
-          var oobject = tree.getElementsByTagName("object").item(0);
-          var nobject = tree.ownerDocument.createElement("object"); 
-          nobject.width = oobject.width;
-          nobject.height = oobject.height;
-          nobject.class = oobject.class;
-          nobject.type = oobject.type;
-          nobject.data=files[next];
-          tree.replaceChild(nobject,oobject);
           current_tree = next;
+	  update_object("iframe");
+	  update_object("embed");
           update_title();
         }
+      }
+      function update_object (tagName) {
+          var oobject = tree_obj.getElementsByTagName(tagName).item(0);
+	  if (oobject == null) return;
+          var nobject = tree_obj.ownerDocument.createElement(tagName); 
+          nobject.width = oobject.width;
+          nobject.height = oobject.height;
+          nobject.setAttribute('class',oobject.getAttribute('class'));
+          nobject.type = oobject.type;
+	  if (oobject.src != null) nobject.src=files[current_tree];
+	  if (oobject.data != null) nobject.data=files[current_tree];
+          tree_obj.replaceChild(nobject,oobject);
       }
       function update_title () {
          document.getElementById("cur_tree").firstChild.nodeValue = current_tree + 1;
          document.getElementById("tree_count").firstChild.nodeValue = files.length;
       }
+      function init () {
+	tooltip = document.getElementById('tooltip');
+        tree_obj = document.getElementById("tree");
+	document.changeToolTip = changeToolTip;
+	document.placeTip = placeTip;
+	fit_window();
+        next_tree(0);
+      }
+
+      // findPosX and findPosY by Peter-Paul Koch & Alex Tingle. 
+      function findPosX(obj) {
+        var curleft = 0;
+	if(obj.offsetParent)
+        while(1) {
+	  curleft += obj.offsetLeft;
+	  if(!obj.offsetParent)
+	    break;
+	    obj = obj.offsetParent;
+	  }
+	else if(obj.x)
+          curleft += obj.x;
+	return curleft;
+      }
+      function findPosY(obj) {
+        var curtop = 0;
+        if(obj.offsetParent)
+          while(1) {
+            curtop += obj.offsetTop;
+            if(!obj.offsetParent)
+              break;
+            obj = obj.offsetParent;
+          }
+        else if(obj.y)
+          curtop += obj.y;
+        return curtop;
+      }
+
+      function placeTip (x,y) {
+        tooltip.style.left="" + (findPosX(tree_obj) + x + 10) + "px";
+        tooltip.style.top="" + (findPosY(tree_obj) + y + 10) + "px"; 
+      }
+      function changeToolTip (html) {
+        if ('' != html) {
+          tooltip.innerHTML = html;
+	  tooltip.style.visibility = 'visible';
+        } else {
+	  tooltip.style.visibility = 'hidden';
+        }
+      }
+-->
     </script>
   </head>
-<body onLoad="next_tree(0)">
-<h1>$title</h1>
-<form>
-  <input type="button" value="+" onClick="javascript:height_inc(30)"/>
-  <input type="button" value="-" onClick="javascript:height_inc(-30)"/>
-
-  <input type="button" value="<" onClick="javascript:next_tree(-1)"/>
-  <span id="cur_tree">0</span> of <span id="tree_count">0</span>
-  <input type="button" value=">" onClick="javascript:next_tree(1)"/>
-</form>
-
-<div id="tree" style="background:white;border: black solid 1px;">
-  <object data="" width="100%" height="600"
-         type="image/svg+xml"
-         pluginspage="http://www.adobe.com/svg/viewer/install/" /> <!-- Adobe plugin for IE; Firefox supports SVG since 1.5 -->
-</div>
+<body onLoad="init()" onResize="fit_window()">
+ <h1>$title</h1>
+ <form>
+  <table width="100%" class="toolbar">
+    <tr>
+      <td width="10%"></td>
+      <td align="center">
+        <p>
+          <input type="button" value="&lt;" onClick="next_tree(-1)"/>
+          <span id="cur_tree">0</span> of <span id="tree_count">0</span>
+          <input type="button" value=">" onClick="next_tree(1)"/>
+        </p>
+      </td>
+      <td width="10%">
+        <p>
+          <input type="button" value="+" onClick="zoom_inc(0.1)"/>
+          <input type="button" value="-" onClick="zoom_inc(-0.1)"/>
+        </p>
+      </td>
+    </tr>
+  </table>
+ </form>
+ <div id="tooltip"></div>
+ <div id="tree">
+    <iframe src="page_000.svg" width="100%" frameborder="0" marginwidth="0"  marginheight="0" type="image/svg+xml">
+      <embed src="page_000.svg" width="100%" height="600" type="image/svg+xml" pluginspage="http://www.adobe.com/svg/viewer/install/"/> 
+    </iframe>
+  </div>
 </body>
 
 </html>

@@ -62,6 +62,7 @@ The PML schema is returned in form of a Fslib::Schema object.
 
 sub Schema {
   my $obj = $_[0] || $grp->{FSFile};
+  return unless defined $obj;
   if (UNIVERSAL::isa($obj,'FSNode')) {
     return $obj->type ? $obj->type->schema : undef;
   } elsif (UNIVERSAL::isa($obj,'FSFile')) {
