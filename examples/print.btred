@@ -23,7 +23,7 @@ require TrEd::TreeView;
 require TrEd::Print;
 TrEd::Utils::find_win_home();
 
-my %opts = 
+my %opts =
     map { 
       local $_=$_;
       s/^--/-/;
@@ -206,7 +206,7 @@ environment variable is set and points to a running X server.
 =item *
 
 All options must always be given in pairs of the form
-C<--name value>.
+B<--name value>.
 
 =item *
 
@@ -218,136 +218,145 @@ On the btred command line, the print options go between -o and --.
 
 =over 3
 
-=item C<--out-dir> directory
+=item B<--out-dir> directory
 
 Save all resulting files to a given directory.
 
-=item C<--quiet> 1|0
+=item B<--quiet> 1|0
 
 Be more quiet.
 
-=item C<--context> context
+=item B<--context> context
 
 Context to use for drawing trees (node_style_hook, root_style_hook,
 and possibly other hooks are called from this context).
 
-=item C<--stylesheet> stylesheet
+=item B<--stylesheet> stylesheet
 
 Name of the stylesheet to use.
 
-=item C<--stylesheet-paths> path(s)
+=item B<--stylesheet-paths> path(s)
 
 A colon- (semicolon- or Windows) separated list of paths to look for
 stylesheet files.
 
-=item C<--range> range
+=item B<--range> range
 
 Lists trees to be printed (e.g. C<5,-3,9-12,15-> prints trees
 5,1,2,3,9,10,11,12,15,16,...). Use C<.> (dot) as range to print only
 the current tree from each file (i.e. the tree specified using
 tree-number suffix of the file URL).
 
-=item C<--command> command
+=item B<--command> command
 
 System command to send the output to (e.g. C<lpr> to print on the
 default printer on UNIX platform).
 
-=item C<--toFile> 1|0
+=item B<--toFile> 1|0
 
-If set to 1, the output is saved to a file specified in C<--filename>.
+If set to 1, the output is saved to a file specified in B<--filename>.
 
-=item C<--filename> filename
+=item B<--filename> filename
 
 Output filename (only when printing to file). This option is useful
 only when printing a single file.
 
 If converting several files, it is recommended to use btred options
-C<--strip-prefix>, C<--add-prefix>, C<--strip-suffix>, C<--add-suffix>
+B<--strip-prefix>, B<--add-prefix>, B<--strip-suffix>, B<--add-suffix>
 which this script obeys.
 
-=item C<--format> PS|PDF|SVG|EPS|ImageMagick
+=item B<--format> PS|PDF|SVG|EPS|ImageMagick
 
 Target format. Default is PDF.
 
-=item C<--noRotate> 1|0
+=item B<--noRotate> 1|0
 
 If 1, disables automatic landscape rotation of trees which are wider
 than taller.
 
-=item C<--sentenceInfo> 1|0
+=item B<--sentenceInfo> 1|0
 
 If set to 1, this command prints also the text associated with the
 tree.
 
-=item C<--imageMagickResolution> density
+=item B<--fileInfo> 1|0
+
+If set to 1, this command prints the filename and tree number
+below each tree.
+
+=item B<--imageMagickResolution> density
 
 This value is passed to the command C<convert> of the ImageMagick
-toolkit as C<--density>. It specifies the horizontal and vertical
+toolkit as B<--density>. It specifies the horizontal and vertical
 resolution in pixels of the image.
 
-=item C<--colors> 1|0
+=item B<--colors> 1|0
 
 Set to 1 for colour output. Default is 1.
 
-=item C<--hidden> 1|0
+=item B<--hidden> 1|0
 
 Set to 1 to print hidden nodes.
 
-=item C<--psFontFile> font.pfa
+=item B<--psFontFile> font.pfa
 
 Specifies the PostScript font file to be used instead of the default
 one.
 
-=item C<---psFontAFMFile> font.afm
+=item B<---psFontAFMFile> font.afm
 
 Specifies the PostScript ASCII metric font file to be used instead of
 the default one.
 
-=item C<--ttFont> font.ttf
+=item B<--ttFont> font.ttf
 
 Specifies the TrueType font file to be used when printing via PDF.
 
-=item C<--fontSize> size
+=item B<--fontSize> size
 
 Font size.
 
-=item C<--fmtWidth> width
+=item B<--fmtWidth> width
 
 Page width.
 
-=item  C<--fmtHeight> height
+=item  B<--fmtHeight> height
 
 Page height.
 
-=item C<--hMargin> dimension
+=item B<--hMargin> dimension
 
 The size of the left and right horizontal margins.
 
-=item C<--vMargin> dimension
+=item B<--vMargin> dimension
 
 The size of the top and bottom margins.
 
-=item C<--maximize> 1|0
+=item B<--maximize> 1|0
 
 Expand small trees to fit the whole page size. (Shrinking is done
 automatically).
 
-=item C<--psMedia> media
+=item B<--psMedia> media
 
 Specifies target given media size (used for PostScript, PDF, and SVG).
 Possible values:
 
-User (dimensions specified in --fmtHeight and --fmtWidth), BBox
-(bounding box of the tree with only --hMargin and --vMargin added),
+User (dimensions specified in B<--fmtHeight> and B<--fmtWidth>), BBox
+(bounding box of the tree with only B<--hMargin> and B<--vMargin> added),
 Letter, LetterSmall, Legal, Statement, Tabloid, Ledger, Folio, Quarto,
 Executive, A0, A1, A2, A3, A4, A4Small, A5, A6, A7, A8, A9, A10, B0,
 B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, ISOB0, ISOB1, ISOB2, ISOB3,
 ISOB4, ISOB5, ISOB6, ISOB7, ISOB8, ISOB9, ISOB10, C0, C1, C2, C3, C4,
 C5, C6, C7, 7x9, 9x11, 9x12, 10x13, 10x14
 
+=back
+
 =head2 BTRED OPTIONS
 
 The following options of C<btred> can be useful:
+
+=over 3
 
 =item B<--strip-prefix|-p> regexp
 
@@ -366,6 +375,8 @@ Strip strings matching a given regexp from the end of filenames.
 
 Append a given suffix to the filenames.
 
+=back
+
 =head1 LICENSE
 
 This software is distributed under GPL - The General Public Licence.
@@ -378,4 +389,4 @@ Petr Pajas <pajas@matfyz.cz>
 
 Copyright 2007 Petr Pajas, All rights reserved.
 
-=back
+=cut

@@ -96,6 +96,7 @@ Getopt::Long::Configure ("bundling");
 	 "add-suffix|a=s" => \$append_suffix,
 	 "output-format|f=s" => \$output_format,
 	 "config-file|c=s" => \$config_file,
+	 'option|O=s@' => \$TrEd::Config::override_options,
 	 "ntred-config-file=s" => \$ntred_config_file,
 	 "servers=s"    => \$srvlist,
 	 "safe-mode|F" => \$safe_mode,

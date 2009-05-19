@@ -15,7 +15,7 @@ BEGIN {
   @ISA=qw(Exporter);
   #  use Tk; # Tk::strictMotif
   $VERSION = "0.1";
-  @EXPORT = qw(@config_file_search_list $set_user_config
+  @EXPORT = qw(@config_file_search_list $set_user_config $override_options
   $appName
   $buttonsRelief
   $menubarRelief
@@ -132,7 +132,7 @@ $printOptions={
   # printCommand, # removed
   printImageMagickResolution => 80,
   printNoRotate=>0,
-  printColors => 0,
+  printColors => 1,
   ttFont=>"Arial",
   ttFontPath => undef,
   psFontFile => undef,
@@ -234,6 +234,34 @@ sub val_or_def {
 
 sub set_config {
   my ($confs)=@_;
+
+  if (ref($override_options)) {
+    my $opt;
+    foreach my $opt (@$override_options) {
+      my ($n,$v) = split /=/,$opt,2;
+      $n=lc($n) unless $n=~/::/;
+      if ($n=~s{([-+;:.,&|/ \t]|\\s|\\t)([-.+]?)$}{}) {
+	my $delim=$1;
+	my $operation=$2;
+	my $wdelim = $delim;
+	$wdelim=' ' if $delim eq '\s';
+	$wdelim="\t" if $delim eq '\t';
+	if (defined($confs->{$n}) and length($confs->{$n})) {
+	  if (!$operation) {
+	    $confs->{$n}=$v.$wdelim.$confs->{$n};
+	  } elsif ($operation eq '+') {
+  	    $confs->{$n}=$confs->{$n}.$wdelim.$v;
+	  } elsif ($operation eq '-') {
+	    $confs->{$n}=join $wdelim, grep { $_ ne $v } split /[$delim]/,$confs->{$n};
+	  }
+	  next;
+	} else {
+	  next if $operation and $operation eq '-';
+	}
+      }
+      $confs->{$n}=$v;
+    }
+  }
 
   $appName=val_or_def($confs,"appname","TrEd ver. ".$main::VERSION);
 
@@ -396,7 +424,6 @@ sub set_config {
     }
   }
   $libDir=tilde_expand($confs->{libdir}) if (exists $confs->{libdir});
-  $extensionsDir=tilde_expand($confs->{extensionsdir}) if ();
   if ($libDir) {
     unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
   }
@@ -413,7 +440,9 @@ sub set_config {
     }
   }
   $preinstalledExtensionsDir = 
-    $def_share_path =~ m{/share/tred$} ? $def_share_path.'-extensions' :
+    tilde_expand(length($confs->{preinstalledextensionsdir})
+				? $confs->{preinstalledextensionsdir} : 
+     $def_share_path =~ m{/share/tred$} ? $def_share_path.'-extensions' :
       File::Spec->catdir($def_share_path,'tred-extensions');
 
   {
