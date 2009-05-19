@@ -83,7 +83,7 @@ sub DrawArrows_cleanup {
 # 	  -smooth => 1,
 # 	  -fill => CustomColor('arrow_'.$_) },
 
-my @opts = qw(-tag -arrow -arrowshape -width -smooth -fill -dash -hint -object);
+my @opts = qw(-tag -arrow -arrowshape -width -smooth -fill -dash -hint -decoration);
 sub DrawArrows {
   my ($node,$styles,$edges,$opts)=@_;
   my $i;
