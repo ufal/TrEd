@@ -439,9 +439,9 @@ sub set_config {
       $def_share_path=~s/\/(?:tredlib)$//;
     }
   }
-  $preinstalledExtensionsDir = 
-    tilde_expand(length($confs->{preinstalledextensionsdir})
-				? $confs->{preinstalledextensionsdir} : 
+  $preinstalledExtensionsDir =
+    length($confs->{preinstalledextensionsdir})
+				? tilde_expand($confs->{preinstalledextensionsdir}) :
      $def_share_path =~ m{/share/tred$} ? $def_share_path.'-extensions' :
       File::Spec->catdir($def_share_path,'tred-extensions');
 
