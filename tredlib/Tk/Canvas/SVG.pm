@@ -295,6 +295,20 @@ sub draw_canvas {
 		    #preserveAspectRatio=>"xMinYMax",
 		    #viewBox=>"@media",
 		   );
+  if ($opts{-title}) {
+    $writer->startTag('title');
+    $writer->characters($opts{-title});
+    $writer->endTag('title');
+  }
+  if ($opts{-desc}) {
+    $writer->startTag('desc');
+    my $value = $opts{-desc};
+    if (ref($value) eq 'ARRAY') {
+      $value = join '',map {$_->[0]} @$value;
+    }
+    $writer->characters($value);
+    $writer->endTag('desc');
+  }
   my $balloon = $opts{-balloon};
   my $hint;
   if ($balloon) {
@@ -312,12 +326,30 @@ sub draw_canvas {
          doc = event.target.ownerDocument;
          root = doc.documentElement;
 	 top.zoomSVG = zoom;
+         if (top.setSVGTitle) top.setSVGTitle(get_title());
+         if (top.setSVGDesc) top.setSVGDesc(get_desc());
       }
       function mouse_out (event) {
         hide_tooltip(event);
       }
-      function mouse_move (event) { 
+      function mouse_move (event) {
          show_tooltip(event);
+      }
+      function get_title () {
+        var title = root.getElementsByTagName('title').item(0);
+        if (title && title.parentNode == root) {
+           return title.firstChild.nodeValue;
+        } else {
+           return '';
+        }
+      }
+      function get_desc () {
+        var desc = root.getElementsByTagName('desc').item(0);
+        if (desc && desc.parentNode == root) {
+           return desc.firstChild.nodeValue;
+        } else {
+           return '';
+        }
       }
       function zoom (amount) {
         var old_scale = root.currentScale;
@@ -341,7 +373,7 @@ sub draw_canvas {
          if ( last_target != target ) {
 	    last_target = target;
             var desc = target.getElementsByTagName('desc').item(0);
-            if ( desc && desc.parentNode == target) {
+            if ( desc && desc.parentNode == target && desc.parentNode != root) {
                tooltip_text = desc.firstChild.nodeValue;
 	       if (tooltip_text == null) {
 	         top.changeToolTip('');
@@ -388,11 +420,6 @@ SCRIPT
       $color = color2svg($color, $opts{-grayscale});
       my $fn = $canvas->itemcget($item,"-font");
       my %canvasfont = $canvas->fontActual($fn);
-      __debug "FONT:", (map {" $_ => $canvasfont{$_}, "} keys %canvasfont),"\n";
-      # my $font_lookup_string = lc($canvasfont{-family}." ".$canvasfont{-weight}." ".$canvasfont{-slant});
-      # if ($self->{FontMap}{$font_lookup_string}) {
-      # 	$fn=$self->{FontMap}{$font_lookup_string};
-      # }
       my $text=$canvas->itemcget($item,"-text");
       my $textwidth=$canvas->itemcget($item,"-width");
 
@@ -400,20 +427,28 @@ SCRIPT
       my $ascent=$canvas->fontMetrics($fn,'-ascent');
       my $descent=$canvas->fontMetrics($fn,'-descent');
       my $height=$ascent+$descent;
+
       # my $width=$c->fontMeasure($fn,$text);
       # $posx-=$width/2;
       $posy+=$height/2;
       $anchor = '' if $anchor eq 'center';
       my $text_anchor = 'middle';
 
-
+      my @lines = split /\n/,$text;
       if ($anchor =~ /s/) { $posy-=$height/2 }
       elsif ($anchor =~ /n/) { $posy+=$height/2 }
 
       if ($anchor =~ /e/) { $text_anchor='end' }
       elsif ($anchor =~ /w/) { $text_anchor='start' }
 
-      $writer->startTag('text',
+      $posy-=$descent;
+
+      $writer->startTag(((@lines>1) ?
+			   ('g') :
+			   ('text',
+			    x=>$posx,
+			    y=>$posy)
+			),
 			'id' => 'i'.$item,
 			"text-anchor" => $text_anchor,
 			"font-family" => $canvasfont{-family},
@@ -422,21 +457,31 @@ SCRIPT
 			"font-slant" => $canvasfont{-slant},
 			"fill" => $color,
 			width => $textwidth,
-			x => $posx,
-			y => $posy-$descent,
+
+			((@lines>1) ? (  ) : ()),
+
 			%item_opts,
 		       );
       $self->item_desc($writer,$hint->{$item});
-      $writer->setDataMode(0);
-      for my $chunk (split /(\n)/,$text) {
-	if ($chunk eq "\n") {
-	  $writer->emptyTag('tbreak');
-	} else {
-	  $writer->characters($chunk);
+      if (@lines>1) {
+	for my $line (@lines) {
+	  $writer->startTag('text',
+			    x=>$posx,
+			    y=>$posy,
+			   );
+	  $writer->setDataMode(0);
+	  $writer->characters($line);
+	  $writer->setDataMode(1);
+	  $writer->endTag('text');
+	  $posy+=$height;
 	}
+	$writer->endTag('g');
+      } else {
+	$writer->setDataMode(0);
+	$writer->characters($text);
+	$writer->setDataMode(1);
+	$writer->endTag('text');
       }
-      $writer->setDataMode(1);
-      $writer->endTag('text');
     } elsif ($type eq 'line') {
       my $color=$canvas->itemcget($item,"-${state}fill");
       next unless defined $color; # transparent line = no line
@@ -625,7 +670,7 @@ SCRIPT
 	if defined $color;
       $outlinecolor = color2svg($outlinecolor, $opts{-grayscale})
 	if defined $outlinecolor;
-
+      my $is_text_bg = grep { $_ eq 'textbg' } @$tags;
       $writer->startTag('rect',
 			'id' => 'i'.$item,
 			'x' => $coords[0],
@@ -636,6 +681,7 @@ SCRIPT
 			'stroke-dasharray' => (join(',',@dash)||'none'),
 			'stroke' => defined($outlinecolor) ? $outlinecolor : 'none',
 			'fill' => defined($color) ? $color : 'none',
+			($is_text_bg ? ('fill-opacity' => '0.6') : ()),
 			%item_opts,
 		       );
 	$self->item_desc($writer,$hint->{$item});
@@ -678,7 +724,9 @@ body {
   background: #ffffbb;
   border: black solid 1pt;
 }
-
+#title {
+  text-align: center;
+}
 #tree iframe,
 #tree embed {
  background:white;
@@ -740,8 +788,17 @@ body {
         tree_obj = document.getElementById("tree");
 	document.changeToolTip = changeToolTip;
 	document.placeTip = placeTip;
+        window.setSVGTitle = set_title;
+        window.setSVGDesc = set_desc;
 	fit_window();
         next_tree(0);
+      }
+      function set_title (title) {
+        document.getElementById("title").firstChild.nodeValue = title;
+      }
+      function set_desc (desc) {
+        document.getElementById("desc").innerHTML = desc.replace(/</,'&lt;').replace(/&/,'&amp;').split(/\\n/).join('<br />');
+        fit_window();
       }
 
       // findPosX and findPosY by Peter-Paul Koch & Alex Tingle. 
@@ -788,7 +845,7 @@ body {
     </script>
   </head>
 <body onload="init()" onresize="fit_window()">
- <h1>$title</h1>
+ <h1 id="title">$title</h1>
  <form action="">
   <table width="100%" class="toolbar">
     <tr>
@@ -810,9 +867,10 @@ body {
   </table>
  </form>
  <div id="tooltip"></div>
+ <div id="desc" style="padding: 0 2% 10 2%"></div>
  <div id="tree" style="text-align:center">
-    <iframe src="page_000.svg" width="98%" height="80%" frameborder="0" marginwidth="0"  marginheight="0" scrolling="yes">
-      <embed src="page_000.svg" width="98%" height="80%" type="image/svg+xml" pluginspage="http://www.adobe.com/svg/viewer/install/"/>
+    <iframe src="" width="98%" height="80%" frameborder="0" marginwidth="0"  marginheight="0" scrolling="yes">
+      <embed src="" width="98%" height="80%" type="image/svg+xml" pluginspage="http://www.adobe.com/svg/viewer/install/"/>
     </iframe>
   </div>
  </body>

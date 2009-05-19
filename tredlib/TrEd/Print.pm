@@ -348,18 +348,21 @@ sub print_trees {
 			      backgroundColor    => 'white',
 			     });
   }
-  $treeView->apply_options({
-			    lineWidth => 1,
-			    drawSentenceInfo => $snt ? 1 : 0,
-			    drawFileInfo => $fileinfo ? 1 : 0
-			   });
+  my @printList=parse_print_list($fsfile,$printRange);
+  return unless @printList;
+
   if (defined($stylesheet)) {
     $treeView->set_patterns($stylesheet->{patterns});
     $treeView->set_hint(\$stylesheet->{hint});
   }
 
-  my @printList=parse_print_list($fsfile,$printRange);
-  return unless @printList;
+  $treeView->apply_options({
+			    lineWidth => 1,
+			    ((!$toSVG or @printList<2) ? (
+			      drawSentenceInfo => $snt ? 1 : 0,
+			      drawFileInfo => $fileinfo ? 1 : 0,
+			     ) : ())
+			   });
 
   my ($infot,$infotext);
   if ($toplevel) {
@@ -382,10 +385,10 @@ sub print_trees {
 	$infot->idletasks() if ($infot);
 	_msg("$infotext\n");
 	$P->new_page();
+	my $valtext;
 	do {
 	  $treeView->set_showHidden($show_hidden);
 	  my $nodes = get_nodes_callback($get_nodes_callback,$treeView,$fsfile,$printList[$t]-1,undef);
-	  my $valtext;
 	  if (ref($snt) eq 'ARRAY') {
 	    $valtext = $snt->[$printList[$t]-1];
 	  } elsif (ref($snt) eq 'CODE') {
@@ -427,6 +430,17 @@ sub print_trees {
 		       $pagewidth/$width);
 	}
 	$scale = 1 if ($scale>1 and !$maximizePrintSize);
+
+	my @opts;
+	if ($toSVG and @printList>1) {
+	  if ($snt) {
+	    push @opts,(-desc => $valtext)
+	  }
+	  if ($fileinfo) {
+	    push @opts,(-title => filename($fsfile->filename).'##'.$t)
+	  }
+	}
+
 	if ($rotate) {
 	  $P->draw_canvas($c,
 			  -width => $width,
@@ -439,19 +453,21 @@ sub print_trees {
 					 $vMargin+
 					 ($pageheight+$width*$scale)/2],
 			  -balloon => $treeView->get_CanvasBalloon,
+			  @opts,
 			 );
 	} else {
 	  $P->draw_canvas($c,
 			  -width => $width,
 			  -height => $height,
 			  -grayscale => !$printColors,
-			  #			-rotate => -90,
+			  # -rotate => -90,
 			  -scale => [$scale,$scale],
 			  -translate => [$hMargin+
 					 ($pagewidth-$width*$scale)/2,
 					 $vMargin+
 					 ($pageheight-$height*$scale)/2],
 			  -balloon => $treeView->get_CanvasBalloon,
+			  @opts,
 			 );
 	}
 ###	last; # only one page for now
