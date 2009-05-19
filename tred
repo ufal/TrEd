@@ -70,7 +70,8 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
   'stylesheet|s=s' => \$opt_s ,
   'stylesheet-file|S=s' => \$opt_S,
   'resource-dir|Z=s' => \$opt_Z,
-  'define-symbol|y=s' => \$opt_y,
+  'define-symbol|y=s@' => \$opt_y,
+  'option|O=s@' => \$TrEd::Config::override_options,
   'execute|e=s' => \$opt_e,
   'man' => \$manpage,
   "list-options" => \$list_options,
@@ -296,7 +297,6 @@ if (defined $opt_c) {
   set_default_config_file_search_list();
 }
 $TrEd::Config::set_user_config=\&setConfig;	# tred specific configuration
-
 my $configFile=read_config();
 
 $TrEd::Convert::inputenc=$opt_n if $opt_n;
@@ -396,11 +396,15 @@ require TrEd::Macros;
 import TrEd::Macros;
 
 TrEd::Macros::define_symbol('TRED');
-for my $sym (split /,/, $opt_y) {
-  if ($sym=~/=/) {
-    TrEd::Macros::define_symbol(split(/=/,$sym,2));
-  } else {
-    TrEd::Macros::define_symbol($sym);
+if ($opt_y) {
+  foreach my $def (@$opt_y) {
+    foreach my $sym (split /,/, $def) {
+      if ($sym=~/=/) {
+	TrEd::Macros::define_symbol(split(/=/,$sym,2));
+      } else {
+	TrEd::Macros::define_symbol($sym);
+      }
+    }
   }
 }
 
@@ -496,6 +500,7 @@ use Exporter;
    ["Perl Storable files",  [qw/.pls .pls.gz/]],
    ["PDT-PML files",  [qw/.t .a .t.gz .a.gz .m .m.gz .pml .pml.gz .xml .xml.gz/]],
    ["XML files",           [qw/.xml .xml.gz .pml .pml.gz/]],
+   ["TectoMT files",           [qw/.tmt .tmt.gz/]],
    ["All files",        '*']
   );
 
@@ -530,7 +535,7 @@ use Exporter;
 	      ["All files",        ['*']]
 	     ],
 	     all => [["All files", ['*']],
-		     ["Recognized", [qw/.fs .csts .pls .t .a .pls.gz .fs.gz .t.gz .a.gz .csts.gz .pml .pml.gz .xml .xml.gz/]],
+		     ["Recognized", [qw/.fs .csts .pls .t .a .pls.gz .fs.gz .t.gz .a.gz .csts.gz .pml .pml.gz .xml .xml.gz .tmt .tmt.gz/]],
 		    ]
 	    );
 
@@ -1070,6 +1075,8 @@ sub bookmarkFilelist {
 
 sub setConfig {
   my $confs=shift;
+
+  
 
   foreach (0..9) {
     $recentFiles[$_]=$confs->{"recentfile$_"};
@@ -12646,6 +12653,49 @@ B<--include-macro-file> to supply a replacement for F<tred.mac>.
 =item B<--config-file|-c> filename
 
 TrEd configuration file (overrides ~/.tredrc).
+
+=item B<--option|-O> name=value
+
+Override configuration option from the config file with a given
+value. This flag can be used several times for different options.
+
+Special syntax of the name part allows some modifications of existing
+option values for options that are delimited lists (this cannot be
+used to modify default or implicit values):
+
+=over 8
+
+=item nameX=value
+
+Treat the option as a list delimited by the delimiter X and
+prepend the value to the list.
+
+=item  nameX+=value
+
+Treat the option as a list delimited by the delimiter X and append the
+value to the list.
+
+=item  nameX-=value
+
+Treat the option as a list delimited by the delimiter X and remove the
+value from the list (if exists).
+
+=back
+
+Only the following characters can be used as a delimiter:
+
+      ; : , & | / + - \s \t SPACE
+
+where SPACE is a space character, \s matches arbitrary white-space,
+and \t matches TAB character.
+
+The options can be combined; for example
+
+  -O "extensionRepos\\s"-=http://foo/bar -O "extensionRepos\\s"+=http://foo/bar
+
+first removes any occurrence of the URL http://foo/bar from the
+white-space separated list of extensionRepos and then appends the URL
+to the end of the list.
 
 =item B<--stylesheet-file> path
 
