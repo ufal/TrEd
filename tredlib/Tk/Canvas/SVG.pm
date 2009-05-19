@@ -316,7 +316,7 @@ sub draw_canvas {
     $hint = $balloon->GetOption('-balloonmsg',$canvas);
     if ($hint) {
       $writer->startTag('script', type=>"text/ecmascript");
-      $writer->cdata(<<'SCRIPT');
+      $writer->characters(<<'SCRIPT'); # cdata not supported by older XML::Writer versions
 
       var doc = null;
       var root = null;
