@@ -3833,6 +3833,10 @@ in this parameter. This CODE is then evaluated for every tree to
 produce the desired text. The CODE obtains two arguments: the current
 FSFile object and an integer position of the tree (starting from 0).
 
+=item C<-fileInfo>
+
+If true, print filename and tree number under each tree.
+
 =item C<-colors>
 
 Set to 1 for colour output.
@@ -3849,7 +3853,7 @@ sub PrintDialog {
     local $grp->{root} = $root;
 
     foreach (qw(-command -filename -psFile -toFile -format -noRotate -sentenceInfo
-                -imageMagickResolution -fileExtension -colors)) {
+                -imageMagickResolution -fileExtension -fileInfo -colors)) {
       if (exists($opts{$_})) {
 	my $o=$_; $o=~s/^-//;
 	$o='psFile' if $o eq 'filename';
@@ -3903,6 +3907,10 @@ tree. Instead of 0 or 1, a CODE reference (subroutine) may be passed
 in this parameter. This CODE is then evaluated for every tree to
 produce the desired text. The CODE obtains two arguments: the current
 FSFile object and an integer position of the tree (starting from 0).
+
+=item C<-fileInfo>
+
+If true, print filename and tree number under each tree.
 
 =item C<-imageMagickResolution>
 
