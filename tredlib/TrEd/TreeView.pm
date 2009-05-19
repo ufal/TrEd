@@ -1257,7 +1257,7 @@ sub wrappedLines {
 sub wrapLines {
   my ($self,$text,$width,$reverse)=@_;
   use integer;
-  my @toks = split /\s+/, $text;
+  my @toks = split /[ \t]+/, $text;
   if ($reverse) {
       my @result;
       my $wd=0;
@@ -1265,14 +1265,20 @@ sub wrapLines {
       my $t=pop(@toks);
       my @lines=();
       while ($t) {
-	$w=$self->getTextWidth(' '.$t);
-	if (($wd+$w>=$width) && (@result>0)) {
+	if ($t eq "\n") {
 	  push @lines, join(' ',@result);
-	  @result=($t);
-	  $wd=$self->getTextWidth($t);
+	  @result=();
+	  $wd=0;
 	} else {
-	  $wd+=$w;
-	  unshift @result, $t;
+	  $w=$self->getTextWidth(' '.$t);
+	  if (($wd+$w>=$width) && (@result>0)) {
+	    push @lines, join(' ',@result);
+	    @result=($t);
+	    $wd=$self->getTextWidth($t);
+	  } else {
+	    $wd+=$w;
+	    unshift @result, $t;
+	  }
 	}
 	$t=pop(@toks);
       }
@@ -1280,18 +1286,30 @@ sub wrapLines {
       return \@lines;
   } else {
     my $line=shift @toks;
-    my $wd=$self->getTextWidth($line);
     my @lines=();
+    my $wd;
+    if ($line eq "\n") {
+      push @lines, '';
+      $wd=0;
+    } else {
+      $wd=$self->getTextWidth($line);
+    }
     my $w;
     foreach (@toks) {
-      $w=$self->getTextWidth(" $_");
-      if ($wd+$w<$width) {
-	$wd+=$w;
-	$line.=" $_";
-      } else {
-	$wd=$self->getTextWidth("$_");
+      if ($_ eq "\n") {
 	push @lines,$line;
-	$line=$_;
+	$wd=0;
+	$line = '';
+      } else {
+	$w=$self->getTextWidth(" $_");
+	if ($wd+$w<$width) {
+	  $wd+=$w;
+	  $line.=" $_";
+	} else {
+	  $wd=$self->getTextWidth("$_");
+	  push @lines,$line;
+	  $line=$_;
+	}
       }
     }
     return [@lines,$line];
@@ -1711,7 +1729,7 @@ sub redraw {
     }
 
     my @smooth=split '&',$line_style->{'-smooth'};
-    my @obj=split '&',$line_style->{'-object'};
+    my @obj=split '&',$line_style->{'-decoration'};
     my %nodehash;
     my $coords=$line_style->{'-coords'};
     $coords = $self->parse_coords_spec($node,$coords,$nodes,\%nodehash,$grp);
@@ -1739,8 +1757,8 @@ sub redraw {
       eval {
 	if ($obj[$lin]) {
 	  #
-	  # Line-object:...&step=4%;shape=rectangle;coords=<coords>;tag=...
-	  #                |..another object
+	  # Line-decoration:...&step=4%;shape=rectangle;coords=<coords>;tag=...
+	  #                |..another decoration
 	  #
 	  my $spline = $smooth[$lin] ? TkMakeBezierCurve(\@c,12,
 							 ($arrow[$lin] && $arrow[$lin] ne 'none')
