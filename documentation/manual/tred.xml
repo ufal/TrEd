@@ -1297,6 +1297,18 @@ Tk: 804.028
 	    </para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry id="side_panel">
+	  <term><guimenuitem moreinfo="none">Side Panel</guimenuitem></term>
+	  <listitem>
+	    <para>Toggle side panel visibility. The side panel is a
+	    panel on the left side of TrEd window offering sever
+	    useful widgets, that can be turned on or off individually.
+	    The widgets include a read-only view of the attributes of the
+	    currently selected node, the current filelist, a
+	    file-system browser and a list of named macros.
+	    </para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry id="list_of_sentences">
 	  <term><guimenuitem moreinfo="none">List of sentences ...</guimenuitem></term>
 	  <listitem>
@@ -4255,6 +4267,147 @@ Tk: 804.028
 	    </entry>
 	  </row>
 	  <row>
+	    <entry><literal moreinfo="none">Line-decoration</literal></entry>
+	    <entry><para> This option can be use to define various
+	    line decorations to be drawn along individual lines
+	    specified in <literal
+	    moreinfo="none">Line-coords</literal>.  A decoration is
+	    basically an item of the <ulink
+	    url="http://search.cpan.org/~SREZIC/Tk/pod/Canvas.pod">Tk::Canvas</ulink>
+	    widget. This option can specify the shape type, relative
+	    coordinates, size, and other properties of an decoration
+	    item and the way in which the item is to be copied along
+	    the line path.
+	    </para><para>The
+	    value consists of a <literal
+	    moreinfo="none">&amp;</literal>-separated sequence of
+	    decoration specifications for the individual lines (in the same order in
+	    which lines are specified in
+	    <literal>Line-coords</literal>).
+	     </para>
+	     <para>Each line can have multiple decorations;
+	       individual decoration definitions are separated by <literal>|</literal>.
+	       A decoration is defined by a semi-colon-separated list
+	       of <literal><replaceable>option</replaceable>=<replaceable>value</replaceable></literal> pairs.
+	     </para>
+	     <para>
+	       The following options are allowed in a decoration definition:
+	     </para>
+	       <variablelist>
+		 <varlistentry>
+		   <term>shape</term>
+		   <listitem><para>One of
+		   <literal>line</literal>,
+		   <literal>text</literal>, 
+		   <literal>rectangle</literal>,
+		   <literal>polygon</literal>,
+		   <literal>oval</literal>,
+		   <literal>arc</literal>,
+		   <literal>image</literal>.
+		   </para></listitem>
+		 </varlistentry>
+		 <varlistentry>
+		   <term>coords</term>
+		   <listitem><para>A comma-separated list
+		   of coordinates relative to
+		   the current point on the line.
+		   The shapes
+		   <literal>text</literal> and
+		   <literal>image</literal>
+		   require one pair of coordinates,
+		   <literal>oval</literal>,
+		   <literal>arc</literal>, and
+		   <literal>rectangle</literal>
+		   require two pairs of coordinates,
+		   <literal>line</literal> requires
+		   at least two pairs of coordinates and
+		   <literal>polygon</literal>
+		   requires at least three pairs
+		   of coordinates.
+		   </para></listitem>
+		 </varlistentry>
+		 <varlistentry>
+		   <term>step</term>
+		   <listitem><para>Distance
+		   between two adjacent instances of
+		   decoration on the line.
+		   The value can be a percent
+		   string from 0% to 100%
+		   defines the distance in percents
+		   of the length of the line path
+		   or an absolute distance (integer)
+		   from the start of the line along the line path. 
+		   </para></listitem>
+		 </varlistentry>
+		 <varlistentry>
+		   <term>start</term>
+		   <listitem><para>A distance (relative or absolute - see <literal>step</literal>)
+		   from the start-point of the line in which
+		   the first decoration should be drawn.
+		 </para>
+		 </listitem>
+		 </varlistentry>
+		 <varlistentry>
+		   <term>stop</term>
+		   <listitem><para>A distance (relative or absolute - see <literal>step</literal>)
+		   from the end-point of the line beyond which
+		   no further decoration should be drawn.
+		 </para>
+		 </listitem>
+		 </varlistentry>
+		 <varlistentry>
+		   <term>force</term>
+		   <listitem><para>If used,
+		   it must provide a distance
+		   in which a decoration is drawn
+		   in case that the distance
+		   defined using <literal>stop</literal>
+		   precedes the distance defined using
+		   <literal>start</literal>.
+		   </para></listitem>
+		 </varlistentry>	       
+		 <varlistentry>
+		   <term>repeat</term>
+		   <listitem><para>Defines maximum number of decorations to
+		   be drawn along the line path.</para></listitem>
+		 </varlistentry>	       
+		 <varlistentry>
+		   <term>rotate</term>
+		   <listitem><para>If set to a true value, 
+		   the coordinates specified with
+		   <literal>coords</literal> will
+		   be rotated around the
+		   current point on the line
+		   so as to preserve
+		   the same angle to the tangent
+		   of the line as the initial coordinates
+		   have to the axis X.
+		  </para></listitem>
+		 </varlistentry>	       
+		 <varlistentry>
+		   <term>tag</term>
+		   <listitem><para>A comma-separated
+		   list of tags to associate with
+		   the decoration objects.</para></listitem>
+		 </varlistentry>	       
+		 <varlistentry>
+		   <term><replaceable>other</replaceable></term>
+		   <listitem><para>Any 
+		   option 
+		   such as <literal>fill, dash, outline,width</literal>
+		   supported by the
+		   given Tk::Canvas item-type (shape) 
+		   can be passed
+		   here.
+		   Please consult <ulink url="http://search.cpan.org/~SREZIC/Tk/pod/Canvas.pod">Tk::Canvas#OVERVIEW_OF_ITEM_TYPES</ulink> documentation for a complete list.
+		    The options must be passed without the leading dashes.
+		   </para></listitem>
+		 </varlistentry>	       
+	       </variablelist>
+	    </entry>
+	  </row>
+
+	  <row>
 	    <entry><literal moreinfo="none">Line-</literal><replaceable>feature</replaceable></entry>
 	    <entry><para>Features
 		<literal moreinfo="none">dash</literal>,
@@ -5467,6 +5620,24 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry id="columnsep">
+	  <term><literal moreinfo="none">ColumnSep</literal></term>
+	  <listitem>
+	    <para>
+	      Default distance between two columns of labels
+	      in <link linkend="vertical-mode">Vertical mode</link>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="labelsep">
+	  <term><literal moreinfo="none">LabelSep</literal></term>
+	  <listitem>
+	    <para>
+	      Default distance between a node and the label next to it
+	      in <link linkend="vertical-mode">Vertical mode</link>.
+	    </para>
+	  </listitem>
+	</varlistentry>
       </variablelist>
     </section>
     <section>
@@ -5485,8 +5656,16 @@ sub CreateImages {
 	      icon (in <literal moreinfo="none">XPM</literal> format).</para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry id="showsidepanel">
+	  <term><literal moreinfo="none">ShowSidePanel</literal></term>
+	  <listitem>
+	    <para>If true, TrEd starts with side panel displayed.
+	    Note: the option is saved by TrEd on exit.
+	    </para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry id="stippleinactivewindows">
-	  <term>StippleInactiveWindows</term>
+	  <term><literal>StippleInactiveWindows</literal></term>
 	  <listitem>
 	    <para>
 	      If set to <literal moreinfo="none">1</literal>, inactive views are
@@ -6385,6 +6564,41 @@ sub CreateImages {
 	    <para>
 	      If set to 1, TrEd will not test if it was upgraded since
 	      last run and thus will not ask about managing extensions.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="extensionrepos">
+	  <term><literal moreinfo="none">ExtensionRepos</literal></term>
+	  <listitem>
+	    <para>
+	      A list of URLs to TrEd Extension repositories separated by
+	      spaces.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="extensionsdir">
+	  <term><literal moreinfo="none">ExtensionsDir</literal></term>
+	  <listitem>
+	    <para>
+	      A directory where TrEd extensions are installed.
+	      Defaults to <filename>$HOME/.tred/extensions</filename>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="preinstalledextensionsdir">
+	  <term><literal moreinfo="none">PreInstalledExtensionsDir</literal></term>
+	  <listitem>
+	    <para>
+	      A directory where pre-installed (or shared) TrEd extensions are located.
+	      The user cannot uninstall extensions installed in this directory 
+	      but can override by installing the same extension to
+	      the ExtensionsDir.
+	    </para>
+	    <para>
+	      Defaults to <filename>$TREDDIR/tred-extensions</filename>
+	      for TrEd installed to a directory and
+	      <filename>$PREFIX/share/tred-extensions</filename>
+	      for TrEd installed to a prefix.
 	    </para>
 	  </listitem>
 	</varlistentry>
