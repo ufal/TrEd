@@ -202,12 +202,13 @@ sub svg {
 
 sub new_page {
   my ($P,%opts)=@_;
-
-  my $svg_page='';
+  use IO::String;
+  my $svg_page;
   if ($P->{current_page}) {
     $P->{current_page}->end;
   }
-  $P->{current_page} = XML::Writer->new(OUTPUT=>\$svg_page,DATA_INDENT=>1,DATA_MODE=>1,ENCODING=>'utf-8');
+  my $fh = IO::String->new($svg_page);
+  $P->{current_page} = XML::Writer->new(OUTPUT=>$fh,DATA_INDENT=>1,DATA_MODE=>1,ENCODING=>'utf-8');
   push @{$P->{pages}}, \$svg_page;
 }
 
