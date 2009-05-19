@@ -180,7 +180,7 @@
 
 ; ImageMagickConvert = 'convert' ;; path to ImageMagick convert program
 
-; PrintColors = 0		 ;; 1 if you want to print in colors by default
+; PrintColors = 1		 ;; 0 if you want to print in grayscale (b/w for EPS/PostScript)
 
 ; DefaultPrintCommand = 'lpr'	 ;; default command for LPR print spooler
 
