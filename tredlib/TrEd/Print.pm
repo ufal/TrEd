@@ -437,7 +437,7 @@ sub print_trees {
 	    push @opts,(-desc => $valtext)
 	  }
 	  if ($fileinfo) {
-	    push @opts,(-title => filename($fsfile->filename).'##'.$t)
+	    push @opts,(-title => filename($fsfile->filename).'##'.($t+1))
 	  }
 	}
 
