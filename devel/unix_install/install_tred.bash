@@ -362,7 +362,7 @@ EOF
 	echo
 	echo "Creating script ${RUN_TRED_DIR}/upgrade_tred"
 	cat <<EOF > "$RUN_TRED_DIR"/"upgrade_tred"
-#!/bin/sh
+#!/bin/bash
 . "\$(dirname "\$(perl -MCwd -e 'print Cwd::abs_path(shift)' \$0)")/init_tred_environment"
 if [ -n "$TRED_DIR" ] && [ -n "$TRED_DEPENDENCIES" ]; then
   cd "$TRED_DIR" || exit 1
