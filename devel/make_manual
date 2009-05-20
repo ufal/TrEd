@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 if [ ! -f documentation/manual/tred.xml ]; then
   echo "not in tred/ directory"

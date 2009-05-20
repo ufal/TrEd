@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 for s in `ls tredlib/icons/crystal/*.png`; do
   o="$(basename "$s")"
   gif="documentation/pics/${o%.png}.gif"

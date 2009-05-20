@@ -28,7 +28,9 @@ use Win32 qw(CSIDL_DESKTOP CSIDL_PROGRAMS CSIDL_COMMON_PROGRAMS);
 use Win32::Shortcut;
 use Win32::TieRegistry (Delimiter=>'/');
 
-
+our @obsolete_files = qw(
+  resources/tree_query_schema.xml
+);
 
 our %win32_dir = (
   "Desktop" => CSIDL_DESKTOP,
@@ -416,7 +418,11 @@ if (-d $extensions_repo) {
   my $bf = $page->Frame()->pack(qw(-fill x -padx 10 -pady 10 -side bottom));
   #$bf->Button(-text=>' Abort ', -command => [\&prev_page,$name])->pack(-side => 'left',-padx=>15,-pady=>15);
 
-  $finish_b2 = $bf->Button(-text=>' Install Selected ', -state=>'disabled',
+  $bf->Button(-text=>' Skip Extensions and Finish ', -state=>'normal',
+	      -command => sub { $mw->destroy; exit  }
+	     )->pack(-side => 'right',-padx=>15,-pady=>15);
+
+  $finish_b2 = $bf->Button(-text=>' Install Extensions and Finish ', -state=>'disabled',
 			  -command => sub {
 			    my @selected = grep $enable->{$_}, keys %$enable;
 			    if (@selected) {
@@ -443,9 +449,6 @@ if (-d $extensions_repo) {
 			    $mw->destroy; exit 
 			  },
 			  )->pack(-side => 'right',-padx=>15,-pady=>15);
-  $bf->Button(-text=>' Finish ', -state=>'normal',
-	      -command => sub { $mw->destroy; exit  }
-	     )->pack(-side => 'right',-padx=>15,-pady=>15);
 
 }
 
@@ -684,8 +687,9 @@ sub Install_TrEd {
     }
   }
   {
-    my $activity = ppm_status('begin',"Removing obsolete *.pm files");
+    my $activity = ppm_status('begin',"Removing obsolete files");
     remove_old_pm_files($mw,$install_target);
+    remove_obsolete_files($mw,$install_target);
   }
 
   copy_tree($mw, $install_tred_path => $install_target,
@@ -914,6 +918,30 @@ BEGIN {
 		  $mw->update;
 		}
             }, no_chdir=>1 },$dir);
+      $activity->end;
+    }
+  }
+  sub remove_obsolete_files {
+    my ($mw,$dir)=@_;
+    my @files =
+      grep { -f $_ }
+      map File::Spec->catfile($dir,$_),
+      @obsolete_files;
+    my $count=@files;
+    return unless $count;
+    {
+      my $activity = ppm_status('begin','Removing $count obsolete resource file(s)');
+      my $no=0;
+      for my $f (@files) {
+	if (-f $f) {
+	  Log("Removing $f\n");
+	  unlink $f || Log("Error: $!\n");
+	  $activity->tick((++$no)/$count);
+	  $mw->update;
+	}
+      }
+      $activity->tick(1);
+      $mw->update;
       $activity->end;
     }
   }
