@@ -2098,10 +2098,13 @@ sub newFileFromCurrent {
   updateTitle($grp);
   get_nodes_win($win);
   $win->{redrawn}=0; # if redraw is called during the hook, we will know it
+  if ($opt_t ne EMPTY and
+	$win->{macroContext} ne $opt_t) {
+    switchContext($win,$opt_t,1);
+  } else {
+    doEvalHook($win,"guess_context_hook","file_opened_hook");
+  }
   doEvalHook($win,"file_opened_hook");
-  switchContext($win,$opt_t,1)
-    if ($opt_t ne EMPTY and
-	$win->{macroContext} ne $opt_t);
   redraw_win($win) unless $win->{redrawn};
   centerTo($win,$win->{currentNode});
   $win->toplevel->Unbusy() unless $insideEval;
@@ -2287,7 +2290,10 @@ sub openFile {
       applyFileSuffix($win,$goto);
       unhideCurrentNode($win);
       get_nodes_win($win, $opts{-noredraw});
-      doEvalHook($win,"file_resumed_hook") unless $opts{-nohook};
+      unless ($opts{-nohook}) {
+	doEvalHook($win,"guess_context_hook","file_resumed_hook");
+	doEvalHook($win,"file_resumed_hook");
+      }
       unless ($opts{-noredraw}) {
 	redraw_win($win);
 	centerTo($win,$win->{currentNode});
@@ -2324,7 +2330,10 @@ sub openFile {
 	  applyFileSuffix($win,$goto);
 	  unhideCurrentNode($win);
 	  get_nodes_win($win, $opts{-noredraw});
-	  doEvalHook($win,"file_resumed_hook") unless $opts{-nohook};
+	  unless ($opts{-nohook}) {
+	    doEvalHook($win,"guess_context_hook","file_resumed_hook");
+	    doEvalHook($win,"file_resumed_hook");
+	  }
 	  unless ($opts{-noredraw}) {
 	    redraw_win($win);
 	    centerTo($win,$win->{currentNode});
@@ -2496,11 +2505,18 @@ sub openFile {
     get_nodes_win($win, 1); # for the hook below
   }
   $win->{redrawn}=0; # if redraw is called during the hook, we will know it
-  doEvalHook($win,"file_opened_hook") if ($fsfile and !$opts{-nohook});
-  unless ($opts{-preload}) {
-    switchContext($win,$opt_t,1)
-      if ($opt_t ne EMPTY and
-	    $win->{macroContext} ne $opt_t);
+  if ($opts{-preload}) {
+    if ($fsfile and !$opts{-nohook}) {
+      doEvalHook($win,"guess_context_hook","file_opened_hook");
+      doEvalHook($win,"file_opened_hook");
+    }
+  } else {
+    if ($opt_t ne EMPTY and $win->{macroContext} ne $opt_t) {
+      switchContext($win,$opt_t,1)
+    } else {
+      doEvalHook($win,"guess_context_hook","file_opened_hook") if ($fsfile and !$opts{-nohook});
+    }
+    doEvalHook($win,"file_opened_hook") if ($fsfile and !$opts{-nohook});
     unless ($opts{-noredraw}) {
       unless ($win->{redrawn}) {
 	$win->{currentNode} = $save_current if $save_current;

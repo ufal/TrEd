@@ -37,9 +37,8 @@ The synopsis for a package named 'Foo' is as follows:
 
   #binding-context Foo
   package Foo;
-  import TredMacro;
-
-  push @TredMacro::AUTO_CONTEXT_GUESSING, sub {
+  BEGIN { import TredMacro; }
+  context_guessing {
     my ($hook)=@_;
     if (PML::SchemaName() eq 'foo-data') { # some test that the file suites the macro package
       if ($hook eq 'file_opened_hook') {
@@ -61,26 +60,28 @@ The synopsis for a package named 'Foo' is as follows:
 #ifdef TRED
 
 use vars qw(@AUTO_CONTEXT_GUESSING);
+use Carp;
+sub context_guessing (&) {
+  __context_guessing($_[0],0); # will push
+}
+sub priority_context_guessing (&) {
+  __context_guessing($_[0],1); # will unshift
+}
+sub __context_guessing {
+  my ($code,$priority)=@_;
+  if (ref($code) eq 'CODE') {
+    if ($priority) {
+      unshift @TredMacro::AUTO_CONTEXT_GUESSING, $code;
+    } else {
+      push @TredMacro::AUTO_CONTEXT_GUESSING, $code;
+    }
+  } else {
+    croak "Usage: context_guessing { .... };"
+  }
+}
 
-sub file_opened_hook {
-  my $context = __guess_context('file_opened_hook',@_);
-  if (defined $context and $context ne 'TredMacro' and
-      exists(&{$context."::file_opened_hook"})
-	and \&{$context."::file_opened_hook"} != \&file_opened_hook
-       ) {
-    &{$context."::file_opened_hook"}(@_);
-  }
-}
-sub file_resumed_hook {
-  my $context = __guess_context('file_resumed_hook',@_);
-  if (defined $context and $context ne 'TredMacro' and
-      exists(&{$context."::file_resumed_hook"})
-	and \&{$context."::file_resumed_hook"} != \&file_resumed_hook
-) {
-    &{$context."::file_resumed_hook"}(@_);
-  }
-}
-sub __guess_context {
+
+sub guess_context_hook {
   my ($hook)=@_;
   my ($mode)= GetPatternsByPrefix('mode',STYLESHEET_FROM_FILE());
   return SwitchContext($mode) if defined $mode;
