@@ -1580,6 +1580,7 @@ sub openFile {
   $grp->{currentNode}=$grp->{root};
   applyFileSuffix($grp,$goto);
   unless ($opts{-justpreloaded}) {
+    doEvalHook($grp,"guess_context_hook","file_opened_hook");
     my $hook_result = doEvalHook($grp,"file_opened_hook");
     if ($opts{'-hook_can_stop'} and
 	  $hook_result eq 'stop') {
