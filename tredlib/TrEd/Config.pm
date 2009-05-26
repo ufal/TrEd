@@ -635,7 +635,7 @@ sub set_config {
 
   &$set_user_config($confs) if (ref($set_user_config)); # let this be the very last line
   {
-    no strict qw(vars);
+    no strict qw(vars refs);
     foreach (keys %$confs) {
       if (/::/) {
 	${"$_"}=$confs->{$_};
