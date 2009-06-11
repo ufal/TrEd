@@ -12208,7 +12208,7 @@ sub cleanup_tredmacro {
   my %packages;
   @packages { ('TredMacro',
 	       grep {/\S/} grep { !/^main$|^TrEd::/ }
-	       map  { (/^package\s+([^;\s]+)\s*;/) } (@TrEd::Macros::macros))
+	       map  { (/^\s*package\s+([^;\s]+)\s*;/) } (@TrEd::Macros::macros))
 	    } = ();
   foreach my $package ( sort { length($b)<=>length($a) } keys %packages ) {
     no strict qw(refs);
