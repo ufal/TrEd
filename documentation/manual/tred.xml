@@ -2233,11 +2233,11 @@ Tk: 804.028
 	  </inlinemediaobject>
 	</term>
 	<listitem>
-	  <para>Reload the current file from disk.</para>
+	  <para>Reload the current file from disk. Current context and stylesheet are preserved.</para>
 	  <note>
 	    <para>	    
 	      Note for macro developers: during this action,
-	      neither <link linkend="file_opened_hook">file_opened_hook</link>
+	      neither context guessing, nor <link linkend="file_opened_hook">file_opened_hook</link>
 	      nor <link linkend="file_resumed_hook">file_resumed_hook</link> are
 	      called, but <link linkend="file_reloaded_hook">file_reloaded_hook</link>
 	      is called instead (in case of success).
@@ -6836,7 +6836,7 @@ sub CreateImages {
 	<listitem>
 	  <para>Prefer the given binding context as the initial context
 	    for every opened file.
-	    This context may be however overriden by some hooks such as
+	    This context may however be overriden by some hooks such as
 	    <literal moreinfo="none">start_hook</literal>
 	    or <literal moreinfo="none">file_opened_hook</literal>.
 	  </para>
