@@ -15,12 +15,6 @@ if [ -z "$BASH" ]; then
     exit 1;
 fi
 
-if ! perl -M5.008.003 -e1; then
-    echo
-    echo "Aborting: TrEd requires Perl >= v5.8.3" 1>&2
-    exit 2;
-fi
-
 
 tred_url="http://ufal.mff.cuni.cz/~pajas/tred/tred-current.tar.gz"
 tred_dep="http://ufal.mff.cuni.cz/~pajas/tred/tred-dep-unix.tar.gz"
@@ -37,15 +31,6 @@ if [ $? == 0 ]; then
 else
     HAVE_WGET=0
 fi
-fetch_url () {
-    if [ "$HAVE_WGET" == 1 ]; then
-	echo "Fetching $1 into $2 using wget..."
-	wget -O "$2" "$1"
-    else
-	echo "Fetching $1 into $2 using LWP::Simple..."
-	perl -MLWP::Simple -e '($url,$file)=@ARGV; $res=mirror($url,$file); die "Failed to fetch $url into $file" unless $res==RC_OK or $res==RC_NOT_MODIFIED' "$1" "$2"
-    fi
-}
 
 TOOL_DIR="$(dirname $(readlink_nf "$0"))/.."
 install_from_cpan="${TOOL_DIR}/install_from_cpan.pl"
@@ -54,6 +39,7 @@ install_from_cpan="${TOOL_DIR}/install_from_cpan.pl"
 if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
 
 VERSION=0.5
+perl=${PERL:-perl}
 PRINT_USAGE=0
 PRINT_HELP=0
 PRINT_VERSION=0
@@ -74,6 +60,7 @@ while [ $# -gt 0 ]; do
 	-n|--no-libs) NO_LIBS=1; shift; ;;
 	-S|--svn) USE_SVN=1; shift; ;;
 	-s|--system) SYSTEM=1; shift; ;;
+	-P|--perl) perl=$(readlink_nf "$2"); shift 2; ;;
 	-p|--prefix) PREFIX=$(readlink_nf "$2"); shift 2; ;;
 	-T|--tred-dir) TRED_DIR=$(readlink_nf "$2"); shift 2; ;;
 	-t|--tred-prefix) TRED_TARGET_DIR=$(readlink_nf "$2"); shift 2; ;;
@@ -144,6 +131,10 @@ help () {
             - start_*tred scripts to /usr/local/bin/
 
   OPTIONS:
+      -P|--perl <executable>
+          Use given exectuable as Perl interpreter instad of
+          perl from PATH.
+
       -T|--tred-dir <tred_dir>
           install TrEd into the directory <dir>
 
@@ -177,9 +168,27 @@ help () {
 HELP
 }
 
+if ! "$perl" -M5.008.003 -e1; then
+    echo
+    echo "Wrong Perl version (using $perl)!" 1>&2
+    echo "Aborting: TrEd requires Perl >= v5.8.3" 1>&2
+    exit 2;
+fi
+
 if [ "$PRINT_VERSION" = 1 ]; then echo Version: $VERSION; exit; fi
 if [ "$PRINT_HELP" = 1 ]; then help; exit; fi
 if [ "$PRINT_USAGE" = 1 ]; then usage; exit; fi
+
+fetch_url () {
+    if [ "$HAVE_WGET" == 1 ]; then
+	echo "Fetching $1 into $2 using wget..."
+	wget -O "$2" "$1"
+    else
+	echo "Fetching $1 into $2 using LWP::Simple..."
+	"$perl" -MLWP::Simple -e '($url,$file)=@ARGV; $res=mirror($url,$file); die "Failed to fetch $url into $file" unless $res==RC_OK or $res==RC_NOT_MODIFIED' "$1" "$2"
+    fi
+}
+
 
 if !([ "x$SYSTEM" = x1 ] && [ "x$LIBS_ONLY" = x1 ]) && [ -z "$PREFIX" ] && [ -z "$TRED_TARGET_DIR" ] && [ -z "$TRED_DIR" ]; then
     cat <<EOF 1>&2
@@ -353,8 +362,8 @@ if [ "x$LIBS_ONLY" != x1 ]; then
 	cat <<EOF > "$RUN_TRED_DIR"/"start_$cmd"
 #!/bin/sh
 
-. "\$(dirname "\$(perl -MCwd -e 'print Cwd::abs_path(shift)' \$0)")/init_tred_environment"
-"\${TRED_DIR}/${cmd}" "\$@"
+. "\$(dirname "\$("$perl" -MCwd -e 'print Cwd::abs_path(shift)' \$0)")/init_tred_environment"
+"$perl" "\${TRED_DIR}/${cmd}" "\$@"
 EOF
         chmod 755 "$RUN_TRED_DIR"/"start_$cmd"
     done
@@ -363,7 +372,7 @@ EOF
 	echo "Creating script ${RUN_TRED_DIR}/upgrade_tred"
 	cat <<EOF > "$RUN_TRED_DIR"/"upgrade_tred"
 #!/bin/bash
-. "\$(dirname "\$(perl -MCwd -e 'print Cwd::abs_path(shift)' \$0)")/init_tred_environment"
+. "\$(dirname "\$("$perl" -MCwd -e 'print Cwd::abs_path(shift)' \$0)")/init_tred_environment"
 if [ -n "$TRED_DIR" ] && [ -n "$TRED_DEPENDENCIES" ]; then
   cd "$TRED_DIR" || exit 1
   svn up || exit 2
