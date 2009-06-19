@@ -547,10 +547,12 @@ my %vertical_key_arrow_map = (
   Down => 'Right',
 );
 
+our %context_override_binding;
 my %default_binding = (
   '<Tab>' => 
-    [ sub { currentNext($_[1]->{focusedWindow}); 
-	    Tk->break; }, 
+    [ sub { 
+	currentNext($_[1]->{focusedWindow});
+	Tk->break; },
       'select next node',
       'top',
      ],
@@ -646,9 +648,6 @@ my %default_binding = (
   '<Shift-Left>'=>
     [sub {
        my $grp = $_[1];
-#       treeIsReversed($grp)
-#	 ? currentRightWholeLevel($grp)
-#	   : 
        currentLeftWholeLevel($grp);
        Tk->break;
      },
@@ -671,9 +670,6 @@ my %default_binding = (
   '<Shift-Right>'=>
     [sub {
        my $grp = $_[1];
-#       treeIsReversed($grp)
-#	 ? currentLeftWholeLevel($grp)
-#	   : 
        currentRightWholeLevel($grp);
        Tk->break;
      },
@@ -683,10 +679,7 @@ my %default_binding = (
     [sub {
        my $grp = $_[1];
        if (treeIsVertical($grp)) {
-#	 treeIsReversed($grp)
-#	   ? currentRight($grp)
-#	   : 
-	     currentLeft($grp);
+	 currentLeft($grp);
        } else {
 	 currentUp($grp);
        }
@@ -708,10 +701,7 @@ my %default_binding = (
     [sub {
        my $grp = $_[1];
        if (treeIsVertical($grp)) {
-#	 treeIsReversed($grp)
-#	   ? currentLeft($grp)
-#   	   : 
-	     currentRight($grp);
+	 currentRight($grp);
        } else {
 	 currentDown($grp);
        }
@@ -754,6 +744,57 @@ my %default_binding = (
      'focus previous view',
     ],
  );
+
+sub resolve_default_binding {
+  my ($grp,$key) =@_;
+  my $context = $grp->{focusedWindow}->{macroContext};
+  my $key2 = $key;
+  $key2=~s/^<KeyPress-/</;
+  my $def = ($context_override_binding{$context} &&
+	       ($context_override_binding{$context}{$key} || $context_override_binding{$context}{$key2}))
+    || $default_binding{$key} || $default_binding{$key2};
+  return $def;
+}
+
+sub default_binding {
+  my ($mw, $key, $grp, @args)=@_;
+  my $def = resolve_default_binding($grp,$key);
+  if (ref($def->[0]) eq 'CODE') {
+    $def->[0]->($mw,$grp,$key,@args);
+  } elsif (ref($def->[0]) eq 'Tk::Callback') {
+    $def->[0]->Call($mw,$grp,$key,@args);
+  }
+}
+
+sub change_default_binding {
+  my ($grp,$context,$key,$spec)=@_;
+  my $def;
+  if ($context and $context eq '*') {
+    $def = $default_binding{"<$key>"} || $default_binding{"<KeyPress-$key>"};
+    return unless $def;
+  } else {
+    $def = $context_override_binding{$context}{"<KeyPress-$key>"} ||
+      ($context_override_binding{$context}{"<$key>"}||=[]);
+  }
+  my $prev = [@$def[0,1]];
+  if (ref($spec) eq 'ARRAY') {
+    if (ref($spec->[0]) eq 'ARRAY') {
+      $def->[0]=Tk::Callback->new($spec->[0]);
+    } else {
+      $def->[0]=$spec->[0];
+    }
+    $def->[1]=$spec->[1];
+  }
+  return $prev;
+}
+
+sub get_default_binding {
+  my ($grp,$context,$key)=@_;
+  my $def = ($context and $context eq '*') ? ($default_binding{"<KeyPress-$key>"}  || $default_binding{"<$key>"}) :
+    ($context_override_binding{$context} && ($context_override_binding{$context}{"<KeyPress-$key>"} ||
+					     $context_override_binding{$context}{"<$key>"}));
+  return $def ? [@$def[0,1]] : [];
+}
 
 ApplyGlobalConfig();
 
@@ -7513,7 +7554,7 @@ sub startMain {
 
   # setup default binding
   while (my ($key, $def) = each %default_binding) {
-    $group{ $def->[2] || 'Toolbar' }->bind('my', $key => [ $def->[0], \%group ]);
+    $group{ $def->[2] || 'Toolbar' }->bind('my', $key => [ \&default_binding, $key, \%group ]);
   }
 
   print STDERR "done.\nStarting main loop.\n" if $tredDebug;
@@ -11397,10 +11438,18 @@ sub examineBindingsDialog {
     }
   }
 
-  my $set_bindings_func = sub { $bindings = 'builtin - '.$_[1]; Tk->break; };
+  my $set_bindings_func = sub { $bindings = "builtin $_[2] - $_[1]"; Tk->break; };
   while (my ($key, $def) = each %default_binding) {
-    $d->bind($key => [ $set_bindings_func, $def->[1] ]);
+    $d->bind($key => [ $set_bindings_func, $def->[1], $key ]);
   }
+
+  my $context = $grp->{focusedWindow}->{macroContext};
+  my $set_override_func = sub { $bindings = "builtin $_[2] overriden in $context - $_[1]"; Tk->break; };
+  while (my ($key, $def) = each %{$context_override_binding{$context}||{}}) {
+    $d->bind($key => [ $set_override_func, $def->[1], $key ]);
+  }
+
+
   $d->Show;
   $d->destroy;
   undef $d;
