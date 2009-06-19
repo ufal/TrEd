@@ -1798,111 +1798,6 @@ sub ListRegroupElements {
 
 =cut
 
-=item C<Bind( macro => bind-options,...)>
-
-This macro can be used to dynamically create keyboard bindings and
-menu items for user-defined macros in TrEd. The arguments consist of
-one or more (macro => bind-options ) pairs
-where macro is a subroutine name or a CODE reference and
-bind-options is either a keyboard shortcut (e.g. 'Ctrl+a') or a HASH references
-with the following keys and values (all optional):
-
-=over 8
-
-=item context
-
-the binding context, e.g. the package in which context the macro is
-evaluated. Only relevant if the macro is specified by name. If not
-given, the caller package is used.
-
-=item key
-
-a keyboard binding for the macro (e.g. 'Ctrl+a'); if not given, no
-keyboard binding is created.
-
-=item menu
-
-a label to be used for a menu-item created for the macro. If not
-given, no menu-item is created for the macro.
-
-=item changing_file
-
-if the key C<changing_file> exists in the bind-options hash and its
-value is I<value>, a call to the macro C<<<ChangignFile(I<value>)>>>
-is made immediatelly after each invocation of the macro via this
-binding.
-
-=back
-
-=cut
-
-sub Bind {
-  return unless GUI();
-  while (@_) {
-    my $macro = shift;
-    my $bind;
-    if (@_==0 and ref($macro) eq 'HASH') {
-      $bind = $macro;
-      $macro = $macro->{command};
-    } else  {
-      $bind=shift;
-    }
-    my ($caller)=caller;
-    if (ref($bind) eq 'HASH') {
-      my $context  =$bind->{context}||$caller;
-      if (exists $bind->{changing_file}) {
-	my $changes_file = $bind->{changing_file};
-	my $old_macro=$macro;
-	if (ref($old_macro) eq 'CODE') {
-	  $macro = sub {
-	    &$old_macro();
-	    ChangingFile($changes_file);
-	  }
-	} else {
-	  my ($ctxt,$mac);
-	  if ($macro=~/^(\w+)-\>(.*)/) {
-	    $ctxt=$1; $mac=$2;
-	  } else {
-	    $ctxt=$context; $mac=$old_macro;
-	  }
-	  $macro = sub {
-	    $ctxt->$mac();
-	    ChangingFile($changes_file);
-	  }
-	}
-      }
-      if ($bind->{key}) {
-	TrEd::Macros::bind_key($context,$bind->{key},$macro);
-      }
-      if ($bind->{menu}) {
-	TrEd::Macros::add_to_menu($context,$bind->{menu},$macro);
-      }
-    } elsif(defined($bind) and !ref($bind)) {
-      TrEd::Macros::bind_key($caller,$bind,$macro);
-    } else {
-      croak("Usage: Bind(macro => string|hash-ref, ...)");
-    }
-  }
-}
-
-
-=item C<UnbindBuiltin(key-binding)>
-
-(TrEd only). Remove default TrEd's keybinding for a given key so that
-custom macro can be bound to that key.
-E.g. UnbindBuiltin('Ctrl+Home'); Note: use with care. Built-in
-key-bining once removed cannot be restored (except by restarting TrEd).
-
-=cut
-
-sub UnbindBuiltin {
-  return unless GUI();
-  my ($key)=@_;
-  $key=~s/\+/-/g;	# convert ctrl-x to ctrl+x
-  $key=~s/([^-]+-)/ucfirst($1)/eg;
-  $key=~s/Ctrl-/Control-/g;
-  $grp->{framegroup}{top}->bind('my',"<$key>",undef);
-}
 
 =item C<GUI()>
 
@@ -2427,6 +2322,285 @@ sub ToggleHiding {
   shift unless ref($_[0]);
   my $win = shift || $grp;
   $win->{treeView}->set_showHidden(int(!$win->{treeView}->get_showHidden));
+}
+
+=back
+
+=cut
+
+=cut
+
+=head2 Create/modify keyboard shortcuts
+
+=over 4
+
+=cut
+
+=item C<Bind( macro => bind-options,...)>
+
+This macro can be used to dynamically create keyboard bindings and
+menu items for user-defined macros in TrEd. The arguments consist of
+one or more (macro => bind-options ) pairs
+where macro is a subroutine name or a CODE reference and
+bind-options is either a keyboard shortcut (e.g. 'Ctrl+a') or a HASH references
+with the following keys and values (all optional):
+
+=over 8
+
+=item context
+
+the binding context, e.g. the package in which context the macro is
+evaluated. Only relevant if the macro is specified by name. If not
+given, the caller package is used.
+
+=item key
+
+a keyboard binding for the macro (e.g. 'Ctrl+a'); if not given, no
+keyboard binding is created.
+
+=item menu
+
+a label to be used for a menu-item created for the macro. If not
+given, no menu-item is created for the macro.
+
+=item changing_file
+
+if the key C<changing_file> exists in the bind-options hash and its
+value is I<value>, a call to the macro C<<<ChangignFile(I<value>)>>>
+is made immediatelly after each invocation of the macro via this
+binding.
+
+=back
+
+=cut
+
+sub Bind {
+  return unless GUI();
+  while (@_) {
+    my $macro = shift;
+    my $bind;
+    if (@_==0 and ref($macro) eq 'HASH') {
+      $bind = $macro;
+      $macro = $macro->{command};
+    } else  {
+      $bind=shift;
+    }
+    my ($caller)=caller;
+    if (ref($bind) eq 'HASH') {
+      my $context  =$bind->{context}||$caller;
+      if (exists $bind->{changing_file}) {
+	my $changes_file = $bind->{changing_file};
+	my $old_macro=$macro;
+	if (ref($old_macro) eq 'CODE') {
+	  $macro = sub {
+	    &$old_macro();
+	    ChangingFile($changes_file);
+	  }
+	} else {
+	  my ($ctxt,$mac);
+	  if ($macro=~/^(\w+)-\>(.*)/) {
+	    $ctxt=$1; $mac=$2;
+	  } else {
+	    $ctxt=$context; $mac=$old_macro;
+	  }
+	  $macro = sub {
+	    $ctxt->$mac();
+	    ChangingFile($changes_file);
+	  }
+	}
+      }
+      if ($bind->{key}) {
+	TrEd::Macros::bind_key($context,$bind->{key},$macro);
+      }
+      if ($bind->{menu}) {
+	TrEd::Macros::add_to_menu($context,$bind->{menu},$macro);
+      }
+    } elsif(defined($bind) and !ref($bind)) {
+      TrEd::Macros::bind_key($caller,$bind,$macro);
+    } else {
+      croak("Usage: Bind(macro => string|hash-ref, ...)");
+    }
+  }
+}
+
+
+=item C<UnbindBuiltin(key-binding)>
+
+(TrEd only). Remove default TrEd's keybinding for a given key so that
+custom macro can be bound to that key.
+E.g. UnbindBuiltin('Ctrl+Home'); Note: use with care. Built-in
+key-bining once removed cannot be restored (except by restarting TrEd).
+
+=cut
+
+sub UnbindBuiltin {
+  return unless GUI();
+  my ($key)=@_;
+  $key=~s/\+/-/g;	# convert ctrl-x to ctrl+x
+  $key=~s/([^-]+-)/ucfirst($1)/eg;
+  $key=~s/Ctrl-/Control-/g;
+  $grp->{framegroup}{top}->bind('my',"<$key>",undef);
+}
+
+=item C<OverrideBuiltinBidning(context,key-binding, binding_spec )>
+
+(TrEd only). Get or modify default TrEd's keybinding.
+
+The C<binding_spec> argument, if given, must be an array reference with two elements:
+
+  [ sub { ... }, 'description' ]
+
+WARNING: You have to be very careful when overriding a builtin
+binding, since your code is not called as a macro or a hook! The routine is
+called with the following three arguments:
+
+  $tk_window, $grp->{framegroup}, $key
+
+You may obtain $grp from the second argument using
+$_[1]->{currentWindow}.  You should probably call Tk->break at the end
+of your code, so that the event does not propagate.
+
+A safer way (with slower execution, though) is to use a macro wrapped
+into a MacroCallback() instead of a sub:
+
+ [ MacroCallback(...), 'description' ]
+
+See C<MacroCallback> macro for details. The macro is called with the
+same arguments (appended to a list of arguments provided in
+C<MacroCallback>).
+
+If the C<context> argument is a name of a binding context, the binding
+is only used in the specific context.  If C<context> is C<'*'>, the
+binding applies to all contexts (except for contexts that specifically
+overrid it).
+
+If called without a binding_spec, the current binding_spec is returned, otherwise
+the previous binding_spec is returned.
+
+Example (swaps the behavior of normal C<left/right> with C<Shift+left/right>)
+
+  my @keys = qw(Left Right);
+  my %normal = map { $_ => OverrideBuiltinBinding('*',$_) } @keys;
+  my %shift = map { $_ => OverrideBuiltinBinding('*',"Shift+$_") } @keys;
+  for (@keys) {
+    OverrideBuiltinBinding(__PACKAGE__, $_, $shift{$_});
+    OverrideBuiltinBinding(__PACKAGE__, "Shift+$_", $normal{$_});
+  }
+
+Here is another example that changes the Up arrow to move to the
+grand-parent instead of a parent:
+
+  # Using TrEd internals (faster, but prone to changes in the internal API):
+
+  OverrideBuiltinBinding(
+    __PACKAGE__,
+    'Up',
+    [sub { main::currentUp($_[1]) for 1..2 },
+    'Move to grand-parent']);
+
+  # Using a macro (slower):
+
+  OverrideBuiltinBinding(
+    __PACKAGE__,
+    "Up",
+    [MacroCallback(sub { $this=$this->parent; $this=$this->parent if $this }),
+    'Move to grand-parent']);
+
+=cut
+
+sub OverrideBuiltinBinding {
+  return unless GUI();
+  my ($context,$key,$spec)=@_;
+  $key=~s/\+/-/g;	# convert ctrl-x to ctrl+x
+  $key=~s/([^-]+-)/ucfirst($1)/eg;
+  $key=~s/Ctrl-/Control-/g;
+
+  if (defined $spec) {
+    croak("OverrideBuiltinBinding: invalid binding for context $context, key <$key> , must be [code, description]!")
+      unless ref($spec) eq 'ARRAY' and (ref($spec->[0]) eq 'CODE' or ref($spec->[0]) eq 'ARRAY' and grep { ref eq 'CODE' } @{$spec->[0]}[0,1]);
+    return main::change_default_binding($grp->{framegroup}, $context, $key, $spec )
+  } else {
+    return main::get_default_binding($grp->{framegroup}, $context, $key)
+  }
+}
+
+
+=item C<MacroCallback(macro_spec,@args)>
+
+This macro can be used to safely wrap a given macro into a code that
+can be used to override a TrEd builtin or passed as a callback to a Tk
+widget.
+
+The first argument can take one of the following forms:
+
+  String:
+    "macro_name" or "Package->macro_name"
+
+  Anonymous subrutine:
+    sub { ...code... }
+
+  Hash reference:
+    { -command => sub { ...code... },
+      -changing_file => 0 | 1,
+      -contex => 'PackageName'
+    }
+
+  Array reference:
+    [ sub { ..code ...}, arg1, arg2, ...]
+
+The macro is called with the arguments provided in the macro_spec,
+followed by the arguments provided in the call to MacroCallback,
+followed by arguments passed by the caller (e.g. TrEd or the Tk
+widget).
+
+=cut
+
+sub MacroCallback {
+  my ($binding,@args)=@_;
+  my $macro;
+  my ($context)=caller;
+  if (ref($binding) eq 'HASH') {
+    my $command = $binding->{command};
+    $context = $binding->{context} || $context;
+    return unless $command;
+    if (exists($binding->{changing_file})) {
+      my $changes_file = $binding->{changing_file};
+      if (ref($command) eq 'CODE') {
+	$macro = sub {
+	  &$command(@_);
+	  ChangingFile($changes_file);
+	};
+      } else {
+	$macro = sub {
+	  $context->$command(@_);
+	  ChangingFile($changes_file);
+	}
+      }
+    } else {
+      $macro = $command;
+    }
+  } else {
+    $macro = $binding;
+  }
+  $macro = (ref($macro) or $macro=~/^\w+-\>/) ? $macro : $context.'->'.$macro;
+  return [sub {
+	    my $tred=shift @_;
+	    my $m = $macro;
+	    if (@_) {
+	      if (ref($m) eq 'ARRAY') {
+		push @$m, @_;
+	      } elsif (ref($m)) {
+		$m=[$m, @_];
+	      } else {
+		$m=[eval "sub { $m(\@_) }", @_];
+	      }
+	    }
+	    if ($main::insideEval) {
+	      main::do_eval_macro($tred->{focusedWindow},$m);
+	    } else {
+	      main::doEvalMacro($tred->{focusedWindow},$m);
+	    }
+	  },$grp->{framegroup},@args];
 }
 
 =back
@@ -4332,43 +4506,6 @@ sub AttachTooltip {
   $grp->{framegroup}{Balloon}->attach($widget, -balloonmsg=> $message);
 }
 
-sub MacroCallback {
-  my ($binding)=@_;
-  my $macro;
-  my ($context)=caller;
-  if (ref($binding) eq 'HASH') {
-    my $command = $binding->{command};
-    $context = $binding->{context} || $context;
-    return unless $command;
-    if (exists($binding->{changing_file})) {
-      my $changes_file = $binding->{changing_file};
-      if (ref($command) eq 'CODE') {
-	$macro = sub {
-	  &$command(@_);
-	  ChangingFile($changes_file);
-	};
-      } else {
-	$macro = sub {
-	  $context->$command(@_);
-	  ChangingFile($changes_file);
-	}
-      }
-    } else {
-      $macro = $command;
-    }
-  } else {
-    $macro = $binding;
-  }
-  $macro = (ref($macro) or $macro=~/^\w+-\>/) ? $macro : $context.'->'.$macro;
-  return [sub {
-	    my $tred=pop @_;
-	    if ($main::insideEval) {
-	      main::do_eval_macro($macro,@_);
-	    } else {
-	      main::doEvalMacro($tred->{focusedWindow},$macro,@_);
-	    }
-	  },$grp->{framegroup}];
-}
 #endif
 
 ##################################
