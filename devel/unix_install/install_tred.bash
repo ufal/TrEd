@@ -327,10 +327,10 @@ if [ "x$NO_LIBS" != x1 ]; then
 	inst_opts+=(-b)
     fi
 
-    ./install --check-utils "${inst_opts[@]}" || fail
+    "$perl" install --check-utils "${inst_opts[@]}" || fail
     
     set -o pipefail
-    ./install --quiet "${inst_opts[@]}" 2>&1 | tee "${TRED_DIR}/install.log" || fail
+    "$perl" install --quiet "${inst_opts[@]}" 2>&1 | tee "${TRED_DIR}/install.log" || fail
 
     cat <<EOF > "$RUN_TRED_DIR"/init_tred_environment
 # Setup paths for installed TrEd dependencies
@@ -342,7 +342,7 @@ export TRED_DEPENDENCIES="${PREFIX%/}"
 PATH="\${TRED_DEPENDENCIES}/bin:\${PATH}"
 EOF
    fi
-    ./install --bash-env "${inst_opts[@]}" | sed "s|${PREFIX}|\${TRED_DEPENDENCIES}|g" \
+    "$perl" install --bash-env "${inst_opts[@]}" | sed "s|${PREFIX}|\${TRED_DEPENDENCIES}|g" \
 	>> "$RUN_TRED_DIR"/init_tred_environment
 
     popd >/dev/null # packages-unix
