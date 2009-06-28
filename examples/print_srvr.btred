@@ -1,0 +1,106 @@
+#!btred -i start_srvr --no-save --allow-switch-context
+# -*- cperl -*-
+
+#include "print.btred"
+
+package TredMacro;
+
+use Net::HTTPServer;
+use URI;
+use URI::file;
+
+my @permitted_paths = qw(
+  /home/pajas/projects/pmltq/work/sample/data
+);
+
+my $permitted_paths_re = '^(?:'.join('|',@permitted_paths).')/';
+
+sub start_srvr {
+  my $server = new Net::HTTPServer(
+    port=>8070,
+    type => 'single',
+   );
+  $server->RegisterURL('/svg' => \&serve_svg);
+  $server->Start;
+  $server->Process;
+}
+
+sub not_found {
+  my ($res)=@_;
+  $res->Code(404);
+  $res->Print(<<'EOF');
+<html><body><h2>Object not found</h2></body></html>
+EOF
+  return $res;
+}
+
+sub server_error {
+  my ($res)=@_;
+  $res->Code(500);
+  $res->Print(<<'EOF');
+<html><body><h2>Internal server error</h2></body></html>
+EOF
+  return $res;
+}
+
+sub serve_svg {
+  my ($req) = @_;             # Net::HTTPServer::Request object
+  my $path = $req->Path();
+  my $res = $req->Response();
+  my $path = $req->Env()->{file};
+  my $tree_no = int($req->Env()->{tree_no}) || 1;
+  $path=~s/\.svg$//;
+  $path = URI->new($path)->canonical->as_string;
+  if ($path=~m{/../} or $path !~ $permitted_paths_re) {
+    return not_found($res);
+  }
+
+  my $temp = File::Temp->new()
+    or return server_error($res);
+
+  return not_found($res)
+    unless
+      make_svg($path,
+	       -filename => $temp->filename,
+	       -range => $tree_no,
+	      );
+  $res->Header('Content-Type' => 'image/svg+xml');
+  {
+    local $/;
+    $res->Print(scalar(<$temp>));
+    print $temp->filename,"\n";
+    unlink $temp;
+    close $temp;
+  }
+  return $res;
+}
+
+sub make_svg {
+  my ($f,%opts)=@_;
+
+  # TODO: implement complete caching
+  my $cur = CurrentFile();
+  my ($open) = grep { IOBackend::is_same_filename($_->filename, $f) }
+    ($cur ? ($cur, GetSecondaryFiles($cur)) : ());
+  # primitive caching of the last file
+  
+  if ($cur and !$open) {
+    print STDERR "Closing: $f ($cur, $open)\n";
+    CloseFile();
+  }
+  if (!$open or $open!=$cur) {
+    SetCurrentStylesheet(STYLESHEET_FROM_FILE());
+    Open($f) || return;
+  }
+  undef $open;
+  undef $cur;
+  print_trees({
+    '-no-hooks' => 1,
+    -format => 'SVG',
+    -toFile => 1,
+    %opts,
+  });
+  return 1;
+}
+
+1;
