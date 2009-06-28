@@ -35,6 +35,8 @@ BEGIN {
                                       getExtensionDocPaths
 				      getPreInstalledExtensionsDir
 				      getPreInstalledExtensionList
+                                      getExtensionTemplatePaths
+				      getExtensionSubPaths
 				   ) ] );
   our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
   our @EXPORT = qw(  );
@@ -107,21 +109,6 @@ sub initExtensions {
   PMLBackend::configure();
 }
 
-sub getExtensionMacroPaths {
-  my ($list,$extension_dir)=@_;
-  if (@_==0) {
-    $list=getExtensionList();
-  } elsif (!ref($list) eq 'ARRAY') {
-    carp('Usage: configureExtensionMacroPaths( [ extension_name(s)... ] )');
-  }
-  $extension_dir||=getExtensionsDir();
-  return
-    #  grep { -f $_ }
-  map { glob($_.'/*/contrib.mac'), ( -f $_.'/contrib.mac' ? $_.'/contrib.mac' : ()) }
-  map { File::Spec->catfile($extension_dir,$_,'contrib') }
-  grep { !/^!/ }
-  @$list;
-}
 
 sub getPreInstalledExtensionList {
   my ($except,$preinst_dir)=@_;
@@ -135,35 +122,42 @@ sub getPreInstalledExtensionList {
   return $pre_installed;
 }
 
-sub getExtensionSampleDataPaths {
-  my ($list,$extension_dir)=@_;
+sub getExtensionSubPaths {
+  my ($list,$extension_dir,$relPath)=@_;
   if (@_==0) {
     $list=getExtensionList();
   } elsif (!ref($list) eq 'ARRAY') {
-    carp('Usage: getExtensionSampleDataPaths( [ extension_name(s)... ] )');
+    carp('Usage: getExtensionSubPaths( [ extension_name(s)... ], extension_dir, rel_path )');
   }
   $extension_dir||=getExtensionsDir();
-  return
-  grep -d $_,
-  map File::Spec->catfile($extension_dir,$_,'sample'),
+  return map File::Spec->catfile($extension_dir,$_,$relPath),
   grep !/^!/,
   @$list;
 }
 
+sub getExtensionSampleDataPaths {
+  my ($list,$extension_dir)=@_;
+  return grep -d $_, getExtensionSubPaths($list,$extension_dir,'sample');
+}
+
 sub getExtensionDocPaths {
   my ($list,$extension_dir)=@_;
-  if (@_==0) {
-    $list=getExtensionList();
-  } elsif (!ref($list) eq 'ARRAY') {
-    carp('Usage: getExtensionDocPaths( [ extension_name(s)... ] )');
-  }
-  $extension_dir||=getExtensionsDir();
-  return
-  grep -d $_,
-  map File::Spec->catfile($extension_dir,$_,'documentation'),
-  grep !/^!/,
-  @$list;
+  return grep -d $_, getExtensionSubPaths($list,$extension_dir,'documentation');
 }
+
+sub getExtensionTemplatePaths {
+  my ($list,$extension_dir)=@_;
+  return grep -d $_, 
+    getExtensionSubPaths($list,$extension_dir,'templates');
+}
+
+sub getExtensionMacroPaths {
+  my ($list,$extension_dir)=@_;
+  return
+    map { glob($_.'/*/contrib.mac'), ( -f $_.'/contrib.mac' ? $_.'/contrib.mac' : ()) }
+      getExtensionSubPaths($list,$extension_dir,'contrib');
+}
+
 
 sub getExtensionMetaData {
   my ($name,$extensions_dir)=@_;

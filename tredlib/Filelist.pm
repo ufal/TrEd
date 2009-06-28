@@ -47,7 +47,8 @@ sub new {
      filename => $filename,
      list => [],
      files => [],
-     current => undef
+     current => undef,
+     load => undef,
     };
   bless $new, $class;
   return $new;
@@ -63,6 +64,7 @@ Return name of the file-list
 
 sub name {
   my ($self)=@_;
+  $self->_load_name;
   return ref($self) ? $self->{name} : undef;
 }
 
@@ -127,20 +129,26 @@ the filename method, or to standard output, if no filename is given.
 sub save {
   my ($self)=@_;
   return unless ref($self);
-  do {
-    local *F;
-    if (defined ($self->filename) and $self->filename ne "") {
-      open F,">".$self->filename ||
-	warn "Couldn't save filelist to '".$self->filename."': $!\n";
-    } else {
-      *F=*STDOUT;
-    }
-    print F $self->{name},"\n";
-    print F join("\n",$self->list),"\n";
-    if (defined ($self->filename) and $self->filename ne "") {
-      close F;
-    }
+  my $fh;
+  if (defined($self->filename) and
+      defined($self->{load}) and
+	$self->{load} eq $self->filename) {
+    # no need to actually save - not changed
+    return;
   }
+	
+  if (defined ($self->filename) and $self->filename ne "") {
+    open $fh, ">", $self->filename or
+      warn "Couldn't save filelist to '".$self->filename."': $!\n";
+  } else {
+    $fh=\*STDOUT;
+  }
+  print $fh $self->{name},"\n";
+  print $fh join("\n",$self->list),"\n";
+  if (defined ($self->filename) and $self->filename ne "") {
+    close $fh;
+  }
+  return 1;
 }
 
 =item load
@@ -150,25 +158,44 @@ filename method, or from the standard input, if no filename is given.
 
 =cut
 
+sub _lazy_load {
+  my ($self)=@_;
+  return unless defined $self->{load};
+  open $fh,"<",$self->{load}
+      or croak("Cannot open $self->{load}: $!\n");
+  undef $self->{load};
+  $self->{name} = <$fh>;
+  $self->{name} =~ s/[\r\n]+$//;
+  @{ $self->list_ref } = <$fh>; #grep { -f $_ } <$fh>;
+  s/[\r\n]+$// for @{ $self->list_ref };
+  @{ $self->list_ref } = grep $_ ne "", @{ $self->list_ref };
+  close $fh;
+  $self->expand;
+  return 1;
+}
+
+sub _load_name {
+  my ($self)=@_;
+  return unless defined $self->{load} and !defined($self->{name});
+  open $fh,"<",$self->{load}
+      or croak("Cannot open $self->{load}: $!\n");
+  $self->{name} = <$fh>;
+  $self->{name} =~ s/[\r\n]+$//;
+  close $fh;
+  return 1;
+}
+
 sub load {
   my ($self)=@_;
   return unless ref($self);
-  do {
-    local *F;
-    if (defined ($self->filename) and $self->filename ne "") {
-      open F,"<".$self->filename;
-      $self->{name} = <F>;
-      $self->{name} =~ s/[\r\n]+$//;
-      @{ $self->list_ref } = <F>; #grep { -f $_ } <F>;
-      s/[\r\n]+$// for @{ $self->list_ref };
-      @{ $self->list_ref } = grep $_ ne "", @{ $self->list_ref };
-      close F;
-    } else {
-      @{ $self->list_ref }=();
-      return;
-    }
-  };
-  $self->expand;
+  if (defined ($self->filename) and $self->filename ne "") {
+    $self->{load}=$self->filename;
+    undef $self->{name};
+    return 1;
+  } else {
+    @{ $self->list_ref }=();
+    return;
+  }
 }
 
 =pod
@@ -214,6 +241,7 @@ in filelist, which had brought the file name to the list
 sub files_ref {
   my $self = shift;
   return unless ref($self);
+  $self->_lazy_load;
   return $self->{files};
 }
 
@@ -228,7 +256,7 @@ Return a list of all file names in the list
 sub files {
   my $self = shift;
   return unless ref($self);
-  return map { $_->[0] } @{ $self->{files} };
+  return map { $_->[0] } @{ $self->files_ref };
 }
 
 =pod
@@ -242,6 +270,7 @@ Return a reference to the internal pattern list
 sub list_ref {
   my $self = shift;
   return unless ref($self);
+  $self->_lazy_load;
   return $self->{list};
 }
 
@@ -256,7 +285,7 @@ Return a list of all patterns in the file list
 sub list {
   my $self = shift;
   return unless ref($self);
-  return @{$self->{list}};
+  return @{$self->list_ref};
 }
 
 =pod
@@ -270,7 +299,7 @@ Return the total number of all files in the list
 sub file_count {
   my $self = shift;
   return unless ref($self);
-  return scalar(@{$self->{files}});
+  return scalar(@{$self->files_ref});
 }
 
 =pod
@@ -284,7 +313,7 @@ Return the number of all patterns in the list
 sub count {
   my $self = shift;
   return unless ref($self);
-  return $#{$self->{list}}+1;
+  return $#{$self->list_ref}+1;
 }
 
 =pod
@@ -451,9 +480,6 @@ Remove given patterns from the list and update file-list
 sub remove {
   my ($self)=shift;
   return unless ref($self);
-
-  print "Filelist.pm: removing @_\n";
-
   do {
     my %remove = map { $_ => 1 } @_;
     @{ $self->list_ref }=grep(!$remove{$_}++,@{ $self->list_ref }); #remove and uniq
