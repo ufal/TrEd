@@ -1325,7 +1325,7 @@ sub nextOrPrevFile {
     my $f = $filename = filelistFullFileName($win,$pos);
     ($prev_filename) = parseFileSuffix($prev_filename);
     ($f) = parseFileSuffix($f);
-    while (_is_same_filename($f, $prev_filename)) {
+    while (IOBackend::is_same_filename($f, $prev_filename)) {
       $pos+=$delta;
       $f=$filename=filelistFullFileName($win,$pos);
       ($f) = parseFileSuffix($f);
@@ -2281,19 +2281,6 @@ sub merge_status {
   $status1->{report} .= "\n".$status2->{report} if $status2->{report} ne EMPTY;
 }
 
-sub _is_same_filename {
-  my ($f1,$f2)=@_;
-  return 1 if $f1 eq $f2;
-  my $u1 = UNIVERSAL::isa($f1,'URI') ? $f1 : IOBackend::make_URI($f1);
-  my $u2 = UNIVERSAL::isa($f2,'URI') ? $f2 : IOBackend::make_URI($f2);
-  return 1 if $u1 eq $u2;
-  return 1 if $u1->canonical eq $u2->canonical;
-  if (!ref($f1) and !ref($f2) and $^O ne 'MSWin32' and -f $f1 and -f $f2) {
-    return _is_same_file($f1,$f2);
-  }
-  return 0;
-}
-
 sub openFile {
   my ($grp_or_win,$fname,%opts)= @_;
   my ($grp,$win)=grp_win($grp_or_win);
@@ -2325,7 +2312,7 @@ sub openFile {
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
 
   # File already open in current window? Simple!
-  if ($fsfile and _is_same_filename($fsfile->filename(),$f)) {
+  if ($fsfile and IOBackend::is_same_filename($fsfile->filename(),$f)) {
     unless ($opts{-preload}) {
       updateTitle($grp);
       applyFileSuffix($win,$goto);
@@ -2363,7 +2350,7 @@ sub openFile {
   # Search open files for requested file, resume if available
   unless ($opts{-justheader}) {
     foreach my $of ($fsfile,@openfiles) {
-      if (ref($of) and _is_same_filename($of->filename,$f)) {
+      if (ref($of) and IOBackend::is_same_filename($of->filename,$f)) {
 	print "Opening postponed file\n" if $tredDebug;
 	unless ($opts{-preload}) {
 	  resumeFile($win,$of,$opts{-keep});
@@ -2388,27 +2375,29 @@ sub openFile {
   }
 
   # We're going to open a file: check locks
-  my $lock = checkLock(undef,$f);
-  print STDERR "LOCK: $lock\n" if $tredDebug;
   my $lockinfo;
-  if ($lock  =~ /^locked/) {
-    my $answer = userQuery($win,
-			   "File $f is $lock.",
-			   -bitmap=> 'question',
-			   -title => "Accessing locked file?",
-			   -buttons => ['Open anyway', 'Steal lock', 'Cancel']);
-    if ($answer eq 'Cancel') {
-      redraw_win($win) unless ($opts{-preload} or $opts{-noredraw});
-      $win->toplevel->Unbusy() unless $insideEval;
-      return wantarray ? (undef, _new_status(cancel=>1)) : undef;
-    } elsif ($answer eq 'Steal lock') {
-      $lockinfo=setLock($f)
-    } else {
-      $lockinfo = $lock;
-      print STDERR "LOCKINFO: $lockinfo\n";
+  unless ($opts{-justheader}) {
+    my $lock = checkLock(undef,$f);
+    print STDERR "LOCK: $lock\n" if $tredDebug;
+    if ($lock  =~ /^locked/) {
+      my $answer = userQuery($win,
+			     "File $f is $lock.",
+			     -bitmap=> 'question',
+			     -title => "Accessing locked file?",
+			     -buttons => ['Open anyway', 'Steal lock', 'Cancel']);
+      if ($answer eq 'Cancel') {
+	redraw_win($win) unless ($opts{-preload} or $opts{-noredraw});
+	$win->toplevel->Unbusy() unless $insideEval;
+	return wantarray ? (undef, _new_status(cancel=>1)) : undef;
+      } elsif ($answer eq 'Steal lock') {
+	$lockinfo=setLock($f)
+      } else {
+	$lockinfo = $lock;
+	print STDERR "LOCKINFO: $lockinfo\n";
+      }
+    } elsif ($lockFiles) {
+      $lockinfo=setLock($f);
     }
-  } elsif ($lockFiles) {
-    $lockinfo=setLock($f);
   }
 
   # Check autosave file
@@ -3713,7 +3702,7 @@ sub createNewFilelist {
     $top->deiconify; $top->focus; $top->raise;
   }
   if (findFilelist($name)) {
-    userQuery($top || $grp,
+    userQuery($top || grp_win($grp),
 	      "File-list named '$name' already exists.\n",
 	      -title => "File-list already exists",
 	      -buttons => ["OK"]);
@@ -3738,7 +3727,7 @@ sub addNewFilelist {
     last unless $l;
     if ($top) {
       my $answer = 
-	_is_same_file($l->filename,$fl->filename)
+	IOBackend::is_same_file($l->filename,$fl->filename)
 	  ? userQuery($top,
 		      "Filelist '".$fl->name."' already loaded.\n",
 		      -bitmap=> 'question',
@@ -6375,6 +6364,10 @@ sub startMain {
 			    [
 			     [Button => 'From Template ...',
 			      -underline=> 5,
+			      -command=> [ \&newFileFromTemplate, \%group]
+			     ],
+			     [Button => 'From File ...',
+			      -underline=> 5,
 			      -command=> [ \&fileDialog, \%group,1]
 			     ],
 			     [Button => 'From Current ...',
@@ -7591,7 +7584,7 @@ sub handleUSR2Signal {
 	openStandaloneFile($grp,$cmd[1]);
 	return;
       } elsif (($cmd[0]||'') eq 'reload' and @cmd==2) {
-	my ($fsfile) = grep { _is_same_filename($_->filename, $cmd[1]) } @openfiles;
+	my ($fsfile) = grep { IOBackend::is_same_filename($_->filename, $cmd[1]) } @openfiles;
 	if ($fsfile) {
 	  if ($grp->{focusedWindow}->{FSFile} != $fsfile) {
 	    my ($win)=fsfileDisplayingWindows($grp,$fsfile);
@@ -7927,15 +7920,41 @@ sub ShowDialog {
   return $cw->{selected_button};
 }
 
+sub newFileFromTemplate {
+  my ($grp)=@_;
+  my @templates;
+  my $extensions = getExtensionList();
+  foreach my $ext (@$extensions) {
+    my ($dir) = getExtensionTemplatePaths([$ext]);
+    if (defined ($dir)) {
+      push @templates, map [ $ext, $_ ], grep !/~$|\.lock$/, glob(File::Spec->catfile($dir,'*'));
+    }
+  }
+  if (!@templates) {
+    userQuery($grp->{top},
+	      "Sorry, the available extensions provide no templates.",
+	      -title => "New from templates",
+	      -buttons => ["OK"]);
+    return;
+  }
+  my $choices = [map filename($_->[1])." ($_->[0])", @templates];
+  my $ret = listQuery(
+    $grp->{top},
+    'Select a template',
+    'browse',
+    $choices,
+    [$choices->[0]],
+   );
+  if (ref($ret) and @$ret) {
+    return openStandaloneFile($grp,$templates[$ret->[0]][1],-justheader => 1);
+  }
+  return;
+}
+
 sub fileDialog {
   my ($grp,$header_only)= @_;
   my $file;
   my $win = $grp->{focusedWindow};
-
-#  use Tk::FileSelect;
-#  my $FSref= $grp->{top}->FileSelect(-selectmode=> extended);
-#  print $FSref->Show;
-
   my $dir;
   if ($win->{FSFile}) {
     $dir = dirname($win->{FSFile}->filename);
@@ -8320,7 +8339,7 @@ sub renameFileInFilelist {
   for my $i (defined ($position) ? $position : 0..($filelist->file_count()-1)) {
     my $fn = $filelist->file_at($i);
     my ($f, $suffix) = parseFileSuffix($fn);
-    if (_is_same_file(_filelistFullFileName($filelist,$f),$old_file)) {
+    if (IOBackend::is_same_file(_filelistFullFileName($filelist,$f),$old_file)) {
       my $pattern_no = $filelist->file_pattern_index($i);
       my $pattern = $pattern_list->[$pattern_no];
       my $new_filename =  (Fslib::_is_absolute($f) ?
@@ -8442,14 +8461,6 @@ sub askSaveFile {
   }
 }
 
-sub _is_same_file {
-  my ($f1,$f2) = @_;
-  return 1 if $f1 eq $f2;
-  my ($d1,$i1)=stat($f1);
-  my ($d2,$i2)=stat($f2);
-  return ($d1==$d2 and $i1!=0 and $i1==$i2) ? 1 : 0;
-}
-
 sub saveConfig {
  my ($win,$config)=@_;
  my $top;
@@ -8459,7 +8470,7 @@ sub saveConfig {
    $top = $win->{top};
  }
  my ($default_trc)=File::Spec->catfile($libDir,'tredrc');
- if (_is_same_file($configFile,$default_trc)) {
+ if (IOBackend::is_same_file($configFile,$default_trc)) {
    $configFile = File::Spec->catfile($ENV{HOME},'.tredrc');
  }
  my $exists = -e $configFile ? 1 : 0;
@@ -8478,7 +8489,7 @@ sub saveConfig {
  { 
    my $lasterr=conv_from_locale($!);
    my ($trc)=File::Spec->catfile($ENV{HOME},'.tredrc');
-   if (!_is_same_file($configFile,$trc)  and
+   if (!IOBackend::is_same_file($configFile,$trc)  and
        ((defined($top) and
 	   $top->
 	     messageBox(-icon=> 'warning',
@@ -8808,11 +8819,15 @@ sub listQuery {
 
  if ($result=~ /OK/) {
    @$selected=();
+   my @ret;
    foreach (0 .. $l->size-1) {
-     push @$selected, $l->get($_) if $l->selectionIncludes($_);
+     if ($l->selectionIncludes($_)) {
+       push @$selected, $l->get($_);
+       push @ret, $_;
+     }
    }
    $d->destroy;
-   return 1;
+   return \@ret;
  }
  $d->destroy;
  return 0;
