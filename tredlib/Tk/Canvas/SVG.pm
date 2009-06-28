@@ -742,8 +742,20 @@ body {
       var tree_obj = null;
       var tooltip = null;
 
+      function f_filterResults(n_win, n_docel, n_body) {
+	var n_result = n_win ? n_win : 0;
+	if (n_docel && (!n_result || (n_result > n_docel)))
+		n_result = n_docel;
+	return n_body && (!n_result || (n_result > n_body)) ? n_body : n_result;
+      }
+      function f_clientHeight() {
+	return f_filterResults (
+		window.innerHeight ? window.innerHeight : 0,
+		document.documentElement ? document.documentElement.clientHeight : 0,
+		document.body ? document.body.clientHeight : 0	);
+      }
       function fit_window() {
-        height = document.body.clientHeight;
+        height = f_clientHeight();
 	var object = tree_obj.getElementsByTagName("iframe").item(0);
 	if (object) {
           object.height = height - findPosY(tree_obj) - 20;
