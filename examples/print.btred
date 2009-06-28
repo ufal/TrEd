@@ -1,4 +1,4 @@
-#!btred -e TredMacro::trees2pdf() --no-save --allow-switch-context
+#!btred -e TredMacro::print_trees_cmd_line --no-save --allow-switch-context
 # -*- cperl -*-
 
 #define TRED
@@ -121,30 +121,37 @@ my $output_dirname = delete $opts{'-out-dir'};
   }
 }
 
+sub print_trees_cmdline {
+  print_trees(\%opts);
+}
 
-sub trees2pdf {
+sub print_trees {
+  my ($opts)=@_;
   local $TrEd::Convert::support_unicode=1;
-  local $TrEd::Print::QUIET = 1 if $opts{-quiet};
-  $opts{-psMedia}||='A4';
-  SetCurrentStylesheet(STYLESHEET_FROM_FILE());
+  local $TrEd::Print::QUIET = 1 if $opts->{-quiet};
+  $opts->{-psMedia}||='A4';
 
-  TredMacro->file_opened_hook() if UNIVERSAL::can('TredMacro','file_opened_hook');
-  SwitchContext($opts{-context}) if defined $opts{-context};
+  unless ($opts->{'-no-hooks'}) {
+    SetCurrentStylesheet(STYLESHEET_FROM_FILE());
+    TredMacro->file_opened_hook() if UNIVERSAL::can('TredMacro','file_opened_hook');
+    TredMacro->guess_context_hook() if UNIVERSAL::can('TredMacro','guess_context_hook');
+  }
+  SwitchContext($opts->{-context}) if defined $opts->{-context};
+  SetCurrentStylesheet($opts->{-stylesheet}) if defined $opts->{-stylesheet};
 
-  SetCurrentStylesheet($opts{-stylesheet}) if defined $opts{-stylesheet};
-  print STDERR "Context: ",CurrentContext(),"\n" unless $opts{-quiet};
-  print STDERR "Stylesheet: ", GetCurrentStylesheet(),"\n" unless $opts{-quiet};
+  print STDERR "Context: ",CurrentContext(),"\n" unless $opts->{-quiet};
+  print STDERR "Stylesheet: ", GetCurrentStylesheet(),"\n" unless $opts->{-quiet};
 
- if ($opts{-sentenceInfo} and
+ if ($opts->{-sentenceInfo} and
 	(UNIVERSAL::can(CurrentContext(),'get_value_line_hook') or
 	 UNIVERSAL::can('TredMacro','get_value_line_hook'))) {
-   $opts{-sentenceInfo} = sub {
+   $opts->{-sentenceInfo} = sub {
      main::__run_hook(undef,$grp,"get_value_line_hook",@_);
    }
  }
 
-  local $main::append_suffix = '.'.lc($opts{-format}||'PDF') unless defined $main::append_suffix;
-  my $range = $opts{-range};
+  local $main::append_suffix = '.'.lc($opts->{-format}||'PDF') unless defined $main::append_suffix;
+  my $range = $opts->{-range};
   if (!defined $range) {
     $range = '1-';
   } elsif ($range eq '.') {
@@ -161,9 +168,9 @@ sub trees2pdf {
     -format => 'PDF',
     -noRotate => 1,
     -colors => 1,
-    ($opts{-psMedia} eq 'BBox') ?
+    ($opts->{-psMedia} eq 'BBox') ?
       (-hMargin => 0, -vMargin => 0) : (),
-    %opts,
+    %$opts,
     -range => $range,
    );
   ChangingFile(0);
