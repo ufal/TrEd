@@ -3482,10 +3482,10 @@ sub AbsolutizeFileName {
 }
 
 
-=item C<SetCurrentFileList($name,$win?)>
+=item C<SetCurrentFileList($name)>
 
 This macro is only available in TrEd. Selects the filelist of a given
-name for the given/current window.
+name for the current window.
 
 =cut
 
@@ -3495,6 +3495,15 @@ sub SetCurrentFileList {
   croak("Usage: SelectFilelist(name)") if !defined($name) or ref($name) or !length($name);
   main::selectFilelist($grp,$name,@_);
 }
+
+
+=item C<SetCurrentFileListInWindow($win, $name)>
+
+This macro is only available in TrEd. Selects the filelist of a given
+name for the given window.
+
+=cut
+
 sub SetCurrentFileListInWindow {
   my $win=shift;
   return unless ref $win;
