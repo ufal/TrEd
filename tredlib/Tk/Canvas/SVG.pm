@@ -219,7 +219,7 @@ sub finish {
   }
   if ($opts{-file}) {
     if(@{$P->{pages}}==1) {
-      print "Print to $opts{-file}\n";
+      # print STDERR "Print to $opts{-file}\n";
       open(my $fh, '>:utf8', $opts{-file}) or die "Cannot open file '$opts{-file}' for writing: $!";
       print $fh ${$P->{pages}->[0]};
       close $fh;
@@ -320,15 +320,18 @@ sub draw_canvas {
 
       var doc = null;
       var root = null;
+      var css = null;
       var last_target = null;
       var svgNs = "http://www.w3.org/2000/svg";
 
       function init(event) {
          doc = event.target.ownerDocument;
          root = doc.documentElement;
+         css = doc.styleSheets[0];
 	 top.zoomSVG = zoom;
          if (top.setSVGTitle) top.setSVGTitle(get_title());
          if (top.setSVGDesc) top.setSVGDesc(get_desc());
+         if (top.highlightSVGNodes) top.highlightSVGNodes(css);
       }
       function mouse_out (event) {
         hide_tooltip(event);
@@ -387,6 +390,15 @@ sub draw_canvas {
 
 SCRIPT
       $writer->endTag('script');
+
+      $writer->startTag('defs');
+      # style element is used also for dynamic styling
+      $writer->startTag('style', type=>'text/css');
+      if ($opts{-inline_css}) {
+	$writer->characters($opts{-inline_css});
+      }
+      $writer->endTag('style');
+      $writer->endTag('defs');
     }
   }
   $hint ||= {};
@@ -402,7 +414,8 @@ SCRIPT
     my $tags=$canvas->itemcget($item,'-tags');
     my @coords=$canvas->coords($item);
     my %item_opts;
-    $writer->comment( join(', ',@$tags) );
+    $item_opts{class} = join(' ',grep !/(?:SCALAR|ARRAY|HASH|CODE)\(0x/, @$tags);
+    # $writer->comment( join(', ',@$tags) );
     my $state = $canvas->itemcget($item, '-state');
     next if $state eq 'hidden';
     $state = $state eq 'disabled' ? $state : '';
