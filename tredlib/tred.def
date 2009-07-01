@@ -519,7 +519,8 @@ sub LocateNode {
       }
       $i++;
     }
-    my ($id_attr) = $node->type && $node->type->find_members_by_role('#ID');
+    my $type = $node->type;
+    my ($id_attr) = $type && $type->find_members_by_role('#ID');
     return ($fsfile->filename,0,GetNodeIndex($node),
 	    $id_attr && $node->{ $id_attr->get_name }
 	   );
@@ -2442,7 +2443,7 @@ sub UnbindBuiltin {
   $grp->{framegroup}{top}->bind('my',"<$key>",undef);
 }
 
-=item C<OverrideBuiltinBidning(context,key-binding, binding_spec )>
+=item C<OverrideBuiltinBinding(context,key-binding, binding_spec )>
 
 (TrEd only). Get or modify default TrEd's keybinding.
 
@@ -2923,22 +2924,34 @@ sub AddStyle {
   }
 }
 
-=item C<GetStyles(styles,object)>
 
-Auxiliary funcion: return a (flat) list of key=>value pairs consisting
-of the styles of a given type of object obtained from the style-hash
-(can be used e.g. from node_style_hook).
+
+=item C<GetStyles(styles,object,$feature?)>
+
+Auxiliary funcion: if feature is given, retrieves and returns a
+feature of a particular object from the given style-hash.  If feature
+is not given or undef, returns a (flat) list of feature => value pairs
+consisting of the style features of a given type of object obtained
+from the style-hash.
+
+This function can be used e.g. from node_style_hook.
 
 =cut
 
 sub GetStyles {
   my $styles=shift;
   my $style=shift;
+  my $feature=shift;
   unless (defined($style)) {
-    carp("Usage: GetStyles(\$styles,\$object_type), where \$object_type is e.g. 'Node', 'Oval', or 'Line'\n");
+    carp("Usage: GetStyles(\$styles,\$object_type,\$feature?), where \$object_type is e.g. 'Node', 'Oval', or 'Line'\n");
   }
-  if (exists($styles->{$style})) {
-    return %{$styles->{$style}}
+  my $s = $styles->{$style};
+  if (defined($s)) {
+    if (defined $feature) {
+      return $s->{ $feature };
+    } else {
+      return %$s;
+    }
   }
   return;
 }
@@ -4192,9 +4205,9 @@ sub Print {
 						 $TrEd::Config::ttFontPath);
     }
 
-    $TrEd::TreeView::on_get_root_style = [\&main::onGetRootStyle,$grp];
-    $TrEd::TreeView::on_get_node_style = [\&main::onGetNodeStyle,$grp];
-    $TrEd::TreeView::on_redraw_done = [\&main::onRedrawDone,$grp];
+    $TrEd::TreeView::on_get_root_style = [($opts{-onGetRootStyle} || \&main::onGetRootStyle),$grp];
+    $TrEd::TreeView::on_get_node_style = [($opts{-onGetNodeStyle} || \&main::onGetNodeStyle),$grp];
+    $TrEd::TreeView::on_redraw_done = [($opts{-onRedrawDone} || \&main::onRedrawDone),$grp];
 
     my $stylesheet = $opts{-stylesheet} || $grp->{stylesheet};
     my $ss = undef;
@@ -4573,7 +4586,7 @@ sub GetMinorModeData {
 }
 
 
-
+1;
 
 =back
 
