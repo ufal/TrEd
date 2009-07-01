@@ -117,8 +117,7 @@ sub serveSVG {
   return notFound($cgi) unless $path;
   $path=~s/\.svg$//;
   $path = URI->new($path)->canonical->as_string;
-  print STDERR "$path\n";
-  print STDERR "$permitted_paths_re\n";
+  print STDERR '['.localtime()."] Serving $path\n";
   if ($path=~m{/../} or $path !~ $permitted_paths_re) {
     return notFound($cgi);
   }
