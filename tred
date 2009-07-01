@@ -4603,7 +4603,6 @@ sub initTTFonts {
 		my ($font,$i,$max)=@_;
 		die "Interrupted\n" if $cancel;
 		return unless $i%10==0 or $i==$max;
-		#_quick_update($grp);
 		$d->update;
 		$percent_done = int(100* $i / $max);
 		$label=sprintf($format,$i,$max,$percent_done);
@@ -10464,7 +10463,7 @@ sub findNodeDialog {
       }
     }
     $search_code .= "  return 1;\n}";
-    print STDERR "$search_code\n";
+    print STDERR "$search_code\n" if $tredDebug;
     $search_code = eval $search_code;
     $grp->{searchCode}=$search_code;
     if ($@) {
@@ -10491,10 +10490,10 @@ sub findNodeDialog {
 # bound to Escape for busy widgets
 #####################################
 sub _search_busy {
-  my ($w,$grp)=@_;
+  my ($w,$grp,$no_break)=@_;
   print STDERR $grp->{focusedWindow}->{currentFileNo}."stopped by user\n" if ($tredDebug);
   $grp->{stopSearch}=1;
-  Tk->break;
+  Tk->break unless $no_break;
 }
 
 #####################################
@@ -10504,35 +10503,46 @@ sub _search_busy {
 #####################################
 sub _quick_update {
   my ($grp,$no_idle)=@_;
-#  $grp->{top}->Unbusy();
-
   my $g = $grp->{searchGrabWindow};
   return unless $g;
-  my $f = $grp->{focusedWindow}->{FSFile};
-  $grp->{searchGrabWindow_status} = $f && $f->filename();
+  my $win = $grp->{focusedWindow};
+  my $f = $win->{FSFile};
+  my $current = $win->{currentFileNo}+1;
+  my $all = $win->{currentFilelist}->file_count();
+  my $fn = $f && filename($f->filename());
+  $grp->{searchGrabWindow_status} = "File '$fn'     ( $current / $all )";
   if ($grp->{searchGrabWindow_active}==1) {
     $grp->{searchGrabWindow_active}=2;
-#    $grp->{top}->Unbusy();
-    $g->grab;
-    $g->Popup();
-    $g->update;
+    $grp->{top}->Unbusy();
+    $g->Popup;
+    Tk::catch {
+      $g->grab;
+    };
+    my ($b)=grep { ref($_)=~/Button/ } $g->children;
+    $b->focusForce if $b;
+    $g->update();
   } elsif ($grp->{searchGrabWindow_active}==2) {
     $g->update();
   }
-#  $grp->{top}->Busy(-recurse=> 1);
 }
 
 sub _createSearchGrabWindow {
   my ($grp)=@_;
+  $grp->{top}->Busy(-recurse=>1);
   if ($grp->{searchFilelist}) {
     $grp->{searchGrabWindow_status}='';
     my $g;
     unless ($grp->{searchGrabWindow}) {
       $g = $grp->{top}->Toplevel(-title=>"Search");
-      $g->Label(-text=>"Search in progress...")->pack(-pady=>10,-padx=>10);
-      $g->Label(-textvariable=>\$grp->{searchGrabWindow_status})->pack(-pady=>5,-padx=>10);
+      $g->withdraw();
+      $g->Label(-text=>"Search in progress...",-width=>'40')->pack(-pady=>10,-padx=>10);
+      $g->Label(-justify=>'left',
+		-anchor=>'nw',
+		-textvariable=>\$grp->{searchGrabWindow_status})->pack(-pady=>5,-padx=>10,-fill=>'x');
       $g->Button(-text=>'Interrupt',
 		 -command => [\&_search_busy,$g,$grp])->pack(-pady=>5,-padx=>10);
+      $g->protocol('WM_DELETE_WINDOW' => [\&_search_busy,$g,$grp,0]);
+      $g->transient($grp->{top});
       $grp->{searchGrabWindow} = $g;
     }
     $grp->{searchGrabWindow_active} = 1;
@@ -10545,9 +10555,12 @@ sub _closeSearchGrabWindow {
     $grp->{searchGrabWindow_active} = undef;
     $grp->{searchGrabWindow_status} = undef;
     my $g = $grp->{searchGrabWindow};
-    $g->grabRelease;
+    Tk::catch {
+      $g->grabRelease;
+    };
     $g->withdraw;
   }
+  $grp->{top}->Unbusy();
 }
 
 ######################################
@@ -10560,15 +10573,18 @@ sub doFindFirstTemplated {
   my $result;
   _createSearchGrabWindow($grp);
   print "Starting search!\n"  if $tredDebug;
-  unless ($result=findFirstTemplated($grp,$cont)) {
+  $result=findFirstTemplated($grp,$cont);
+  _closeSearchGrabWindow($grp);
+  unless ($result) {
     redraw_win($grp->{focusedWindow});
     $grp->{top}->toplevel->
       messageBox(-icon=> 'warning',
 		 -message=> $grp->{stopSearch} ? "Interrupted by user!" : "No matching node found!",
 		 -title=> 'Find',
+		 -default=> 'Ok',
 		 -type=> 'ok');
+    $grp->{top}->focusForce;
   }
-  _closeSearchGrabWindow($grp);
   return $result;
 }
 
