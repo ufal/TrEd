@@ -908,7 +908,7 @@ BEGIN {
       $activity->end;
     }
     {
-      my $activity = ppm_status('begin','Removing $count old *.pm files');
+      my $activity = ppm_status('begin',"Removing $count old *.pm files");
       my $no=0;
       find ({ wanted => sub {
 		if (m[\.pm$] and !m[/contrib/]) {
@@ -930,7 +930,7 @@ BEGIN {
     my $count=@files;
     return unless $count;
     {
-      my $activity = ppm_status('begin','Removing $count obsolete resource file(s)');
+      my $activity = ppm_status('begin',"Removing $count obsolete resource file(s)");
       my $no=0;
       for my $f (@files) {
 	if (-f $f) {
