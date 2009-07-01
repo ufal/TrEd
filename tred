@@ -6682,9 +6682,9 @@ sub startMain {
 			  if ($grp->{focusedWindow}->{currentNode});
 		      },\%group,\%searchTemplate]],
 	 [Button=> 'Find Next', -underline=> 7,
-	  -command=> [\&doFindFirstTemplated,\%group,\%searchTemplate,1]],
+	  -command=> [\&doFindFirstTemplated,\%group,1]],
 	 [Button=> 'Find Previous', -underline=> 5,
-	  -command=> [\&doFindPrevTemplated,\%group,\%searchTemplate,1]]
+	  -command=> [\&doFindPrevTemplated,\%group,1]]
 
 	]);
   print STDERR "Creating user menu.\n" if $tredDebug;
@@ -7126,7 +7126,7 @@ sub startMain {
 			  -relief=> $buttonsRelief,
 			  -image      => icon(\%group,"viewmag+"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&doFindFirstTemplated,\%group,\%searchTemplate,1])
+			  -command=> [\&doFindFirstTemplated,\%group,1])
       ->pack(-side=>'left');
   $group{Balloon}->attach($group{findNextButton},
 			  -balloonmsg=> "Find next ...");
@@ -7138,7 +7138,7 @@ sub startMain {
 			  -relief=> $buttonsRelief,
 			  -image=> icon(\%group,"viewmag-"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&doFindPrevTemplated,\%group,\%searchTemplate,1])
+			  -command=> [\&doFindPrevTemplated,\%group,1])
       ->pack(-side=>'left');
   $group{Balloon}->attach($group{findPrevButton},
 			  -balloonmsg=> "Find previous ...");
@@ -8800,7 +8800,7 @@ sub listQuery {
       $f->Button(%$b)->pack(-side => 'left');
     }
   }
-
+  Tk::Callback->new($opts{init})->Call($d,$l,$f) if $opts{init};
   $d->BindButtons;
   my $act=0;
   my %selected = map { $_ => 1 } @$selected;
@@ -10435,23 +10435,53 @@ sub findNodeDialog {
   $d->BindButtons;
   my $result= ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
   if ($result=~ /Find/) {
-    %$template = (); # cleanup template
+#    %$template = (); # cleanup template
+    my $search_code = q`sub {
+  my ($node)=@_;`;
+    my $method=substr($grp->{templateMatchMethod},0,1);
     foreach my $t (@atord) {
       my $val = decode($e{$t}->get);
-      $template->{$t}=$val if $val ne EMPTY;
-    }
-
-    if ($grp->{searchFilelist} ne '[Current file only]') {
-      my $fl=findFilelist($grp->{searchFilelist});
-      if (ref($fl) and $fl->file_count>0 ) {
-	local $insideEval=1;                 # no redraw
-	$fl->set_current($fl->file_at(0));
-	selectFilelist($grp,$fl);
+      $searchTemplate{$t}=$val;
+      if ($val ne EMPTY) {
+	$search_code.='  for ($node->all(q{'.$t.'})) { return 0 unless ';
+	if ($method eq 'E') {
+	  my $re = qr{^$val$};
+	  $search_code .= '$_ =~ m('.$re.')';
+	} elsif ($method eq 'R') {
+	  my $re = qr{$val};
+	  $search_code .= '$_ =~ m('.$re.')';
+	} elsif ($method eq 'W') {
+	  $val=~s/[.^$(){}<>\\]/\\\&/g;
+	  $val=~s/\*/.\*/g;
+	  $val=~s/\?/./g;
+	  my $re = qr{^$val$};
+	  $search_code .= '$_ =~ m('.$re.')';
+	} else { # $method eq 'L'
+	  $val =~ s{([\\'])}{\\$1}g;
+	  $search_code .= '$_ eq '."'$val'";
+	}
+	$search_code .= " }\n";
       }
-    } else { 
-      $grp->{searchFilelist}=undef;
     }
-    doFindFirstTemplated($grp,$template,0);
+    $search_code .= "  return 1;\n}";
+    print STDERR "$search_code\n";
+    $search_code = eval $search_code;
+    $grp->{searchCode}=$search_code;
+    if ($@) {
+      errorMessage($grp->{focusedWindow},$@);
+    } else {
+      if ($grp->{searchFilelist} ne '[Current file only]') {
+	my $fl=findFilelist($grp->{searchFilelist});
+	if (ref($fl) and $fl->file_count>0 ) {
+	  local $insideEval=1;                 # no redraw
+	  $fl->set_current($fl->file_at(0));
+	  selectFilelist($grp,$fl);
+	}
+      } else { 
+	$grp->{searchFilelist}=undef;
+      }
+      doFindFirstTemplated($grp,0);
+    }
   }
   $d->destroy;
   undef $d;
@@ -10473,10 +10503,51 @@ sub _search_busy {
 # the search process
 #####################################
 sub _quick_update {
-  my $grp=$_[0];
-  $grp->{top}->Unbusy();
-  $grp->{top}->update();
-  $grp->{top}->Busy(-recurse=> 1);
+  my ($grp,$no_idle)=@_;
+#  $grp->{top}->Unbusy();
+
+  my $g = $grp->{searchGrabWindow};
+  return unless $g;
+  my $f = $grp->{focusedWindow}->{FSFile};
+  $grp->{searchGrabWindow_status} = $f && $f->filename();
+  if ($grp->{searchGrabWindow_active}==1) {
+    $grp->{searchGrabWindow_active}=2;
+#    $grp->{top}->Unbusy();
+    $g->grab;
+    $g->Popup();
+    $g->update;
+  } elsif ($grp->{searchGrabWindow_active}==2) {
+    $g->update();
+  }
+#  $grp->{top}->Busy(-recurse=> 1);
+}
+
+sub _createSearchGrabWindow {
+  my ($grp)=@_;
+  if ($grp->{searchFilelist}) {
+    $grp->{searchGrabWindow_status}='';
+    my $g;
+    unless ($grp->{searchGrabWindow}) {
+      $g = $grp->{top}->Toplevel(-title=>"Search");
+      $g->Label(-text=>"Search in progress...")->pack(-pady=>10,-padx=>10);
+      $g->Label(-textvariable=>\$grp->{searchGrabWindow_status})->pack(-pady=>5,-padx=>10);
+      $g->Button(-text=>'Interrupt',
+		 -command => [\&_search_busy,$g,$grp])->pack(-pady=>5,-padx=>10);
+      $grp->{searchGrabWindow} = $g;
+    }
+    $grp->{searchGrabWindow_active} = 1;
+  }
+}
+
+sub _closeSearchGrabWindow {
+  my ($grp)=@_;
+  if ($grp->{searchGrabWindow_active}==2) {
+    $grp->{searchGrabWindow_active} = undef;
+    $grp->{searchGrabWindow_status} = undef;
+    my $g = $grp->{searchGrabWindow};
+    $g->grabRelease;
+    $g->withdraw;
+  }
 }
 
 ######################################
@@ -10484,13 +10555,12 @@ sub _quick_update {
 # and display result unless succeeded
 ######################################
 sub doFindFirstTemplated {
-  my ($grp,$template,$cont)=@_;
+  my ($grp,$cont)=@_;
   return undef unless ($grp->{focusedWindow}->{currentNode});
   my $result;
-  $grp->{top}->Busy(-recurse=> 1);
-
+  _createSearchGrabWindow($grp);
   print "Starting search!\n"  if $tredDebug;
-  unless ($result=findFirstTemplated($grp,$template,$cont)) {
+  unless ($result=findFirstTemplated($grp,$cont)) {
     redraw_win($grp->{focusedWindow});
     $grp->{top}->toplevel->
       messageBox(-icon=> 'warning',
@@ -10498,7 +10568,7 @@ sub doFindFirstTemplated {
 		 -title=> 'Find',
 		 -type=> 'ok');
   }
-  $grp->{top}->Unbusy();
+  _closeSearchGrabWindow($grp);
   return $result;
 }
 
@@ -10507,12 +10577,11 @@ sub doFindFirstTemplated {
 # and display result unless succeeded
 ######################################
 sub doFindPrevTemplated {
-  my ($grp,$template,$cont)=@_;
+  my ($grp,$cont)=@_;
   return undef unless ($grp->{focusedWindow}->{currentNode});
   my $result;
-  $grp->{top}->Busy(-recurse=> 1);
-
-  unless ($result=findPrevTemplated($grp,$template,$cont)) {
+  _createSearchGrabWindow($grp);
+  unless ($result=findPrevTemplated($grp,$cont)) {
     redraw_win($grp->{focusedWindow});
     $grp->{top}->toplevel->
       messageBox(-icon=> 'warning',
@@ -10520,7 +10589,7 @@ sub doFindPrevTemplated {
 		 -title=> 'Find',
 		 -type=> 'ok');
   }
-  $grp->{top}->Unbusy();
+  _closeSearchGrabWindow($grp);
   return $result;
 }
 
@@ -10562,6 +10631,9 @@ sub nextNodeInSearchFilelist {
 
   # this realises filelist search
   local $insideEval=1;
+  my $no_redraw = $win->{noRedraw};
+  $win->{noRedraw}=1;
+
   my $result = nextOrPrevFile($grp,1,1,$traverse eq 'all' ? 1 : 0);
   _quick_update($grp);
   # wait for Escape
@@ -10570,6 +10642,9 @@ sub nextNodeInSearchFilelist {
     # wait for Escape
     _quick_update($grp);
   }
+  $win->{noRedraw}=$no_redraw;
+
+  redraw_win($win);
 
   if ($result and !$grp->{stopSearch}) {
     if ($traverse eq 'all') {
@@ -10595,39 +10670,26 @@ sub nextNodeInSearchFilelist {
 # find next matching node
 ######################################
 sub findFirstTemplated {
-  my ($grp,$template,$skipfirst)=@_;
+  my ($grp,$skipfirst)=@_;
 
   my $win=$grp->{focusedWindow};
-
   return unless $win->{FSFile};
+  my $search_code = $grp->{searchCode};
+  return unless ref($search_code);
+
   my $node=$win->{currentNode};
   my $tree=$win->{treeNo};
   my $a;
   $grp->{stopSearch}=0;
 
   $node=nextNodeInSearchFilelist($grp,$node,\$tree) if ($skipfirst);
-  my @paths = keys (%$template);
-  NODE:
   while ($node) {
-  PATH:
-    for my $path (@paths) {
-      my @v = $node->all($path);
-      if (@v==0) {
-	@v=('');
-      }
-      for my $v (@v) {
-	if (cmpTemplateField($grp,$v,$template->{$path})) {
-	  next PATH;
-	} else {
-	  next NODE;
-	}
-      }
-      next NODE;
+    if ($search_code->($node)) {
+      gotoTree($win,$tree);
+      setCurrent($win, $node);
+      centerTo($win,$node);
+      return $node;
     }
-    gotoTree($win,$tree);
-    setCurrent($win, $node);
-    centerTo($win,$node);
-    return $node;
   } continue {
     $node=nextNodeInSearchFilelist($grp,$node,\$tree);
   }
@@ -10703,38 +10765,25 @@ sub prevNodeInSearchFilelist {
 # find previous matching node
 ######################################
 sub findPrevTemplated {
-  my ($grp,$template,$skipfirst)=@_;
+  my ($grp,$skipfirst)=@_;
   my $win = $grp->{focusedWindow};
   return unless $win->{FSFile};
+  my $search_code = $grp->{searchCode};
+  return unless ref($search_code);
+
   my $node=$win->{currentNode};
   my $tree=$win->{treeNo};
   my $a;
   $grp->{stopSearch}=0;
 
   $node=prevNodeInSearchFilelist($grp,$node,\$tree) if ($skipfirst);
-
-  my @paths = keys (%$template);
-  NODE:
   while ($node) {
-  PATH:
-    for my $path (@paths) {
-      my @v = $node->all($path);
-      if (@v==0) {
-	@v=('');
-      }
-      for my $v (@v) {
-	if (cmpTemplateField($grp,$v,$template->{$path})) {
-	  next PATH;
-	} else {
-	  next NODE;
-	}
-      }
-      next NODE;
+    if ($search_code->($node)) {
+      gotoTree($win, $tree);
+      setCurrent($win, $node);
+      centerTo($win,$node);
+      return $node;
     }
-    gotoTree($win, $tree);
-    setCurrent($win, $node);
-    centerTo($win,$node);
-    return $node;
   } continue {
     $node=prevNodeInSearchFilelist($grp,$node,\$tree);
   }
