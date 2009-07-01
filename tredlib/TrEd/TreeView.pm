@@ -1838,7 +1838,7 @@ sub redraw {
 				      int($y+($rx*$obj_coords[2*$_+1]+$ry*$obj_coords[2*$_]))
 				     ) } (0..int(@obj_coords/2-1)))
 				     : (map(int(($i=($i+1)%2) ? $_+$x : $_+$y), @obj_coords))),
-				-tag => $tag,
+				-tags => $tag,
 				map(('-'.$_=>$obj_spec{$_}),keys %obj_spec)
 			       );
 	      }
@@ -1905,11 +1905,12 @@ sub redraw {
 		$count*$lineHeight];
     }
     my @node_coords=$self->node_coords($node,$currentNode);
+    my @tags = split /,/, ($node_style->{'-tag'}||'');
 #    $objectno++;
     # my $oval="oval_$objectno";
     my $o=$canvas->create($shape,
 			  @node_coords,
-			  -tags => ['point','node'],
+			  -tags => ['point','node',@tags],
 			  -outline => $self->get_nodeOutlineColor,
 			  $self->node_options($node,
 					      $fsfile->FS,
