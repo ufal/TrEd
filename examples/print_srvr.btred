@@ -9,15 +9,17 @@ use Net::HTTPServer;
 use URI;
 use URI::file;
 
-my @permitted_paths = qw(
-  /home/pajas/projects/pmltq/work/sample/data
-);
-
+my %opts = @ARGV;
+my @permitted_paths = split(/:/, $opts{'--allow-paths'});
+my $port = ($opts{'--port'} || 8070);
 my $permitted_paths_re = '^(?:'.join('|',@permitted_paths).')/';
-
 sub start_srvr {
+  if (!@permitted_paths) {
+    die "No data paths enabled. Use --allow-paths to allow serving trees from files in a subtrees!\n";
+  }
+  print STDERR "Starting tree print service on port $port\n";
   my $server = new Net::HTTPServer(
-    port=>8070,
+    port=>$port,
     type => 'single',
    );
   $server->RegisterURL('/svg' => \&serve_svg);
@@ -45,7 +47,6 @@ EOF
 
 sub serve_svg {
   my ($req) = @_;             # Net::HTTPServer::Request object
-  my $path = $req->Path();
   my $res = $req->Response();
   my $path = $req->Env()->{file};
   my $tree_no = int($req->Env()->{tree_no}) || 1;
@@ -75,6 +76,23 @@ sub serve_svg {
   return $res;
 }
 
+sub on_get_node_style {
+  my ($treeview,$node,$styles,$win)=@_;
+  my $ret = &main::onGetNodeStyle;
+
+  # append the ID as a -tag to every node
+  my $tag = GetStyles($styles,'Node','-tag');
+  $tag.=',' if $tag;
+  my $type = $node->type;
+  my ($id_attr) = $type && $type->find_members_by_role('#ID');
+  my $id = $id_attr && $node->{ $id_attr->get_name };
+  if ($id) {
+    $tag .= qq{#$id};
+    AddStyle($styles,'Node',-tag=>$tag);
+  }
+  return $ret;
+}
+
 sub make_svg {
   my ($f,%opts)=@_;
 
@@ -98,6 +116,7 @@ sub make_svg {
     '-no-hooks' => 1,
     -format => 'SVG',
     -toFile => 1,
+    -onGetNodeStyle => \&on_get_node_style,
     %opts,
   });
   return 1;
