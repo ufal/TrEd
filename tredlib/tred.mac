@@ -140,13 +140,15 @@ sub QuestionQuery {
   my $top = ToplevelFrame();
   my $d = $top->DialogBox(-title => $title,
 			  -buttons => [@buttons]);
-  $d->add('Label', -text => $message, -font => StandardTredFont(), -wraplength => 200)->pack;
+  $d->add('Label', -text => $message, -font => StandardTredFont(), -wraplength => 240)->pack(-expand => 1, -fill => 'x');
   $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
 			     $f->Invoke if ($f and $f->isa('Tk::Button')) } );
   $d->bind($d,'<Escape>', [sub { shift; shift->toplevel->{selected_button}= 'Cancel' },$d] );
 #    if grep { $_ eq 'Cancel' } @buttons;
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
-  return $d->Show;
+  my $ret = $d->Show;
+  $d->destroy;
+  return $ret;
 }
 *questionQuery=\&QuestionQuery;
 
