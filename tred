@@ -2469,31 +2469,9 @@ sub openFile {
 
   if ($status->{ok}) {
     $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : EMPTY).$fsfile->backend);
-
     unless ($no_secondary) {
-    # if backend requested another FS-file, load it
-    # and store it in appData('ref') hash table
-    #
-    # mark this secondary FS-file as part of the original file
-    # so that they can be closed together
-      my $requires = $fsfile->metaData('fs-require');
-      if ($requires) {
-	for my $req (@$requires) {
-	  my $req_filename = absolutize_path($fsfile->filename,$req->[1]);
-	  print STDERR "Pre-loading dependent $req_filename ($req->[1]) as appData('ref')->{$req->[0]}\n" if $tredDebug;
-	  my ($req_fs,$status2) = openFile($win,$req_filename,-preload => 1, -norecent=>1);
-	  merge_status($status,$status2);
-	  if (!$status2->{ok}) {
-	    undef $fsfile;
-	    closeFile($win, -fsfile => $req_fs, -no_update => 1);
-	    last;
-	  } else {
-	    push @{ $req_fs->appData('fs-part-of') }, $fsfile; # is this a good idea?
-	    __debug("Setting appData('ref')->{$req->[0]} to $req_fs");
-	    $fsfile->appData('ref')->{$req->[0]}=$req_fs;
-	  }
-	}
-      }
+      $status = openSecondaryFiles($win,$fsfile,$status)
+	or undef $fsfile;
     }
   }
   # don't make this an else for the above if: something might have changed in
@@ -2560,6 +2538,35 @@ sub openFile {
 
   addToRecent($grp,$f) unless ($opts{-norecent} or $fsfile && $fsfile->appData('norecent'));
   return wantarray ? ($fsfile,$status) : $fsfile;
+}
+
+sub openSecondaryFiles {
+  my ($win, $fsfile, $status)=@_;
+  # if backend requested another FS-file, load it
+  # and store it in appData('ref') hash table
+  #
+  # mark this secondary FS-file as part of the original file
+  # so that they can be closed together
+  my $requires = $fsfile->metaData('fs-require');
+  $status ||= _new_status(ok=>1);
+  if ($requires) {
+    for my $req (@$requires) {
+      next if ref($fsfile->appData('ref')->{$req->[0]});
+      my $req_filename = absolutize_path($fsfile->filename,$req->[1]);
+      print STDERR "Pre-loading dependent $req_filename ($req->[1]) as appData('ref')->{$req->[0]}\n" if $tredDebug;
+      my ($req_fs,$status2) = openFile($win,$req_filename,-preload => 1, -norecent=>1);
+      merge_status($status,$status2);
+      if (!$status2->{ok}) {
+	closeFile($win, -fsfile => $req_fs, -no_update => 1);
+	return $status2;
+      } else {
+	push @{ $req_fs->appData('fs-part-of') }, $fsfile; # is this a good idea?
+	__debug("Setting appData('ref')->{$req->[0]} to $req_fs");
+	$fsfile->appData('ref')->{$req->[0]}=$req_fs;
+      }
+    }
+  }
+  return $status;
 }
 
 sub unhideCurrentNode {
@@ -10396,6 +10403,8 @@ sub findNodeDialog {
 				'Wildcard pattern',
 				'Literal'])->pack(qw/-side left/);
     $om->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
+    $of->Checkbutton(-text => 'Always load secondary files',
+		     -variable => \$grp->{searchAlwaysSecondary})->pack(qw/-side right/);
   };
   my $of=$d->Frame()->pack(qw/-expand yes -fill x/);
   $of->Label(-text=> 'Search file-list: ')->pack(qw/-side left/);
@@ -10467,7 +10476,7 @@ sub findNodeDialog {
     $search_code = eval $search_code;
     $grp->{searchCode}=$search_code;
     if ($@) {
-      errorMessage($grp->{focusedWindow},$@);
+      errorMessage($win,$@);
     } else {
       if ($grp->{searchFilelist} ne '[Current file only]') {
 	my $fl=findFilelist($grp->{searchFilelist});
@@ -10476,7 +10485,7 @@ sub findNodeDialog {
 	  $fl->set_current($fl->file_at(0));
 	  selectFilelist($grp,$fl);
 	}
-      } else { 
+      } else {
 	$grp->{searchFilelist}=undef;
       }
       doFindFirstTemplated($grp,0);
@@ -10567,16 +10576,47 @@ sub _closeSearchGrabWindow {
 # start searching for a next node
 # and display result unless succeeded
 ######################################
-sub doFindFirstTemplated {
-  my ($grp,$cont)=@_;
-  return undef unless ($grp->{focusedWindow}->{currentNode});
-  my $result;
+
+sub findTemplated {
+  my ($grp,$cont,$callback)=@_;
+  my $win = $grp->{focusedWindow};
+  return undef unless ($win->{currentNode});
+
   _createSearchGrabWindow($grp);
-  print "Starting search!\n"  if $tredDebug;
-  $result=findFirstTemplated($grp,$cont);
+  my $result;
+  if (!$no_secondary and !$grp->{searchAlwaysSecondary} and $grp->{searchFilelist}) {
+    # avoid opening secondary files
+    # during search
+    my $first_file = $win->{FSFile}->filename;
+
+    $no_secondary = 1;
+    eval { $result = $callback->($grp,$cont) };
+    $no_secondary = 0;
+    die $@ if $@;
+
+    my $fsfile = $win->{FSFile};
+    unless (IOBackend::is_same_filename($first_file, $fsfile->filename)) {
+      # if the initial file and the current file
+      # are different, open the secondary files now
+      my $status = openSecondaryFiles($win,$fsfile,undef);
+      if ($status->{ok}) {
+	get_nodes_fsfile($grp,$fsfile);
+	redraw_fsfile($grp,$fsfile);
+      } else {
+	$win->toplevel->ErrorReport(
+	  -title => "Error: open failed",
+	    -message => "A secondary file '$status->{filename}' is unreadable, empty, corrupted, or does not exist!"."\nPossible problem was:",
+	  -body => $status->{report},
+	 );
+      }
+    }
+  } else {
+    $result = $callback->($grp,$cont);
+  }
   _closeSearchGrabWindow($grp);
+
   unless ($result) {
-    redraw_win($grp->{focusedWindow});
+    redraw_win($win);
     $grp->{top}->toplevel->
       messageBox(-icon=> 'warning',
 		 -message=> $grp->{stopSearch} ? "Interrupted by user!" : "No matching node found!",
@@ -10592,21 +10632,13 @@ sub doFindFirstTemplated {
 # start searching for a prev node
 # and display result unless succeeded
 ######################################
+sub doFindFirstTemplated {
+  my ($grp,$cont)=@_;
+  return findTemplated($grp,$cont,\&findFirstTemplated);
+}
 sub doFindPrevTemplated {
   my ($grp,$cont)=@_;
-  return undef unless ($grp->{focusedWindow}->{currentNode});
-  my $result;
-  _createSearchGrabWindow($grp);
-  unless ($result=findPrevTemplated($grp,$cont)) {
-    redraw_win($grp->{focusedWindow});
-    $grp->{top}->toplevel->
-      messageBox(-icon=> 'warning',
-		 -message=> $grp->{stopSearch} ? "Interrupted by user!" : "No matching node found!",
-		 -title=> 'Find',
-		 -type=> 'ok');
-  }
-  _closeSearchGrabWindow($grp);
-  return $result;
+  return findTemplated($grp,$cont,\&findPrevTemplated);
 }
 
 ######################################
