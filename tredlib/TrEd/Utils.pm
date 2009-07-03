@@ -315,6 +315,7 @@ sub setStylesheetPatterns {
 
 sub updateStylesheetMenu {
   my ($grp)=@_;
+  return if $grp->{noUpdateStylesheetMenu};
   if (ref($grp->{StylesheetMenu})) {
     $grp->{StylesheetMenu}->configure(-options => getStylesheetMenuList($grp));
   }

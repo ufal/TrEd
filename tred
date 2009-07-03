@@ -1818,6 +1818,7 @@ sub userQuery {
 
 sub addToRecent {
   my ($grp,$f)=@_;
+  return if $grp->{noRecent};
   if (defined($f)) {
     ($f)=absolutize($f);
     @recentFiles=grep { $_ ne $f } @recentFiles;
@@ -1936,6 +1937,7 @@ sub updateBookmarks {
 
 sub updatePostponed {
   my ($grp)=@_;
+  return if $grp->{noUpdatePostponed};
   if ($grp->{PostponedFileMenu}) {
     print STDERR "Updating session menu\n"  if $tredDebug;
     my $menu= $grp->{PostponedFileMenu}->menu;
@@ -2051,6 +2053,7 @@ sub updateScaleFactor {
 sub updateTitle {
   my ($grp)=@_;
   return unless ref($grp);
+  return if $grp->{noUpdateTitle};
   my $win = $grp->{focusedWindow};
   if (ref($win->{FSFile})) {
     my $filelist_info=EMPTY;
@@ -3301,6 +3304,7 @@ sub update_macro_menus {
 
 sub update_macrolist_view {
   my ($grp,$win) = grp_win($_[0]);
+  return if $grp->{noUpdateMacrolistView};
   my $view = $grp->{sidePanel} && $grp->{sidePanel}->widget('macroListView');
   return unless $view and $view->is_shown;
   my $hl=$view->data;
@@ -5517,6 +5521,7 @@ sub onNodeChange {
 
 sub update_value_line_current {
   my ($win,$node)=@_;
+  return if $win->{noRedraw};
   my $grp=$win->{framegroup};
   my $vl=$grp->{valueLine};
   if ($win == $grp->{focusedWindow}) {
@@ -10434,7 +10439,7 @@ sub findNodeDialog {
     -command=> [ sub {
 		   my ($grp)=@_;
 		   my $name=filelistDialog($grp,1);
-		   $om->options(['[Current file only]',map { $_->name } @filelists]);
+		   $om->options(['[Current file only]',sort map { $_->name } @filelists]);
 		   $grp->{searchFilelist}=$name if (ref(findFilelist($name)));
 		 },$grp,$om]);
   $oe->pack(qw/-side left/);
@@ -10513,6 +10518,9 @@ sub _search_busy {
 sub _quick_update {
   my ($grp,$no_idle)=@_;
   my $g = $grp->{searchGrabWindow};
+  my $t = time;
+  return unless $t-$grp->{searchGrabWindow_time}>=1;
+  $grp->{searchGrabWindow_time}=$t;
   return unless $g;
   my $win = $grp->{focusedWindow};
   my $f = $win->{FSFile};
@@ -10554,6 +10562,7 @@ sub _createSearchGrabWindow {
       $g->transient($grp->{top});
       $grp->{searchGrabWindow} = $g;
     }
+    $grp->{searchGrabWindow_time}=0;
     $grp->{searchGrabWindow_active} = 1;
   }
 }
@@ -10582,6 +10591,17 @@ sub findTemplated {
   my $win = $grp->{focusedWindow};
   return undef unless ($win->{currentNode});
 
+  my @save = ($lockFiles,$opt_t,$win->{noRedraw},$grp->{noUpdateTitle},$grp->{noUpdatePostponed},
+	      $grp->{noRecent},$grp->{noUpdateStylesheetMenu},$grp->{noUpdateMacrolistView});
+  ($lockFiles,
+   $opt_t,
+   $win->{noRedraw},
+   $grp->{noUpdateTitle},
+   $grp->{noUpdatePostponed},
+   $grp->{noRecent},
+   $grp->{noUpdateStylesheetMenu},
+   $grp->{noUpdateMacrolistView},
+  )=(0,$win->{macroContext},1,1,1,1,1,1);
   _createSearchGrabWindow($grp);
   my $result;
   if (!$no_secondary and !$grp->{searchAlwaysSecondary} and $grp->{searchFilelist}) {
@@ -10599,10 +10619,7 @@ sub findTemplated {
       # if the initial file and the current file
       # are different, open the secondary files now
       my $status = openSecondaryFiles($win,$fsfile,undef);
-      if ($status->{ok}) {
-	get_nodes_fsfile($grp,$fsfile);
-	redraw_fsfile($grp,$fsfile);
-      } else {
+      unless ($status->{ok}) {
 	$win->toplevel->ErrorReport(
 	  -title => "Error: open failed",
 	    -message => "A secondary file '$status->{filename}' is unreadable, empty, corrupted, or does not exist!"."\nPossible problem was:",
@@ -10614,9 +10631,24 @@ sub findTemplated {
     $result = $callback->($grp,$cont);
   }
   _closeSearchGrabWindow($grp);
+  ($lockFiles,
+   $opt_t,
+   $win->{noRedraw},
+   $grp->{noUpdateTitle},
+   $grp->{noUpdatePostponed},
+   $grp->{noRecent},
+   $grp->{noUpdateStylesheetMenu},
+   $grp->{noUpdateMacrolistView},
+  )=@save;
 
+  get_nodes_win($win);
+  redraw_win($win);
+  updateTitle($grp);
+  updatePostponed($grp);
+  updateStylesheetMenu($grp);
+  update_macrolist_view($grp);
   unless ($result) {
-    redraw_win($win);
+#    redraw_win($win);
     $grp->{top}->toplevel->
       messageBox(-icon=> 'warning',
 		 -message=> $grp->{stopSearch} ? "Interrupted by user!" : "No matching node found!",
@@ -10679,8 +10711,6 @@ sub nextNodeInSearchFilelist {
 
   # this realises filelist search
   local $insideEval=1;
-  my $no_redraw = $win->{noRedraw};
-  $win->{noRedraw}=1;
 
   my $result = nextOrPrevFile($grp,1,1,$traverse eq 'all' ? 1 : 0);
   _quick_update($grp);
@@ -10690,9 +10720,6 @@ sub nextNodeInSearchFilelist {
     # wait for Escape
     _quick_update($grp);
   }
-  $win->{noRedraw}=$no_redraw;
-
-  redraw_win($win);
 
   if ($result and !$grp->{stopSearch}) {
     if ($traverse eq 'all') {
