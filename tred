@@ -348,6 +348,8 @@ import PMLSchema qw(:constants); # too late (we'll need () after PML_.._DECL)
 require TrEd::UserAgent;
 sub uniq { my %a; grep { !($a{$_}++) } @_ }
 
+$PMLCompiledReader::STRICT=0;
+
 initStylesheetPaths([split($Fslib::resourcePathSplit,$opt_S,-1)]);
 
 $Fslib::resourcePath=
@@ -11450,7 +11452,7 @@ sub _evalHook {
   return unless $hook; # and $win->{currentNode};
   my $grp = $win->{framegroup};
   # Save current position (as last action position)
-  my $bookmark=bookmarkThis($grp);
+  my $bookmark= $with_undo ? bookmarkThis($grp) : undef;
 
 
   local $insideEval=1;
@@ -11501,8 +11503,10 @@ sub _evalHook {
   if ($win) {
     if ($win->{FSFile}) {
       if ($file_changed ne '?' and $file_changed) {
-	save_undo($win,$undo) if $with_undo;
-	lastActionBookmark($win->{framegroup},$bookmark);
+	if ($with_undo) {
+	  save_undo($win,$undo);
+	  lastActionBookmark($win->{framegroup},$bookmark);
+	}
 	$win->{FSFile}->notSaved(1);
       }
     }
