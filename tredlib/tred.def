@@ -2584,16 +2584,27 @@ sub MacroCallback {
     $macro = $binding;
   }
   $macro = (ref($macro) or $macro=~/^\w+-\>/) ? $macro : $context.'->'.$macro;
+  my $mark;
   return [sub {
+	    my @cb_args;
+	    my $arg;
+	    while (@_) {
+	      $arg = shift @_;
+	      if (defined($arg) and $arg!=\$mark) {
+		push @cb_args, $arg;
+	      } else {
+		last
+	      }
+	    }
 	    my $tred=shift @_;
 	    my $m = $macro;
-	    if (@_) {
+	    if (@cb_args or @_) {
 	      if (ref($m) eq 'ARRAY') {
-		push @$m, @_;
+		push @$m, @cb_args, @_;
 	      } elsif (ref($m)) {
-		$m=[$m, @_];
+		$m=[$m, @cb_args, @_];
 	      } else {
-		$m=[eval "sub { $m(\@_) }", @_];
+		$m=[eval "sub { $m(\@_) }", @cb_args, @_];
 	      }
 	    }
 	    if ($main::insideEval) {
@@ -2601,7 +2612,7 @@ sub MacroCallback {
 	    } else {
 	      main::doEvalMacro($tred->{focusedWindow},$m);
 	    }
-	  },$grp->{framegroup},@args];
+	  },\$mark,$grp->{framegroup},@args];
 }
 
 =back
