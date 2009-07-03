@@ -17,17 +17,22 @@ sub new {
   return $new;
 }
 
-sub AUTOLOAD {
-  my $self=shift;
-  return undef unless ref($self);
-  my $sub = $AUTOLOAD;
-  $sub =~ s/.*:://;
-  if ($sub=~/^(?:treeView|FSFile|treeNo|currentNode)$/) {
-    return $self->{$sub};
-  } else {
-    croak "Undefined method $sub called on class ".ref($self);
-  }
-}
+# sub AUTOLOAD {
+#   my $self=shift;
+#   return undef unless ref($self);
+#   my $sub = $AUTOLOAD;
+#   $sub =~ s/.*:://;
+#   if ($sub=~/^(?:treeView|FSFile|treeNo|currentNode)$/) {
+#     return $self->{$sub};
+#   } else {
+#     croak "Undefined method $sub called on class ".ref($self);
+#   }
+# }
+
+sub treeView { return $_[0]->{treeView} }
+sub FSFile { return $_[0]->{FSFile} }
+sub treeNo { return $_[0]->{treeNo} }
+sub currentNode { return $_[0]->{currentNode} }
 
 sub DESTROY {
   my ($self)=@_;
