@@ -37,7 +37,7 @@ use vars qw($svn_version $version $about $opt_u $opt_h $opt_c $opt_y
 	    $locale_charset
 	    $no_secondary
 	    %HELP %vertical_key_arrow_map 
-	    $manpage $listoptions $no_backups $no_locks %optmap $carp
+	    $manpage $listoptions $no_backups $no_locks $noCheckLocks %optmap $carp
 	    $tred_d $VERSION
 	    $enable_extensions $disable_extensions
             $command
@@ -1549,6 +1549,7 @@ sub removeLock {
 # returns: none (no lock), my (locked by us), locked
 sub checkLock {
   my ($fsfile,$f) = @_; # filename
+  return 'Ignore' if $noCheckLocks;
   $f = $fsfile->filename() if ($fsfile and not defined($f));
   my $current_mtime = [stat($f)]->[9];
 #  return 'none' if (not $f=~s{^file://}{} and $f =~ m{^[[:alnum:]]+://});
@@ -2142,8 +2143,8 @@ sub newFileFromCurrent {
   updatePostponed($grp);
 
   updateTitle($grp);
-  get_nodes_win($win);
   $win->{redrawn}=0; # if redraw is called during the hook, we will know it
+  get_nodes_win($win);
   if ($opt_t ne EMPTY and
 	$win->{macroContext} ne $opt_t) {
     switchContext($win,$opt_t,1);
@@ -2382,26 +2383,9 @@ sub openFile {
   # We're going to open a file: check locks
   my $lockinfo;
   unless ($opts{-justheader}) {
-    my $lock = checkLock(undef,$f);
-    print STDERR "LOCK: $lock\n" if $tredDebug;
-    if ($lock  =~ /^locked/) {
-      my $answer = userQuery($win,
-			     "File $f is $lock.",
-			     -bitmap=> 'question',
-			     -title => "Accessing locked file?",
-			     -buttons => ['Open anyway', 'Steal lock', 'Cancel']);
-      if ($answer eq 'Cancel') {
-	redraw_win($win) unless ($opts{-preload} or $opts{-noredraw});
-	$win->toplevel->Unbusy() unless $insideEval;
-	return wantarray ? (undef, _new_status(cancel=>1)) : undef;
-      } elsif ($answer eq 'Steal lock') {
-	$lockinfo=setLock($f)
-      } else {
-	$lockinfo = $lock;
-	print STDERR "LOCKINFO: $lockinfo\n";
-      }
-    } elsif ($lockFiles) {
-      $lockinfo=setLock($f);
+    $lockinfo = lockFile($win,$f,\%opts);
+    if ($lockinfo eq 'Cancel') {
+      return wantarray ? (undef, _new_status(cancel=>1)) : undef;
     }
   }
 
@@ -2517,7 +2501,7 @@ sub openFile {
     unhideCurrentNode($win);
     get_nodes_win($win, 1); # for the hook below
   }
-  $win->{redrawn}=0; # if redraw is called during the hook, we will know it
+  my $r = $win->{redrawn}; # if redraw is called during the hook, we will know it
   if ($opts{-preload}) {
     if ($fsfile and !$opts{-nohook}) {
       doEvalHook($win,"guess_context_hook","file_opened_hook");
@@ -2531,7 +2515,7 @@ sub openFile {
     }
     doEvalHook($win,"file_opened_hook") if ($fsfile and !$opts{-nohook});
     unless ($opts{-noredraw}) {
-      unless ($win->{redrawn}) {
+      unless ($win->{redrawn}>$r) {
 	$win->{currentNode} = $save_current if $save_current;
 	get_nodes_win($win); # the hook may have changed something
 	redraw_win($win);
@@ -2543,6 +2527,33 @@ sub openFile {
 
   addToRecent($grp,$f) unless ($opts{-norecent} or $fsfile && $fsfile->appData('norecent'));
   return wantarray ? ($fsfile,$status) : $fsfile;
+}
+
+sub lockFile {
+  my ($win,$f,$opts)=@_;
+  my $lock = checkLock(undef,$f);
+  print STDERR "LOCK: $lock\n" if $tredDebug;
+  my $lockinfo;
+  if ($lock  =~ /^locked/) {
+    my $answer = userQuery($win,
+			   "File $f is $lock.",
+			   -bitmap=> 'question',
+			   -title => "Accessing locked file?",
+			   -buttons => ['Open anyway', 'Steal lock', 'Cancel']);
+    if ($answer eq 'Cancel') {
+      redraw_win($win) unless ($opts and ($opts->{-preload} or $opts->{-noredraw}));
+      $win->toplevel->Unbusy() unless $insideEval;
+      return 'Cancel';
+    } elsif ($answer eq 'Steal lock') {
+      $lockinfo=setLock($f)
+    } else {
+      $lockinfo = $lock;
+      print STDERR "LOCKINFO: $lockinfo\n";
+    }
+  } elsif ($lockFiles) {
+    $lockinfo=setLock($f);
+  }
+  return $lockinfo;
 }
 
 sub openSecondaryFiles {
@@ -5449,11 +5460,12 @@ sub switchContext {
     $grp->{selectedContext}=$context;
     update_macrolist_view($win);
   }
+  my ($l1,$l2)=($win->{got_nodes}, $win->{redrawn});
   doEvalHook($win,"switch_context_hook",$prevcontext,$context);
   unless ($noredraw) {
     updateStylesheetMenu($grp);
-    get_nodes_win($win);
-    redraw_win($win);		# something should be done with display attrs vs windows maybe
+    get_nodes_win($win) unless $l1 < $win->{got_nodes};
+    redraw_win($win) unless $l2 < $win->{redrawn};		# something should be done with display attrs vs windows maybe
   }
 }
 
@@ -5471,6 +5483,7 @@ sub onRedrawDone {
 }
 sub onGetNodes {
   my ($treeview,$fsfile,$tree_no,$current,$win)=@_;
+  $win->{got_nodes}++;
   doEvalHook($win,"get_nodelist_hook",
 	     $fsfile,
 	     $tree_no,
@@ -10520,10 +10533,10 @@ sub _search_busy {
 sub _quick_update {
   my ($grp,$no_idle)=@_;
   my $g = $grp->{searchGrabWindow};
-  my $t = time;
-  return unless $t-$grp->{searchGrabWindow_time}>=1;
-  $grp->{searchGrabWindow_time}=$t;
-  return unless $g;
+  my $now = time; #once in a second
+  return unless ($now-$grp->{searchGrabWindow_last}>=1);
+  $grp->{searchGrabWindow_last}=$now;
+
   my $win = $grp->{focusedWindow};
   my $f = $win->{FSFile};
   my $current = $win->{currentFileNo}+1;
@@ -10532,6 +10545,7 @@ sub _quick_update {
   $grp->{searchGrabWindow_status} = "File '$fn'     ( $current / $all )";
   if ($grp->{searchGrabWindow_active}==1) {
     $grp->{searchGrabWindow_active}=2;
+    $grp->{searchGrabWindow_last}=0;
     $grp->{top}->Unbusy();
     $g->Popup;
     Tk::catch {
@@ -10593,17 +10607,16 @@ sub findTemplated {
   my $win = $grp->{focusedWindow};
   return undef unless ($win->{currentNode});
 
-  my @save = ($lockFiles,$opt_t,$win->{noRedraw},$grp->{noUpdateTitle},$grp->{noUpdatePostponed},
+  my @save = ($opt_t,$win->{noRedraw},$grp->{noUpdateTitle},$grp->{noUpdatePostponed},
 	      $grp->{noRecent},$grp->{noUpdateStylesheetMenu},$grp->{noUpdateMacrolistView});
-  ($lockFiles,
-   $opt_t,
+  ($opt_t,
    $win->{noRedraw},
    $grp->{noUpdateTitle},
    $grp->{noUpdatePostponed},
    $grp->{noRecent},
    $grp->{noUpdateStylesheetMenu},
    $grp->{noUpdateMacrolistView},
-  )=(0,$win->{macroContext},1,1,1,1,1,1);
+  )=($win->{macroContext},1,1,1,1,1,1);
   _createSearchGrabWindow($grp);
   my $result;
   if (!$no_secondary and !$grp->{searchAlwaysSecondary} and $grp->{searchFilelist}) {
@@ -10612,12 +10625,21 @@ sub findTemplated {
     my $first_file = $win->{FSFile}->filename;
 
     $no_secondary = 1;
+    my @locks = ($noCheckLocks,$lockFiles);
+    $noCheckLocks = 1;
+    $lockFiles=0;
+
     eval { $result = $callback->($grp,$cont) };
     $no_secondary = 0;
+    ($noCheckLocks,$lockFiles)=@locks;
     die $@ if $@;
 
     my $fsfile = $win->{FSFile};
     unless (IOBackend::is_same_filename($first_file, $fsfile->filename)) {
+      if ($lockFiles) {
+	my $lockinfo = lockFile($win,$fsfile->filename,{-noredraw => 1});
+	setFSLockInfo($fsfile, $lockinfo) if $lockinfo ne 'Cancel';
+      }
       # if the initial file and the current file
       # are different, open the secondary files now
       my $status = openSecondaryFiles($win,$fsfile,undef);
@@ -10633,8 +10655,7 @@ sub findTemplated {
     $result = $callback->($grp,$cont);
   }
   _closeSearchGrabWindow($grp);
-  ($lockFiles,
-   $opt_t,
+  ($opt_t,
    $win->{noRedraw},
    $grp->{noUpdateTitle},
    $grp->{noUpdatePostponed},
@@ -10713,7 +10734,6 @@ sub nextNodeInSearchFilelist {
 
   # this realises filelist search
   local $insideEval=1;
-
   my $result = nextOrPrevFile($grp,1,1,$traverse eq 'all' ? 1 : 0);
   _quick_update($grp);
   # wait for Escape
@@ -10806,6 +10826,8 @@ sub prevNodeInSearchFilelist {
 
   # this realises filelist search
   local $insideEval=1;
+  my $no_redraw = $win->{noRedraw};
+  $win->{noRedraw}=1;
   my $result = nextOrPrevFile($grp,-1,1,$traverse eq 'all' ? 1 : 0);
 
   # wait for Escape
@@ -10816,6 +10838,8 @@ sub prevNodeInSearchFilelist {
     # wait for Escape
     _quick_update($grp);
   }
+
+  $win->{noRedraw}=$no_redraw;
 
   if ($result and !$grp->{stopSearch}) {
     if ($traverse eq 'all') {
@@ -11107,7 +11131,7 @@ sub redraw_win {
   if ($win->{FSFile} and $win->treeView->get_drawSentenceInfo) {
     $vl=get_value_line($win,$win->{FSFile},$win->{treeNo},1,0,'html');
   }
-  $win->{redrawn}=1; # may be used to check that this function was called (e.g. during a hook)
+  $win->{redrawn}++; # may be used to check that this function was called (e.g. during a hook)
                      # do not forget to reset the value first
   $win->treeView->
     redraw($win->{FSFile},
