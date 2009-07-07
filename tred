@@ -2563,6 +2563,15 @@ sub lockFile {
   return $lockinfo;
 }
 
+sub lockOpenFile {
+  my ($win,$fsfile)=@_;
+  $fsfile ||= $win->{FSFile};
+  if ($lockFiles and !defined($fsfile->appData('lockinfo'))) {
+    my $lockinfo = lockFile($win,$fsfile->filename,{-noredraw => 1});
+    setFSLockInfo($fsfile, $lockinfo) if $lockinfo ne 'Cancel';
+  }
+}
+
 sub openSecondaryFiles {
   my ($win, $fsfile, $status)=@_;
   # if backend requested another FS-file, load it
@@ -10634,8 +10643,7 @@ sub findTemplated {
   if (!$no_secondary and !$grp->{searchAlwaysSecondary} and $grp->{searchFilelist}) {
     # avoid opening secondary files
     # during search
-    my $first_file = $win->{FSFile}->filename;
-
+    my $first_file_no = $win->{currentFileNo};
     $no_secondary = 1;
     my @locks = ($noCheckLocks,$lockFiles);
     $noCheckLocks = 1;
@@ -10647,11 +10655,8 @@ sub findTemplated {
     die $@ if $@;
 
     my $fsfile = $win->{FSFile};
-    unless (IOBackend::is_same_filename($first_file, $fsfile->filename)) {
-      if ($lockFiles) {
-	my $lockinfo = lockFile($win,$fsfile->filename,{-noredraw => 1});
-	setFSLockInfo($fsfile, $lockinfo) if $lockinfo ne 'Cancel';
-      }
+    if ($win->{currentFileNo} != $first_file_no) {
+      lockOpenFile($win,$fsfile);
       # if the initial file and the current file
       # are different, open the secondary files now
       my $status = openSecondaryFiles($win,$fsfile,undef);
