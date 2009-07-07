@@ -440,12 +440,12 @@ eval { require TrEd::Help; };
     split(/,/,$opt_B),
     split(/,/,$ioBackends),
     qw{NTREDBackend
+       StorableBackend
+       PMLBackend
        CSTS_SGML_SP_Backend
        TrXMLBackend
        TEIXMLBackend
        AG2FS
-       PMLBackend
-       StorableBackend
       })
  );
 
@@ -1535,10 +1535,17 @@ sub readLock {
 
 sub removeLock {
   my ($fsfile,$f,$force) = @_; # filename
-  $f=$fsfile->filename() unless defined $f;
-  my $proto = IOBackend::get_protocol($f);
-  $f=IOBackend::strip_protocol($f) if ($proto eq 'file');
+  my $proto;
+  if (defined $f) {
+    my $proto = IOBackend::get_protocol($f);
+    $f=IOBackend::strip_protocol($f) if ($proto eq 'file');
+  } else {
+    $f=$fsfile->filename();
+    $proto = ref($f) ? $f->scheme : 'file';
+  }
   return undef if ($proto eq 'ntred' or $proto =~ /$noLockProto/);
+
+  local $noCheckLocks=0;
   if ($force or !$fsfile or checkLock($fsfile,$f) =~ /^my|^changed/) {
     print STDERR "removing lock $f.lock\n" if $tredDebug;
     IOBackend::unlink_uri($f.".lock");
@@ -2563,8 +2570,10 @@ sub openSecondaryFiles {
   #
   # mark this secondary FS-file as part of the original file
   # so that they can be closed together
-  my $requires = $fsfile->metaData('fs-require');
   $status ||= _new_status(ok=>1);
+  return $status if $fsfile->appData('fs-require-loaded');
+  $fsfile->changeAppData('fs-require-loaded',1);
+  my $requires = $fsfile->metaData('fs-require');
   if ($requires) {
     for my $req (@$requires) {
       next if ref($fsfile->appData('ref')->{$req->[0]});
@@ -2769,7 +2778,7 @@ sub isShown { # test if node is shown (always 1 if $showHidden)
   my ($win,$node,$show)=@_;
   $show=$win->treeView->get_showHidden() unless defined $show;
   return 0 unless ($node and $win->{FSFile});
-  return $win->{FSFile}->FS->isHidden($node) ? 0 : 1;
+  return (!$show and $win->{FSFile}->FS->isHidden($node)) ? 0 : 1;
 }
 
 sub HNext { # same as Next but obey $showHidden
@@ -5683,6 +5692,8 @@ sub cascadeMenus {
 
 sub saveFileStateUpdate {
   my ($win)=@_;
+  my $grp = $win->{framegroup};
+  return if $grp->{noSaveFileStateUpdate};
   return unless isFocused($win);
   return unless $win->{framegroup}->{saveButton};
   $win->{framegroup}->{saveButton}->
@@ -10608,7 +10619,7 @@ sub findTemplated {
   return undef unless ($win->{currentNode});
 
   my @save = ($opt_t,$win->{noRedraw},$grp->{noUpdateTitle},$grp->{noUpdatePostponed},
-	      $grp->{noRecent},$grp->{noUpdateStylesheetMenu},$grp->{noUpdateMacrolistView});
+	      $grp->{noRecent},$grp->{noUpdateStylesheetMenu},$grp->{noUpdateMacrolistView},$grp->{noSaveFileStateUpdate});
   ($opt_t,
    $win->{noRedraw},
    $grp->{noUpdateTitle},
@@ -10616,7 +10627,8 @@ sub findTemplated {
    $grp->{noRecent},
    $grp->{noUpdateStylesheetMenu},
    $grp->{noUpdateMacrolistView},
-  )=($win->{macroContext},1,1,1,1,1,1);
+   $grp->{noSaveFileStateUpdate}
+  )=($win->{macroContext},1,1,1,1,1,1,1);
   _createSearchGrabWindow($grp);
   my $result;
   if (!$no_secondary and !$grp->{searchAlwaysSecondary} and $grp->{searchFilelist}) {
@@ -10662,6 +10674,7 @@ sub findTemplated {
    $grp->{noRecent},
    $grp->{noUpdateStylesheetMenu},
    $grp->{noUpdateMacrolistView},
+   $grp->{noSaveFileStateUpdate},
   )=@save;
 
   get_nodes_win($win);
@@ -10670,6 +10683,7 @@ sub findTemplated {
   updatePostponed($grp);
   updateStylesheetMenu($grp);
   update_macrolist_view($grp);
+  saveFileStateUpdate($win);
   unless ($result) {
 #    redraw_win($win);
     $grp->{top}->toplevel->
@@ -10722,7 +10736,6 @@ sub nextNodeInSearchFilelist {
   my $win=$grp->{focusedWindow};
   my $haveSearchFL = defined($grp->{searchFilelist});
   my $traverse = $haveSearchFL ? $grp->{searchFilelistTraverse} || 'all' : 'all';
-
 
   if ($traverse ne 'node') {
     $node = HNext($win,$node);
@@ -11457,6 +11470,7 @@ sub centerToXY {
 sub centerTo {
   my ($win, $node)= @_;
   return unless $node;
+  return if $win->{noRedraw};
   my $tv=$win->treeView;
   $tv->reset_scroll_region;
   centerToXY($win,
