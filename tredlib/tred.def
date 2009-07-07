@@ -2030,7 +2030,7 @@ Returns the Tk::Toplevel object containing the current window.
 =cut
 
 sub ToplevelFrame {
-  return $grp->toplevel();
+  return $grp && $grp->toplevel();
 }
 
 =item C<PrintDialog(...)>
@@ -3527,7 +3527,7 @@ sub SetCurrentFileList {
 }
 
 
-=item C<SetCurrentFileListInWindow($win, $name)>
+=item C<SetCurrentFileListInWindow($name, $win)>
 
 This macro is only available in TrEd. Selects the filelist of a given
 name for the given window.
@@ -3535,10 +3535,10 @@ name for the given window.
 =cut
 
 sub SetCurrentFileListInWindow {
-  my $win=shift;
+  my $name = shift;
+  my $win = shift;
+  croak("Usage: SelectFilelistInWindow(name,win)") if !defined($name) or ref($name) or !length($name);
   return unless ref $win;
-  my $name=shift;
-  croak("Usage: SelectFilelistInWindow(win,name)") if !defined($name) or ref($name) or !length($name);
   main::selectFilelist($win,$name,@_);
 }
 
