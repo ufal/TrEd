@@ -3207,6 +3207,21 @@ sub Open {
   return $ret;
 }
 
+=item C<OpenSecondaryFiles($fsfile)>
+
+Open secondary files for a given FSFile in TrEd.
+
+=cut
+
+sub OpenSecondaryFiles {
+  my ($fsfile)=@_;
+  my $status = main::openSecondaryFiles($grp,$fsfile);
+  unless ($status->{ok}) {
+    die($status->{error});
+  }
+  return 1;
+}
+
 =item C<ReloadCurrentFile()>
 
 Close and reload current fsfile.
