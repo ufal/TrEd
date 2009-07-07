@@ -541,14 +541,27 @@ sub set_macro_variable {
 my @_saved_vars = qw(grp this root FileNotSaved forceFileSaved);
 
 sub save_ctxt {
-  return [ map { get_macro_variable($_) } @_saved_vars ];
+  no strict 'refs';
+  if (defined($safeCompartment)) {
+    return [ map ${ $safeCompartment->varglob('TredMacro::'.$_) }, @_saved_vars ];
+  } else {
+    return [ map ${'TredMacro::'.$_}, @_saved_vars ];
+  }
 }
 sub restore_ctxt {
   my $ctxt = shift;
   my $i=0;
-  for my $var (@_saved_vars) {
-    set_macro_variable($var, $ctxt->[$i++]);
+  no strict 'refs';
+  if (defined($safeCompartment)) {
+    for my $var (@_saved_vars) {
+      ${ $safeCompartment->varglob('TredMacro::'.$var) } = $ctxt->[$i++];
+    }
+  } else {
+    for my $var (@_saved_vars) {
+      ${'TredMacro::'.$var} = $ctxt->[$i++];
+    }
   }
+  return;
 }
 
 sub do_eval_macro {
