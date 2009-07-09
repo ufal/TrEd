@@ -29,6 +29,7 @@ $VERSION = "0.1";
 use Carp;
 use vars qw( $VERSION @EXPORT @EXPORT_OK );
 use File::Glob qw(:glob);
+use Encode qw(encode decode);
 
 =pod
 
@@ -136,14 +137,14 @@ sub save {
     # no need to actually save - not changed
     return;
   }
-	
+
   if (defined ($self->filename) and $self->filename ne "") {
     open $fh, ">", $self->filename or
       warn "Couldn't save filelist to '".$self->filename."': $!\n";
   } else {
     $fh=\*STDOUT;
   }
-  print $fh $self->{name},"\n";
+  print $fh encode('UTF-8',$self->{name}),"\n";
   print $fh join("\n",$self->list),"\n";
   if (defined ($self->filename) and $self->filename ne "") {
     close $fh;
@@ -164,7 +165,7 @@ sub _lazy_load {
   open $fh,"<",$self->{load}
       or croak("Cannot open $self->{load}: $!\n");
   undef $self->{load};
-  $self->{name} = <$fh>;
+  $self->{name} = decode('UTF-8',scalar(<$fh>));
   $self->{name} =~ s/[\r\n]+$//;
   @{ $self->list_ref } = <$fh>; #grep { -f $_ } <$fh>;
   s/[\r\n]+$// for @{ $self->list_ref };
@@ -179,7 +180,7 @@ sub _load_name {
   return unless defined $self->{load} and !defined($self->{name});
   open $fh,"<",$self->{load}
       or croak("Cannot open $self->{load}: $!\n");
-  $self->{name} = <$fh>;
+  $self->{name} = decode('UTF-8',scalar(<$fh>));
   $self->{name} =~ s/[\r\n]+$//;
   close $fh;
   return 1;

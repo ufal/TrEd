@@ -1977,9 +1977,9 @@ sub updatePostponed {
 					  );
     $grp->{PostponedFileMenu}->checkbutton(-label => 'Keep all files',
 	  -variable=> \$grp->{keepfiles});
-    $grp->{PostponedFileMenu}->checkbutton(-label => 'Add open files to default file-list',
+    $grp->{PostponedFileMenu}->checkbutton(-label => 'Add open files to default file list',
 	  -variable=> \$grp->{appenddefault});
-    $grp->{PostponedFileMenu}->checkbutton(-label => 'Preserve patterns on reload',
+    $grp->{PostponedFileMenu}->checkbutton(-label => 'Preserve stylesheet on reload',
 	  -variable=> \$reloadKeepsPatterns);
 #     $grp->{PostponedFileMenu}->checkbutton(-label => 'Build TGTS from CSTS',
 # 					   -variable=> \$grp->{buildTGTSfromCSTS},
@@ -2032,7 +2032,7 @@ sub createFilelistsMenu {
   my ($grp,$menu,$command,$skip_filelists_from_extensions)=@_;
   my $i='A';
   foreach my $fl (sort {lc($a->name()) cmp lc($b->name())} 
-		  grep { !($skip_filelists_from_extensions and exists $filelist_from_extension{$_}) }
+		  grep { !($skip_filelists_from_extensions and (($filelist_from_extension{$_}||0)==1)) }
 		  @filelists) {
     $menu->command(-label => "$i.  ".$fl->name(),
 		   -underline=> 0,
@@ -2040,10 +2040,11 @@ sub createFilelistsMenu {
     $i++;
   }
   $menu->separator();
-  $menu->command(-label => 'Create New Filelist',
+  $menu->command(-label => 'Create New File List ...',
 		 # -underline=> 0,
 		 -command=> [sub {
-			       my $fl = createNewFilelist(shift);
+			       my $grp = shift;
+			       my $fl = createNewFilelist($grp);
 			       if (defined $fl) {
 				 my $sub = shift;
 				 my $name = $fl->name;
@@ -2051,6 +2052,10 @@ sub createFilelistsMenu {
 				 saveStdFilelist($fl);
 			       }
 			     },$grp,@$command]);
+  $menu->command(-label => 'Remove File Lists ...', -command => [\&removeFilelistsDialog,$grp] );
+  $menu->command(-label => 'Manage File Lists ...',
+		 # -underline=> 0,
+		 -command=> [\&filelistDialog, $grp]);
 }
 
 sub updateScaleFactor {
@@ -3820,20 +3825,29 @@ sub addNewFilelist {
 }
 
 sub deleteFilelist {
-  my ($grp,$fl)=@_;
-  return unless ref($fl);
-  print "Deleting filelist $fl,".$fl->name()."\n" if $tredDebug;
-  return if ($fl->name eq 'Default' or
-	     $fl->name eq 'Bookmarks');
-  print "Allowed\n" if $tredDebug;
-  @filelists=grep($_ != $fl, @filelists);
-  print join "\n","Filelists:",@filelists,EMPTY if $tredDebug;
-  print scalar(@filelists),"\n" if $tredDebug;
-  if ($grp->{filelistCurrentFilelist}==$fl) {
+  my ($grp,@lists)=@_;
+  @lists = grep {
+    (ref($_) ? (($filelist_from_extension{$_}||0)!=1) : do { carp("deleteFilelist: $_ is not a filelist object!"); 0 })
+    and $_->name !~ /^(Default|Bookmarks)$/
+  } @lists;
+  my %to_delete; @to_delete{ @lists } = ();
+  return unless @lists;
+  print "Removing filelists ".join(",",map $_->name(), @lists)."\n" if $tredDebug;
+  @filelists=grep(!exists($to_delete{$_}), @filelists);
+  for my $list (@lists) {
+    if (($filelist_from_extension{$list}||0)==2) {
+      my $fn = $list->filename;
+      if ($fn) {
+	print "Deleting filelist file $fn\n" if $tredDebug;
+	unlink $fn;
+      }
+    }
+  }
+  if (exists($to_delete{$grp->{filelistCurrentFilelist}})) {
     $grp->{filelistCurrentFilelist}=undef;
     switchFilelist($grp,'Default');
   }
-  undef $fl;
+  undef @lists;
   updatePostponed($grp);
 }
 
@@ -3886,6 +3900,27 @@ sub feedHListWithFilelist {
 	     -style => $hl->{default_style_imagetext},
 	    );
   }
+}
+
+sub removeFilelistsDialog {
+  my ($grp)=@_;
+
+  my @lists = grep { $_->[1] ne 'Default' and $_->[1] ne 'Bookmarks' and 
+		    ($filelist_from_extension{$_->[0]}||0)!=1} map [$_,$_->name], @filelists;
+  return unless @lists;
+  my $selection = [$lists[0]->[1]];
+  my $indexes = listQuery($grp->{top},'Remove File Lists','extended',
+		  [map $_->[1], @lists],$selection,
+		  {
+		    -label => 'Select one or more file lists',
+		  }) || return;
+  return unless (@$selection and
+		 userQuery($grp->{top},
+			  "Realy remove ".scalar(@$selection)." file list(s)?\n",
+			  -bitmap=> 'question',
+			  -title => "Remove file lists?",
+			  -buttons => ['Remove','Cancel']) eq 'Remove');
+  deleteFilelist($grp,map $_->[0], @lists[@$indexes]);
 }
 
 sub filelistDialog {
@@ -8863,7 +8898,7 @@ sub listQuery {
  $l->focus;
  my $result= &main::ShowDialog($d,$l,$top);
 
- if ($result=~ /OK/) {
+ if ($result!~ /Cancel/) {
    @$selected=();
    my @ret;
    foreach (0 .. $l->size-1) {
@@ -8876,7 +8911,7 @@ sub listQuery {
    return \@ret;
  }
  $d->destroy;
- return 0;
+ return undef;
 }
 
 sub selectContext {
@@ -10499,7 +10534,7 @@ sub findNodeDialog {
 	  my $re = qr{$val};
 	  $search_code .= '$_ =~ m('.$re.')';
 	} elsif ($method eq 'W') {
-	  $val=~s/[.^$(){}<>\\]/\\\&/g;
+	  $val=~s/([+\[\].^$(){}<>\\])/\\$1/g;
 	  $val=~s/\*/.\*/g;
 	  $val=~s/\?/./g;
 	  my $re = qr{^$val$};
@@ -10725,7 +10760,7 @@ sub cmpTemplateField {
   return (($val=~ /$templ/) ? 1 : 0) if ($method eq 'R');
   return (($val eq $templ) ? 1 : 0) if ($method eq 'L');
   if ($method eq 'W') {
-    $templ=~s/[.^$(){}<>\\]/\\\&/g;
+    $templ=~s/([\[\].^$(){}<>\\])/\\$1/g;
     $templ=~s/\*/.\*/g;
     $templ=~s/\?/./g;
     return (($val=~ /^$templ$/) ? 1 : 0);
@@ -12784,10 +12819,20 @@ sub loadStdFilelists {
   my $dir = File::Spec->catdir($tred_d,'filelists');
   return unless -d $dir;
   my %name = map { $_->name => $_ } @filelists;
-  for my $f (glob(File::Spec->catdir($dir,'*'))) {
+  for my $f (glob(File::Spec->catfile($dir,'*'))) {
     my $name = filename($f);
     $name =~ s/\.fl$//i; # strip .fl suffix if any
-    $name = URI::Escape::uri_unescape($name);
+    my $uname = Encode::decode('UTF-8',URI::Escape::uri_unescape($name));
+    if (URI::Escape::uri_escape_utf8($uname) ne $name) {
+      my $nf = File::Spec->catfile($dir,URI::Escape::uri_escape_utf8($uname));
+      if (rename $f, $nf) {  # rename unescaped version if exists
+	$f = $nf;
+	print STDERR "renaming\n $f\n  to\n $nf\n" if $tredDebug;
+      } else {
+	warn "Failed to rename $f to $nf\n";
+      }
+    }
+    $name = $uname;
     if (exists $name{$name}) {
       warn("Ignoring filelist $f, filelist named $name already loaded from ",$name{$name}->filename,"\n");
     } else {
@@ -12796,7 +12841,7 @@ sub loadStdFilelists {
 	$fl->load();
 	print STDERR "Reading filelist ".$fl->name." from ".$fl->filename."\n" if $tredDebug;
 	addNewFilelist(undef,$fl);
-	$filelist_from_extension{$fl}=1;
+	$filelist_from_extension{$fl}=2;
       }
     }
   }
@@ -12807,7 +12852,7 @@ sub saveStdFilelist {
   my $dir = File::Spec->catdir($tred_d,'filelists');
   mkdir $dir unless -d $dir;
   my $name = $fl->name;
-  $name = URI::Escape::uri_unescape($name);
+  $name = URI::Escape::uri_escape_utf8($name);
   if (defined $name and length $name) {
     $fl->filename(File::Spec->catdir($dir,$name));
     $fl->save;
