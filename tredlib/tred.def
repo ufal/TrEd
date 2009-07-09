@@ -3894,6 +3894,32 @@ value of C<FindInResources(filename)>.
 
 =cut
 
+=item C<SlurpURI($filename_or_uri,$chomp?)>
+
+Given a file name or URI of a resource, the macro returns the content
+of the resource. In array context the return value is a list of lines,
+in scalar context the value is a scalar. If the chomp flag is true,
+chomp() is applied to the returned array or scalar.
+
+=cut
+
+sub SlurpURI {
+  my ($filename, $encoding, $chomp)=@_;
+  my $fh = IOBackend::open_uri($filename,$encoding);
+  my $ret;
+  my $wantarray = wantarray;
+  if ($wantarray) {
+    $ret = [ <$fh> ];
+    chomp(@$ret) if $chomp;
+  } else {
+    local $/;
+    $ret = <$fh>;
+    chomp $ret if $chomp;
+  }
+  IOBackend::close_uri($fh);
+  return $wantarray ? @$ret : $ret;
+}
+
 =item C<writeln(string?,...)>
 
 Print the arguments to standard output appending a new-line if missing.
