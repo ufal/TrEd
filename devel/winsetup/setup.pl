@@ -27,11 +27,15 @@ use Win32::Shortcut;
 use Win32::TieRegistry (Delimiter=>'/');
 use Win32::API;
 use Win32::Job;
+use Win32::Codepage::Simple;
 
 use Getopt::Long;
 
-print "ARGV: ",@ARGV,"\n";
-if (@ARGV and $ARGV[0] eq '--log-file') {
+# print "ARGV: ",@ARGV,"\n";
+if (@ARGV and $ARGV[0] eq '--help') {
+  print "Usage: $0 [--help | --log-file <setup.log>]\n"
+  exit;
+} elsif (@ARGV and $ARGV[0] eq '--log-file') {
   shift;
   my $log = shift;
   open STDERR, '>', $log || warn "Cannot create $log: $!\n";
@@ -41,7 +45,7 @@ Win32::SetChildShowWindow(0) if defined &Win32::SetChildShowWindow;
 
 $SIG{__DIE__} = sub {
   print STDERR @_,"\n";
-  die $@;
+  die $_[0];
 };
 
 my $inc = File::Spec->rel2abs('tred/devel/winsetup/setup.inc',
