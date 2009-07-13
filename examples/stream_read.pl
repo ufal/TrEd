@@ -17,7 +17,7 @@ while ($l=Fslib::ReadTree($f)) {
   } else { push @tail, $l; }
 }
 
-open my $out, ">$ARGV[0]";
+open my $out, '>',$ARGV[0];
 
 $fsformat->writeTo($out); # ulozi hlavicku
 foreach my $root (@trees) {

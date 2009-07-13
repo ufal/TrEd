@@ -878,8 +878,9 @@ if ($opt_l) {
   my @fl_files;
   foreach my $l (split /\s*,\s*/,$opt_l) {
     print STDERR "Reading -l filelist $l...\n" if $tredDebug;
-    if (open(F,"<$l")) {
-      my @f=<F>;
+    my $fh;
+    if (open($fh,'<',$l)) {
+      my @f=<$fh>;
       shift @f if ($l=~/\.fl$/i and $f[0]!~m{[/.]} and ! -f absolutize($f[0]));
       s/\s+$// for @f;
       if ($l=~/\.fl$/i) {
@@ -889,7 +890,7 @@ if ($opt_l) {
 	@f=absolutize(@f);
       }
       push @fl_files,\@f;
-      close(F);
+      close($fh);
     } else {
       print STDERR "Warning: Cannot open filelist $l: ".conv_from_locale($!)."\n";
     }
@@ -7809,7 +7810,7 @@ sub quit {
 
 sub getConfigFromFile {
   my @conf;
-  if (open(my $fh,"<$configFile")) {
+  if (open(my $fh,'<',$configFile)) {
     @conf=<$fh>;
     close($fh);
     return \@conf;
@@ -8557,7 +8558,7 @@ sub saveConfig {
  my $exists = -e $configFile ? 1 : 0;
  if (!$exists or (-f $configFile and -w $configFile)) {
     my $renamed = rename $configFile, "${configFile}~" if $exists;
-    if (open(my $fh,">$configFile")) {
+    if (open(my $fh,'>',$configFile)) {
       print STDERR "Saving tred configuration to: $configFile\n" unless $opt_q;
       print $fh (@$config);
       close($fh);
@@ -8582,7 +8583,7 @@ sub saveConfig {
 		       )=~ m(yes)i) or 
 	 (!defined($top) and ! -f $trc and !defined($opt_c)))) {
      my $renamed = rename $trc, "${trc}~";
-     if (open(my $fh,">".$trc)) {
+     if (open(my $fh,'>'.$trc)) {
        print STDERR "SAVING CONFIG TO: $trc\n";
        print $fh (@$config);
        print STDERR "done\n";
@@ -9252,7 +9253,7 @@ sub openSimpleHtml {
 			   -d $initdir ? (-initialdir=> $initdir) : (),
 			   $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
   if (defined($file) and $file ne EMPTY) {
-    open my $html, ">$file" ||
+    open my $html, '>',$file ||
       errorMessage($top,"Cannot write to \"$file\"!"."\n(".conv_from_locale($!)."\nCheck file and directory permissions.\n".
 		     "\nSentences could not be saved!",1);
     my $encoding=$TrEd::Convert::outputenc;

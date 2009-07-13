@@ -505,14 +505,15 @@ sub print_trees {
     } else {
       my $i;
       my %pso;
+      my ($O,$FNT);
       if ($toFile) {
-	unless (open(O,">".$fil)) {
+	unless (open($O,'>'.$fil)) {
 	  die "Print: aborting - failed to open file '$fil': $!\n";
 	  #return 0;
 	}
       } else {
 	$SIG{'PIPE'} = sub {};
-	unless (open(O, "| ".$cmd)) {
+	unless (open($O, '| '.$cmd)) {
 	  die "Print: aborting - failed to open pipe to '$cmd': $!\n";
 	  #return 0;
 	}
@@ -524,7 +525,7 @@ sub print_trees {
       _msg("Size: ",$fontSpec->{Size},"\n");
       _msg("Name: ",$psFontName,"\n");
       local $TrEd::Convert::outputenc='iso-8859-2';
-      unless (open(F,"<$fontSpec->{PS}")) {
+      unless (open($FNT,'<',$fontSpec->{PS})) {
 	die "Aborting: failed to open file '$fontSpec->{PS}': $!\n";
 	return 0;
       }
@@ -629,47 +630,47 @@ END_OF_ENC
 	$i=0;
 	if ($t>0) {
 	  $i++  while ($i<=$#ps and $ps[$i]!~/^%%Page:/);
-	    print O '%%Page: ',$t+1," ",$t+1,"\n";
+	    print $O '%%Page: ',$t+1," ",$t+1,"\n";
 	  $i++;
 	} else { # $t == 0
 	  $i=0;
 	  unless ($toEPS) {
 	    $ps[0]=~s/ EPSF-3.0//;
-	    print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%BoundingBox:/);
-	    print O $ps[$i++],"\n";
-	    print O "\%\%DocumentMedia: $Media $prtFmtWidth $prtFmtHeight white()\n";
-	      print O '%%Pages: ',$#printList+1,"\n";
+	    print $O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%BoundingBox:/);
+	    print $O $ps[$i++],"\n";
+	    print $O "\%\%DocumentMedia: $Media $prtFmtWidth $prtFmtHeight white()\n";
+	    print $O '%%Pages: ',$#printList+1,"\n";
 	    $i++;
 	  }
-	  print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i] !~ /^%\%DocumentNeededResources: font $psFontName/);
-	  print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%BeginProlog|^%\%BeginSetup/);
+	  print $O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i] !~ /^%\%DocumentNeededResources: font $psFontName/);
+	  print $O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%BeginProlog|^%\%BeginSetup/);
 	  if ($ps[$i]=~/^%\%BeginSetup/) {
 	    # this hack is to partially fix Tk804.025 bug
-	    print O '%%BeginProlog',"\n";
-#	    print O '%%BeginFont tredfont',"\n";
-	    print O <F>;
-#	    print O '%%EndFont',"\n\n";
+	    print $O '%%BeginProlog',"\n";
+#	    print $O '%%BeginFont tredfont',"\n";
+	    print $O (<$FNT>);
+#	    print $O '%%EndFont',"\n\n";
 	  } else {
-	    print O $ps[$i++],"\n";
-#	    print O '%%BeginFont ',"$psFontName\n";
-	    print O <F>;
-#	    print O '%%EndFont',"\n\n";
+	    print $O $ps[$i++],"\n";
+#	    print $O '%%BeginFont ',"$psFontName\n";
+	    print $O (<$FNT>);
+#	    print $O '%%EndFont',"\n\n";
 	    #	      $i++ while ($i<=$#ps and $ps[$i]!~/% StrokeClip/);
 	  }
-	  print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%IncludeResource: font $psFontName/);
+	  print $O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%IncludeResource: font $psFontName/);
 	  $i++;
 	}
 	while ($i<=$#ps && $ps[$i]!~/^%\%Trailer\w*$/) {
 	  $ps[$i]=~s/ISOEncode //g unless $TrEd::Convert::support_unicode;
-	  print O $ps[$i]."\n" unless ($toEPS and
+	  print $O $ps[$i]."\n" unless ($toEPS and
 				       $ps[$i] =~/^restore showpage/);
 	  $i++
 	}
       }
-      print O "restore\n" if $toEPS;
-      print O '%%EOF',"\n";
-      close (F);
-      close (O);
+      print $O "restore\n" if $toEPS;
+      print $O '%%EOF',"\n";
+      close ($FNT);
+      close ($O);
     }
   };
   my $err=$@;

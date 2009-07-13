@@ -27,6 +27,6 @@ foreach (sort { lc($keys{$a}) cmp lc($keys{$b}) } @p) {
 }
 
 rename $ARGV[0], "$ARGV[0]~";
-open OUT, ">$ARGV[0]";
+open OUT, ">",$ARGV[0];
 print OUT $doc->toStringHTML();
 close OUT;
