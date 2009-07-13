@@ -411,15 +411,16 @@ _msg("done.\n") unless $quiet;
 if ($file_list) {
   foreach my $l (split /\s*,\s*/,$file_list) {
     print STDERR "Reading -l filelist $l...\n" if $tredDebug;
-    if (open(F,"<$l")) {
-      @files=<F>;
+    my $fh;
+    if (open($fh,'<',$l)) {
+      @files=<$fh>;
       chomp @files;
       shift @files if ($l=~/\.fl$/i and $files[0]!~m{[/.]} and ! -f Fslib::ResolvePath($l,$files[0]));
       if ($l=~/\.fl$/i) {
 	# make realtive filenames absolute relative to the .fl file
 	@files=map { Fslib::ResolvePath($l,$_) } @files;
       }
-      close(F);
+      close($fh);
     } else {
       print STDERR "Warning: Cannot open filelist $l: $!\n";
     }

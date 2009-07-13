@@ -198,12 +198,13 @@ sub read_config {
   my $config_file;
 
   foreach $f (@_,@config_file_search_list) {
-    if (defined($f) and open(F,"<$f")) {
+    my $fh;
+    if (defined($f) and open($fh,'<',$f)) {
       print STDERR "Config file: $f\n" unless $quiet;
-      while (<F>) {
+      while (<$fh>) {
 	parse_config_line($_,\%confs);
       }
-      close F;
+      close($fh);
       $openOk=1;
       $config_file=$f;
       last;

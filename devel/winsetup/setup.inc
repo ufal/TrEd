@@ -41,7 +41,7 @@ $tf->Label(
 	   -background=>'white',
 	   -anchor=>'nw',
 	   -font => '{Sans} 10',
-	   -text=>'Copyright (c) 2000-2008 by Petr Pajas',
+	   -text=>'Copyright (c) 2000-2009 by Petr Pajas',
 	  )->pack(qw(-expand yes -fill x -padx 10));
 $tf->Frame(-height => 10)->pack();
 $mw->Frame(-relief=>'sunken',-border=>1,

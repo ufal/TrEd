@@ -43,13 +43,13 @@ foreach $f (@files) {
   @nodes=();
 
   $_found=0;
-  die "cannot open $f!\n" unless open(F,"<$f");
+  open(my $fh,'<',$f) or die "cannot open $f!\n";
   $fileno++;
   print STDERR "$f\t",int(100*$fileno / $filecount),"%\t$fileno of $filecount\n";
 
-  %attribs=ReadAttribs(\*F,\@atord,2,\@header);
+  %attribs=ReadAttribs($fh,\@atord,2,\@header);
 #########################
-  while ($_=ReadTree(\*F)) {
+  while ($_=ReadTree($fh)) {
     if (/^\[/) {
       $root=GetTree($_,\@atord,\%attribs);
       push(@trees, $root) if $root;
@@ -73,13 +73,13 @@ foreach $f (@files) {
   }
 ########################
 
-  close (F);
+  close ($fh);
   if ($_found) {
-    die "cannot open $f.out for writing!\n" unless open(FO,">$f.out");
-    print FO @header;
-    PrintFS(\*FO,\@header,\@trees,\@atord,\%attribs);
-    print FO @rest;
-    close(FO);
+    open(my $fh,'>',"$f.out") or die "cannot open $f.out for writing!\n";
+    print $fh @header;
+    PrintFS($fh,\@header,\@trees,\@atord,\%attribs);
+    print $fh @rest;
+    close($fh);
     print STDERR "$_found matches in $f, wrote to $f.out.\n";
   }
  

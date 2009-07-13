@@ -225,8 +225,10 @@ sub read_macros {
     Encode::_utf8_off($defaultMacroFile);
     push @macros,"\n#line 1 \"$defaultMacroFile\"\n";
     my $fh;
-    print "ERROR: Cannot open macros: $defaultMacroFile!\n", return 0
-      unless open($fh,"<$defaultMacroFile");
+    open(my $fh,'<',$defaultMacroFile) or do {
+      print "ERROR: Cannot open macros: $defaultMacroFile!\n";
+      return 0
+    };
     set_encoding($fh,$encoding);
     preprocess($fh,$defaultMacroFile,\@macros,\@contexts);
     #    push @macros, <$fh>;
@@ -234,8 +236,8 @@ sub read_macros {
   }
   print STDERR "Reading $file\n" if $macroDebug;
   my $F;
-  open($F,"<$file")
-    || (!$keep && ($file="$libDir/$file") && open($F,"<$file")) ||
+  open($F,'<',$file)
+    || (!$keep && ($file="$libDir/$file") && open($F,'<',$file)) ||
       die "ERROR: Cannot open macros: $file ($!)!\n";
   set_encoding($F,$encoding);
   preprocess($F,$file,\@macros,\@contexts);
