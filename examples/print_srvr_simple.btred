@@ -113,7 +113,8 @@ sub serverError {
 sub serveSVG {
   my ($self,$cgi) = @_;             # Net::HTTPServer::Request object
   my $path = $cgi->param('file');
-  my $tree_no = int($cgi->param('tree_no')) || 1;
+  my $tree_no = int($cgi->param('tree_no')||0) || 1;
+  print STDERR '['.localtime()."] No path\n";
   return notFound($cgi) unless $path;
   $path=~s/\.svg$//;
   $path = URI->new($path)->canonical->as_string;
