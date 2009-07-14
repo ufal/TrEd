@@ -96,7 +96,7 @@ sub set_menu_label {
   my ($self,$key,$label)=@_;
   my $lookup_hash = $self->{-menu_lookup_hash};
   for my $m (lookup_menu_item($self,$key)) {
-    $m->[0]->entryconfigure($m->[1],-label=>$label,-background=>'yellow');
+    $m->[0]->entryconfigure($m->[1],-label=>$label);
   }
   $self->{-menudata}{$key}[1]=$label;
 }
@@ -108,21 +108,29 @@ sub get_menu_label {
   return;
 }
 
-sub set_menu_accel {
-  my ($self,$key,$accel)=@_;
-  my $lookup_hash = $self->{-menu_lookup_hash};
-  for my $m (lookup_menu_item($self,$key)) {
-    $m->[0]->entryconfigure($m->[1],-accelerator=>$accel,-background=>'yellow');
-  }
-  $self->{-menudata}{$key}[2]{-accelerator}=$accel;
-}
-
-sub get_menu_accel {
-  my ($self,$key)=@_;
+sub get_menu_option {
+  my ($self,$key,$opt)=@_;
   my $m = $self->{-menudata}{$key};
-  return $m->[2]{-accelerator} if $m;
+  return $m->[2]{$opt} if $m;
   return;
 }
+
+sub set_menu_options {
+  my ($self,$key,%opt)=@_;
+  if (exists ($opt{-label})) {
+    my $value = delete $opt{-label};
+    set_menu_label($self,$key,$value);
+  }
+  return unless keys %opt;
+  my $lookup_hash = $self->{-menu_lookup_hash};
+  for my $m (lookup_menu_item($self,$key)) {
+    $m->[0]->entryconfigure($m->[1],%opt);
+  }
+  for my $k (keys %opt) {
+    $self->{-menudata}{$key}[2]{$k}=$opt{$k};
+  }
+}
+
 
 sub lookup_menu_item {
   my ($self,$key)=@_;
