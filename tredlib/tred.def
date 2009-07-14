@@ -2463,7 +2463,8 @@ called with the following three arguments:
 
 You may obtain $grp from the second argument using
 $_[1]->{currentWindow}.  You should probably call Tk->break at the end
-of your code, so that the event does not propagate.
+of your code, so that the event does not propagate. There is no
+C<$root> or C<$this> available within the callback.
 
 A safer way (with slower execution, though) is to use a macro wrapped
 into a MacroCallback() instead of a sub:
@@ -2472,7 +2473,8 @@ into a MacroCallback() instead of a sub:
 
 See C<MacroCallback> macro for details. The macro is called with the
 same arguments (appended to a list of arguments provided in
-C<MacroCallback>).
+C<MacroCallback>). The macro can use all standard macro functions and
+variables.
 
 If the C<context> argument is a name of a binding context, the binding
 is only used in the specific context.  If C<context> is C<'*'>, the
