@@ -24,6 +24,9 @@ sub Find_nochange { Find(@_); ChangingFile(0) }
 #bind FindNext_nochange to F4 menu Find Next
 sub FindNext_nochange { FindNext(@_); ChangingFile(0); }
 
+#bind FindPrevious_nochange to Shift+F4 menu Find Previous
+sub FindPrevious_nochange { FindPrev(@_); ChangingFile(0); }
+
 #bind NewRBrother to F7 menu New Node (r-brother)
 #bind NewSon to Shift+F7 menu New Node (son)
 #bind DeleteThisNode to F8 menu Delete Node
@@ -472,24 +475,45 @@ sub node_menu_item_cget {
 
 sub configure_node_menu_items {
   my ($items, $config)=@_;
-  if ($grp->{framegroup}->{NodeMenu}) {
-    foreach (@$items) {
-      $grp->{framegroup}->{NodeMenu}->entryconfigure($_,@$config);
+  if ($grp->{framegroup}{main_menu}) {
+    my $tm = $grp->{framegroup}{main_menu};
+    foreach my $key (@$items) {
+      $tm->set_menu_options($key, @$config);
+    }
+  } else {
+    if ($grp->{framegroup}->{NodeMenu}) {
+      foreach (@$items) {
+	$grp->{framegroup}->{NodeMenu}->entryconfigure($_,@$config);
+      }
     }
   }
 }
 
 sub critical_node_menu_items {
-  return ["New Node",
-	  "Remove Active Node",
-	  "Insert New Tree",
-	  "Insert New Tree After",
-	  "Remove Whole Current Tree",
-	  "Copy Trees ...",
-	  "Move Current Tree Backward",
-	  "Move Current Tree Foreward",
-	  "Make Current Node the Root",
-	 ];
+  if ($grp->{framegroup}{main_menu}) {
+    return [
+      'MENUBAR:NODE:NEW_NODE',
+      'MENUBAR:NODE:REMOVE_ACTIVE_NODE',
+      'MENUBAR:TREE:INSERT_NEW_TREE_AFTER',
+      'MENUBAR:TREE:INSERT_NEW_TREE_BEFORE',
+      'MENUBAR:TREE:COPY_TREES',
+      'MENUBAR:TREE:MOVE_CURRENT_TREE_BACKWARD',
+      'MENUBAR:TREE:MOVE_CURRENT_TREE_FOREWARD',
+      'MENUBAR:NODE:MAKE_CURRENT_NODE_THE_ROOT',
+     ]
+  } else {
+    # old API
+    return ["New Node",
+	    "Remove Active Node",
+	    "Insert New Tree",
+	    "Insert New Tree After",
+	    "Remove Whole Current Tree",
+	    "Copy Trees ...",
+	    "Move Current Tree Backward",
+	    "Move Current Tree Foreward",
+	    "Make Current Node the Root",
+	   ];
+  }
 }
 
 sub enable_node_menu_items {
