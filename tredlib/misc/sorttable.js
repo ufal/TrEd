@@ -478,7 +478,7 @@ var ml_tsort = {
     { if(this.forcesort_msg) alert(this.forcesort_msg); return; }  
     else
     {
-      var sortfn = this.get_sortfn(true);  
+      var sortfn = this.get_sortfn(false);   // PP: disable warnings
       table.setAttribute("ts_sortcell", column+1);
       newRows.sort(sortfn);
       if (lastSortDir == 'asc') newRows.reverse();
