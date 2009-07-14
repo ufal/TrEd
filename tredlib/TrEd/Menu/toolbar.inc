@@ -1,5 +1,13 @@
 # -*- cperl -*-
 # TrEd's main toolbar menus
+
+#
+# DO NOT CHANGE ANY IDENTIFIERS
+# (not even if moving menus to different submenus, the identifiers are meaningless!!!)
+#
+# Use TrEd::Menu's lookup_menu_item method to look up actual menu entry
+#
+
 return sub {
   my ($grp)=@_;
   return {
