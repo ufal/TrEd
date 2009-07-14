@@ -462,6 +462,8 @@ require Tk::JComboBox_0_02;
 require Tk::TrEdNodeEdit;
 require Tk::TextSearchLine;
 
+require TrEd::Menu;
+
 require Data::Snapshot;
 import Data::Snapshot;
 
@@ -553,39 +555,27 @@ our %context_override_binding;
 my %default_binding = (
   '<Tab>' => 
     [ sub { 
-	currentNext($_[1]->{focusedWindow});
-	Tk->break; },
+	currentNext($_[1]->{focusedWindow}); Tk->break; },
       'select next node',
       'top',
      ],
   '<Shift-ISO_Left_Tab>' => 
-    [sub { currentPrev($_[1]->{focusedWindow});
-	   Tk->break; },
+    [sub { currentPrev($_[1]->{focusedWindow}); Tk->break; },
      'select previous node',
     ],
   '<Shift-Tab>'=>
-    [sub { currentPrev($_[1]->{focusedWindow});
-	   Tk->break; },
+    [sub { currentPrev($_[1]->{focusedWindow}); Tk->break; },
      'select previous node',
     ],
   '<period>'=> 
-    [sub { onIdleNextTree($_[1]->{focusedWindow}); },
-      
-     'go to next tree',
-    ],
+    [sub { onIdleNextTree($_[1]->{focusedWindow}); }, 'go to next tree', ],
   '<comma>'=> 
-    [sub { onIdlePrevTree($_[1]->{focusedWindow}); },
-      
-     'go to previous tree',
+    [sub { onIdlePrevTree($_[1]->{focusedWindow}); }, 'go to previous tree',
     ],
   '<Next>'=> 
-    [sub { onIdleNextTree($_[1]->{focusedWindow}); },
-     'go to next tree',
-    ],
+    [sub { onIdleNextTree($_[1]->{focusedWindow}); }, 'go to next tree', ],
   '<Prior>'=> 
-    [sub { onIdlePrevTree($_[1]->{focusedWindow}); },
-     'go to previous tree',
-    ],
+    [sub { onIdlePrevTree($_[1]->{focusedWindow}); }, 'go to previous tree', ],
   '<greater>'=>
     [sub { my $fw=$_[1]->{focusedWindow};
 	   gotoTree($fw,
@@ -622,30 +612,10 @@ my %default_binding = (
      'select left sibling',
     ],
   '<Shift-Home>'=>
-    [sub {
-       my $win = cast_to_win( $_[1] );
-       my $tv = $win->treeView;
-       my $node = first { $tv->node_is_displayed($_) } @{$win->{Nodes}};
-       if ($node) {
-	 setCurrent($win,$node);
-	 centerTo($win,$node);
-       }
-       Tk->break;
-     },
-     'select left-most node',
+    [sub {gotoFirstDisplayedNode($_[1]); Tk->break}, 'select left-most node',
    ],
   '<Shift-End>'=>
-    [sub {
-       my $win = cast_to_win( $_[1] );
-       my $tv = $win->treeView;
-       my $node = first { $tv->node_is_displayed($_) } reverse @{$win->{Nodes}};
-       if ($node) {
-	 setCurrent($win,$node);
-	 centerTo($win,$node);
-       }
-       Tk->break;
-     },
-     'select right-most node',
+    [sub {gotoLastDisplayedNode($_[1]); Tk->break}, 'select right-most node',
    ],
   '<Shift-Left>'=>
     [sub {
@@ -746,6 +716,25 @@ my %default_binding = (
      'focus previous view',
     ],
  );
+
+sub gotoFirstDisplayedNode {
+  my $win = cast_to_win( $_[0] );
+  my $tv = $win->treeView;
+  my $node = first { $tv->node_is_displayed($_) } @{$win->{Nodes}};
+  if ($node) {
+    setCurrent($win,$node);
+    centerTo($win,$node);
+  }
+}
+sub gotoLastDisplayedNode {
+  my $win = cast_to_win( $_[0] );
+  my $tv = $win->treeView;
+  my $node = first { $tv->node_is_displayed($_) } reverse @{$win->{Nodes}};
+  if ($node) {
+    setCurrent($win,$node);
+    centerTo($win,$node);
+  }
+}
 
 sub resolve_default_binding {
   my ($grp,$key) =@_;
@@ -878,9 +867,8 @@ if ($opt_l) {
   my @fl_files;
   foreach my $l (split /\s*,\s*/,$opt_l) {
     print STDERR "Reading -l filelist $l...\n" if $tredDebug;
-    my $fh;
-    if (open($fh,'<',$l)) {
-      my @f=<$fh>;
+    if (open(F,"<$l")) {
+      my @f=<F>;
       shift @f if ($l=~/\.fl$/i and $f[0]!~m{[/.]} and ! -f absolutize($f[0]));
       s/\s+$// for @f;
       if ($l=~/\.fl$/i) {
@@ -890,7 +878,7 @@ if ($opt_l) {
 	@f=absolutize(@f);
       }
       push @fl_files,\@f;
-      close($fh);
+      close(F);
     } else {
       print STDERR "Warning: Cannot open filelist $l: ".conv_from_locale($!)."\n";
     }
@@ -1765,6 +1753,7 @@ sub plainErrorMessage {
 
 sub _deleteMenu {
   my ($menu,$item)=@_;
+  print STDERR "_deleteMenu $item\n" if $tredDebug;
   my $entry = $menu->entrycget($item,'-menu');
   $menu->delete($item);
   $entry->destroy if $entry;
@@ -1838,7 +1827,7 @@ sub addToRecent {
   @recentFiles=@recentFiles[0..min($#recentFiles,9)];
 
   if ($grp->{RecentFileMenu}) {
-    my $menu= $grp->{RecentFileMenu}->cget(-menu);
+    my $menu= $grp->{RecentFileMenu};
     $menu->delete(0,'end');
     $_->destroy for $menu->children;
     my $i=0;
@@ -1898,40 +1887,29 @@ sub lastActionBookmark {
   if (defined($f)) {
     print STDERR "Bookmarking last action at: $f\n" if $tredDebug;
     $grp->{lastActionBookmark}=$f;
-    updateBookmarks($grp);
+    # updateBookmarks($grp);
   }
 }
 
 sub updateSessionStatus {
   my ($grp)=@_;
   my $win = $grp->{focusedWindow};
+  $grp->{ContextsMenu}->configure(-options => [getApplicableContexts($win)]) if $grp->{ContextsMenu};
   $grp->{keepcurrentfile}=($win->{FSFile} && $win->{FSFile}->appData('noautoclose')) ? 1 : 0;
 }
 
+#  $group{BookmarksFileMenu}= MenubarItem($menubar,qw/-label Bookmarks -underline 0/);
+#  updateBookmarks(\%group);
+
+
 sub updateBookmarks {
   my ($grp)=@_;
-
+  return if $grp->{noUpdatePostponed};
   if ($grp->{BookmarksFileMenu}) {
     print STDERR "Updating bookmark menu\n"  if $tredDebug;
     my $menu= $grp->{BookmarksFileMenu}->menu;
     $menu->delete(0,'end');
     $_->destroy for $menu->children;
-    $grp->{BookmarksFileMenu}->command(-label=> 'Add to Bookmarks filelist',
-				       -underline=> 0,
-				       -command=> [ \&addBookmark,$grp ]);
-    my $b_menu = $grp->{BookmarksFileMenu}->cascade(-label=> 'Add to other file list...',
-						    -underline=> 7,
-						    -menuitems => [ ],
-						   );
-    createFilelistsMenu($grp, $b_menu, [\&addBookmark, $grp], 1);
-
-    $grp->{BookmarksFileMenu}->separator();
-    if (defined($grp->{lastActionBookmark})) {
-      $grp->{BookmarksFileMenu}->command(-label => "Last action",
-					 -underline=> 0,
-					 -command=> [ \&openStandaloneFile,$grp,$grp->{lastActionBookmark} ]);
-    }
-    $grp->{BookmarksFileMenu}->separator();
     my $i=0;
     my $bl=bookmarkFilelist();
     return unless ref ($bl);
@@ -1942,8 +1920,8 @@ sub updateBookmarks {
 				      -command=> [ \&openStandaloneFile,$grp,$b ]);
       $i++;
     }
+    updateTitle($grp); # e.g. after adding/removing a bookmark to/from a filelist
   }
-  updateTitle($grp); # e.g. after adding/removing a bookmark to/from a filelist
 }
 
 sub updatePostponed {
@@ -1951,77 +1929,40 @@ sub updatePostponed {
   return if $grp->{noUpdatePostponed};
   if ($grp->{PostponedFileMenu}) {
     print STDERR "Updating session menu\n"  if $tredDebug;
-    my $menu= $grp->{PostponedFileMenu}->menu;
+    my $menu = $grp->{PostponedFileMenu};
     $menu->delete(0,'end');
     $_->destroy for $menu->children;
-    $grp->{PostponedFileMenu}->command(-label=> 'Extensions',
-				       -state=> 'disabled',
-				       -background=> '#444444'
-				      );
-    $grp->{PostponedFileMenu}->command(-label => "Manage Extensions...",
-				       -underline=> 0,
-				       -command=> [\&manage_extensions,$grp,1]);
-
-    $grp->{PostponedFileMenu}->command(-label=> 'Options',
-				       -state=> 'disabled',
-				       -background=> '#444444'
-				      );
-    $grp->{PostponedFileMenu}->checkbutton(-label => 'Keep this file when opening a new one',
-					   -variable=> \$grp->{keepcurrentfile},
-					   -command => [sub {
-							  my ($grp)=@_;
-							  my $win = $grp->{focusedWindow};
-							  if ($win and $win->{FSFile}) {
-							    $win->{FSFile}->changeAppData('noautoclose',$grp->{keepcurrentfile})
-							  }
-							},$grp]
-					  );
-    $grp->{PostponedFileMenu}->checkbutton(-label => 'Keep all files',
-	  -variable=> \$grp->{keepfiles});
-    $grp->{PostponedFileMenu}->checkbutton(-label => 'Add open files to default file list',
-	  -variable=> \$grp->{appenddefault});
-    $grp->{PostponedFileMenu}->checkbutton(-label => 'Preserve stylesheet on reload',
-	  -variable=> \$reloadKeepsPatterns);
-#     $grp->{PostponedFileMenu}->checkbutton(-label => 'Build TGTS from CSTS',
-# 					   -variable=> \$grp->{buildTGTSfromCSTS},
-# 					   -command => [sub {
-# 							  my ($grp)=@_;
-# 							  if ($grp->{buildTGTSfromCSTS}) {
-# 							    Csts2fs::setupTR();
-# 							  } else {
-# 							    Csts2fs::setupAR();
-# 							  }
-# 							},$grp]
-# 					  );
-
-    $grp->{PostponedFileMenu}->command(-label=> 'Open files',
-				       -state=> 'disabled',
-				       -background=> '#444444'
-				      );
+    # $menu->command(-label=> 'Open files',
+    # 				       -state=> 'disabled',
+    # 				       -background=> '#444444'
+    # 				      );
     my $i=0;
     foreach my $of (@openfiles) {
-      $grp->{PostponedFileMenu}->command(-label => "$i.  ".$of->filename(),
+      $menu->command(-label => "$i.  ".$of->filename(),
 				      -underline=> 0,
 				      -command=> [\&openStandaloneFile,$grp,
 						  $of->filename(),-keep => 1]);
       $i++;
     }
-    $grp->{PostponedFileMenu}->command(-label=> 'none',
-				       -state=> 'disabled'
-				      ) unless (@openfiles);
-    $grp->{PostponedFileMenu}->command(-label=> 'File lists',
-				       -state=> 'disabled',
-				       -background=> '#444444'
-				      );
-
-    createFilelistsMenu($grp, $grp->{PostponedFileMenu}, [\&selectFilelist, $grp]);
-
-  }
-  my $b_menu= $grp->{BookmarksFileMenu}->menu->entrycget('Add to other *','-menu');
-  if ($b_menu) {
-    $b_menu->delete(0,'end');
-    $_->destroy for $b_menu->children;
-    createFilelistsMenu($grp, $b_menu, [\&addBookmark, $grp],1);
+    $menu->command(-label=> 'none',
+		   -state=> 'disabled'
+		  ) unless (@openfiles);
+    {
+      my $menu = $grp->{FileListMenu};
+      if ($menu) {
+	$menu->delete(0,'end');
+	$_->destroy for $menu->children;
+	createFilelistsMenu($grp, $menu, [\&selectFilelist, $grp]);
+      }
+    }
+    {
+      my $menu = $grp->{AddBookmarkMenu};
+      if ($menu) {
+	$menu->delete(0,'end');
+	$_->destroy for $menu->children;
+	createFilelistsMenu($grp, $menu, [\&addBookmark, $grp], 1);
+      }
+    }
   }
 }
 
@@ -2030,33 +1971,33 @@ sub updatePostponed {
 # using -command => [ @command, $filelist_name ]
 # as menu callback
 sub createFilelistsMenu {
-  my ($grp,$menu,$command,$skip_filelists_from_extensions)=@_;
+  my ($grp,$menu,$command,$bookmark_to)=@_;
   my $i='A';
   foreach my $fl (sort {lc($a->name()) cmp lc($b->name())} 
-		  grep { !($skip_filelists_from_extensions and (($filelist_from_extension{$_}||0)==1)) }
+		  grep { !($bookmark_to and (($filelist_from_extension{$_}||0)==1)) }
 		  @filelists) {
     $menu->command(-label => "$i.  ".$fl->name(),
 		   -underline=> 0,
 		   -command=> [@$command,$fl->name()]);
     $i++;
   }
-  $menu->separator();
-  $menu->command(-label => 'Create New File List ...',
-		 # -underline=> 0,
-		 -command=> [sub {
-			       my $grp = shift;
-			       my $fl = createNewFilelist($grp);
-			       if (defined $fl) {
-				 my $sub = shift;
-				 my $name = $fl->name;
-				 $sub->(@_, $name);
-				 saveStdFilelist($fl);
-			       }
-			     },$grp,@$command]);
-  $menu->command(-label => 'Remove File Lists ...', -command => [\&removeFilelistsDialog,$grp] );
-  $menu->command(-label => 'Manage File Lists ...',
-		 # -underline=> 0,
-		 -command=> [\&filelistDialog, $grp]);
+  if ($bookmark_to) {
+    $menu->separator();
+    $menu->command(-label => ($bookmark_to ? 'New File List...' : 'Create New File List ...'),
+		   -command=> [\&_makeNewFilelist,$grp,\&addBookmark]);
+  }
+}
+
+sub _makeNewFilelist {
+  my ($grp,$action)=@_;
+  my $grp = shift;
+  my $fl = createNewFilelist($grp);
+  if (defined $fl) {
+    my $sub = shift;
+    my $name = $fl->name;
+    $action->($grp,$name) if $action;
+    saveStdFilelist($fl);
+  }
 }
 
 sub updateScaleFactor {
@@ -2107,8 +2048,7 @@ sub updateTitle {
 sub updateHelpMenu {
   my ($grp,$opts)=@_;
   $opts||={};
-  my $m =$grp->{HelpMenu}->menu;
-  my $hm = $m && eval { $m->entrycget($m->index('Extension manuals'),'-menu') };
+  my $hm = $grp->{main_menu}->lookup_menu_item('MENUBAR:HELP:EXTENSION_MANUALS');
   return unless $hm;
   $hm->delete(0,'end');
   $_->destroy for $hm->children;
@@ -3096,7 +3036,7 @@ sub initSidePanel {
     disable_scrollbar_focus($t);
     $t->BindMouseWheelVert();
     $grp->{sidePanel}->add('filelistView', $colf, {
-      -label => 'Current Filelist',
+      -label => 'Current File List',
       -data => $t,
       -show_command => sub {
 	update_sidepanel_filelist_view($grp,$grp->{focusedWindow}{currentFilelist},1);
@@ -3205,7 +3145,7 @@ sub initSidePanel {
     );
     $fsel->Subwidget('filelist')->bind('<3>', sub { my ($w)=@_; $menu->Post($w->pointerxy); Tk->break; });
     $grp->{sidePanel}->add('fileSystemView', $colf, {
-      -label => 'Browse file system',
+      -label => 'Browse File System',
       -data => $fsel,
       -show_command => sub {
       }
@@ -3292,8 +3232,7 @@ sub _u_sort {
 
 sub update_macro_menus {
   my ($grp)=@_;
-  $grp->{ContextsMenu}->configure(-options => [getContexts()])
-    if $grp->{ContextsMenu};
+  $grp->{ContextsMenu}->configure(-options => [getApplicableContexts($grp->{focusedWindow})]) if $grp->{ContextsMenu};
   if ($grp->{MacroMenu}) {
     my $menu = $grp->{MacroMenu}->menu;
     foreach my $context (sort(keys(%keyBindings))) {
@@ -3311,18 +3250,22 @@ sub update_macro_menus {
 					 } sort(keys(%{$keyBindings{$context}}))));
     }
   }
+  my $tools_menu = $grp->{ToolsMenu}; #->menu;
   if ($grp->{UserMenu}) {
-    my $menu = $grp->{UserMenu}->menu;
+    my $menu = $grp->{UserMenu};
     $menu->delete(0,'end');
     $_->destroy for $menu->children;
+    my $current;
+    $grp->{MacroMenuItems}={}; # cache menus
     foreach my $context ("TredMacro",grep { $_ ne "TredMacro" } sort(keys(%menuBindings))) {
       my %macro_to_key = reverse %{ $keyBindings{$context}||{} };
-      $menu->Cascade( -label => $context,
+      my $cascade = $menu->Cascade( -label => $context,
 		 -menuitems=>
-		   cascadeMenus(map {
-		     my $v = $menuBindings{$context}->{$_};
+		   $grp->{MacroMenuItems}{$context}=cascadeMenus(map {
+		     my $label = $_;
+		     my $v = $menuBindings{$context}->{$label};
 		     my $key = defined($v->[1]) ? $v->[1] : $macro_to_key{$v->[0]};
-		     my $label = $_; $label=~s/^_+//;
+		     $label=~s/^_+//;
 		     [Button=> $label,
 		      -command=> [sub {
 				    doEvalMacro($_[0]->{focusedWindow},
@@ -3331,13 +3274,71 @@ sub update_macro_menus {
 				  $grp,
 				  $v->[0]],
 		      $key ? (-accelerator=> "(".$key.")") : ()]}
+                                  grep { $context ne 'TredMacro' or !/^_*\*/ } # skip "Star Tools" bindings
 				  map $_->[1], _u_sort(map [$_,$_], keys(%{$menuBindings{$context}}))));
+      $current = $cascade if $context eq $grp->{focusedWindow}{macroContext}
+    }
+    # $tools_menu->entryconfigure('Current Context*',-menu => $current->menu);
+  }
+  if ($tools_menu) {
+    # update "Star Tools" in the Tools menu
+    print STDERR "updating toolmenu\n" if $tredDebug;
+    my $end = $tools_menu->index('end');
+    my ($first,$last);
+    for (my $i=0; $i<$end; $i++) {
+      if ($tools_menu->type($i) eq 'command' and $tools_menu->entrycget($i,'-label') =~ /^\*/) {
+	$first = $i unless defined $first;
+	$last = $i;
+      } elsif (defined $first) {
+	last;
+      }
+    }
+    # print STDERR "clearing toolmenu from $first to $last\n" if defined($first) and $tredDebug;
+    $tools_menu->delete($first,$last) if (defined $first);
+    my $TredMacroMenu = $menuBindings{TredMacro};
+    my %macro_to_key = reverse %{ $keyBindings{TredMacro}||{} };
+    $first ||= 'end';
+    foreach my $item (map $_->[1], _u_sort(map [$_,$_], grep /^_*\*/, keys %$TredMacroMenu)) {
+      my $v = $TredMacroMenu->{$item};
+      my $key = defined($v->[1]) ? $v->[1] : $macro_to_key{$v->[0]};
+      my $label = $item; $label=~s/^_+//;
+      # print STDERR "appending toolmenu $first\n" if $tredDebug;
+      $tools_menu->insert($first,
+			  'command',
+			  -label => $label,
+			  -command=> [sub { doEvalMacro($_[0]->{focusedWindow}, $_[1]); },
+				      $grp,
+				      $v->[0]],
+			  $key ? (-accelerator=> "(".$key.")") : ());
+      $first ++;
     }
   }
+  updateCurrentContextMenu($grp);
 }
 
-
-
+sub updateCurrentContextMenu {
+  my ($grp)=@_;
+  print STDERR "updating context menu\n" if $tredDebug;
+  my $context = $grp->{focusedWindow}{macroContext};
+  my $menu = $grp->{CurrentContextMacroMenu};
+  eval {
+    # if ($M->isa('Tk::Menubutton')) {
+    #   $M->configure(-text => "$context");
+    # } else {
+    #   $M->configure(-label => "$context");
+    # }
+    # my $menu = $M->menu;
+    $menu->delete(0,'end');
+    $_->destroy for $menu->children;
+    if ($menuBindings{$context}) {
+#      $M->configure(-state=>'normal');
+      $menu->AddItems(@{$grp->{MacroMenuItems}{$context}});
+    } else {
+#      $M->configure(-state=>'disabled');
+    }
+  };
+  warn $@ if $@;
+}
 
 sub update_macrolist_view {
   my ($grp,$win) = grp_win($_[0]);
@@ -3615,7 +3616,7 @@ sub createFilelistBrowseEntry {
      [ sub {
 	 my $l=shift;
 	 $l->delete(0,'end');
-	 foreach (@filelists) {
+	 foreach (sort {lc($a->name()) cmp lc($b->name())} @filelists) {
 	   $l->insert(0,$_->name);
 	 }
        }]
@@ -3903,11 +3904,41 @@ sub feedHListWithFilelist {
   }
 }
 
+
+sub selectFilelistDialog {
+  my ($grp)=@_;
+  use Devel::Peek;
+  for (@filelists) {
+    #Dump($_->name);
+  }
+  my @lists =
+    sort { $a->[2] cmp $b->[2] } (map { [$_,$_->name,lc($_->name)] } @filelists);
+  return unless @lists;
+  my $selection = [$lists[0]->[1]];
+  listQuery($grp->{top},'Select File Lists','browse',
+	    [map $_->[1], @lists],$selection,
+	   ) || return;
+  return unless (@$selection);
+  selectFilelist($grp,$selection->[0]);
+}
+
+sub bookmarkToFilelistDialog {
+  my ($grp)=@_;
+  my @lists = sort { $a->[2] cmp $b->[2] } grep {($filelist_from_extension{$_->[0]}||0)!=1} map [$_,$_->name,lc($_->name)], @filelists;
+  return unless @lists;
+  my $selection = [$lists[0]->[1]];
+  listQuery($grp->{top},'Add Bookmark To File Lists','browse',
+	    [map $_->[1], @lists],$selection,
+	   ) || return;
+  return unless (@$selection);
+  addBookmark($grp,$selection->[0]);
+}
+
 sub removeFilelistsDialog {
   my ($grp)=@_;
 
-  my @lists = grep { $_->[1] ne 'Default' and $_->[1] ne 'Bookmarks' and 
-		    ($filelist_from_extension{$_->[0]}||0)!=1} map [$_,$_->name], @filelists;
+  my @lists = sort { $a->[1] cmp $b->[1] }  grep { $_->[1] ne 'Default' and $_->[1] ne 'Bookmarks' and 
+		    ($filelist_from_extension{$_->[0]}||0)!=1} map [$_,$_->name,lc($_->name)], @filelists;
   return unless @lists;
   my $selection = [$lists[0]->[1]];
   my $indexes = listQuery($grp->{top},'Remove File Lists','extended',
@@ -4291,10 +4322,24 @@ sub filelistDialog {
 }
 
 sub generateSortedMacroTable {
-  my ($grp,$context,$include_anonymous,$order_by) = @_;
+  my ($grp,$context,$flags,$order_by) = @_;
+  $flags||=0;
+  # 1=include-anonymous, 
+  # 2=include-TredMacro,
+  # 4=include-Default (not yet implemented)
 
-  my $Keys = $keyBindings{$context};
-  my $Menus = $menuBindings{$context};
+  my $Keys = { %{$keyBindings{$context}} };
+  my $Menus = { %{$menuBindings{$context}} };
+  if (($flags & 2) and ($context ne 'TredMacro')) {
+    my $tmKeys = $keyBindings{TredMacro};
+    my ($k,$v);
+    while (($k,$v)=each %{ $menuBindings{TredMacro} }) {
+      $Menus->{$k.' (TredMacro)'}=$v unless ($v->[1] and exists $Keys->{$v->[1]});
+    }
+    while (($k,$v)=each %{ $keyBindings{TredMacro} }) {
+      $Keys->{$k}||=$v;
+    }
+  }
   my %macro_to_key = reverse %{ $Keys };
   my %macro_to_menu = map { $Menus->{$_}->[0] => $_ } keys %{ $Menus };
 
@@ -4304,7 +4349,7 @@ sub generateSortedMacroTable {
     my ($macro,$key) = @{ $Menus->{$_} };
     [ $_, ($Keys->{$key} eq $macro ? $key : $macro_to_key{$macro}), $macro ]
   } keys %{ $Menus };
-  if ($include_anonymous) {
+  if ($flags|1) {
     push @macroTable,
       grep { defined($_->[2]) }
       map {
@@ -4430,7 +4475,7 @@ sub macrolistDialog {
 		  },$grp,$t,\$context];
 
   my $f=$topframe->Frame();
-  $f->Label(-text => "Context: ",
+  $f->Label(-text => "Mode: ",
 	    -underline => 5,
 	   )->pack(qw/-side left/);
   my $om = 
@@ -5512,13 +5557,13 @@ sub switchContext {
   $win->{macroContext}=$context;
   if (isFocused($win)) {
     $grp->{selectedContext}=$context;
-    update_macrolist_view($win);
     updateStylesheetMenu($grp);
+    update_macrolist_view($win);
+    updateCurrentContextMenu($grp);
   }
   my ($l1,$l2)=($win->{got_nodes}, $win->{redrawn});
   doEvalHook($win,"switch_context_hook",$prevcontext,$context);
   unless ($noredraw) {
-    updateStylesheetMenu($grp);
     get_nodes_win($win) unless $l1 < $win->{got_nodes};
     redraw_win($win) unless $l2 < $win->{redrawn};		# something should be done with display attrs vs windows maybe
   }
@@ -5849,6 +5894,7 @@ sub NavigateMenuByFirstKey {
   return if ($last eq 'none');
   $active = 0 if $active eq 'none';
   for my $i ( $active+1..$last, 0..$active ) {
+    print STDERR "navigate menu\n" if $tredDebug;
     my $label = eval {local $SIG{__DIE__};  $w->entrycget($i,'-label') };
     next unless defined($label);
     $label = lc($label);
@@ -5923,6 +5969,7 @@ sub focusCanvas {
     resetTreePosStatus($grp);
     updateSessionStatus($grp);
     update_macrolist_view($grp);
+    updateCurrentContextMenu($grp);
     updateStylesheetMenu($grp);
     my $fl = $newfocus->{currentFilelist};
     update_sidepanel_filelist_view($grp,$fl,$fl == $prevfl ? 0 : 1);
@@ -6222,24 +6269,24 @@ sub createCanvasBindings {
   }
 }
 
-sub MenubarItem {
-  my ($menubar) = shift;
-  my %opts = @_;
-  if ($menubar->class eq 'Menu') {
-    $menubar->cascade(%opts);
-  } else {
-    my $label = delete $opts{-label};
-    if ($label ne EMPTY) {
-      my $underline = index($label,'~')+$[;
-      if ($underline >= 0 and !exists($opts{-underline})) {
-	$label =~ s/~//;
-	$opts{-underline} = $underline;
-      }
-      $opts{-text} = $label;
-    }
-    $menubar->Menubutton(%opts)->pack(qw/-side left/);
-  }
-}
+# sub MenubarItem {
+#   my ($menubar) = shift;
+#   my %opts = @_;
+#   if ($menubar->class eq 'Menu') {
+#     $menubar->cascade(%opts);
+#   } else {
+#     my $label = delete $opts{-label};
+#     if ($label ne EMPTY) {
+#       my $underline = index($label,'~')+$[;
+#       if ($underline >= 0 and !exists($opts{-underline})) {
+# 	$label =~ s/~//;
+# 	$opts{-underline} = $underline;
+#       }
+#       $opts{-text} = $label;
+#     }
+#     $menubar->Menubutton(%opts)->pack(qw/-side left/);
+#   }
+# }
 
 sub _change_orientation {
   my ($grp)=@_;
@@ -6247,6 +6294,13 @@ sub _change_orientation {
   $win->treeView->set_displayMode($treeViewOpts->{displayMode});
   redraw_win($win);
   ensureCurrentIsDisplayed($win);
+}
+
+sub _load_menus {
+  my ($grp)=@_;
+  my $path = File::Spec->catfile($libDir,'TrEd','Menu','toolbar.inc');
+  my $code = do $path;
+  return $code->($grp);
 }
 
 sub startMain {
@@ -6313,6 +6367,10 @@ sub startMain {
     $top->optionAdd("\*$_.disabledBackground","lightgray");
     $top->optionAdd("\*$_.disabledForeground","gray20");
   }
+  for (qw(Menu)) {
+    $top->optionAdd("\*$_.tearOff",0);
+  }
+
   if ($^O ne 'MSWin32') {
     $top->optionAdd("\*Scrollbar.width","10");
     $top->optionAdd("\*Scrollbar.elementBorderWidth","1");
@@ -6412,524 +6470,63 @@ sub startMain {
   };
  
 
-  $group{MenubarFrame}=$top->Frame()->pack(qw/-fill x/);
 
   # We need to pack in an optionmenu, so we cannot use menubar on windows
   # and cannot use Toplevel->configure(-menu) on other systems
+  my $main_menu = $group{main_menu} = TrEd::Menu->new(_load_menus(\%group));
+  my $menubar;
   if ($^O eq 'MSWin32') {
-    $group{Menubar}=$group{MenubarFrame}=$top->Frame(-relief=> $menubarRelief, -borderwidth=> 0);
-    $group{Menubar}->pack(qw/-fill x/);
+    $menubar = $group{Menubar} = $group{MenubarFrame} =
+      $group{main_menu}->create_menu_frame($top, 'MENUBAR', { -relief=> $menubarRelief });
   } else {
-    $group{Menubar}=$group{MenubarFrame}->Menu(-type => 'menubar',
-					       -tearoff => 0,
-					       -takefocus=> 1,
-					       -relief=> $menubarRelief, -borderwidth=> 2
-					      );
-    # $top->configure( -menu => $group{Menubar} );
-    $group{Menubar}->pack(qw/-fill x  -side left/);
+    $group{MenubarFrame}=$top->Frame();
+    $menubar = $group{Menubar} =
+      $group{main_menu}->create_menubar($group{MenubarFrame}, 'MENUBAR', { -relief=> $menubarRelief });
+    $menubar->pack(qw/-fill x -expand 1 -side left/);
   }
-  $group{Menubar}->bind('Tk::Menu','<Tab>',['NextEntry',1]);
-  $group{Menubar}->bind('Tk::Menu','<<LeftTab>>',['NextEntry',-1]);
+  $group{MenubarFrame}->pack(qw/-fill x/);
+  $menubar->bind('Tk::Menu','<Tab>',['NextEntry',1]);
+  $menubar->bind('Tk::Menu','<<LeftTab>>',['NextEntry',-1]);
   $top->Frame(qw/-relief sunken -height 2 -borderwidth 2/)->pack(qw/-fill x/);
-  addBindTags($group{Menubar},'my');
-
-
-  $group{FileMenu}= MenubarItem($group{Menubar},qw/-label ~File/);
-  $group{FileMenu}->command(-label=> 'Open ...',
-			    -underline=> 0,
-			    -command=> [\&fileDialog, \%group]);
-  $group{FileMenu}->command(-label=> 'Open URL ...',
-			    -underline=> 5,
-			    -command=> [\&urlDialog, \%group]);
-
-  $group{FileMenu}->cascade(-label=> 'New',
-			    -underline=>0,
-			    -menuitems=>
-			    [
-			     [Button => 'From Template ...',
-			      -underline=> 5,
-			      -command=> [ \&newFileFromTemplate, \%group]
-			     ],
-			     [Button => 'From File ...',
-			      -underline=> 5,
-			      -command=> [ \&fileDialog, \%group,1]
-			     ],
-			     [Button => 'From Current ...',
-			      -underline=> 5,
-			      -command=> [\&newFileFromCurrent, \%group, 1]
-			     ]
-			    ]
-			   );
-  $group{FileMenu}->command(-label=> 'Close',
-			    -underline=> 0,
-			    -command=> [ sub {
-					    my ($grp)=@_;
-					    return if askSaveFile($grp->{focusedWindow},0,1) == -1;
-					    closeFile($grp->{focusedWindow},-all_windows => 1);
-					  }
-					 , \%group]);
-  $group{FileMenu}->command(-label=> 'Close in Window',
-			    -underline=> 9,
-			    -command=> [ \&closeFileInWindow, \%group]);
-  $group{FileMenu}->command(-label=> 'Close and remove from filelist',
-			    -underline => 12,
-			    -command=> [ sub {
-					    my ($grp)=@_;
-					    if (ref($grp->{focusedWindow}->{currentFilelist})) {
-					      my $lr = $grp->{focusedWindow}->{currentFilelist}->list_ref;
-					      removeFromFilelist($grp,
-								 undef,
-								 undef,
-								 $lr->[$grp->{focusedWindow}->{currentFileNo}]) if $lr;
-					    }
-					    return if askSaveFile($grp->{focusedWindow},0,1) == -1;
-					    closeFile($grp->{focusedWindow},-all_windows => 1);
-					  }
-					 , \%group]);
-
-  $group{FileMenu}->command(-label=> 'File List...',
-			    -underline=> 5,
-			    -command=> [\&filelistDialog, \%group]);
-#	 [Button=> 'New',         -command=> [\&menus_error2, 'New']],
-  $group{FileMenu}->command(-label=> 'Save',
-			    -underline=> 0,
-			    -command=> [ sub { saveFile($_[0]->{focusedWindow}); },\%group]);
-  $group{FileMenu}->command(-label=> 'Save As ...', 
-			    -underline=> 5 ,
-			    -command=> [ sub { saveFileAs($_[0]->{focusedWindow}); }, \%group]);
-  $group{FileMenu}->separator();
-  $group{RecentFileMenu}=$group{FileMenu}->cascade(-label=> "Recent Files",
-						   -underline=> 0);
-  my $i=0;
-  foreach (@recentFiles) {
-    $group{RecentFileMenu}->command(-label => "$i.  $_",
-				    -underline=> 0,
-				    -command=> [\&openStandaloneFile,\%group,$_]);
-    $i++;
+  addBindTags($menubar,'my');
+  {
+    my %map = (
+      FileMenu=>'MENUBAR:FILE',
+      RecentFileMenu=>'MENUBAR:FILE:RECENT',
+      NodeMenu => 'MENUBAR:NODE',
+      NodeMenu=>'MENUBAR:NODE',
+      TreeMenu=>'MENUBAR:TREE',
+      ViewMenu=>'MENUBAR:VIEW',
+      ToolsMenu=>'MENUBAR:MACROS',
+      UserMenu=>'MENUBAR:MACROS:ALL_MODES',
+      CurrentContextMacroMenu=> 'MENUBAR:MACROS:CURRENT_MODE',
+      MinorModesMainMenu=> 'MENUBAR:VIEW:TOGGLE_MINOR_MODES',
+      SetupMenu=> 'MENUBAR:SETUP',
+      HelpMenu=> 'MENUBAR:HELP',
+      SessionMenu=>'MENUBAR:FILE:FILE_LISTS',
+      BookmarkMenu=>'MENUBAR:FILE:BOOKMARKS',
+      PostponedFileMenu=>'MENUBAR:FILE:KEPT_IN_MEMORY',
+      BookmarksFileMenu=>'MENUBAR:FILE:BOOKMARKS:GO_TO_BOOKMARK',
+    );
+    my ($k,$v)=@_;
+    while (($k,$v) = each %map) {
+      $group{$k}=$main_menu->lookup_menu_item($v);
+    }
+    my $recentFileMenu = $group{RecentFileMenu};
+    my $i=0;
+    foreach (@recentFiles) {
+      $recentFileMenu->command(-label => "$i.  $_",
+			       -underline=> 0,
+			       -command=> [\&openStandaloneFile,\%group,$_]);
+      $i++;
+    }
   }
-#  $group{PostponedFileMenu}=$group{FileMenu}->cascade(-label=> "Postponed Files", -underline=> 0);
-
-  $group{FileMenu}->separator();
-  $group{FileMenu}->command(-label=> 'Previous File',
-			    -underline=> 3,
-			    -command=> [\&tiePrevFile,\%group]);
-  $group{FileMenu}->command(-label=> 'Next File',
-			    -underline=> 2,
-			    -command=> [\&tieNextFile,\%group]);
-  $group{FileMenu}->separator();
-  $group{FileMenu}->command(-label=> 'Print ...',
-			    -underline=> 0,
-			    -command=> [\&printThis,\%group]);
-  $group{FileMenu}->separator();
-  $group{FileMenu}->command(-label=>'Edit config file ...',
-			    -underline=> 0,
-			    -command=> [\&editConfig,\%group]);
-  $group{FileMenu}->command(-label=>'Reload config ...',
-			    -underline=> 3,
-			    -command=> [sub {
-					  my ($grp)=@_;
-					  read_config();
-					  reconfigure($grp);
-					  get_nodes_all($grp);
-					  redraw_all($grp);
-					},\%group]);
-  $group{FileMenu}->command(-label=>'Reload stylesheets ...',
-			    -underline=> 9,
-			    -command=> [sub {
-					  my ($grp)=@_;
-					  loadStyleSheets($grp);
-					  updateStylesheetMenu($grp);
-					  get_nodes_all($grp);
-					  redraw_all($grp);
-					},\%group]);
-  $group{FileMenu}->separator();
-  $group{FileMenu}->command(-label=>'Quit',
-			    -underline=> 0,
-			    -command=> [\&quit,\%group]);
-	
-  $group{ViewMenu}= MenubarItem($group{Menubar},qw/-label ~View -menuitems/=>
-	[
-	 [Button=> 'Previous Tree',
-	  -underline=> 0,
-	  -command=> [sub {
-			tiePrevTree($_[0]);
-		      },\%group]],
-	 [Button=> 'Next Tree',
-	  -underline=> 0,
-	  -command=> [sub {
-			tieNextTree($_[0]);
-		      },\%group]],
-	 [Separator=> EMPTY],
-	 [Checkbutton=> 'Stipple Inactive Views', -underline=> 17,
-	  -variable=> \$stippleInactiveWindows,
-	  -command => [\&update_treeviews,\%group]],
-	 [Checkbutton=> 'Draw boxes around labels', -underline=> 0,
-	  -variable=> \$treeViewOpts->{drawBoxes},
-	  -command => [sub {
-			 my ($grp)=@_;
-			 # vice versa setting should be done when focus changes
-			 my $win = $grp->{focusedWindow};
-			 $win->{treeView}->set_drawBoxes($treeViewOpts->{drawBoxes});
-			 get_nodes_win($win);
-			 redraw_win($win);
-		       },\%group]],
-	 [Checkbutton=> 'Draw boxes around edge labels', -underline=> 1,
-	  -variable=> \$treeViewOpts->{drawEdgeBoxes},
-	  -command => [sub {
-			 my ($grp)=@_;
-			 my $win = $grp->{focusedWindow};
-			 # vice versa setting should be done when focus changes
-			 $win->{treeView}->set_drawEdgeBoxes($treeViewOpts->{drawEdgeBoxes});
-			 get_nodes_win($win);
-			 redraw_win($win);
-		       },\%group]],
-	 [Checkbutton=> 'Show Hidden Nodes', -underline=> 0,
-	  -underline=> 5,
-	  -variable=> \$treeViewOpts->{showHidden},
-	  -command => [sub {
-			 my $win=$_[0]->{focusedWindow};
-			 $win->treeView->set_showHidden($treeViewOpts->{showHidden});
-			 get_nodes_win($win);
-			 redraw_win($win);
-			 ensureCurrentIsDisplayed($win);
-		       },\%group]],
-	 [Checkbutton=> 'Clear Text Background', -underline=> 0,
-	  -variable=> \$treeViewOpts->{clearTextBackground},
-	  -command => [sub {
-			   my $win=$_[0]->{focusedWindow};
-			   $win->treeView->set_clearTextBackground($treeViewOpts->{clearTextBackground});
-			   get_nodes_win($win);
-			   redraw_win($win);
-			 },\%group]],
-## obsolete
-# 	 [Checkbutton=> 'Highlight Attributes', -underline=> 1,
-# 	  -variable=> \$treeViewOpts->{highlightAttributes},
-# 	  -command => [sub {
-# 			   my ($grp)=@_;
-# 			   $grp->{focusedWindow}->{treeView}->set_highlightAttributes($treeViewOpts->{highlightAttributes});
-# 			   redraw_win($grp->{focusedWindow});
-# 			 },\%group]],
-	 [Checkbutton=> 'Sort Attributes in Dialogs', -underline=> 1,
-	  -variable=> \$sortAttrs,
-	  -command => [sub {
-			 update_attribute_view($_[0]);
-		       },\%group]
-	 ],
-	 [Cascade=> 'Display mode', -underline=> 8,
-	  -menuitems=> [
-	    [Radiobutton => "Default",
-	     -underline => 0,
-	     -value => 0,
-	     -variable => \$treeViewOpts->{displayMode},
-	     -command => [\&_change_orientation,\%group],
-	    ],
-	    [Radiobutton => "Horizontal",
-	     -underline => 0,
-	     -value => -1,
-	     -variable => \$treeViewOpts->{displayMode},
-	     -command => [\&_change_orientation,\%group],
-	    ],
-	    [Radiobutton => "Vertical",
-	     -underline => 0,
-	     -value => 1,
-	     -variable => \$treeViewOpts->{displayMode},
-	     -command => [\&_change_orientation,\%group],
-	    ],
-	   ]
-	 ],
-	 [Separator => EMPTY],
-	 [Button=> "[1] Close current view", -underline=> 1,
-	  -command=> [\&removeWindow,\%group]],
-	 [Button=> "[2] Split view horizontally", -underline=> 1,
-	  -command=> [\&splitWindow,\%group,'horiz']],
-	 [Button=> "[3] Split view vertically", -underline=> 1,
-	  -command=> [\&splitWindow,\%group,'vert']],
-	 [Checkbutton=> '[4] Side panel', -underline=> 1,
-	  -variable=> \$showSidePanel,
-	  -command => [\&toggleSidePanel,\%group]],
-	 [Separator=> EMPTY],
-	 [Button=> 'List of sentences ...', -underline=> 8,
-	  -command=> [\&viewSentences,\%group]],
-	 [Button=> 'Select context ...', -underline=> 12,
-	  -command=> [\&selectContext,\%group]],
-	 [Button=> 'Select stylesheet ...', -underline=> 9,
-	  -command=> [\&selectStylesheet,\%group]],
-	 [Separator=> EMPTY],
-	 [Button=> 'Edit stylesheet ...', -underline=> 0,
-	  -command=> [\&editStylesheetDialog,\%group]],
-	 [Separator=> EMPTY],
-	 [Button=> 'List of available macros ...', -underline=> 0,
-	  -command=> [\&macrolistDialog,\%group]]
-	]);
-  $group{NodeMenu}= MenubarItem($group{Menubar},qw/-label ~Node -menuitems/=>
-	[
-	 [Button=> 'New Node', -underline=> 0, -command=> [sub {
-					       my ($grp)=@_;
-					       my $win=$grp->{focusedWindow};
-					       save_undo($win,prepare_undo($win,"New Node",UNDO_ACTIVE_NODE));
-					       my $new = newNode($win);
-					       determineNodeType($win,$new);
-					     },\%group]],
-	 [Button=> 'Remove Active Node', -underline=> 0, -command=> [sub {
-					       my ($grp)=@_;
-					       my $win=$grp->{focusedWindow};
-					       save_undo($win,prepare_undo($win,'Remove Active Node',,UNDO_ACTIVE_ROOT));
-					       pruneNode($win,$win->{currentNode});
-					     },\%group]],
-	 [Button=> 'Insert New Tree', -underline=> 0, -command=> [sub {
-						      my ($grp)=@_;
-						      my $win = $grp->{focusedWindow};
-						      save_undo($win,prepare_undo($win,'Insert New Tree',UNDO_TREE_ORDER));
-						      newTree($win);
-						      determineNodeType($win,$win->{root});
-						    },\%group]],
-	 [Button=> 'Insert New Tree After', -underline=> 16, -command=> [sub {
-						      my ($grp)=@_;
-						      my $win = $grp->{focusedWindow};
-						      save_undo($win,prepare_undo($win,'Insert New Tree After',UNDO_TREE_ORDER));
-						      newTreeAfter($win);
-						      determineNodeType($win,$win->{root});
-						    },\%group]],
-	 [Button=> 'Remove Whole Current Tree', -underline=> 7, -command=> [sub {
-						      my ($grp)=@_;
-						      my $win = $grp->{focusedWindow};
-						      save_undo($win,prepare_undo($win,'Remove Tree',UNDO_CURRENT_TREE_AND_TREE_ORDER));
-						      pruneTree($win);
-						    },\%group]],
-	 [Button=> 'Move Current Tree Backward',-command=> [sub {
-							      my ($grp)=@_;
-							      my $win = $grp->{focusedWindow};
-							      save_undo($win,prepare_undo($win,'Move Tree Backward',UNDO_TREE_ORDER));
-							      moveTree($win,-1);
-							    },\%group]],
-	 [Button=> 'Move Current Tree Foreward',-command=> [sub {
-							      my ($grp)=@_;
-							      my $win = $grp->{focusedWindow};
-							      save_undo($win,prepare_undo($win,'Move Tree Foreward',UNDO_TREE_ORDER));
-							      moveTree($win,1);
-							    },\%group]],
-	 [Button=> 'Make Current Node the Root',-command=> [sub {
-							      my ($grp)=@_;
-							      my $win=$grp->{focusedWindow};
-							      my $node = $win->{currentNode};
-							      my $fsfile = $win->{FSFile};
-							      return unless $fsfile and $node;
-							      return unless ($fsfile->test_tree_type($node) or
-								    userQuery($win,"WARNING:\n\n".
-									    "The type of the current node is not a permitted root type.\n\n".
-									    "The options are:\n\n".
-									      "[Proceed anyway] - ignore the type constraints (the tree will be invalid, but may be fixed later)\n".
-									      "[Cancel] - cancel the operation\n",
-									      -bitmap=> 'question',
-									      -title => 'Incompatible node type',
-									      -buttons => ['Proceed anyway','Cancel']) eq 'Proceed anyway');
-							      my $discard=0;
-							      my $root = $node->root;
-							      return if $root==$node;
-							      unless ($node->test_child_type($root)) {
-								my $res = userQuery($win,"WARNING:\n\n".
-									    "Normally, this operation cuts the subtree of the current node,\n".
-                                                                             "makes the current node a new root of the tree and\n".
-                                                                             "pastes the old root on the current node.\n\n".
-									    "However, the type constraints of the current node do not permit the current root ".
-									     "as its a child.\nThe resulting tree would be invalid.\n\nThe options are:\n\n".
-									       "[Paste anyway] - ignore the type constraints (the tree will be invalid, but may be fixed later)\n".
-									       "[Discard root] - discards every node between the current root and the current node\n".
-									       "[Cancel] - cancel the operation\n",
-									  -bitmap=> 'question',
-									  -title => 'Incompatible node type',
-									  -buttons => ['Paste anyway','Discard root','Cancel']);
-								return if $res eq 'Cancel';
-								$discard=1 if $res=~/Discard/;
-							      }
-							      save_undo($win,prepare_undo($win,'Make Current Node the Root',UNDO_ACTIVE_ROOT_AND_TREE_ORDER));
-							      makeRoot($win, $node, $discard );
-							    },\%group]],
-	 [Separator=> EMPTY],
-	 [Button=> 'Copy Trees ...', -underline=> 1,
-	  -command=> [\&copyTreesDialog,\%group]],
-	 [Separator=> EMPTY],
-	 [Button=> 'Edit Node ...',
-	  -underline=> 0,
-	  -command=> [sub {
-			my ($grp)=@_;
-			editAttrsDialog($grp->{focusedWindow},
-					$grp->{focusedWindow}->{currentNode})
-			  if ($grp->{focusedWindow}->{currentNode});
-		      },\%group]],
-	 [Separator=> EMPTY],
-	 [Button=> 'Find ...',
-	  -underline=> 0,
-	  -command=> [sub {
-			my ($grp,$template)=@_;
-			findNodeDialog($grp,$template)
-			  if ($grp->{focusedWindow}->{currentNode});
-		      },\%group,\%searchTemplate]],
-	 [Button=> 'Find Next', -underline=> 7,
-	  -command=> [\&doFindFirstTemplated,\%group,1]],
-	 [Button=> 'Find Previous', -underline=> 5,
-	  -command=> [\&doFindPrevTemplated,\%group,1]]
-
-	]);
-  print STDERR "Creating user menu.\n" if $tredDebug;
-
-
-  $group{PostponedFileMenu}= MenubarItem($group{Menubar},qw/-label ~Session/);
-
-  $group{BookmarksFileMenu}= MenubarItem($group{Menubar},qw/-label Bookmarks -underline 0/);
-  updateBookmarks(\%group);
-
 
   $group{templateMatchMethod}=$defaultTemplateMatchMethod;
   $group{macroListOrder}=$defaultMacroListOrder;
 
-  if ($createMacroMenu) {
-    $group{MacroMenu}=$group{Menubar}->Cascade(qw/-label Sh~ortcuts -menuitems/=> []);
-  }
-  $group{UserMenu}=MenubarItem($group{Menubar},qw/-label ~Macros -menuitems/=> []);
-  addBindTags($group{Toolbar},'my');
-
-  $group{HelpMenu}= MenubarItem($group{Menubar},
-				qw/-label ~Help -menuitems/=>
-	[
-	 [
-	  Button=> q(User's manual),
-	  -underline=> 0,
-	  -command=> [\&help_topic,\%group,'_TOC_']
-	 ],
-	 [
-	  Button=> q(TrEd Home Page),
-	  -underline=> 0,
-	  -command=> [\&open_url_in_browser,'http://ufal.mff.cuni.cz/~pajas/tred/']
-	 ],
-	 [
-	  Cascade => q(Extension manuals),
-	  -underline=> 1,
-	  -menuitems => [ ],
-	 ],
-	 [
-	  Cascade => q(Library manuals),
-	  -underline=> 0,
-	  -menuitems => [
-	    [
-	      Button=> q(TrEd API: Pre-defined macros),
-	      -underline=> 0,
-	      -command=> [\&help_topic,\%group,'defaultmacros']
-	    ],
-	    [
-	      Button=> q(PML.mak),
-	      -underline=> 0,
-	      -command => [ \&open_url_in_browser, $docDir.'/PML_mak.html' ],
-	    ],
-	    [
-	      Button=> q(Fslib),
-	      -underline=> 0,
-	      -command => [ \&open_url_in_browser, $docDir.'/Fslib.html' ],
-	    ],
-	    [
-	      Button=> q(PMLSchema),
-	      -underline=> 0,
-	      -command => [ \&open_url_in_browser, $docDir.'/PMLSchema.html' ],
-	    ],
-	    [
-	      Button=> q(PMLInstance),
-	      -underline=> 0,
-	      -command => [ \&open_url_in_browser, $docDir.'/PMLInstance.html' ],
-	    ],
-	   ],
-	 ],
-	 [
-	  Cascade => q(Command-line tools),
-	  -underline=> 0,
-	  -menuitems => [
-	    [
-	      Button=> q(BTrEd Tutorial for PDT 2.0),
-	      -underline=> 0,
-	      -command => [ \&open_url_in_browser,
-			    $docDir.'/bn-tutorial.html'
-			   ],
-	     ],
-	    [
-	      Button=> q(TrEd Manual Page),
-	      -underline=> 0,
-	      -command=> [\&help_topic,\%group,'commandline']
-	     ],
-	    [
-	      Button=> q(BTrEd Manual Page),
-	      -underline=> 0,
-	      -command => [ \&open_url_in_browser,
-			    $docDir.'/btred.html'
-			   ],
-	     ],
-	    [
-	      Button=> q(NTrEd Manual Page),
-	      -underline=> 0,
-	      -command => [ \&open_url_in_browser,
-			    $docDir.'/ntred.html'
-			   ],
-	     ],
-	   ]
-	 ],
-	 [ 'Separator' => 'EMPTY' ],
-	 [
-	  Button=> 'About',
-	  -underline=> 0,
-	  -command=> [\&About,\%group]
-	 ],
-	 [ 'Separator' => 'EMPTY' ],
-	 [
-	  Button=> 'Examine bindings',
-	  -underline=> 0,
-	  -command=> [\&examineBindingsDialog,\%group]
-	 ],
-	 [Button => 'Reload macros', -underline => 0,
-	  -command => [\&reloadMacros,\%group],
-	 ],
-	 [
-	  Cascade=> 'Debugging messages',
-	  -underline => 0,
-	  -menuitems => [
-			 [Checkbutton => 'tred', -underline => 0,
-			  -variable => \$tredDebug],
-			 [Checkbutton => 'macros', -underline => 0,
-			  -variable => \$macroDebug],
-			 [Checkbutton => 'hooks', -underline => 0,
-			  -variable => \$hookDebug],
-			 [Checkbutton => 'keyboard', -underline => 0,
-			  -variable => \$keyboardDebug],
-			 [Checkbutton => 'backend', -underline => 0,
-			  -variable => \$Fslib::Debug],
-			 [Checkbutton => 'view', -underline => 0,
-			  -variable => \$TrEd::TreeView::Debug],
-			]
-	 ],
-	 [
-	  Cascade=> 'Profiler',
-	  -underline => 0,
-	  -menuitems => [
-			 [Button => 'Start', -underline => 2,
-			  -command => [sub {
-			    eval {
-			      $ENV{NYTPROF}='start=no:compress=0';
-			      require Devel::NYTProf;
-			    };
-			    if ($@) {
-			      errorMessage($_[0]->{top},$@);
-			      return;
-			    }
-			    DB::enable_profile();
-			  },\%group]
-			 ],
-			 [Button => 'Stop', -underline => 2,
-			  -command => sub {
-			    DB::disable_profile();
-			  }
-			 ],
-			]
-	 ]
-	]);
-
   $group{selectedContext} =  'TredMacro' unless exists($keyBindings{ $group{selectedContext} });
+
   $group{ContextsMenu}=$group{MenubarFrame}->Optionmenu(-options => [],
  	       -textvariable=> \$group{selectedContext},
                -font => 'C_small',
@@ -6940,10 +6537,15 @@ sub startMain {
  	       -borderwidth=> 2)->pack(qw/-side right -padx 5/);
 
   $group{ContextsMenu}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
-  $group{ContextsMenuLabel}=$group{MenubarFrame}->Label(-text=>'Context:',
+  $group{ContextsMenuLabel}=$group{MenubarFrame}->Label(-text=>'Mode:',
 							-font => 'C_small',
 							-underline=>5)->pack(qw/-side right/);
-  $group{Balloon}->attach($group{ContextsMenu}, -balloonmsg=> "macro context");
+  $group{Balloon}->attach($group{ContextsMenu}, -balloonmsg=> "Annotation Mode");
+
+
+  addBindTags($group{Toolbar},'my');
+
+  updateBookmarks(\%group);
 
   $group{vLineFrame}=$top->Frame();
   $group{valueLine}=
@@ -7044,7 +6646,6 @@ sub startMain {
                                  -background => $valueLineBackground);
   };
   $group{valueLine}->BindMouseWheelHoriz();
-
 
   print STDERR "Creating buttons.\n" if $tredDebug;
 
@@ -7194,7 +6795,7 @@ sub startMain {
   $group{findButton}=
     $group{Toolbar}->Button(-takefocus=>0, -text=> "Find",
 			  -relief=> $buttonsRelief,
-			  -image      => icon(\%group,"find"),
+			  -image      => icon(\%group,"searchtool"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [sub {
 					my ($grp,$template)=@_;
@@ -7208,7 +6809,7 @@ sub startMain {
   $group{findNextButton}=
     $group{Toolbar}->Button(-takefocus=>0, -text=> "Find Next",
 			  -relief=> $buttonsRelief,
-			  -image      => icon(\%group,"viewmag+"),
+			  -image      => icon(\%group,"searchtool_forward"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&doFindFirstTemplated,\%group,1])
       ->pack(-side=>'left');
@@ -7220,7 +6821,7 @@ sub startMain {
   $group{findPrevButton}=
     $group{Toolbar}->Button(-takefocus=>0, -text=> "Find Previous",
 			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"viewmag-"),
+			  -image=> icon(\%group,"searchtool_backward"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&doFindPrevTemplated,\%group,1])
       ->pack(-side=>'left');
@@ -7530,7 +7131,7 @@ sub startMain {
 
 
   print STDERR "Binding keystrokes...\n" if $tredDebug;
-  $group{Menubar}->bind('<Escape>', sub { eval{shift->menu->Leave()}; Tk->break; } );
+  $menubar->bind('<Escape>', sub { eval{shift->menu->Leave()}; Tk->break; } );
 
   foreach my $prefix ('Alt','Meta') {
     $top->
@@ -7800,6 +7401,44 @@ sub removeUserToolbar {
   return $tb;
 }
 
+sub makeCurrentNodeRoot {
+  my ($grp)=@_;
+  my $win=$grp->{focusedWindow};
+  my $node = $win->{currentNode};
+  my $fsfile = $win->{FSFile};
+  return unless $fsfile and $node;
+  return unless ($fsfile->test_tree_type($node) or
+		   userQuery($win,"WARNING:\n\n".
+			       "The type of the current node is not a permitted root type.\n\n".
+				 "The options are:\n\n".
+				   "[Proceed anyway] - ignore the type constraints (the tree will be invalid, but may be fixed later)\n".
+				     "[Cancel] - cancel the operation\n",
+			     -bitmap=> 'question',
+			     -title => 'Incompatible node type',
+			     -buttons => ['Proceed anyway','Cancel']) eq 'Proceed anyway');
+  my $discard=0;
+  my $root = $node->root;
+  return if $root==$node;
+  unless ($node->test_child_type($root)) {
+    my $res = userQuery($win,"WARNING:\n\n".
+			  "Normally, this operation cuts the subtree of the current node,\n".
+			    "makes the current node a new root of the tree and\n".
+			      "pastes the old root on the current node.\n\n".
+				"However, the type constraints of the current node do not permit the current root ".
+				  "as its a child.\nThe resulting tree would be invalid.\n\nThe options are:\n\n".
+				    "[Paste anyway] - ignore the type constraints (the tree will be invalid, but may be fixed later)\n".
+				      "[Discard root] - discards every node between the current root and the current node\n".
+					"[Cancel] - cancel the operation\n",
+			-bitmap=> 'question',
+			-title => 'Incompatible node type',
+			-buttons => ['Paste anyway','Discard root','Cancel']);
+    return if $res eq 'Cancel';
+    $discard=1 if $res=~/Discard/;
+  }
+  save_undo($win,prepare_undo($win,'Make Current Node the Root',UNDO_ACTIVE_ROOT_AND_TREE_ORDER));
+  makeRoot($win, $node, $discard );
+}
+
 sub quit {
   my ($grp,$win)=grp_win(shift);
   # run user's exit_hook
@@ -7812,7 +7451,7 @@ sub quit {
 
 sub getConfigFromFile {
   my @conf;
-  if (open(my $fh,'<',$configFile)) {
+  if (open(my $fh,"<$configFile")) {
     @conf=<$fh>;
     close($fh);
     return \@conf;
@@ -8560,7 +8199,7 @@ sub saveConfig {
  my $exists = -e $configFile ? 1 : 0;
  if (!$exists or (-f $configFile and -w $configFile)) {
     my $renamed = rename $configFile, "${configFile}~" if $exists;
-    if (open(my $fh,'>',$configFile)) {
+    if (open(my $fh,">$configFile")) {
       print STDERR "Saving tred configuration to: $configFile\n" unless $opt_q;
       print $fh (@$config);
       close($fh);
@@ -8585,7 +8224,7 @@ sub saveConfig {
 		       )=~ m(yes)i) or 
 	 (!defined($top) and ! -f $trc and !defined($opt_c)))) {
      my $renamed = rename $trc, "${trc}~";
-     if (open(my $fh,'>'.$trc)) {
+     if (open(my $fh,">".$trc)) {
        print STDERR "SAVING CONFIG TO: $trc\n";
        print $fh (@$config);
        print STDERR "done\n";
@@ -8917,10 +8556,38 @@ sub listQuery {
  return undef;
 }
 
+sub autoSelectContext {
+  my ($grp)=@_;
+  my ($win)=$grp->{focusedWindow};
+  if ($win->{FSFile}) {
+    my $prevcontext = $win->{macroContext};
+    $win->{macroContext}='TredMacro';
+    doEvalHook($win,"guess_context_hook","file_resumed_hook");
+    if ($win->{macroContext} eq 'TredMacro' and $prevcontext ne 'TredMacro') {
+      $win->{macroContext}=$prevcontext;
+      switchContext($win,'TredMacro');
+    } else {
+      get_nodes_win($win); # the hook may have changed something
+      redraw_win($win);
+      centerTo($win,$win->{currentNode});
+    }
+  } else {
+    switchContext($win,'TredMacro');
+  }
+}
+sub getApplicableContexts {
+  my ($win)=@_;
+  my $prevcontext = $win->{macroContext};
+  my @ret = grep { (doEvalHook($win,"allow_switch_context_hook",$prevcontext,$win->{macroContext}=$_)||'') ne 'stop' } getContexts();
+  $win->{macroContext}=$prevcontext;
+  return @ret;
+}
+
 sub selectContext {
   my ($grp)=@_;
-  my $selection = [$grp->{focusedWindow}->{macroContext}];
-  listQuery($grp->{top},'Select Context','browse',[getContexts()],
+  my $win = $grp->{focusedWindow};
+  my $selection = [$win->{macroContext}];
+  listQuery($grp->{top},'Select Mode','browse',[getApplicableContexts($win)],
 	    $selection) || return;
   if (@$selection) {
     switchContext($grp->{focusedWindow},$selection->[0]);
@@ -8932,7 +8599,7 @@ sub selectStylesheet {
   my $grp = cast_to_grp($grp_or_win);
   my $win = cast_to_grp($grp_or_win);
   my $selection = [$grp->{selectedStylesheet}];
-  listQuery($grp->{top},'Select Context','browse',
+  listQuery($grp->{top},'Select Mode','browse',
 	    getStylesheetMenuList($grp),
 	    $selection) || return;
   if (@$selection) {
@@ -9255,7 +8922,7 @@ sub openSimpleHtml {
 			   -d $initdir ? (-initialdir=> $initdir) : (),
 			   $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
   if (defined($file) and $file ne EMPTY) {
-    open my $html, '>',$file ||
+    open my $html, ">$file" ||
       errorMessage($top,"Cannot write to \"$file\"!"."\n(".conv_from_locale($!)."\nCheck file and directory permissions.\n".
 		     "\nSentences could not be saved!",1);
     my $encoding=$TrEd::Convert::outputenc;
@@ -9772,6 +9439,60 @@ sub disable_scrollbar_focus {
   $scrolled->Subwidget('xscrollbar')->configure(qw(-takefocus 0));
   $scrolled->Subwidget('yscrollbar')->configure(qw(-takefocus 0));
 }
+
+
+sub showMacrosAsHtml {
+  my ($grp,$flags,$order_by)=@_;
+  my $context = $grp->{selectedContext};
+  use File::Temp;
+  my $dir = File::Temp::tempdir( CLEANUP => 1 );
+  eval {
+    IOBackend::copy_uri(File::Spec->catfile($libDir,'misc','sorttable.js'),
+			File::Spec->catfile($dir,'sorttable.js'));
+  };
+  warn $@ if $@;
+  my $html_file = File::Spec->catfile($dir,"$context.html");
+  open(my $html, '>:utf8',$html_file)
+    or do {
+      errorMessage($grp->{top},
+		   "Cannot open temporary file $html_file.");
+      return 0;
+    };
+  my $title = "Annotation Mode $context";
+  $title.=" + TredMacro" if ($flags&2);
+  print $html "<html>\n";
+  print $html "<head>\n";
+  print $html "  <title>$title</title>\n";
+  print $html "  <meta http-equiv=\"Content-Type\" content=\"text/html;charset=UTF-8\" />\n";
+  print $html "<script src=\"sorttable.js\"></script>\n";
+  print $html "</head>\n";
+  print $html "<body>\n";
+  print $html "<h2>TrEd Macro Reference</h2>\n";
+  print $html "<h3>$title</h3>\n";
+  print $html "<table class=\"sortable\" preserve_style=\"row\">\n";
+  print $html "<thead><tr><th>Keyboard Shortcut</th>";
+  print $html "<th>Perl Function</th>" if ($flags&1);
+  print $html "<th>Description</th></tr></thead>\n";
+  print $html "<tbody>\n";
+  my $odd = 0;
+  foreach my $entry (generateSortedMacroTable($grp,$context,$flags,$order_by||'N')) {
+    my ($name, $key, $macro)=@$entry;
+    $name=~s/^_+//;
+    print $html "  <tr ",($odd ? 'bgcolor="#ffffff"' : 'bgcolor="#eeeeee"'),
+      ">\n    <td>$key</td>\n",
+	(($flags&1) ? "<td>$macro</td>\n" : EMPTY),
+	  "<td>$name</td>\n",
+	    "  </tr>\n";
+    $odd = !$odd;
+  }
+  print $html "</tbody>\n";
+  print $html "</table>\n";
+  print $html "</body>\n";
+  print $html "</html>\n";
+  close ($html);
+  open_url_in_browser($html_file);
+}
+
 
 sub help_topic {
   my ($top,$section) = @_;
@@ -11353,21 +11074,21 @@ sub ensureCurrentIsDisplayed {
 }
 
 sub treeIsVertical {
-  my $grp = shift;
+  my ($grp) = @_;
   my $win=$grp->{focusedWindow};
   return unless $win;
   return $win->treeView->get_verticalTree;
 }
 
 sub treeIsReversed {
-  my $grp = shift;
+  my ($grp) = @_;
   my $win=$grp->{focusedWindow};
   return unless $win;
   return $win->treeView->get_reverseNodeOrder;
 }
 
 sub currentLeft {
-  my $grp=$_[0];
+  my ($grp)=@_;
   my $win=$grp->{focusedWindow};
   return unless $win->{FSFile};
   my $node =$win->{currentNode};
@@ -11385,7 +11106,7 @@ sub currentLeft {
 }
 
 sub currentRight {
-  my $grp=$_[0];
+  my ($grp)=@_;
   my $win=$grp->{focusedWindow};
   return unless $win->{FSFile};
   my $node =$win->{currentNode};
@@ -11398,7 +11119,7 @@ sub currentRight {
 }
 
 sub currentRightLin {
-  my $grp=$_[0];
+  my ($grp)=@_;
   my $win=$grp->{focusedWindow};
   my $tv =$win->treeView;
   my @nodes = grep { $tv->node_is_displayed($_) } @{$win->{Nodes}};
@@ -11411,7 +11132,7 @@ sub currentRightLin {
   }
 }
 sub currentLeftLin {
-  my $grp=$_[0];
+  my ($grp)=@_;
   my $win=$grp->{focusedWindow};
   my $tv =$win->treeView;
   my @nodes = grep { $tv->node_is_displayed($_) } @{$win->{Nodes}};
@@ -11425,7 +11146,7 @@ sub currentLeftLin {
 }
 
 sub currentRightWholeLevel {
-  my $grp=$_[0];
+  my ($grp)=@_;
   my $win=$grp->{focusedWindow};
   my $tv = $win->treeView;
   return unless $win->{FSFile};
@@ -11445,7 +11166,7 @@ sub currentRightWholeLevel {
 }
 
 sub currentLeftWholeLevel {
-  my $grp=$_[0];
+  my ($grp)=@_;
   my $win=$grp->{focusedWindow};
   my $tv = $win->treeView;
   return unless $win->{FSFile};
@@ -11465,7 +11186,7 @@ sub currentLeftWholeLevel {
 }
 
 sub currentDown {
-  my $grp=$_[0];
+  my ($grp)=@_;
   my $win=$grp->{focusedWindow};
   return unless $win->{FSFile};
   my $node = $win->{currentNode}->firstson;
@@ -11479,7 +11200,7 @@ sub currentDown {
 }
 
 sub currentUp {
-  my $grp=$_[0];
+  my ($grp)=@_;
   my $win=$grp->{focusedWindow};
   my $node = $win->{currentNode};
   $node = $node && $node->parent;
@@ -11793,7 +11514,7 @@ sub doEvalMacro {
 }
 
 sub resolveKey {
-  my $grp=$_[0];
+  my $grp = shift; # other arguments are keys
   my $win = $grp->{focusedWindow};
   my $minor_modes=$win->{minorModes};
   my $bindings;
@@ -12581,6 +12302,10 @@ sub configure_minor_mode {
 sub update_minor_modes {
   my ($grp_or_win)=@_;
   my ($grp,$win)=grp_win($grp_or_win);
+  if ($grp_or_win == $grp and $grp->{minorModesMenu}) {
+    update_minor_mode_menu($grp, $grp->{minorModesMenu}->cget('-menu'),0);
+    update_minor_mode_menu($grp, $grp->{MinorModesMainMenu},1);
+  }
   if ($grp->{focusedWindow}==$win) {
     my %activate = map {$_=>1} @{$win->{minorModes}};
     for my $name (keys %{$grp->{minorModesLabels}}) {
@@ -12606,15 +12331,30 @@ sub update_minor_modes {
 	$l->bind('<Leave>',[qw(configure -state normal)]);
       }
     }
+    my $enabled = $grp->{enabledMinorModesMenu} ||= {};
+    if (ref $win->{minorModes}) {
+      $enabled->{$_}=0 for grep !$activate{$_}, keys %$enabled;
+      $enabled->{$_}=1 for @{$win->{minorModes}};
+    }
   }
-  if ($grp_or_win == $grp and $grp->{minorModesMenu}) {
-    my $menu= $grp->{minorModesMenu}->cget('-menu');
-    $menu->delete(0,'end');
-    $_->destroy for $menu->children;
-    my $i=0;
-    foreach my $name (sort keys %{$grp->{minorModes}||{}}) {
-      $grp->{minorModesMenu}->command(-label => _minor_ctxt_abbrev($grp,$name).":  $name",
-				      -command=> [\&toggleMinorMode,$grp,$name]);
+}
+
+sub update_minor_mode_menu {
+  my ($grp,$menu,$checkbuttons)=@_;
+  return unless $menu;
+  $menu->delete(0,'end');
+  $_->destroy for $menu->children;
+  my $i=0;
+  foreach my $name (sort keys %{$grp->{minorModes}||{}}) {
+    my $nice_name = $name;
+    $nice_name=~tr/_/ /;
+    if ($checkbuttons) {
+      $menu->checkbutton(-label => "$nice_name ("._minor_ctxt_abbrev($grp,$name).")",
+			 -variable => \$grp->{enabledMinorModesMenu}{$name},
+			 -command=> [\&toggleMinorMode,$grp,$name]);
+    } else {
+      $menu->command(-label => _minor_ctxt_abbrev($grp,$name).":  $nice_name",
+		     -command=> [\&toggleMinorMode,$grp,$name]);
     }
   }
 }
