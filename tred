@@ -5513,6 +5513,7 @@ sub switchContext {
   if (isFocused($win)) {
     $grp->{selectedContext}=$context;
     update_macrolist_view($win);
+    updateStylesheetMenu($grp);
   }
   my ($l1,$l2)=($win->{got_nodes}, $win->{redrawn});
   doEvalHook($win,"switch_context_hook",$prevcontext,$context);
@@ -5922,6 +5923,7 @@ sub focusCanvas {
     resetTreePosStatus($grp);
     updateSessionStatus($grp);
     update_macrolist_view($grp);
+    updateStylesheetMenu($grp);
     my $fl = $newfocus->{currentFilelist};
     update_sidepanel_filelist_view($grp,$fl,$fl == $prevfl ? 0 : 1);
     doEvalHook($newfocus,"switch_context_hook",$prevcontext,$context);
