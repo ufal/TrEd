@@ -6298,7 +6298,7 @@ sub _change_orientation {
 
 sub _load_menus {
   my ($grp)=@_;
-  my $path = File::Spec->catfile($libDir,'TrEd','Menu','toolbar.inc');
+  my $path = File::Spec->catfile($libDir,'TrEd','Menu','menubar.inc');
   my $code = do $path;
   return $code->($grp);
 }
