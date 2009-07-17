@@ -5971,6 +5971,7 @@ sub focusCanvas {
     update_macrolist_view($grp);
     updateCurrentContextMenu($grp);
     updateStylesheetMenu($grp);
+    updateNodeMenu($grp);
     my $fl = $newfocus->{currentFilelist};
     update_sidepanel_filelist_view($grp,$fl,$fl == $prevfl ? 0 : 1);
     doEvalHook($newfocus,"switch_context_hook",$prevcontext,$context);
@@ -6288,12 +6289,36 @@ sub createCanvasBindings {
 #   }
 # }
 
+sub _menu_swaps {
+  return (
+    ['MENUBAR:NODE:UP_LEVEL'      => 'MENUBAR:NODE:LEFT_SIBLING'],
+    ['MENUBAR:NODE:DOWN_LEVEL'    => 'MENUBAR:NODE:RIGHT_SIBLING'],
+   );
+}
+
+sub updateNodeMenu {
+  my ($grp_or_win) = @_;
+  my ($grp,$win) = grp_win($grp_or_win);
+  my $m = $grp->{main_menu};
+  return unless $m and
+    (($grp->{main_menu_tree_orientation_state} ? 1 : 0) != (treeIsVertical($grp) ? 1 : 0));
+  $grp->{main_menu_tree_orientation_state}=treeIsVertical($grp);
+  for my $swap (_menu_swaps()) {
+    my ($item1,$item2) = @$swap;
+    my $accel1 = $m->get_menu_option($item1,'-accelerator');
+    my $accel2 = $m->get_menu_option($item2,'-accelerator');
+    $m->set_menu_options($item1, -accelerator => $accel2);
+    $m->set_menu_options($item2, -accelerator => $accel1);
+  }
+}
+
 sub _change_orientation {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow};
   $win->treeView->set_displayMode($treeViewOpts->{displayMode});
   redraw_win($win);
   ensureCurrentIsDisplayed($win);
+  updateNodeMenu($grp);
 }
 
 sub _load_menus {
@@ -10887,12 +10912,6 @@ sub redraw_win {
   my ($win)=@_;
   return if ($win->{noRedraw} or $insideEval);
   print STDERR "redraw $win\n" if $tredDebug;
-  if ($win == $win->{framegroup}->{focusedWindow}) {
-    saveFileStateUpdate($win);
-    resetUndoStatus($win);
-    resetTreePosStatus($win->{framegroup});
-    update_status_info($win);
-  }
   #------------------------------------------------------------
   #{
   #use Benchmark;
@@ -10928,6 +10947,14 @@ sub redraw_win {
   $TrEd::TreeView::on_get_root_style= undef; #forget the reference on $win
   $TrEd::TreeView::on_get_node_style= undef;
   $TrEd::TreeView::on_redraw_done= undef;
+
+  if ($win == $win->{framegroup}->{focusedWindow}) {
+    saveFileStateUpdate($win);
+    resetUndoStatus($win);
+    resetTreePosStatus($win->{framegroup});
+    update_status_info($win);
+    updateNodeMenu($win);
+  }
 
   #------------------------------------------------------------
   #}
