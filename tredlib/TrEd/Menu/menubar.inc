@@ -742,7 +742,7 @@ return sub {
     'Down Level',
     {
       '-accelerator' => 'Down',
-      '-command' => [sub { &treeIsVertical ? &currentRight : &currentDown },$grp]
+      '-command' => [\&currentDown,$grp]
      },
     undef
    ],
@@ -824,7 +824,7 @@ return sub {
     'Left Sibling',
     {
       '-accelerator' => 'Left',
-      '-command' => [sub { &treeIsVertical ? &currentUp : ( &treeIsReversed ? &currentRight : &currentLeft ) },$grp]
+      '-command' => [sub { &treeIsReversed ? &currentRight : &currentLeft },$grp]
      },
     undef
    ],
@@ -916,7 +916,7 @@ return sub {
     'Right Sibling',
     {
       '-accelerator' => 'Right',
-      '-command' => [sub { &treeIsVertical ? &currentDown : ( &treeIsReversed ? &currentLeft : &currentRight ) },$grp]
+      '-command' => [sub { &treeIsReversed ? &currentLeft : &currentRight },$grp]
      },
     undef
    ],
@@ -925,7 +925,7 @@ return sub {
     'Up Level',
     {
       '-accelerator' => 'Up',
-      '-command' => [sub { &treeIsVertical ? &currentLeft : &currentUp },$grp]
+      '-command' => [\&currentUp,$grp]
      },
     undef
    ],
@@ -1068,7 +1068,7 @@ return sub {
     'Edit Config File ...',
     {
       '-command' => [\&editConfig,$grp],
-      '-underline' => 0
+      '-underline' => 5
      },
     undef
    ],
@@ -1137,7 +1137,7 @@ return sub {
 		       get_nodes_all($grp);
 		       redraw_all($grp);
 		     },$grp],
-      '-underline' => 3
+      '-underline' => 1,
      },
     undef
    ],
@@ -1151,7 +1151,8 @@ return sub {
 		       updateStylesheetMenu($grp);
 		       get_nodes_all($grp);
 		       redraw_all($grp);
-		     },$grp]
+		     },$grp],
+      -underline => 0,
      },
     undef
    ],
