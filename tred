@@ -1894,7 +1894,7 @@ sub lastActionBookmark {
 sub updateSessionStatus {
   my ($grp)=@_;
   my $win = $grp->{focusedWindow};
-  $grp->{ContextsMenu}->configure(-options => [getApplicableContexts($win)]) if $grp->{ContextsMenu};
+  update_context_list($grp);
   $grp->{keepcurrentfile}=($win->{FSFile} && $win->{FSFile}->appData('noautoclose')) ? 1 : 0;
 }
 
@@ -2144,7 +2144,8 @@ sub openStandaloneFile {
 
 
 sub reloadFile {
-  my $win=cast_to_win(shift);
+  my ($grp_or_win) = @_;
+  my ($grp,$win)=grp_win($grp_or_win);
   my $fsfile = $win->{FSFile};
   if (ref($fsfile) and $fsfile->filename()) {
     my $f=$fsfile->filename();
@@ -2162,8 +2163,12 @@ sub reloadFile {
       $f = "$f##$no.$nodeidx";
     }
     return if askSaveFile($win,0,1) == -1;
+    my $ctxt = $grp->{selectedContext};
     closeFile($win,-all_windows => 1);
     openFile($win, $f, -noredraw => 1, -nohook=>1);
+    if ($ctxt ne $grp->{selectedContext}) {
+      switchContext($win,$ctxt,1);
+    }
     $fsfile = $win->{FSFile};
     if ($fsfile) {
       if ($reloadKeepsPatterns) {
@@ -2205,15 +2210,17 @@ sub loadFile {
   $status->{error} = _last_err();
   
   $status->{report} = "Loading file '$file':\n\n";
-  
+
   if (ref($fsfile) and $fsfile->lastTreeNo>=0 and $Fslib::FSError==0) {
     $status->{ok} = @warnings ? -1 : 1;
   } else {
-    $status->{ok} = 0;
     if (ref($fsfile) and $Fslib::FSError==0) {
-      $status->{error} = "No trees found in this file.";
+      push @warnings, "NO TREES FOUND in this file.";
+      $status->{ok} = -1;
+    } else {
+      $status->{ok} = 0;
+      $status->{report} .= "ERRORS:\n\n".$status->{error}."\n";
     }
-    $status->{report} .= "ERRORS:\n\n".$status->{error}."\n";
   }
   if (@warnings) {
     $status->{report} .= join "\n", "WARNINGS:\n",@warnings;
@@ -3230,9 +3237,29 @@ sub _u_sort {
     map { $_->[0] =~ /^(_*)(.*)$/s && [ length($1), $2, $_ ] } @_;
 }
 
+sub update_context_list {
+  my ($grp)=@_;
+  if ($grp->{ContextsMenu}) {
+    my $sel = $grp->{selectedContext};
+    my %new = map { $_ => 1} getApplicableContexts($grp->{focusedWindow});
+    my $tredmacro_ok = delete $new{TredMacro};
+    $grp->{ContextsMenu}->configure(-options => [
+      ($tredmacro_ok ? 'TredMacro' : ()),
+      sort keys %new]);
+    if ($sel ne $grp->{selectedContext}) {
+      if ($tredmacro_ok) {
+	$grp->{selectedContext} = 'TredMacro';
+      } elsif ($opt_t and exists($new{$opt_t})) {
+	$grp->{selectedContext} = $opt_t;
+      }
+      switchContext($grp->{focusedWindow},$grp->{selectedContext},1);
+    }
+  }
+}
+
 sub update_macro_menus {
   my ($grp)=@_;
-  $grp->{ContextsMenu}->configure(-options => [getApplicableContexts($grp->{focusedWindow})]) if $grp->{ContextsMenu};
+  update_context_list($grp);
   if ($grp->{MacroMenu}) {
     my $menu = $grp->{MacroMenu}->menu;
     foreach my $context (sort(keys(%keyBindings))) {
@@ -6392,8 +6419,10 @@ sub startMain {
     $top->optionAdd("\*$_.disabledBackground","lightgray");
     $top->optionAdd("\*$_.disabledForeground","gray20");
   }
-  for (qw(Menu)) {
-    $top->optionAdd("\*$_.tearOff",0);
+  unless ($enableTearOff) {
+    for (qw(Menu)) {
+      $top->optionAdd("\*$_.tearOff",0);
+    }
   }
 
   if ($^O ne 'MSWin32') {
@@ -7157,8 +7186,20 @@ sub startMain {
 
   print STDERR "Binding keystrokes...\n" if $tredDebug;
   $menubar->bind('<Escape>', sub { eval{shift->menu->Leave()}; Tk->break; } );
-
-  foreach my $prefix ('Alt','Meta') {
+  $top->bind('my','<Menu>'=>
+	       [sub {
+		  my ($w,$grp)=@_;
+		  my $mbar=$grp->{Menubar};
+		  $mbar->focus;
+		  $mbar->FindMenu('F'); # File
+		  if ($^O eq 'MSWin32') {
+		    foreach my $child (grep { $_->class eq 'Menubutton' }
+					 $mbar->children) {
+		      $child->ButtonUp()
+		    }
+		  }
+		},\%group]);
+  foreach my $prefix ('Alt','Meta','Mod4') {
     $top->
       bind('my',"<$prefix-KeyPress>"=>
 	   [sub {
@@ -7182,7 +7223,7 @@ sub startMain {
 	      }
 	    }, \%group,uc($prefix).'+']);
   }
-  foreach my $prefix ('Alt','Meta') {
+  foreach my $prefix ('Alt','Meta','Mod4') {
     $top->
       bind('my',"<$prefix-x>"=>
 	   [sub {
@@ -7203,7 +7244,7 @@ sub startMain {
 	      }
 	    }, \%group,uc($prefix).'+']);
   }
-  foreach my $prefix ('Alt','Meta') {
+  foreach my $prefix ('Alt','Meta','Mod4') {
     $top->
       bind('my',"<$prefix-y>"=>
 	   [sub {
@@ -9244,6 +9285,95 @@ sub determineNodeType {
   };
   plainErrorMessage($win,$@) if $@;
   return $node->type;
+}
+
+sub editFilePropertiesDialog {
+  my ($grp_or_win)=@_;
+  my ($grp,$win)=grp_win($grp_or_win);
+  my $top = $grp->{top};
+  my $fsfile = $win->{FSFile};
+  return unless $fsfile;
+  my $trees_type = $fsfile->metaData('pml_trees_type');
+  my $references = $fsfile->metaData('references');
+  my $fsrequire = $fsfile->metaData('fsrequire');
+  my $refnames = $fsfile->metaData('refnames');
+  my %id2name = $refnames ? (reverse %$refnames) : ();
+  my $schema = fileSchema($fsfile);
+  my $text =join("\n",
+		 "File Information",
+		 "----------------",
+		 "URI:\t". $fsfile->URL,
+		 "I/O Backend:\t". $fsfile->backend,
+		 "Trees:\t". ($fsfile->lastTreeNo + 1),
+		 ($schema ?
+		    ("\n\nPML Schema Information",
+		     "----------------------",
+		     "Rrevision:\t".$schema->get_revision(),
+		     "Root name:\t".$schema->get_root_name(),
+		     "Description:\t".$schema->get_description(),
+		     "URI:\t".$schema->get_url(),
+		     "Tree list type:\t".(ref($trees_type) ? $trees_type->get_decl_path : '-'),
+		     (map { "\thas $_:\t".(ref($fsfile->metaData("pml_$_")) ? "yes" : "no") } qw(prolog epilog)  ),
+		    )
+		      : ()
+		     ),
+		 (
+		   ref($references) ?
+		     (
+		       "\n\nPML References",
+		       "--------------",
+		       map {
+			 my $name = $id2name{$_} || '';
+			 $name = " [$name]" if $name;
+			 "$_$name => $references->{$_}"
+		       }  keys %$references)
+		       : ()
+		      ),
+		 (
+			 ref($fsrequire) ?
+			 ("\n\nSecondary files",
+			  "---------------",
+			  (map { "$_->[0] => $_->[1]" }  @$fsrequire),
+			 ) : ()
+		       ),
+		      );
+  my $ret = $top->ErrorReport(
+    -title   => 'Properties',
+    -msgtype => ('INFORMATION'),
+    -message => ("Current File Properties"),
+    -body => $text,
+    -buttons => ['Close',
+		 (map {
+		   $schema && ref($fsfile->metaData("pml_$_")) ? 'View '.ucfirst($_). ' Data' : ()
+		 } qw(root prolog epilog))
+		]
+  );
+  my $what = $ret;
+  if ($what =~ s/ (.*) Data/$1/) {
+    $what = 'pml_'.lc($1);
+    my $type = $what eq 'pml_root' ? $schema->get_root_type : $trees_type;
+    #    print STDERR "$what: ",$fsfile->metaData($what),"\t",$type,"\n";
+    $top->TrEdNodeEditDlg({
+      title => $ret,
+      type => $type, # fixme: what data type for pml_epliog and pml_prolog?
+      object => $fsfile->metaData($what),
+      object_name => $what,
+      search_field=>1,
+      allow_trees=> $what eq 'pml_root' ? 0 : 1,
+      enable_callback => sub { 0 },
+      no_sort => 1,
+    })
+  }
+
+  # $top->TrEdNodeEditDlg({
+  #   title => 'Edit Properties',
+  #   type => $cfg->schema->get_root_type,
+  #   object => get_config(),
+  #   search_field => 0,
+  #   focus => 'context_before',
+  #   no_sort=>1,
+  # });
+
 }
 
 
@@ -11398,11 +11528,11 @@ sub examineBindingsDialog {
 
   $d->bind('<KeyPress>'=> [\&examineEvent, \$bindings, $grp, EMPTY ]);
 
-  foreach my $prefix ('Alt','Meta') {
+  foreach my $prefix ('Alt','Meta','Mod4') {
     $d->bind("<$prefix-KeyPress>"=> [\&examineEvent, \$bindings, $grp, uc($prefix).'+' ]);
   }
-  foreach (qw(Shift Control Meta Alt Control-Shift Control-Alt
-              Control-Meta Alt-Shift Meta-Shift)) {
+  foreach (qw(Shift Control Meta Alt Mod4 Control-Shift Control-Alt
+              Control-Meta Control-Mod4 Alt-Shift Alt-Mod4 Meta-Shift Mod4-Shift)) {
     foreach my $event (qw(KeyPress Right Left Up Down
                           Return comma period Next Prior greater less)) {
       $d->bind("<$_-$event>"=> [\&examineEvent, \$bindings, $grp, keyBind($_)."+"])
@@ -11945,12 +12075,12 @@ sub prepare_undo {
     $data = [uniq map { my $p=$_->parent; $p && exists($n{$p}) ? () : ($p ? $p->root : $_) }  @$n ];
   } elsif ($what == UNDO_DATA_AND_TREE_ORDER) {
     if (ref($data)) {
-      $what=UNDO_TREE_ORDER;
-      $snapshot = [@{$fsfile->treeList}];
-    } else {
       $snapshot = [make_data_snapshot($data),
 		   [@{$fsfile->treeList}]
 		  ];
+    } else {
+      $what=UNDO_TREE_ORDER;
+      $snapshot = [@{$fsfile->treeList}];
     }
   } elsif ($what == UNDO_CURRENT_TREE_AND_TREE_ORDER) {
     return if !ref($win->{root});
@@ -12080,18 +12210,18 @@ sub undo {
 	#	$prev->destroy if ref($prev);
 	#	$prev=
 	restore_data_from_snapshot($snapshot->[0]);
-	my %r; $r{ @{$snapshot->[1]} }=();
+	my %r; @r{ @{$snapshot->[1]} }=();
 	for (@{$fsfile->treeList}) {
-	  $_->destroy if ref ($_) and !exists($r{$_});
+	  $_->destroy if eval { ref ($_) and !$_->parent and !exists($r{$_}) };
 	}
 	@{$fsfile->treeList}=@{$snapshot->[1]};
 	# $fsfile->treeList->[$treeNo]=$prev;
       } elsif ($what == UNDO_ACTIVE_ROOT_AND_TREE_ORDER or
 	       $what == UNDO_DATA_AND_TREE_ORDER) {
 	restore_data_from_snapshot($snapshot->[0]);
-	my %r; $r{ @{$snapshot->[1]} }=();
+	my %r; @r{ @{$snapshot->[1]} }=();
 	for (@{$fsfile->treeList}) {
-	  $_->destroy if ref ($_) and !exists($r{$_});
+	  $_->destroy if eval { ref ($_) and !$_->parent and !exists($r{$_}) };
 	}
 	@{$fsfile->treeList}=@{$snapshot->[1]};
       } else {

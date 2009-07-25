@@ -93,6 +93,7 @@ BEGIN {
   $htmlBrowser
   $showSidePanel
   $skipStartupVersionCheck
+  $enableTearOff
   %c_fonts
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
@@ -631,6 +632,7 @@ sub set_config {
   $htmlBrowser                =	val_or_def($confs,"htmlbrowser",undef);
 
   $skipStartupVersionCheck    =	val_or_def($confs,"skipstartupversioncheck",undef);
+  $enableTearOff              =	val_or_def($confs,"enabletearoff",0);
 
   # ADD NEW OPTIONS HERE
 
