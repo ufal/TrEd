@@ -1,5 +1,9 @@
 -*- org -*-
 
+* TO DO
+
+** TrEdNodeEdit should somehow support direct editing of non-structure objects, e.g. of pml_prolog/epilog
+
 * Ideas
  - Firefox-like extension packages download one package with
    stylesheets, macros, schemas, resources, icons, etc. and install it to
