@@ -258,7 +258,9 @@ sub print_trees {
       $stylesheet,
       $grp_ctx,
       $get_nodes_callback,
+      $extra_opts
      )=@_;
+  $extra_opts ||= {};
   my $toPDF = (($outputFormat eq 'PDF' or $outputFormat==1) ? 1 : 0);
   my $toSVG=($outputFormat eq 'SVG' ? 1 : 0);
   return if (not defined($printRange));
@@ -358,7 +360,7 @@ sub print_trees {
 
   $treeView->apply_options({
 			    lineWidth => 1,
-			    ((!$toSVG or @printList<2) ? (
+			    ((!$toSVG or !$extra_opts->{use_svg_desc_and_title} and  @printList<2) ? (
 			      drawSentenceInfo => $snt ? 1 : 0,
 			      drawFileInfo => $fileinfo ? 1 : 0,
 			     ) : ())
@@ -432,7 +434,7 @@ sub print_trees {
 	$scale = 1 if ($scale>1 and !$maximizePrintSize);
 
 	my @opts;
-	if ($toSVG and @printList>1) {
+	if ($toSVG and ($extra_opts->{use_svg_desc_and_title} or @printList>1)) {
 	  if ($snt) {
 	    push @opts,(-desc => $valtext)
 	  }

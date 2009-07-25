@@ -156,9 +156,15 @@ sub resolve_menu_path {
   my ($self,$steps)=@_;
   my ($toplevel_menu, @s) = @$steps;
   my $menu = $self->{-menubars}{ $toplevel_menu };
+
   my $end = wantarray ? 1 : 0;
   while (@s>$end) {
-    $menu = $menu->entrycget(shift(@s), '-menu');
+    my $item = shift @s;
+    if ($menu) {
+      ($menu) =
+	$menu->isa('Tk::Menu') ? $menu->entrycget($item, '-menu') :
+	  (map $_->cget('-menu'), grep { $_->isa('Tk::Menubutton') and $_->cget('-text') eq $item } $menu->children);
+    }
   }
   return $end ? ($menu, @s) : $menu
 }

@@ -4321,7 +4321,8 @@ sub Print {
 	 $main::treeViewOpts,
 	 $ss,
 	 $grp,
-	 [\&main::printGetNodesCallback,$grp]
+	 [\&main::printGetNodesCallback,$grp],
+	 exists($opts{-extraOptions}) ? $opts{-extraOptions} : undef,
 	);
 
     $TrEd::TreeView::on_get_root_style = undef;

@@ -15,7 +15,6 @@ return sub {
     'Menu',
     'MENUBAR',
     {
-      '-type' => 'menubar'
      },
     [
       'MENUBAR:FILE',
@@ -44,6 +43,8 @@ return sub {
       'SEPARATOR',
       'MENUBAR:FILE:NEW',
       'SEPARATOR',
+      'MENUBAR:FILE:PROPERTIES',
+      'SEPARATOR',
       'MENUBAR:FILE:CLOSE',
       'MENUBAR:FILE:CLOSE_IN_WINDOW',
       'MENUBAR:FILE:CLOSE_AND_REMOVE_FROM_FILE_LIST',
@@ -56,6 +57,14 @@ return sub {
       'MENUBAR:FILE:QUIT'
      ]
    ],
+  'MENUBAR:FILE:PROPERTIES' => [
+    'Button',
+    'Properties',
+    {
+      -underline => 0,
+      -command => [ \&editFilePropertiesDialog, $grp ],
+     }
+  ],
   'MENUBAR:FILE:BOOKMARKS' => [
     'Cascade',
     'Bookmarks',
@@ -74,7 +83,7 @@ return sub {
     'Add Bookmark',
     {
       '-command' => [ \&addBookmark,$grp ],
-      '-underline' => 4
+      '-underline' => 0,
      },
     undef
    ],
@@ -83,7 +92,7 @@ return sub {
     'Add Bookmark To List ...',
     {
       '-command' => [\&bookmarkToFilelistDialog, $grp],
-      '-underline' => 12
+      '-underline' => 16
      },
     undef
    ],
@@ -154,11 +163,12 @@ return sub {
       '-underline' => 5
      },
     [
+      'MENUBAR:FILE:FILE_LISTS:SELECT_FILE_LIST',
+      'SEPARATOR',
       'MENUBAR:FILE:FILE_LISTS:NEXT_IN_FILE_LIST',
       'MENUBAR:FILE:FILE_LISTS:PREVIOUS_IN_FILE_LIST',
       'MENUBAR:FILE:FILE_LISTS:GO_TO_FILE_LIST_INDEX',
       'SEPARATOR',
-      'MENUBAR:FILE:FILE_LISTS:SELECT_FILE_LIST',
       'MENUBAR:FILE:FILE_LISTS:NEW_FILE_LIST',
       'MENUBAR:FILE:FILE_LISTS:REMOVE_FILE_LISTS',
       'MENUBAR:FILE:FILE_LISTS:EDIT_FILE_LISTS',
@@ -176,7 +186,7 @@ return sub {
    ],
   'MENUBAR:FILE:FILE_LISTS:EDIT_FILE_LISTS' => [
     'Button',
-    'Edit File Lists ...',
+    'Manage File Lists ...',
     {
       '-command' => [\&filelistDialog, $grp],
       '-underline' => 0
@@ -237,7 +247,7 @@ return sub {
     'Select File List ...',
     {
       '-command' => [\&selectFilelistDialog, $grp],
-      '-underline' => 12
+      '-underline' => 0,
      },
     undef
    ],
@@ -715,8 +725,6 @@ return sub {
     [
       'MENUBAR:NODE:NEXT',
       'MENUBAR:NODE:PREVIOUS',
-      'MENUBAR:NODE:FIRST',
-      'MENUBAR:NODE:LAST',
       'MENUBAR:NODE:UP_LEVEL',
       'MENUBAR:NODE:DOWN_LEVEL',
       'MENUBAR:NODE:LEFT_SIBLING',
@@ -725,6 +733,8 @@ return sub {
       'MENUBAR:NODE:RIGHT_ON_LEVEL',
       'MENUBAR:NODE:NEXT_IN_ORDER',
       'MENUBAR:NODE:PREVIOUS_IN_ORDER',
+      'MENUBAR:NODE:FIRST',
+      'MENUBAR:NODE:LAST',
       'SEPARATOR',
       'MENUBAR:NODE:EDIT_NODE_ATTRIBUTES',
       'SEPARATOR',
@@ -794,7 +804,7 @@ return sub {
    ],
   'MENUBAR:NODE:FIRST' => [
     'Button',
-    'First',
+    'First in Order',
     {
       '-accelerator' => 'Shift+Home',
       '-command' => [\&gotoFirstDisplayedNode,$grp]
@@ -803,7 +813,7 @@ return sub {
    ],
   'MENUBAR:NODE:LAST' => [
     'Button',
-    'Last',
+    'Last in Order',
     {
       '-accelerator' => 'Shift+End',
       '-command' => [\&gotoLastDisplayedNode,$grp]
@@ -1094,7 +1104,7 @@ return sub {
    ],
   'MENUBAR:SETUP:FILES_IN_MEMORY:KEEP_ALL_FILES_IN_MEMORY_WHEN_OPENING_A_NEW_ONE' => [
     'Checkbutton',
-    'Keep All Files in Memory When Opening a New One',
+    'Keep All Files in Memory Until Explicitly Closed',
     {
       '-underline' => 0,
       '-variable' => \$grp->{keepfiles}
@@ -1103,7 +1113,7 @@ return sub {
    ],
   'MENUBAR:SETUP:FILES_IN_MEMORY:KEEP_THIS_FILE_IN_MEMORY_WHEN_OPENING_A_NEW_ONE' => [
     'Checkbutton',
-    'Keep This File in Memory When Opening a New One',
+    'Keep This File in Memory Until Explicitly Closed',
     {
       '-command' => [sub {
 		       my ($grp)=@_;
