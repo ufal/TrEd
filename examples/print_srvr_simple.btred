@@ -16,7 +16,7 @@ my $host = ($opts{'--host'} || 'localhost');
 
 our $cache_dir = $opts{'--cache-dir'};
 
-(-d $cache_dir) or die "Cache directory $cache_dir must exist!\n";
+!$cache_dir or (-d $cache_dir) or die "Cache directory $cache_dir must exist!\n";
 
 
 our $permitted_paths_re = '^(?:'.join('|',@permitted_paths).')/';
@@ -113,7 +113,10 @@ sub serverError {
 sub serveSVG {
   my ($self,$cgi) = @_;             # Net::HTTPServer::Request object
   my $path = $cgi->param('file');
+  my $sentence = $cgi->param('sentence') ? 1 : 0;
+  my $fileinfo = $cgi->param('fileinfo') ? 1 : 0;
   my $tree_no = int($cgi->param('tree_no')||0) || 1;
+  my $use_svg_desc_and_title = int($cgi->param('dt')||0) || 1;
   print STDERR '['.localtime()."] No path\n";
   return notFound($cgi) unless $path;
   $path=~s/\.svg$//;
@@ -145,6 +148,11 @@ sub serveSVG {
     unless (TredMacro::make_svg($path,
 				-filename => $svg_name,
 				-range => $tree_no,
+				-sentenceInfo => $sentence,
+				-fileInfo => $fileinfo,
+				-extraOptions => {
+				  use_svg_desc_and_title => $use_svg_desc_and_title,
+				}
 			       )) {
       unlink $fh;
     }
