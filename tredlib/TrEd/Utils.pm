@@ -264,6 +264,7 @@ sub getStylesheetPatterns {
       $hint = $s->{hint};
       $context = $s->{context};
       $context = '.*' unless (wantarray or $context =~ /\S/);
+      chomp $context;
       @$patterns = defined($s->{patterns}) ? @{$s->{patterns}} : ();
     } else {
       return ();
@@ -330,6 +331,7 @@ sub getStylesheetMenuList {
    grep { 
      if ($all or !defined($context)) { 1 } else {
        $match = $grp->{stylesheets}{$_}{context};
+       chomp $match;
        $match = '.*' unless $match =~ /\S/;
        $context =~ /^${match}$/x ? 1 : 0;
      }
@@ -369,6 +371,7 @@ sub splitPatterns {
 	  $hint .= $pattern;
 	} elsif ($pattern=~s/^context:\s*//) {
 	  $context = $pattern;
+	  chomp $context;
 	} else {
 	  push @result, $pattern;
 	}

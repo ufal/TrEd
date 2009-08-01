@@ -2539,6 +2539,7 @@ sub draw_text_line {
 			#		      $y+$lineHeight,
 			-fill => $canvas->cget('-background'),
 			-outline => undef,
+			-width => 0,
 			-tags => ['textbg',"textbg_$node"]
 		       );
       eval { #apply_style_opts

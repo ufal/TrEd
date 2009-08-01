@@ -439,6 +439,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
       }
       for my $p (@ports) {
 	push @running, { port => $p, fullname => "ntred-${name}-${p}", protocol => $protocol };
+	last if ($maxservers>0 && @running >= $maxservers);
       }
     } elsif ($protocol eq 'ssh') {
       my ($host,$port) = split /:/, $server;
@@ -1270,7 +1271,7 @@ sub distribute_files2 {
 sub r2a {
   my ($fl,$file)=@_;
   if (defined($fl)) {
-    Fslib::ResolvePath($fl,$file);
+    return Fslib::ResolvePath($fl,$file);
   } else {
     return rel2abs($file);
   }
@@ -1305,7 +1306,7 @@ sub get_files {
   if ($filelist) {
     local $_;
     if (open(my $f, $filelist)) {
-      my $fl = (($filelist =~ /\.fl$/i) ? $filelist : undef );
+      my $fl = (($filelist =~ /\.fl$/i) ? Cwd::abs_path($filelist) : undef );
       my $first = 1;
       while (<$f>) {
 	s/^\s+//;
