@@ -467,7 +467,8 @@ SCRIPT
 			"text-anchor" => $text_anchor,
 			"font-family" => $canvasfont{-family},
 			"font-weight" => $canvasfont{-weight},
-			"font-size" => ($canvasfont{-size}<0 ? abs($canvasfont{-size}).'px' : $canvasfont{-size}.'pt'),
+			"font-size" => ($canvasfont{-size}<0 ? abs($canvasfont{-size})#.'px'
+					  : $canvasfont{-size}.'pt'),
 			"font-slant" => $canvasfont{-slant},
 			"fill" => $color,
 			width => $textwidth,
@@ -696,6 +697,7 @@ SCRIPT
 			'stroke' => defined($outlinecolor) ? $outlinecolor : 'none',
 			'fill' => defined($color) ? $color : 'none',
 			($is_text_bg ? ('fill-opacity' => '0.6') : ()),
+			($is_text_bg ? ('stroke-opacity' => '0.6') : ()),
 			%item_opts,
 		       );
 	$self->item_desc($writer,$hint->{$item});

@@ -35,6 +35,8 @@ return sub {
     [
       'MENUBAR:FILE:OPEN',
       'MENUBAR:FILE:OPEN_URL',
+      'MENUBAR:FILE:RELOAD',
+      'SEPARATOR',
       'MENUBAR:FILE:RECENT',
       'SEPARATOR',
       'MENUBAR:FILE:KEPT_IN_MEMORY',
@@ -316,6 +318,16 @@ return sub {
      },
     undef
    ],
+  'MENUBAR:FILE:RELOAD' => [
+    'Button',
+    'Reload',
+    {
+      '-command' => [\&reloadFile,$grp],
+      '-underline' => 1
+     },
+    undef
+   ],
+
   'MENUBAR:FILE:PRINT' => [
     'Button',
     'Print ...',
@@ -528,13 +540,14 @@ return sub {
       '-underline' => 0
      },
     [
+      'MENUBAR:MACROS:EXAMINE_KEY_BINDINGS',
       'MENUBAR:HELP:KEYBINDINGS:CURRENT_MODE',
       'MENUBAR:HELP:KEYBINDINGS:CURRENT_MODE_AND_TREDMACRO'
      ]
    ],
   'MENUBAR:HELP:KEYBINDINGS:CURRENT_MODE' => [
     'Button',
-    'Current Mode',
+    'Table of Macros in Current Mode',
     {
       '-command' => [\&showMacrosAsHtml,$grp,0,'N'],
       '-underline' => 0
@@ -543,10 +556,10 @@ return sub {
    ],
   'MENUBAR:HELP:KEYBINDINGS:CURRENT_MODE_AND_TREDMACRO' => [
     'Button',
-    'Current Mode + TredMacro',
+    'Table of Macros in Current Mode + TredMacro',
     {
       '-command' => [\&showMacrosAsHtml,$grp,2,'N'],
-      '-underline' => 15
+      '-underline' => 1,
      },
     undef
    ],
@@ -662,7 +675,6 @@ return sub {
       'MENUBAR:MACROS:*_EXTENSION_TOOLS',
       'SEPARATOR',
       'MENUBAR:MACROS:RELOAD_MACROS',
-      'MENUBAR:MACROS:EXAMINE_KEY_BINDINGS'
      ]
    ],
   'MENUBAR:MACROS:*_EXTENSION_TOOLS' => [
