@@ -439,7 +439,7 @@ sub print_trees {
 	    push @opts,(-desc => $valtext)
 	  }
 	  if ($fileinfo) {
-	    push @opts,(-title => filename($fsfile->filename).'##'.($t+1))
+	    push @opts,(-title => filename($fsfile->filename).' ('.$printList[$t].'/'.($fsfile->lastTreeNo+1).')');
 	  }
 	}
 
