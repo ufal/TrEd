@@ -23,7 +23,7 @@ Add these lines to your macro context:
      DrawArrows($node,$styles,
        [ {
            # an arrow with a target
-           -target => GetNodeById($node->{ref}),
+           -target => PML::GetNodeByID($node->{ref}),
            # other options: -tag -arrow -arrowshape -width -smooth -fill -dash
          },
          {
