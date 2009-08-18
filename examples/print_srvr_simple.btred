@@ -129,7 +129,7 @@ sub serveSVG {
   my ($fh,$svg_name,$unlink,$cached);
   if ($cache_dir) {
     $svg_name = File::Spec->rel2abs(md5_hex($path).".${tree_no}.svg",$cache_dir);
-    if ((-f $svg_name) and (((stat($path))[9])<((stat($svg_name))[9])) ) {
+    if ((-f $svg_name) and (-s $svg_name) and (((stat($path))[9])<((stat($svg_name))[9])) ) {
       open $fh, '<:bytes', $svg_name;
       $cached = 1;
     } else {
