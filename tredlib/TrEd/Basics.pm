@@ -38,6 +38,9 @@ BEGIN {
     &chooseNodeType
     &fileSchema
     &getSecondaryFiles
+    &getSecondaryFilesRecursively
+    &getPrimaryFiles
+    &getPrimaryFilesRecursively
   );
   use PMLSchema;
 }
@@ -286,6 +289,43 @@ sub getSecondaryFiles {
     }
   }
   return uniq @secondary;
+}
+
+sub getSecondaryFilesRecursively {
+  my ($fsfile)=@_;
+  my @secondary = getSecondaryFiles($fsfile);
+  my %seen;
+  my $i=0;
+  while ($i<@secondary) {
+    my $sec = $secondary[$i];
+    if (!exists($seen{$sec})) {
+      $seen{$sec}=1;
+      push @secondary, getSecondaryFiles($sec);
+    }
+    $i++;
+  }
+  return uniq @secondary;
+}
+
+sub getPrimaryFiles {
+  my ($fsfile)=@_;
+  return @{ $fsfile->appData('fs-part-of') || [] };
+}
+
+sub getPrimaryFilesRecursively {
+  my ($fsfile)=@_;
+  my @primary = getPrimaryFiles($fsfile);
+  my %seen;
+  my $i=0;
+  while ($i<@primary) {
+    my $prim = $primary[$i];
+    if (!exists($seen{$prim})) {
+      $seen{$prim}=1;
+      push @primary, getPrimaryFiles($prim);
+    }
+    $i++;
+  }
+  return uniq @primary;
 }
 
 sub chooseNodeType {
