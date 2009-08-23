@@ -33,7 +33,7 @@ tectogrammatical layer annotation.
 sub SchemaName {
   my $schema = &Schema;
   return undef unless $schema;
-  return $schema->{root}->{name};
+  return $schema->get_root_name;
 } #SchemaName
 
 =item SchemaDescription()
