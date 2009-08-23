@@ -1647,11 +1647,11 @@ sub closeFile {
   my $fsfile;
   if ($opts{-fsfile}) {
     $fsfile = $opts{-fsfile};
-    __debug("Closing ",$opts{-fsfile}->filename,"; keep postponed: $opts{-keep_postponed}\n");
   } else {
     $fsfile = $win->{FSFile};
   }
   if ($fsfile) {
+    __debug("Closing ",$fsfile->filename,"; keep postponed: $opts{-keep_postponed}\n");
     doEvalHook($win,"file_close_hook",$fsfile,\%opts);
     $fsfile->currentTreeNo($win->{treeNo});
     $fsfile->currentNode($win->{currentNode});
@@ -1659,16 +1659,17 @@ sub closeFile {
     return;
   }
   my $fn=$fsfile->filename;
-  if (!$opts{-keep_postponed} and
-	filePartOfADisplayedFile($win->{framegroup},$fsfile)) {
-    warn "closeFile: Keeping postponed ".$fsfile->filename." - part of a displayed file\n";
-    $opts{-keep_postponed}=1;
-  } else {
-    my @part_of = findToplevelFileFor($win->{framegroup},$fsfile);
-    if ($part_of[0]!=$fsfile) {
-      return unless askSaveFile($win,0,1,$fsfile)==0;
-      for (@part_of) {
-	closeFile($win,%opts,-fsfile=>$_,-keep_postponed=>0)||return
+  if (!$opts{-keep_postponed}) {
+    if (filePartOfADisplayedFile($win->{framegroup},$fsfile)) {
+      warn "closeFile: Keeping postponed ".$fsfile->filename." - part of a displayed file\n";
+      $opts{-keep_postponed}=1;
+    } else {
+      my @part_of = findToplevelFileFor($win->{framegroup},$fsfile);
+      if ($part_of[0]!=$fsfile) {
+	return unless askSaveFile($win,0,1,$fsfile)==0;
+	for (@part_of) {
+	  closeFile($win,%opts,-fsfile=>$_,-keep_postponed=>0)||return
+	}
       }
     }
   }
@@ -2296,6 +2297,13 @@ sub openFile {
     }
     $win->toplevel->Unbusy() unless $insideEval;
     return wantarray ? ($fsfile,_new_status(ok => 1)) : $fsfile;
+  }
+
+  # the current file would get open again as a secondary file to $f
+  if ($fsfile and
+      first {
+	IOBackend::is_same_filename($_->filename(),$f) } getPrimaryFilesRecursively($fsfile)) {
+    $opts{-keep} = 1;
   }
 
   # Shell we close current file?
