@@ -655,7 +655,7 @@ return sub {
     'Button',
     'User\'s Manual',
     {
-      '-command' => [\&help_topic,$grp],
+      '-command' => [\&help_topic,$grp,'_TOC_'],
       '-underline' => 0
      },
     undef
