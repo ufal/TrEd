@@ -1257,7 +1257,9 @@ sub wrappedLines {
 sub wrapLines {
   my ($self,$text,$width,$reverse)=@_;
   use integer;
-  my @toks = split /[ \t]+/, $text;
+
+  # split on whitespace but preserve newlines as individual tokens
+  my @toks = grep defined, split /[ \t]*(\n)[ \t]*|[ \t]+/, $text;
   if ($reverse) {
       my @result;
       my $wd=0;
