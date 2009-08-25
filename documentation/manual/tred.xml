@@ -27,19 +27,19 @@
     <para>
       TrEd's default behavior can be customized
       (extended or narrowed)
-      using so called annotation contexts
+      using so called <firstterm>annotation modes</firstterm> (previously called <firstterm>binding contexts</firstterm>)
       that can provide different interfaces
       for different types of data or annotation.
-      A context usually consists of a set of macros
+      An annotation mode usually consists of a set of macros
       (subroutines programmed in Perl)
       that can be bound to keyboard shortcuts, menus, toolbars,
       or certain automatically triggered events.
       TrEd comes with an extensive library of pre-defined macros, which greatly
-      simplifies writing new contexts.
+      simplifies writing new annotation modes.
     </para>
     <para>
       The visual representation of trees in TrEd 
-      can be customized independently on the annotation context by 
+      can be customized independently on the annotation mode by 
       user-defined stylesheets.
     </para>
     <para>
@@ -58,7 +58,7 @@
       that convert a given XML-based format
       to PML and back.
     </para>
-    <para>Annotatin contexts, libraries of macros, styles, 
+    <para>Annotation modes, libraries of macros, styles, 
       I/O transformations, resources (such as dictionaries, PML schemas, etc.), example
       data, etc. can be easily distributed to TrEd users
       as so called <link linkend="extension_package">Extension Packages</link>
@@ -414,7 +414,7 @@ Tk: 804.028
 	<term>tree</term>
 	<listitem>
 	  <para>
-	    A trees in this context is a rooted oriented cycle-free graph of nodes.
+	    A tree in this context is a rooted oriented cycle-free graph of nodes.
 	    In other words: it is a finite ordered set of objects called nodes (sometimes, but
 	    not in this manual, also called <firstterm>verteces</firstterm>),  
 	    each of the nodes but one is connected to another node
@@ -641,26 +641,26 @@ Tk: 804.028
 	    a file being opened, <application>TrEd</application>
 	    tries to locate and call a user-defined function
 	    named <link linkend="file_opened_hook"><literal>file_opened_hook</literal></link>
-	    in the current binding context (described below).
+	    in the current annotation mode (described below).
 	    See <xref linkend="hooks"/> for details.
 	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
-	<term>binding context (also annotation context)</term>
+	<term>annotation mode (also called binding context)</term>
 	<listitem>
 	  <para>
 	    Macros serving similar purpose and often related to
 	    some specific data may be organized to sets
-	    called <firstterm>annotation context</firstterm>.
-	    Each view is associated with a binding context (called the
-	    <firstterm>current context</firstterm>) and
-	    the user may easilly switch from one context to another.
+	    called <firstterm>annotation mode</firstterm>.
+	    Each view is associated with a annotation mode (called the
+	    <firstterm>current mode</firstterm>) and
+	    the user may easilly switch from one mode to another.
 	    If the user presses a keyboard shortcut,
 	    <application>TrEd</application> tries to find
 	    a binding for that shortcut in the current
-	    binding context. If it fails, tries the same
-	    with a default context called <literal>TredMacro</literal>.
+	    annotation mode. If it fails, tries the same
+	    with a default annotation mode called <literal>TredMacro</literal>.
 	    Similar lookup applies when the user performs an
 	    action which requires a <firstterm>hook</firstterm>
 	    to be called.
@@ -676,7 +676,7 @@ Tk: 804.028
 	    editor. 
 	    Minor modes use hooks to provide additional
 	    functionality that is independent of the current
-	    annotation context. 
+	    annotation mode. 
 	    Different minor modes can be used for different views.
 	    Currently TrEd ships with
 	    the following minor modes:
@@ -756,7 +756,7 @@ Tk: 804.028
 	  using the <link linkend="extension_manager">Extension Manager</link>
 	  by the individual users
 	  and usually contains 
-	  macros (annotation contexts),
+	  macros (annotation modes),
 	  resource files,
 	  file lists of sample data, configurations of I/O backends,
 	  stylesheets etc.
@@ -835,12 +835,12 @@ Tk: 804.028
 	<listitem>
 	  <para>
 	    Status line. It displays various information provided by
-	    the current binding context.
+	    the current annotation mode.
 	  </para>
 	</listitem>
 	<listitem>
 	  <para>
-	    Current binding context. You can change the context by clicking on this
+	    Current annotation mode. You can change the context by clicking on this
 	    menu button and selecting a different one from the list.
 	  </para>
 	</listitem>
@@ -1062,6 +1062,41 @@ Tk: 804.028
 	  </section>
 	</section>
 	<section>
+      <title><guimenu>Bookmarks</guimenu></title>
+      <para>
+	This submenu allows the user to manage bookmarks. Bookmarks are filenames
+	with tree-number and node position attached. The list
+	of user's bookmarks is maintained in a special file list named <literal>Bookmarks</literal>. 
+      </para>
+      <section>
+	<title><guimenuitem>Place of Last Action</guimenuitem></title>
+	<para>
+	This opens the file, tree, and exact node where the user made a last modification to the data.
+	This is extra position is stored in
+	TrEd's configuration file and does not appear among bookmarks.
+	</para>
+      </section>
+      <section>
+	<title><guimenuitem>Add Bookmark</guimenuitem></title>
+	<para>Creates a new bookmark for the current file, tree, and node
+	by adding an entry to the <literal>Bookmarks</literal> file list.
+	</para>
+      </section>
+      <section>
+	<title><guimenuitem>Add Bookmark to List</guimenuitem></title>
+	<para>Adds the current file, tree, and node address
+	to as a new entry in a file list selected by user.
+      </para>
+      </section>
+      <section>
+	<title><guisubmenu>Go to Bookmark</guisubmenu></title>
+	<para>
+	  Displays a sub-menu where the user can open
+	  any bookmarked address by selecting the corresponding item.
+	</para>
+      </section>
+	</section>
+    <section>
 	  <title><guimenuitem>New</guimenuitem></title>
 	  <section>
 	    <title><guimenuitem>From Template</guimenuitem></title>
@@ -1344,22 +1379,21 @@ Tk: 804.028
 	<section>
 	  <title><guimenuitem>Guess Suitable Mode</guimenuitem></title>
 	  <para>Runs the <link linkend="guess_context_hook">guess_context_hook</link> in order to
-	  determine and select a suitable annotation context for the
+	  determine and select a suitable annotation mode for the
 	  current file. Note that this is done automatically run when
 	  a file is opened; this command is useful when
-	  the user wants to return to the ``default'' context.
+	  the user wants to return to the ``default'' annotation mode.
 	  </para>
 	</section>
 <section>
 	  <title><guimenuitem>Select Mode ...</guimenuitem></title>
 	  <para>
-	      Open a dialog window where the user can select a binding
-	      context. Binding contexts are groups of user defined
+	      Open a dialog window where the user can select an annotation mode. annotation modes are groups of user defined
 	      macro-bindings, usually identified with macro
 	      packages. See also <xref linkend="macros"/>.  The
-	      current context can also be selected from the first list
+	      current annotation mode can also be selected from the first list
 	      in the top right corner of the main window, but this
-	      makes changing contexts fully keyboard accessible.
+	      makes changing annotation modes fully keyboard accessible.
 	    </para>
 	</section>
 	<section>
@@ -1454,7 +1488,7 @@ Tk: 804.028
 	  <title><guimenuitem>List of available macros...</guimenuitem></title>
 	  <para>
 	      Display a window listing all user-defined
-	      menus and keyboard shortcuts (macros) in a selected context.
+	      menus and keyboard shortcuts (macros) in a selected annotation mode.
 	      User may run a macro
 	      by double-clicking on a corresponding item in the list, or
 	      by pressing the <guibutton>Run and Close</guibutton>
@@ -1483,7 +1517,7 @@ Tk: 804.028
 	  <title><guimenuitem>List of available macros...</guimenuitem></title>
 	  <para>
 	      Display a window listing all user-defined
-	      menus and keyboard shortcuts (macros) in a selected context.
+	      menus and keyboard shortcuts (macros) in a selected annotation mode.
 	      User may run a macro
 	      by double-clicking on a corresponding item in the list, or
 	      by pressing the <guibutton>Run and Close</guibutton>
@@ -1513,10 +1547,10 @@ Tk: 804.028
       <para>
 	This menu gathers
 	all available <link linkend="macros">macros</link>,
-	and is organized into submenus by annotation contexts.
+	and is organized into submenus by annotation modes.
 	Any macro can be invoked by selecting the corresponding item.
 	Note that calling a macro from an annotation
-	context that was not intended to be used for working
+	mode that was not intended to be used for working
 	of the current type of file
 	can be dangerous!
       </para>
@@ -1524,7 +1558,7 @@ Tk: 804.028
 	Here we give only a brief
 	description of the few macros defined by default in the
 	default
-	<application>TredMacro</application> context 
+	<application>TredMacro</application> annotation mode 
 	in <filename>tredlib/tred.mac</filename>.
 	Although they are general purpose macros, they 
 	should be used wisely, since some of them they allow almost
@@ -1765,7 +1799,7 @@ Tk: 804.028
 	      attribute for the node <literal>$n</literal>.  The parent-node of
 	      <literal>$n</literal> is accessed via <literal>$n-&gt;parent</literal>, child-nodes of
 	      <literal>$n</literal> as <literal>$n-&gt;childnodes</literal> (returns a
-	      list), etc. Macros from the current context may be
+	      list), etc. Macros from the current annotation mode may be
 	      called as Perl subroutines. See <xref linkend="macros"/>
 	      for details.
 	    </para>
@@ -1885,28 +1919,6 @@ Tk: 804.028
 	<section>
 	  <title><guisubmenu>Appearance</guisubmenu></title>
 	  <section>
-	  <title><guimenuitem>Stipple Inactive Views</guimenuitem></title>
-	  <para>If this item is checked, inactive views are covered
-	      with a semi-transparent stipple pattern. This may
-	      improve orientation if working with more than one view,
-	      but also slightly reduces the clarity of trees displayed
-	      in the inactive views.
-	      (See also <link linkend="stippleinactivewindows">StippleInactiveWindows</link>
-	      configuration option).
-	    </para>
-	</section>
-	<section>
-  <title><guimenuitem>Draw boxes around labels</guimenuitem></title>
-	  <para>If this item is checked, square boxes are drawn
-	      around groups of node labels.</para>
-	</section>
-	<section>
-	  <title>
-	    <guimenuitem>Draw boxes around edge labels</guimenuitem></title>
-	  <para>If this item is checked, square boxes are drawn
-	      around groups of edge attributes.</para>
-	</section>
-	<section>
 	  <title><guimenuitem>Show Hidden Nodes</guimenuitem></title>
 	  <para>
 	      Toggle visibility the ``hidden'' nodes and subtrees of
@@ -1919,6 +1931,38 @@ Tk: 804.028
 	    </para>
 	</section>
 	<section>
+	  <title><guimenuitem>Stipple Inactive Views</guimenuitem></title>
+	  <para>If this item is checked, inactive views are covered
+	      with a semi-transparent stipple pattern. This may
+	      improve orientation if working with more than one view,
+	      but also slightly reduces the clarity of trees displayed
+	      in the inactive views.
+	      (See also <link linkend="stippleinactivewindows">StippleInactiveWindows</link>
+	      configuration option).
+	    </para>
+	</section>
+	<section>
+	  <title><guimenuitem>Clear Text Background</guimenuitem></title>
+	  <para>If this item is checked, rectangles
+	      in the background color are drawn under each individual
+              node label so that text
+	      overlapping edges and other graphical elements is legible.
+	      (See also <link linkend="cleartextbackground">ClearTextBackground</link>
+	      configuration option).
+	    </para>
+	</section>
+	<section>
+  <title><guimenuitem>Draw Boxes Around Labels</guimenuitem></title>
+	  <para>If this item is checked, square boxes are drawn
+	      around groups of node labels.</para>
+	</section>
+	<section>
+	  <title>
+	    <guimenuitem>Draw Boxes Around Edge Labels</guimenuitem></title>
+	  <para>If this item is checked, square boxes are drawn
+	      around groups of edge attributes.</para>
+	</section>
+	<section>
 	  <title><guimenuitem>Highlight Attributes</guimenuitem></title>
 	  <para>
 	      Toggle highlighting certain attributes with
@@ -1929,6 +1973,14 @@ Tk: 804.028
 	      avoid this approach of changing tree appearance in favor
 	      of stylesheets (see <xref linkend="stylesheets"/>).
 	    </para>
+	</section>
+	<section>
+	  <title><guimenuitem>Preserve Attributes on Reload</guimenuitem></title>
+	  <para>
+	    If this option is checked, all changes in the 
+	    <guilabel>&lt;From File&gt;</guilabel> stylesheet
+	    are preserved even if the file is reloaded.
+	  </para>
 	</section>
 	<section>
 	  <title><guimenuitem>Sort Attributes in Dialogs</guimenuitem></title>
@@ -1980,32 +2032,67 @@ Tk: 804.028
 	</section>
     </section>
     <section>
-      <title><guimenu>Bookmarks</guimenu></title>
-      <para>
-	This menu contains user's bookmarks. Bookmarks are filenames
-	with tree-number and node position attached. The list
-	of user's bookmarks is maintained in a special file list named <literal>Bookmarks</literal>. 
-      </para>
-      <para>
-	<guimenuitem>Add to Bookmars</guimenuitem>
-	menu command adds bookmark for the current node.
-      </para>
-      <para>
-	The <guimenuitem>Last action</guimenuitem>
-	menu command automatically opens and shows the file tree and
-	node where the user made a last change to the tree structure
-	or a node attribute. This is extra position is stored in
-	TrEd's configuration file and does not appear among bookmarks.
-      </para>
-      <para>
-	The rest of the <guimenu>Bookmarks</guimenu>
-	menu lists all defined bookmarks. User may follow a bookmark
-	by choosing the corresponding menu item.
-      </para>
-    </section>
-    <section>
       <title><guimenu>Help</guimenu></title>
-      
+	<section>
+	  <title><guimenuitem>User's Manual</guimenuitem></title>
+	  <para>
+	    Displays TrEd documentation (this document) in the
+	    default browser.
+	  </para>
+	</section>
+	<section>
+	  <title><guimenuitem>TrEd Home Page</guimenuitem></title>
+	  <para>
+	    Displays TrEd internet homepage in the default browser.
+	  </para>
+	</section>
+	<section>
+	  <title><guimenuitem>Extension Manuals</guimenuitem></title>
+	  <para>
+	    Displays a submenu where the documentation to installed
+	    extensions can be accessed. Unfortunatelly, some
+	    extensions come with no documentation.
+	  </para>
+	</section>
+	<section>
+	  <title><guimenuitem>Library Manuals</guimenuitem></title>
+	  <para>
+	    Displays a submenu where the documentation to 
+	    various Perl libraries used by TrEd
+	    can be accessed, including
+	    the TrEd macro API library (<xref linkend="defaultmacros"/>).
+	  </para>
+	</section>
+	<section>
+	  <title><guimenuitem>Command-Line Tools</guimenuitem></title>
+	  <para>
+	    Displays a submenu where the documentation to 
+	    TrEd command-line tools (including TrEd command-line options) can be accessed.
+	  </para>
+	</section>
+	<section>
+	  <title><guimenuitem>Keybindings</guimenuitem></title>
+	  <section>
+	    <title><guimenuitem>Examine bindings</guimenuitem></title>
+	    <para>Displays a window where the user may safely test keyboard bindings.
+	    Every time a keyboard short-cut is pressed in the dialog, TrEd looks up
+	    if some macro is associated with the short-cut and displayes
+	    the result. No macros acrually executed.
+	    </para>
+	  </section>
+	  <section>
+	    <title><guimenuitem>Table of Macros in Current Mode</guimenuitem></title>
+	    <para>Opens the default web browser with a HTML table of macros and key bindings
+	    available in the current annotation mode. The page can be printed out and used as a cheet sheet.
+	    </para>
+	  </section>
+	  <section>
+	    <title><guimenuitem>Table of Macros in Current Mode + TredMacro</guimenuitem></title>
+	    <para>Opens the default web browser with a HTML table of macros and key bindings
+	    available in the current annotation mode and the TredMacro annotation mode. The page can be printed out and used as a cheet sheet.
+	    </para>
+	  </section>
+	</section>
 	<section>
 	  <title><guimenuitem>About</guimenuitem></title>
 	  <para>
@@ -2014,28 +2101,6 @@ Tk: 804.028
 	      and format, number of trees, and more is given.
 	    </para>
 	</section>
-      
-      
-	<section>
-	  <title><guimenuitem>Examine bindings</guimenuitem></title>
-	  <para>Displays a window where the user may safely test keyboard bindings.
-	      Every time a keyboard short-cut is pressed in the dialog, TrEd looks up
-	      if some macro is associated with the short-cut and displayes
-	      the result. No macros acrually executed.
-	    </para>
-	</section>
-      
-      
-	<section>
-	  <title><guimenuitem>Reload macros</guimenuitem></title>
-	  <para>Removes all macro code and variables from memory and
-	      reloads all macros. This command is useful when the user
-	      modifies the macros in a text editor and wants to check the
-	      result without having to restart <application>TrEd</application>.
-	    </para>
-	</section>
-      
-      
 	<section>
 	  <title><guimenuitem>Debugging messages</guimenuitem></title>
 	  <para>In this submenu the user may turn on and off various sets of 
@@ -2057,8 +2122,6 @@ Tk: 804.028
 	      raised during style-sheet evaluation).
 	    </para>
 	</section>
-      
-
     </section>
   </section>
   <section id="toolbar">
@@ -2132,11 +2195,11 @@ Tk: 804.028
 	  </inlinemediaobject>
 	</term>
 	<listitem>
-	  <para>Reload the current file from disk. Current context and stylesheet are preserved.</para>
+	  <para>Reload the current file from disk. Current annotation mode and stylesheet are preserved.</para>
 	  <note>
 	    <para>	    
 	      Note for macro developers: during this action,
-	      neither context guessing, nor <link linkend="file_opened_hook">file_opened_hook</link>
+	      neither annotation mode guessing, nor <link linkend="file_opened_hook">file_opened_hook</link>
 	      nor <link linkend="file_resumed_hook">file_resumed_hook</link> are
 	      called, but <link linkend="file_reloaded_hook">file_reloaded_hook</link>
 	      is called instead (in case of success).
@@ -2696,7 +2759,7 @@ Tk: 804.028
     <para>
       Double-clicking any attribute value displayed in the tree shows
       a simple value editor, where the value of the attribute can be
-      changed (note however that some contexts disable editing certain
+      changed (note however that some annotation modes disable editing certain
       or all attributes - in that case, the value editor presentes the
       attribute value as read-only).
     </para>
@@ -3357,14 +3420,14 @@ Tk: 804.028
 	      or <literal>$this-&gt;{<replaceable>attr</replaceable>}</literal>.
 	      The current node object itself can be refered to as <literal>$this</literal> (so e.g. <literal>$this-&gt;parent</literal> gives access
 	      to its parent).  Regardless
-	      of what context is currently selected, the code occuring
+	      of what annotation mode is currently selected, the code occuring
 	      in the styling patterns is always evaluated within the
 	      <literal>TredMacro</literal> namespace.
 	      In order to call a user-defined macro from another
 	      namespace, it is therefore necessary to use a complete
 	      namespace (package name) prefix. So, a call to a macro
 	      named <literal>bar</literal> from a
-	      package (context) <literal>Foo</literal>
+	      package (annotation mode) <literal>Foo</literal>
 	      should look like <literal>Foo::bar(<replaceable>arguments...</replaceable>)</literal>.
 	  </para>
 	</listitem>
@@ -4533,7 +4596,7 @@ Tk: 804.028
       <listitem>
 	<para>
 	  If you also want the <quote>sentence</quote> of the tree
-	  (i.e. the usual context of the text window above the tree)
+	  (i.e. the usual annotation mode of the text window above the tree)
 	  to be printed under the tree, check the <guilabel>Print sentence</guilabel> button.
 	</para>
       </listitem>
@@ -5921,7 +5984,7 @@ sub CreateImages {
 	  <term><literal>GUIFont_small</literal></term>
 	  <listitem>
 	    <para>
-	      Small font used for small elements in the GUI (toolbar, context and stylesheet menu)
+	      Small font used for small elements in the GUI (toolbar, annotation mode and stylesheet menu)
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -6744,9 +6807,9 @@ sub CreateImages {
       <varlistentry>
 	<term><parameter>-t</parameter></term>
 	<listitem>
-	  <para>Prefer the given binding context as the initial context
+	  <para>Prefer the given annotation mode as the initial annotation mode
 	    for every opened file.
-	    This context may however be overriden by some hooks such as
+	    This annotation mode may however be overriden by some hooks such as
 	    <literal>start_hook</literal>
 	    or <literal>file_opened_hook</literal>.
 	  </para>
@@ -7212,7 +7275,7 @@ sub CreateImages {
 	<menuchoice>
 	  <guisubmenu>Macros</guisubmenu>
 	  <guisubmenu>All Modes</guisubmenu>
-	  <guimenuitem><replaceable>context</replaceable></guimenuitem>
+	  <guimenuitem><replaceable>mode</replaceable></guimenuitem>
 	</menuchoice>,
 	the following directive should appear in some macro
 	file read by <application>TrEd</application>:
@@ -7270,12 +7333,12 @@ sub CreateImages {
       <literallayout class="normal" format="linespecific">#remove-menu <replaceable>My First Macro</replaceable></literallayout>
       <para>
 	The first of the  directives above removes an existing key-bindning from
-	current binding context(s). The second one removes an existing menu entry
+	current annotation mode(s). The second one removes an existing menu entry
 	from the macro menu
-	of the current context (<menuchoice>
+	of the current annotation mode (<menuchoice>
 	  <guisubmenu>Macros</guisubmenu>
 	  <guisubmenu>All Modes</guisubmenu>
-	  <guimenuitem><replaceable>context</replaceable></guimenuitem>
+	  <guimenuitem><replaceable>annotation mode</replaceable></guimenuitem>
 	</menuchoice>).
 	These directives is especially useful for disabling certain functionality and bindings of an incuded
 	macro file.
@@ -8127,14 +8190,14 @@ sub MakeSentence {
 	    </row><row id="allow_switch_context_hook">
 	      <entry><literal>allow_switch_context_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>previous</replaceable>,<replaceable>next</replaceable></literal></para><para>Executed in the new context, but before the macro 
-		context is actually changed (see <xref linkend="contexts"/>)
+	      <entry><para>Arguments: <literal role="params"><replaceable>previous</replaceable>,<replaceable>next</replaceable></literal></para><para>Executed in the new annotation mode, but before the 
+		annotation mode is actually changed (see <xref linkend="contexts"/>)
 		and before <literal>pre_switch_context_hook</literal>
-		is called (in the old-context).
+		is called (in the old-annotation mode).
 		The <replaceable>previous</replaceable> argument
-		contains the name of the current context while
+		contains the name of the current annotation mode while
 		<replaceable>next</replaceable> contains the name of the
-		target context.
+		target annotation mode.
 	      </para></entry>
 	    </row><row id="attr_choices_hook">
 	      <entry><literal>attr_choices_hook</literal></entry>
@@ -8261,7 +8324,7 @@ sub MakeSentence {
 		obtain a detailed information of the event. The second argument
 		is a Tk::Widget that caught the event and the rest of the
 		arguments are keyboard-binding shortcuts computed from the event
-		(these are the shortcuts that TrEd would try to look up in the current context
+		(these are the shortcuts that TrEd would try to look up in the current annotation mode
 		bindings if this hook returns no macro name).
 	      </para></entry>
 	    </row><row id="exit_hook">
@@ -8316,18 +8379,18 @@ sub MakeSentence {
 	      or (for compatibility with older TrEd versions)
 	      <programlisting>push @TredMacro::AUTO_CONTEXT_GUESSING, sub { <replaceable>...callback-code...</replaceable> };</programlisting>
 	      where <replaceable>...callback-code...</replaceable> is a code
-	      that attempts to detect a suitable context for the current file and
-	      return the context name if successful. If the callback code
-	      cannot positively determine a suitable context, it should return nothing (empty list).
+	      that attempts to detect a suitable annotation mode for the current file and
+	      return the annotation mode name if successful. If the callback code
+	      cannot positively determine a suitable annotation mode, it should return nothing (empty list).
 	      The standard <literal>guess_context_hook</literal> will
 	      call all registered callbacks one by one (but in no particular order) until
 	      it gets a defined value and will then use
-	      the value to set a the current context.
+	      the value to set a the current annotation mode.
 	      The callbacks are supposed to be very reserved,
-	      i.e. they should only return some context name if
+	      i.e. they should only return some annotation mode name if
 	      the file schema, attribute-set or whatever exactly
 	      matches the data type for which the particular annotation 
-	      context is primarily intended. This will prevent
+	      mode is primarily intended. This will prevent
 	      extensions to steal files one from another.
 	    </para>
 	    </entry>
@@ -8604,22 +8667,22 @@ sub MakeSentence {
 	    </row><row id="pre_switch_context_hook">
 	      <entry><literal>pre_switch_context_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>previous</replaceable>,<replaceable>next</replaceable>,<replaceable>window</replaceable></literal></para><para>Executed in the old context before the macro 
-		  context is changed (see <xref linkend="contexts"/>)
+	      <entry><para>Arguments: <literal role="params"><replaceable>previous</replaceable>,<replaceable>next</replaceable>,<replaceable>window</replaceable></literal></para><para>Executed in the old annotation mode before the 
+		  annotation mode is changed (see <xref linkend="contexts"/>)
 		and when switching to a different view,
 		and when closing a view.
 		The <replaceable>previous</replaceable> argument
 		contains the name of the
-		current context while
+		current annotation mode while
 		<replaceable>next</replaceable> contains the name of the
-		new context, or the string '&lt;NONE&gt;' if the current view is being closed.
+		new annotation mode, or the string '&lt;NONE&gt;' if the current view is being closed.
 		The <replaceable>window</replaceable> argument is the next view 
-		to be focused. If the context is changed without focusing a different view,
+		to be focused. If the annotation mode is changed without focusing a different view,
 		<replaceable>window</replaceable> is equal to
 		<literal>$grp</literal>. If the focus moves to a different view 
-		with the same context as in the current view,
+		with the same annotation mode as in the current view,
 		<replaceable>previous</replaceable> and <replaceable>next</replaceable>
-		are equal and both contain the name of the context.
+		are equal and both contain the name of the annotation mode.
 	      </para></entry>
 	    </row><row id="pre_switch_stylesheet_hook">
 	      <entry><literal>pre_switch_stylesheet_hook</literal></entry>
@@ -8709,11 +8772,11 @@ sub MakeSentence {
 	    </row><row id="switch_context_hook">
 	      <entry><literal>switch_context_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>previous</replaceable>,<replaceable>current</replaceable></literal></para><para>Executed just after a context is changed (see <xref linkend="contexts"/>).
+	      <entry><para>Arguments: <literal role="params"><replaceable>previous</replaceable>,<replaceable>current</replaceable></literal></para><para>Executed just after an annotation mode is changed (see <xref linkend="contexts"/>).
 		The <replaceable>previous</replaceable> argument
-		contains the name of the previous context while
+		contains the name of the previous annotation mode while
 		<replaceable>next</replaceable> contains the name of the
-		new current context.
+		new current annotation mode.
 	      </para></entry>
 	    </row><row id="switch_stylesheet_hook">
 	      <entry><literal>switch_stylesheet_hook</literal></entry>
@@ -8809,101 +8872,96 @@ sub MakeSentence {
     </section>
     <section id="contexts">
       <title>Using different sets of macros in different situations</title>
-      <subtitle>Name-spaces, contexts and binding contexts</subtitle>
+      <subtitle>Annotation modes</subtitle>
       <para>
-	<application>TrEd</application> adopts mechanisms similar
+	<application>TrEd</application> adopts a mechanism similar
 	e.g. to <application>Emacs</application> major-modes which
 	allow the user to safely create several sets of macros with possibly
-	coliding key and menu bindings as well as macro names.
-	These mechanisms are called <emphasis>contexts</emphasis>, or
-	more specifically: name-spaces and binding contexts.
+	coliding key and menu bindings, macro names, and other functionality.
+	In TrEd, this mechanism is called <emphasis>annotation mode</emphasis>.
       </para>
       <para>
-	To prevent macros from colliding or modifying the internal
-	<application>TrEd</application> variables or functions the
-	Perl concept of packages or namespaces is used.  Unless the
-	Perl <literal>package</literal> command is used, each macro
-	belongs to a default package (or name-space) called
-	<literal>TredMacro</literal>.  Beside the user-defined macros,
-	the pre-defined macros are defined within this package.
+	TrEd macros are organized into Perl packages (namespaces).
+	The default package for TrEd macros is called
+	<literal>TredMacro</literal>. Most pre-defined macros are defined within this package.
+	<emphasis>Never</emphasis> use the package <literal>main</literal>
+	or a package starting with <literal>TrEd::</literal> or
+	<literal>Fslib::</literal> for your macros.
       </para>
       <para>
-	New package named say <replaceable>MyPackage</replaceable>
-	is created using the following command:
-	<literallayout class="normal" format="linespecific">package <replaceable>MyPackage</replaceable>;</literallayout>
-	To be able to call macros defined in the
-	<literal>TredMacro</literal> package (e.g. the pre-defined
-	macros) without having to prefix their names with one of
-	<literal>TredMacro-&gt;</literal> or
-	<literal>TredMacro::</literal> prefixes the following command may
-	be used to import the <literal>TredMacro</literal> name-space
-	to the current package's name-space:
-	<literallayout class="normal" format="linespecific">import TredMacro;</literallayout>
-	Now all the subsequent macro definitions (or global variable
-	declarations)
-	are created within
-	the <replaceable>MyPackage</replaceable> name-space unless
-	other <literal>package</literal> command occurs. 
-	Thus the following example defines a macro named
-	<replaceable>my_macro</replaceable> in a new name-space
-	of the <replaceable>MyPackage</replaceable> package:
-      </para>
+	A new package for a set of TrEd macros named, say <replaceable>MyPackage</replaceable>,
+	use the following commands:
+</para>
       <informalexample>
 	<programlisting format="linespecific">
 package MyPackage;
-import TredMacro;
+BEGIN { import TredMacro; }
 
-sub my_macro {
-  # macro code comes here 
+sub my_first_macro {
+  InfoMessage("Hallo from my first macro!")
 }
 </programlisting>
-      </informalexample>
+</informalexample>
+<para>This also imports the default 
+	<literal>TredMacro</literal> package (e.g. the pre-defined
+	macros) so that the macros and global variables defined there can be called used
+	without a package namespace prefix. Finally, it defines a new macro named
+	<replaceable>my_first_macro</replaceable> in the new package.
+      </para>
       <para>
-	To call the <replaceable>my_macro</replaceable>
-	of the previous example	from a different package
-	than <replaceable>MyPackage</replaceable>,  the full
-	package name must be given together with the name of the
-	macro:
+	The macro <replaceable>my_first_macro</replaceable>
+	from the last example can be called from a different package
+	using its full name:
 	<programlisting format="linespecific">
-MyPackage::my_macro();   # call to a macro defined in MyPackage
+MyPackage::my_first_macro();   # call to a macro defined in MyPackage
 </programlisting>
       </para>
       <para>
-	In the interactive work, name-spaces are combined with
-	a concept of <emphasis>binding contexts</emphasis>.
-	Only one context can be	active in TrEd at a time. 
-	The active context is displayed on and may be selected from a
+	In the interactive work, packages are used to create
+	so called <emphasis>annotation modes</emphasis>,
+	which usually correspond to macro packages.
+	Only one annotation mode can be	active in TrEd at a time. 
+	The current annotation mode is displayed on and may be selected from a
 	menu on the right end of the menu bar.
       </para>
       <para>
-	Binding contexts usually correspond to the package names.
-	Analogously to the <literal>package</literal> command, a
-	special directive exists for creating or switching a binding
-	context, however in this case, more then one binding contexts
-	may be used at once:
-	<literallayout class="normal" format="linespecific">#binding-context <replaceable>context_name_1</replaceable> <replaceable>context_name_2</replaceable> ...</literallayout>
-	The default binding context is again named
-	<literal>TredMacro</literal>. To switch to a new context,
-	say <literal>MyContext</literal>, the following directive
-	should be used:
-	<literallayout class="normal" format="linespecific">#binding-context MyContext</literallayout>
-	Now, all the subsequent directives <literal>#bind</literal>,
-	<literal>#insert</literal>, <literal>#unbind-key</literal>,
-	and <literal>#remove-menu</literal>
-	would apply to this context
-	and all the bound macros, when invoked, will be first searched
-	in the package named <literal>MyContext</literal>.
+	To turn a package into an annotation mode
+	we just need to assign at least one keyboard or menu
+	binding to some of the macros we have defined.
+	(Note that annotation modes are refered to as
+	binding contexts or just contexts in the old TrEd API jargon.)
+	This is done using a special comment-like directives
+	understood by TrEd anywhere in the macro code
+	<literallayout class="normal" format="linespecific">#binding-context MyPackage
+#bind my_first_macro to key Alt+e
+#insert my_first_macro as menu Run My First Macro
+</literallayout>
+        First, the <literal>#binding-context</literal> directive says that
+	all subsequent directives should apply to the <literal>MyPackage</literal>
+	annotation mode
+	and also that non-qualified subroutine names are to be assumed
+	to belong to the package named <literal>MyPackage</literal>.
+	Then the <literal>#bind</literal> directive
+	creates a new keyboard shortcut for the
+	macro <literal>my_first_macro</literal>
+	(which upon pressing <keycombo action="simul"><keysym>Alt</keysym><keysym>e</keysym></keycombo>
+	invokes the Perl subroutine as <literal>MyPackage-&gt;my_first_macro</literal>).
+	Finally, the <literal>#insert</literal> directive creates a menu entry
+	for the current macro in the <guimenu>Macros</guimenu> menu hierarchy.
+	All directives must start at the beginning of a new line.
       </para>
       <para>
-	A binding context may import
-	menu and keyboard bindings from other context(s) using
-	<literallayout class="normal" format="linespecific">#key-binding-adopt <replaceable>other_context(s)</replaceable></literallayout>
+	An annotation mode may also copy all
+	menu and keyboard bindings from other annotation mode(s) using
+	<literallayout class="normal" format="linespecific">#key-binding-adopt <replaceable>other_mode(s)</replaceable></literallayout>
 	and
-	<literallayout class="normal" format="linespecific">#menu-binding-adopt <replaceable>other_context(s)</replaceable></literallayout>
-	directives.
+	<literallayout class="normal" format="linespecific">#menu-binding-adopt <replaceable>other_mode(s)</replaceable></literallayout>
+	directives. To remove some of the copied bindings from the current context,
+	use <literal>#unbind-key</literal> and
+	<literal>#remove-menu</literal> directives.
       </para>
       <para>
-	For each binding context,
+	For each annotation mode,
 	a separate submenu with macros is created 
 	in the 
 	<menuchoice>
@@ -8912,90 +8970,75 @@ MyPackage::my_macro();   # call to a macro defined in MyPackage
 	  the <menuchoice>
 	  <guimenuitem>Macros</guimenuitem>
 	  <guimenuitem>Current Mode</guimenuitem></menuchoice> menu
-	provides a short cut to the submenu with macros for the current context.
-	For contexts with a large number of menu bindings it
+	provides a short cut to the submenu with macros for the current annotation mode.
+	For annotation modes with a large number of menu bindings it
 	is usually more comfortable to select a macro 
 	using <menuchoice>
 	  <guimenuitem>Macros</guimenuitem>
 	  <guimenuitem>List of Macros</guimenuitem>
 	</menuchoice>.</para>
-      <para> If a keyboard shortcut
+      <para> When a keyboard shortcut
 	is pressed, <application>TrEd</application> first searches for a
-	macro bound to the shortcut within the active binding context
+	macro bound to the shortcut within the active annotation mode
 	and if such macro exists, <application>TrEd</application>
 	invokes it. In this case, the macro is supposed to be defined
 	or imported in a package of the same name as is the name of
-	the active context. If no macro is
-	bound to the shortcut within the active binding context,
+	the current annotation mode. If no macro is
+	bound to the shortcut within the active annotation mode,
 	<application>TrEd</application> tries to find a binding in the
-	default <literal>TredMacro</literal> context. The macro
+	default <literal>TredMacro</literal> annotation mode. The macro
 	is then supposed to be defined within the
 	<literal>TredMacro</literal> package.
 	If the search
 	fails, no action is taken. The same holds for hooks as well.
       </para>
-      <para>The following example shows how to create a set of macros
-	which enable <application>TrEd</application> to automatically
-	decide which context to use when a file is opened. It is
+      <para>The following example shows a mechanism 
+	which enables <application>TrEd</application> to automatically
+	decide which annotation mode to use when a file is opened. It is
 	quite similar to the <application>Emacs</application> concept
 	of <quote>auto-modes</quote>, except that content of the file
 	is considered here, not the file-name extension. In the
-	example, existence of a certain attribute is used
-	to decide which context to use. The example is extracted form
-	the set of macros written for the annotation of the
-	<application>Prague Dependency Treebank</application>.
-	There are two contexts for annotation: for the
-	<quote>Analytic</quote>
-	and <quote>Tectogrammatic</quote> layers. The
-	<quote>tectogrammatic</quote>
-	trees may be easily distinguished from the
-	<quote>analytical</quote> ones because (among others)
-	a special attribute named <literal>TR</literal> is defined for
-	them.
+	example, the name of a PML schema is used
+	to decide which annotation mode to use.
+	This mechanism is used by the default implementation
+	of the <link linkend="guess_context_hook">guess_context_hook</link>:
       </para>
       <example>
-	<title>Using contexts</title>
+	<title>Guessing correct annotation modes</title>
 	<programlisting format="linespecific">
-package TredMacro; # Ensure we are in the default package
-                   # (This may not be necessary.)
+package Conll2009;
+BEGIN { import TredMacro; }
 
-# we use a hook to set the context
-sub file_opened_hook {
-  if ($grp-&gt;{FSFile}-&gt;FS-&gt;exists('TR')) {
-    SwitchContext('Tectogrammatic'); 
-  } else {
-    SwitchContext('Analytic');
+#binding-context Conll2009
+#bind space to EditAttributes
+
+use strict;
+
+# check if this annotation mode applies to the current file
+sub is_conll2009_file {
+  return (((PML::SchemaName()||'') eq 'conll2009') ? 1 : 0);
+}
+
+push @TredMacro::AUTO_CONTEXT_GUESSING, sub {
+  my ($hook)=@_;
+  my $resuming = ($hook eq 'file_resumed_hook');
+  my $current = CurrentContext();
+  if (is_conll2009_file()) {
+    SetCurrentStylesheet('conll2009') if $resuming;
+    return 'Conll2009';
   }
+  return;
+};
+
+# do not use this annotation mode for other files
+sub allow_switch_context_hook {
+  return 'stop' if not is_conll2009_file();
 }
 
-#binding-context Analytic
-package Analytic;
-import TredMacro;
-
-
-#bind SubtreeAfunAssign to Ctrl+Shift+F1
-sub SubtreeAfunAssign {
-   # automatic assignment of some analytical attributes
-}
-
-sub ReorderTree {
-   # ...
-}
-
-
-# the following binding of ReorderTree will apply to both binding contexts
-
-#binding-context Analytic Tectogrammatic
-#bind ReorderTree to Ctrl+R
-
-#binding-context Tectogrammatic
-package Tectogrammatic;
-import Analytic;   # all macros of the Analytic package (eg. ReorderTree) 
-	           # will now be available here directly
-
-#bind SubtreeAfunAssign to Ctrl+Shift+F1
-sub SubtreeFuncAssign {
-   # automatic assignment of some tectogrammatical attributes
+# set correct stylesheet when entering this annotation mode
+sub switch_context_hook {
+  SetCurrentStylesheet('conll2009');
+  Redraw() if GUI();
 }
 </programlisting>
       </example>
@@ -9651,7 +9694,7 @@ sub SubtreeFuncAssign {
     <title>Extension Packages</title>
     <para>
       TrEd extension packages are used
-      to package related annotation contexts (macros and Perl modules they use),
+      to package related annotation modes (macros and Perl modules they use),
       stylesheets, resources (e.g. PML schemas),
       XSLT transformations, etc. to 
       TrEd users. Extension pacakges are deployed
