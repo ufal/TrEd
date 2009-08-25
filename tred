@@ -1437,6 +1437,10 @@ sub resumeFile {
   print "Resuming file ".$fsfile->filename."\n"  if $tredDebug;
 
   closeFile($win,-keep_postponed => $keep);
+  __debug("Using last context: ",$fsfile->appData('last-context'));
+  switchContext($win,$fsfile->appData('last-context'));
+  __debug("Using last stylesheet: ",$fsfile->appData('last-stylesheet'));
+  switchStylesheet($win,$fsfile->appData('last-stylesheet'));
 
   setWindowFile($win,$fsfile);
   saveFileStateUpdate($win);
@@ -1674,6 +1678,7 @@ sub closeFile {
     }
   }
   my @wins;
+  my ($last_context, $last_stylesheet)=($win->{macroContext}, $win->{stylesheet});
   if ($opts{-all_windows} and $fsfile) {
     @wins=fsfileDisplayingWindows($win->{framegroup},$fsfile);
   } elsif (!$opts{-fsfile}) {
@@ -1702,6 +1707,8 @@ sub closeFile {
 
   if ($opts{-keep_postponed} and $fsfile) {
     print STDERR "Postponing ".$fsfile->filename()."\n"  if $tredDebug;
+    $fsfile->changeAppData('last-context',$last_context);
+    $fsfile->changeAppData('last-stylesheet',$last_stylesheet);
   } else {
     if ($fsfile and not fsfileDisplayingWindows($win->{framegroup},$fsfile)) {
       my $f = $fsfile->filename();
@@ -4511,7 +4518,7 @@ sub macrolistDialog {
 
   my $f=$topframe->Frame();
   $f->Label(-text => "Mode: ",
-	    -underline => 5,
+	    -underline => 1,
 	   )->pack(qw/-side left/);
   my $om = 
     $f->Optionmenu(-options      => [getContexts()],
@@ -4519,10 +4526,10 @@ sub macrolistDialog {
 		   -command      => $renew_callback,
 		   -relief       => 'groove', #$menubarRelief,
 		   -borderwidth  => 2);
-  $om->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);	  
+  $om->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
   $om->pack(qw/-side left -padx 5/);
 
-  $d->bind("<Alt-x>"=>
+  $d->bind("<Alt-o>"=>
 	     [sub {
 		my ($w,$but,$val)=@_;
 		my $menu = $but->menu;
@@ -6601,7 +6608,7 @@ sub startMain {
   $group{ContextsMenu}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
   $group{ContextsMenuLabel}=$group{MenubarFrame}->Label(-text=>'Mode:',
 							-font => 'C_small',
-							-underline=>5)->pack(qw/-side right/);
+							-underline=>1)->pack(qw/-side right/);
   $group{Balloon}->attach($group{ContextsMenu}, -balloonmsg=> "Annotation Mode");
 
 
@@ -7233,7 +7240,7 @@ sub startMain {
   }
   foreach my $prefix ('Alt','Meta','Mod4') {
     $top->
-      bind('my',"<$prefix-x>"=>
+      bind('my',"<$prefix-o>"=>
 	   [sub {
 	      if (defined(evalMacro(@_))) {
 		Tk->break;
@@ -9972,7 +9979,7 @@ B<SYNTAX:>  C<#{object-feature:value}>
 
 B<Object features> (by category)
 
-U<Hiding>
+U<Hiding nodes>
   C<Node-hide           >- if non-zero, do not display the node at all
   See also C<skipHiddenParents> and C<skipHiddenLevels> rootstyles.
 
@@ -10010,6 +10017,8 @@ U<Position and level>
   C<Node-addafterskip   >- skip after
   C<Node-rellevel       >- alter vertical leveling of the subtree
   C<Node-level          >- alter vertical leveling of a single node
+  C<NodeLabel-skipempty >- skip empty node labels
+  C<EdgeLabel-skipempty >- skip empty edge labels
   C<NodeLabel-yadj      >- adjust vertical position of node labels by given amount
   C<EdgeLabel-yadj      >- adjust vertical position of edge labels by given amount
   C<EdgeLabel-coords    >- custom edge label position. Default: (n+p)/2,(n+p)/2
@@ -10112,16 +10121,21 @@ EOF
   # Frame with attribute selection
   my $af;
   my @atord=();
-  if ($win->{FSFile}) {
-    if (fileSchema($win->{FSFile})) {
-      @atord = fileSchema($win->{FSFile})->attributes;
-    } else {
-      @atord = $win->{FSFile}->FS->attributes;
+  my $attrs = doEvalHook($win,"get_node_attrs_hook",'edit_stylesheet');
+  if (ref($attrs)) {
+    @atord=@$attrs;
+  } else {
+    if ($win->{FSFile}) {
+      if (fileSchema($win->{FSFile})) {
+	@atord = fileSchema($win->{FSFile})->attributes;
+      } else {
+	@atord = $win->{FSFile}->FS->attributes;
+      }
     }
-  }
-  if ($sortAttrs) {
-    @atord=sort {uc($a) cmp uc($b)} @atord
-      unless (doEvalHook($win,"sort_attrs_hook",\@atord));
+    if ($sortAttrs) {
+      @atord=sort {uc($a) cmp uc($b)} @atord
+	unless (doEvalHook($win,"sort_attrs_hook",\@atord));
+    }
   }
 
   if (@atord) {
