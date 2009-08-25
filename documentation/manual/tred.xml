@@ -7072,7 +7072,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	  <listitem>
-	    <para>The user set of macros <filename>tred.mac</filename>
+	    <para>The set of extension macros <filename>tred.mac</filename>
 	      or any other file given after the
 	      <parameter>-m</parameter> parameter on the command line 
 	      or a file specified in the
@@ -7081,19 +7081,35 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</orderedlist>
-	Macro programmers are supposed to keep the
-	<filename>tred.def</filename> file unchanged, but are
-	encouraged to modify or append the
-	<filename>tred.mac</filename> macro file according to their
-	needs. 
+	Developers of macros should never modify the
+	<filename>tred.def</filename> file directly.
+	In theory, 
+	the file <filename>tred.mac</filename> can be modified when
+	preparing a customized installation of TrEd, but it is seldom needed.
+	In fact, in the current development model, the file <filename>tred.mac</filename>
+	plays the role of a testing ground for macros that are supposed to eventually make it into 
+	<filename>tred.def</filename> but whose API is not yet guaranteed to remain unchanged.
+	It also creates initial keyboard and menu bindings for the <literal>TredMacro</literal> annotation
+	mode (see <xref linkend="contexts"/>).
       </para>
       <para>
-	Other macro files may be included into any
-	<filename>tred.mac</filename> file using one of the following
+	Instead, the developers of macros are encouraged either to place
+	their macros into an 
+	<link linkend="extension_packages">extension package</link>,
+	or to create a subfolder with a <filename>contrib.mac</filename> file
+	in <filename>tredlib/contrib/</filename>, e.g. <filename><replaceable>tredlib/contrib/subdir_name</replaceable>/contrib.mac</filename>, which will be automatically included into <filename>tred.mac</filename>
+	(the standard version of <filename>tred.mac</filename>
+	includes the file <filename>tredlib/contrib/contrib.mac</filename>
+	which in turn does a wildcard include of <filename>*/contrib.mac</filename>,
+	as described below).
+      </para>
+      <para>
+	One Macro file may be included into other macro file
+	using one of the following
 	<literal>#include</literal> directives where
 	<replaceable>filename</replaceable> is supposed to provide
 	a relative or absolute path to the macro file, under the
-	terms described below each item:
+	terms described below:
       </para>
       <variablelist>
 	<varlistentry>
