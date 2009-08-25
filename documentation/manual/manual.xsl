@@ -6,7 +6,7 @@
 <xsl:param name="navig.graphics" select="0"/>
 <xsl:param name="navig.showtitles" select="1"/>
 <xsl:param name="generate.section.toc.level" select="2"/>
-<xsl:param name="toc.section.depth" select="3"/>
+<xsl:param name="toc.section.depth" select="2"/>
 <xsl:param name="chunk.tocs.and.lots" select="1"/>
 <xsl:param name="encoding" select="'utf-8'"/>   
 <xsl:param name="default.encoding" select="'utf-8'"/>
