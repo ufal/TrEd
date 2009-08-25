@@ -2261,12 +2261,33 @@ sub FindPrev {
 =item C<ErrorMessage(message)>
 
 In TrEd, show a dialog box containing the given error-message in a
-text window.  In BTrEd print the error message on standard output.
+text window.  In BTrEd print the error message on standard error output.
 
 =cut
 
 sub ErrorMessage {
   TrEd::Basics::errorMessage($grp,join("",@_),1);
+}
+
+=item C<InfoMessage(message)>
+
+In TrEd, show a dialog box containing the given info-message in a
+text window.  In BTrEd print the message on standard output.
+
+=cut
+
+sub InfoMessage {
+  my $message = join("",@_);
+  if (GUI()) {
+    ToplevelFrame()->ErrorReport(
+      -title   => 'Information',
+      -msgtype => 'INFO',
+      -message => '',
+      -body => $message,
+     );
+  } else {
+    print STDERR $message;
+  }
 }
 
 =item C<StandardTredFont()>
@@ -4652,6 +4673,7 @@ sub GetMinorModeData {
   return $win->{minorModeData}{$name}{$key};
 #endif
 }
+
 
 
 1;
