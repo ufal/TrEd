@@ -1303,10 +1303,11 @@ sub wrapLines {
 	$wd=0;
 	$line = '';
       } else {
-	$w=$self->getTextWidth(" $_");
+	my $s = length($line) ? " $_" : "$_";
+	$w=$self->getTextWidth($s);
 	if ($wd+$w<$width) {
 	  $wd+=$w;
-	  $line.=" $_";
+	  $line.=$s;
 	} else {
 	  $wd=$self->getTextWidth("$_");
 	  push @lines,$line;
