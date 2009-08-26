@@ -1,4 +1,4 @@
-#!btred -e TredMacro::print_trees_cmd_line --no-save --allow-switch-context
+#!btred -e TredMacro::print_trees_cmdline() --no-save --allow-switch-context
 # -*- cperl -*-
 
 #define TRED
