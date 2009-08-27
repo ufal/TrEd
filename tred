@@ -1121,9 +1121,13 @@ sub setConfig {
     print "Reading $_\n"  if $tredDebug;
     $fl=Filelist->new(undef,$confs->{$_});
     next unless $fl;
-    $fl->load();
+    eval { $fl->load(); };
     print STDERR "Reading filelist ".$fl->name." from ".$fl->filename."\n" if $tredDebug;
-    addNewFilelist(undef,$fl);
+    if ($@) {
+      warn $@;
+    } else {
+      addNewFilelist(undef,$fl);
+    }
   }
   $autoSave = $opt_auto_save if defined $opt_auto_save;
 #    $CSTSBackend::csts2fs=$cstsToFs;
@@ -1480,7 +1484,7 @@ sub _clear_err {
 }
 
 sub _last_err {
-  my ($ret) = grep { $_ ne EMPTY } ($_[0], $@, conv_from_locale($!));
+  my ($ret) = grep { $_ ne EMPTY } ($_[0], "$@", conv_from_locale($!));
   return $ret;
 }
 
@@ -4318,7 +4322,7 @@ sub filelistDialog {
 			   return unless (defined $file and $file ne EMPTY);
 			   my $fl=Filelist->new(undef,$file);
 			   return unless $fl;
-			   print "Loading filelist: $file\n";
+			   print STDERR "Loading filelist: $file\n";
 			   $fl->load();
 			   addNewFilelist($grp,$fl,$d);
 			   $$filelistref=$fl->name();
@@ -12639,12 +12643,17 @@ sub loadMacros {
     foreach my $f (glob(File::Spec->catfile($path,'*.fl'))) {
       print "Reading $f\n" if $tredDebug;
       my $fl=Filelist->new(undef,$f);
-      $filelist_from_extension{$fl}=1;
-
       next unless $fl;
-      $fl->load();
-#      print STDERR "Reading filelist ".$fl->name." from ".$fl->filename."\n" if $tredDebug;
-      addNewFilelist(undef,$fl);
+      print STDERR "Reading filelist ".$fl->name." from ".$fl->filename."\n" if $tredDebug;
+      eval {
+	$fl->load();
+      };
+      if ($@) {
+	warn $@;
+      } else {
+	addNewFilelist(undef,$fl);
+	$filelist_from_extension{$fl}=1;
+      }
     }
   }
 
@@ -12760,10 +12769,16 @@ sub loadStdFilelists {
     } else {
       my $fl=Filelist->new($name,$f);
       if ($fl) {
-	$fl->load();
+	eval {
+	  $fl->load();
+	};
 	print STDERR "Reading filelist ".$fl->name." from ".$fl->filename."\n" if $tredDebug;
-	addNewFilelist(undef,$fl);
-	$filelist_from_extension{$fl}=2;
+	if ($@) {
+	  warn $@;
+	} else {
+	  addNewFilelist(undef,$fl);
+	  $filelist_from_extension{$fl}=2;
+	}
       }
     }
   }
