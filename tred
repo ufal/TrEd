@@ -865,23 +865,28 @@ print STDERR "Creating filelists...\n" if $tredDebug;
 if ($opt_l) {
   # create Default filelists
   my @fl_files;
+  my $fh;
   foreach my $l (split /\s*,\s*/,$opt_l) {
     print STDERR "Reading -l filelist $l...\n" if $tredDebug;
-    if (open(F,"<$l")) {
-      my @f=<F>;
-      shift @f if ($l=~/\.fl$/i and $f[0]!~m{[/.]} and ! -f absolutize($f[0]));
-      s/\s+$// for @f;
-      if ($l=~/\.fl$/i) {
-	# make realtive filenames absolute relative to the .fl file
-	@f=map { Fslib::ResolvePath($l,$_) } @f;
-      } else {
-	@f=absolutize(@f);
-      }
-      push @fl_files,\@f;
-      close(F);
+    if ($l eq '-') {
+      $fh=\*STDIN;
     } else {
-      print STDERR "Warning: Cannot open filelist $l: ".conv_from_locale($!)."\n";
+      open($fh,'<',$l) or do {
+	print STDERR "Warning: Cannot open filelist $l: ".conv_from_locale($!)."\n";
+	next;
+      };
     }
+    my @f=<$fh>;
+    shift @f if ($l=~/\.fl$/i and $f[0]!~m{[/.]} and ! -f absolutize($f[0]));
+    s/\s+$// for @f;
+    if ($l=~/\.fl$/i) {
+      # make realtive filenames absolute relative to the .fl file
+      @f=map { Fslib::ResolvePath($l,$_) } @f;
+    } else {
+      @f=absolutize(@f);
+    }
+    push @fl_files,\@f;
+    close($fh);
   }
   # define filelists CmdLine-1, CmdLine-2, etc.
   my $fl_no=1;
@@ -7536,7 +7541,7 @@ sub quit {
 
 sub getConfigFromFile {
   my @conf;
-  if (open(my $fh,"<$configFile")) {
+  if (open(my $fh,"<",$configFile)) {
     @conf=<$fh>;
     close($fh);
     return \@conf;
