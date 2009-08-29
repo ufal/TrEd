@@ -409,21 +409,25 @@ if ($dump_macros) {
 _msg("done.\n") unless $quiet;
 
 if ($file_list) {
+  my $fh;
   foreach my $l (split /\s*,\s*/,$file_list) {
     print STDERR "Reading -l filelist $l...\n" if $tredDebug;
-    my $fh;
-    if (open($fh,'<',$l)) {
-      @files=<$fh>;
-      chomp @files;
-      shift @files if ($l=~/\.fl$/i and $files[0]!~m{[/.]} and ! -f Fslib::ResolvePath($l,$files[0]));
-      if ($l=~/\.fl$/i) {
-	# make realtive filenames absolute relative to the .fl file
-	@files=map { Fslib::ResolvePath($l,$_) } @files;
-      }
-      close($fh);
+    if ($l eq '-') {
+      $fh=\*STDIN;
     } else {
-      print STDERR "Warning: Cannot open filelist $l: $!\n";
+      open($fh,'<',$l) or do {
+	print STDERR "Warning: Cannot open filelist $l: $!\n";
+	next;
+      };
     }
+    @files=<$fh>;
+    chomp @files;
+    shift @files if ($l=~/\.fl$/i and $files[0]!~m{[/.]} and ! -f Fslib::ResolvePath($l,$files[0]));
+    if ($l=~/\.fl$/i) {
+	# make realtive filenames absolute relative to the .fl file
+      @files=map { Fslib::ResolvePath($l,$_) } @files;
+    }
+    close($fh);
   }
 }
 
