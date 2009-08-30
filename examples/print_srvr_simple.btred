@@ -117,15 +117,17 @@ sub serveSVG {
   my $fileinfo = $cgi->param('fileinfo') ? 1 : 0;
   my $tree_no = int($cgi->param('tree_no')||0) || 1;
   my $use_svg_desc_and_title = int($cgi->param('dt')||0) || 1;
-  print STDERR '['.localtime()."] No path\n";
-  return notFound($cgi) unless $path;
-  $path=~s/\.svg$//;
-  $path = URI->new($path)->canonical->as_string;
-  print STDERR '['.localtime()."] Serving $path\n";
-  if ($path=~m{/../} or $path !~ $permitted_paths_re) {
+  unless ($path) {
+    print STDERR '['.localtime()."] No path!\n";
     return notFound($cgi);
   }
-
+  $path=~s/\.svg$//;
+  $path = URI->new($path)->canonical->as_string;
+  if ($path=~m{/\.\./} or $path !~ $permitted_paths_re) {
+    print STDERR '['.localtime()."] Path $path not permitted\n";
+    return notFound($cgi);
+  }
+  print STDERR '['.localtime()."] Serving $path\n";
   my ($fh,$svg_name,$unlink,$cached);
   if ($cache_dir) {
     $svg_name = File::Spec->rel2abs(md5_hex($path).".${tree_no}.svg",$cache_dir);
