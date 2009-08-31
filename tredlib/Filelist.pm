@@ -65,7 +65,7 @@ Return name of the file-list
 
 sub name {
   my ($self)=@_;
-  $self->_load_name;
+  eval { $self->_load_name };
   return ref($self) ? $self->{name} : undef;
 }
 
@@ -178,12 +178,14 @@ sub _lazy_load {
 sub _load_name {
   my ($self)=@_;
   return unless defined $self->{load} and !defined($self->{name});
-  open $fh,"<",$self->{load}
-      or croak("Cannot open $self->{load}: $!\n");
-  $self->{name} = decode('UTF-8',scalar(<$fh>));
-  $self->{name} =~ s/[\r\n]+$//;
-  close $fh;
-  return 1;
+  if (open $fh,"<",$self->{load}) {
+    $self->{name} = decode('UTF-8',scalar(<$fh>));
+    $self->{name} =~ s/[\r\n]+$//;
+    close $fh;
+    return 1;
+  } else {
+    croak("Cannot open $self->{load}: $!\n");
+  }
 }
 
 sub load {
@@ -192,6 +194,7 @@ sub load {
   if (defined ($self->filename) and $self->filename ne "") {
     $self->{load}=$self->filename;
     undef $self->{name};
+    $self->_load_name;
     return 1;
   } else {
     @{ $self->list_ref }=();
