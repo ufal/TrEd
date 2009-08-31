@@ -1126,13 +1126,12 @@ sub setConfig {
     print "Reading $_\n"  if $tredDebug;
     $fl=Filelist->new(undef,$confs->{$_});
     next unless $fl;
-    eval { $fl->load(); };
-    print STDERR "Reading filelist ".$fl->name." from ".$fl->filename."\n" if $tredDebug;
-    if ($@) {
-      warn $@;
-    } else {
+    eval {
+      print STDERR "Reading filelist ".$fl->filename."\n" if $tredDebug;
+      $fl->load();
       addNewFilelist(undef,$fl);
-    }
+    };
+    warn $@ if $@;
   }
   $autoSave = $opt_auto_save if defined $opt_auto_save;
 #    $CSTSBackend::csts2fs=$cstsToFs;
@@ -3820,7 +3819,10 @@ sub addNewFilelist {
   my ($grp,$fl,$top)=@_;
   return if not defined($fl) or $fl eq EMPTY;
   my $l;
-  my $old_name = $fl->name;
+  my $old_name = eval { $fl->name };
+  if ($@) {
+    confess($@)
+  }
   LOOP:
   for my $dummy (1) {
     ($l) = grep { $_->name eq $fl->name } @filelists;
@@ -12649,14 +12651,14 @@ sub loadMacros {
       print "Reading $f\n" if $tredDebug;
       my $fl=Filelist->new(undef,$f);
       next unless $fl;
-      print STDERR "Reading filelist ".$fl->name." from ".$fl->filename."\n" if $tredDebug;
+      print STDERR "Reading filelist ".$fl->filename."\n" if $tredDebug;
       eval {
 	$fl->load();
+	addNewFilelist(undef,$fl);
       };
       if ($@) {
 	warn $@;
       } else {
-	addNewFilelist(undef,$fl);
 	$filelist_from_extension{$fl}=1;
       }
     }
@@ -12774,14 +12776,14 @@ sub loadStdFilelists {
     } else {
       my $fl=Filelist->new($name,$f);
       if ($fl) {
+	print STDERR "Reading filelist ".$fl->filename."\n" if $tredDebug;
 	eval {
 	  $fl->load();
+	  addNewFilelist(undef,$fl);
 	};
-	print STDERR "Reading filelist ".$fl->name." from ".$fl->filename."\n" if $tredDebug;
 	if ($@) {
 	  warn $@;
 	} else {
-	  addNewFilelist(undef,$fl);
 	  $filelist_from_extension{$fl}=2;
 	}
       }
