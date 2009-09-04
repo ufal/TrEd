@@ -445,7 +445,7 @@ eval { require TrEd::Help; };
        CSTS_SGML_SP_Backend
        TrXMLBackend
        TEIXMLBackend
-       AG2FS
+       PMLTransformBackend
       })
  );
 
