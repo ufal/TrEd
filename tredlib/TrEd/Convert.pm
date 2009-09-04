@@ -61,7 +61,7 @@ sub encode {
     if (($FORCE_REMIX or $^O ne 'MSWin32')
 	  and
 	!$FORCE_NO_REMIX
-	  and
+	#  and
 	# ( $inputenc =~ /^utf-?8$/i or
         #   $inputenc eq 'iso-8859-6' or
         #   $inputenc eq 'windows-1256' )
