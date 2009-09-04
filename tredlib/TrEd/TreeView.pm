@@ -469,13 +469,25 @@ sub value_line_list {
   }
 }
 
+sub rightToLeft {
+  my ($self,$fsfile)=@_;
+  my ($reverse) = $self->get_label_patterns($fsfile,"rtl");
+  if (defined($reverse)) {
+    return int($reverse) ? 1 : 0;
+  }
+  return;
+}
+
 sub value_line {
   my ($self,$fsfile,$tree_no,$no_numbers,$tags,$grp)=@_;
   return unless $fsfile;
+  my $right_to_left =
+    $self->{disableRTL} ? 0 : $self->rightToLeft($fsfile);
+  $right_to_left = $self->{reverseNodeOrder} unless defined $right_to_left;
 
   my $prfx=($no_numbers ? "" : ($tree_no+1)."/".($fsfile->lastTreeNo+1).": ");
   if ($tags or $self->get_label_patterns($fsfile,"text")) {
-    if ($self->{reverseNodeOrder}) {
+    if ($right_to_left) {
       return [[$prfx,'prefix'],
 	      map { $_->[0]=encode($_->[0]); $_ } grep { $_->[0] ne "" }
 		reverse $self->value_line_list($fsfile,$tree_no,$no_numbers,1,$grp)];
@@ -485,7 +497,7 @@ sub value_line {
 		$self->value_line_list($fsfile,$tree_no,$no_numbers,1,$grp)];
     }
   } else {
-    if ($self->{reverseNodeOrder}) {
+    if ($right_to_left) {
       return $prfx.join " ",
 	map { encode($_) } grep { $_ ne "" }
 	  reverse $self->value_line_list($fsfile,$tree_no,$no_numbers,0,$grp);
@@ -497,16 +509,16 @@ sub value_line {
   }
 }
 
-
 sub nodes {
   my ($self,$fsfile,$tree_no,$prevcurrent)=@_;
-
+  my $right_to_left = $self->rightToLeft($fsfile);
+  $right_to_left = $self->{reverseNodeOrder} unless defined $right_to_left;
   my $l = callback($on_get_nodes,$self,$fsfile,$tree_no,$prevcurrent);
   if (ref($l) eq 'ARRAY' and @$l==2) {
     return @$l;
   } else {
     my ($nodes,$current)=$fsfile->nodes($tree_no,$prevcurrent,$self->get_showHidden());
-    if ($self->{reverseNodeOrder}) {
+    if ($right_to_left) {
       return ([reverse @$nodes],$current);
     }
     return ($nodes,$current);
@@ -733,8 +745,10 @@ sub recalculate_positions_vert {
     @{$nodes} = @{ $self->balance_node_order($nodes) };
   }
   # we reverse back to normal order in vertical mode
+  my $right_to_left = $self->rightToLeft($fsfile);
+  $right_to_left = $self->{reverseNodeOrder} unless defined $right_to_left;
   my $style_info = $self->{style_info};
-  foreach $node ($self->get_reverseNodeOrder ? reverse @{$nodes} : @{$nodes}) {
+  foreach $node ($right_to_left ? reverse @{$nodes} : @{$nodes}) {
     my $NI = $node_info->{$node};
     my $style = $style_info->{$node};
     $level=$NI->{'Level'}+$style->{'Node'}{'-level'};
@@ -793,7 +807,9 @@ sub recalculate_positions_vert {
   }
   my $ypos = $baseYPos;
   my $ymargin = $self->get_ymargin;
-  foreach $node ($self->get_reverseNodeOrder ? reverse @{$nodes} : @{$nodes}) {
+  my $right_to_left = $self->rightToLeft($fsfile);
+  $right_to_left = $self->{reverseNodeOrder} unless defined $right_to_left;
+  foreach $node ($right_to_left ? reverse @{$nodes} : @{$nodes}) {
     my $NI = $node_info->{$node};
     $NI->{"YPOS"}= $ypos;
     $NI->{"NodeLabel_YPOS"}= $ypos-$nodeHeight;
@@ -900,6 +916,8 @@ sub recalculate_positions {
   my $style_info = $self->{style_info};
   foreach $node (@{$nodes}) {
     my $level = $self->compute_level($node,$Opts,$skipHiddenLevels);
+    $maxlevel=int($level) if $maxlevel<int($level);
+
     my ($n_nonempty,$e_nonempty);
     my $style = $style_info->{$node};
     my $skip_empty_nlabels = $style->{'NodeLabel'}{'-skipempty'};
@@ -926,12 +944,13 @@ sub recalculate_positions {
     $NI->{"EdgeLabelWidth"}=$edgeLabelWidth;
     $NI->{"NodeLabel_nonempty"}=$n_nonempty;
     $NI->{"EdgeLabel_nonempty"}=$e_nonempty;
-    $gen_info->{"MaxNodeLabelsOnLevel[$level]"}=$n_nonempty if $gen_info->{"MaxNodeLabelsOnLevel[$level]"}<$n_nonempty;
+
     my $h1 = 2*$nodeHeight + $style->{Node}{'-addheight'} + $style->{Oval}{'-width'};
     my $h2 = 2*$nodeHeight + $style->{CurrentNode}{'-addheight'} + $style->{CurrentOval}{'-width'};
     my $h = $h1 < $h2 ? $h2 : $h1;
     $gen_info->{"MaxNodeHeightOnLevel[$level]"}=$h if $gen_info->{"MaxNodeLabelsOnLevel[$level]"}<$h;
-    $maxlevel=int($level) if $maxlevel<int($level);
+    $gen_info->{"MaxNodeLabelsOnLevel[$level]"}=$n_nonempty if $gen_info->{"MaxNodeLabelsOnLevel[$level]"}<$n_nonempty;
+
   }
   if ($balance) {
     @{$nodes} = @{$self->balance_node_order($nodes)};
@@ -1641,8 +1660,8 @@ sub redraw {
   my $xmargin=$self->get_xmargin;
   my $drawBoxes=$self->get_drawBoxes;
   my  $drawEdgeBoxes=$self->get_drawEdgeBoxes;
-
-
+  my $right_to_left = $self->rightToLeft($fsfile);
+  $right_to_left = $self->{reverseNodeOrder} unless defined $right_to_left;
 
   my ($baseXPos,$baseYPos)=($Opts{baseXPos}||$self->get_baseXPos,$Opts{baseYPos}||$self->get_baseYPos);
   for my $seg_i (0..$#segments) {
@@ -1663,7 +1682,6 @@ sub redraw {
   } else {
     recalculate_positions($self,$fsfile,$nodes,\%Opts,$grp);
   }
-
 
   #------------------------------------------------------------
   #{
@@ -2211,9 +2229,9 @@ sub redraw {
       }
       $valtext=~s/ +([.,!:;])|(\() |(\)) /$1/g;
       my $i=1;
-      my $lines=$self->wrapLines($valtext,$self->{canvasWidth},$self->{reverseNodeOrder});
+      my $lines=$self->wrapLines($valtext,$self->{canvasWidth},$right_to_left);
       foreach (@$lines) {
-	if ($self->{reverseNodeOrder}) {
+	if ($right_to_left) {
 	  eval { #apply_style_opts
 	    $canvas->itemconfigure(
 	    $canvas->
@@ -2580,7 +2598,8 @@ sub get_label_patterns {
   return map {
     my ($a,$b)=$self->parse_pattern($_);
     $a eq $style ? $b : ()
-  } $self->patterns ? @{$self->patterns} : $fsfile->patterns();
+  } $self->patterns ? @{$self->patterns} : 
+    $fsfile ? $fsfile->patterns() : ();
 }
 
 
