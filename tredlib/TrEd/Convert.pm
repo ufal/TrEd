@@ -62,9 +62,10 @@ sub encode {
 	  and
 	!$FORCE_NO_REMIX
 	  and
-	( $inputenc =~ /^utf-?8$/i or
-          $inputenc eq 'iso-8859-6' or
-          $inputenc eq 'windows-1256' )) {
+	# ( $inputenc =~ /^utf-?8$/i or
+        #   $inputenc eq 'iso-8859-6' or
+        #   $inputenc eq 'windows-1256' )
+	 ) {
       if ($str=~$needs_arabic_remix_re) {
 	$str = remix(arabjoin($str));
       }

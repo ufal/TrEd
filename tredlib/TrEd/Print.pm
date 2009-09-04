@@ -265,9 +265,12 @@ sub print_trees {
   my $toSVG=($outputFormat eq 'SVG' ? 1 : 0);
   return if (not defined($printRange));
 
-  local $TrEd::Convert::FORCE_REMIX = 1;
+  local $TrEd::Convert::FORCE_REMIX = $toSVG ? 0 : 1;
+  local $TrEd::Convert::FORCE_NO_REMIX = $toSVG ? 1 : 0;
   local $TrEd::Convert::support_unicode = $TrEd::Convert::support_unicode;
   local $TrEd::Convert::lefttoright = $TrEd::Convert::lefttoright;
+
+
   # A hack to support correct Arabic rendering under Tk800
   if (1000*$] >= 5008 and
       !$TrEd::Convert::support_unicode and
@@ -391,12 +394,17 @@ sub print_trees {
 	do {
 	  $treeView->set_showHidden($show_hidden);
 	  my $nodes = get_nodes_callback($get_nodes_callback,$treeView,$fsfile,$printList[$t]-1,undef);
-	  if (ref($snt) eq 'ARRAY') {
-	    $valtext = $snt->[$printList[$t]-1];
-	  } elsif (ref($snt) eq 'CODE') {
-	    $valtext = $snt->($fsfile,$printList[$t]-1);
-	  } else {
-	    $valtext = $treeView->value_line($fsfile,$printList[$t]-1,1,0);
+	  {
+	    my $rtl = $treeView->{disableRTL};
+	    $treeView->{disableRTL}=$toSVG ? 1 : $rtl;
+	    if (ref($snt) eq 'ARRAY') {
+	      $valtext = $snt->[$printList[$t]-1];
+	    } elsif (ref($snt) eq 'CODE') {
+	      $valtext = $snt->($fsfile,$printList[$t]-1);
+	    } else {
+	      $valtext = $treeView->value_line($fsfile,$printList[$t]-1,1,0,$grp_ctx);
+	    }
+	    $treeView->{disableRTL}=$rtl;
 	  }
 	  {
 	    local $grp_ctx->{treeView}=$treeView if $grp_ctx;
@@ -544,7 +552,7 @@ sub print_trees {
 	  } elsif (ref($snt) eq 'CODE') {
 	    $valtext = $snt->($fsfile,$printList[$t]-1);
 	  } else {
-	    $valtext = $treeView->value_line($fsfile,$printList[$t]-1,1,0);
+	    $valtext = $treeView->value_line($fsfile,$printList[$t]-1,1,0,$grp_ctx);
 	  }
 	  {
 	    local $grp_ctx->{treeView}=$treeView if $grp_ctx;
