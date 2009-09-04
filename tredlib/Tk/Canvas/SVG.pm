@@ -202,13 +202,14 @@ sub svg {
 
 sub new_page {
   my ($P,%opts)=@_;
-  use IO::String;
+  require IO::String;
   my $svg_page;
   if ($P->{current_page}) {
     $P->{current_page}->end;
   }
-  my $fh = IO::String->new($svg_page);
-  $P->{current_page} = XML::Writer->new(OUTPUT=>$fh,DATA_INDENT=>1,DATA_MODE=>1,ENCODING=>'utf-8');
+  my $fh = eval { use XML::Writer 0.6; 1 } ? \$svg_page : IO::String->new($svg_page);
+  $P->{current_page} = XML::Writer->new(OUTPUT=>$fh,
+					DATA_INDENT=>1,DATA_MODE=>1,ENCODING=>'utf-8');
   push @{$P->{pages}}, \$svg_page;
 }
 
@@ -824,8 +825,26 @@ body {
       function set_title (title) {
         document.getElementById("title").firstChild.nodeValue = title;
       }
+
+      var ltrChars      = 'A-Za-z\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u02B8\\u0300-\\u0590\\u0800-\\u1FFF'+'\\u2C00-\\uFB1C\\uFDFE-\\uFE6F\\uFEFD-\\uFFFF',
+          rtlChars      = '\\u0591-\\u07FF\\uFB1D-\\uFDFD\\uFE70-\\uFEFC',
+          ltrDirCheckRe = new RegExp('^[^'+rtlChars+']*['+ltrChars+']'),
+          rtlDirCheckRe = new RegExp('^[^'+ltrChars+']*['+rtlChars+']');
+      var user_agent=navigator.userAgent.toLowerCase();
+      var bidi_support_in_svg = ((user_agent.indexOf("firefox") != -1) ? 0 : 1);
+
+      function textDirection (text) {
+         return rtlDirCheckRe.test(text) ? 'rtl'
+                : (ltrDirCheckRe.test(text) ? 'ltr' : '');
+      }
       function set_desc (desc) {
-        document.getElementById("desc").innerHTML = desc.replace(/</,'&lt;').replace(/&/,'&amp;').split(/\\n/).join('<br />');
+        var el = document.getElementById("desc");
+        var dir = textDirection(desc);
+        el.style.direction = dir;
+        el.innerHTML = desc.replace(/</,'&lt;').replace(/&/,'&amp;').split(/\\n/).join('<br />');
+        if ( dir!='ltr' && ! bidi_support_in_svg) {
+          el.innerHTML += '<div style="color: gray; direction: ltr; font-size: 6pt;">WARNING: Firefox may obscure right-to-left text in SVG on some platforms!</div>';
+        }
         fit_window();
       }
 

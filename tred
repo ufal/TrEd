@@ -1171,12 +1171,6 @@ sub ApplyGlobalConfig {
     }
   }
 
-  Tk::catch {
-    $grp->{valueLine}->configure(-height => $valueLineHeight,
-				 ($valueLineReverseLines ? () :
-				  (-wrap => $valueLineWrap))
-				);
-  };
   update_value_line($grp);
   update_status_info($grp->{focusedWindow});
   print STDERR $@ if $@;
@@ -2878,11 +2872,17 @@ sub set_value_line {
   my $vl=$grp->{valueLine};
   $vl->configure(qw(-state normal));
   $vl->delete('0.0','end');
-  if ($valueLineWrap eq 'word' and
-      $valueLineReverseLines) {
-    $vl->configure(qw(-wrap none));
+  my $rtl = $grp->{focusedWindow}->treeView->rightToLeft($grp->{focusedWindow}->{FSFile});
+  if ($valueLineWrap eq 'word' and ($rtl or !defined($rtl) and $valueLineReverseLines)) {
+    Tk::catch {
+      $vl->configure(qw(-wrap none));
+    };
     $v=reverseWrapLines($grp->{valueLine},$vLineFont,$v,
 			$grp->{valueLine}->width()-15);
+  } else {
+    Tk::catch {
+      $vl->configure(-wrap => ($valueLineWrap || 'word'));
+    };
   }
   my @oldtags=grep {/^FSNode/} $vl->tagNames();
   if (@oldtags) {
@@ -2906,7 +2906,7 @@ sub set_value_line {
     $vl->Subwidget('scrolled')->insert('0.0',$v);
   }
   $vl->tagAdd('all','0.0','end');
-  $vl->tagConfigure('all',-justify => $valueLineAlign);
+  $vl->tagConfigure('all',-justify => (defined($rtl) ? ($rtl ? 'right' : 'left') : $valueLineAlign));
   $vl->configure(qw(-state disabled));
 #   print "<dump>\n";
 #   my @dump=$vl->dump('0.0','end');
@@ -6638,7 +6638,6 @@ sub startMain {
 		  -scrollbars ose/,
 		  -font => $vLineFont,
 		  -height => $valueLineHeight,
-	          ($valueLineReverseLines ? () : (-wrap => $valueLineWrap))
 	      );
   _deleteMenu($group{valueLine}->Subwidget('scrolled')->menu,'File');
   my $bf = $group{bottomFrame}=$top->Frame;
@@ -11252,7 +11251,8 @@ sub ensureCurrentIsDisplayed {
     $node = $node->parent;
   }
   if (!$node) {
-    if ($win->treeView->get_reverseNodeOrder) {
+    my $rtl = treeIsReversed($win);
+    if ($rtl) {
       $node = $win->{Nodes}->[-1];
     } else {
       $node = $win->{Nodes}->[0];
@@ -11271,9 +11271,11 @@ sub treeIsVertical {
 }
 
 sub treeIsReversed {
-  my ($grp) = @_;
-  my $win=$grp->{focusedWindow};
+  my ($grp_win) = @_;
+  my $win=cast_to_win($grp_win);
   return unless $win;
+  my $rtl = $win->treeView->rightToLeft($win->{FSFile});
+  return $rtl if defined $rtl;
   return $win->treeView->get_reverseNodeOrder;
 }
 

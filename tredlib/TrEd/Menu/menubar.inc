@@ -63,7 +63,7 @@ return sub {
     'Button',
     'Properties',
     {
-      -underline => 0,
+      -underline => 6,
       -command => [ \&editFilePropertiesDialog, $grp ],
      }
   ],
