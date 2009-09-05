@@ -207,7 +207,7 @@ sub new_page {
   if ($P->{current_page}) {
     $P->{current_page}->end;
   }
-  my $fh = eval { use XML::Writer 0.6; 1 } ? \$svg_page : IO::String->new($svg_page);
+  my $fh = eval('use XML::Writer 0.6; 1') ? \$svg_page : IO::String->new($svg_page);
   $P->{current_page} = XML::Writer->new(OUTPUT=>$fh,
 					DATA_INDENT=>1,DATA_MODE=>1,ENCODING=>'utf-8');
   push @{$P->{pages}}, \$svg_page;
