@@ -1171,6 +1171,9 @@ return sub {
 		       my ($grp)=@_;
 		       loadStyleSheets($grp);
 		       updateStylesheetMenu($grp);
+		       foreach my $win (@{$grp->{treeWindows}}) {
+			 applyWindowStylesheet($win,$win->{stylesheet});
+		       }
 		       get_nodes_all($grp);
 		       redraw_all($grp);
 		     },$grp],
