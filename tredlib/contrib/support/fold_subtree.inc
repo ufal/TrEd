@@ -9,11 +9,11 @@ This file can add support for folding (collapsing) subtrees to any macro context
 1. Add these lines to your macro context:
 
   #include <contrib/support/fold_subtree.inc>
-  #bind fold_subtree_toggle to SOME_KEY as menu Fold/unfold current subtree (toggle)
+  #bind fold_subtree_toggle to SOME_KEY  menu Fold/unfold current subtree (toggle)
 
 and possibly
 
-  #bind fold_subtree_unfold_all to OTHER_KEY as menu Unfold all in the current subtree
+  #bind fold_subtree_unfold_all to OTHER_KEY menu Unfold all in the current subtree
 
 replacing I<SOME_KEY> and I<OTHER_KEY> with suitable key bindings.
 
