@@ -427,9 +427,14 @@ if ($file_list) {
 	# make realtive filenames absolute relative to the .fl file
       @files=map { Fslib::ResolvePath($l,$_) } @files;
     }
-    close($fh);
+    close($fh) unless $fh==\*STDIN; # we don't close STDIN to avoid problems 
+    # with open2 due to unresolved bug in perl: 
+    # http://rt.perl.org/rt3/Public/Bug/Display.html?id=37033
+    # If this turns out to be a problem, using eval('close($fh)') should work as well.
   }
+
 }
+
 
 if ($glob or $^O eq 'MSWin32') {
   my $s;
