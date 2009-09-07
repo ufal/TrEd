@@ -328,7 +328,8 @@ sub draw_canvas {
       function init(event) {
          doc = event.target.ownerDocument;
          root = doc.documentElement;
-         css = doc.styleSheets[0];
+         if (root.styleSheets != null && root.styleSheets[0] != null) css = root.styleSheets[0]
+         else if (doc.styleSheets != null && doc.styleSheets[0] != null) css = doc.styleSheets[0];
 	 top.zoomSVG = zoom;
          if (top.setSVGTitle) top.setSVGTitle(get_title());
          if (top.setSVGDesc) top.setSVGDesc(get_desc());
