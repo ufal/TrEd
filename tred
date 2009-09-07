@@ -886,7 +886,11 @@ if ($opt_l) {
       @f=absolutize(@f);
     }
     push @fl_files,\@f;
-    close($fh);
+
+    close($fh) unless $fh==\*STDIN; # we don't close STDIN to avoid problems 
+    # with open2 due to unresolved bug in perl: 
+    # http://rt.perl.org/rt3/Public/Bug/Display.html?id=37033
+    # If this turns out to be a problem, using eval('close($fh)') should work as well.
   }
   # define filelists CmdLine-1, CmdLine-2, etc.
   my $fl_no=1;
@@ -4381,8 +4385,8 @@ sub generateSortedMacroTable {
   # 2=include-TredMacro,
   # 4=include-Default (not yet implemented)
 
-  my $Keys = { %{$keyBindings{$context}} };
-  my $Menus = { %{$menuBindings{$context}} };
+  my $Keys = { %{$keyBindings{$context} ||={} } };
+  my $Menus = { %{$menuBindings{$context} ||= {}} };
   if (($flags & 2) and ($context ne 'TredMacro')) {
     my $tmKeys = $keyBindings{TredMacro};
     my ($k,$v);
