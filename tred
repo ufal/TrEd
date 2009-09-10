@@ -2956,6 +2956,7 @@ sub initSidePanel {
     $grp->{sidePanelFrame} = $grp->{sidePanel}->frame();
   }
   unless ($grp->{sidePanel}->widget('attrsView')) {
+    print STDERR "Creating 'Attribute' sidebar view\n" if $tredDebug;
     my $colf = $grp->{sidePanelFrame}->Frame(
       -relief => 'sunken',
       -borderwidth => 1,
@@ -3017,6 +3018,7 @@ sub initSidePanel {
     $grp->{sidePanel}->widget('attrsView')->show;
   }
   unless ($grp->{sidePanel}->widget('filelistView')) {
+    print STDERR "Creating 'File List' sidebar view\n" if $tredDebug;
     my $colf = $grp->{sidePanelFrame}->Frame(
       -relief => 'sunken',
       -borderwidth => 1,
@@ -3118,6 +3120,7 @@ sub initSidePanel {
     #$grp->{sidePanel}->widget('filelistView')->show;
   }
   unless ($grp->{sidePanel}->widget('fileSystemView')) {
+    print STDERR "Creating 'Browse File System' sidebar view\n" if $tredDebug;
     my $show_hidden=0;
     my $colf = $grp->{sidePanelFrame}->Frame(
       -relief => 'sunken',
@@ -3186,6 +3189,7 @@ sub initSidePanel {
     });
   }
   unless ($grp->{sidePanel}->widget('macroListView')) {
+    print STDERR "Creating 'Macro List' sidebar view\n" if $tredDebug;
     my $colf = $grp->{sidePanelFrame}->Frame(
       -relief => 'sunken',
       -borderwidth => 1,
@@ -3245,6 +3249,7 @@ sub initSidePanel {
       -show_command => [\&update_macrolist_view,$grp],
     });
   }
+  print STDERR "Creating 'Macro List' sidebar view\n" if $tredDebug;
 }
 
 sub update_status_info {
