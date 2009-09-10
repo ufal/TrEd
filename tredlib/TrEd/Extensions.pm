@@ -758,6 +758,7 @@ sub manageExtensions {
 					       -width => 15,
 					       -variable => \$progress)->pack(-expand =>1, -fill=>'x',-pady => 5);
 		     if (manageExtensions($tred,{ install=>1,
+						  top=>$d,
 						  only_upgrades=>$upgrades,
 						  progress=>\$progress,
 						  progressbar=>$progressbar,
