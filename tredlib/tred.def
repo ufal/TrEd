@@ -343,9 +343,9 @@ sub Hide {
 
 =item C<GetNodes(top?)>
 
-Get a list of all nodes in the current tree of (if top is given) in
+Get a list of all nodes in the current tree or (if top is given) in
 the subtree of top (the root of the tree is icluded as well). The list
-returned is ordered in the natural structure ordering.
+returned is ordered in the depth-first ordering.
 (This function automatically returns array reference in scalar context.)
 
 =cut
@@ -365,7 +365,7 @@ sub GetNodes {
 
 Return the list of all visible nodes in the subtree of the given top
 node (or the whole current tree if no top is given). The list returned
-is ordered in the natural structure ordering and all members of hidden
+is ordered in the depth-first ordering and all members of hidden
 subtrees are skipped.
 
 =cut
@@ -4498,7 +4498,7 @@ C<SetupXPath(
 This macro requires C<XML::XPath> module to be installed.  It adjusts
 FSNode API to match XPath model based on a given function mapping.  By
 default, 'id' is defined to return nothing, 'pos' returns nodes
-sentence-ordering position (or tree-ordering position if sentord
+sentence-ordering position (or depth-first-ordering position if sentord
 attribute is not defined), 'attributes' returs a hashref of node's
 attributes (actually a FSNode itself), 'name' returns "node", 'value'
 returns node's value of the special FS value attribute, and
