@@ -19,6 +19,7 @@ Tk-CodeText
 Parse-RecDescent
 Graph
 Graph-ChuLiuEdmonds
+Graph-Kruskal
 Class-Std
 Graph-ReadWrite
 version
