@@ -1117,8 +1117,6 @@ sub bookmarkFilelist {
 sub setConfig {
   my $confs=shift;
 
-  
-
   foreach (0..9) {
     $recentFiles[$_]=$confs->{"recentfile$_"};
   }
@@ -2064,6 +2062,19 @@ sub updateHelpMenu {
   $opts||={};
   my $hm = $grp->{main_menu}->lookup_menu_item('MENUBAR:HELP:EXTENSION_MANUALS');
   return unless $hm;
+  if ($Tk::platform eq 'unix') {
+    # this is a very lame work around a probable bug in Tk
+    # n'th menu created (where exact n I don't know)
+    # will behave strangely: first attempt to post it by clicking on it
+    # will post the menu at or near the top left screen cornder
+    # rather than on a given x,y; next time, the menu works fine
+    #
+    # Currently this affects this particular menu,
+    # which we now programmatedly post and unpost
+    #
+    $hm->post(0,0);
+    $hm->unpost;
+  }
   $hm->delete(0,'end');
   $_->destroy for $hm->children;
   my $preinst_dir = getPreInstalledExtensionsDir();
