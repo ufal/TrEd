@@ -149,6 +149,23 @@ sub uniq { my %a; grep { !($a{$_}++) } @_ }
 sub get_ttf_fonts {
   my $opts = ref($_[0]) ? shift : {};
   my %result;
+
+  if ($opts->{try_fontconfig} and eval { require File::Which; 1 }) {
+    my $fc_list = File::Which::which('fc-list');
+    my $fc;
+    if ($fc_list and
+	open(my $fc, '-|', $fc_list, ':fontformat=TrueType:scalable=True:style=Normal:decorative=False', 
+	     'file', 'family')) {
+      while(<$fc>) {
+	s/\s+$//;
+	my ($font, $fn) = split /:\s+/,$_,2;
+	$result{$fn} = $font if -f $font and defined($fn) and length($fn) and !exists $result{$fn};
+      }
+      close($fc);
+      return \%result if keys %result;
+    }
+  }
+
   my $ds=$TrEd::Convert::Ds;
   eval {
     require PDF::API2::Basic::TTF::Font;

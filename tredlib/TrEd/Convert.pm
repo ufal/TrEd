@@ -32,7 +32,8 @@ BEGIN {
     );
 
   $lefttoright=1 unless defined($lefttoright);
-  $inputenc="iso-8859-2" unless defined($inputenc);
+  $inputenc="UTF-8" unless defined($inputenc);
+
   if ($^O eq "MSWin32") {
     $outputenc="windows-1250" unless defined($outputenc);
     $Ds="\\"; # how filenames and directories are separated
