@@ -137,8 +137,13 @@ sub ListQuery {
 }
 
 sub QuestionQuery {
+  my $top;
+  if (ref($_[0])) {
+    $top = shift;
+  } else {
+    $top = ToplevelFrame();
+  }
   my ($title, $message,@buttons) = @_;
-  my $top = ToplevelFrame();
   my $d = $top->DialogBox(-title => $title,
 			  -buttons => [@buttons]);
   $d->add('Label', -text => $message, -font => StandardTredFont(), -wraplength => 240)->pack(-expand => 1, -fill => 'x');

@@ -238,6 +238,9 @@ sub errorMessage {
 	ref($win->{framegroup}{top})) {
       $top = $win->{framegroup}->{top}->toplevel;
     }
+    # report the error from the highest displayed toplevel window in stacking order
+    my ($highest) = reverse $top->stackorder();
+    $top = $top->Widget($highest);
     if ($top) {
       _messageBox($top,'Error',$msg,$nobug);
     } else {
