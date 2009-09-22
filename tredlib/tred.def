@@ -4288,7 +4288,7 @@ sub Print {
       }
     }
     unless ($opts{-format} ne 'PDF' or $opts{-ttFont} or $gui->{ttfonts}) {
-      $gui->{ttfonts}=TrEd::Print::get_ttf_fonts({},
+      $gui->{ttfonts}=TrEd::Print::get_ttf_fonts({try_fontconfig=>1},
 	map {TrEd::Config::tilde_expand($_)} split /,/,
 						 $TrEd::Config::ttFontPath);
     }
