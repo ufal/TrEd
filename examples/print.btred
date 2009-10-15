@@ -37,8 +37,11 @@ my $output_dirname = delete $opts{'-out-dir'};
     top => MainWindow->new,
     focusedWindow => $grp,
   };
-  $grp->{framegroup} = $gui; 
-
+  $grp->{framegroup} = $gui;
+  if (ref($grp) eq 'HASH') {
+    bless $grp, 'BTrEd::Print::Window';
+  }
+  
   package main;
   import TrEd::Utils ':all';
 
@@ -50,7 +53,9 @@ my $output_dirname = delete $opts{'-out-dir'};
     my $win = shift;
     local $win->{treeView} = $treeview;
     my $context = $win->{macroContext} || 'TredMacro';
-    TrEd::Macros::do_eval_hook($win,$context,@_);
+    my $ret = TrEd::Macros::do_eval_hook($win,$context,@_);
+    warn $@ if $@;
+    return $ret;
   }
   sub onGetNodeStyle {
     my ($treeview,$node,$styles,$win)=@_;
@@ -88,7 +93,7 @@ my $output_dirname = delete $opts{'-out-dir'};
     __run_hook(undef,$win,"switch_stylesheet_hook",$prevstylesheet,$stylesheet);
     return 1;
   }
-  sub printGetNodesCallback { # called from print_trees
+  sub printGetNodesCallback { # passed to TrEd::Print::print_trees by Print
     my ($win,$treeview,$fsfile,$tree_no,$current)=@_;
     local $TrEd::TreeView::on_get_nodes = [\&onGetNodes,$win];
     $win->{treeNo}=$tree_no;
@@ -102,13 +107,14 @@ my $output_dirname = delete $opts{'-out-dir'};
   }
   sub onGetNodes {
     my ($treeview,$fsfile,$tree_no,$current,$win)=@_;
-    __run_hook($treeview,
+    my $l = __run_hook($treeview,
 	       $win,
 	       "get_nodelist_hook",
 	       $fsfile,
 	       $tree_no,
 	       $current,
 	       $treeview->get_showHidden());
+    return $l;
   }
   sub isFocused {
     return 1;
@@ -174,6 +180,22 @@ sub print_trees {
     -range => $range,
    );
   ChangingFile(0);
+}
+
+package BTrEd::Print::Window;
+
+sub treeView { return $_[0]->{treeView} }
+sub FSFile { return $_[0]->{FSFile} }
+sub treeNo { return $_[0]->{treeNo} }
+sub currentNode { return $_[0]->{currentNode} }
+sub toplevel {
+  my ($self)=@_;
+  return $self->canvas()->toplevel();
+}
+sub canvas {
+  my ($self) = @_;
+  return undef unless (ref($self) and ref($self->{treeView}));
+  return $self->{treeView}->canvas();
 }
 
 __END__
