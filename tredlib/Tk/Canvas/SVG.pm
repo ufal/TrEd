@@ -260,8 +260,8 @@ sub draw_canvas {
 
   my @media = @{$canvas->cget('-scrollregion')};
 #    @{$self->{Media}};
-  my $width = $media[2]-$media[0];
-  my $height = $media[3]-$media[1];
+  my $width = $media[2]-$media[0] + 10;
+  my $height = $media[3]-$media[1] + 10;
   my $writer = $self->{current_page};
 
   # if ($opts{-transform}) {
@@ -404,13 +404,14 @@ SCRIPT
     }
   }
   $hint ||= {};
+  $writer->startTag('g',
+		    transform=>"translate(".(-$media[0]+5).' '.(-$media[1]+5).")");
 
-
-  my $x = 0;
-  my $y = 0;
-  my $w = $opts{-width} || $self->{Media}[2];
-  my $h = $opts{-height} || $self->{Media}[3];
-  my $i;
+#  my $x = 0;
+#  my $y = 0;
+#  my $w = $opts{-width} || $self->{Media}[2];
+#  my $h = $opts{-height} || $self->{Media}[3];
+#  my $i;
   foreach my $item ($canvas->find('all')) {
     my $type=$canvas->type($item);
     my $tags=$canvas->itemcget($item,'-tags');
@@ -698,8 +699,8 @@ SCRIPT
 			'stroke-dasharray' => (join(',',@dash)||'none'),
 			'stroke' => defined($outlinecolor) ? $outlinecolor : 'none',
 			'fill' => defined($color) ? $color : 'none',
-			($is_text_bg ? ('fill-opacity' => '0.6') : ()),
-			($is_text_bg ? ('stroke-opacity' => '0.6') : ()),
+			($is_text_bg ? ('fill-opacity' => '0.9') : ()),
+			($is_text_bg ? ('stroke-opacity' => '0.9') : ()),
 			%item_opts,
 		       );
 	$self->item_desc($writer,$hint->{$item});
@@ -707,6 +708,7 @@ SCRIPT
     }
     # TODO image, ...
   }
+  $writer->endTag('g');
   $writer->endTag('svg');
 }
 
