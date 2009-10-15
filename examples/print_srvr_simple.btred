@@ -116,6 +116,7 @@ sub serveSVG {
   my $sentence = $cgi->param('sentence') ? 1 : 0;
   my $fileinfo = $cgi->param('fileinfo') ? 1 : 0;
   my $tree_no = int($cgi->param('tree_no')||0) || 1;
+  my $no_cache = int($cgi->param('no_cache'));
   my $use_svg_desc_and_title = int($cgi->param('dt')||0) || 1;
   unless ($path) {
     print STDERR '['.localtime()."] No path!\n";
@@ -129,7 +130,7 @@ sub serveSVG {
   }
   print STDERR '['.localtime()."] Serving $path\n";
   my ($fh,$svg_name,$unlink,$cached);
-  if ($cache_dir) {
+  if (!$no_cache and $cache_dir) {
     $svg_name = File::Spec->rel2abs(md5_hex($path).".${tree_no}.svg",$cache_dir);
     if ((-f $svg_name) and (-s $svg_name) and (((stat($path))[9])<((stat($svg_name))[9])) ) {
       open $fh, '<:bytes', $svg_name;
