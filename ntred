@@ -1282,7 +1282,7 @@ sub get_file_list {
   if (defined($filelist) or !scalar(@ARGV)) {
     $filelist ||= $ENV{HOME}."/.ntred_filelist";
     if (open(my $f, $filelist)) {
-      my $fl = (($filelist =~ /\.fl$/i) ? $filelist : undef );
+      my $fl = (($filelist =~ /\.fl$/i) ? Cwd::abs_path($filelist) : undef );
       my $first = 1;
       while (<$f>) {
 	s/^\s+//;
@@ -1307,6 +1307,7 @@ sub get_files {
     local $_;
     if (open(my $f, $filelist)) {
       my $fl = (($filelist =~ /\.fl$/i) ? Cwd::abs_path($filelist) : undef );
+
       my $first = 1;
       while (<$f>) {
 	s/^\s+//;

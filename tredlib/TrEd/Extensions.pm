@@ -870,7 +870,7 @@ EOF
 	-label => "Extension $name is already installed in $dir.\nDo you want to upgrade/reinstall it?",
 	-buttons =>['Install/Upgrade', 'All',  'Cancel']
        ) =~ /(Install|All)/);
-      $opts->{quiet}=1 if $1 eq 'All';
+      $opts->{quiet}=1 if !$opts->{quiet} and ($1 eq 'All');
       uninstallExtension($name); # or just rmtree
     }
     mkdir $dir;
