@@ -268,7 +268,14 @@ if ($command) {
     if ($pid and kill(0,$pid)) {
       my $cmd_file = File::Spec->catfile($tred_d,'cmd_'.$pid);
       if (sysopen(my $fh, $cmd_file, O_TRUNC|O_CREAT|O_WRONLY, 0600)) {
-	print $fh join("\0",@ARGV);
+	my ($command,@args) = @ARGV;
+	if ($command eq 'open') {
+	  @args = map {
+	    my ($filename,$suffix)=parseFileSuffix($_);
+	    IOBackend::make_abs_URI($filename)->as_string.$suffix
+	    } @args;
+	}
+	print $fh join("\0",$command,@args);
 	close $fh;
 	kill "USR2", $pid;
       }
@@ -4028,6 +4035,26 @@ sub removeFilelistsDialog {
   deleteFilelist($grp,map $_->[0], @lists[@$indexes]);
 }
 
+sub loadFilelist {
+  my ($grp,$top)=@_;
+  $top||=$grp->{top};
+  my $file= get_open_filename($top,-filetypes=>
+				[["Filelists",           ['.fl']],
+				 ["All files",           ['*','*.*']]
+				],
+			      -title=> "Load filelist ...");
+  $top->deiconify;
+  $top->focus;
+  $top->raise;
+  return unless (defined $file and $file ne EMPTY);
+  my $fl=Filelist->new(undef,$file);
+  return unless $fl;
+  print STDERR "Loading filelist: $file\n";
+  $fl->load();
+  addNewFilelist($grp,$fl,$top);
+  return $fl->name();
+}
+
 sub filelistDialog {
 
   use Tk::LabFrame;
@@ -4336,24 +4363,7 @@ sub filelistDialog {
 		-balloonmsg=> "Load a file-list from a file.",
 		@pad,
 		-underline=> 0,
-		-command=> [sub {
-			   my ($grp,$d,$filelistref)=@_;
-			   my $file= get_open_filename($d,-filetypes=> 
-						       [["Filelists",           ['.fl']],
-							["All files",           ['*','*.*']]
-						       ],
-						       -title=> "Load filelist ...");
-			   $d->deiconify;
-			   $d->focus;
-			   $d->raise;
-			   return unless (defined $file and $file ne EMPTY);
-			   my $fl=Filelist->new(undef,$file);
-			   return unless $fl;
-			   print STDERR "Loading filelist: $file\n";
-			   $fl->load();
-			   addNewFilelist($grp,$fl,$d);
-			   $$filelistref=$fl->name();
-			 },$grp,$d,\$filelist ])
+		-command=> [sub { $filelist=loadFilelist(@_) },$grp,$d ])
     ->pack(@b_pack);
 
   $botframe->Button(-text=> 'Help',
@@ -9316,13 +9326,16 @@ sub determineNodeType {
   return $type if $type;
   __debug("Determining node type for $node\n");
   eval {
-    chooseNodeType($win->{FSFile},$node => {
+    $win->{FSFile}->determine_node_type($node => {
       choose_command => sub {
 	my (undef,undef,$ntypes)=@_;
 	my $i = 1;
 	my @types = map {($i++)." ".($_->[0])} @$ntypes;
 	my $selection = [$types[0]];
-	listQuery($win->toplevel,'Untyped node: select node-type','browse',
+	my $top = $win->toplevel;
+	my ($highest) = reverse $top->stackorder();
+	$top = $top->Widget($highest);
+	listQuery($top,'Untyped node: select node-type','browse',
 		  \@types,$selection) || return;
 	return @$ntypes[$1-1] if $selection->[0]=~/^(\d+) /;
 	return;

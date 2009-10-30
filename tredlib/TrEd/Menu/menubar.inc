@@ -172,6 +172,7 @@ return sub {
       'MENUBAR:FILE:FILE_LISTS:GO_TO_FILE_LIST_INDEX',
       'SEPARATOR',
       'MENUBAR:FILE:FILE_LISTS:NEW_FILE_LIST',
+      'MENUBAR:FILE:FILE_LISTS:LOAD_FILE_LIST',
       'MENUBAR:FILE:FILE_LISTS:REMOVE_FILE_LISTS',
       'MENUBAR:FILE:FILE_LISTS:EDIT_FILE_LISTS',
       'MENUBAR:FILE:FILE_LISTS:ADD_FILES_TO_DEFAULT_FILE_LIST'
@@ -214,6 +215,15 @@ return sub {
     {
       '-command' => [\&_makeNewFilelist,$grp,\&selectFilelist],
       '-underline' => 2
+     },
+    undef
+   ],
+  'MENUBAR:FILE:FILE_LISTS:LOAD_FILE_LIST' => [
+    'Button',
+    'Load File List ...',
+    {
+      '-command' => [\&loadFilelist,$grp],
+      '-underline' => 0,
      },
     undef
    ],

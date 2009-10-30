@@ -2032,7 +2032,7 @@ sub determineNodeType {
   return $type if $type;
   doEvalHook($grp,'determine_node_type_hook',$node);
   return $type if $type;
-  chooseNodeType($grp->{FSFile},$node => {
+  $grp->{FSFile}->determine_node_type($node => {
      choose_command => sub {
        my (undef,undef,$ntypes)=@_;
        die "Could not determine node type, there were the following possibilities: ".
