@@ -461,7 +461,32 @@ sub print_trees {
 	my @opts;
 	if ($toSVG and ($extra_opts->{use_svg_desc_and_title} or @printList>1)) {
 	  if ($snt) {
-	    push @opts,(-desc => $valtext)
+	    if (ref($valtext) eq 'ARRAY') {
+	      # map FSNodes to IDs
+	      my @mapped; my %types;
+	      foreach my $v (@$valtext) {
+		my ($value,@tags)=@$v;
+		@tags = map {
+		  if (ref($_) and UNIVERSAL::isa($_,'FSNode')) {
+		    my $node = $_;
+		    my $type = $node->type;
+		    my $id_attr = $types{$type};
+		    if (!$id_attr and $type) {
+		      ($id_attr) = $type->find_members_by_role('#ID');
+		      $types{$type} = $id_attr = $id_attr->get_name
+			if $id_attr;
+		    }
+		    ($id_attr and $node->{ $id_attr }) ? '#'.$node->{ $id_attr } : $node
+		  } else {
+		    $_
+		  }
+		} @tags;
+		push @mapped, [$value,@tags];
+	      }
+	      push @opts,(-desc => \@mapped)
+	    } else {
+	      push @opts,(-desc => $valtext);
+	    }
 	  }
 	  if ($fileinfo) {
 	    push @opts,(-title => filename($fsfile->filename).' ('.$printList[$t].'/'.($fsfile->lastTreeNo+1).')');

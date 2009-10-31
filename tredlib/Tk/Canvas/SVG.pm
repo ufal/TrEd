@@ -134,10 +134,13 @@ sub color2svg {
     $color = color2gray($color)
   } elsif ($color=~/^#([0-9a-fA-F]{2})[0-9a-fA-F]{2}([0-9a-fA-F]{2})[0-9a-fA-F]{2}([0-9a-fA-F]{2})[0-9a-fA-F]{2}$/) {
     $color=qq{#$1$2$3};
+  } elsif (exists($Tk::rgb::rgb{$color})) {
+    $color = sprintf("#%02x%02x%02x",@{$Tk::rgb::rgb{$color}});
   } else {
+    warn "unknown color $color\n";
     $color = lc($color);
   }
-
+  return $color;
 }
 
 sub color2gray {
@@ -299,16 +302,36 @@ sub draw_canvas {
 		   );
   if ($opts{-title}) {
     $writer->startTag('title');
-    $writer->characters($opts{-title});
+    if (ref($opts{-title}) eq 'CODE') {
+      $opts{-title}->($writer);
+    } else {
+      $writer->characters($opts{-title});
+    }
     $writer->endTag('title');
   }
   if ($opts{-desc}) {
     $writer->startTag('desc');
     my $value = $opts{-desc};
     if (ref($value) eq 'ARRAY') {
-      $value = join '',map {$_->[0]} @$value;
+      $writer->startTag('xhtml:span', "xmlns:xhtml"=>"http://www.w3.org/1999/xhtml/");
+      for my $v (@$value) {
+	my ($text,@tags)=@$v;
+	if (@tags) {
+	  $writer->startTag('xhtml:span', class=>join(' ',grep !ref($_), @tags));
+	}
+	for my $t (split(/(\n)/,$text)) {
+	  if ($t eq "\n") {
+	    $writer->emptyTag("xhtml:br");
+	  } else {
+	    $writer->characters($t);
+	  }
+	}
+	$writer->endTag('xhtml:span') if @tags;
+      }
+      $writer->endTag('xhtml:span');
+    } else {
+      $writer->characters($value);
     }
-    $writer->characters($value);
     $writer->endTag('desc');
   }
   my $balloon = $opts{-balloon};
@@ -352,7 +375,10 @@ sub draw_canvas {
       function get_desc () {
         var desc = root.getElementsByTagName('desc').item(0);
         if (desc && desc.parentNode == root) {
-           return desc.firstChild.nodeValue;
+           var n = desc.firstChild;
+           while (n && n.nodeType != 1) n=n.nextSibling;
+           if (!n) n=desc.firstChild;
+           return n; // desc.firstChild.nodeValue;
         } else {
            return '';
         }
@@ -842,9 +868,9 @@ body {
       }
       function set_desc (desc) {
         var el = document.getElementById("desc");
-        var dir = textDirection(desc);
+        var dir = textDirection(desc.innerText);
         el.style.direction = dir;
-        el.innerHTML = desc.replace(/</,'&lt;').replace(/&/,'&amp;').split(/\\n/).join('<br />');
+        el.appendChild(desc.cloneNode(1)); //.replace(/</,'&lt;').replace(/&/,'&amp;').split(/\\n/).join('<br />');
         if ( dir!='ltr' && ! bidi_support_in_svg) {
           el.innerHTML += '<div style="color: gray; direction: ltr; font-size: 6pt;">WARNING: Firefox may obscure right-to-left text in SVG on some platforms!</div>';
         }
