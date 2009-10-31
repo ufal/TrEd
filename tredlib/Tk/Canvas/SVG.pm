@@ -137,7 +137,7 @@ sub color2svg {
   } elsif (exists($Tk::rgb::rgb{$color})) {
     $color = sprintf("#%02x%02x%02x",@{$Tk::rgb::rgb{$color}});
   } else {
-    warn "unknown color $color\n";
+    warn "unknown color $color\n" unless $color=~/^#[0-9a-fA-F]{6}$/;
     $color = lc($color);
   }
   return $color;
@@ -868,9 +868,24 @@ body {
       }
       function set_desc (desc) {
         var el = document.getElementById("desc");
-        var dir = textDirection(desc.innerText);
+	var text;
+        try { if(desc.innerText) { text=desc.innerText } else { text = desc.textContent } } catch(e) {}
+        var dir = textDirection(text);
         el.style.direction = dir;
-        el.appendChild(desc.cloneNode(1)); //.replace(/</,'&lt;').replace(/&/,'&amp;').split(/\\n/).join('<br />');
+        var childNodes =  desc.childNodes;
+        try {
+	   var s = new XMLSerializer();
+	   var str='';
+	   for (var i=0; i<childNodes.length;i++) {
+	      str += s.serializeToString(childNodes[i]);
+	   }
+	   el.innerHTML = str;
+        } catch (e) {
+	  el.innerHTML = '';
+	  for (var i=0; i<childNodes.length;i++) {
+	    el.appendChild(document.importNode(childNodes[i],true));
+	  }
+        }
         if ( dir!='ltr' && ! bidi_support_in_svg) {
           el.innerHTML += '<div style="color: gray; direction: ltr; font-size: 6pt;">WARNING: Firefox may obscure right-to-left text in SVG on some platforms!</div>';
         }
