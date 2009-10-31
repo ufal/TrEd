@@ -147,7 +147,6 @@ sub print_trees {
 
   print STDERR "Context: ",CurrentContext(),"\n" unless $opts->{-quiet};
   print STDERR "Stylesheet: ", GetCurrentStylesheet(),"\n" unless $opts->{-quiet};
-
  if ($opts->{-sentenceInfo} and
 	(UNIVERSAL::can(CurrentContext(),'get_value_line_hook') or
 	 UNIVERSAL::can('TredMacro','get_value_line_hook'))) {
@@ -174,6 +173,9 @@ sub print_trees {
     -format => 'PDF',
     -noRotate => 1,
     -colors => 1,
+    -extraOptions => {
+      use_svg_desc_and_title => (($opts->{-sentenceInfo} || $opts->{-fileInfo}) ? 1 : 0),
+    },
     ($opts->{-psMedia} eq 'BBox') ?
       (-hMargin => 0, -vMargin => 0) : (),
     %$opts,
