@@ -313,22 +313,22 @@ sub draw_canvas {
     $writer->startTag('desc');
     my $value = $opts{-desc};
     if (ref($value) eq 'ARRAY') {
-      $writer->startTag('xhtml:span', "xmlns:xhtml"=>"http://www.w3.org/1999/xhtml/");
+      $writer->startTag('span', "xmlns"=>"http://www.w3.org/1999/xhtml/");
       for my $v (@$value) {
 	my ($text,@tags)=@$v;
 	if (@tags) {
-	  $writer->startTag('xhtml:span', class=>join(' ',grep !ref($_), @tags));
+	  $writer->startTag('span', class=>join(' ',grep !ref($_), @tags));
 	}
 	for my $t (split(/(\n)/,$text)) {
 	  if ($t eq "\n") {
-	    $writer->emptyTag("xhtml:br");
+	    $writer->emptyTag("br");
 	  } else {
 	    $writer->characters($t);
 	  }
 	}
-	$writer->endTag('xhtml:span') if @tags;
+	$writer->endTag('span') if @tags;
       }
-      $writer->endTag('xhtml:span');
+      $writer->endTag('span');
     } else {
       $writer->characters($value);
     }
