@@ -210,7 +210,7 @@ fi
 TRED_BUILD_DIR="$1"
 remove_build_dir=0
 
-if [ "x$SYSTEM" = x1 ] && [ "x$LIBS_ONLY" = x1 ] [ -z "$PREFIX" ] && [ -z "$TRED_TARGET_DIR" ] && [ -z "$TRED_DIR" ]; then
+if [ "x$SYSTEM" = x1 ] && [ "x$LIBS_ONLY" = x1 ] && [ -z "$PREFIX" ] && [ -z "$TRED_TARGET_DIR" ] && [ -z "$TRED_DIR" ]; then
    if [ -z "$TRED_BUILD_DIR" ]; then
       TRED_BUILD_DIR=$(mktemp -d)
       TRED_DIR="/usr/local"
