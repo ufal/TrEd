@@ -6224,11 +6224,11 @@ sub createCanvasBindings {
   # Button-1
   my ($dx,$dy);
   $canvas->CanvasBind('<Control-1>', [sub {
-					my ($c)=@_;
-					return if $c->find(withtag=>'current');
-					($dx,$dy) = ($c->canvasx($c->pointerx-$c->rootx),$c->canvasy($c->pointery-$c->rooty));
-					Tk->break;
-				      }]);
+  					my ($c)=@_;
+  					return if $c->find(withtag=>'current');
+  					($dx,$dy) = ($c->canvasx($c->pointerx-$c->rootx),$c->canvasy($c->pointery-$c->rooty));
+  					Tk->break;
+  				      }]);
   $canvas->CanvasBind('<ButtonRelease-1>',sub {
 			if (defined $dx) {
 			  undef $dx; undef $dy;
@@ -6237,8 +6237,9 @@ sub createCanvasBindings {
 		      });
   $canvas->CanvasBind('<B1-Motion>',
 		      [sub {
-			  return unless defined $dx;
-			  my ($c,$grp)=@_;
+			 return unless defined $dx;
+			 my ($c,$grp)=@_;
+			 return if $c->find(withtag=>'current');
 			  my $win = findCanvasWindow($grp,$c);
 			  my $tv=$win->treeView;
 			  my $t = $tv->get_node_pinfo($win->{currentNode},'Oval');
@@ -12661,7 +12662,12 @@ sub prepareExtensions {
 		  (exists($e{'*'}) && !exists($d{$_}) || exists($e{$_}) ? $_ : '!'.$_)
 		    : (exists($d{'*'}) && !exists($e{$_})|| exists($d{$_}) ? '!'.$_ : $_)
 		  } @$pre_installed;
-
+  my %have; @have{@$extensions,@$pre_installed};
+  for my $required (keys %e) {
+    if ($required ne '*' and !exists($have{$required})) {
+      warn("WARNING: extension $required not found!");
+    }
+  }
   initExtensions($extensions);
   initExtensions($pre_installed, getPreInstalledExtensionsDir());
   return [$extensions,$pre_installed];
