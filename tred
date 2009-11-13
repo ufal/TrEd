@@ -10472,7 +10472,7 @@ sub findNodeDialog {
       my $val = decode($e{$t}->get);
       $searchTemplate{$t}=$val;
       if ($val ne EMPTY) {
-	$search_code.='  for ($node->all(q{'.$t.'})) { return 0 unless ';
+	$search_code.='  for ($node->all(q{'.$t.'})) { return 1 if ';
 	if ($method eq 'E') {
 	  my $re = qr{^$val$};
 	  $search_code .= '$_ =~ m('.$re.')';
@@ -10492,7 +10492,7 @@ sub findNodeDialog {
 	$search_code .= " }\n";
       }
     }
-    $search_code .= "  return 1;\n}";
+    $search_code .= "  return 0;\n}";
     print STDERR "$search_code\n" if $tredDebug;
     $search_code = eval $search_code;
     $grp->{searchCode}=$search_code;
@@ -12662,7 +12662,7 @@ sub prepareExtensions {
 		  (exists($e{'*'}) && !exists($d{$_}) || exists($e{$_}) ? $_ : '!'.$_)
 		    : (exists($d{'*'}) && !exists($e{$_})|| exists($d{$_}) ? '!'.$_ : $_)
 		  } @$pre_installed;
-  my %have; @have{@$extensions,@$pre_installed};
+  my %have; @have{@$extensions,@$pre_installed}=();
   for my $required (keys %e) {
     if ($required ne '*' and !exists($have{$required})) {
       warn("WARNING: extension $required not found!");
