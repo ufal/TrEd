@@ -297,8 +297,8 @@ sub draw_canvas {
 		    onmouseout=>"mouse_out(evt)",
 		    height=>"$height",
 		    width=>"$width",
-		    #preserveAspectRatio=>"xMinYMax",
-		    #viewBox=>"@media",
+		    # preserveAspectRatio=>'xMinYMin meet',
+		    # viewBox=>"@media",
 		   );
   if ($opts{-title}) {
     $writer->startTag('title');
@@ -354,6 +354,7 @@ sub draw_canvas {
          if (root.styleSheets != null && root.styleSheets[0] != null) css = root.styleSheets[0]
          else if (doc.styleSheets != null && doc.styleSheets[0] != null) css = doc.styleSheets[0];
 	 top.zoomSVG = zoom;
+         if (top.svg_loaded) top.svg_loaded(doc);
          if (top.setSVGTitle) top.setSVGTitle(get_title());
          if (top.setSVGDesc) top.setSVGDesc(get_desc());
          if (top.highlightSVGNodes) top.highlightSVGNodes(css);
