@@ -424,6 +424,7 @@ sub value_line_list {
     foreach $node (@sent) {
       my %styles;
       my $add_space=0;
+      my $no_space;
       foreach my $style (@patterns) {
 	my $msg=$self->interpolate_text_field($node,$style,$grp);
 	foreach (split(m/([\#\$]${bblock})/,$msg)) {
@@ -432,13 +433,17 @@ sub value_line_list {
 	    my $val = _present_attribute($node,$1);
 	    if ($val ne "") {
 	      push @vl,[$val,$node, map { encode("$_ => $styles{$_}") }
-			keys %styles];
+			  keys %styles];
 	      $add_space=1;
 	    }
 	  } elsif (/^\#${block}$/) {
 	    #attr
 	    my $style=$1;
-	    if ($style =~ /-tag:\s*(.*\S)\s*$/) {
+	    if ($style eq '-nospaceafter') {
+	      $no_space = 1;
+	    } elsif ($style eq '-nospacebefore') {
+	      pop @vl if @vl and $vl[-1][0] eq ' ';
+	    } elsif ($style =~ /-tag:\s*(.*\S)\s*$/) {
 	      if ($styles{tag} ne "") {
 		$styles{tag}.=",$1";
 	      } else {
@@ -455,7 +460,7 @@ sub value_line_list {
 	  }
 	}
       }
-      push @vl,[" ",'space'] if $add_space;
+      push @vl,[" ",'space'] if !$no_space and $add_space;
     }
     return @vl;
   } else {
