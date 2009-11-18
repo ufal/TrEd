@@ -48,6 +48,50 @@ sub on_get_node_style {
   return $ret;
 }
 
+sub make_pmltq {
+  my ($positions,%opts)=@_;
+  if (exists &Tree_Query::nodes_to_pmltq) {
+    my $cur = CurrentFile();
+    my @open_files = ($cur ? ($cur, GetSecondaryFiles($cur)) : ());
+    my %cur_fsfiles; @cur_fsfiles{@open_files}=();
+    # my $keep_cur;
+    my %fsfiles;
+    my @new_fsfiles;
+    foreach my $f (map $_->[0], @$positions) {
+      next if exists $fsfiles{$f};
+      my ($open) = grep { IOBackend::is_same_filename($_->filename, $f) }
+	@open_files;
+      if ($open) {
+	# $keep_cur=1 if !$keep_cur and exists($cur_fsfiles{$open});
+	$fsfiles{$f}=$open;
+      } else {
+	my $fsfile = FSFile->newFSFile($f, $TrEd::Convert::inputenc, [Backends()]);
+	unless ($fsfile and $fsfile->lastTreeNo and $Fslib::FSError==0) {
+	  my $err = $@ || $! || 'unknown error';
+	  warn("Failed to open $f: $err\n");
+	  return;
+	}
+	my @new = ($fsfile, GetSecondaryFiles($fsfile));
+	push @new_fsfiles, @new;
+	push @open_files, @new;
+	$fsfiles{$_->filename}=$_ for @new; # including $fsfile
+	$fsfiles{$f}=$fsfile; # $f may be different from $fsfile->filename
+      }
+    }
+    my @nodes;
+    for my $pos (@$positions) {
+      my $win = { FSFile => $fsfiles{$pos->[0]} };
+      unless (TrEd::Utils::applyFileSuffix($win,$pos->[1]) and $win->{currentNode}) {
+	warn "Didn't find node [@$pos, @{[%$win]}]\n";
+	return;
+      }
+      push @nodes, $win->{currentNode};
+    }
+    return Tree_Query::nodes_to_pmltq(\@nodes);
+  }
+  return;
+}
+
 sub make_svg {
   my ($f,%opts)=@_;
   # TODO: implement complete caching
@@ -87,6 +131,8 @@ sub handle_request {
   my $path = $cgi->path_info();
   if ($path eq '/svg') {
     serveSVG($self,$cgi);
+  } elsif ($path eq '/pmltq') {
+    servePMLTQ($self,$cgi);
   } else {
     notFound($cgi);
   }
@@ -172,6 +218,44 @@ sub serveSVG {
   unlink $fh if $unlink;
   close $fh;
 }
+
+sub servePMLTQ {
+  my ($self,$cgi) = @_;             # Net::HTTPServer::Request object
+  my $paths = $cgi->param('p');
+  my @paths = $paths ? split(/,/, $paths) : ();
+  unless (@paths) {
+    print STDERR '['.localtime()."] No path!\n";
+    return notFound($cgi);
+  }
+  my @positions;
+  foreach my $p (@paths) {
+    my ($path, $goto)=TrEd::Utils::parseFileSuffix($p);
+    $path = URI->new($path)->canonical->as_string;
+    if ($path=~m{/\.\./} or $path !~ $permitted_paths_re) {
+      print STDERR '['.localtime()."] Path $path not permitted\n";
+      return notFound($cgi);
+    } elsif (!$goto) {
+      print STDERR '['.localtime()."] Path $p does not contain an address\n";
+      return notFound($cgi);
+    }
+    push @positions, [$path,$goto];
+  }
+  print STDERR '['.localtime()."] Serving PMLTQ for $paths\n";
+  my $pmltq = TredMacro::make_pmltq(\@positions);
+  binmode(select());
+  if (!defined $pmltq) {
+    print "HTTP/1.0 500 Internal Server Error\r\n\r\n";
+    return;
+  } else {
+    print "HTTP/1.0 200 OK\r\n";
+    print $cgi->header(-type => 'text/plain',
+		       -charset => 'UTF-8',
+		       # -Content_length => ((stat($fh))[7]),
+		      );
+    print $pmltq;
+  }
+}
+
 }
 
 1;
