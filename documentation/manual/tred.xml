@@ -9026,7 +9026,7 @@ package Conll2009;
 BEGIN { import TredMacro; }
 
 #binding-context Conll2009
-#bind space to EditAttributes
+#bind EditAttributes to space
 
 use strict;
 
