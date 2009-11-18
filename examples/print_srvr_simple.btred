@@ -8,6 +8,7 @@ package TredMacro;
 
 use warnings;
 use strict;
+use Encode ();
 
 my %opts = @ARGV;
 my @permitted_paths = split(/:/, $opts{'--allow-paths'});
@@ -242,11 +243,12 @@ sub servePMLTQ {
   }
   print STDERR '['.localtime()."] Serving PMLTQ for $paths\n";
   my $pmltq = TredMacro::make_pmltq(\@positions);
-  binmode(select());
   if (!defined $pmltq) {
     print "HTTP/1.0 500 Internal Server Error\r\n\r\n";
     return;
   } else {
+    binmode(select());
+    Encode::_utf8_off($pmltq);
     print "HTTP/1.0 200 OK\r\n";
     print $cgi->header(-type => 'text/plain',
 		       -charset => 'UTF-8',
