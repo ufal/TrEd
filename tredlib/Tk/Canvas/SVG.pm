@@ -212,7 +212,9 @@ sub new_page {
   }
   my $fh = eval('use XML::Writer 0.6; 1') ? \$svg_page : IO::String->new($svg_page);
   $P->{current_page} = XML::Writer->new(OUTPUT=>$fh,
-					DATA_INDENT=>1,DATA_MODE=>1,ENCODING=>'utf-8');
+					DATA_INDENT=>1,
+					DATA_MODE=>1,
+					ENCODING=>'utf-8');
   push @{$P->{pages}}, \$svg_page;
 }
 
@@ -311,6 +313,7 @@ sub draw_canvas {
   }
   if ($opts{-desc}) {
     $writer->startTag('desc');
+    $writer->setDataMode(0);
     my $value = $opts{-desc};
     if (ref($value) eq 'ARRAY') {
       $writer->startTag('span', "xmlns"=>"http://www.w3.org/1999/xhtml/");
@@ -332,6 +335,7 @@ sub draw_canvas {
     } else {
       $writer->characters($value);
     }
+    $writer->setDataMode(1);
     $writer->endTag('desc');
   }
   my $balloon = $opts{-balloon};
@@ -340,6 +344,7 @@ sub draw_canvas {
     $hint = $balloon->GetOption('-balloonmsg',$canvas);
     if ($hint) {
       $writer->startTag('script', type=>"text/ecmascript");
+      $writer->setDataMode(0);
       $writer->characters(<<'SCRIPT'); # cdata not supported by older XML::Writer versions
 
       var doc = null;
@@ -402,11 +407,20 @@ sub draw_canvas {
 	 if (!top.placeTip) return;
 	 var x = event.clientX;
 	 var y = event.clientY;
-  	 top.placeTip(x,y);
+  	 top.placeTip(x,y,root,event);
          if ( last_target != target ) {
 	    last_target = target;
-            var desc = target.getElementsByTagName('desc').item(0);
-            if ( desc && desc.parentNode == target && desc.parentNode != root) {
+            if (top.onSVGMouseOver) top.onSVGMouseOver(target);
+            if (target==root) return;
+            var desc;
+            for (var i=0; i<target.childNodes.length; i++) {
+              var n = target.childNodes[i];
+              if (n.nodeName == 'desc') {
+                desc = n;
+                break;
+              }
+            }
+            if ( desc ) {
                tooltip_text = desc.firstChild.nodeValue;
 	       if (tooltip_text == null) {
 	         top.changeToolTip('');
@@ -418,8 +432,8 @@ sub draw_canvas {
       }
 
 SCRIPT
+      $writer->setDataMode(1);
       $writer->endTag('script');
-
       $writer->startTag('defs');
       # style element is used also for dynamic styling
       $writer->startTag('style', type=>'text/css');
@@ -921,7 +935,7 @@ body {
         return curtop;
       }
 
-      function placeTip (x,y) {
+      functionp placeTip (x,y,svg) {
         tooltip.style.left="" + (findPosX(tree_obj) + x + 20) + "px";
         tooltip.style.top="" + (findPosY(tree_obj) + y + 10) + "px";
       }
