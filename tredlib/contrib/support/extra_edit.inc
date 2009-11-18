@@ -13,9 +13,9 @@
 #bind delete_node_keep_children to Delete
 #bind DeleteSubtree to Ctrl+Delete
 
-#bind cut_to_clipboad to Shift+Delete
-#bind copy_to_clipboad to Ctrl+Insert
-#bind paste_from_clipboad to Shift+Insert
+#bind cut_to_clipboard to Shift+Delete
+#bind copy_to_clipboard to Ctrl+Insert
+#bind paste_from_clipboard to Shift+Insert
 #bind paste_as_new_tree to Ctrl+Shift+Insert
 
 #bind cut_to_parents_parent to Ctrl+Up
@@ -47,9 +47,9 @@
 #insert delete_node_keep_children as menu Delete current node (pasting its children on its parent)
 #insert DeleteSubtree as menu Delete current subtree
 
-#insert cut_to_clipboad as menu Cut subtree to clipboard
-#insert copy_to_clipboad as menu Copy subtree to clipboard
-#insert paste_from_clipboad as menu Paste subtree from clipboard
+#insert cut_to_clipboard as menu Cut subtree to clipboard
+#insert copy_to_clipboard as menu Copy subtree to clipboard
+#insert paste_from_clipboard as menu Paste subtree from clipboard
 #insert paste_as_new_tree as menu Paste as new tree
 
 #insert cut_to_parents_parent as menu Place node on parent's parent
@@ -252,12 +252,12 @@ sub trim_subtree {
   $root=$node;
 }
 
-sub copy_to_clipboad {
+sub copy_to_clipboard {
   return unless ($this);
   $TredMacro::nodeClipboard=CloneSubtree($this);
 }
 
-sub cut_to_clipboad {
+sub cut_to_clipboard {
   return unless ($this and $this->parent);
   $TredMacro::nodeClipboard=$this;
   $this=$this->rbrother ? $this->rbrother : $this->parent;
@@ -269,7 +269,7 @@ sub cut_to_clipboad {
   }
 }
 
-sub paste_from_clipboad {
+sub paste_from_clipboard {
   return unless ($this and $TredMacro::nodeClipboard);
   if (!$this->test_child_type($TredMacro::nodeClipboard)) {
     QuestionQuery("Cannot paste node",
