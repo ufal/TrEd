@@ -2087,6 +2087,12 @@ sub prepareExtensions {
 		(exists($e{'*'}) && !exists($d{$_}) || exists($e{$_}) ? $_ : '!'.$_)
 		  : (exists($d{'*'}) && !exists($e{$_})|| exists($d{$_}) ? '!'.$_ : $_)
 		} @$pre_installed;
+    my %have; @have{@$extensions,@$pre_installed}=();
+    for my $required (keys %e) {
+      if ($required ne '*' and !exists($have{$required})) {
+	warn("WARNING: extension $required not found!");
+      }
+    }
   }
   if (my $fh = $opts->{list_to}) {
     $fh->print( map "$_\n", @$extensions );
@@ -2324,6 +2330,11 @@ to the end of the list.
 
 Specifies resource path. This option can be repeated and overrides
 ResoucePath setting in the TrEd configuration file.
+
+Individual paths can also be separated by colon (POSIX/Unix) or
+semi-colon (Windows) separator. If there is a lone leading or trailing
+separator, the default resource path is prepended or appended,
+respectively.
 
 =item B<--all-trees|-T>
 
