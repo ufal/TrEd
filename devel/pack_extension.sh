@@ -159,6 +159,11 @@ if [ -f "$name/$icon" ]; then
     cp --parents "$name/$icon" "$target_dir"
 fi
 
+if [ -d "$name/documentation" ]; then
+    echo "Copying documentation $name/$icon"
+    cp -r "$name/documentation" "$target_dir/$name"
+fi
+
 echo Creating "$zip"
 make_zip "$zip" "$package_dir"
 
