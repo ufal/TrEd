@@ -67,6 +67,9 @@ sub make_pmltq {
 	$fsfiles{$f}=$open;
       } else {
 	my $fsfile = FSFile->newFSFile($f, $TrEd::Convert::inputenc, [Backends()]);
+	$fsfile->changeFilename($f);
+	eval { OpenSecondaryFiles($fsfile); };
+	print STDERR "$@\n" if $@;
 	unless ($fsfile and $fsfile->lastTreeNo and $Fslib::FSError==0) {
 	  my $err = $@ || $! || 'unknown error';
 	  warn("Failed to open $f: $err\n");
@@ -86,7 +89,7 @@ sub make_pmltq {
 	warn "Didn't find node [@$pos, @{[%$win]}]\n";
 	return;
       }
-      push @nodes, $win->{currentNode};
+      push @nodes, [ $win->{currentNode}, $win->{FSFile} ];
     }
     print STDERR "generating query";
     return Tree_Query::nodes_to_pmltq(\@nodes,\%opts);
