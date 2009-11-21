@@ -88,8 +88,10 @@ sub make_pmltq {
       }
       push @nodes, $win->{currentNode};
     }
-    return Tree_Query::nodes_to_pmltq(\@nodes);
+    print STDERR "generating query";
+    return Tree_Query::nodes_to_pmltq(\@nodes,\%opts);
   }
+  print STDERR "Method nodes_to_pmltq not available\n";
   return;
 }
 
@@ -163,7 +165,7 @@ sub serveSVG {
   my $sentence = $cgi->param('sentence') ? 1 : 0;
   my $fileinfo = $cgi->param('fileinfo') ? 1 : 0;
   my $tree_no = int($cgi->param('tree_no')||0) || 1;
-  my $no_cache = int($cgi->param('no_cache'));
+  my $no_cache = int($cgi->param('no_cache')||0);
   my $use_svg_desc_and_title = int($cgi->param('dt')||0) || 1;
   unless ($path) {
     print STDERR '['.localtime()."] No path!\n";
@@ -222,8 +224,9 @@ sub serveSVG {
 
 sub servePMLTQ {
   my ($self,$cgi) = @_;             # Net::HTTPServer::Request object
+  my @names = split(/,/,$cgi->param('r')||'');
   my $paths = $cgi->param('p');
-  my @paths = $paths ? split(/,/, $paths) : ();
+  my @paths = $paths ? split(/\|/, $paths) : ();
   unless (@paths) {
     print STDERR '['.localtime()."] No path!\n";
     return notFound($cgi);
@@ -241,8 +244,11 @@ sub servePMLTQ {
     }
     push @positions, [$path,$goto];
   }
-  print STDERR '['.localtime()."] Serving PMLTQ for $paths\n";
-  my $pmltq = TredMacro::make_pmltq(\@positions);
+  my $pmltq = TredMacro::make_pmltq(
+    \@positions,
+    (@names ? (reserved_names => {map {$_=>1} @names}) : ()),
+   );
+  print STDERR '['.localtime()."] Serving PMLTQ for $paths: $pmltq\n";
   if (!defined $pmltq) {
     print "HTTP/1.0 500 Internal Server Error\r\n\r\n";
     return;
