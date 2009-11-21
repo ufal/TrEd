@@ -1480,7 +1480,7 @@ sub preloadFiles {
       $errlog->print($status->{report}) if ($errlog);
     }
     next unless ($status->{ok} && 
-		 openSecondary($grp,$fsfile, $errlog));
+		 openSecondaryFiles($grp,$fsfile, $errlog));
 
     $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
     $grp->{preloaded}->{$f} = $fsfile;
@@ -1499,7 +1499,7 @@ sub associateSecondary {
   $fsfile->appData('ref')->{$as}=$secondary;
 }
 
-sub openSecondary {
+sub openSecondaryFiles {
   my ($grp,$fsfile,$errlog)=@_;
   my $return = 1;
   unless ($no_secondary) {
@@ -1528,7 +1528,7 @@ sub openSecondary {
 	    associateSecondary($req_fs,
 			       $fsfile,
 			       $req->[0]);
-	    $return &&= openSecondary($grp,$req_fs,$errlog);
+	    $return &&= openSecondaryFiles($grp,$req_fs,$errlog);
 	  }
 	} else {
 	  # secondary file is already loaded, just associate:
@@ -1576,7 +1576,7 @@ sub openFile {
       $grp->{preloaded}->{$f}=$fsfile if ($fsfile and exists($grp->{preloaded}));
 
       # open files required by this one
-      $return &&= openSecondary($grp,$fsfile);
+      $return &&= openSecondaryFiles($grp,$fsfile);
     }
 
     my $encoding=$grp->{FSFile}->encoding;
