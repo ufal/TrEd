@@ -205,12 +205,17 @@ sub svg {
 
 sub new_page {
   my ($P,%opts)=@_;
-  require IO::String;
   my $svg_page;
   if ($P->{current_page}) {
     $P->{current_page}->end;
   }
-  my $fh = eval('use XML::Writer 0.6; 1') ? \$svg_page : IO::String->new($svg_page);
+  my $fh;
+  if (eval('use XML::Writer 0.6; 1')) {
+    $fh = \$svg_page;
+  } else {
+    require IO::String;
+    $fh = IO::String->new($svg_page);
+  }
   $P->{current_page} = XML::Writer->new(OUTPUT=>$fh,
 					DATA_INDENT=>1,
 					DATA_MODE=>1,
@@ -247,8 +252,10 @@ sub finish {
 	close $fh;
       }
     }
+  } elsif ($opts{-object}) {
+    return [ map $$_, @{$P->{pages}} ];
   } else {
-    return join("\n\n<!-- new_page -->\n\n",@{$P->{pages}});
+    return join("\n\n<!-- new_page -->\n\n",map $$_, @{$P->{pages}});
   }
 }
 
@@ -825,9 +832,31 @@ body {
           object.height = height - findPosY(tree_obj) - 20;
         }
       }
-      function zoom_inc ( amount ) {
-	 window.zoomSVG( amount );
+      function getSVG (container) {
+	  var svg_document =
+	      container.contentDocument
+	      ? container.contentDocument
+	      : container.contentWindow 
+	      ? container.contentWindow.document
+	      : null;
+	  return svg_document ? svg_document.documentElement : null;
       }
+
+      function zoom_inc (amount) {
+	  var container = document.getElementById('svg-tree');
+	  var svg = getSVG(container);
+	  var w = parseFloat(container.getAttribute('width'));
+	  var h = parseFloat(container.getAttribute('height'));
+	  var rescale = amount>=0 ? (1+amount) : 1/(1-amount);
+	  w=w*rescale;
+	  h=h*rescale;
+	  container.setAttribute('width', w);
+	  container.setAttribute('height', h);
+	  if (svg) {
+	      svg.currentScale = svg.currentScale * rescale;
+	      svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+	  }
+      }	
       function next_tree ( delta ) {
         var next = current_tree+delta;
         if (next >= 0 && files.length > next) {
@@ -835,22 +864,24 @@ body {
           // in FF, we would just set 'data', but Opera
           // and other require replacing the object
           current_tree = next;
-	  update_object("iframe");
-	  update_object("embed");
+          var container = document.getElementById('svg-tree');
+          if (container) container.width=0; // to prevent visible zooming
+          update_object_data(container);
           update_title();
         }
       }
-      function update_object (tagName) {
-          var oobject = tree_obj.getElementsByTagName(tagName).item(0);
-	  if (oobject == null) return;
-          var nobject = tree_obj.ownerDocument.createElement(tagName); 
-          nobject.width = oobject.width;
-          nobject.height = oobject.height;
-          nobject.setAttribute('class',oobject.getAttribute('class'));
-          nobject.type = oobject.type;
-	  if (oobject.src != null) nobject.src=files[current_tree];
-	  if (oobject.data != null) nobject.data=files[current_tree];
-          tree_obj.replaceChild(nobject,oobject);
+      function update_object_data (oobject) {
+	 if (oobject == null) return;
+	 var nobject = oobject.ownerDocument.createElement(oobject.nodeName); 
+	 var a = ['class','style','type','width','height'];
+	 for (var i=0; i<a.length; i++) {
+	     var v = oobject.getAttribute(a[i]);
+	     if (v!=null && v!='') nobject.setAttribute(a[i],v);
+	 }
+	 var id = oobject.getAttribute("id");
+	 nobject.setAttribute("data", files[current_tree]);
+	 oobject.parentNode.replaceChild(nobject,oobject);
+	 nobject.setAttribute("id", id);
       }
       function update_title () {
          document.getElementById("cur_tree").firstChild.nodeValue = current_tree + 1;
@@ -863,6 +894,7 @@ body {
 	document.placeTip = placeTip;
         window.setSVGTitle = set_title;
         window.setSVGDesc = set_desc;
+        window.svg_loaded = svg_tree_loaded;
 	fit_window();
         next_tree(0);
       }
@@ -881,6 +913,13 @@ body {
          return rtlDirCheckRe.test(text) ? 'rtl'
                 : (ltrDirCheckRe.test(text) ? 'ltr' : '');
       }
+      function svg_tree_loaded (svg_document) {
+        var container = document.getElementById('svg-tree');
+        var svg = svg_document ? svg_document.documentElement : null;
+        if (svg==null) return;
+        container.setAttribute('width',parseFloat(svg.getAttribute('width')));
+        container.setAttribute('height',parseFloat(svg.getAttribute('height')));
+      }
       function set_desc (desc) {
         var el = document.getElementById("desc");
 	var text;
@@ -888,6 +927,7 @@ body {
         var dir = textDirection(text);
         el.style.direction = dir;
         var childNodes =  desc.childNodes;
+        if (typeof(childNodes)=="undefined") return;
         try {
 	   var s = new XMLSerializer();
 	   var str='';
@@ -935,7 +975,7 @@ body {
         return curtop;
       }
 
-      functionp placeTip (x,y,svg) {
+      function placeTip (x,y,svg) {
         tooltip.style.left="" + (findPosX(tree_obj) + x + 20) + "px";
         tooltip.style.top="" + (findPosY(tree_obj) + y + 10) + "px";
       }
@@ -974,10 +1014,8 @@ body {
  </form>
  <div id="tooltip"></div>
  <div id="desc" style="padding: 0 2% 10 2%"></div>
- <div id="tree" style="text-align:center">
-    <iframe src="" width="98%" height="80%" frameborder="0" marginwidth="0"  marginheight="0" scrolling="yes">
-      <embed src="" width="98%" height="80%" type="image/svg+xml" pluginspage="http://www.adobe.com/svg/viewer/install/"/>
-    </iframe>
+  <div id="tree" class="tree" style="width:100%; height:60%; overflow:auto;">
+    <object width="100%" type="image/svg+xml" id="svg-tree" alt="tree"></object>
   </div>
  </body>
 </html>

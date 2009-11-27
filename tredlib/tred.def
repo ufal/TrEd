@@ -4132,9 +4132,9 @@ sub PrintDialog {
       if (exists($opts{$_})) {
 	my $o=$_; $o=~s/^-//;
 	$o='psFile' if $o eq 'filename';
-	$grp->{framegroup}->{"print".lcfirst($o)} = $opts{$_}
+	$grp->{framegroup}->{"print".ucfirst($o)} = $opts{$_}
       }
-      main::printDialog($grp->{framegroup});
+      main::printThis($grp->{framegroup});
     }
   } else {
     die "Cannot call PrintDialog from non-GUI version TrEd\n";
@@ -4153,14 +4153,21 @@ Print trees given from current file according to given printing options:
 Lists trees to be printed (e.g. C<5,-3,9-12,15-> prints trees
 5,1,2,3,9,10,11,12,15,16,...)
 
+=item C<-to>
+
+Possible values: file (print to file specified by C<-filename>),
+(send output to ImageMagick convert, see C<-convert>),
+pipe (send output to the standard input of command C<-command>),
+string (return output as a string), object (return output as an object -
+the exact type of the value depends on the output format).
+
 =item C<-command>
 
-System command to send the output to (e.g. C<lpr> to print on the
-default printer on UNIX platform).
+System command to send the output to (usually default to C<lpr> on UNIX platform).
 
-=item C<-toFile>
+=item C<-convert>
 
-If set to 1, the output is saved to a file specified in C<-filename>.
+Path to ImageMagick 'convert' command.
 
 =item C<-filename>
 
@@ -4276,80 +4283,53 @@ sub Print {
     local $grp->{root} = $root;
     local $grp->{treeNo} = $grp->{treeNo};
     local $grp->{Nodes} = $grp->{Nodes};
-    
-    my $canvas=ToplevelFrame()->Canvas();
-    $opts{-range}=CurrentTreeNumber()+1 if ($opts{-range} eq "");
 
-    foreach (qw(-command -toFile -format -noRotate -sentenceInfo
-                -imageMagickResolution -colors)) {
-      unless (exists($opts{$_})) {
-	my $o=$_; $o=~s/^-//;
-	$opts{$_} = $gui->{"print".lcfirst($o)};
+    $opts{-range} = CurrentTreeNumber()+1 unless defined($opts{-range}) and length($opts{-range});
+    foreach (qw(command toFile format noRotate sentenceInfo
+                imageMagickResolution colors)) {
+      unless (exists($opts{"-$_"})) {
+	$opts{"-$_"} = $gui->{"print".ucfirst($_)};
       }
     }
-    unless ($opts{-format} ne 'PDF' or $opts{-ttFont} or $gui->{ttfonts}) {
-      $gui->{ttfonts}=TrEd::Print::get_ttf_fonts({try_fontconfig=>1},
-	map {TrEd::Config::tilde_expand($_)} split /,/,
-						 ($TrEd::Config::printOptions||{})->{ttFontPath});
+
+    # apply default options
+    my $def = $TrEd::Config::printOptions;
+    if ($def) {
+      foreach my $opt (keys %$def) {
+	my $name = $TrEd::Config::defaultPrintConfig{$opt}[0];
+	if ($name and !exists($opts{$name}) and exists($def->{$opt})) {
+	  $opts{$name}=$def->{$opt};
+	}
+      }
+    } else {
+      $def = {};
     }
 
-    $TrEd::TreeView::on_get_root_style = [($opts{-onGetRootStyle} || \&main::onGetRootStyle),$grp];
-    $TrEd::TreeView::on_get_node_style = [($opts{-onGetNodeStyle} || \&main::onGetNodeStyle),$grp];
-    $TrEd::TreeView::on_redraw_done = [($opts{-onRedrawDone} || \&main::onRedrawDone),$grp];
-
-    my $stylesheet = $opts{-stylesheet} || $grp->{stylesheet};
-    my $ss = undef;
-    if ($stylesheet ne STYLESHEET_FROM_FILE()) {
-      $ss=$gui->{stylesheets}->{$stylesheet};
+    if ($opts{-format} eq 'PDF' and ! $opts{-ttFont}) {
+      $gui->{ttfonts} ||= TrEd::Print::get_ttf_fonts({try_fontconfig=>1},
+						     map {TrEd::Config::tilde_expand($_)} split /,/,
+						     $def->{ttFontPath});
+      my $fn  = delete($opts{ttFontName}) || $TrEd::Config::printOptions->{ttFont};
+      $opts{ttFont} = $gui->{ttfonts}->{$fn};
     }
-
-    $opts{-imageMagickResolution} ||= 80;
-
-    TrEd::Print::print_trees
-	($grp->{FSFile},
-	 $opts{-toplevel},
-	 #ToplevelFrame(),
-	 $canvas,
-	 $opts{-range},
-	 ($opts{-toFile} and $opts{-format} !~ /ImageMagick/i) ? 1 : 0,
-	 $opts{-format} =~ /ImageMagick|EPS/i ? 1 : 0,
-	 ($opts{-toFile} and $opts{-format} =~ /^PDF$|^SVG$/) ? $opts{-format} : 0,
-	 $opts{-filename},
-	 $opts{-sentenceInfo},
-	 $opts{-fileInfo},
-	 (($opts{-format} =~ /ImageMagick/i) ?
-	    "$main::imageMagickConvert -density $opts{-imageMagickResolution} - $opts{-filename}" : 
-	      $opts{-command}),
-	 $opts{-colors},
-	 $opts{-noRotate},
-	 $opts{-hidden},
-	 {
-	  'PS' => exists($opts{-psFontFile}) ? $opts{-psFontFile} :
-	  $main::psFontFile,
-	  'AFM' => exists($opts{-psFontAFMFile}) ? $opts{-psFontAFMFile} :
-	  $main::psFontAFMFile,
-	  'TTF' => exists($opts{-ttFont}) ? $opts{-ttFont} :
-	  $gui->{ttfonts}->{$main::ttFont},
-	  'Size' => exists($opts{-fontSize}) ? $opts{-fontSize} :
-	  $main::psFontSize,
-	 },
-	 exists($opts{-fmtWidth}) ? $opts{-fmtWidth} : $main::prtFmtWidth,
-	 exists($opts{-hMargin}) ? $opts{-hMargin} : $main::prtHMargin,
-	 exists($opts{-fmtHeight}) ? $opts{-fmtHeight} : $main::prtFmtHeight,
-	 exists($opts{-vMargin}) ? $opts{-vMargin} : $main::prtVMargin,
-	 exists($opts{-maximize}) ? $opts{-maximize} : $main::maximizePrintSize,
-	 exists($opts{-psMedia}) ? $opts{-psMedia} : $main::psMedia,
-	 $main::treeViewOpts,
-	 $ss,
-	 $grp,
-	 [\&main::printGetNodesCallback,$grp],
-	 exists($opts{-extraOptions}) ? $opts{-extraOptions} : undef,
-	);
-
-    $TrEd::TreeView::on_get_root_style = undef;
-    $TrEd::TreeView::on_get_node_style = undef;
-    $TrEd::TreeView::on_redraw_done = undef;
-    $canvas->destroy();
+    if (!$opts{-styleSheetObject}) {
+      my $stylesheet = $opts{-stylesheet} || $grp->{stylesheet};
+      if ($stylesheet ne STYLESHEET_FROM_FILE()) {
+	$opts{-styleSheetObject}=$gui->{stylesheets}->{$stylesheet};
+      }
+    }
+    $opts{-treeViewOpts} ||= $TrEd::Config::treeViewOpts;
+    $opts{-toplevel} = ToplevelFrame() unless exists $opts{-toplevel};
+    $opts{-fsfile}     ||= $grp->{FSFile};
+    return 
+      TrEd::Print::Print({
+      -context => $grp,
+      -onGetRootStyle => \&main::onGetRootStyle,
+      -onGetNodeStyle => \&main::onGetNodeStyle,
+      -onRedrawStyle => \&main::onRedrawStyle,
+      -onGetNodes => \&main::printGetNodesCallback,
+      %opts,
+    });
   } else {
     die "Cannot call PrintDialog from non-GUI version TrEd\n";
   }
