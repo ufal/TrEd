@@ -3994,24 +3994,30 @@ sub selectFilelistDialog {
   my @lists =
     sort { $a->[2] cmp $b->[2] } (map { [$_,$_->name,lc($_->name)] } @filelists);
   return unless @lists;
-  my $selection = [$lists[0]->[1]];
+  my $i = 'A';
+  my $selection = [$i.'.  '.$lists[0]->[1]];
   listQuery($grp->{top},'Select File Lists','browse',
-	    [map $_->[1], @lists],$selection,
+	    [map { ($i++).".  ".$_->[1] } @lists],$selection,
 	   ) || return;
   return unless (@$selection);
-  selectFilelist($grp,$selection->[0]);
+  my $sel = $selection->[0];
+  $sel=~s{^\w+.  }{};
+  selectFilelist($grp,$sel);
 }
 
 sub bookmarkToFilelistDialog {
   my ($grp)=@_;
   my @lists = sort { $a->[2] cmp $b->[2] } grep {($filelist_from_extension{$_->[0]}||0)!=1} map [$_,$_->name,lc($_->name)], @filelists;
   return unless @lists;
-  my $selection = [$lists[0]->[1]];
+  my $i = 'A';
+  my $selection = [$i.'.  '.$lists[0]->[1]];
   listQuery($grp->{top},'Add Bookmark To File Lists','browse',
-	    [map $_->[1], @lists],$selection,
+	    [map {($i++).'.  '.$_->[1]} @lists],$selection,
 	   ) || return;
   return unless (@$selection);
-  addBookmark($grp,$selection->[0]);
+  my $sel = $selection->[0];
+  $sel=~s{^\w+.  }{};
+  addBookmark($grp,$sel);
 }
 
 sub removeFilelistsDialog {
@@ -4020,9 +4026,10 @@ sub removeFilelistsDialog {
   my @lists = sort { $a->[1] cmp $b->[1] }  grep { $_->[1] ne 'Default' and $_->[1] ne 'Bookmarks' and 
 		    ($filelist_from_extension{$_->[0]}||0)!=1} map [$_,$_->name,lc($_->name)], @filelists;
   return unless @lists;
-  my $selection = [$lists[0]->[1]];
+  my $i = 'A';
+  my $selection = [$i.'.  '.$lists[0]->[1]];
   my $indexes = listQuery($grp->{top},'Remove File Lists','extended',
-		  [map $_->[1], @lists],$selection,
+		  [map {($i++).'.  '.$_->[1]} @lists],$selection,
 		  {
 		    -label => 'Select one or more file lists',
 		  }) || return;
@@ -5407,30 +5414,24 @@ sub printDialog {
                  warnWin32PrintConvert($win) eq 'Cancel';
     return () if $s{printTo} eq 'convert' and
                  warn55PrintConvert($win) eq 'Cancel';
-    return (
-      #0
-      $one_per_file,
-      #1
-      $s{printRange},
-      #2
-      ($s{printTo} eq 'file') ? 1 : 0,
-      #3
-      ($s{printTo} eq 'convert' or $s{printFormat} eq 'EPS') ? 1 : 0,
-      #4
-      $s{printFormat},
-      #5
-      TrEd::Config::tilde_expand($s{psFile}),
-      #6
-      $s{printSentenceInfo} ? sub { get_value_line($win,$_[0],$_[1],1,0,'print') } : undef,
-      #7
-      $s{printFileInfo} ? 1 : 0,
-      #8 
-      (($s{printTo} eq 'convert') ?
-	 "$imageMagickConvert -density $s{printImageMagickResolution} - ".IOBackend::quote_filename($s{psFile}) : $s{command}),
-      #9
-      $s{printColors},
-      #10
-      $s{printNoRotate});
+    return {
+      -onePerFile => $one_per_file,
+      -range => $s{printRange},
+      -to => (
+	($s{printTo} eq 'file') ? 'file' :
+	($s{printTo} eq 'convert') ? 'convert'
+	: 'pipe'),
+      -format => $s{printFormat},
+      -filename => TrEd::Config::tilde_expand($s{psFile}),
+      -sentenceInfo => $s{printSentenceInfo} ? sub { get_value_line($win,$_[0],$_[1],1,0,'print') } : undef,
+      -fileInfo => $s{printFileInfo},
+      -imageMagickResolution => $s{printImageMagickResolution},
+      -convert => $imageMagickConvert,
+      -command => $s{command},
+      -colors => $s{printColors},
+      -noRotate => $s{printNoRotate},
+     };
+  
   } else {
     return ();
   }
@@ -5468,64 +5469,66 @@ sub printThis {
 #  my $canvas=$dlg->Scrolled('Canvas');
 
   my $canvas=$grp->{top}->Canvas();
-  my ($one_per_file,$range,@print_opts);
+  my ($one_per_file,$range,$print_opts);
   my $err;
   do {{
     $err = 0;
-    ($one_per_file,$range,@print_opts)=printDialog($grp);
-    return unless scalar(@print_opts)>1;
-    if ($print_opts[2] eq 'PDF' and (!$grp->{ttfonts} or !$grp->{ttfonts}->{$printOptions->{ttFont}})) {
+    $print_opts = printDialog($grp) || return;
+    my $one_per_file = delete $print_opts->{-onePerFile};
+    if ($print_opts->{-format} eq 'PDF' and (!$grp->{ttfonts} or !$grp->{ttfonts}->{$printOptions->{ttFont}})) {
       plainErrorMessage($win,"You must select TrueType font for PDF!");
       $err = 1;
     }
-    if ($one_per_file and ($print_opts[3]!~/[%]\d*n/) and ($range=~/[\-,]/)) {
+    if ($one_per_file and ($print_opts->{-filename}!~/[%]\d*n/) and ($print_opts->{-range}=~/[\-,]/)) {
       plainErrorMessage($win,"Use %n in the output filename if you need one tree per file!");
       $err = 1;
     }
   }} while ($err);
-  $range=$win->{treeNo}+1 if (!defined($range) or $range eq EMPTY);
+  my $range = delete $print_opts->{-range};
+  $range = $win->{treeNo}+1 unless (defined($range) and length($range));
 
   my $stylesheet = $win->{stylesheet};
   my $ss = undef;
   if ($stylesheet ne STYLESHEET_FROM_FILE()) {
     $ss=$grp->{stylesheets}->{$stylesheet};
   }
-  local $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
-  local $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
-  local $TrEd::TreeView::on_redraw_done = [ \&onRedrawDone,$win ];
-
   my $fsfile = $win->{FSFile};
   my @range = ($one_per_file ? TrEd::Print::parse_print_list($fsfile,$range) : ($range));
   my $max_num_length = $one_per_file ? max(map length, @range) : 0;
+  my %std_options =
+    map {
+      $TrEd::Config::defaultPrintConfig{$_}[0] => $printOptions->{$_}
+    } qw(psFontFile psFontAFMFile psFontSize prtFmtWidth prtFmtHeight
+	 prtHMargin prtVMargin maximizePrintSize psMedia);
+
   eval {
   for my $r (@range) {
+    my $filename = $print_opts->{-filename};
+    my $command = $print_opts->{-command};
     if ($one_per_file) {
-      $print_opts[3] =~ s/[%](\d*)n/sprintf("%".($1 ne EMPTY ? '0'.int($1) : '0'.$max_num_length)."d",$r)/e;
-      $print_opts[6] =~ s/[%](\d*)n/sprintf("%".($1 ne EMPTY ? '0'.int($1) : '0'.$max_num_length)."d",$r)/e;
+
+      $filename =~ s/[%](\d*)n/sprintf("%".($1 ne EMPTY ? '0'.int($1) : '0'.$max_num_length)."d",$r)/e;
+      $command =~ s/[%](\d*)n/sprintf("%".($1 ne EMPTY ? '0'.int($1) : '0'.$max_num_length)."d",$r)/e;
     }
-    TrEd::Print::print_trees($fsfile,
-			     $grp->{top},
-			     $canvas,
-			     $r,
-			     @print_opts,
-			     $win->{treeView}->get_showHidden(),
-			     {
-			       'PS' => $printOptions->{psFontFile},
-			       'AFM' => $printOptions->{psFontAFMFile},
-			       'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$printOptions->{ttFont}} : EMPTY),
-			       'Size' => $printOptions->{psFontSize},
-			     },
-			     $printOptions->{prtFmtWidth},
-			     $printOptions->{prtHMargin},
-			     $printOptions->{prtFmtHeight},
-			     $printOptions->{prtVMargin},
-			     $printOptions->{maximizePrintSize},
-			     $printOptions->{psMedia},
-			     $treeViewOpts,
-			     $ss,
-			     $win,
-			     [\&printGetNodesCallback,$win],
-			    );
+    TrEd::Print::Print({
+      %std_options,
+      %$print_opts,
+      -filename => $filename,
+      -command => $command,
+      -fsfile => $fsfile,
+      -toplevel => $grp->{top},
+      -canvas => $canvas,
+      -range => $r,
+      -hidden =>$win->{treeView}->get_showHidden(),
+      -ttFont =>  ($grp->{ttfonts} ? $grp->{ttfonts}->{$printOptions->{ttFont}} : EMPTY),
+      -treeViewOpts => $treeViewOpts,
+      -styleSheetObject=>$ss,
+      -context => $win,
+      -onGetNodes => \&printGetNodesCallback,
+      -onGetRootStyle => \&onGetRootStyle,
+      -onGetNodeStyle => \&onGetNodeStyle,
+      -onRedrawDone => \&onRedrawDone,
+    });
   } };
   errorMessage($win, $@) if $@;
   get_nodes_win($win); # printGetNodesCallback have fiddled with $win
@@ -9097,6 +9100,9 @@ sub dumpSentView {
   my $errors;
 
   (my $html,$file) = openSimpleHtml($t,$file,"Save Sentences As HTML ...",$initdir);
+  my $ttfont = $grp->{ttfonts} ? $grp->{ttfonts}->{$printOptions->{ttFont}} : undef;
+  my $dpi = int($grp->{top}->fpixels('1i'));
+
   if (defined($html)) {
     my @dump=$t->dump('0.0','end'); # to avoid a bug ??
     @dump = map $t->dump("start-tree-$_.first","end-tree-$_.last"), @selref;
@@ -9143,30 +9149,38 @@ sub dumpSentView {
 	  if ($stylesheet ne STYLESHEET_FROM_FILE()) {
 	    $ss=$win->{framegroup}->{stylesheets}->{$stylesheet};
 	  }
-
-	  local $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
-	  local $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
-	  local $TrEd::TreeView::on_get_nodes = [\&onGetNodes,$win];
-	  local $TrEd::TreeView::on_redraw_done = [\&onRedrawDone,$win];
-
-	  my $dpi = int($grp->{top}->fpixels('1i'));
 	  eval {
-	    TrEd::Print::print_trees
-		($fsfile,$grp->{top},$canvas,
-		 $no,0,1,0,$img_file,0,0,
-		 "$imageMagickConvert -density $dpi - ".IOBackend::quote_filename($img_file),
-		 1,1,
-		 $win->{treeView}->get_showHidden(),
-		 {
-		   'PS' => $printOptions->{psFontFile},
-		   'AFM' => $printOptions->{psFontAFMFile},
-		   'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$printOptions->{ttFont}} : EMPTY),
-		   'Size' => $printOptions->{psFontSize},
-		 },
-		 0,0,0,0,0,'BBox',$treeViewOpts,$ss,
-		 $win,
-		 [\&printGetNodesCallback,$win],
-		);
+	    TrEd::Print::Print({
+	      -context => $win,
+	      -toplevel => $grp->{top},
+	      -fsfile => $fsfile,
+	      -canvas => $canvas,
+
+	      -filename => $img_file,
+	      -to => 'convert',
+	      -convert => $imageMagickConvert,
+	      -imageMagickResolution => $dpi,
+	      -range => $no,
+
+	      ($ttfont ? (
+		-format => 'PDF',
+		-ttFont => $ttfont,
+	       ) : (
+		 -format => 'EPS',
+		 -psFontFile => $printOptions->{psFontFile},
+		 -psFontAFMFile => $printOptions->{psFontAFMFile},
+	       )),
+
+	      -styleSheetObject=>$ss,
+	      -hidden => $win->{treeView}->get_showHidden(),
+	      -fontSize => $printOptions->{psFontSize},
+	      -treeViewOpts => $treeViewOpts,
+
+	      -onGetRootStyle => \&onGetRootStyle,
+	      -onGetNodeStyle => \&onGetNodeStyle,
+	      -onGetNodes => \&printGetNodesCallback,
+	      -onRedrawDone => \&onRedrawDone,
+	    });
 	  };
 	  $errors .= $@ if $@;
 
@@ -9187,7 +9201,7 @@ sub dumpSentView {
     get_nodes_win($win); # printGetNodesCallback may have fiddled with $win
   }
   errorMessage($win,$errors) if defined $errors;
-
+  return $file;
 }
 
 sub populateSentencesDialog {
@@ -9239,11 +9253,11 @@ sub populateSentencesDialog {
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
   $bottom->Button(-text=> "Save As HTML",
 		  -underline => 0,
-		  -command=>[ \&dumpSentView,$grp,$fsfile,$t,0,$selref])
+		  -command=>[ sub { open_url_in_browser(&dumpSentView) },$grp,$fsfile,$t,0,$selref])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
   $bottom->Button(-text=> "Save As HTML with Images",
 		  -underline => 18,
-		  -command=>[ \&dumpSentView,$grp,$fsfile,$t,1,$selref])
+		  -command=>[ sub { open_url_in_browser(&dumpSentView) },$grp,$fsfile,$t,1,$selref])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
 
   $bottom->Checkbutton(-text=> "Shrink/Expand",

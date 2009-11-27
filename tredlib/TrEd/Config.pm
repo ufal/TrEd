@@ -94,6 +94,7 @@ BEGIN {
   $showSidePanel
   $skipStartupVersionCheck
   $enableTearOff
+  %defaultPrintConfig
   %c_fonts
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
@@ -106,48 +107,69 @@ BEGIN {
 }
 use vars (@EXPORT);
 
+# same as @TrEd::TreeView::Options, which we do not see yet
+my @treeViewOpts = qw(
+
+  backgroundColor backgroundImage backgroundImageX backgroundImageY
+  balanceTree baseXPos baseYPos boxColor clearTextBackground columnSep
+  currentBoxColor currentEdgeBoxColor currentNodeColor
+  currentNodeHeight currentNodeWidth customColors dashHiddenLines
+  displayMode drawBoxes drawEdgeBoxes drawFileInfo drawSentenceInfo
+  edgeBoxColor edgeLabelSkipAbove edgeLabelSkipBelow font
+  hiddenBoxColor hiddenEdgeBoxColor hiddenLineColor hiddenNodeColor
+  highlightAttributes horizStripe labelSep lineArrow lineArrowShape
+  lineColor lineDash lineSpacing lineWidth nearestNodeColor noColor
+  nodeColor nodeHeight nodeOutlineColor nodeWidth nodeXSkip nodeYSkip
+  reverseNodeOrder showHidden skipHiddenLevels skipHiddenParents
+  stripeColor textColor textColorHilite textColorShadow
+  textColorXHilite useAdditionalEdgeLabelSkip useFSColors vertStripe
+  verticalTree xmargin ymargin
+
+);
+
 $treeViewOpts={
-  drawSentenceInfo => 0,
-  showHidden => 0,
-  displayMode => 0,
-  customColors	 =>
-    {0 => 'darkgreen',
-     1 => 'darkblue',
-     2 => 'darkmagenta',
-     3 => 'orange',
-     4 => 'black',
-     5 => 'DodgerBlue4',
-     6 => 'red',
-     7 => 'gold',
-     8 => 'cyan',
-     9 => 'midnightblue'}
-   };
-$printOptions={
-  printOnePerFile => 0,
-  printTo => 'printer', # was printToFile!!
-  printFormat => 'PS',
-  # printPsFile, # removed
-  printFileExtension => 'ps',
-  printSentenceInfo => 0,
-  printFileInfo => 0,
-  # printCommand, # removed
-  printImageMagickResolution => 80,
-  printNoRotate=>0,
-  printColors => 1,
-  ttFont=>"Arial",
-  ttFontPath => undef,
-  psFontFile => undef,
-  psFontAFMFile => undef,
-  psFontSize => (($^O=~/^MS/) ? 14 : 12),
-  prtFmtWidth => 595,
-  prtFmtHeight => 842,
-  prtVMargin => '3c',
-  prtHMargin => '2c',
-  psMedia => 'A4',
-  psFile => undef,
-  maximizePrintSize => 0,
-  defaultPrintCommand => (($^O eq 'MSWin32') ? 'prfile32.exe /-' : 'lpr'),
+  customColors => {
+    # we override the hash in TrEd::TreeView::DefaultOptions
+    # because we don't see it yet
+    0 => 'darkgreen',
+    1 => 'darkblue',
+    2 => 'darkmagenta',
+    3 => 'orange',
+    4 => 'black',
+    5 => 'DodgerBlue4',
+    6 => 'red',
+    7 => 'gold',
+    8 => 'cyan',
+    9 => 'midnightblue'
+  },
 };
+
+%defaultPrintConfig = (
+  printOnePerFile => ['-oneTreePerFile',0],
+  printTo => ['-to','printer'],
+  printFormat => ['-format','PS'],
+  printFileExtension => [undef,'ps'],
+  printSentenceInfo => ['-sentenceInfo', 0],
+  printFileInfo => ['-fileInfo', 0],
+  printImageMagickResolution => ['-imageMagickResolution', 80],
+  printNoRotate=> ['-noRotate',0],
+  printColors => ['-colors', 1],
+  ttFont=> ['-ttFontName',"Arial"],
+  ttFontPath => ['-ttFontPath', undef],
+  psFontFile => ['-psFontFile', undef],
+  psFontAFMFile => ['-psFontAFMFile', undef],
+  psFontSize => ['-fontSize', (($^O=~/^MS/) ? 14 : 12)],
+  prtFmtWidth => ['-fmtWidth', 595],
+  prtFmtHeight => ['-fmtHeight', 842],
+  prtVMargin => ['-vMargin', '3c'],
+  prtHMargin => ['-hMargin', '2c'],
+  psMedia => ['-psMedia', 'A4'],
+  psFile => [undef, undef],
+  maximizePrintSize => ['-maximize', 0],
+  defaultPrintCommand => ['-command', (($^O eq 'MSWin32') ? 'prfile32.exe /-' : 'lpr')],
+);
+
+$printOptions={};
 
 my $resourcePathSplit = ($^O eq "MSWin32") ? ',' : ':';
 
@@ -312,51 +334,15 @@ sub set_config {
 				    $valueLineBackground : 'white'
 				   );
 
-
-  $treeViewOpts->{reverseNodeOrder}   =	val_or_def($confs,"reversenodeorder",
-						   $treeViewOpts->{reverseNodeOrder});
-  $treeViewOpts->{displayMode}   =	val_or_def($confs,"displaymode",
-						   $treeViewOpts->{displayMode});
-
-  $treeViewOpts->{lineSpacing}	      =	 val_or_def($confs,"linespacing",1);
-  $treeViewOpts->{baseXPos}	      =	 val_or_def($confs,"basexpos",15);
-  $treeViewOpts->{baseYPos}	      =	 val_or_def($confs,"baseypos",15);
-  $treeViewOpts->{nodeWidth}	      =	 val_or_def($confs,"nodewidth",7);
-  $treeViewOpts->{nodeHeight}	      =	 val_or_def($confs,"nodeheight",7);
-  $treeViewOpts->{useAdditionalEdgeLabelSkip}
-                                      =
-					 val_or_def($confs,"useadditionaledgelabelskip",1);
-  $treeViewOpts->{currentNodeWidth}   =	 val_or_def($confs,"currentnodewidth",$treeViewOpts->{nodeWidth}+2);
-  $treeViewOpts->{currentNodeHeight}  =	 val_or_def($confs,"currentnodeheight",$treeViewOpts->{nodeHeight}+2);
-  $treeViewOpts->{nodeXSkip}	      =	 val_or_def($confs,"nodexskip",10);
-  $treeViewOpts->{nodeYSkip}	      =	 val_or_def($confs,"nodeyskip",10);
-  $treeViewOpts->{edgeLabelSkipAbove} =	 val_or_def($confs,"edgelabelskipabove",10);
-  $treeViewOpts->{edgeLabelSkipBelow} =	 val_or_def($confs,"edgelabelskipbelow",10);
-  $treeViewOpts->{xmargin}	      =	 val_or_def($confs,"xmargin",2);
-  $treeViewOpts->{ymargin}	      =	 val_or_def($confs,"ymargin",2);
-  $treeViewOpts->{lineWidth}	      =	 val_or_def($confs,"linewidth",2);
-  $treeViewOpts->{lineColor}	      =	 val_or_def($confs,"linecolor",'gray');
-  $treeViewOpts->{hiddenLineColor}    =	 val_or_def($confs,"hiddenlinecolor",'lightgray');
-  $treeViewOpts->{dashHiddenLines}    =	 val_or_def($confs,"dashhiddenlines",0);
-  $treeViewOpts->{lineArrow}	      =	 val_or_def($confs,"linearrow",'none');
-  $treeViewOpts->{nodeColor}	      =	 val_or_def($confs,"nodecolor",'yellow');
-  $TrEd::Print::bwModeNodeColor	      =	 val_or_def($confs,"bwprintnodecolor",'white');
-  $treeViewOpts->{nodeOutlineColor}   =	 val_or_def($confs,"nodeoutlinecolor",'black');
-  $treeViewOpts->{hiddenNodeColor}    =	 val_or_def($confs,"hiddennodecolor",'black');
-  $treeViewOpts->{currentNodeColor}   =	 val_or_def($confs,"currentnodecolor",'red');
-  $treeViewOpts->{nearestNodeColor}   =	 val_or_def($confs,"nearestnodecolor",'green');
-  $treeViewOpts->{balanceTree}	      =	 val_or_def($confs,"balancetree",0) ||
-                                         val_or_def($confs,"ballancetree",0);
-  $treeViewOpts->{textColor}	      =	 val_or_def($confs,"textcolor",'black');
-  $treeViewOpts->{textColorShadow}    =	 val_or_def($confs,"textcolorshadow",'darkgrey');
-  $treeViewOpts->{textColorHilite}    =	 val_or_def($confs,"textcolorhilite",'darkgreen');
-  $treeViewOpts->{textColorXHilite}   =	 val_or_def($confs,"textcolorxhilite",'darkred');
-  $treeViewOpts->{stripeColor}        =  val_or_def($confs,"stripecolor",'#eeeeff');
-  $treeViewOpts->{labelSep}        =  val_or_def($confs,"labelsep",5);
-  $treeViewOpts->{columnSep}        =  val_or_def($confs,"columnsep",15);
-  $treeViewOpts->{vertStripe}     =  val_or_def($confs,"vertstripe",0);
-  $treeViewOpts->{horizStripe}     =  val_or_def($confs,"horizstripe",1);
-
+  for my $opt (@treeViewOpts) {
+    $treeViewOpts->{$opt} = $confs->{lc($opt)} if exists $confs->{$opt};
+  }
+  for my $opt (qw(Height Width)) {
+    $treeViewOpts->{'currentNode'.$opt} =
+      $treeViewOpts->{'node'.$opt}+2
+	if (!exists($treeViewOpts->{'currentNode'.$opt}) and
+	      exists($treeViewOpts->{'node'.$opt}));
+  }
   foreach (keys %$confs) {
     if (/^customcolor(.*)$/) {
       $treeViewOpts->{customColors}->{$1} = $confs->{$_};
@@ -364,31 +350,6 @@ sub set_config {
       $userConf->{$1}=$confs->{$_};
     }
   }
-
-  $treeViewOpts->{boxColor}	       = val_or_def($confs,"boxcolor",'LightYellow');
-  $treeViewOpts->{currentBoxColor}     = val_or_def($confs,"currentboxcolor",'yellow');
-  $treeViewOpts->{hiddenBoxColor}      = val_or_def($confs,"hiddenboxcolor",'gray');
-
-  $treeViewOpts->{edgeBoxColor}	       = val_or_def($confs,"edgeboxcolor",'#fff0e0');
-  $treeViewOpts->{currentEdgeBoxColor} = val_or_def($confs,"edgecurrentboxcolor",'#ffe68c');
-  $treeViewOpts->{hiddenEdgeBoxColor}  = val_or_def($confs,"edgehiddenboxcolor","DarkGrey");
-
-  $treeViewOpts->{clearTextBackground} = val_or_def($confs,"cleartextbackground",1);
-
-  $treeViewOpts->{backgroundColor}     = val_or_def($confs,"backgroundcolor",'white');
-
-  $treeViewOpts->{backgroundImageX}     = val_or_def($confs,"backgroundimagex",0);
-  $treeViewOpts->{backgroundImageY}     = val_or_def($confs,"backgroundimagey",0);
-  $treeViewOpts->{noColor}	       = val_or_def($confs,"allowcustomcolors",0);
-  $treeViewOpts->{drawBoxes}	       = val_or_def($confs,"drawboxes",0);
-  $treeViewOpts->{drawEdgeBoxes}       = val_or_def($confs,"drawedgeboxes",0);
-  $treeViewOpts->{highlightAttributes} = val_or_def($confs,"highlightattributes",1);
-  $treeViewOpts->{showHidden} = val_or_def($confs,"showhidden",0);;
-  $treeViewOpts->{skipHiddenLevels} = val_or_def($confs,"skiphiddenlevels",0);
-  $treeViewOpts->{skipHiddenParents} = val_or_def($confs,"skiphiddenparents",0);
-  $treeViewOpts->{drawSentenceInfo} = val_or_def($confs,"drawsentenceinfo",0);
-  $treeViewOpts->{drawFileInfo} = val_or_def($confs,"drawfileinfo",0);
-  $treeViewOpts->{useFSColors} = val_or_def($confs,"usefscolors",0);
 
   $TrEd::Convert::inputenc = val_or_def($confs,"defaultfileencoding",$TrEd::Convert::inputenc);
   $TrEd::Convert::outputenc = val_or_def($confs,"defaultdisplayencoding",$TrEd::Convert::outputenc);
@@ -487,8 +448,8 @@ sub set_config {
   $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? tilde_expand($confs->{defaultmacrofile}) : "$libDir/tred.def";
   $defaultMacroEncoding=val_or_def($confs,"defaultmacroencoding",'utf8');
   $sortAttrs	     =	val_or_def($confs,"sortattributes",1);
-  for my $opt (keys %$printOptions) {
-    $printOptions->{$opt} = val_or_def($confs,lc($opt),$printOptions->{$opt});
+  for my $opt (keys %defaultPrintConfig) {
+    $printOptions->{$opt} = val_or_def($confs,lc($opt),$defaultPrintConfig{$opt}[1]);
   }
   {
     my $psFontFile = $printOptions->{psFontFile};

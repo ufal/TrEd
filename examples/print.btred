@@ -144,7 +144,6 @@ sub print_trees {
   }
   SwitchContext($opts->{-context}) if defined $opts->{-context};
   SetCurrentStylesheet($opts->{-stylesheet}) if defined $opts->{-stylesheet};
-
   print STDERR "Context: ",CurrentContext(),"\n" unless $opts->{-quiet};
   print STDERR "Stylesheet: ", GetCurrentStylesheet(),"\n" unless $opts->{-quiet};
  if ($opts->{-sentenceInfo} and
@@ -168,7 +167,9 @@ sub print_trees {
     $out_file = File::Spec->catfile($output_dirname,FilePart($out_file));
   }
   Print(
-    -toFile => 1,
+    -to => (exists($opts->{-toFile}) ? () : 'file'),
+    -toplevel => undef,
+    -canvas => ToplevelFrame()->Canvas(),
     -filename =>  $out_file,
     -format => 'PDF',
     -noRotate => 1,
@@ -209,7 +210,7 @@ Print trees according to given printing options.
 
 =head2 USAGE
 
-btred -qm print.btred [<btred-options>] -o <print-options> -- <file(s)>
+btred -qm print.btred -j '*' [<btred-options>] -o <print-options> -- <file(s)>
 
 =head2 DESCRIPTION
 
