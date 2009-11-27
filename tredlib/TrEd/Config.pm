@@ -142,6 +142,13 @@ $treeViewOpts={
     8 => 'cyan',
     9 => 'midnightblue'
   },
+
+  # we want to create scalar references to these options:
+  clearTextBackground => 1,
+  drawEdgeBoxes => 0,
+  drawBoxes => 0,
+  showHidden => 0,
+  displayMode => 0,
 };
 
 %defaultPrintConfig = (
