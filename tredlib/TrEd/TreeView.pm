@@ -19,22 +19,92 @@ import TrEd::Convert;
 
 use constant NoHash => {};
 
-use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_get_node_style $on_get_nodes $on_redraw_done %PATTERN_CODE_CACHE %COORD_CODE_CACHE %COORD_SPEC_CACHE);
+use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_get_node_style $on_get_nodes $on_redraw_done %PATTERN_CODE_CACHE %COORD_CODE_CACHE %COORD_SPEC_CACHE %DefaultOptions);
 
-@Options = qw(CanvasBalloon backgroundColor
-  stripeColor vertStripe horizStripe baseXPos baseYPos boxColor
-  currentBoxColor currentEdgeBoxColor currentNodeHeight
-  currentNodeWidth customColors hiddenEdgeBoxColor edgeBoxColor
-  clearTextBackground drawBoxes drawEdgeBoxes backgroundImage
-  backgroundImageX backgroundImageY drawFileInfo drawSentenceInfo font
-  hiddenBoxColor edgeLabelYSkip highlightAttributes showHidden
-  lineArrow lineArrowShape lineColor lineDash hiddenLineColor dashHiddenLines lineWidth
-  noColor nodeHeight nodeWidth nodeXSkip nodeYSkip edgeLabelSkipAbove
-  edgeLabelSkipBelow textColor xmargin nodeOutlineColor
-  nodeColor hiddenNodeColor nearestNodeColor ymargin currentNodeColor
-  useFSColors textColorShadow textColorHilite textColorXHilite skipHiddenLevels skipHiddenParents
-  useAdditionalEdgeLabelSkip reverseNodeOrder balanceTree verticalTree displayMode labelSep
-  columnSep lineSpacing);
+%DefaultOptions = (
+  CanvasBalloon => undef,
+  drawSentenceInfo => 0,
+  displayMode => 0,
+  verticalTree => 0,
+  customColors	 => {
+
+    # note: this very hash is usually shared by all TreeView objects
+    # modifying it in one TreeView modifies it in all others
+    # unless you e.g. 
+    #   apply_config({customColors=>{%TrEd::TreeView::DefaultOptions->{customColors}})
+
+    0 => 'darkgreen',
+    1 => 'darkblue',
+    2 => 'darkmagenta',
+    3 => 'orange',
+    4 => 'black',
+    5 => 'DodgerBlue4',
+    6 => 'red',
+    7 => 'gold',
+    8 => 'cyan',
+    9 => 'midnightblue'
+   },
+  lineSpacing	      =>	 1,
+  baseXPos	      =>	 15,
+  baseYPos	      =>	 15,
+  nodeWidth	      =>	 7,
+  nodeHeight	      =>	 7,
+  useAdditionalEdgeLabelSkip => 0,
+  currentNodeWidth   =>	 9,
+  currentNodeHeight  =>	 9,
+  nodeXSkip	      =>	 10,
+  nodeYSkip	      =>	 10,
+  edgeLabelSkipAbove =>	 10,
+  edgeLabelSkipBelow =>	 10,
+  xmargin	      =>	 2,
+  ymargin	      =>	 2,
+  lineWidth	      =>	 2,
+  lineColor	      =>	 'gray',
+  hiddenLineColor    =>	 'lightgray',
+  dashHiddenLines    =>	 0,
+  lineArrow	      =>	 'none',
+  nodeColor	      =>	 'yellow',
+  nodeOutlineColor   =>	 'black',
+  hiddenNodeColor    =>	 'black',
+  currentNodeColor   =>	 'red',
+  nearestNodeColor   =>	 'green',
+  balanceTree	      =>	 0,
+  textColor	      =>	 'black',
+  textColorShadow    =>	 'darkgrey',
+  textColorHilite    =>	 'darkgreen',
+  textColorXHilite   =>	 'darkred',
+  stripeColor        =>  '#eeeeff',
+  labelSep        =>  5,
+  columnSep        =>  15,
+  vertStripe     =>  0,
+  horizStripe     =>  1,
+  boxColor	       => 'LightYellow',
+  currentBoxColor     => 'yellow',
+  hiddenBoxColor      => 'gray',
+  edgeBoxColor	       => '#fff0e0',
+  currentEdgeBoxColor => '#ffe68c',
+  hiddenEdgeBoxColor  => "DarkGrey",
+  clearTextBackground => 1,
+  backgroundColor     => 'white',
+  backgroundImageX     => 0,
+  backgroundImageY     => 0,
+  noColor	       => 0,
+  drawBoxes	       => 0,
+  drawEdgeBoxes       => 0,
+  highlightAttributes => 1,
+  showHidden => 0,
+  skipHiddenLevels => 0,
+  skipHiddenParents => 0,
+  drawFileInfo => 0,
+  useFSColors => 0,
+  font=> '{Arial Unicode Ms} 10',
+  reverseNodeOrder => 0,
+  backgroundImage => undef,
+  lineArrowShape => undef,
+  lineDash => undef,
+);
+
+@Options = keys %DefaultOptions;
 
 %DefaultNodeStyle = (
 	      CurrentOval     =>  [],
@@ -88,6 +158,7 @@ $bblock = qr/\{(?:(?>  [^{}]* )|(??{ $bblock }))*\}/x;
   }
 }
 
+
 sub clear_code_caches {
   %PATTERN_CODE_CACHE=();
   %COORD_CODE_CACHE=();
@@ -105,8 +176,8 @@ sub new {
 	      gen_info => {},   # contains general information about the canvas
 	      oinfo_info => {}, # maps canvas objects to nodes
 	      iinfo_info => {}, # maps canvas object numbers to ID tags
+	      %DefaultOptions,
 	      @_ };
-
   bless $new, $class;
   return $new;
 }
@@ -367,8 +438,8 @@ sub find_item {
 sub apply_options {
   my ($self,$opts) = @_;
   return undef unless ref($self);
-  foreach (@Options) {
-    $self->{$_}=$opts->{$_} if (exists($opts->{$_}));
+  foreach (keys %$opts) {
+    $self->{$_}=$opts->{$_} if (exists($DefaultOptions{$_}));
   }
   return;
 }
@@ -1591,7 +1662,7 @@ sub redraw {
       }
     }
     # root styling hook
-    callback($on_get_root_style,$self,$node,\%RootStyle,\%Opts);
+    callback($on_get_root_style,$self,$node,\%RootStyle,\%Opts) if $on_get_root_style;
   }
 
   # styling patterns should be interpolated here for each node and
@@ -2519,7 +2590,7 @@ sub draw_text_line {
 	  }
 	  $color=$c;
 	  $color=undef if ($color eq 'default');
-	  $color=$self->get_customColors->{$1} if ($color=~/^custom(.*)$/);
+	  $color=$self->get_custom_color($1) if ($color=~/^custom(.*)$/);
 	}
       }
     } else {
@@ -2580,6 +2651,16 @@ sub draw_text_line {
   }
   return $y;
 }
+
+sub get_custom_color {
+  my ($self,$color)=@_;
+  if (ref $self->{customColors}) {
+    return $self->{customColors}{$color}
+  } else {
+    return undef;
+  }
+}
+
 
 sub parse_pattern {
   my ($self,$pattern)=@_;

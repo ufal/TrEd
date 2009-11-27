@@ -7,7 +7,7 @@ use Carp;
 
 sub setFontMetrics {
   my ($self,$filename,$fontsize,$fontscale)=@_;
-  $self->{psFontSize} = $fontsize;
+  $self->{psFontSize} = $fontsize || 10;
   $self->{psFontScale} = $fontscale ? $fontscale : 1000;
   $self->{textWidthHash}={};
   my $err="PostScript Font Metrics file not found: '$filename'\n".
@@ -105,6 +105,7 @@ sub getFontName {
 
 package TrEd::Print;
 use strict;
+use Carp;
 
 BEGIN{
   use vars qw($bwModeNodeColor %media);
@@ -249,12 +250,131 @@ sub get_nodes_callback {
   return $nodes;
 }
 
+
+# this function serves as a preliminary version of a `public' API to this module
+sub Print {
+  my %opts;
+  if (@_==1 and ref($_[0])) {
+    %opts=%{$_[0]};
+  } else {
+    %opts=@_;
+  }
+  my $ctx = $opts{-context};
+  my $canvas=$opts{-canvas} || Tk::MainWindow->new->Canvas();
+
+  # setup some defaults
+  $opts{-noRotate}=1 unless exists $opts{-noRotate};
+  $opts{-colors}=1 unless exists $opts{-colors};
+  $opts{-psMedia}='BBox' unless exists $opts{-psMedia};
+  if ($opts{-psMedia} eq 'BBox') {
+    $opts{-hMargin}=0 unless exists $opts{-hMargin};
+    $opts{-vMargin}=0 unless exists $opts{-vMargin};
+  }
+  $opts{-range}=1 unless defined($opts{-range}) and length($opts{-range});
+
+  if (uc($opts{-format}) eq 'IMAGEMAGICK') {
+    $opts{-to} = 'convert';
+    $opts{-format} = 'EPS';
+  } else {
+    $opts{-format} ||= 'PDF';
+  }
+
+  unless ($opts{-format} ne 'PDF' or $opts{-ttFont}) {
+    if ($opts{-ttFontName}) {
+      my $fonts =TrEd::Print::get_ttf_fonts({try_fontconfig=>1},
+						 ($opts{-ttFontPath} ? (map TrEd::Config::tilde_expand($_),
+									split /,/,$opts{-ttFontPath}) : ()));
+      $opts{-ttFont} = $fonts->{$opts{-ttFontName}};
+    }
+  }
+  $TrEd::TreeView::on_get_root_style =
+    (ref($opts{-onGetRootStyle}) eq 'CODE' and $ctx) ?
+      [$opts{-onGetRootStyle},$ctx] : $opts{-onGetRootStyle};
+
+  $TrEd::TreeView::on_get_root_style =
+    (ref($opts{-onGetNodeStyle}) eq 'CODE' and $ctx) ?
+      [$opts{-onGetNodeStyle},$ctx] : $opts{-onGetNodeStyle};
+
+  $TrEd::TreeView::on_redraw_done =
+    (ref($opts{-onRedrawDone}) eq 'CODE' and $ctx) ?
+      [$opts{-onRedrawDone},$ctx] : $opts{-onRedrawDone};
+
+  my $on_get_nodes  =
+    (ref($opts{-onGetNodes}) eq 'CODE' and $ctx) ?
+      [$opts{-onGetNodes},$ctx] : $opts{-onGetNodes};
+
+  $opts{-imageMagickResolution} ||= 80;
+  croak("When using -format => 'ImageMagick', -convert => /path/to/convert must be specified.\n")
+    if ($opts{-format} =~ /ImageMagick/i and !$opts{-convert});
+  local $QUIET = $opts{-quiet};
+  my $command = $opts{-command};
+  if ($opts{-to} eq 'convert' or ($opts{-format} =~ /ImageMagick/i)) {
+    $command = "$opts{-convert} -density $opts{-imageMagickResolution} - ".IOBackend::quote_filename($opts{-filename});
+  }
+  if (defined $opts{-to}) {
+    croak("Cannot use flags -to and -toFile at the same time!\n") if defined $opts{-toFile};
+    if (lc($opts{-to}) eq 'file') {
+      $opts{-toFile}=1;
+    } elsif (lc($opts{-to}) eq 'string') {
+      $opts{-toFile}=2;
+    } elsif (lc($opts{-to}) eq 'convert') {
+      $opts{-toFile}=0;
+    } elsif (lc($opts{-to}) eq 'object') {
+      $opts{-toFile}=3;
+    } elsif (lc($opts{-to}) eq 'pipe') {
+      $opts{-toFile}=0;
+    } else {
+      croak("Unknown value '$opts{-to}' of the flag -to: use one of file,string,object,pipe!\n");
+    }
+  }
+  my $return = eval { print_trees(
+    $opts{-fsfile},
+    $opts{-toplevel},
+    $canvas,
+    $opts{-range},
+    $opts{-toFile},
+    ((uc($opts{-format}) eq 'EPS') ? 1 : 0),
+    (($opts{-format} =~ /^PDF$|^SVG$/i) ? uc($opts{-format}) : 0),
+    $opts{-filename},
+    $opts{-sentenceInfo},
+    $opts{-fileInfo},
+    $command,
+    $opts{-colors},
+    $opts{-noRotate},
+    $opts{-hidden},
+    {
+      'PS' => $opts{-psFontFile},
+      'AFM' => $opts{-psFontAFMFile},
+      'TTF' => $opts{-ttFont},
+      'Size' => $opts{-fontSize},
+    },
+    $opts{-fmtWidth},
+    $opts{-hMargin},
+    $opts{-fmtHeight},
+    $opts{-vMargin},
+    $opts{-maximize},
+    ($opts{-psMedia} || 'BBox'),
+    ($opts{-treeViewOpts} || {}),
+    $opts{-styleSheetObject},
+    $opts{-context},
+    $on_get_nodes,
+    $opts{-extraOptions},
+   )};
+  my $err = $@;
+  $TrEd::TreeView::on_get_root_style = undef;
+  $TrEd::TreeView::on_get_node_style = undef;
+  $TrEd::TreeView::on_redraw_done = undef;
+  $canvas->destroy() unless $opts{-canvas};
+  die $err if $err;
+  return $return;
+}
+
 sub print_trees {
   my ($fsfile,			# FSFile object
       $toplevel,		# Tk window to make busy when printing output
       $c,			# Tk::Canvas object
       $printRange,		# print range
-      $toFile,			# boolean: print to file
+      $toFile,			# 1: file, 2: string, 3: object, 0: pipe
       $toEPS,			# boolean: create EPS
       $outputFormat,            # SVG/PDF/false (1 also means PDF)
       $fil,			# output file-name
@@ -277,6 +397,8 @@ sub print_trees {
       $get_nodes_callback,
       $extra_opts
      )=@_;
+
+  my $return;
   $extra_opts ||= {};
   my $toPDF = (($outputFormat eq 'PDF' or $outputFormat==1) ? 1 : 0);
   my $toSVG=($outputFormat eq 'SVG' ? 1 : 0);
@@ -317,7 +439,7 @@ sub print_trees {
       $prtFmtHeight = $media{$Media}[1];
   }
 
-  _msg("Printing (TO-FILE=$toFile, SVG=$toSVG, PDF=$toPDF, EPS=$toEPS, FIL=$fil, CMD=$cmd, MEDIA=$Media=$prtFmtWidth x $prtFmtHeight)\n");
+  _msg("Printing (TO-FILE=$toFile, SVG=$toSVG, PDF=$toPDF, EPS=$toEPS, FIL=$fil, CMD=$cmd, MEDIA=$Media($prtFmtWidth x $prtFmtHeight), RANGE=$printRange)\n");
 
   if ($toPDF) {
     $pagewidth=$prtFmtWidth-2*$hMargin;
@@ -529,9 +651,15 @@ sub print_trees {
       } else {
 	_msg("saving PDF to $fil\n");
       }
-      if ($toFile) {
+      if (defined($toFile) and $toFile==2) {
+	$return = $P->finish();
+      } elsif (defined($toFile) and $toFile==3) {
+	$return = $P->finish(-object=>1);
+      } elsif ($toFile and $fil) {
+	$return = $fil;
 	$P->finish(-file => $fil);
-      } else {
+      } elsif($cmd) {
+	$return = 1;
 	$SIG{'PIPE'} = sub {};
 	eval {
 	  require File::Temp;
@@ -550,25 +678,32 @@ sub print_trees {
 	} || do {
 	  #_msg($@) if $@;
 	  die $@."Print: aborting - failed to open pipe to '$cmd': $!\n";
-	  #return 0;
 	};
+      } else {
+	die "Print: No output file or command pipe specified!\n";
       }
       _msg($toSVG ? "SVG done\n" : "PDF done\n");
     } else {
       my $i;
       my %pso;
       my ($O,$FNT);
-      if ($toFile) {
+      if (defined($toFile) and $toFile==2 or $toFile==3) {
+	$return='';
+	require IO::String;
+	$O = IO::String->new($return);
+      } elsif ($toFile and $fil) {
+	$return = $fil;
 	unless (open($O,'>'.$fil)) {
 	  die "Print: aborting - failed to open file '$fil': $!\n";
-	  #return 0;
 	}
-      } else {
+      } elsif ($cmd) {
+	$return = 1;
 	$SIG{'PIPE'} = sub {};
 	unless (open($O, '| '.$cmd)) {
 	  die "Print: aborting - failed to open pipe to '$cmd': $!\n";
-	  #return 0;
 	}
+      } else {
+	die "Print: No output file or command pipe specified!\n";
       }
 
       my $psFontName=$treeView->getFontName();
@@ -579,7 +714,6 @@ sub print_trees {
       local $TrEd::Convert::outputenc='iso-8859-2';
       unless (open($FNT,'<',$fontSpec->{PS})) {
 	die "Aborting: failed to open file '$fontSpec->{PS}': $!\n";
-	return 0;
       }
       for (my $t=0;$t<=$#printList;$t++) {
 	$infotext="Printing $printList[$t]";
@@ -731,7 +865,7 @@ END_OF_ENC
     $toplevel->Unbusy();
   }
   die $err if $err;
-  return 1;
+  return $return;
 }
 
 1;

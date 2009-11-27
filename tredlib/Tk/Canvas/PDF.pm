@@ -262,6 +262,8 @@ sub finish {
   if ($opts{-file}) {
     $P->{PDF}->saveas($opts{-file});
     $P->{PDF}->end;
+  } elsif ($opts{-object}) {
+    return $P->{PDF};
   } else {
     my $string = $P->{PDF}->stringify;
     $P->{PDF}->end;
