@@ -305,7 +305,7 @@ sub Print {
 
   $opts{-imageMagickResolution} ||= 80;
   croak("When using -format => 'ImageMagick', -convert => /path/to/convert must be specified.\n")
-    if ($opts{-format} =~ /ImageMagick/i and !$opts{-convert});
+    if ($opts{-to} eq 'convert' and !$opts{-convert});
   local $QUIET = $opts{-quiet};
   my $command = $opts{-command};
   if ($opts{-to} eq 'convert' or ($opts{-format} =~ /ImageMagick/i)) {
