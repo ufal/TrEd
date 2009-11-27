@@ -4321,6 +4321,7 @@ sub Print {
     $opts{-treeViewOpts} ||= $TrEd::Config::treeViewOpts;
     $opts{-toplevel} = ToplevelFrame() unless exists $opts{-toplevel};
     $opts{-fsfile}     ||= $grp->{FSFile};
+    $opts{-convert} ||= $TrEd::Config::imageMagickConvert;
     return 
       TrEd::Print::Print({
       -context => $grp,
