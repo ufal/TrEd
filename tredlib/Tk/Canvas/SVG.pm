@@ -815,22 +815,22 @@ body {
 		n_result = n_docel;
 	return n_body && (!n_result || (n_result > n_body)) ? n_body : n_result;
       }
-      function f_clientHeight() {
-	return f_filterResults (
-		window.innerHeight ? window.innerHeight : 0,
-		document.documentElement ? document.documentElement.clientHeight : 0,
-		document.body ? document.body.clientHeight : 0	);
+      function f_windowHeight() {
+          var h = window.innerHeight;
+	  if (h) return h;
+	  if (document.documentElement) h = document.documentElement.clientHeight;
+	  if (h) return h;
+	  if (document.body) h=document.body.clientHeight;
+	  return h ? h : 0;
       }
       function fit_window() {
-        height = f_clientHeight();
-	var object = tree_obj.getElementsByTagName("iframe").item(0);
-	if (object) {
-          object.height = height - findPosY(tree_obj) - 20;
-        }
-	var object = tree_obj.getElementsByTagName("embed").item(0);
-	if (object) {
-          object.height = height - findPosY(tree_obj) - 20;
-        }
+          var height = f_windowHeight();
+	  var tree_obj = document.getElementById("svg-tree");
+	  if (height && tree_obj) {
+	    var y = findPosY(tree_obj);
+	    var tree = document.getElementById('tree');
+	    tree.style.height = "" + (height - y - 20) + "px";
+	  }
       }
       function getSVG (container) {
 	  var svg_document =
@@ -841,7 +841,6 @@ body {
 	      : null;
 	  return svg_document ? svg_document.documentElement : null;
       }
-
       function zoom_inc (amount) {
 	  var container = document.getElementById('svg-tree');
 	  var svg = getSVG(container);
