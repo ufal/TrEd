@@ -360,7 +360,7 @@ sub preprocess {
 	    my $mf="$path/$f";
 	    if (-f $mf) {
 	      read_macros($mf,$libDir,1,$enc,@$contexts);
-	      push @$macros,"\n#line $line \"$file\"\n";
+	      push @$macros,"\n\n=pod\n\n=cut\n\n#line $line \"$file\"\n";
 	      $found = 1;
 	      last;
 	    }
@@ -391,7 +391,7 @@ sub preprocess {
 	  foreach my $mf (@includes) {
 	    if (-f $mf) {
 	      read_macros($mf,$libDir,1,$enc,@$contexts);
-	      push @$macros,"\n#line $line \"$file\"\n";
+	      push @$macros,"\n\n=pod\n\n=cut\n\n#line $line \"$file\"\n";
 	    } elsif ($if ne 'if') {
 	      die
 		"Error including macros $mf\n from $file: ",
@@ -404,7 +404,7 @@ sub preprocess {
 
 	  if ($f=~m%^/%) {
 	    read_macros($f,$libDir,1,$enc,@$contexts);
-	    push @$macros,"\n#line $line \"$file\"\n";
+	    push @$macros,"\n\n=pod\n\n=cut\n\n#line $line \"$file\"\n";
 	  } else {
 	    my $mf=$f;
 	    print STDERR "including $mf\n" if $macroDebug;
@@ -418,7 +418,7 @@ sub preprocess {
 	    }
 	    if (-f $mf) {
 	      read_macros($mf,$libDir,1,$enc,@$contexts);
-	      push @$macros,"\n#line $line \"$file\"\n";
+	      push @$macros,"\n\n=pod\n\n=cut\n\n#line $line \"$file\"\n";
 	    } elsif ($if ne 'if') {
 	      die
 		"Error including macros $mf\n from $file: ",
