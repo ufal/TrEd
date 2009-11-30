@@ -2114,13 +2114,13 @@ sub loadMacros {
     _msg("Reading extension macros from $ext_contrib...\n") unless $quiet;
     push @TrEd::Macros::macros,qq(\n#line 0 "$ext_contrib"\n{\npackage TredMacro;\n);
     read_macros($ext_contrib,$libDir,1);
-    push @TrEd::Macros::macros,qq(\n} # end of "$ext_contrib"\n);
+    push @TrEd::Macros::macros,qq(\n\n=pod\n\n=cut\n\n} # end of "$ext_contrib"\n);
   }
   if ($include_macro) {
     _msg("Reading additional macros from $include_macro...\n") unless $quiet;
     push @TrEd::Macros::macros,qq(\n#line 0 "$include_macro"\n{\npackage TredMacro;\n);
     read_macros($include_macro,$libDir,1);
-    push @TrEd::Macros::macros,qq(\n} # end of "$include_macro"\n);
+    push @TrEd::Macros::macros,qq(\n\n=pod\n\n=cut\n\n} # end of "$include_macro"\n);
   }
 }
 
