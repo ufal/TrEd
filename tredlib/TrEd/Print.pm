@@ -291,7 +291,7 @@ sub Print {
     (ref($opts{-onGetRootStyle}) eq 'CODE' and $ctx) ?
       [$opts{-onGetRootStyle},$ctx] : $opts{-onGetRootStyle};
 
-  $TrEd::TreeView::on_get_root_style =
+  $TrEd::TreeView::on_get_node_style =
     (ref($opts{-onGetNodeStyle}) eq 'CODE' and $ctx) ?
       [$opts{-onGetNodeStyle},$ctx] : $opts{-onGetNodeStyle};
 
