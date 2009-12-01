@@ -56,42 +56,42 @@ In the macros for your annotation context, you have to:
 
 =over 5
 
-=item 1 
+=item 1.
 
-  include <contrib/support/arrows.inc>
+include <contrib/support/arrows.inc>
 
-=item 2
+=item 2.
 
 define the root_style_hook which calls DrawArrow_init() to initialize caches.
 
-=item 3
+=item 3.
 
 define an after_redraw_hook which calls DrawArrow_cleanup() to clean-up caches.
 
-=item 4
+=item 4.
 
 define a node_style_hook which calls DrawArrows with the following arguments
 
   DrawArrows($node,$styles,\@arrow_definitions,\%common_arrow_options)
 
 The first two arguments ($node and $styles) are the first two arguments passed to the node_style_hook by TrEd.
-
-\@arrow_definitions is an ARRAY reference containing definitions of
+The third argument,
+\@arrow_definitions, is an ARRAY reference containing definitions of
 the arrows to draw. Each arrow definition is a HASH reference defining the target node or target coordinates for the other end
 of the arrow and style options. Style options common to all arrows can be also passed in the optional HASH reference passed as the last argument 
 \%common_arrow_options.
 
-The arrow definition HASH reference can have the following keys:
+=back
+
+=head3 Arrow definitions and styles
+
+Eeach arrow definition (passed in the \@rrow_definitions list to the
+DrawArrows) is a HASH reference consisting of some arrow options.
+With the exception of -target, -originx, -originy, -deltax, -deltay,
+these options can also be passed as \%common_arrow_options to
+DrawArrows.
 
 =over 8
-
-=item -originx
-
-the x-coordinate of the origin (defaults to 'xn' - the x-coordinate of the current node)
-
-=item -originy 
-
-the y-coordinate of the origin (defaults to 'yn' - the y-coordinate of the current node)
 
 =item -target
 
@@ -100,6 +100,14 @@ the target node.
 If no target is specified, the target coordinates default to the
 coordinates of the current node and the flags -deltax and -deltay must
 be used to specify the target coordinates.
+
+=item -originx
+
+the x-coordinate of the origin (defaults to 'xn' - the x-coordinate of the current node)
+
+=item -originy 
+
+the y-coordinate of the origin (defaults to 'yn' - the y-coordinate of the current node)
 
 =item -deltax
 
@@ -140,11 +148,11 @@ a comma-separated list of integers (even number) specifying the lengths of dashe
 =item -width
 
 width of the line
-       
+
 =item -fill
 
 color of the line (either the color name or a '#rrggbb' hex code)
-        
+
 =item -hint
 
 a tooltip that is displayed when the user hovers mouse over the arrow
@@ -154,13 +162,15 @@ a tooltip that is displayed when the user hovers mouse over the arrow
 a comma-separated list of tags associated with the arrow on the
 canvas; tags can be used for varius purposes, e.g. to raise or lower
 objects on the Tk::Canvas (see the stackOrder instruction in
-http://ufal.mff.cuni.cz/~pajas/tred/ar01s10.html).
+L<http://ufal.mff.cuni.cz/~pajas/tred/ar01s10.html>).
 they are also used as classes when exporting to SVG.
 
 =item -decoration
 
 decoration of the arrow (see description of the Line-decoration style
-instruction in http://ufal.mff.cuni.cz/~pajas/tred/ar01s10.html).
+instruction in L<http://ufal.mff.cuni.cz/~pajas/tred/ar01s10.html>).
+
+=back
 
 =cut
 
