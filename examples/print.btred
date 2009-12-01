@@ -143,6 +143,7 @@ sub print_trees {
     TredMacro->guess_context_hook() if UNIVERSAL::can('TredMacro','guess_context_hook');
   }
   SwitchContext($opts->{-context}) if defined $opts->{-context};
+  delete $opts->{-context};
   SetCurrentStylesheet($opts->{-stylesheet}) if defined $opts->{-stylesheet};
   print STDERR "Context: ",CurrentContext(),"\n" unless $opts->{-quiet};
   print STDERR "Stylesheet: ", GetCurrentStylesheet(),"\n" unless $opts->{-quiet};
