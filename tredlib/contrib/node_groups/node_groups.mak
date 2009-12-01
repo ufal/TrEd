@@ -1,11 +1,11 @@
 # -*- cperl -*-
 package TrEd::NodeGroups;
 
-=head1 NAME
+=head1 node_groups.mak
 
-TrEd::NodeGroups - macros for v visualizing groups of nodes
+TrEd::NodeGroups - macros for visualizing groups of nodes
 
-=head2 SYNOPSIS
+=head2 USAGE
 
   package MyMacros;
   use strict;

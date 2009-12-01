@@ -19,9 +19,17 @@ use Scalar::Util qw(weaken);
 PML.mak - Miscelaneous macros of general use in Prague Dependency
 Treebank (PDT) 2.0
 
+=head2 USAGE
+
+  #include <contrib/pml/PML.mak>
+
+=head2 MACROS
+
+The following macros (functions) are provided by this package:
+
 =over 4
 
-=item SchemaName()
+=item PML::SchemaName()
 
 Return name of the root element of a PML instance as specified in the
 PML schema associated with the current file. PDT uses root element
@@ -36,7 +44,7 @@ sub SchemaName {
   return $schema->get_root_name;
 } #SchemaName
 
-=item SchemaDescription()
+=item PML::SchemaDescription()
 
 Return the content of the element C<description> of the PML schema
 associated with the current file.
@@ -50,7 +58,7 @@ sub SchemaDescription {
 } #SchemaName
 
 
-=item Schema($object?)
+=item PML::Schema($object?)
 
 For a FSNode object returns PML schema associated with that object.
 If the object is a FSFile, return PML schema associated with the given
@@ -74,7 +82,7 @@ sub Schema {
   }
 } #Schema
 
-=item GetNodeByID($id_or_ref,$fsfile?)
+=item PML::GetNodeByID($id_or_ref,$fsfile?)
 
 Looks up a node from the current file (or given fsfile) by its ID (or
 PMLREF - i.e. the ID preceded by a file prefix of the form C<xy#>).
@@ -88,7 +96,7 @@ sub GetNodeByID {
   return GetNodeHash($fsfile)->{$rf};
 }
 
-=item SearchForNodeById($id)
+=item PML::SearchForNodeById($id)
 
 Searches for node with given id. Returns the node and the number of
 the tree.
@@ -133,7 +141,7 @@ sub SearchForNodeById ($){
   return($found,$treeNo+1);
 }#SearchForNodeById
 
-=item GetNodeHash($fsfile?)
+=item PML::GetNodeHash($fsfile?)
 
 Return a reference to a hash indexing nodes in a given file (or the
 current file if no argument is given). If such a hash was not yet
@@ -163,7 +171,7 @@ sub GetNodeHash {
   return $fsfile->appData('id-hash');
 }
 
-=item ClearNodesHash($fsfile?)
+=item PML::ClearNodesHash($fsfile?)
 
 Clear the internal hash indexing nodes of a given file (or the current
 file if called without an argument).
@@ -177,7 +185,7 @@ sub ClearNodesHash {
 }
 
 
-=item GotoTree()
+=item PML::GotoTree()
 
 Ask user for sentence or node identificator (tree number or id) and go to the
 sentence.
@@ -211,27 +219,9 @@ sentence.
     }
   }#GotoTree
 
-=item NonProjEdges($node,$ord?,$filterNode?,$returnParents?,$subord?,$filterGap?)
+=item PML::NonProjEdges($node,$ord?,$filterNode?,$returnParents?,$subord?,$filterGap?)
 
-Returns hash-ref containing all non-projective edges in the subtree
-rooted in $node. Values of the hash are references to arrays
-containing the non-projective edges (the arrays contain the lower and
-upper nodes representing the edge, and then the nodes causing the
-non-projectivity of the edge), keys are concatenations of stringified
-references to lower and upper nodes of non-projective edges. (The
-function just wraps PDT::non_proj_edges.) Description of the arguments
-is as follows: $node specifies the root of a subtree to be checked for
-non-projective edges; $ord specifies the ordering attribute to be
-used; a subroutine accepting one argument passed as sub-ref in
-$filterNode can be used to filter the edges taken into account (by
-specifying the lower nodes of the edges); sub-ref $returnParents
-accepting one argument returns an array of upper nodes of the edges to
-be taken into account; sub-ref $subord accepting two arguments returns
-1 iff the first one is subordinated to the second one; sub-ref
-$filterGap accepting one argument can be used to filter nodes causing
-non-projectivity.  Defaults are: the default ordering attribute, all
-nodes, parent (in the technical representation), subordination in the
-technical sense, all nodes.
+DEPRECATED, use non_proj_edges from <contrib/support/non_projectivity.mak> instead.
 
 =cut
 
@@ -255,7 +245,7 @@ sub NonProjEdges {
   if (exists &non_proj_edges) {
     return NonProjectivity::non_proj_edges($top,0,@_);
   } else {
-    confess("Module NonProjectivity (support/non-projectivity.mak) not loaded!");
+    confess("Module NonProjectivity (support/non_projectivity.mak) not loaded!");
   }
 
 } # sub NonProjEdges
