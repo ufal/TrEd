@@ -168,7 +168,7 @@ sub print_trees {
     $out_file = File::Spec->catfile($output_dirname,FilePart($out_file));
   }
   Print(
-    -to => (exists($opts->{-toFile}) ? () : 'file'),
+    (exists($opts->{-toFile}) ? () : (-to => 'file')),
     -toplevel => undef,
     -canvas => ToplevelFrame()->Canvas(),
     -filename =>  $out_file,
