@@ -153,7 +153,7 @@ $treeViewOpts={
 
 %defaultPrintConfig = (
   printOnePerFile => ['-oneTreePerFile',0],
-  printTo => ['-to','printer'],
+  printTo => [undef,'printer'],
   printFormat => ['-format','PS'],
   printFileExtension => [undef,'ps'],
   printSentenceInfo => ['-sentenceInfo', 0],

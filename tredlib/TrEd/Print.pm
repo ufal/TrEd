@@ -274,6 +274,7 @@ sub Print {
 
   if (uc($opts{-format}) eq 'IMAGEMAGICK') {
     $opts{-to} = 'convert';
+    delete $opts{-toFile};
     $opts{-format} = 'EPS';
   } else {
     $opts{-format} ||= 'PDF';
