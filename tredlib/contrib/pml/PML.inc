@@ -96,6 +96,36 @@ sub GetNodeByID {
   return GetNodeHash($fsfile)->{$rf};
 }
 
+=item PML::DeleteFromNodeHash($id,$fsfile?)
+
+Deletes a given ID from a node HASH of the current or specified FSFile.
+The node previously hashed under the given ID is returned.
+
+=cut
+
+sub DeleteFromNodeHash {
+  my ($rf,$fsfile)=@_;
+  $fsfile = $grp->{FSFile} unless defined $fsfile;
+  $rf =~ s/^.*#//;
+  my $hash = GetNodeHash($fsfile);
+  return delete($hash->{$rf});
+}
+
+=item PML::AddToNodeHash($id,$node,$fsfile?)
+
+Adds a node to the node hash (of the given or current FSFile) using
+given ID as the hash key.
+
+=cut
+
+sub AddToNodeHash {
+  my ($rf,$node,$fsfile)=@_;
+  $fsfile = $grp->{FSFile} unless defined $fsfile;
+  $rf =~ s/^.*#//;
+  my $hash = GetNodeHash($fsfile);
+  weaken( $hash->{$rf} = $node );
+}
+
 =item PML::SearchForNodeById($id)
 
 Searches for node with given id. Returns the node and the number of
