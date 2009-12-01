@@ -9,6 +9,7 @@ This file provides generic support for drawing custom arrows that can be used in
 Add these lines to your macro context:
 
   #include <contrib/support/arrows.inc>
+  #include <contrib/pml/PML.mak>
 
   sub root_style_hook {
     DrawArrows_init();
@@ -44,6 +45,122 @@ Add these lines to your macro context:
       });
     #...
   }
+
+=head2 DESCRIPTION
+
+This file provides a function DrawArrows which can be called from the node_style_hook to extra
+arrows from the current node to some other nodes (or relative coordinates).
+The USAGE section above shows a full example.
+
+In the macros for your annotation context, you have to:
+
+=over 5
+
+=item 1 
+
+  include <contrib/support/arrows.inc>
+
+=item 2
+
+define the root_style_hook which calls DrawArrow_init() to initialize caches.
+
+=item 3
+
+define an after_redraw_hook which calls DrawArrow_cleanup() to clean-up caches.
+
+=item 4
+
+define a node_style_hook which calls DrawArrows with the following arguments
+
+  DrawArrows($node,$styles,\@arrow_definitions,\%common_arrow_options)
+
+The first two arguments ($node and $styles) are the first two arguments passed to the node_style_hook by TrEd.
+
+\@arrow_definitions is an ARRAY reference containing definitions of
+the arrows to draw. Each arrow definition is a HASH reference defining the target node or target coordinates for the other end
+of the arrow and style options. Style options common to all arrows can be also passed in the optional HASH reference passed as the last argument 
+\%common_arrow_options.
+
+The arrow definition HASH reference can have the following keys:
+
+=over 8
+
+=item -originx
+
+the x-coordinate of the origin (defaults to 'xn' - the x-coordinate of the current node)
+
+=item -originy 
+
+the y-coordinate of the origin (defaults to 'yn' - the y-coordinate of the current node)
+
+=item -target
+
+the target node.
+
+If no target is specified, the target coordinates default to the
+coordinates of the current node and the flags -deltax and -deltay must
+be used to specify the target coordinates.
+
+=item -deltax
+
+value to add to the x-coordinate of the target
+
+=item -deltay
+
+value to add to the y-coordinate of the target
+
+=item -smooth
+
+1 to make the arrow a smoothed curve (see also -raise and -frac)
+
+=item -frac
+
+Defaults to 0.12. When a curved arrow is drawn (i.e. -smooth => 1 was
+given), this value defines the 'lift' of the arrow as a fraction of
+the length of the straight line connecting the start and end of the
+arrow. 0 means no lift (straight line). The signum of the value
+decides the orientation of the lift.
+
+=item -raise
+
+Defaults to 25. An absolute value added to the 'lift' of an arrow.
+
+=item -arrow
+
+one of 'first', 'last', 'both', 'none' (where to put the the arrow head)
+
+=item -arrowshape
+
+a comma-separated list of three integers defining the shape of the arrow head (see Tk::Canvas manual)
+
+=item -dash
+
+a comma-separated list of integers (even number) specifying the lengths of dashes and spaces between them
+
+=item -width
+
+width of the line
+       
+=item -fill
+
+color of the line (either the color name or a '#rrggbb' hex code)
+        
+=item -hint
+
+a tooltip that is displayed when the user hovers mouse over the arrow
+
+=item -tag
+
+a comma-separated list of tags associated with the arrow on the
+canvas; tags can be used for varius purposes, e.g. to raise or lower
+objects on the Tk::Canvas (see the stackOrder instruction in
+http://ufal.mff.cuni.cz/~pajas/tred/ar01s10.html).
+they are also used as classes when exporting to SVG.
+
+=item -decoration
+
+decoration of the arrow (see description of the Line-decoration style
+instruction in http://ufal.mff.cuni.cz/~pajas/tred/ar01s10.html).
 
 =cut
 

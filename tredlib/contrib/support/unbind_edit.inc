@@ -2,8 +2,17 @@
 
 =head1 unbind_edit.inc
 
-Include this macro in your binding context if you want to get rid of
-all default TredMacro key-bindings that modify trees.
+Disable default TredMacro key-bindings that modify trees.
+
+=head2 USAGE
+
+#include <common/support/unbind_edit.inc>
+
+=head2 DESCRIPTION
+
+Include this macro in your binding context if you want to disable all
+default TredMacro key-bindings that modify trees, such as copy/paste,
+etc.
 
 =cut
 
