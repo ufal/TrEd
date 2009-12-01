@@ -37,6 +37,17 @@ for f in $dir/../tredlib/libs/pml-base/PMLSchema/*.pm; do
     podselect "$f" > "$pod"
 done
 
+
+{
+  pushd $dir/../tredlib/contrib > /dev/null
+  pod="$pod_dir/contrib.pod"
+  rm -f "$pod"
+  find -name '*.mak' -or -name '*.inc' -or -name '*.mac' | xargs grep -l '^=' | \
+    xargs podselect > "$pod"
+  podchecker "$pod"
+  popd >/dev/null
+}
+
 {
     pushd $dir/../tredlib/contrib/pml >/dev/null
     pod="$pod_dir/PML_mak.pod"

@@ -6,6 +6,25 @@ package NonProjectivity;
 
 BEGIN { import TredMacro; }
 
+=pod
+
+=head1 non_projectivity.mak
+
+An efficient algorighm for finding non-projectivity edges in ordered
+trees.
+
+=head2 USAGE
+
+  #include <contrib/support/non_projectivity.mak>
+
+  non_proj_edges($root);
+
+=head2 MACROS
+
+The following macros (functions) are provided by this package:
+
+=over 5
+
 =item non_proj_edges($node,$only_visible?,$ord?,$filterNode?,$returnParents?,$subord?,$filterGap?)
 
 Returns hash-ref containing all non-projective edges in the subtree
@@ -107,6 +126,15 @@ sub non_proj_edges {
   return \%npedges;
 
 } # sub non_proj_edges
+
+=back
+
+=head2 AUTHOR
+
+Jiri Havelka
+
+=cut
+
 
 #endif NonProjectivity
 

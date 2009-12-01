@@ -2,9 +2,9 @@
 
 =pod
 
-=head1 NAME
+=head1 contrib.mac
 
-contrib/contrib.mac - a file responsible for loading other macro files
+contrib/contrib.mac - the file responsible for loading other macro files
 
 =head2 DESCRIPTION
 
@@ -22,6 +22,8 @@ packages. See below how to plug context-specific code in.
 package TredMacro;
 
 =pod
+
+=head1 Context Guessing
 
 =head2 @TredMacro::AUTO_CONTEXT_GUESSING
 
