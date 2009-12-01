@@ -6,7 +6,7 @@ Disable default TredMacro key-bindings that modify trees.
 
 =head2 USAGE
 
-#include <common/support/unbind_edit.inc>
+  #include <common/support/unbind_edit.inc>
 
 =head2 DESCRIPTION
 
