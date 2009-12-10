@@ -4327,7 +4327,7 @@ sub Print {
       -context => $grp,
       -onGetRootStyle => \&main::onGetRootStyle,
       -onGetNodeStyle => \&main::onGetNodeStyle,
-      -onRedrawStyle => \&main::onRedrawStyle,
+      -onRedrawDone => \&main::onRedrawDone,
       -onGetNodes => \&main::printGetNodesCallback,
       %opts,
     });

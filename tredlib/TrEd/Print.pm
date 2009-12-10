@@ -599,9 +599,11 @@ sub print_trees {
 		      $types{$type} = $id_attr = $id_attr->get_name
 			if $id_attr;
 		    }
-		    ($id_attr and $node->{ $id_attr }) ? '#'.$node->{ $id_attr } : $node
+		    ($id_attr and $node->{ $id_attr }) ? ('#'.$node->{ $id_attr }) : (); #$node
+		  } elsif (/^FSNode=HASH\(/) {
+		    ()
 		  } else {
-		    $_
+		    ($_)
 		  }
 		} @tags;
 		push @mapped, [$value,@tags];
