@@ -224,17 +224,6 @@ if ($^O eq 'darwin') {
 }
 
 {
-  require TrEd::Version;
-  import TrEd::Version;
-  $VERSION = TRED_VERSION();
-  if ($opt_v) {
-    print "TrEd $VERSION\nPerl: $]\nPlatform: $^O\nTk: $Tk::VERSION\n\n";
-    exit;
-  }
-}
-
-
-{
   require TrEd::Utils;
   import TrEd::Utils qw(:all);
   find_win_home();
@@ -257,6 +246,18 @@ if ($^O eq 'darwin') {
 }
 
 } # BEGIN
+
+{
+  require TrEd::Version;
+  import TrEd::Version;
+  $VERSION = TRED_VERSION();
+  if ($opt_v) {
+    print "TrEd $VERSION\nPerl: $]\nPlatform: $^O\nTk: $Tk::VERSION\n\n";
+    exit;
+  }
+}
+
+
 
 my $pid_file = File::Spec->catfile($tred_d,'tred.pid');
 use Fcntl;
