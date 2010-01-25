@@ -342,7 +342,7 @@ sub set_config {
 				   );
 
   for my $opt (@treeViewOpts) {
-    $treeViewOpts->{$opt} = $confs->{lc($opt)} if exists $confs->{$opt};
+    $treeViewOpts->{$opt} = $confs->{lc($opt)} if exists $confs->{lc($opt)};
   }
   for my $opt (qw(Height Width)) {
     $treeViewOpts->{'currentNode'.$opt} =
