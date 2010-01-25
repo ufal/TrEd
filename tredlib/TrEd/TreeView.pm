@@ -1162,8 +1162,7 @@ sub recalculate_positions {
     # Try to add reasonable skip so that the edge labels do
     # not overlap. (this code however cannot ensure that!!)
     if ($self->get_useAdditionalEdgeLabelSkip() and
-	$node_style->{'-disableedgelabelspace'} ne "yes"
-       ) {
+	$node_style->{'-disableedgelabelspace'} ne "yes") {
       if ($halign_edge eq 'right') {
 	$xSkipBefore=max2($xSkipBefore,2*$edgeLabelWidth);
       } elsif ($halign_edge eq 'center') {
@@ -1171,6 +1170,15 @@ sub recalculate_positions {
 	$xSkipAfter=max2($xSkipAfter,$edgeLabelWidth);
       } else {
 	$xSkipAfter=max2($xSkipAfter,2*$edgeLabelWidth);
+      }
+    } else {
+      if ($halign_edge eq 'right') {
+	$xSkipBefore=max2($xSkipBefore,$edgeLabelWidth);
+      } elsif ($halign_edge eq 'center') {
+	$xSkipBefore=max2($xSkipBefore,$edgeLabelWidth/2);
+	$xSkipAfter=max2($xSkipAfter,$edgeLabelWidth/2);
+      } else {
+	$xSkipAfter=max2($xSkipAfter,$edgeLabelWidth);
       }
     }
     $xSkipBefore+=$node_style->{'-addbeforeskip'};
