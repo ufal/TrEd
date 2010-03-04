@@ -178,7 +178,7 @@ sub get_ttf_fonts {
       if (ref $opts->{search_callback}) {
 	$opts->{search_callback}->($path,$i++,scalar(@dirs));
       }
-      push @files, grep { -f $_ } grep { /\.[to]tf$/ } map { File::Spec->catfile($path,$_) } readdir($dh);
+      push @files, grep { -f $_ } grep { /\.[to]tf$/i } map { File::Spec->catfile($path,$_) } readdir($dh);
       closedir $dh;
     }
     $i=0;

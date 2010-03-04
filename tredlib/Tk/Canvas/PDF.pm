@@ -183,14 +183,23 @@ sub new {
   }
   $pdf->mediabox(@media);
   __debug("Media: @media, Encoding: $encoding\n");
+  my %tt_font_opts = (
+    -dokern => 1,
+    -noembed => 0,
+#    -nosubset => 1,
+   );
   if ($opts{-fontmap}) {
     foreach my $fn (keys %{$opts{-fontmap}}) {
       if ($opts{-fontmap}->{$fn}->[0] =~ /tt|truetype/i) {
 	if ($unicode or $encoding eq 'utf8') {
-	  $fontmap{$fn}=$pdf->ttfont($opts{-fontmap}->{$fn}->[1]); #!! ->unicode();
+	  $fontmap{$fn}=$pdf->ttfont($opts{-fontmap}->{$fn}->[1],
+				     %tt_font_opts,
+				    ); #!! ->unicode();
 	} else {
 	  $fontmap{$fn}=$pdf->ttfont($opts{-fontmap}->{$fn}->[1],
-				     -encode => $encoding);
+				     -encode => $encoding,
+				     %tt_font_opts,
+				    );
 	}
       } elsif ($opts{-fontmap}->{$fn}->[0] =~ /ps|postscript/i) {
 	$fontmap{$fn}=$pdf->psfont($opts{-fontmap}->{$fn}->[1],$opts{-fontmap}->{$fn}->[2],
@@ -213,9 +222,9 @@ sub new {
   if ($opts{-ttfont}) {
     $fontType='TT';
     if ($unicode or $encoding eq 'utf8') {
-      $font=$pdf->ttfont($opts{-ttfont}); #!! ->unicode();
+      $font=$pdf->ttfont($opts{-ttfont},%tt_font_opts); #!! ->unicode();
     } else {
-      $font=$pdf->ttfont($opts{-ttfont},-encode => $encoding);
+      $font=$pdf->ttfont($opts{-ttfont},-encode => $encoding, %tt_font_opts);
     }
   } elsif ($opts{-psfont}) {
     $fontType='PS';

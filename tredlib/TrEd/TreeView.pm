@@ -608,7 +608,7 @@ sub getFontHeight {
     return $self->{cached_size};
   } else {
     $self->{cached_font}=$font;
-    return ($self->{cached_size} = $self->canvas->fontMetrics($font, -linespace));
+    return ($self->{cached_size} = $self->canvas->fontMetrics($font, '-linespace'));
   }
 }
 
