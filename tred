@@ -11,8 +11,12 @@
 ##############################################################################
 
 use strict;
+use 5.008;
 
 BEGIN {
+############################################################
+# start of BEGIN section
+############################################################
 
 if ($^V lt v5.8.3) {
   print STDERR '-' x 50,"\n";
@@ -21,9 +25,14 @@ if ($^V lt v5.8.3) {
   print STDERR '-' x 50,"\n\n";
 }
 
-use vars qw($svn_version $version $about $opt_u $opt_h $opt_c $opt_y
+use constant ABOUT =>
+  "Copyright (c) 2000-2010 by Petr Pajas\n".
+  "This software is distributed under GPL - The General Public Licence\n".
+  "Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html";
+
+use vars qw($svn_version $version $opt_u $opt_h $opt_c $opt_y
 	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_p
-	    $opt_n $opt_D $opt_v $opt_H $opt_I $opt_Z $opt_e $opt_Y
+	    $opt_n $opt_D $opt_v $opt_H $opt_I $opt_Z $opt_e
             $libDir $docDir $list_options $opt_auto_save
 	    $macroFile @filelists %filelist_from_extension
 	    @openfiles $treeViewOpts $opt_m
@@ -40,8 +49,14 @@ use vars qw($svn_version $version $about $opt_u $opt_h $opt_c $opt_y
 	    $manpage $listoptions $no_backups $no_locks $noCheckLocks %optmap $carp
 	    $tred_d $VERSION
 	    $enable_extensions $disable_extensions
-            $command
+            $command $configFile
            );
+
+use Exporter;
+@ISA=qw(Exporter);
+@EXPORT= qw($insideEval
+            $libDir $stderr $stdout
+            @openfiles @filelists &min &max);
 
 use Getopt::Long;
 use Pod::Usage;
@@ -63,7 +78,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
   'include-macro-file|I=s' => \$opt_I,
   'show-hidden-nodes|H' => \$opt_H,
   'debugging|D' => \$opt_D,
-  'no-secondary-files|Y' => \$opt_Y,
+  'no-secondary-files|Y' => \$no_secondary,
   'extra-backends|B=s' => \$opt_B,
   'tectogrammatical-trees|R' => \$opt_R,
   'csts-tree-attributes|X=s' => \$opt_X,
@@ -84,82 +99,6 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
   "command|C" => \$command,
 );
 $optparser->getoptions(%optmap) or $opt_u=1;
-
-
-$about=
-  "Copyright (c) 2000-2008 by Petr Pajas\n".
-  "This software is distributed under GPL - The General Public Licence\n".
-  "Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html";
-
-
-# Get user's login name
-($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown');
-($userlogin =~ /\S/) || warn "Couldn\'t deterbmine user\'s login name\n";
-use Carp;
-
-use XML::LibXML; # this is for Darwin (we want to load our libxml2
-                 # before some dependency of Tk loads the system one)
-use Tk;
-
-# work around a bug in Tk
-if (defined $Tk::encodeFallback and $Tk::encodeFallback == Encode::FB_PERLQQ() and
-    Encode::FB_PERLQQ() != Encode::PERLQQ()) {
-  $Tk::encodeFallback    = Encode::PERLQQ();
-}
-
-
-use Tk::Config ();
-use Tk::Wm;
-use IO;
-use Cwd;
-use File::Spec;
-use File::Glob qw(:glob);
-use URI::file;
-use URI::Escape;
-
-use constant EMPTY => q{};
-use constant {
-  UNDO_ACTIVE_NODE => 1,
-  UNDO_ACTIVE_ROOT => 2,
-  UNDO_DATA_AND_TREE_ORDER => 3,
-  UNDO_TREE_ORDER => 4,
-  UNDO_DISPLAYED_TREES => 5,
-  UNDO_CURRENT_TREE_AND_TREE_ORDER => 6,
-  UNDO_ACTIVE_ROOT_AND_TREE_ORDER => 7,
-  UNDO_DATA => 8,
-  UNDO_CURRENT_TREE => 9,
-};
-
-use Tk::widgets
-  qw(Frame Pane LabFrame Listbox HList Menu
-     ItemStyle DialogBox Tiler BrowseEntry Panedwindow Dialog DialogBox
-     Scale Adjuster Entry Text);
-use Tk::Font;
-
-{
-  package Tk::Wm;
-  # overwriting the original Tk::Wm::Post:
-  sub Post {
-    my ($w,$X,$Y)= @_;
-    $X= int($X);
-    $Y= int($Y);
-    $w->positionfrom('user');
-    # $w->geometry("+$X+$Y");
-    $w->MoveToplevelWindow($X,$Y);
-    $w->deiconify;
-    ## This causes the "slowness":
-    # $w->raise;
-  }
-  package main;
-}
-
-#use Tk::Xrm;
-# process the standard arguments for X resources
-Tk::CmdLine::SetArguments();
-
-# Once we got rid of them we call getopt to read all the other options
-
-$SIG{__DIE__} = sub { confess(@_) } if $carp;
 
 # Help and usage
 if ($opt_u) {
@@ -184,8 +123,24 @@ if ($list_options) {
   exit;
 }
 
-$no_secondary = $opt_Y;
+# Get user's login name
+($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown');
+($userlogin =~ /\S/) || warn "Couldn\'t deterbmine user\'s login name\n";
+use Carp;
 
+use IO;
+use Cwd;
+use File::Spec;
+use File::Glob qw(:glob);
+use URI::file;
+use URI::Escape;
+use Fcntl;
+
+use constant EMPTY => q{};
+
+# Once we got rid of them we call getopt to read all the other options
+
+$SIG{__DIE__} = sub { confess(@_) } if $carp;
 
 # Default values of $libDir used to search for macro-file (tred.mac)
 # and default-macro file (tred.def) are specified here. They may be
@@ -208,34 +163,97 @@ $macroFile=undef;
 
 ########## Config file #############
 # this must be done before read_config is first used
-@filelists=();
-@openfiles=();
 
-# We *must* at least find TrEd::Config module to learn the correct libDir!!.
-if (-d $libDir) {
-  unshift @INC,$libDir;
-}
+# We *must* at least find TrEd::Version, TrEd::Utils and TrEd::Config module to learn the correct libDir!!.
+unshift @INC,$libDir if -d $libDir;
 
-# make Alt_L and Alt_R work correctly on Darwin
-if ($^O eq 'darwin') {
-  my $xmodmap = File::Spec->catfile($libDir,'xmodmap.darwin');
-  print STDERR "Using xmodmap: $xmodmap\n" unless $opt_q;
-  system('xmodmap', $xmodmap) if -f $xmodmap;
-}
+require TrEd::Utils;
+import TrEd::Utils qw(:all);
+find_win_home();
+setFHEncoding(\*STDERR,':utf8',"STDERR");
+setFHEncoding(\*STDOUT,':utf8',"STDOUT");
 
 {
-  require TrEd::Utils;
-  import TrEd::Utils qw(:all);
-  find_win_home();
-
   my $ld=$libDir;
-
   require TrEd::Config;
   import TrEd::Config;
   import TrEd::Config qw(&read_config &apply_config &set_default_config_file_search_list);
   $libDir=$ld;
   $TrEd::Config::quiet = $opt_q;
 }
+
+if (defined $opt_c) {
+  @TrEd::Config::config_file_search_list=($opt_c); # override any other possible config files
+} else {
+  set_default_config_file_search_list();
+}
+
+my $initial_config;
+sub applyInitialConfig { setConfig($initial_config); undef $initial_config }
+$TrEd::Config::set_user_config=sub { $initial_config=shift };	# tred specific configuration
+$configFile=read_config(); # this may setup a new $libDir
+
+unless (-d $libDir) {
+  print <<'EOL';
+ TrEd could not find a tredlib directory. You may need to point
+ to its location by the TREDHOME variable or add a correct LibDir
+ field to your ~/.tredrc.
+
+EOL
+    die "Error: Couldn\'t find lib-directory.";
+}
+
+unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
+{
+  my $libs = File::Spec->catfile($libDir,'libs');
+  if (-d $libs) {
+    unshift @INC, glob(File::Spec->catfile($libs,'*',''));
+  }
+}
+
+use XML::LibXML; # this is for Darwin (we want to load our libxml2
+                 # before some dependency of Tk loads the system one)
+use Tk;
+use Tk::Config ();
+# process the standard arguments for X resources
+Tk::CmdLine::SetArguments();
+
+require Fslib;
+import Fslib;
+import Fslib qw(&Index $FSError);
+import PMLSchema qw(:constants);
+require TrEd::UserAgent;
+sub uniq { my %a; grep { !($a{$_}++) } @_ }
+
+# import min and max functions
+require TrEd::MinMax;
+import TrEd::MinMax;
+#sub first (&@); # prototype it for compile-time
+import TrEd::MinMax qw(first);
+
+require TrEd::Version;
+import TrEd::Version;
+
+############################################################
+# end of BEGIN section
+############################################################
+}
+
+$VERSION = TRED_VERSION;
+
+if ($opt_v) {
+  print <<"EOF";
+TrEd $VERSION
+Perl: $]
+Platform: $^O
+Tk: $Tk::VERSION
+Fslib: $Fslib::VERSION
+Fslib-API: $Fslib::API_VERSION
+EOF
+  exit;
+}
+
+applyInitialConfig();
 
 {
   # ensure ~/.tred.d exists
@@ -245,22 +263,7 @@ if ($^O eq 'darwin') {
   }
 }
 
-} # BEGIN
-
-{
-  require TrEd::Version;
-  import TrEd::Version;
-  $VERSION = TRED_VERSION();
-  if ($opt_v) {
-    print "TrEd $VERSION\nPerl: $]\nPlatform: $^O\nTk: $Tk::VERSION\n\n";
-    exit;
-  }
-}
-
-
-
 my $pid_file = File::Spec->catfile($tred_d,'tred.pid');
-use Fcntl;
 
 if ($command) {
   if (open(my $fh, '<',$pid_file)) {
@@ -273,6 +276,7 @@ if ($command) {
 	if ($command eq 'open') {
 	  @args = map {
 	    my ($filename,$suffix)=parseFileSuffix($_);
+	    require IOBackend;
 	    IOBackend::make_abs_URI($filename)->as_string.$suffix
 	    } @args;
 	}
@@ -294,67 +298,13 @@ if (open(my $fh, '>',$pid_file)) {
   close $fh;
 }
 
-
-_set_encoding(\*STDERR,':utf8',"STDERR");
-_set_encoding(\*STDOUT,':utf8',"STDOUT");
-
-
-if (defined $opt_c) {
-  @TrEd::Config::config_file_search_list=($opt_c); # override any other possible config files
-} else {
-  set_default_config_file_search_list();
-}
-$TrEd::Config::set_user_config=\&setConfig;	# tred specific configuration
-my $configFile=read_config();
-
 $TrEd::Convert::inputenc=$opt_n if $opt_n;
 $TrEd::Config::treeViewOpts->{showHidden} = 1 if $opt_H;
-
 $iconPath = "$libDir/icons/crystal" unless (defined $iconPath);
-
 $macroFile="$libDir/tred.mac" unless (defined $macroFile);
-
 if (defined $opt_m) {
   $macroFile=$opt_m;
 }
-####################################
-
-unless (-d $libDir) {
-  print <<'EOL';
- TrEd could not find a tredlib directory. You may need to point
- to its location by the TREDHOME variable or add a correct LibDir
- field to your ~/.tredrc.
-
-EOL
-    die "Error: Couldn\'t find lib-directory.";
-}
-
-unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
-{
-  my $libs = File::Spec->catfile($libDir,'libs');
-  if (-d $libs) {
-    unshift @INC, glob(File::Spec->catfile($libs,'*',''));
-  }
-}
-# require Tk::ErrorReport;
-# sub Tk::Error {
-#   my ($w,$error,@log)=@_;
-#   my $full_msg = $error."\n\nStack trace:\n\n".join("\n",@log)."\n\n";
-#   $w->toplevel->Unbusy;
-#   $w->ErrorReport(-title => 'Tk Error',
-# 		  -message => "The following Tk::error occurred",
-# 		  -body => $full_msg,
-# 		  -buttons => ['OK'],
-# 		 );
-#   warn $full_msg;
-# }
-
-require Fslib;
-import Fslib;
-import Fslib qw(&Index $FSError);
-import PMLSchema qw(:constants); # too late (we'll need () after PML_.._DECL)
-require TrEd::UserAgent;
-sub uniq { my %a; grep { !($a{$_}++) } @_ }
 
 $PMLCompiledReader::STRICT=0;
 
@@ -372,12 +322,6 @@ $TrEd::TreeView::Debug=1 if $opt_D;
 $Fslib::Debug=1 if $opt_D;
 $IOBackend::Debug=1 if $opt_D;
 
-# import min and max functions
-require TrEd::MinMax;
-import TrEd::MinMax;
-sub first (&@); # prototype it for compile-time
-import TrEd::MinMax qw(first);
-
 # find documentation dir
 $docDir = first { -d $_ }
   ("$FindBin::RealBin/documentation",
@@ -390,6 +334,33 @@ if ($docDir ne EMPTY) {
 } else {
   $docDir = 'http://ufal.mff.cuni.cz/~pajas/tred';
 }
+
+use constant {
+  UNDO_ACTIVE_NODE => 1,
+  UNDO_ACTIVE_ROOT => 2,
+  UNDO_DATA_AND_TREE_ORDER => 3,
+  UNDO_TREE_ORDER => 4,
+  UNDO_DISPLAYED_TREES => 5,
+  UNDO_CURRENT_TREE_AND_TREE_ORDER => 6,
+  UNDO_ACTIVE_ROOT_AND_TREE_ORDER => 7,
+  UNDO_DATA => 8,
+  UNDO_CURRENT_TREE => 9,
+};
+
+
+# make Alt_L and Alt_R work correctly on Darwin
+if ($^O eq 'darwin') {
+  my $xmodmap = File::Spec->catfile($libDir,'xmodmap.darwin');
+  warn "Using xmodmap: $xmodmap\n" unless $opt_q;
+  system('xmodmap', $xmodmap) if -f $xmodmap;
+}
+
+require Tk::widgets;
+import Tk::widgets
+  qw(Frame Pane LabFrame Listbox HList Menu
+     ItemStyle DialogBox Tiler BrowseEntry Panedwindow Dialog DialogBox
+     Scale Adjuster Entry Text);
+require Tk::Font;
 
 # import encode and decode functions
 require TrEd::Convert;
@@ -459,6 +430,7 @@ eval { require TrEd::Help; };
 
 require Filelist;
 
+require Tk::MiscWorkarounds;
 require Tk::MyFileSelect;
 require Tk::ImgButton;
 require Tk::BindButtons;
@@ -483,17 +455,6 @@ warn $@ if $@;
 
 $stdout=\*STDOUT;
 $stderr=\*STDERR;
-
-
-use Exporter;
-@ISA=qw(Exporter);
-
-@EXPORT= qw($insideEval
-            $libDir $stderr $stdout
-            @openfiles @filelists &min &max);
-
-
-
 
 %backend_map=(
 	      fs => 'FSBackend',
@@ -725,6 +686,161 @@ my %default_binding = (
     ],
  );
 
+
+ApplyGlobalConfig();
+
+# it seems, that under Windoze setting LC_NUMERIC back to us does not
+# work, so I recommend not to use czech locales there, unless you
+# really want the decimal points to be replaced by commas in
+# postscript:-)
+use locale;
+use POSIX qw(locale_h);
+
+eval {
+  ($TrEd::Config::useLocales) && do {
+    $ENV{LC_ALL}=undef;
+    setlocale(LC_ALL,undef);
+
+    if ($TrEd::Convert::support_unicode) {
+      my $lc_collate=setlocale(LC_COLLATE);
+      if ($lc_collate !~ /\.utf-?8/i) {
+	setlocale(LC_COLLATE,$lc_collate.".UTF-8");
+      }
+      my $lc_ctype=setlocale(LC_CTYPE);
+      $lc_ctype=~s/\.utf-?8//i; # Tk doesn't support this
+      setlocale(LC_CTYPE,$lc_ctype);
+    }
+    setlocale(LC_NUMERIC,"C");
+  };
+
+  ($TrEd::Config::useCzechLocales or
+     setlocale('LANG') =~ /^cs_CZ|^czech/) && do {
+       $ENV{LC_ALL}=undef;
+       setlocale(LC_ALL,undef);
+
+       if ($TrEd::Convert::support_unicode) {
+	 setlocale(LC_COLLATE,"cs_CZ.UTF-8");
+	 setlocale('LANG',"cs_CZ.UTF-8");
+	 setlocale('LC_CTYPE',"cs_CZ");
+       } else {
+	 setlocale(LC_COLLATE,"cs_CZ");
+	 setlocale('LANG',"cs_CZ");
+       }
+       setlocale(LC_NUMERIC,"C");
+     };
+
+  setlocale(LC_MESSAGES,"C");
+};
+warn $@ if $@;
+
+eval {
+  require I18N::Langinfo;
+  $locale_charset = I18N::Langinfo::langinfo(I18N::Langinfo::CODESET());
+};
+
+print STDERR "Creating filelists...\n" if $tredDebug;
+
+{
+  my $default= new Filelist('Default');
+  $default->add(0,map {
+    my ($filename,$suffix)=parseFileSuffix($_);
+    IOBackend::make_abs_URI($filename)->as_string.$suffix
+    } @ARGV) if @ARGV;
+  addNewFilelist(undef,$default);
+}
+
+createCmdLineFilelists();
+createBookmarksFilelist();
+loadStdFilelists();
+
+$insideEval=0;
+
+my %searchTemplate;
+
+%pckey_shift_translates= (exclam=> 1, at=> 2, numbersign=> 3,
+			   dollar=> 4, percent=> 5, asciicircum=> 6,
+			   ampersand=> 7, asterisk=> 8, parenleft=> 9,
+			   parenright=> 0, plus=> 'equal',
+			   underscore=> 'minus',
+			   less=> 'comma', greater=> 'period', 
+			   question=> 'slash',
+			   colon=> 'semicolon', quotedbl=> 'apostroph',
+			   braceleft=> 'bracketleft', 
+			   braceright=> 'bracketright',
+			   bar=> 'backslash', asciitilde=> 'grave'
+			  );
+
+$opt_R && Csts2fs::setupTR();
+if ($opt_X ne EMPTY) {
+  Csts2fs::setupSpec(split ',',$opt_X,-1);
+  Fs2csts::setupSpec(split ',',$opt_X,-1);
+}
+
+print STDERR "Reading macros from $macroFile...\n" unless $opt_q;
+
+startMain(); # start the whole thing
+
+print STDERR "TrEd ended.\n" unless $opt_q;
+
+exit_tred();
+
+############################################################
+#
+# Implementation and auxiliary functions
+#
+############################################################
+
+sub createCmdLineFilelists {
+  # create Default filelists
+  return unless ($opt_l);
+  my @fl_files;
+  my $fh;
+  foreach my $l (split /\s*,\s*/,$opt_l) {
+    print STDERR "Reading -l filelist $l...\n" if $tredDebug;
+    if ($l eq '-') {
+      $fh=\*STDIN;
+    } else {
+      open($fh,'<',$l) or do {
+	print STDERR "Warning: Cannot open filelist $l: ".conv_from_locale($!)."\n";
+	next;
+      };
+    }
+    my @f=<$fh>;
+    shift @f if ($l=~/\.fl$/i and $f[0]!~m{[/.]} and ! -f absolutize($f[0]));
+    s/\s+$// for @f;
+    if ($l=~/\.fl$/i) {
+      # make realtive filenames absolute relative to the .fl file
+      @f=map { Fslib::ResolvePath($l,$_) } @f;
+    } else {
+      @f=absolutize(@f);
+    }
+    push @fl_files,\@f;
+
+    close($fh) unless $fh==\*STDIN; # we don't close STDIN to avoid problems 
+    # with open2 due to unresolved bug in perl: 
+    # http://rt.perl.org/rt3/Public/Bug/Display.html?id=37033
+    # If this turns out to be a problem, using eval('close($fh)') should work as well.
+  }
+  # define filelists CmdLine-1, CmdLine-2, etc.
+  my $fl_no=1;
+  foreach my $files (grep {@$_} @fl_files) {
+    my $fl = new Filelist('CmdLine-'.$fl_no);
+    $fl->add_arrayref(0, $files);
+    addNewFilelist(undef,$fl);
+    $fl_no++;
+  }
+  print STDERR "Done...\n" if $tredDebug;
+}
+
+sub createBookmarksFilelist {
+  # create Bookmarks filelist
+  unless (bookmarkFilelist()) {
+    print "Bookmarks: ".$ENV{HOME}.'/.tred_bookmarks'."\n" if $tredDebug;
+    my $bookmarks= new Filelist('Bookmarks',$ENV{HOME}.'/.tred_bookmarks');
+    addNewFilelist(undef,$bookmarks);
+  }
+}
+
 sub gotoFirstDisplayedNode {
   my $win = cast_to_win( $_[0] );
   my $tv = $win->treeView;
@@ -795,161 +911,6 @@ sub get_default_binding {
   return $def ? [@$def[0,1]] : [];
 }
 
-ApplyGlobalConfig();
-
-# it seems, that under Windoze setting LC_NUMERIC back to us does not
-# work, so I recommend not to use czech locales there, unless you
-# really want the decimal points to be replaced by commas in
-# postscript:-)
-use locale;
-use POSIX qw(locale_h);
-
-eval {
-  ($TrEd::Config::useLocales) && do {
-    $ENV{LC_ALL}=undef;
-    setlocale(LC_ALL,undef);
-
-    if ($TrEd::Convert::support_unicode) {
-      my $lc_collate=setlocale(LC_COLLATE);
-      if ($lc_collate !~ /\.utf-?8/i) {
-	setlocale(LC_COLLATE,$lc_collate.".UTF-8");
-      }
-      my $lc_ctype=setlocale(LC_CTYPE);
-      $lc_ctype=~s/\.utf-?8//i; # Tk doesn't support this
-      setlocale(LC_CTYPE,$lc_ctype);
-    }
-    setlocale(LC_NUMERIC,"C");
-  };
-
-  ($TrEd::Config::useCzechLocales or
-     setlocale('LANG') =~ /^cs_CZ|^czech/) && do {
-       $ENV{LC_ALL}=undef;
-       setlocale(LC_ALL,undef);
-
-       if ($TrEd::Convert::support_unicode) {
-	 setlocale(LC_COLLATE,"cs_CZ.UTF-8");
-	 setlocale('LANG',"cs_CZ.UTF-8");
-	 setlocale('LC_CTYPE',"cs_CZ");
-       } else {
-	 setlocale(LC_COLLATE,"cs_CZ");
-	 setlocale('LANG',"cs_CZ");
-       }
-       setlocale(LC_NUMERIC,"C");
-     };
-
-  setlocale(LC_MESSAGES,"C");
-};
-warn $@ if $@;
-
-if ($]>=5.008) {
-  eval {
-    require I18N::Langinfo;
-    $locale_charset = I18N::Langinfo::langinfo(I18N::Langinfo::CODESET());
-  };
-}
-
-sub conv_from_locale {
-  my ($str)=@_;
-  if ($locale_charset and $TrEd::Convert::support_unicode) {
-    require Encode;
-    return Encode::decode($locale_charset,$str);
-  } else {
-    return $str;
-  }
-}
-
-
-print STDERR "Creating filelists...\n" if $tredDebug;
-
-{
-  my $default= new Filelist('Default');
-  $default->add(0,map {
-    my ($filename,$suffix)=parseFileSuffix($_);
-    IOBackend::make_abs_URI($filename)->as_string.$suffix
-    } @ARGV) if @ARGV;
-  addNewFilelist(undef,$default);
-}
-
-if ($opt_l) {
-  # create Default filelists
-  my @fl_files;
-  my $fh;
-  foreach my $l (split /\s*,\s*/,$opt_l) {
-    print STDERR "Reading -l filelist $l...\n" if $tredDebug;
-    if ($l eq '-') {
-      $fh=\*STDIN;
-    } else {
-      open($fh,'<',$l) or do {
-	print STDERR "Warning: Cannot open filelist $l: ".conv_from_locale($!)."\n";
-	next;
-      };
-    }
-    my @f=<$fh>;
-    shift @f if ($l=~/\.fl$/i and $f[0]!~m{[/.]} and ! -f absolutize($f[0]));
-    s/\s+$// for @f;
-    if ($l=~/\.fl$/i) {
-      # make realtive filenames absolute relative to the .fl file
-      @f=map { Fslib::ResolvePath($l,$_) } @f;
-    } else {
-      @f=absolutize(@f);
-    }
-    push @fl_files,\@f;
-
-    close($fh) unless $fh==\*STDIN; # we don't close STDIN to avoid problems 
-    # with open2 due to unresolved bug in perl: 
-    # http://rt.perl.org/rt3/Public/Bug/Display.html?id=37033
-    # If this turns out to be a problem, using eval('close($fh)') should work as well.
-  }
-  # define filelists CmdLine-1, CmdLine-2, etc.
-  my $fl_no=1;
-  foreach my $files (grep {@$_} @fl_files) {
-    my $fl = new Filelist('CmdLine-'.$fl_no);
-    $fl->add_arrayref(0, $files);
-    addNewFilelist(undef,$fl);
-    $fl_no++;
-  }
-  print STDERR "Done...\n" if $tredDebug;
-  # create Bookmarks filelist
-  unless (bookmarkFilelist()) {
-    print "Bookmarks: ".$ENV{HOME}.'/.tred_bookmarks'."\n" if $tredDebug;
-    my $bookmarks= new Filelist('Bookmarks',$ENV{HOME}.'/.tred_bookmarks');
-    addNewFilelist(undef,$bookmarks);
-  }
-}
-
-loadStdFilelists();
-
-$insideEval=0;
-
-my %searchTemplate;
-
-%pckey_shift_translates= (exclam=> 1, at=> 2, numbersign=> 3,
-			   dollar=> 4, percent=> 5, asciicircum=> 6,
-			   ampersand=> 7, asterisk=> 8, parenleft=> 9,
-			   parenright=> 0, plus=> 'equal',
-			   underscore=> 'minus',
-			   less=> 'comma', greater=> 'period', 
-			   question=> 'slash',
-			   colon=> 'semicolon', quotedbl=> 'apostroph',
-			   braceleft=> 'bracketleft', 
-			   braceright=> 'bracketright',
-			   bar=> 'backslash', asciitilde=> 'grave'
-			  );
-
-$opt_R && Csts2fs::setupTR();
-if ($opt_X ne EMPTY) {
-  Csts2fs::setupSpec(split ',',$opt_X,-1);
-  Fs2csts::setupSpec(split ',',$opt_X,-1);
-}
-
-print STDERR "Reading macros from $macroFile...\n" unless $opt_q;
-
-startMain();	# display first tree
-
-print STDERR "TrEd ended.\n" unless $opt_q;
-
-exit_tred();
-
 sub exit_tred {
   if (open(my $fh, '<',$pid_file)) {
     my $pid = <$fh>;
@@ -964,9 +925,15 @@ sub exit_tred {
   }
 }
 
-############################
-############################
-############################
+sub conv_from_locale {
+  my ($str)=@_;
+  if ($locale_charset and $TrEd::Convert::support_unicode) {
+    require Encode;
+    return Encode::decode($locale_charset,$str);
+  } else {
+    return $str;
+  }
+}
 
 sub icon {
   my ($grp, $name)=@_;
@@ -1122,9 +1089,9 @@ sub bookmarkFilelist {
   return findFilelist('Bookmarks')
 }
 
+
 sub setConfig {
   my $confs=shift;
-
   foreach (0..9) {
     $recentFiles[$_]=$confs->{"recentfile$_"};
   }
@@ -1144,9 +1111,6 @@ sub setConfig {
     warn $@ if $@;
   }
   $autoSave = $opt_auto_save if defined $opt_auto_save;
-#    $CSTSBackend::csts2fs=$cstsToFs;
-#    $CSTSBackend::fs2csts=$fsToCsts;
-
   print STDERR "Applying configuration.\n" if $tredDebug;
 }
 
@@ -3025,6 +2989,10 @@ sub initSidePanel {
 	},
       },
       enable_callback => sub{ 0 },
+      attribute_sort_callback => [ sub {
+				     my ($grp,$array)=@_;
+				     return doEvalHook($grp->{focusedWindow},'sort_attrs_hook',$array);
+				   }, $grp ],
       no_focus => 1,
     });
     $cb->configure(-variable => \$attrsView->Subwidget('scrolled')->{userdata}{hide_empty});
@@ -5916,7 +5884,7 @@ sub About {
 	       -type=> 'ok',
 	       -message=>
 		 "This is Tree Editor TrEd\nVersion $ver\nRunning Tk $Tk::VERSION\n\n".
-	       "\n\n$fileinfo$contextinfo$colinf$message\n$about\n",
+	       "\n\n$fileinfo$contextinfo$colinf$message\n".ABOUT."\n",
 	       -title=> 'About');
 }
 
@@ -6421,15 +6389,18 @@ sub startMain {
   my $firstFile=shift;
   my $node;
   my $parent;
-  my %group;
+  my %tred; # gathers TrEd window global data, also referred to as $grp, the 'frame group'
+            # since we thought that in the future we'll support multiple windows
+            # and windows are called frames in the emacs terminlology
 
   my $top;
   if ($opt_W) {
-    $top=MainWindow->new(-use => $opt_W);
+    $top=Tk::MainWindow->new(-use => $opt_W);
   } else {
-    $top=MainWindow->new();
+    $top=Tk::MainWindow->new();
   }
-  $group{top} = $top;
+  Tk::MiscWorkarounds::apply_workarounds($top);
+  $tred{top} = $top;
 
   $IOBackend::lwp_user_agent = TrEd::UserAgent->new($top, keep_alive=>1);
 
@@ -6516,17 +6487,17 @@ sub startMain {
   if ($TrEd::Convert::support_unicode) {
     $top->useinputmethods(1);
   }
-  my $preparedExtensions = prepareExtensions(\%group);
-  loadStyleSheets(\%group);
+  my $preparedExtensions = prepareExtensions(\%tred);
+  loadStyleSheets(\%tred);
 
-  $group{autoSaveCallback}=$top->repeat($autoSave*60000,
-					       [\&autoSaveAll,\%group]) if $autoSave>0;
+  $tred{autoSaveCallback}=$top->repeat($autoSave*60000,
+					       [\&autoSaveAll,\%tred]) if $autoSave>0;
 
-  $group{folderImage}= icon(\%group,'folder');
-  $group{fileImage}  = icon(\%group,'document');
-  $group{lastActionBookmark}= $lastAction;
-  $group{selectedContext}=  $opt_t || 'TredMacro';
-  $group{buildTGTSfromCSTS}=$opt_R;
+  $tred{folderImage}= icon(\%tred,'folder');
+  $tred{fileImage}  = icon(\%tred,'document');
+  $tred{lastActionBookmark}= $lastAction;
+  $tred{selectedContext}=  $opt_t || 'TredMacro';
+  $tred{buildTGTSfromCSTS}=$opt_R;
 
   if (not $opt_G and defined($geometry) and length($geometry)) {
     if ($geometry=~/^(.*)x(.*)\+([0-9]+)\+([0-9]+)/) {
@@ -6542,10 +6513,10 @@ sub startMain {
     $top->sizefrom('program');
     $top->geometry($geometry);
   }
-  prepareFonts(\%group);
-  $group{treeWindows}=[];
-  $group{focusedWindow}=newTrEdWindow(\%group);
-  my $canvas = $group{focusedWindow}->canvas();
+  prepareFonts(\%tred);
+  $tred{treeWindows}=[];
+  $tred{focusedWindow}=newTrEdWindow(\%tred);
+  my $canvas = $tred{focusedWindow}->canvas();
   $canvas->configure(@focused_win_opts);
 
   print STDERR "Main window created.\n" if $tredDebug;
@@ -6562,18 +6533,18 @@ sub startMain {
   print STDERR "Asking wm for exit-hook.\n" if $tredDebug;
 
   $top->
-    protocol('WM_DELETE_WINDOW'=> [\&quit,\%group]);
+    protocol('WM_DELETE_WINDOW'=> [\&quit,\%tred]);
 
 
   print STDERR "Exit hook created.\n" if $tredDebug;
 
-  $group{Balloon}=$top->Balloon(-initwait=> $toolbarBalloonInitWait,
+  $tred{Balloon}=$top->Balloon(-initwait=> $toolbarBalloonInitWait,
 				       -balloonposition=> 'mouse',
 				       -state=> 'balloon',
 				      );
-  $group{Balloon}->Subwidget('message')->configure(-foreground=> $toolbarBalloonForeground);
-  $group{Balloon}->Tk::Toplevel::configure(-background=> $toolbarBalloonBackground);
-  $group{Toolbar}=$top->Frame;
+  $tred{Balloon}->Subwidget('message')->configure(-foreground=> $toolbarBalloonForeground);
+  $tred{Balloon}->Tk::Toplevel::configure(-background=> $toolbarBalloonBackground);
+  $tred{Toolbar}=$top->Frame;
 
   print STDERR "Creating menubar.\n" if $tredDebug;
 
@@ -6589,18 +6560,18 @@ sub startMain {
 
   # We need to pack in an optionmenu, so we cannot use menubar on windows
   # and cannot use Toplevel->configure(-menu) on other systems
-  my $main_menu = $group{main_menu} = TrEd::Menu->new(_load_menus(\%group));
+  my $main_menu = $tred{main_menu} = TrEd::Menu->new(_load_menus(\%tred));
   my $menubar;
   if ($^O eq 'MSWin32') {
-    $menubar = $group{Menubar} = $group{MenubarFrame} =
-      $group{main_menu}->create_menu_frame($top, 'MENUBAR', { -relief=> $menubarRelief });
+    $menubar = $tred{Menubar} = $tred{MenubarFrame} =
+      $tred{main_menu}->create_menu_frame($top, 'MENUBAR', { -relief=> $menubarRelief });
   } else {
-    $group{MenubarFrame}=$top->Frame();
-    $menubar = $group{Menubar} =
-      $group{main_menu}->create_menubar($group{MenubarFrame}, 'MENUBAR', { -relief=> $menubarRelief });
+    $tred{MenubarFrame}=$top->Frame();
+    $menubar = $tred{Menubar} =
+      $tred{main_menu}->create_menubar($tred{MenubarFrame}, 'MENUBAR', { -relief=> $menubarRelief });
     $menubar->pack(qw/-fill x -expand 1 -side left/);
   }
-  $group{MenubarFrame}->pack(qw/-fill x/);
+  $tred{MenubarFrame}->pack(qw/-fill x/);
   $menubar->bind('Tk::Menu','<Tab>',['NextEntry',1]);
   $menubar->bind('Tk::Menu','<<LeftTab>>',['NextEntry',-1]);
   $top->Frame(qw/-relief sunken -height 2 -borderwidth 2/)->pack(qw/-fill x/);
@@ -6626,46 +6597,46 @@ sub startMain {
     );
     my ($k,$v)=@_;
     while (($k,$v) = each %map) {
-      $group{$k}=$main_menu->lookup_menu_item($v);
+      $tred{$k}=$main_menu->lookup_menu_item($v);
     }
-    my $recentFileMenu = $group{RecentFileMenu};
+    my $recentFileMenu = $tred{RecentFileMenu};
     my $i=0;
     foreach (@recentFiles) {
       $recentFileMenu->command(-label => "$i.  $_",
 			       -underline=> 0,
-			       -command=> [\&openStandaloneFile,\%group,$_]);
+			       -command=> [\&openStandaloneFile,\%tred,$_]);
       $i++;
     }
   }
 
-  $group{templateMatchMethod}=$defaultTemplateMatchMethod;
-  $group{macroListOrder}=$defaultMacroListOrder;
+  $tred{templateMatchMethod}=$defaultTemplateMatchMethod;
+  $tred{macroListOrder}=$defaultMacroListOrder;
 
-  $group{selectedContext} =  'TredMacro' unless exists($keyBindings{ $group{selectedContext} });
+  $tred{selectedContext} =  'TredMacro' unless exists($keyBindings{ $tred{selectedContext} });
 
-  $group{ContextsMenu}=$group{MenubarFrame}->Optionmenu(-options => [],
- 	       -textvariable=> \$group{selectedContext},
+  $tred{ContextsMenu}=$tred{MenubarFrame}->Optionmenu(-options => [],
+ 	       -textvariable=> \$tred{selectedContext},
                -font => 'C_small',
  	       -command=> [sub { my ($grp,$context) = @_;
  				 switchContext($grp->{focusedWindow}, $context);
- 			       },\%group],
+ 			       },\%tred],
  	       -relief=> 'groove', #$menubarRelief,
  	       -borderwidth=> 2)->pack(qw/-side right -padx 5/);
 
-  $group{ContextsMenu}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
-  $group{ContextsMenuLabel}=$group{MenubarFrame}->Label(-text=>'Mode:',
+  $tred{ContextsMenu}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
+  $tred{ContextsMenuLabel}=$tred{MenubarFrame}->Label(-text=>'Mode:',
 							-font => 'C_small',
 							-underline=>1)->pack(qw/-side right/);
-  $group{Balloon}->attach($group{ContextsMenu}, -balloonmsg=> "Annotation Mode");
+  $tred{Balloon}->attach($tred{ContextsMenu}, -balloonmsg=> "Annotation Mode");
 
 
-  addBindTags($group{Toolbar},'my');
+  addBindTags($tred{Toolbar},'my');
 
-  updateBookmarks(\%group);
+  updateBookmarks(\%tred);
 
-  $group{vLineFrame}=$top->Frame();
-  $group{valueLine}=
-    $group{vLineFrame}->
+  $tred{vLineFrame}=$top->Frame();
+  $tred{valueLine}=
+    $tred{vLineFrame}->
       Scrolled(qw/ROText
 		  -takefocus 0
 		  -state disabled
@@ -6675,11 +6646,11 @@ sub startMain {
 		  -font => $vLineFont,
 		  -height => $valueLineHeight,
 	      );
-  _deleteMenu($group{valueLine}->Subwidget('scrolled')->menu,'File');
-  my $bf = $group{bottomFrame}=$top->Frame;
+  _deleteMenu($tred{valueLine}->Subwidget('scrolled')->menu,'File');
+  my $bf = $tred{bottomFrame}=$top->Frame;
   if ($displayStatusLine) {
 #c		  -background white
-    my $sl= $group{statusLine}=
+    my $sl= $tred{statusLine}=
       $bf->
 	ROText(qw(-takefocus 0
 		  -state disabled
@@ -6698,7 +6669,7 @@ sub startMain {
 				doEvalHook($win,"status_line_click_hook",
 					   $w->tagNames($w->index($Ev->xy)));
 				Tk->break;
-			      },\%group]
+			      },\%tred]
 			   );
     $sl->bind('<Double-1>',
 			    [sub {
@@ -6708,23 +6679,23 @@ sub startMain {
 				doEvalHook($win,"status_line_doubleclick_hook",
 					   $w->tagNames($w->index($Ev->xy)));
 				Tk->break;
-			      },\%group]
+			      },\%tred]
 			   );
     $sl->pack(qw/-side left -fill x -expand yes/);
   }
   {
-    $group{minorModesMenu} = $bf->Menubutton(-image=>icon(\%group,'puzzle'),-direction=>'above')->pack(-side => 'left',-expand => 'no');
-    my $menu = $group{minorModesMenu}->menu(qw/-tearoff 0/);
-    $group{minorModesMenu}->configure(-menu => $menu);
-    $group{minorModesLabelFrame} = $bf->Frame()->pack(-side => 'left',-expand => 'no',-padx=>5);
-    $group{minorModesLabels}={};
-    $group{Balloon}->attach($group{minorModesMenu},
+    $tred{minorModesMenu} = $bf->Menubutton(-image=>icon(\%tred,'puzzle'),-direction=>'above')->pack(-side => 'left',-expand => 'no');
+    my $menu = $tred{minorModesMenu}->menu(qw/-tearoff 0/);
+    $tred{minorModesMenu}->configure(-menu => $menu);
+    $tred{minorModesLabelFrame} = $bf->Frame()->pack(-side => 'left',-expand => 'no',-padx=>5);
+    $tred{minorModesLabels}={};
+    $tred{Balloon}->attach($tred{minorModesMenu},
 			    -balloonmsg=> "Enable/disable additional features\n(a.k.a. minor modes)");
   }
   {
-    $group{canvasScale}=0;
-    $group{canvasScaleLabel} = $bf->Label(-text=>'Scale: 100%')->pack(-side => 'left',-expand => 'no');
-    my $slider = $group{canvasScaleWidget} = $bf->Scale(
+    $tred{canvasScale}=0;
+    $tred{canvasScaleLabel} = $bf->Label(-text=>'Scale: 100%')->pack(-side => 'left',-expand => 'no');
+    my $slider = $tred{canvasScaleWidget} = $bf->Scale(
       -from => -2,
       -to=>2,
       -font => 'C_small',
@@ -6734,284 +6705,284 @@ sub startMain {
       -showvalue => 0,
       -resolution => 0.1,
       -borderwidth => 1,
-      -variable => \$group{canvasScale},
+      -variable => \$tred{canvasScale},
       -command => [sub {
 		     my ($grp,$step) = @_;
 		     $grp->{focusedWindow}->treeView->scale($step,$grp->{focusedWindow}->{currentNode});
 		     updateScaleFactor($grp);
-		   },\%group],
+		   },\%tred],
       -orient => 'horizontal' )->pack(-side => 'left',-expand => 'no');
     $slider->bindtags([$slider,ref($slider),$slider->toplevel,'all']);
     $slider->bind($slider,'<3>', sub{ $slider->set(0); Tk->break; } );
   }
-  $group{valueLine}->tagConfigure('current',
+  $tred{valueLine}->tagConfigure('current',
 				  -background => $valueLineFocusBackground,
 				  -foreground => $valueLineFocusForeground,
 				 );
   for my $modif ('',qw(Shift Control Alt Meta)) {
     my $m=$modif ? $modif.'-' : '';
     for my $but ((map 'Double-'.$_, 1..3), 1..3) {
-      $group{valueLine}->bind(qq{<${m}${but}>},[\&valueLineClick,\%group,$modif,$but]);
+      $tred{valueLine}->bind(qq{<${m}${but}>},[\&valueLineClick,\%tred,$modif,$but]);
     }
   }
 
-  $group{vLineSeparator}=$top->Adjuster();
+  $tred{vLineSeparator}=$top->Adjuster();
   eval { # supported only on some platforms/version of Tk
-    $group{valueLine}->configure(-foreground => $valueLineForeground,
+    $tred{valueLine}->configure(-foreground => $valueLineForeground,
                                  -background => $valueLineBackground);
   };
-  $group{valueLine}->BindMouseWheelHoriz();
+  $tred{valueLine}->BindMouseWheelHoriz();
 
   print STDERR "Creating buttons.\n" if $tredDebug;
 
-  $group{nextButton}=
-    $group{Toolbar}->Button(-takefocus=>0,
+  $tred{nextButton}=
+    $tred{Toolbar}->Button(-takefocus=>0,
 			  -text=> "Next",
 			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"1rightarrow"),
+			  -image=> icon(\%tred,"1rightarrow"),
 			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=>
-			  [\&tieNextTree,\%group]);
-  $group{Balloon}->attach($group{nextButton},
+			  [\&tieNextTree,\%tred]);
+  $tred{Balloon}->attach($tred{nextButton},
 			  -balloonmsg=> "see the next tree in the file");
-  addBindTags($group{nextButton},'my');
+  addBindTags($tred{nextButton},'my');
 
-  $group{prevButton}=
-    $group{Toolbar}->Button(-takefocus=>0, -text=> "Prev",
+  $tred{prevButton}=
+    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Prev",
 			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"1leftarrow"),
+			  -image=> icon(\%tred,"1leftarrow"),
 			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=>
-			  [\&tiePrevTree,\%group]);
-  $group{Balloon}->attach($group{prevButton},
+			  [\&tiePrevTree,\%tred]);
+  $tred{Balloon}->attach($tred{prevButton},
 			  -balloonmsg=> "see the previous tree the file");
-  addBindTags($group{prevButton},'my');
+  addBindTags($tred{prevButton},'my');
 
-  $group{openButton}=
-    $group{Toolbar}->Button(-takefocus=>0, -text=> "Open",
+  $tred{openButton}=
+    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Open",
 			  -relief=> $buttonsRelief,
 			  -image=>
-			  icon(\%group,"fileopen"),
+			  icon(\%tred,"fileopen"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=>
-			  [\&fileDialog,\%group])
+			  [\&fileDialog,\%tred])
       ->pack(-side=>'left');
-  $group{Balloon}->attach($group{openButton},
+  $tred{Balloon}->attach($tred{openButton},
 		 -balloonmsg=> "open file");
-  addBindTags($group{openButton},'my');
-  $group{saveButton}=
-    $group{Toolbar}->Button(-takefocus=>0, -text=> "Save",
+  addBindTags($tred{openButton},'my');
+  $tred{saveButton}=
+    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Save",
 			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"filesave"),
+			  -image=> icon(\%tred,"filesave"),
 			  -state => 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&saveFile,\%group])->pack(-side=>'left');
+			  -command=> [\&saveFile,\%tred])->pack(-side=>'left');
 
-  $group{Balloon}->attach($group{saveButton},
+  $tred{Balloon}->attach($tred{saveButton},
 			  -balloonmsg=> "save current file");
-  addBindTags($group{saveButton},'my');
+  addBindTags($tred{saveButton},'my');
 
-  $group{reloadButton}=
-    $group{Toolbar}->Button(-takefocus=>0, -text=> "Reload",
+  $tred{reloadButton}=
+    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Reload",
 			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"reload"),
+			  -image=> icon(\%tred,"reload"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&reloadFile,\%group])->pack(-side=>'left');
+			  -command=> [\&reloadFile,\%tred])->pack(-side=>'left');
 
-  $group{Balloon}->attach($group{reloadButton},
+  $tred{Balloon}->attach($tred{reloadButton},
 			  -balloonmsg=> "reload current file");
-  addBindTags($group{reloadButton},'my');
+  addBindTags($tred{reloadButton},'my');
 
 
   ###################
 
-  $group{prevFileButton}=
-    $group{Toolbar}->Button(-takefocus=>0, -text=> "Prev file",
+  $tred{prevFileButton}=
+    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Prev file",
 			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"start"),
+			  -image=> icon(\%tred,"start"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&tiePrevFile,\%group])->pack(-side=>'left');
-  $group{Balloon}->attach($group{prevFileButton},
+			  -command=> [\&tiePrevFile,\%tred])->pack(-side=>'left');
+  $tred{Balloon}->attach($tred{prevFileButton},
 			  -balloonmsg=> "visit the previous file in the file-list");
-  addBindTags($group{prevFileButton},'my');
+  addBindTags($tred{prevFileButton},'my');
 
-  $group{nextFileButton}=
-    $group{Toolbar}->Button(-takefocus=>0, -text=> "Next file",
+  $tred{nextFileButton}=
+    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Next file",
 			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"finish"),
+			  -image=> icon(\%tred,"finish"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&tieNextFile,\%group])->pack(-side=>'left');
-  $group{Balloon}->attach($group{nextFileButton},
+			  -command=> [\&tieNextFile,\%tred])->pack(-side=>'left');
+  $tred{Balloon}->attach($tred{nextFileButton},
 			  -balloonmsg=> "visit the next file in the file-list");
-  addBindTags($group{nextFileButton},'my');
+  addBindTags($tred{nextFileButton},'my');
   # bind action control
   for my $bind ([nextFileButton => \&nextRealFile],
 		[prevFileButton => \&prevRealFile]) {
-    my $button = $group{$bind->[0]};
+    my $button = $tred{$bind->[0]};
     my $cmd = $bind->[1];
     $button->bindtags([$button, ref($button), $button->toplevel, 'all']);
     $button->bind($button, '<Control-ButtonRelease-1>',
 		  sub {
 		    $button->flash();
-		    $cmd->(\%group);
+		    $cmd->(\%tred);
 		    Tk->break;
 		  });
   }
 
-  $group{printButton}=
-    $group{Toolbar}->Button(-takefocus=>0, -text=> "Print",
+  $tred{printButton}=
+    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Print",
 			  -relief=> $buttonsRelief,
-			  -image      => icon(\%group,"fileprint"),
+			  -image      => icon(\%tred,"fileprint"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [sub { printThis(@_) },\%group])->pack(-side=>'left');
-  $group{Balloon}->attach($group{printButton},
+			  -command=> [sub { printThis(@_) },\%tred])->pack(-side=>'left');
+  $tred{Balloon}->attach($tred{printButton},
 			  -balloonmsg=> "print ...");
-  addBindTags($group{printButton},'my');
+  addBindTags($tred{printButton},'my');
 
 
   #####################
-  $group{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+  $tred{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
     ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
 
   # Undo button
 
-  $group{undoButton}=
-    $group{Toolbar}->Button(-takefocus=>0, -text=> "Undo",
+  $tred{undoButton}=
+    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Undo",
 			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"undo"),
+			  -image=> icon(\%tred,"undo"),
 			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&undo,\%group])->pack(-side=>'left');
-  $group{Balloon}->attach($group{undoButton},
+			  -command=> [\&undo,\%tred])->pack(-side=>'left');
+  $tred{Balloon}->attach($tred{undoButton},
 			  -balloonmsg=> "undo current file");
-  addBindTags($group{undoButton},'my');
+  addBindTags($tred{undoButton},'my');
 
   # Redo button
 
-  $group{redoButton}=
-    $group{Toolbar}->Button(-takefocus=>0, -text=> "Redo",
+  $tred{redoButton}=
+    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Redo",
 			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"redo"),
+			  -image=> icon(\%tred,"redo"),
 			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&re_do,\%group])->pack(-side=>'left');
+			  -command=> [\&re_do,\%tred])->pack(-side=>'left');
     
-  $group{Balloon}->attach($group{redoButton},
+  $tred{Balloon}->attach($tred{redoButton},
 			  -balloonmsg=> "redo current file");
-  addBindTags($group{redoButton},'my');
+  addBindTags($tred{redoButton},'my');
 
   #####################
-  $group{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+  $tred{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
     ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
 
 
-  $group{findButton}=
-    $group{Toolbar}->Button(-takefocus=>0, -text=> "Find",
+  $tred{findButton}=
+    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Find",
 			  -relief=> $buttonsRelief,
-			  -image      => icon(\%group,"searchtool"),
+			  -image      => icon(\%tred,"searchtool"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [sub {
 					my ($grp,$template)=@_;
 					findNodeDialog($grp,$template)
 					  if ($grp->{focusedWindow}->{currentNode});
-				      },\%group,\%searchTemplate])->pack(-side=>'left');
-  $group{Balloon}->attach($group{findButton},
+				      },\%tred,\%searchTemplate])->pack(-side=>'left');
+  $tred{Balloon}->attach($tred{findButton},
 			  -balloonmsg=> "Find node ...");
-  addBindTags($group{findButton},'my');
+  addBindTags($tred{findButton},'my');
 
-  $group{findNextButton}=
-    $group{Toolbar}->Button(-takefocus=>0, -text=> "Find Next",
+  $tred{findNextButton}=
+    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Find Next",
 			  -relief=> $buttonsRelief,
-			  -image      => icon(\%group,"searchtool_forward"),
+			  -image      => icon(\%tred,"searchtool_forward"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&doFindFirstTemplated,\%group,1])
+			  -command=> [\&doFindFirstTemplated,\%tred,1])
       ->pack(-side=>'left');
-  $group{Balloon}->attach($group{findNextButton},
+  $tred{Balloon}->attach($tred{findNextButton},
 			  -balloonmsg=> "Find next ...");
-  addBindTags($group{findNextButton},'my');
+  addBindTags($tred{findNextButton},'my');
 
 
-  $group{findPrevButton}=
-    $group{Toolbar}->Button(-takefocus=>0, -text=> "Find Previous",
+  $tred{findPrevButton}=
+    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Find Previous",
 			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"searchtool_backward"),
+			  -image=> icon(\%tred,"searchtool_backward"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&doFindPrevTemplated,\%group,1])
+			  -command=> [\&doFindPrevTemplated,\%tred,1])
       ->pack(-side=>'left');
-  $group{Balloon}->attach($group{findPrevButton},
+  $tred{Balloon}->attach($tred{findPrevButton},
 			  -balloonmsg=> "Find previous ...");
-  addBindTags($group{findPrevButton},'my');
+  addBindTags($tred{findPrevButton},'my');
 
-  $group{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+  $tred{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
     ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
 
-  $group{prevButton}->pack(-side=> 'left');
-  $group{nextButton}->pack(-side=> 'left');
+  $tred{prevButton}->pack(-side=> 'left');
+  $tred{nextButton}->pack(-side=> 'left');
 
   #####################
-  $group{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+  $tred{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
     ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
 
-  $group{vsplitButton}=
-    $group{Toolbar}->Button(-takefocus=>0, 
+  $tred{vsplitButton}=
+    $tred{Toolbar}->Button(-takefocus=>0, 
 			  -text=> "Split View Vertically",
 			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"view_left_right"),
+			  -image=> icon(\%tred,"view_left_right"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&splitWindow,\%group,'vert'])->pack(-side=>'left');
-  $group{Balloon}->attach($group{vsplitButton},
+			  -command=> [\&splitWindow,\%tred,'vert'])->pack(-side=>'left');
+  $tred{Balloon}->attach($tred{vsplitButton},
 			  -balloonmsg=> "split view vertically");
 
-  $group{hsplitButton}=
-    $group{Toolbar}->Button(-takefocus=>0, 
+  $tred{hsplitButton}=
+    $tred{Toolbar}->Button(-takefocus=>0, 
 			  -text=> "Split View Horizontally",
 			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"view_top_bottom"),
+			  -image=> icon(\%tred,"view_top_bottom"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&splitWindow,\%group,'horiz'])->pack(-side=>'left');
+			  -command=> [\&splitWindow,\%tred,'horiz'])->pack(-side=>'left');
 
 
-  $group{Balloon}->attach($group{hsplitButton},
+  $tred{Balloon}->attach($tred{hsplitButton},
 			  -balloonmsg=> "split view horizontally");
 
-  $group{rmsplitButton}=
-    $group{Toolbar}->Button(-takefocus=>0, 
+  $tred{rmsplitButton}=
+    $tred{Toolbar}->Button(-takefocus=>0, 
 			  -text=> "Remove Current View",
 			  -relief=> $buttonsRelief,
 			  -state => 'disabled',
-			  -image=> icon(\%group,"view_remove"),
+			  -image=> icon(\%tred,"view_remove"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&removeWindow,\%group])->pack(-side=>'left');
-  $group{Balloon}->attach($group{rmsplitButton},
+			  -command=> [\&removeWindow,\%tred])->pack(-side=>'left');
+  $tred{Balloon}->attach($tred{rmsplitButton},
 			  -balloonmsg=> "remove current view");
 
 
-  $group{tieWinddowsButton}=
-    $group{Toolbar}->Checkbutton(-takefocus=>0,
+  $tred{tieWinddowsButton}=
+    $tred{Toolbar}->Checkbutton(-takefocus=>0,
 			      -text=> "Tie Displayed Windows",
-			      -variable=> \$group{tieWindows},
+			      -variable=> \$tred{tieWindows},
 			       -relief=> $buttonsRelief,
 			      -indicatoron => 0,
-			      -image=>icon(\%group,"lock"),
+			      -image=>icon(\%tred,"lock"),
 			      -borderwidth=> $buttonBorderWidth)->pack(-side=>'left');
-  $group{Balloon}->attach($group{tieWinddowsButton},
+  $tred{Balloon}->attach($tred{tieWinddowsButton},
 			  -balloonmsg=> "tie all views");
 
-  $group{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+  $tred{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
     ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
 
-  $group{toggleUserToolbarButton}=
-    $group{Toolbar}->Menubutton(-takefocus=>0,
+  $tred{toggleUserToolbarButton}=
+    $tred{Toolbar}->Menubutton(-takefocus=>0,
 				-tearoff=>0,
 				-text=> "Toggle User Toolbars",
 				-relief=> $buttonsRelief,
 				-indicatoron => 0,
 				-state => 'disabled',
-				-image=>icon(\%group,"1downarrow"),
+				-image=>icon(\%tred,"1downarrow"),
 				-borderwidth=> $buttonBorderWidth)->pack(-side=>'left');
-  $group{Balloon}->attach($group{toggleUserToolbarButton},
+  $tred{Balloon}->attach($tred{toggleUserToolbarButton},
 			  -balloonmsg=> "toggle user-defined toolbars");
 
 
@@ -7019,78 +6990,78 @@ sub startMain {
 
 
 
-  $group{StylesheetMenu}=$group{Toolbar}->
+  $tred{StylesheetMenu}=$tred{Toolbar}->
     Optionmenu(-options => [],
 	       -font => 'C_small',
-	       -textvariable=> \$group{selectedStylesheet},
+	       -textvariable=> \$tred{selectedStylesheet},
 	       -command=> [sub { my ($grp,$stylesheet) = @_;
 				 switchStylesheet($grp, $stylesheet);
-			       },\%group],
+			       },\%tred],
 	       -relief=> 'groove', #$menubarRelief,
 	       -borderwidth=> 2)->pack(qw/-side right -padx 3/);
-  $group{attrButton}=
-    $group{Toolbar}->Button(-takefocus=>0, -text=> "Edit Stylesheet",
+  $tred{attrButton}=
+    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Edit Stylesheet",
 			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"wizard"),
+			  -image=> icon(\%tred,"wizard"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [sub { editStylesheetDialog(@_) },\%group])->pack(-side=>'right');
-  $group{Balloon}->attach($group{attrButton},
+			  -command=> [sub { editStylesheetDialog(@_) },\%tred])->pack(-side=>'right');
+  $tred{Balloon}->attach($tred{attrButton},
 			  -balloonmsg=> "customize display patterns\nof the selected stylesheet\n(e.g. change tree appearance, labels etc.)");
-  $group{StylesheetMenu}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
-  $group{StylesheetMenuLabel}=$group{Toolbar}->Label(qw/-text Style:
+  $tred{StylesheetMenu}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
+  $tred{StylesheetMenuLabel}=$tred{Toolbar}->Label(qw/-text Style:
 							-font C_small
 							-underline 2/)->pack(qw/-side right/);
-  $group{Balloon}->attach($group{StylesheetMenu},
+  $tred{Balloon}->attach($tred{StylesheetMenu},
 			  -balloonmsg=> "stylesheet (tree appearance)");
 
 
   print STDERR "Packing widgets.\n" if $tredDebug;
 
-  $group{Toolbar}->pack(-fill=> 'x', -padx=> '1', -pady=> 1);
+  $tred{Toolbar}->pack(-fill=> 'x', -padx=> '1', -pady=> 1);
 
-  $group{UserToolbarSep}=$top->Frame(qw/-relief sunken -height 2 -borderwidth 2/);
-  $group{UserToolbars}=$top->Frame();
-  addBindTags($group{UserToolbars},'my');
-  my $vlsubframe=$group{vLineFrame}->Frame();
-  $group{vLineNumLabel}=$vlsubframe->Label(-text => '-/-')->pack(qw/-side top -fill x/);
-  $group{Balloon}->attach($group{vLineNumLabel},
+  $tred{UserToolbarSep}=$top->Frame(qw/-relief sunken -height 2 -borderwidth 2/);
+  $tred{UserToolbars}=$top->Frame();
+  addBindTags($tred{UserToolbars},'my');
+  my $vlsubframe=$tred{vLineFrame}->Frame();
+  $tred{vLineNumLabel}=$vlsubframe->Label(-text => '-/-')->pack(qw/-side top -fill x/);
+  $tred{Balloon}->attach($tred{vLineNumLabel},
 			  -balloonmsg=> "position of the current tree\nin the file (current/total)");
 
-  $group{sentButton}=
+  $tred{sentButton}=
     $vlsubframe->Button(-takefocus=>0, -text=> "Sentences",
 			-relief=> $buttonsRelief,
-			-image=> icon(\%group,"contents"),
+			-image=> icon(\%tred,"contents"),
 			-borderwidth=> $buttonBorderWidth,
-			-command=> [\&viewSentences,\%group])
+			-command=> [\&viewSentences,\%tred])
       ->pack(qw/-side top -fill x/);
-  $group{Balloon}->attach($group{sentButton},
+  $tred{Balloon}->attach($tred{sentButton},
 			  -balloonmsg=> "View all trees as a list of 'sentences'...\nThis dialog also allows export to HTML.");
 
   $vlsubframe->pack(qw/-fill x -side right -padx 1 -anchor n/);
-  $group{valueLine}->pack(qw/-side left -fill both -expand yes/);
-  $group{vLineFrame}->pack(qw/-fill x -expand no/);
+  $tred{valueLine}->pack(qw/-side left -fill both -expand yes/);
+  $tred{vLineFrame}->pack(qw/-fill x -expand no/);
 
 
-  $group{vLineSeparator}->packAfter($group{vLineFrame},-side => 'top');
+  $tred{vLineSeparator}->packAfter($tred{vLineFrame},-side => 'top');
 
-  $group{bodyPane}=$top->Panedwindow();
-  $group{bottomFrame}->pack(qw/-pady 2 -side bottom -fill x -expand no/);
-  $group{bodyPane}->pack(qw/-fill both -expand yes/);
-  $group{windowFrame}=$group{bodyPane}->Pane();
-  $group{bodyPane}->add($group{windowFrame});
+  $tred{bodyPane}=$top->Panedwindow();
+  $tred{bottomFrame}->pack(qw/-pady 2 -side bottom -fill x -expand no/);
+  $tred{bodyPane}->pack(qw/-fill both -expand yes/);
+  $tred{windowFrame}=$tred{bodyPane}->Pane();
+  $tred{bodyPane}->add($tred{windowFrame});
   
-  $group{focusedWindow}->frame_widget($canvas,[],
+  $tred{focusedWindow}->frame_widget($canvas,[],
 				      [qw/-side left/])
     ->pack(qw/-expand yes -fill both/,
-	   -in => $group{windowFrame},
+	   -in => $tred{windowFrame},
 	   -side=>'right');
 
 
   # frame canvas here
   
-#  $group{sLineFrame}->pack(qw/-fill x -expand yes/);
+#  $tred{sLineFrame}->pack(qw/-fill x -expand yes/);
 
-  $group{focusedWindow}->canvas->focus;
+  $tred{focusedWindow}->canvas->focus;
 
 #  print STDERR "Binding canvas destroy...\n" if $tredDebug;
 #   addBindTags($top,'TrEdMW');
@@ -7104,7 +7075,7 @@ sub startMain {
 # 			    $geometry=~s/\+[-0-9]+\+[-0-9]+/+-3+-3/;
 # 			  }
 # 			  print "state is ",$top->state(),"\n"  if $tredDebug;
-# 			},\%group ]);
+# 			},\%tred ]);
 
   print STDERR "GUI prepared.\n" if $tredDebug;
   $top->update;
@@ -7131,41 +7102,41 @@ sub startMain {
 		        "Do you want to check for new extensions or updates?",
 		  -title => "TrEd Upgraded",
 		  -buttons => ["Manage Extensions","Later"]) =~ /Manage/) {
-      manage_extensions(\%group,0);
-      $preparedExtensions = prepareExtensions(\%group);
+      manage_extensions(\%tred,0);
+      $preparedExtensions = prepareExtensions(\%tred);
     }
   }
 
   $top->Busy(-recurse=> 1);
-  eval { loadMacros(\%group,{preparedExtensions=>$preparedExtensions}) };
+  eval { loadMacros(\%tred,{preparedExtensions=>$preparedExtensions}) };
   errorMessage($top,$@) if $@;
   print STDERR "Resource path: $Fslib::resourcePath\n" unless $opt_q;
-  print "Starting in context $group{focusedWindow}->{macroContext}\n" if $tredDebug;
-  doEvalHook($group{focusedWindow},"initialize_bindings_hook");
+  print "Starting in context $tred{focusedWindow}->{macroContext}\n" if $tredDebug;
+  doEvalHook($tred{focusedWindow},"initialize_bindings_hook");
 
-  update_macro_menus(\%group);
-  update_minor_modes(\%group);
-  updateStylesheetMenu(\%group);
-  updatePostponed(\%group);
-  updateHelpMenu(\%group, {preparedExtensions=>$preparedExtensions});
+  update_macro_menus(\%tred);
+  update_minor_modes(\%tred);
+  updateStylesheetMenu(\%tred);
+  updatePostponed(\%tred);
+  updateHelpMenu(\%tred, {preparedExtensions=>$preparedExtensions});
 
 
-  if (doEvalHook($group{focusedWindow},"init_hook") eq 'stop') {
+  if (doEvalHook($tred{focusedWindow},"init_hook") eq 'stop') {
     $top->Unbusy;
     print STDERR "Stopped by init_hook\n";
     exit_tred();
   }
   my $stylesheet=$opt_s || STYLESHEET_FROM_FILE();
-  $group{selectedStylesheet}=$stylesheet;
-  applyWindowStylesheet($group{focusedWindow},$stylesheet);
+  $tred{selectedStylesheet}=$stylesheet;
+  applyWindowStylesheet($tred{focusedWindow},$stylesheet);
 
-  toggleSidePanel(\%group);
+  toggleSidePanel(\%tred);
   if ($opt_p) {
     my $dir=$opt_p>0 ? 'vert' : 'horiz';
     for (my $i=1;$i<abs($opt_p);$i++) {
-      splitWindow(\%group,$dir);
+      splitWindow(\%tred,$dir);
     }
-    focusCanvas($group{treeWindows}->[0]->canvas,\%group);
+    focusCanvas($tred{treeWindows}->[0]->canvas,\%tred);
   }
   $top->repeat(1000,sub {1}); # otherwise SIGINT would wait till next focus
   $SIG{PIPE}=sub {
@@ -7189,7 +7160,7 @@ sub startMain {
       die "Caught SIGINT, stopping current evaluation.\nSee the error output for details...\n";
     } else {
       print STDERR "Caught SIGINT, closing all files without saving\n";
-      closeAllFiles(\%group);
+      closeAllFiles(\%tred);
       print STDERR "Good bye!\n";
       $top->destroy;
       exit_tred(1);
@@ -7198,10 +7169,10 @@ sub startMain {
 
   if (findFilelist('Default')->count == 0 and findFilelist('CmdLine-1')) {
     print STDERR "Selecting CmdLine-1 filelist." if $tredDebug;
-    selectFilelist(\%group,'CmdLine-1');
+    selectFilelist(\%tred,'CmdLine-1');
   } else {
     print STDERR "Selecting Default filelist." if $tredDebug;
-    selectFilelist(\%group,'Default');
+    selectFilelist(\%tred,'Default');
   }
   if ($opt_p) {
     my $dir=$opt_p>0 ? 'vert' : 'horiz';
@@ -7211,25 +7182,25 @@ sub startMain {
       $fl=min($opt_p,$fl);
       my $i;
       for (my $i=0;$i<$fl;$i++) {
-	focusCanvas($group{treeWindows}->[$i]->canvas,\%group);
-	selectFilelist($group{treeWindows}->[$i],"CmdLine-".($i+1));
-	gotoFile($group{treeWindows}->[$i],0);
+	focusCanvas($tred{treeWindows}->[$i]->canvas,\%tred);
+	selectFilelist($tred{treeWindows}->[$i],"CmdLine-".($i+1));
+	gotoFile($tred{treeWindows}->[$i],0);
       }
     } else {
       for (my $i=1;$i<$opt_p;$i++) {
-	focusCanvas($group{treeWindows}->[$i]->canvas,\%group);
-	$group{treeWindows}->[$i]->{currentFilelist} = $group{treeWindows}->[0]->{currentFilelist};
-	gotoFile($group{treeWindows}->[$i],$i);
+	focusCanvas($tred{treeWindows}->[$i]->canvas,\%tred);
+	$tred{treeWindows}->[$i]->{currentFilelist} = $tred{treeWindows}->[0]->{currentFilelist};
+	gotoFile($tred{treeWindows}->[$i],$i);
       }
     }
-    focusCanvas($group{treeWindows}->[0]->canvas,\%group);
-    $group{tieWindows}=1;
+    focusCanvas($tred{treeWindows}->[0]->canvas,\%tred);
+    $tred{tieWindows}=1;
   }
 
-  $group{appenddefault} = 1; #($group{focusedWindow}{currentFilelist}->count()>0);
+  $tred{appenddefault} = 1; #($tred{focusedWindow}{currentFilelist}->count()>0);
 
   # run start_hook
-  if (doEvalHook($group{focusedWindow},"start_hook") eq 'stop') {
+  if (doEvalHook($tred{focusedWindow},"start_hook") eq 'stop') {
     $top->Unbusy;
     print STDERR "Stopped by start_hook\n";
     exit_tred();
@@ -7239,9 +7210,9 @@ sub startMain {
   $top->Unbusy;
   $top->focus if ($^O eq 'MSWin32');
   if (defined $opt_e and length $opt_e) {
-    my $macro = eval "package $group{selectedContext}; sub{ $opt_e }";
+    my $macro = eval "package $tred{selectedContext}; sub{ $opt_e }";
     die $@ if $@;
-    doEvalMacro($group{focusedWindow},$macro);
+    doEvalMacro($tred{focusedWindow},$macro);
   }
 
 
@@ -7259,7 +7230,7 @@ sub startMain {
 		      $child->ButtonUp()
 		    }
 		  }
-		},\%group]);
+		},\%tred]);
   foreach my $prefix ('Alt','Meta','Mod4') {
     $top->
       bind('my',"<$prefix-KeyPress>"=>
@@ -7282,7 +7253,7 @@ sub startMain {
 		}
 		Tk->break;
 	      }
-	    }, \%group,uc($prefix).'+']);
+	    }, \%tred,uc($prefix).'+']);
   }
   foreach my $prefix ('Alt','Meta','Mod4') {
     $top->
@@ -7303,7 +7274,7 @@ sub startMain {
 		$but->ButtonUp() if $^O eq 'MSWin32';
 		Tk->break;
 	      }
-	    }, \%group,uc($prefix).'+']);
+	    }, \%tred,uc($prefix).'+']);
   }
   foreach my $prefix ('Alt','Meta','Mod4') {
     $top->
@@ -7324,16 +7295,16 @@ sub startMain {
 		$but->ButtonUp() if $^O eq 'MSWin32';
 		Tk->break;
 	      }
-	    }, \%group,uc($prefix).'+']);
+	    }, \%tred,uc($prefix).'+']);
   }
 
   #  $top->bind('my','<Control-x><KeyPress>'=>
-  #			[sub { evalMacro(@_); Tk->break; }, \%group, 'CTRL-X+' ]);
+  #			[sub { evalMacro(@_); Tk->break; }, \%tred, 'CTRL-X+' ]);
 
   $top->bind('my','<KeyPress>'=>
 			[sub {
 			   evalMacro(@_); Tk->break;
-			 }, \%group, EMPTY ]);
+			 }, \%tred, EMPTY ]);
 
   foreach (qw(Shift Control Meta Alt Control-Shift Control-Alt
               Control-Meta Alt-Shift Meta-Shift)) {
@@ -7341,7 +7312,7 @@ sub startMain {
                           Return comma period Next Prior greater less)) {
       $top->bind('my',"<$_-$event>"=>
 			    [sub { evalMacro(@_); Tk->break; },
-			     \%group, keyBind($_)."+"])
+			     \%tred, keyBind($_)."+"])
 	unless ("$_-$event" eq "Alt-KeyPress" or "$_-$event" eq "Meta-KeyPress")
     }
   }
@@ -7349,7 +7320,7 @@ sub startMain {
 #  $top->bind('all','<Tab>',undef);
 
   # New Busy window bindings
-  $top->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
+  $top->Tk::bind('Busy','<Escape>',[\&_search_busy, \%tred]);
   $top->Tk::bind('Busy','<Any-KeyPress>',[\&Tk::Widget::_busy => 1]);
   $top->Tk::bind('Busy','<Any-KeyRelease>',[\&Tk::Widget::_busy => 0]);
   $top->Tk::bind('Busy','<Any-ButtonPress>',[\&Tk::Widget::_busy => 1]);
@@ -7359,23 +7330,23 @@ sub startMain {
 
   # setup default binding
   while (my ($key, $def) = each %default_binding) {
-    $group{ $def->[2] || 'Toolbar' }->bind('my', $key => [ \&default_binding, $key, \%group ]);
+    $tred{ $def->[2] || 'Toolbar' }->bind('my', $key => [ \&default_binding, $key, \%tred ]);
   }
 
   print STDERR "done.\nStarting main loop.\n" if $tredDebug;
   print STDERR "Ready.\n" unless $opt_q;
   $SIG{USR2} = sub {
-    $group{top}->afterIdle([\&handleUSR2Signal,\%group]);
+    $tred{top}->afterIdle([\&handleUSR2Signal,\%tred]);
   };
 
   MainLoop;
-  if ($group{top}) {
-    saveRuntimeConfig(\%group);
+  if ($tred{top}) {
+    saveRuntimeConfig(\%tred);
   }
 
   # Finished ------------------------------------------
   $top=undef;
-  $group{top} = undef;
+  $tred{top} = undef;
   print STDERR "Done.\n" if $tredDebug;
 }
 
@@ -9053,12 +9024,11 @@ sub openSimpleHtml {
       errorMessage($top,"Cannot write to \"$file\"!"."\n(".conv_from_locale($!)."\nCheck file and directory permissions.\n".
 		     "\nSentences could not be saved!",1);
     my $encoding=$TrEd::Convert::outputenc;
-    if ($]>=5.008 and not $TrEd::Convert::support_unicode) {
-      _set_encoding($html,':bytes',"html-out");
+    if ($TrEd::Convert::support_unicode) {
+      setFHEncoding($html,$encoding,"html-out");
     } else {
-      _set_encoding($html,$encoding,"html-out");
+      setFHEncoding($html,':bytes',"html-out");
     }
-    
     print $html "<html>\n";
     print $html "<head>\n";
     print $html "  <meta http-equiv=\"Content-Type\" content=\"text/html;charset=".$encoding."\" />\n";
@@ -9500,10 +9470,13 @@ sub editAttrsDialog_schema {
 			   my $res = doEvalHook($win,'attr_validate_hook',$txt,$path,$node,$mtype,$editor);
 			   defined $res ? $res : 1;
 			 }, $win,$attr_path,$node ],
-
+    attribute_sort_callback => [ sub {
+				   my ($win,$array)=@_;
+				   return doEvalHook($win,'sort_attrs_hook',$array);
+				 }, $win ],
     search_field => length $attr_path ? 0 : 1,
     knit_support => 1,
-    validate_flags => PML_VALIDATE_NO_CHILDNODES(),
+    validate_flags => PML_VALIDATE_NO_CHILDNODES,
     set_command => sub {
       my ($callback)=@_;
       $win->{FSFile}->notSaved(1) if $win->{FSFile};
@@ -12416,23 +12389,6 @@ sub list_isearch {
 	return;
       }
     }
-  }
-}
-
-sub _set_encoding {
-  my ($fh, $enc, $what)=@_;
-  if ($enc and $]>=5.008) {
-    eval {
-      print STDERR ("forcing encoding $enc for $what\n") if $debug;
-      $fh->flush();
-      binmode $fh; # first get rid of all I/O layers
-      if ($enc =~ /^:/) {
-	binmode $fh,$enc;
-      } else {
-	binmode $fh,":encoding($enc)";
-      }
-    };
-    print STDERR $@ if $@;
   }
 }
 

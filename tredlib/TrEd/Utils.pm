@@ -1,8 +1,8 @@
 package TrEd::Utils;
 # pajas@ufal.ms.mff.cuni.cz          28 úno 2007
 
-use 5.006;
-use strict; 
+use 5.008;
+use strict;
 
 use Carp;
 use Data::Dumper;
@@ -48,6 +48,7 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
   parseFileSuffix
   getNodeByNo
   applyWindowStylesheet
+  setFHEncoding
 
   STYLESHEET_FROM_FILE
   NEW_STYLESHEET
@@ -561,6 +562,17 @@ sub loadStyleSheets {
   }
 }
 
+sub setFHEncoding {
+  my ($fh, $enc, $what)=@_;
+  return unless $enc;
+  $fh->flush();
+  binmode $fh; # first get rid of all I/O layers
+  if ($enc =~ /^:/) {
+    binmode $fh,$enc;
+  } else {
+    binmode $fh,":encoding($enc)";
+  }
+}
 
 1;
 __END__

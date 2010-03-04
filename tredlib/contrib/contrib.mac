@@ -96,7 +96,7 @@ sub guess_context_hook {
     }
   }
 
-  # do not leave the current context if it explicitly rejects the file
+  # do not leave the current context unless it explicitly rejects the file
   my $context = CurrentContext();
   if (UNIVERSAL::can($context,'allow_switch_context_hook') and
       &{$context.'::allow_switch_context_hook'}() eq 'stop') {
