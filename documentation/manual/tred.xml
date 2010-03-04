@@ -3221,11 +3221,12 @@ Tk: 804.028
       In <application>TrEd</application>, the way a
       tree is displayed is controlled by so called <firstterm>display
       stylesheets</firstterm>.  Display stylesheets define what text
-      is rendered as node and edge and how labels, the way tree edges
-      are drawn (much more can be achieved than just straight lines
-      connecting a node and its parent node), shape of the nodes,
-      coloring, content of a tool-tip (<firstterm>hint</firstterm>)
-      shown when mouse pointer lingers over a node, as well as the
+      will be rendered as node and edge labels and how, the way tree edges
+      are to be drawn (much more can be achieved than just straight lines
+      connecting a node and its parent node), the shape of the nodes,
+      coloring of various visual elements,
+      the text to be displayed as a tool-tip (<firstterm>hint</firstterm>)
+      when mouse pointer hovers over a node, and also the
       content of text window displayed above the tree.
       All these properties of the visual representation of the tree
       are specified using so called styling <firstterm>patterns</firstterm>.
@@ -3417,7 +3418,7 @@ Tk: 804.028
 	      similar rules as macros in TrEd (see <xref linkend="macros"/>). One may refer to any attribute
 	      value of the node currently being styled as either
 	      <literal>$${<replaceable>attr</replaceable>}</literal>
-	      or <literal>$this-&gt;{<replaceable>attr</replaceable>}</literal>.
+	      or <literal>$this-&gt;attr('<replaceable>attr</replaceable>')</literal>.
 	      The current node object itself can be refered to as <literal>$this</literal> (so e.g. <literal>$this-&gt;parent</literal> gives access
 	      to its parent).  Regardless
 	      of what annotation mode is currently selected, the code occuring
@@ -3709,6 +3710,25 @@ Tk: 804.028
 		</para>
 	      </entry>
 	    </row>
+	  <row>
+	    <entry><literal>NodeLabel-valign</literal></entry>
+	    <entry><para>This instruction takes one of the following
+		values: <quote><literal>top</literal></quote>,
+		<quote><literal>center</literal></quote>,
+		and <quote><literal>bottom</literal></quote>. 
+		This feature specifies which side of the group of
+		node labels should be placed towards the node. 
+		If <quote><literal>top</literal></quote> is selected
+		(which is the default value), node labels appear
+		below the node. If
+		<quote><literal>bottom</literal></quote>
+		is selected, node labels are displayed
+		above the node.	If the value of
+		<quote><literal>center</literal></quote>
+		is used, node labels are displayed
+		across the node.	
+	      </para></entry>
+          </row>
 	  </tbody>
 	</tgroup>
       </table>
@@ -3731,8 +3751,8 @@ Tk: 804.028
 		  displayed at all. The following
 		  <literal>rootstyle</literal> options
 		  control how child nodes of hidden nodes are displayed:
-		  <link linkend="skiphiddenparents"><literal>SkipHiddenParents</literal></link>
-		  and <link linkend="skiphiddenlevels"><literal>SkipHiddenLevels</literal></link>.
+		  <link linkend="skiphiddenparents"><literal>skipHiddenParents</literal></link>
+		  and <link linkend="skiphiddenlevels"><literal>skipHiddenLevels</literal></link>.
 	      </para>
 	    </entry>
           </row>
@@ -3862,22 +3882,7 @@ Tk: 804.028
 	    <entry><literal>NodeLabel-valign</literal></entry>
 	    <entry><para>This instruction
 		may be used only within <literal>rootstyle</literal>
-		patterns.
-		It takes one of the following
-		values: <quote><literal>top</literal></quote>,
-		<quote><literal>center</literal></quote>,
-		and <quote><literal>bottom</literal></quote>. 
-		This feature specifies which side of the group of
-		node labels should be placed towards the node. 
-		If <quote><literal>top</literal></quote> is selected
-		(which is the default value), node labels appear
-		below the node. If
-		<quote><literal>bottom</literal></quote>
-		is selected, node labels are displayed
-		above the node.	If the value of
-		<quote><literal>center</literal></quote>
-		is used, node labels are displayed
-		across the node.	
+		patterns, see the table above.
 	      </para></entry>
           </row>
 	  <row>
@@ -5794,7 +5799,7 @@ sub CreateImages {
 	  <term><literal>SortAttributes</literal></term>
 	  <listitem>
 	    <para>If <literal>1</literal>, all lists where attribute names
-	      or values are displayed are sorted
+	      are displayed are sorted
 	      alphabetically. Otherwise the order given in the FS-file
 	      header is preserved. Default value for this option is <literal>1</literal>.
 	    </para>
@@ -8753,8 +8758,8 @@ sub MakeSentence {
 		(see <literal>SortAttributes</literal>
 		configuration options). The
 		<replaceable>attribsref</replaceable>
-		parameter passed to the hook is a reference pointing
-		to a list variable. The list is populated with all
+		parameter passed to the hook is an array reference.
+		The array is populated with all
 		attribute names and the hook may modify the list by
 		changing the order of its elements
 		or by removing certain elements from the list.
