@@ -38,6 +38,7 @@ BEGIN {
   $iconPath
   $appIcon
   $sortAttrs
+  $sortAttrValues
   $macroFile
   $defaultMacroFile
   $defaultMacroEncoding
@@ -455,6 +456,7 @@ sub set_config {
   $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? tilde_expand($confs->{defaultmacrofile}) : "$libDir/tred.def";
   $defaultMacroEncoding=val_or_def($confs,"defaultmacroencoding",'utf8');
   $sortAttrs	     =	val_or_def($confs,"sortattributes",1);
+  $sortAttrValues   =	val_or_def($confs,"sortattributevalues",1);
   for my $opt (keys %defaultPrintConfig) {
     $printOptions->{$opt} = val_or_def($confs,lc($opt),$defaultPrintConfig{$opt}[1]);
   }

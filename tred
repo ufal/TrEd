@@ -2970,6 +2970,7 @@ sub initSidePanel {
       dialog => $colf,
       no_show=>1,
       no_sort=>!$sortAttrs,
+      no_value_sort=>!$sortAttrValues,
       search_field => 0,
       hide_empty => 1,
       knit_support => 1,
@@ -2991,7 +2992,7 @@ sub initSidePanel {
       enable_callback => sub{ 0 },
       attribute_sort_callback => [ sub {
 				     my ($grp,$array)=@_;
-				     return doEvalHook($grp->{focusedWindow},'sort_attrs_hook',$array);
+				     return doEvalHook($grp->{focusedWindow},'sort_attrs_hook',$array,'',$grp->{focusedWindow}{currentNode});
 				   }, $grp ],
       no_focus => 1,
     });
@@ -3408,6 +3409,7 @@ sub update_attribute_view {
   return unless ref $attrsView;
   my $current = $win->{currentNode};
   $attrsView->set_option('no_sort'=>!$sortAttrs);
+  $attrsView->set_option('no_value_sort'=>!$sortAttrValues);
   $attrsView->set_data({
     type => ref($current) && $current->type,
     object => $current,
@@ -9242,9 +9244,17 @@ sub populateSentencesDialog {
 
 
 sub editListAttr {
-  my ($win, $value, $attr,$d)=@_;
+  my ($win, $value, $attr,$d, $node)=@_;
   return unless $win->{FSFile};
   my @vals= map { encode($_) } $win->{FSFile}->FS->listValues($attr);
+  if ($sortAttrValues) {
+    my @v = @vals;
+    if (doEvalHook($win,"sort_attr_values_hook",\@v,$attr,$node)) {
+      @vals = @v;
+    } else {
+      @vals = sort @vals
+    }
+  }
   #print "splitting ",$value{$attr},"\n";
   my @selected= map { encode($_) } split /\|/,$value;
   #print "splitted to ", join ('-',@selected),"\n";
@@ -9407,6 +9417,7 @@ sub editFilePropertiesDialog {
       allow_trees=> $what eq 'pml_root' ? 0 : 1,
       enable_callback => sub { 0 },
       no_sort => 1,
+      no_value_sort => !$sortAttrValues,
     })
   }
 
@@ -9450,6 +9461,7 @@ sub editAttrsDialog_schema {
     focus => (defined $focus ? $focus : $attr_path),
     buttons => [$enabled ? ($attr_path ? qw(OK Cancel) : qw(OK Help Cancel)) : ('Cancel')],
     no_sort=>!$sortAttrs,
+    no_value_sort=>!$sortAttrValues,
     buttons_configure => {
       Help => [ -command =>
 		  [sub {
@@ -9471,9 +9483,13 @@ sub editAttrsDialog_schema {
 			   defined $res ? $res : 1;
 			 }, $win,$attr_path,$node ],
     attribute_sort_callback => [ sub {
-				   my ($win,$array)=@_;
-				   return doEvalHook($win,'sort_attrs_hook',$array);
-				 }, $win ],
+				   my ($win,$node,$array,$path)=@_;
+				   return doEvalHook($win,'sort_attrs_hook',$array,$path,$node);
+				 }, $win,$node ],
+    value_sort_callback => [ sub {
+					 my ($win,$node,$array,$path)=@_;
+					 return doEvalHook($win,'sort_attr_values_hook',$array,$path,$node);
+				       }, $win,$node ],
     search_field => length $attr_path ? 0 : 1,
     knit_support => 1,
     validate_flags => PML_VALIDATE_NO_CHILDNODES,
@@ -9516,7 +9532,7 @@ sub editAttrsDialog {
 
   if ($sortAttrs) {
     @atord=sort {uc($a) cmp uc($b)} $win->{FSFile}->FS->attributes
-      unless (doEvalHook($win,"sort_attrs_hook",\@atord));
+      unless (doEvalHook($win,"sort_attrs_hook",\@atord,'',$node));
   }
   my $rows=min($maxDisplayedAttributes,$#atord+1);
   my ($a,$b,$r);
@@ -9572,7 +9588,7 @@ sub editAttrsDialog {
  				     my ($e,$win,$node,$attr,$d)=@_;
  				     my $result=
  				       ($win->{FSFile}->FS->isList($attr)
- 					? editListAttr($win,$e->get,$attr)
+ 					? editListAttr($win,$e->get,$attr,$d,$node)
  					: editAmbiguousAttr($win,$e->get,$attr,$d));
  				     if (defined $result) {
  				       $e->configure(-state=> 'normal');
@@ -10167,7 +10183,7 @@ EOF
     }
     if ($sortAttrs) {
       @atord=sort {uc($a) cmp uc($b)} @atord
-	unless (doEvalHook($win,"sort_attrs_hook",\@atord));
+	unless (doEvalHook($win,"sort_attrs_hook",\@atord,'',undef));
     }
   }
 
@@ -10335,7 +10351,7 @@ sub findNodeDialog {
 
   if ($sortAttrs) {
     my @atord2 = @atord;
-    if (doEvalHook($win,"sort_attrs_hook",\@atord2)) {
+    if (doEvalHook($win,"sort_attrs_hook",\@atord2,'',undef)) {
       @atord = @atord2;
     } else {
       @atord=sort {uc($a) cmp uc($b)} @atord
@@ -10996,7 +11012,7 @@ sub doEditAttr {
   my ($Entry,@Eopts) = get_entry_type();
   my $newvalue;
   if ($win->{FSFile}->FS->isList($attr)) {
-    $newvalue= editListAttr($win,$node->get_member($attr),$attr,$grp->{top});
+    $newvalue= editListAttr($win,$node->get_member($attr),$attr,$grp->{top},$node);
     if (defined($newvalue)) {
       $win->toplevel->Busy(-recurse=> 1);
       $win->{FSFile}->notSaved(1);

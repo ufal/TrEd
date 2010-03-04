@@ -1986,14 +1986,27 @@ Tk: 804.028
 	  <title><guimenuitem>Sort Attributes in Dialogs</guimenuitem></title>
 	  <para>
 	      Toggle sorting attributes by name in all dialog windows
-	      displaying any form of a list of attributes or attribute
-	      values. By default, sorting is turned on. If turned off,
+	      displaying any form of a list of attributes. 
+	      By default, sorting is turned on. If turned off,
 	      depending on the format, attributes may be displayed in
-	      order of their declaration in the file. When this option
+	      order of their declaration in the file or schema. When this option
 	      is on, sorting of attributes may be further altered by
 	      the <link linkend="sort_attrs_hook"><literal>sort_attrs_hook</literal></link>.
 	    </para>
 	</section>
+	<section>
+	  <title><guimenuitem>Sort Attribute Values in Dialogs</guimenuitem></title>
+	  <para>
+	      Toggle sorting of attribute values in all dialog windows
+	      displaying a choice of attribute values.
+	      By default, sorting is turned on. If turned off,
+	      depending on the format, values may be displayed in
+	      order of their declaration in the file or schema. When this option
+	      is on, sorting of attribute value choices may be further altered by
+	      the <link linkend="sort_attrs_hook"><literal>sort_attr_values_hook</literal></link>.
+	    </para>
+	</section>
+
 	</section>
 	<section>
 	  <title><guisubmenu>Files in Memory</guisubmenu></title>
@@ -5800,8 +5813,24 @@ sub CreateImages {
 	  <listitem>
 	    <para>If <literal>1</literal>, all lists where attribute names
 	      are displayed are sorted
-	      alphabetically. Otherwise the order given in the FS-file
-	      header is preserved. Default value for this option is <literal>1</literal>.
+	      alphabetically (or according to the
+	      <link linkend="sort_attrs_hook"><literal>sort_attrs_hook</literal></link>).
+	      Otherwise the order of declaration in the particular PML schema or FS format
+	      header is preserved.
+	      Default value for this option is <literal>1</literal>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="sortattributevalues">
+	  <term><literal>SortAttributeValues</literal></term>
+	  <listitem>
+	    <para>If <literal>1</literal>, all lists where a choice of attribute values
+	      is displayed are sorted
+	      alphabetically (or according to the
+	      <link linkend="sort_attrs_hook"><literal>sort_attr_values_hook</literal></link>).
+	      Otherwise the order of declaration in the particular PML schema or FS format
+	      is preserved.
+	      Default value for this option is <literal>1</literal>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -8754,18 +8783,51 @@ sub MakeSentence {
 	    </row><row id="sort_attrs_hook">
 	      <entry><literal>sort_attrs_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>attibsref</replaceable></literal></para><para>Executed when attribute names are pre-sorted
-		(see <literal>SortAttributes</literal>
+	      <entry><para>Arguments: <literal role="params"><replaceable>arrayRef</replaceable>,<replaceable>baseAttrPath</replaceable>,<replaceable>node</replaceable></literal></para>
+	      <para>Executed when attributes are to be sorted by name
+		(see <link linkend="sortattributes"><literal>SortAttributes</literal>
 		configuration options). The
-		<replaceable>attribsref</replaceable>
-		parameter passed to the hook is an array reference.
-		The array is populated with all
-		attribute names and the hook may modify the list by
+		<replaceable>arrayRef</replaceable>
+		parameter passed to the hook is an array reference
+		containing a list of attribute names to sort.
+		The hook may modify this list (in place) by
 		changing the order of its elements
 		or by removing certain elements from the list.
-		If then non-zero value is returned by the hook,
+		If a true value is returned by the hook,
 		the (possibly modified) list is used for displaying purposes 
-		without any further sorting.
+		without any further reordering.
+		The arguments
+		<replaceable>baseAttrPath</replaceable>
+		and <replaceable>node</replaceable>
+		contain, respectively,
+		a base attribute path for the given list of attributes
+		and optionally the <replaceable>Fslib::Node</replaceable>
+		whose attributes are being displayed (optional).
+	      </para></entry>
+	    </row><row id="sort_attr_values_hook">
+	      <entry><literal>sort_attr_values_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>arrayRef</replaceable>,<replaceable>baseAttrPath</replaceable>,<replaceable>node</replaceable></literal></para>
+	      <para>Executed when values in an attribute value choice are to be ordered
+		(see <link linkend="sortattributevalues"><literal>SortAttributeValues</literal></link>
+		configuration options). The
+		<replaceable>arrayRef</replaceable>
+		parameter passed to the hook is an array reference
+		containing a list of values to sort.
+		The hook may modify this list (in place) by
+		changing the order of its elements
+		or by removing certain elements from the list.
+		If a true value is returned by the hook,
+		the (possibly modified) list is used for displaying purposes 
+		without any further reordering.
+		The arguments
+		<replaceable>attrPath</replaceable> 
+		and <replaceable>node</replaceable> 
+		contain, respectively,
+		an attribute path for the attribute whose possible values
+		are being listed
+		and the <replaceable>Fslib::Node</replaceable>
+		whose attribute is involved (optional).
 	      </para></entry>
 	    </row><row id="start_hook">
 	      <entry><literal>start_hook</literal></entry>
