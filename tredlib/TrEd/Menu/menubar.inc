@@ -1085,6 +1085,18 @@ return sub {
      },
     undef
    ],
+  'MENUBAR:SETUP:APPEARANCE:SORT_ATTRIBUTE_VALUES_IN_DIALOGS' => [
+    'Checkbutton',
+    'Sort Attribute Values in Dialogs',
+    {
+      '-command' => [sub {
+		       update_attribute_view($_[0]);
+		     },$grp],
+      '-underline' => 1,
+      '-variable' => \$sortAttrValues
+     },
+    undef
+   ],
   'MENUBAR:SETUP:APPEARANCE:STIPPLE_INACTIVE_VIEWS' => [
     'Checkbutton',
     'Stipple Inactive Views',
