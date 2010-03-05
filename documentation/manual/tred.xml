@@ -8785,7 +8785,7 @@ sub MakeSentence {
 	      <entry>no</entry>
 	      <entry><para>Arguments: <literal role="params"><replaceable>arrayRef</replaceable>,<replaceable>baseAttrPath</replaceable>,<replaceable>node</replaceable></literal></para>
 	      <para>Executed when attributes are to be sorted by name
-		(see <link linkend="sortattributes"><literal>SortAttributes</literal>
+		(see <link linkend="sortattributes"><literal>SortAttributes</literal></link>
 		configuration options). The
 		<replaceable>arrayRef</replaceable>
 		parameter passed to the hook is an array reference
@@ -8803,7 +8803,8 @@ sub MakeSentence {
 		a base attribute path for the given list of attributes
 		and optionally the <replaceable>Fslib::Node</replaceable>
 		whose attributes are being displayed (optional).
-	      </para></entry>
+	      </para>
+	    </entry>
 	    </row><row id="sort_attr_values_hook">
 	      <entry><literal>sort_attr_values_hook</literal></entry>
 	      <entry>no</entry>
