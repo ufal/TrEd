@@ -9548,7 +9548,7 @@ sub editAttrsDialog {
       [sub {
 	 help_topic(shift,'old_editnode_interface');
 	 Tk->break;
-       }]) if $enabled;
+       },$d]) if $enabled;
   $d->BindButtons;
   $d->BindReturn($d,1);
   $d->BindEscape();
