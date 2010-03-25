@@ -4410,12 +4410,11 @@ sub _import {
   no strict qw(refs);
   my $pkg=shift;
   my $caller=shift;
-  my %stash=%{"${pkg}::"};
   my $type;
   my @exports = @_;
   foreach my $k (@exports) {
     unless ($k =~ s/^(\W)//) {
-      *{"${caller}::$k"} = \&{"${pkg}::$k"} unless defined (&{"${caller}::$k"});
+      *{"${caller}::$k"} = \&{"${pkg}::$k"} unless exists (&{"${caller}::$k"});
        next;
     }
     $type = $1;
@@ -4442,8 +4441,7 @@ sub import {
   # and few variables that every TredMacro *must* share.
   no strict qw(refs);
   my $pkg=shift;
-  my %stash=%{"${pkg}::"};
-  _import($pkg,scalar(caller),($#_>=0 ? @_ : grep {$_ ne 'BEGIN'} keys %stash),@FORCE_EXPORT)
+  _import($pkg,scalar(caller),($#_>=0 ? @_ : grep {$_ ne 'BEGIN'} keys %{"${pkg}::"}),@FORCE_EXPORT)
 };
 
 sub import_only {
