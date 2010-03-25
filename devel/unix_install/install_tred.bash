@@ -294,9 +294,14 @@ else
     action  "Unpacking TrEd to $TRED_DIR"
     [ -d "$TRED_DIR" ] || mkdir -p "$TRED_DIR" || fail
     pushd "$TRED_DIR"
-    tar xzf "$tred_tar_gz" --strip-components 1 || fail
+    mkdir _tmp ||fail
+    pushd _tmp ||fail
+    tar xzf "$tred_tar_gz" || fail
     popd
-    rm tred-current.tar.gz
+    mv _tmp/tred/* . || fail
+    rm -rf _tmp || fail
+    popd
+    rm "$tred_tar_gz"
 fi
 
 action "Creating directory for start scripts: $RUN_TRED_DIR"
