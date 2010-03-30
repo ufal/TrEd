@@ -4,8 +4,14 @@
 
 package TredMacro;
 
+#ifdef Fslib
+require Fslib;
+#endif
+
 use Exporter;
-use Fslib;
+use Treex::PML;
+use UNIVERSAL::DOES;
+use Scalar::Util qw(blessed);
 use TrEd::MinMax qw(first max maxstr min minstr reduce sum);
 BEGIN { require TrEd::Macros; }
 use base qw(main Exporter);
@@ -14,9 +20,9 @@ use vars qw(@FORCE_EXPORT);
 BEGIN {
   @FORCE_EXPORT = qw($libDir $grp $root $this $_NoSuchTree $Redraw $stderr $stdout
 		     $forceFileSaved $FileChanged $FileNotSaved $NodeClipboard);
-  *FileChanged=*FileNotSaved;	# alias
-  import Fslib qw(ImportBackends Cut Next Prev);
-  import Fslib qw(&Index &CloneValue &FindInResources &FindDirInResources &ResolvePath);
+  *FileChanged=\$FileNotSaved;	# alias
+  import Treex::PML qw(ImportBackends);
+  import Treex::PML qw(&Index &CloneValue &FindInResources &FindDirInResources &ResolvePath);
   import main;
 }
 use vars @FORCE_EXPORT;
@@ -24,7 +30,7 @@ use vars @FORCE_EXPORT;
 # use strict
 
 ;
-# The following is a workaround for a nasty bug of Class::Std in case somewants to use it
+# The following is a workaround for a nasty bug of Class::Std in case somebody wants to use it
 sub isa { &UNIVERSAL::isa }
 sub can { &UNIVERSAL::can }
 
@@ -103,7 +109,7 @@ This variable contains a path to TrEd library directory.
 
 =head2 Navigation
 
-Methods of FSNode objects should be used for basic navigation within
+Methods of Treex::PML::Node objects should be used for basic navigation within
 trees. Here are described means to navigate from one tree to another
 and a few extra macros for specific navigation in trees.
 
@@ -207,23 +213,23 @@ sub PrevTree {
 
 =item C<GetTrees()>
 
-Return a list of trees in current FSFile. Equivallent to
-C<$grp-E<gt>{FSFile}-E<gt>trees>.
+Return a list of trees in current Treex::PML::Document. Equivallent to
+C<<<CurrentFile()->trees>>>.
 
 =cut
 
 sub GetTrees {
-  my $fsfile = $grp->{FSFile};
+  my $fsfile = CurrentFile();
   if ($fsfile) {
     return $fsfile->trees;
   } else {
-    croak("Cannot get trees: no FSFile\n");
+    croak("Cannot get trees: no Treex::PML::Document is currently open\n");
   }
 }
 
 =item C<GetSecondaryFiles($fsfile?)>
 
-Return a list of secondary FSFiles objects for the given (or current)
+Return a list of secondary Treex::PML::Document objects for the given (or current)
 file.  A secondary file is a file required by a file to be loaded
 along with it; this is typical for files containing some form of a
 stand-off annotation where one tree is built upon another. Note
@@ -236,7 +242,7 @@ Only those secondary files that are already open are returned.
 
 sub GetSecondaryFiles {
   my ($fsfile)=@_;
-  $fsfile||=$grp->{FSFile};
+  $fsfile||=CurrentFile();
   return exists(&main::getSecondaryFiles) ? main::getSecondaryFiles($fsfile) : ()
 }
 
@@ -284,7 +290,7 @@ are skipped.
 sub NextVisibleNode {
   my ($node,$top)=@_;
   $node=$node->following($top);
-  my $fs=$grp->{FSFile}->FS;
+  my $fs=FS();
   while ($node) {
     return $node unless ($fs->isHidden($node));
     $node=$node->following_right_or_up($top);
@@ -304,7 +310,7 @@ are skipped.
 sub PrevVisibleNode {
   my ($node,$top)=@_;
   $node=$node->previous($top);
-  my $fs=$grp->{FSFile}->FS;
+  my $fs=FS();
   while ($node) {
     return $node unless ($fs->isHidden($node));
     $node=$node->previous($top);
@@ -316,13 +322,13 @@ sub PrevVisibleNode {
 
 Return true if the given node is member of a hidden subtree. This
 macro is only an abbreviation for
-C<$grp-E<gt>{FSFile}-E<gt>FS-E<gt>isHidden(node)>
+C<<FS()->isHidden(node)>>
 
 =cut
 
 sub IsHidden {
   my ($node)=@_;
-  return $grp->{FSFile}->FS->isHidden($node);
+  return FS()->isHidden($node);
 }
 
 =item C<Hide(node)>
@@ -333,7 +339,7 @@ Hide a given node.
 
 sub Hide {
   my ($node)=@_;
-  my $hide=$grp->{FSFile}->FS->hide();
+  my $hide=FS()->hide();
   if ($node and $hide ne "") {
     $node->{$hide}='hide';
     return 1;
@@ -499,7 +505,7 @@ in the deep-first tree ordering.
 
 If C<node> is not given, C<$this> is assumed. Should the node be from a
 different file than the current one, the second argument must specify
-the corresponding FSFile object.
+the corresponding Treex::PML::Document object.
 
 =cut
 
@@ -537,7 +543,7 @@ has an ID, the address is returned in the form filename#ID.
 
 If C<node> is not given, C<$this> is assumed. Should the node be from a
 different file than the current one, the second argument must specify
-the corresponding FSFile object.
+the corresponding Treex::PML::Document object.
 
 =cut
 
@@ -565,7 +571,7 @@ memory of a remote btred server.
 
 If C<node> is not given, C<$this> is assumed. Should the node be from a
 different file than the current one, the second argument must specify
-the corresponding FSFile object.
+the corresponding Treex::PML::Document object.
 
 =cut
 
@@ -627,6 +633,10 @@ the node as a child node of the new parent.
 
 =cut
 
+sub Cut {
+  my ($node)=@_;
+  return $node->cut();
+}
 sub CutPaste {
   my($cutted,$target)=@_;
   my $p = $target;
@@ -707,7 +717,7 @@ the node as a child node of the new parent.
 sub PasteNode {
   my ($node,$p)=@_; 
   my $ord=_node_ord($node);
-  Fslib::Paste(Cut($node),$p,$ord);
+  $node->cut()->paste($p,$ord);
   return $node;
 }
 
@@ -724,7 +734,7 @@ the node as a child node of the new parent.
 
 sub PasteNodeBefore {
   my($node,$ref_node)=@_;
-  Fslib::PasteBefore(Cut($node),$ref_node);
+  $node->cut()->paste_before($ref_node);
 }
 
 =item C<PasteNodeAfter(node,ref_node)>
@@ -740,7 +750,7 @@ the node as a child node of the new parent.
 
 sub PasteNodeAfter {
   my($node,$ref_node)=@_;
-  Fslib::PasteAfter(Cut($node),$ref_node);
+  $node->cut()->paste_after($ref_node);
 }
 
 =item C<CloneSubtree(node)>
@@ -752,7 +762,7 @@ preserved) of the given subtree.
 
 sub CloneSubtree {
   my ($node)=@_;
-  return $grp->{FSFile}->FS->clone_subtree($node);
+  return FS()->clone_subtree($node);
 }
 
 =item C<CopyNode(node)>
@@ -779,7 +789,7 @@ attach it to some node again.
 sub CutNode {
   my $node=shift;
   my $parent=$node->parent;
-  my $result=Fslib::Cut($node);
+  my $result=$node->cut();
   $this=$parent if ($result and $this==$node);
   return $result;
 }
@@ -787,7 +797,7 @@ sub CutNode {
 =item C<NewTree()>
 
 Create a new tree before the current tree. The new tree consists of
-exactly one node. This node is activated and a reference to its FSNode
+exactly one node. This node is activated and a reference to its Treex::PML::Node
 object is returned.
 
 =cut
@@ -802,7 +812,7 @@ sub NewTree {
 =item C<NewTreeAfter()>
 
 Create a new tree after the current tree. The new tree consists of
-exactly one node. This node is activated and a reference to its FSNode
+exactly one node. This node is activated and a reference to its Treex::PML::Node
 object is returned.
 
 =cut
@@ -825,7 +835,8 @@ sub _node_ord {
     my $ord = $node->get_ordering_member_name;
     return $ord if defined $ord;
   }
-  return $grp->{FSFile} ? $grp->{FSFile}->FS->order : undef;
+  my $fsfile = CurrentFile();
+  return $fsfile ? $fsfile->FS->order : undef;
 }
 
 =item C<NewRBrother(node)>
@@ -846,7 +857,7 @@ sub NewRBrother {
   my $ref=ref($_[0]) ? $_[0] : $this;
 
   return unless ($ref and $ref->parent);
-  my $nd=FSNode->new();
+  my $nd=Treex::PML::Factory->createNode();
   my $ord = _node_ord($ref);
 
   if (defined $ord) {
@@ -881,7 +892,7 @@ sub NewLBrother {
 ## ords of the other nodes appropriately
   my $ref=ref($_[0]) ? $_[0] : $this;
   return unless ($ref and $ref->parent);
-  my $nd=FSNode->new();
+  my $nd=Treex::PML::Factory->createNode();
   my $ord=_node_ord($ref);
   if (defined $ord) {
     $nd->{$ord}=$ref->{$ord};
@@ -915,7 +926,7 @@ sub NewSon {
 ## ords of the other nodes appropriately
   my $ref=ref($_[0]) ? $_[0] : $this;
   return unless ($ref);
-  my $nd=FSNode->new();
+  my $nd=Treex::PML::Factory->createNode();
   my $ord=_node_ord($ref);
   if (defined $ord) {
     $nd->{$ord}=$ref->{$ord}+1;
@@ -946,7 +957,7 @@ given the value of C<$this> is preserved.
 sub NewParent {
   my $ref=ref($_[0]) ? $_[0] : $this;
   return unless ($ref);
-  my $nd=FSNode->new();
+  my $nd=Treex::PML::Factory->createNode();
   my $ord=_node_ord($ref);
   if (defined $ord) {
     $nd->{$ord}=$ref->{$ord};
@@ -965,12 +976,13 @@ sub NewParent {
     CutNode($ref);
     PasteNode($ref,$nd);
   } else { # root of the tree
-    my $trees=$grp->{FSFile}->treeList();
+    my $fsfile = CurrentFile();
+    my $trees=$fsfile->treeList();
     my $n=Index($trees,$ref);
     if ($n<0) {
-      die "tree not found in current FSFile";
+      die "tree not found in the current Treex::PML::Document";
     } else {
-      $grp->{FSFile}->set_tree($nd,$n);
+      $fsfile->set_tree($nd,$n);
     }
     PasteNode($ref,$nd);
   }
@@ -1013,7 +1025,7 @@ sub DeleteLeafNode {
   if (length $ord) {
     my $order=$n->{$ord};
     my $node = $n->root;
-    if (Fslib::DeleteLeaf($n)) {
+    if ($n->destroy_leaf) {
       while ($node) {
 	$node->{$ord}-- if ($node->{$ord}>$order);
 	$node=$node->following;
@@ -1023,7 +1035,7 @@ sub DeleteLeafNode {
       return 0;
     }
   } else {
-    return Fslib::DeleteLeaf($n) ? 1 : 0;
+    return $n->destroy_leaf() ? 1 : 0;
   }
 }
 
@@ -1052,14 +1064,14 @@ sub DeleteSubtree {
 
 =item C<RemoveTree(n?,fsfile?)>
 
-Removes n-th tree from a given FSFile (trees are numbered starting from 0).
-If no FSFile is specified, uses the current file (see CurrentFile()).
+Removes n-th tree from a given Treex::PML::Document (trees are numbered starting from 0).
+If no Treex::PML::Document is specified, uses the current file (see CurrentFile()).
 
 Calling RemoveTree() without arguments, it is equivalent to
 
   RemoveTree(CurrentTreeNumber(),CurrentFile())
 
-Returns the deleted tree. If you do not reattatch the tree to the FSFile,
+Returns the deleted tree. If you do not reattatch the tree to the Treex::PML::Document,
 use $tree->destroy method on the returned tree to prevent a memory leak.
 
 =cut
@@ -1098,7 +1110,7 @@ sub DestroyTree {
 
 =item C<DetermineNodeType($node)>
 
-For trees with PMLSchema-based node typing, try to determine the type
+For trees with Treex::PML::Schema-based node typing, try to determine the type
 of the node from the type of its parent, and associate the node with
 the type (using $node->set_type). If there are more possibilities, the
 user is asked to choose the correct type.
@@ -1124,7 +1136,7 @@ sub CopyValues {
   undef %ValuesClipboard;
   my @attrs = Attributes($this,1);
   foreach my $atr (@attrs) {
-    $ValuesClipboard{$atr} = Fslib::CloneValue($this->{$atr});
+    $ValuesClipboard{$atr} = Treex::PML::CloneValue($this->{$atr});
   }
   delete $ValuesClipboard{_node_ord($this)}; # we do not copy this
   #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
@@ -1155,7 +1167,7 @@ sub PlainNewSon {
 ## Adds new son to a given parent
   my $parent=shift;
   return unless ($parent);
-  my $nd=FSNode->new();
+  my $nd=Treex::PML::Factory->createNode();
   PasteNode($nd,$parent);
   return $this=$nd;
 }
@@ -1174,7 +1186,7 @@ sub PlainDeleteNode {
   return unless ($node and $node->parent);
 
   $this=$this->parent if ($node == $this);
-  return Fslib::DeleteLeaf($node);
+  return $node->destroy_leaf();
 }
 
 =item C<PlainDeleteSubtree(node)>
@@ -1509,7 +1521,7 @@ Return an identical deep copy of a given scalar. Useful for copying
 attribute values (and any value below them), including structured
 attributes, lists or alternatives.
 
-Warning: do not apply this macro to an entire FSNode since otherwise
+Warning: do not apply this macro to an entire Treex::PML::Node since otherwise
 you might result with a copy of the complete tree, schema, etc.
 
 =cut
@@ -1517,86 +1529,86 @@ you might result with a copy of the complete tree, schema, etc.
 
 =item C<IsList(value)>
 
-Check that a given value is a list, i.e. Fslib::List object.
+Check that a given value is a list, i.e. Treex::PML::List object.
 
 =cut
 
 sub IsList {
-  return 1 if ref($_[0]) eq 'Fslib::List';
+  return 1 if UNIVERSAL::DOES::does($_[0], 'Treex::PML::List');
 }
 
 =item C<IsAlt(value)>
 
-Check that a given value is an alternative, i.e. Fslib::Alt object.
+Check that a given value is an alternative, i.e. Treex::PML::Alt object.
 
 =cut
 
 sub IsAlt {
-  return 1 if ref($_[0]) eq 'Fslib::Alt';
+  return 1 if UNIVERSAL::DOES::does($_[0], 'Treex::PML::Alt');
 }
 
 =item C<IsSeq(value)>
 
-Check that a given value is a sequence, i.e. Fslib::Seq object.
+Check that a given value is a sequence, i.e. Treex::PML::Seq object.
 
 =cut
 
 sub IsSeq {
-  return 1 if ref($_[0]) eq 'Fslib::Seq';
+  return 1 if UNIVERSAL::DOES::does($_[0], 'Treex::PML::Seq');
 }
 
 =item C<List(value,value,...)>
 
-Return a new list (Fslib::List object) populated with given values.
+Return a new list (Treex::PML::List object) populated with given values.
 
 =cut
 
 sub List {
-  Fslib::List->new(@_);
+  Treex::PML::Factory->createList([@_],1);
 }
 
 =item C<Alt(value,value,...)>
 
-Return a new alternative (Fslib::Alt object) populated with given values.
+Return a new alternative (Treex::PML::Alt object) populated with given values.
 
 =cut
 
 sub Alt {
-  Fslib::Alt->new(@_);
+  Treex::PML::Factory->createAlt([@_],1);
 }
 
 =item C<AltV(value)>
 
-If the value is an alternative (i.e. a Fslib::Alt object), return
+If the value is an alternative (i.e. a Treex::PML::Alt object), return
 all its values. Otherwise return value.
 
 =cut
 
 sub AltV {
-  ref($_[0]) eq 'Fslib::Alt' ? @{$_[0]} : $_[0]
+  UNIVERSAL::DOES::does($_[0], 'Treex::PML::Alt') ? @{$_[0]} : $_[0]
 }
 
 =item C<ListV(value)>
 
-If the value is a list (i.e. a Fslib::List object), return
+If the value is a list (i.e. a Treex::PML::List object), return
 all its values. Otherwise return empty (Perl) list.
 
 =cut
 
 sub ListV {
-  ref($_[0]) eq 'Fslib::List' ? @{$_[0]} : ()
+  UNIVERSAL::DOES::does($_[0], 'Treex::PML::List') ? @{$_[0]} : ()
 }
 
 =item C<SeqV(value)>
 
-If the value is a sequence (i.e. a Fslib::Seq object), return all its
-elements (Fslib::Seq::Element objects). Otherwise return empty (Perl)
+If the value is a sequence (i.e. a Treex::PML::Seq object), return all its
+elements (Treex::PML::Seq::Element objects). Otherwise return empty (Perl)
 list.
 
 =cut
 
 sub SeqV {
-  ref($_[0]) eq 'Fslib::Seq' ? $_[0]->elements : ()
+  UNIVERSAL::DOES::does($_[0], 'Treex::PML::Seq') ? $_[0]->elements : ()
 }
 
 =item C<AddToAlt(node,attr,value,value...)>
@@ -1604,9 +1616,9 @@ sub SeqV {
 Add given values as alternatives to the current value of
 C<$node-E<gt>{$attr}>.  If only one value is given and C<$node-E<gt>{$attr}> is
 empty or same as value, the given value is simply assigned to it. If
-C<$node-E<gt>{$attr}> is a C<Fslib::Alt> object, the new values are simply added
+C<$node-E<gt>{$attr}> is a C<Treex::PML::Alt> object, the new values are simply added
 to it. Otherwise, if C<$node-E<gt>{$attr}> is a simple value, C<$node-E<gt>{$attr}>
-is set to a new C<Fslib::Alt> object containing the original value as
+is set to a new C<Treex::PML::Alt> object containing the original value as
 well as the given values.
 
 =cut
@@ -1615,24 +1627,24 @@ sub AddToAlt {
   my ($node,$attr)=(shift,shift);
   if ($node->{$attr} eq "") {
     if (@_>1) {
-      $node->{$attr}=Fslib::Alt->new(uniq(@_));
+      $node->{$attr}=Treex::PML::Factory->createAlt([uniq(@_)],1);
     } else {
       $node->{$attr}=$_[0];
     }
   } elsif (IsAlt($node->{$attr})) {
     @{$node->{$attr}} = uniq(@{$node->{$attr}},@_);
   } else {
-    $node->{$attr} = Fslib::Alt->new($node->{$attr},@_);
+    $node->{$attr} = Treex::PML::Factory->createAlt([$node->{$attr},@_],1);
   }
 }
 
 =item C<AddToList(node,attr,value,value,...)>
 
 Add values to a given attribute. If C<$node-E<gt>attr($attr)> is not defined or
-empty, a new C<Fslib::List> containing given values is created. If
-C<$node-E<gt>attr($attr)> is a C<Fslib::List> object, given values are simply added
+empty, a new C<Treex::PML::List> containing given values is created. If
+C<$node-E<gt>attr($attr)> is a C<Treex::PML::List> object, given values are simply added
 to it. Error is issued if C<$node-E<gt>attr($attr)> is defined, non-empty, yet not
-a C<Fslib::List> object.
+a C<Treex::PML::List> object.
 
 =cut
 
@@ -1642,7 +1654,7 @@ sub AddToList {
   if (IsList($val)) {
     push @$val,@_;
   } elsif ($val eq "") {
-    $val = Fslib::List->new(@_);
+    $val = Treex::PML::Factory->createList([@_],1);
     $node->set_attr($attr,$val,1);
   } else {
     die "AddToList: Attribute '$attr' contains a non-empty non-list value. Refusing to add to '$val'!\n"
@@ -1653,10 +1665,10 @@ sub AddToList {
 
 Add values to a given attribute, unless already present among the
 current values. If C<$node-E<gt>attr($attr)> is not defined or empty,
-a new C<Fslib::List> containing given values is created. If
-C<$node-E<gt>attr($attr)> is a C<Fslib::List> object, given values are
+a new C<Treex::PML::List> containing given values is created. If
+C<$node-E<gt>attr($attr)> is a C<Treex::PML::List> object, given values are
 simply added to it. Error is issued if C<$node-E<gt>attr($attr)> is
-defined, non-empty, yet not a C<Fslib::List> object.
+defined, non-empty, yet not a C<Treex::PML::List> object.
 
 =cut
 
@@ -1666,7 +1678,7 @@ sub AddToListUniq {
   if (IsList($val)) {
     @$val = uniq(@$val,@_);
   } elsif ($val eq "") {
-    $val = Fslib::List->new(uniq(@_));
+    $val = Treex::PML::Factory->createList([uniq(@_)]);
     $node->set_attr($attr,$val,1);
   } else {
     die "AddToList: Attribute '$attr' contains a non-empty non-list value. Refusing to add to '$val'!\n"
@@ -1676,10 +1688,10 @@ sub AddToListUniq {
 =item C<AddToSeq(node, attr, name => value, name => value,...)> or C<AddToSeq(node, attr, element, ...)>
 
 Add elements to a given sequence attribute. If C<$node-E<gt>attr($attr)> is not defined or
-empty, a new C<Fslib::Seq> object containing given name-value pairs (C<Fslib::Seq::Element> objects) is created. If
-C<$node-E<gt>attr($attr)> is a C<Fslib::Seq> object, given elements are simply added
+empty, a new C<Treex::PML::Seq> object containing given name-value pairs (C<Treex::PML::Seq::Element> objects) is created. If
+C<$node-E<gt>attr($attr)> is a C<Treex::PML::Seq> object, given elements are simply added
 to it. Error is issued if C<$node-E<gt>attr($attr)> is defined, non-empty, yet not
-a C<Fslib::Seq> object.
+a C<Treex::PML::Seq> object.
 
 =cut
 
@@ -1688,14 +1700,14 @@ sub AddToSeq {
   my $val = $node->attr($attr);
   unless (IsSeq($val)) {
     if (!defined($val) or !length($val)) {
-      $val = Fslib::Seq->new();
+      $val = Treex::PML::Factory->createSeq();
       $node->set_attr($attr,$val,1);
     } else {
       die "AddToSeq: Attribute '$attr' contains a non-empty non-sequence value. Refusing to add to '$val'!\n"
     }
   }
   while (@_) {
-    if (ref($_[0]) eq 'Fslib::Seq::Element') {
+    if (UNIVERSAL::DOES::does($_[0], 'Treex::PML::Seq::Element')) {
       $val->push_element_obj(shift);
     } else {
       $val->push_element((shift,shift));
@@ -1721,7 +1733,7 @@ not found. Note: 'eq' is used for comparison.
 
 =cut
 
-# imported from Fslib
+# imported from Treex::PML
 
 =item C<ListIntersect(array-ref,array-ref,...)>
 
@@ -1743,7 +1755,7 @@ sub ListIntersect {
 =item C<ListSubtract(array-ref, array-ref)>
 
 Return elements occuring in the first list but not in the second list.
-In scalar context returns a Fslib::List object (array-ref), in list
+In scalar context returns a Treex::PML::List object (array-ref), in list
 context returns a list. All duplicities are removed.
 
 =cut
@@ -1758,7 +1770,7 @@ sub ListSubtract($$) {
 =item C<ListUnion(array-ref, array-ref, ...)>
 
 Return union of given lists. In scalar context returns an array-ref,
-in list context returns a Fslib::List object (array-ref). All
+in list context returns a Treex::PML::List object (array-ref). All
 duplicities are removed.
 
 =cut
@@ -1859,7 +1871,7 @@ Focus a given window.
 sub SetCurrentWindow {
   shift unless ref($_[0]);
   my $win = shift || $grp;
-  if (UNIVERSAL::isa($win,'TrEd::Window')) {
+  if ((blessed($win) and $win->isa('TrEd::Window'))) {
     my $tred = $grp->{framegroup};
     unless ($win == $tred->{focusedWindow}) {
       main::focusCanvas($win->canvas, $tred);
@@ -1971,7 +1983,7 @@ sub CloseWindow {
 
 =item C<CurrentFile(win?)>
 
-Return a FSFile object representing the file currently open in a given
+Return a Treex::PML::Document object representing the file currently open in a given
 TrEd window or in the currently focused window if called without
 arguments.
 
@@ -2077,10 +2089,12 @@ sub Redraw_FSFile {
   my $ie=$main::insideEval;
   $main::insideEval=0;
   main::setCurrent($grp,$this) if ($this);
-  main::get_nodes_fsfile($grp->{framegroup},$grp->{FSFile});
-  main::redraw_fsfile($grp->{framegroup},$grp->{FSFile});
+  my $fsfile = CurrentFile();
+  my $framegroup = $grp->{framegroup};
+  main::get_nodes_fsfile($framegroup,$fsfile);
+  main::redraw_fsfile($framegroup,$fsfile);
   main::centerTo($grp,$this) if ($this);
-  main::updateTitle($win->{framegroup});
+  main::updateTitle($framegroup);
   $main::insideEval=$ie;
 }
 
@@ -2095,11 +2109,13 @@ sub Redraw_FSFile_Tree {
   _croak "Cannot call Redraw without a GUI" unless GUI();
   my $ie=$main::insideEval;
   $main::insideEval=0;
+  my $fsfile = CurrentFile();
+  my $framegroup = $grp->{framegroup};
   main::setCurrent($grp,$this) if ($this);
-  main::get_nodes_fsfile_tree($grp->{framegroup},$grp->{FSFile},$grp->{treeNo});
-  main::redraw_fsfile_tree($grp->{framegroup},$grp->{FSFile},$grp->{treeNo});
+  main::get_nodes_fsfile_tree($framegroup,$fsfile,$grp->{treeNo});
+  main::redraw_fsfile_tree($framegroup,$fsfile,$grp->{treeNo});
   main::centerTo($grp,$this) if ($this);
-  main::updateTitle($win->{framegroup});
+  main::updateTitle($framegroup);
   $main::insideEval=$ie;
 }
 
@@ -2852,8 +2868,8 @@ This macro is obsoleted by GetPatternsByPrefix.
 
 sub GetSpecialPattern {
   my ($patname)=@_;
-  return unless $grp->{FSFile};
-  warn "GetSpecialPattern is obsolete: use GetPatternsByPrefix('$patname',STYLESHEET_FROM_FILE()) instead\n";
+  return unless CurrentFile();
+  carp("GetSpecialPattern is obsolete: use GetPatternsByPrefix('$patname',STYLESHEET_FROM_FILE()) instead");
   my ($pat) = GetPatternsByPrefix($patname,STYLESHEET_FROM_FILE());
   return $pat;
 }
@@ -2861,54 +2877,58 @@ sub GetSpecialPattern {
 =item C<SetDisplayAttrs(pattern,...)> - OBSOLETE!!
 
 Setup given patterns as a stylesheet of
-the currently displayed FSFile. This does not include
+the currently displayed Treex::PML::Document. This does not include
 a hint pattern.
 
 =cut
 
 sub SetDisplayAttrs {
-  return unless $grp->{FSFile};
-  warn "SetDisplayAttrs is obsolete: use SetStylesheetPatterns([...],STYLESHEET_FROM_FILE()) instead\n";
-  $grp->{FSFile}->changePatterns(@_);
+  my $fsfile = CurrentFile();
+  return unless $fsfile;
+  carp("SetDisplayAttrs is obsolete: use SetStylesheetPatterns([...],STYLESHEET_FROM_FILE()) instead");
+  $fsfile->changePatterns(@_);
 }
 
 =item C<SetBalloonPattern(string,...)> - OBSOLETE!!
 
 Use given strings as a C<hint:> pattern for
-the currently displayed FSFile.
+the currently displayed Treex::PML::Document.
 
 =cut
 
 sub SetBalloonPattern {
-  return unless $grp->{FSFile};
-  $grp->{FSFile}->changeHint(join "\n",@_);
-  warn "SetBalloonPattern is obsolete: use SetStylesheetPatterns([...],STYLESHEET_FROM_FILE()) instead\n";
+  my $fsfile = CurrentFile();
+  return unless $fsfile;
+  $fsfile->changeHint(join "\n",@_);
+  carp("SetBalloonPattern is obsolete: use SetStylesheetPatterns([...],STYLESHEET_FROM_FILE()) instead");
 }
 
 =item C<GetDisplayAttrs()> - OBSOLETE!!
 
-Get patterns of the currently displayed FSFile's stylesheet, except
+Get patterns of the currently displayed Treex::PML::Document's stylesheet, except
 for a C<hint:> pattern.
 
 =cut
 
 sub GetDisplayAttrs {
-  return unless $grp->{FSFile};
-  warn "GetDisplayAttrs is obsolete: use GetStylesheetPatterns(STYLESHEET_FROM_FILE()) instead\n";
-  return $grp->{FSFile}->patterns();
+  my $fsfile = CurrentFile();
+  return unless $fsfile;
+  carp("GetDisplayAttrs is obsolete: use GetStylesheetPatterns(STYLESHEET_FROM_FILE()) instead");
+  return $fsfile->patterns();
 }
 
 =item C<GetBalloonPattern()> - OBSOLETE!!
 
 Get a C<hint:> pattern of the currently displayed
-FSFile's stylesheet.
+Treex::PML::Document's stylesheet.
 
 =cut
 
 sub GetBalloonPattern {
-  return unless $grp->{FSFile};
-  warn "GetBalloonPattern is obsolete: use (\$hint)=GetPatternsByPrefix('hint',STYLESHEET_FROM_FILE()) instead\n";
-  return $grp->{FSFile}->hint();
+  my $fsfile = CurrentFile();
+  return unless $fsfile;
+  carp("GetBalloonPattern is obsolete: use (\$hint)=GetPatternsByPrefix('hint',STYLESHEET_FROM_FILE()) instead");
+  return $fsfile->hint();
 }
 
 
@@ -3059,28 +3079,28 @@ sub SwitchContextForWindow {
 
 ###########################################################
 
-=head2 FSFormat API
+=head2 Treex::PML::FSFormat API
 
-Here are described for working with FSFormat objects. Beside these
-macros, FSFormat object methods can be used.
+Here are described for working with Treex::PML::FSFormat objects. Beside these
+macros, Treex::PML::FSFormat object methods can be used.
 
 =over 4
 
 =item C<FS()>
 
-Return FSFormat object associated with the current FSFile.
+Return Treex::PML::FSFormat object associated with the current Treex::PML::Document.
 
 =cut
 
 sub FS {
-  return $grp->{FSFile}->FS;
+  return CurrentFile()->FS;
 }
 
 =item C<GetOrd(node)>
 
 Return value of the special numbering FS attribute. This macro
 actually returns the same value as
-C<$node-E<gt>{$grp-E<gt>{FSFile}-E<gt>FS-E<gt>order()}>
+C<<<$node-E<gt>{FS()->order()}>>>
 
 =cut
 
@@ -3115,10 +3135,12 @@ sub Attributes {
       return $node->type->schema->attributes($node->type);
     }
   } else {
-    if (ref($grp->{FSFile}->metaData('schema'))) {
-      return $grp->{FSFile}->metaData('schema')->attributes()
+    my $fsfile=CurrentFile();
+    return unless $fsfile;
+    if (ref($fsfile->metaData('schema'))) {
+      return $fsfile->metaData('schema')->attributes()
     } else {
-      return $grp->{FSFile}->FS->attributes;
+      return $fsfile->FS->attributes;
     }
   }
 }
@@ -3131,7 +3153,7 @@ declarations must be passed to this function.
 =cut
 
 sub SubstituteFSHeader {
-  $grp->{FSFile}->changeFS(FS()->create(@_));
+  CurrentFile()->changeFS(FS()->create(@_));
 }
 
 
@@ -3145,9 +3167,10 @@ of the current document.
 sub AppendFSHeader {
   my $new=FS()->create(@_);
   my $newdefs=$new->defs();
-  my $fs=$grp->{FSFile}->FS;
-  my $defs=$grp->{FSFile}->FS->defs();
-  my $list=$grp->{FSFile}->FS->list();
+  my $fsfile = CurrentFile();
+  my $fs=$fsfile->FS;
+  my $defs=$fsfile->FS->defs();
+  my $list=$fsfile->FS->list();
   foreach ($new->attributes()) {
     push @$list, $_ unless ($fs->exists($_));
     $defs->{$_}=$newdefs->{$_};
@@ -3162,9 +3185,10 @@ Remove declarations of given attributes from the FS header
 =cut
 
 sub UndeclareAttributes {
-  my $fs=$grp->{FSFile}->FS;
-  my $defs=$grp->{FSFile}->FS->defs();
-  my $list=$grp->{FSFile}->FS->list();
+  my $fsfile = CurrentFile();
+  my $fs=$fsfile->FS;
+  my $defs=$fsfile->FS->defs();
+  my $list=$fsfile->FS->list();
   delete @{$defs}{@_};
 
   @$list=grep { exists($defs->{$_}) } @$list;
@@ -3179,9 +3203,9 @@ sub UndeclareAttributes {
 
 ###########################################################
 
-=head2 FSFile I/O API
+=head2 Treex::PML::Document I/O API
 
-See also FSFile object methods defined in the C<Fslib> module.
+See also Treex::PML::Document object methods defined in the C<Treex::PML> module.
 
 =over 4
 
@@ -3208,13 +3232,13 @@ sub ChangingFile {
 
 =item C<CurrentFile()>
 
-Return a FSFile object representing the currently processed file.
+Return a Treex::PML::Document object representing the currently processed file.
 
 =cut
 
 =item C<Open(filename,flags)>
 
-Open a given FSFile in TrEd. Flags is an optional HASH reference
+Open a given Treex::PML::Document in TrEd. Flags is an optional HASH reference
 that may contain various flags internally used by TrEd.
 
 =cut
@@ -3232,7 +3256,7 @@ sub Open {
 
 =item C<OpenSecondaryFiles($fsfile)>
 
-Open secondary files for a given FSFile in TrEd.
+Open secondary files for a given Treex::PML::Document in TrEd.
 
 =cut
 
@@ -3276,22 +3300,22 @@ sub ResumeFile {
 
 =item C<CloseFile(file?)>
 
-Close a given FSFile.
+Close a given Treex::PML::Document.
 
 =cut
 
 sub CloseFile {
   shift unless ref($_[0]);
   my $file = $_[0]||CurrentFile();
-  croak("Not a FSFile object!\n") 
-    if defined($file) and !UNIVERSAL::isa($file,'FSFile');
+  croak("Not a Treex::PML::Document object!\n") 
+    if defined($file) and !UNIVERSAL::DOES::does($file,'Treex::PML::Document');
   main::closeFile($grp,$file);
   $Redraw='all';
 }
 
 =item C<CloseFileInWindow(window?)>
 
-This macro is for TrEd only. It closes the FSFile open in the given or
+This macro is for TrEd only. It closes the Treex::PML::Document open in the given or
 current window.  If the file is open in other windows, it is kept
 among postponed files. If the file is modified, the user is asked to
 save it.
@@ -3307,7 +3331,7 @@ sub CloseFileInWindow {
 
 =item C<Save()>
 
-Save the current FSFile.
+Save the current Treex::PML::Document.
 
 =cut
 
@@ -3322,7 +3346,7 @@ sub Save {
 
 NOTE: This macro is currently only available in TrEd.
 
-Save the current FSFile under a new filename. 
+Save the current Treex::PML::Document under a new filename. 
 Returns 1 if the file was saved successfully.
 
 Options:
@@ -3345,7 +3369,7 @@ save using a given I/O backend
 =item update_refs
 
 update references from other files to this file.  Values can be:
-'ask', 'all', an array of FSFile objects; all
+'ask', 'all', an array of Treex::PML::Document objects; all
 other values mean no update. Default is 'ask'.
 
 =item update_filelist
@@ -3388,7 +3412,7 @@ sub SaveAs {
 
 =item C<GetOpenFiles()>
 
-Return a list of FSFile objects currently open in TrEd (including
+Return a list of Treex::PML::Document objects currently open in TrEd (including
 postponed files).
 
 =cut
@@ -3415,7 +3439,7 @@ sub Backends {
 =item C<AddBackend($classname,$before_backend)>
 
 Register a new I/O backend. Note that the caller is responsible for
-loading the required module (e.g. by calling Fslib::ImportBackends());
+loading the required module (e.g. by calling Treex::PML::ImportBackends());
 If $before_backend is defined, the new backend is added before a given
 backend. Otherwise the backend is added as a last backend.
 
@@ -3427,13 +3451,14 @@ sub AddBackend {
   if (defined $before) {
     my $found;
     @main::backends = map {
-      if (!$found and ($_ eq $before)) {
+      if (!$found and ($_ eq $before)
+	    or ($_.'Backend' eq $before)) {
 	$found=1;
 	($class,$_)
       } else { ($_) }
     } @main::backends;
     if (!$found) {
-      carp("TrEdMacro::AddBackend(): backend '$before' not found");
+      carp("TrEdMacro::AddBackend('$class','$before'): backend '$before' not found, appending");
       push @main::backends,$class;
     }
   } else {
@@ -3463,7 +3488,7 @@ Creates a new TrED filelist from a given C<Filelist> object.
 #ifdef TRED
 sub AddNewFileList {
   my ($fl)=@_;
-  croak("Not a file-list object") unless UNIVERSAL::isa($fl,'Filelist');
+  croak("Not a file-list object") unless UNIVERSAL::DOES::does($fl,'Filelist');
   main::addNewFilelist($grp->{framegroup},$fl);
 }
 #endif
@@ -3480,7 +3505,7 @@ from TrEd's internal list of open filelists.
 sub RemoveFileList {
   my ($fl)=@_;
   $fl = GetFileList($fl) unless ref($fl);
-  croak("No such file-list") unless UNIVERSAL::isa($fl,'Filelist');
+  croak("No such file-list") unless UNIVERSAL::DOES::does($fl,'Filelist');
   main::deleteFilelist($grp->{framegroup},$fl);
 }
 #endif
@@ -3531,7 +3556,7 @@ sub AbsolutizeFileName {
   return unless defined $filename;
   my $suffix;
   ($filename,$suffix)=TrEd::Utils::parseFileSuffix($filename);
-  return Fslib::ResolvePath($relfile,$filename).$suffix;
+  return Treex::PML::ResolvePath($relfile,$filename).$suffix;
 }
 
 
@@ -3589,7 +3614,8 @@ otherwise.
 =cut
 
 sub GetFileSaveStatus {
-  return $grp->{FSFile} ? $grp->{FSFile}->notSaved : 0;
+  my $fsfile = CurrentFile();
+  return $fsfile ? $fsfile->notSaved : 0;
 }
 
 =item C<SetFileSaveStatus()>
@@ -3601,7 +3627,8 @@ macro (and TrEd/bTrEd would not notice that).
 =cut
 
 sub SetFileSaveStatus {
-  $grp->{FSFile}->notSaved($_[0]) if $grp->{FSFile};
+  my $fsfile = CurrentFile();
+  $fsfile->notSaved($_[0]) if $fsfile;
 }
 
 
@@ -3627,32 +3654,6 @@ sub SetDefaultInputEncoding {
 }
 
 
-
-
-=item C<DumpFS(treelist,fsfile,fh)>
-
-Dump given trees from the given FSFile in FS format to the given
-filehandle. If C<$treelist> is undefined, all trees from the FSFile are
-dumped. If C<$fsfile> is undefined, current file is used. If C<$fh> is
-undefined, C<STDOUT> is used.
-
-=cut
-
-sub DumpFS {
-  my ($treelist, $fsfile, $fh)=@_;
-
-  $fsfile ||= $grp->{FSFile};
-  $fh ||= \*STDOUT;
-  $treelist ||= $fsfile->treeList;
-
-  return 0 unless ref($fsfile);
-
-  $fsfile->FS->writeTo($fh);
-  FSBackend::PrintFSFile($fh,$fsfile->FS,$treelist);
-  $fh->print($fsfile->tail);
-  return 1;
-}
-
 =item C<FileName()>
 
 Return current file's name.
@@ -3660,12 +3661,13 @@ Return current file's name.
 =cut
 
 sub FileName {
-  return $grp->{FSFile}->filename if $grp->{FSFile};
+  my $fsfile = CurrentFile();
+  return $fsfile->filename if $fsfile;
 }
 
 =item C<FileMetaData(key,value?)>
 
-Get or set meta data associated with the current FSFile.  Key is the
+Get or set meta data associated with the current Treex::PML::Document.  Key is the
 meta data key. If value is omitted, current value associated with the
 key is returned. Otherwise, the given value is associated with the
 key, overwritting any previous value.
@@ -3675,15 +3677,15 @@ key, overwritting any previous value.
 sub FileMetaData {
   my ($name,$value)=@_;
   if (@_<=1) {
-    $grp->{FSFile}->metaData($name);
+    CurrentFile()->metaData($name);
   } else {
-    $grp->{FSFile}->changeMetaData($name,$value);
+    CurrentFile()->changeMetaData($name,$value);
   }
 }
 
 =item C<FileUserData(key,value?)>
 
-Get or set user data associated with the current FSFile.  Key is the
+Get or set user data associated with the current Treex::PML::Document.  Key is the
 user data key. If value is omitted, current value associated with the
 key is returned. Otherwise, the given value is associated with the
 key, overwritting any previous value.
@@ -3692,20 +3694,21 @@ key, overwritting any previous value.
 
 sub FileUserData {
   my ($name,$value)=@_;
-  unless ($grp->{FSFile}) {
+  my $fsfile = CurrentFile();
+  unless ($fsfile) {
     confess("FileUserData: no file is open\n");
   }
   if (@_<=1) {
-    $grp->{FSFile}->userData()->{$name};
+    $fsfile->userData()->{$name};
   } else {
-    $grp->{FSFile}->userData()->{$name}=$value;
+    $fsfile->userData()->{$name}=$value;
   }
 }
 
 =item C<FileAppData(key,value?)>
 
 Get or set application specific data associated with the current
-FSFile.  Key is the appData key. If value is omitted, current value
+Treex::PML::Document.  Key is the appData key. If value is omitted, current value
 associated with the key is returned. Otherwise, the given value is
 associated with the key, overwritting any previous value.
 
@@ -3714,9 +3717,9 @@ associated with the key, overwritting any previous value.
 sub FileAppData {
   my ($name,$value)=@_;
   if (@_<=1) {
-    $grp->{FSFile}->appData($name);
+    CurrentFile()->appData($name);
   } else {
-    $grp->{FSFile}->changeAppData($name,$value);
+    CurrentFile()->changeAppData($name,$value);
   }
 }
 
@@ -3844,9 +3847,9 @@ sub PrevFile {
 
 =cut
 
-*ResourcePaths = \&Fslib::ResourcePaths;
+*ResourcePaths = \&Treex::PML::ResourcePaths;
 # old name:
-*ResourcePath = \&Fslib::ResourcePaths;
+*ResourcePath = \&Treex::PML::ResourcePaths;
 
 =item C<SetResourcePaths(dirs)>
 
@@ -3855,9 +3858,9 @@ the existing values of ResourcePath).
 
 =cut
 
-*SetResourcePaths = \&Fslib::SetResourcePaths;
+*SetResourcePaths = \&Treex::PML::SetResourcePaths;
 # old name
-*SetResourcePath = \&Fslib::SetResourcePaths;
+*SetResourcePath = \&Treex::PML::SetResourcePaths;
 
 =item C<AddResourcePath(dirs)>
 
@@ -3866,9 +3869,9 @@ searched last).
 
 =cut
 
-*AddResourcePath = \&Fslib::AddResourcePath;
+*AddResourcePath = \&Treex::PML::AddResourcePath;
 # old name
-*AddToResourcePath = \&Fslib::AddResourcePath;
+*AddToResourcePath = \&Treex::PML::AddResourcePath;
 
 
 =item C<AddToResourcePathAsFirst(dirs)>
@@ -3878,7 +3881,7 @@ Add given directories to the beginning of the current resource path
 
 =cut
 
-*AddResourcePathAsFirst = \&Fslib::AddResourcePathAsFirst;
+*AddResourcePathAsFirst = \&Treex::PML::AddResourcePathAsFirst;
 
 =item C<RemoveResourcePath(dir-paths)>
 
@@ -3887,9 +3890,9 @@ paths must exactly match those listed in the resource path).
 
 =cut
 
-*RemoveResourcePath = \Fslib::RemoveResourcePath;
+*RemoveResourcePath = \Treex::PML::RemoveResourcePath;
 #old name
-*RemoveFromResourcePath = \Fslib::RemoveResourcePath;
+*RemoveFromResourcePath = \Treex::PML::RemoveResourcePath;
 
 =item C<FindDirInResources(dirname)>
 
@@ -3928,7 +3931,7 @@ chomp() is applied to the returned array or scalar.
 
 sub SlurpURI {
   my ($filename, $encoding, $chomp)=@_;
-  my $fh = IOBackend::open_uri($filename,$encoding);
+  my $fh = Treex::PML::IO::open_uri($filename,$encoding);
   my $ret;
   my $wantarray = wantarray;
   if ($wantarray) {
@@ -3939,7 +3942,7 @@ sub SlurpURI {
     $ret = <$fh>;
     chomp $ret if $chomp;
   }
-  IOBackend::close_uri($fh);
+  Treex::PML::IO::close_uri($fh);
   return $wantarray ? @$ret : $ret;
 }
 
@@ -4106,7 +4109,7 @@ If set to 1, this command prints also the text associated with the
 tree. Instead of 0 or 1, an CODE reference (subroutine) may be passed
 in this parameter. This CODE is then evaluated for every tree to
 produce the desired text. The CODE obtains two arguments: the current
-FSFile object and an integer position of the tree (starting from 0).
+Treex::PML::Document object and an integer position of the tree (starting from 0).
 
 =item C<-fileInfo>
 
@@ -4188,7 +4191,7 @@ If set to 1, this command prints also the text associated with the
 tree. Instead of 0 or 1, a CODE reference (subroutine) may be passed
 in this parameter. This CODE is then evaluated for every tree to
 produce the desired text. The CODE obtains two arguments: the current
-FSFile object and an integer position of the tree (starting from 0).
+Treex::PML::Document object and an integer position of the tree (starting from 0).
 
 =item C<-fileInfo>
 
@@ -4320,7 +4323,7 @@ sub Print {
     }
     $opts{-treeViewOpts} ||= $TrEd::Config::treeViewOpts;
     $opts{-toplevel} = ToplevelFrame() unless exists $opts{-toplevel};
-    $opts{-fsfile}     ||= $grp->{FSFile};
+    $opts{-fsfile}     ||= CurrentFile();
     $opts{-convert} ||= $TrEd::Config::imageMagickConvert;
     return 
       TrEd::Print::Print({
@@ -4475,14 +4478,14 @@ C<SetupXPath(
            )>
 
 This macro requires C<XML::XPath> module to be installed.  It adjusts
-FSNode API to match XPath model based on a given function mapping.  By
+Treex::PML::Node API to match XPath model based on a given function mapping.  By
 default, 'id' is defined to return nothing, 'pos' returns nodes
 sentence-ordering position (or depth-first-ordering position if sentord
 attribute is not defined), 'attributes' returs a hashref of node's
-attributes (actually a FSNode itself), 'name' returns "node", 'value'
+attributes (actually a Treex::PML::Node itself), 'name' returns "node", 'value'
 returns node's value of the special FS value attribute, and
 'children', 'parent', 'lbrother', and 'rbrother' all default to the
-respective FSNode methods.
+respective Treex::PML::Node methods.
 
 Usage example:
 
@@ -4508,18 +4511,18 @@ sub SetupXPath {
     $handlers{value} = sub { $_[0]->{$val} } ;
   }
 
-  *FSNode::getElementById = $handlers{id} if $handlers{id};
-  *FSNode::get_global_pos = $handlers{pos} if $handlers{pos};
-  *FSNode::getAttributes = $handlers{attributes} if $handlers{attributes};
-  *FSNode::getName = $handlers{name} if $handlers{name};
-  *FSNode::getLocalName = $handlers{name} if $handlers{name};
-  *FSNode::getValue = $handlers{value} if $handlers{value};
-  *FSNode::string_value = $handlers{value} if $handlers{value};
+  *Treex::PML::Node::getElementById = $handlers{id} if $handlers{id};
+  *Treex::PML::Node::get_global_pos = $handlers{pos} if $handlers{pos};
+  *Treex::PML::Node::getAttributes = $handlers{attributes} if $handlers{attributes};
+  *Treex::PML::Node::getName = $handlers{name} if $handlers{name};
+  *Treex::PML::Node::getLocalName = $handlers{name} if $handlers{name};
+  *Treex::PML::Node::getValue = $handlers{value} if $handlers{value};
+  *Treex::PML::Node::string_value = $handlers{value} if $handlers{value};
 
-  *FSNode::getParentNode = $handlers{parent} if $handlers{parent};
-  *FSNode::getChildNodes = $handlers{children} if $handlers{children};
-  *FSNode::getPreviousSibling = $handlers{lbrother} if $handlers{lbrother};
-  *FSNode::getNextSibling = $handlers{rbrother} if $handlers{rbrother};
+  *Treex::PML::Node::getParentNode = $handlers{parent} if $handlers{parent};
+  *Treex::PML::Node::getChildNodes = $handlers{children} if $handlers{children};
+  *Treex::PML::Node::getPreviousSibling = $handlers{lbrother} if $handlers{lbrother};
+  *Treex::PML::Node::getNextSibling = $handlers{rbrother} if $handlers{rbrother};
 }
 
 

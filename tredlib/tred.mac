@@ -560,7 +560,7 @@ sub _quick_pml_type {
 sub QuickPML {
   my ($name,$spec,$root)=@_;
   my $template=_quick_pml_type($spec);
-  my $pml = PMLInstance->load({string => <<"EOF"});
+  my $pml = Treex::PML::Instance->load({string => <<"EOF"});
 <$name xmlns="http://ufal.mff.cuni.cz/pdt/pml/">
 <head>
   <schema>
