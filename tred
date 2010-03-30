@@ -177,6 +177,10 @@ setFHEncoding(\*STDOUT,':utf8',"STDOUT");
 
 {
   my $ld=$libDir;
+  require TrEd::Version;
+  import TrEd::Version;
+  $VERSION = TrEd::Version::TRED_VERSION();
+
   require TrEd::Config;
   import TrEd::Config;
   import TrEd::Config qw(&read_config &apply_config &set_default_config_file_search_list);
@@ -236,15 +240,11 @@ import TrEd::MinMax;
 #sub first (&@); # prototype it for compile-time
 import TrEd::MinMax qw(first);
 
-require TrEd::Version;
-import TrEd::Version;
 
 ############################################################
 # end of BEGIN section
 ############################################################
 }
-
-$VERSION = TRED_VERSION;
 
 if ($opt_v) {
   print <<"EOF";
