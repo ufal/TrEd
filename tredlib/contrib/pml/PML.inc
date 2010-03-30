@@ -11,6 +11,7 @@ BEGIN {
 }
 
 use Scalar::Util qw(weaken);
+use UNIVERSAL::DOES;
 
 =pod
 
@@ -60,20 +61,20 @@ sub SchemaDescription {
 
 =item PML::Schema($object?)
 
-For a FSNode object returns PML schema associated with that object.
-If the object is a FSFile, return PML schema associated with the given
-file. If no object is given, the current FSFile is used.
+For a Treex::PML::Node object returns PML schema associated with that object.
+If the object is a Treex::PML::Document, return PML schema associated with the given
+file. If no object is given, the current Treex::PML::Document is used.
 
-The PML schema is returned in form of a Fslib::Schema object.
+The PML schema is returned in form of a Treex::PML::Schema object.
 
 =cut
 
 sub Schema {
   my $obj = $_[0] || $grp->{FSFile};
   return unless defined $obj;
-  if (UNIVERSAL::isa($obj,'FSNode')) {
+  if (UNIVERSAL::DOES::does($obj,'Treex::PML::Node')) {
     return $obj->type ? $obj->type->schema : undef;
-  } elsif (UNIVERSAL::isa($obj,'FSFile')) {
+  } elsif (UNIVERSAL::DOES::does($obj,'Treex::PML::Document')) {
     return $obj->metaData('schema');
   } elsif (!defined($obj) and defined($grp->{FSFile})) {
     return $grp->{FSFile}->metaData('schema');
@@ -98,7 +99,7 @@ sub GetNodeByID {
 
 =item PML::DeleteFromNodeHash($id,$fsfile?)
 
-Deletes a given ID from a node HASH of the current or specified FSFile.
+Deletes a given ID from a node HASH of the current or specified Treex::PML::Document
 The node previously hashed under the given ID is returned.
 
 =cut
@@ -113,7 +114,7 @@ sub DeleteFromNodeHash {
 
 =item PML::AddToNodeHash($id,$node,$fsfile?)
 
-Adds a node to the node hash (of the given or current FSFile) using
+Adds a node to the node hash (of the given or current Treex::PML::Document) using
 given ID as the hash key.
 
 =cut

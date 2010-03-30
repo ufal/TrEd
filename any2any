@@ -97,11 +97,10 @@ if (defined $config_file) {
 
 my $configFile=read_config();
 
-require Fslib;
-import Fslib;
+require Treex::PML;
+import Treex::PML;
 
-#require CSTS_SGML_SP_Backend;
-@backends=('FSBackend',ImportBackends(qw(NTREDBackend TrXMLBackend TEIXMLBackend CSTS_SGML_SP_Backend StorableBackend)));
+@backends=('FS',ImportBackends(qw(NTRED TrXML TEIXML CSTS Storable)));
 
 ($opt_T || $opt_R) && Csts2fs::setupTR();
 $opt_A && Csts2fs::setupPADTAR();
@@ -112,7 +111,7 @@ if ($opt_X ne "") {
 
 @Fs2csts::extra_attributes=split /,/,$opt_x;
 
-$Fslib::Debug=1 if $opt_D;
+$Treex::PML::Debug=1 if $opt_D;
 $Csts2fs::fill_empty_ord = 1 if $opt_N;
 $Fs2csts::export_dependency = 0 if $opt_G;
 $Fs2csts::compatibility_mode = 1 if $opt_C;
@@ -121,11 +120,11 @@ $Fs2csts::preserve_err1 = 1 if $opt_E;
 our $inputenc='iso-8859-2';
 
 %bkmap=(
-	fs => 'FSBackend',
-	csts => 'CSTS_SGML_SP_Backend',
-	trxml => 'TrXMLBackend',
-	teixml => 'TEIXMLBackend',
-	storable => 'StorableBackend'
+	fs => 'FS',
+	csts => 'CSTS',
+	trxml => 'TrXML',
+	teixml => 'TEIXML',
+	storable => 'Storable'
 );
 
 $fileno=0;
@@ -179,7 +178,10 @@ if ($opt_m) {
     $f=shift @$fspec;
     $fileno++;
     print STDERR "$f\t",int(100*$fileno / $filecount),"%\t$fileno of $filecount\n";
-    $fs = FSFile->newFSFile($f,$inputenc,\@backends);
+    $fs = Treex::PML::Factory->createDocumentFromFile($f,{
+      encoding => $inputenc,
+      backends => \@backends
+    });
     if ($fs->lastTreeNo<0) {
       print STDERR "$f: empty or corrupt file!\n";
       next;
@@ -196,13 +198,13 @@ if ($opt_m) {
 	}
       } else {
 	# create the output file according to the first file
-	$outfs = FSFile->create(
+	$outfs = Treex::PML::Factory->createDocument({
 				name => ($limit ? sprintf($out,$outfileno++) : $out),
 				format => $format,
 				FS => $fs->FS->clone(),
 				backend => $backend,
 				encoding => $fs->encoding()
-			       );
+			       });
 	$outfs->changePatterns($fs->patterns());
 	$outfs->changeTail($fs->tail());
 	$outfs->changeHint($fs->hint());
@@ -253,7 +255,10 @@ if ($opt_m) {
     }
 
     print STDERR "$f\t->\t$out\t",int(100*$fileno / $filecount),"%\t$fileno of $filecount\n";
-    $fs = FSFile->newFSFile($f,$inputenc,\@backends);
+    $fs = Treex::PML::Factory->createDocumentFromFile($f, {
+      encoding => $inputenc,
+      backends => \@backends
+     });
     if ($fs->lastTreeNo<0) {
       print STDERR "$f: empty or corrupt file!\n";
       next;

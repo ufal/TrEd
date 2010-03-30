@@ -9,7 +9,7 @@ use Tk::Canvas;
 use Tk::CanvasSee;
 use Tk::Balloon;
 use Tk::Font;
-use Fslib;
+use Treex::PML;
 use TrEd::MinMax;
 import TrEd::MinMax;
 import TrEd::MinMax 'sum';
@@ -2277,7 +2277,7 @@ sub redraw {
       $ftext="File: $currentfile";
       if (@$nodes) {
 	my $r_node = $nodes->[0]->root;
-	my $which_tree = Fslib::Index($fsfile->treeList,$r_node)+1;
+	my $which_tree = Treex::PML::Index($fsfile->treeList,$r_node)+1;
 	$ftext.=", tree ".$which_tree." of ".($fsfile->lastTreeNo+1);
       } else {
 	$ftext='';
@@ -2774,7 +2774,7 @@ sub _present_attribute {
   my $val = $node;
   my $append = "";
   for my $step (split /\//, $path) {
-    if (ref($val) eq 'Fslib::List' or ref($val) eq 'Fslib::Alt') {
+    if (UNIVERSAL::DOES::does($val, 'Treex::PML::List') or UNIVERSAL::DOES::does($val, 'Treex::PML::Alt')) {
       if ($step =~ /^\[(\d+)\]/) {
 	$val = $val->[$1-1];
       } else {
@@ -2782,7 +2782,7 @@ sub _present_attribute {
 	$val = $val->[0];
 	redo;
       }
-    } elsif (ref($val) eq 'Fslib::Seq') {
+    } elsif (UNIVERSAL::DOES::does($val, 'Treex::PML::Seq')) {
       if ($step =~ /^\[([-+]?\d+)\](.*)/) {
 	$val =
 	  $1>0 ? $val->elements_list->[$1-1] :
@@ -2813,7 +2813,7 @@ sub _present_attribute {
       return '';
     }
   }
-  if (ref($val) eq 'Fslib::List' or ref($val) eq 'Fslib::Alt') {
+  if (UNIVERSAL::DOES::does($val, 'Treex::PML::List') or UNIVERSAL::DOES::does($val, 'Treex::PML::Alt')) {
     $append="*" if @$val > 1;
     $val = $val->[0];
   }

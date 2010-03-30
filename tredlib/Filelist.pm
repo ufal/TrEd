@@ -364,8 +364,8 @@ sub file_at {
 
 =item position (fsfile?)
 
-If the argument is FSFile object, return an index of the filename
-corresponding to the given FSFile object. IF the argument is string,
+If the argument is Treex::PML::Document object, return an index of the filename
+corresponding to the given Treex::PML::Document object. IF the argument is string,
 return an index of the string in the file list. If no argument is given,
 return index of current file.
 

@@ -2,7 +2,7 @@ package TrEd::Macros;
 
 BEGIN {
   use Cwd;
-  use Fslib;
+  use Treex::PML;
   use File::Spec;
   use File::Glob qw(:glob);
   use TrEd::Config;

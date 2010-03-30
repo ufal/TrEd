@@ -387,7 +387,7 @@ sub find_childless_verbs {
         <term>FS()</term>
 
         <listitem>
-          <para>Returns current FSFormat object. It is an object containing
+          <para>Returns the current Treex::PML::FSFormat object. It is an object containing
           information of currently defined attributes and possibly their
           special semantic (e.g. which attribute is responsible for the
           topological left-to-right ordering of the tree, which attribute is
@@ -468,7 +468,7 @@ sub find_childless_verbs {
       </varlistentry>
 
       <varlistentry>
-        <term>$node = FSNode-&gt;new()</term>
+        <term>$node = Treex::PML::Factory->createNode()</term>
 
         <listitem>
           <para>Create a new node.</para>

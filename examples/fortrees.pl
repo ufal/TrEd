@@ -18,7 +18,7 @@
 #
 #
 
-use Fslib;
+use Treex::PML;
 use locale;
 use POSIX qw(locale_h);
 

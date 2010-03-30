@@ -20,7 +20,7 @@
 #
 #
 
-use Fslib;
+use Treex::PML;
 use locale;
 use POSIX qw(locale_h);
 
@@ -40,10 +40,7 @@ $filecount=$#files+1;
 
 
 foreach $f (@files) {
-  @trees = ();
-  @header = ();
-  @rest = ();
-  @nodes=();
+  my (@trees, @header, @rest, @nodes);
 
   $_found=0;
   open(my $fh,"<",$f) or die "cannot open $f!\n";
@@ -91,8 +88,5 @@ foreach $f (@files) {
     close($fh);
     print STDERR "$_found matches in $f, wrote to $f.out.\n";
   }
- 
-  foreach (@trees) { Fslib::DeleteTree($_); }
-  undef @header;
 }
 

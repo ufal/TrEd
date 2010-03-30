@@ -10,6 +10,7 @@ use Tk qw(Ev catch);
 use File::Spec;
 use File::Glob qw(:glob);
 use List::Util qw(max);
+use Scalar::Util qw(blessed);
 
 require Tk::Frame;
 require Tk::Derived;
@@ -254,7 +255,7 @@ sub EntryChDir {
 sub UpdateEntry {
   my ($cw,$dir)=@_;
   my $entry = $cw->{'entry'};
-  if (UNIVERSAL::isa($entry,'Tk::Menubutton')) {
+  if ((blessed($entry) and $entry->isa('Tk::Menubutton'))) {
     my $entries = $entry->cget(-menu);
     $entries->delete(0, 'end');
     my $i=-1;
@@ -285,7 +286,7 @@ sub UpdateEntry {
       }
     }
     $entry->configure(-text => $dir);
-  } elsif (UNIVERSAL::isa($entry,'Tk::Entry')) {
+  } elsif ((blessed($entry) and $entry->isa('Tk::Entry'))) {
     $entry->delete(0,'end');
     $dir.=$splitchar unless ($dir=~/$rsplit$/);
     $entry->insert(0,$dir);

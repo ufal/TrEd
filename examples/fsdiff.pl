@@ -69,9 +69,9 @@ if (exists $ENV{TREDHOME}) {
 print STDERR "Trying $libDir\n" if ($libDir and !$opt_q);
 unshift @INC,"$libDir";
 
-require Fslib;
-import Fslib;
-import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index &ImportBackends);
+require Treex::PML;
+import Treex::PML;
+import Treex::PML qw(&UseBackends);
 
 use locale;
 use POSIX qw(locale_h);
@@ -184,15 +184,14 @@ sub align_other {
   }   # well, wasn't so difficult :)
 }
 
-#require CSTS_SGML_SP_Backend;
-@backends=('FSBackend',ImportBackends(qw(TrXMLBackend CSTS_SGML_SP_Backend)));
+UseBackends(qw(FS TrXMLBackend CSTS));
 $opt_R && Csts2fs::setupTR();
-$Fslib::Debug=$opt_D;
+$Treex::PML::Debug=$opt_D;
 
 %bkmap=(
-	fs => 'FSBackend',
-	csts => 'CSTS_SGML_SP_Backend',
-	trxml => 'TrXMLBackend'
+	fs => 'FS',
+	csts => 'CSTS',
+	trxml => 'TrXML'
 );
 
 
@@ -250,7 +249,8 @@ sub Max {
 foreach $f (@files) {
   $fileno++;
   print STDERR "Reading $f\t($fileno/$filecount)\n" unless $opt_q;
-  my $fs = FSFile->newFSFile($f,'iso-8859-2',@backends);
+  my $fs = Treex::PML::Factory->createDocument($f,{encoding=>'iso-8859-2',
+					      backends=>\@backends});
   $fs->lastTreeNo<0 && die "$f: empty or corrupt file!\n";
 
   foreach my $root ($fs->trees) {
@@ -576,7 +576,7 @@ foreach $f (keys %alltrees) {
     $trcount+=$tree->{trcount};
     $newcount+=$tree->{newcount};
 
-    Fslib::DeleteTree($tree);		# BTW, delete the tree:)
+    $tree->destroy();
   }
 
   print "$f:\n\tTotal: $acount nodes\n\tOn TR: $trcount nodes\n\tNew:   $newcount\n\tAttrs: $total_cmp_attrs\n" if ($opt_s);
