@@ -1,10 +1,11 @@
 package TrEd::Basics;
 
 BEGIN {
-  use Fslib;
+  use Treex::PML;
   require TrEd::MinMax;
   import TrEd::MinMax;
   import TrEd::MinMax qw(first);
+  use UNIVERSAL::DOES;
 
   use Exporter  ();
   use vars qw($VERSION @ISA @EXPORT @EXPORT_OK
@@ -42,7 +43,7 @@ BEGIN {
     &getPrimaryFiles
     &getPrimaryFilesRecursively
   );
-  use PMLSchema;
+  use Treex::PML::Schema;
 }
 
 use strict;
@@ -65,7 +66,7 @@ if (not File::Spec->can('rel2abs')) {
 # The $win parameter to the following two routines should be
 # a hash reference, having at least the following keys:
 #
-# FSFile       => FSFile blessed reference of the current FSFile
+# FSFile       => reference of the current Treex::PML::Document
 # treeNo       => number of the current tree in the file
 # macroContext => current context under which macros are run 
 # currentNode  => pointer to the current node 
@@ -171,7 +172,7 @@ sub newNode {
   return unless ($win->{FSFile} and $parent);
 
   my $nd=$parent->new();
-  Fslib::Paste($nd,$parent,$win->{FSFile}->FS);
+  $nd->paste_on($parent,$win->{FSFile}->FS);
   my $order = $win->{FSFile}->FS->order;
   if ($order) {
     $nd->set_member($order,$parent->get_member($order));
@@ -189,11 +190,10 @@ sub pruneNode {
   my $t;
   return undef unless ($win->{FSFile} and $node and $node->parent);
 
-  Fslib::Paste(Cut($t),$node->parent,$win->{FSFile}->FS)
-    while ($t=$node->firstson);
+  $t->cut()->paste_on($node->parent,$win->{FSFile}->FS) while ($t=$node->firstson);
 
   setCurrent($win,$node->parent) if ($node == $win->{currentNode});
-  $t=Fslib::DeleteLeaf($node);
+  $t=$node->destroy_leaf();
   $win->{FSFile}->notSaved(1);
   &$on_node_change($win,'newTree',$t) if $on_node_change;
   return $t;
@@ -250,7 +250,7 @@ sub errorMessage {
 }
 
 sub absolutize_path {
-  &Fslib::ResolvePath;
+  &Treex::PML::ResolvePath;
 }
 
 sub absolutize {
@@ -269,7 +269,7 @@ sub getSecondaryFiles {
   if ($requires) {
     foreach my $req (@$requires) {
       my $req_fs = ref($fsfile->appData('ref')) ? $fsfile->appData('ref')->{$req->[0]} : undef;
-      if (ref($req_fs) eq 'FSFile') {
+      if (UNIVERSAL::DOES::does($req_fs,'Treex::PML::Document')) {
 	push @secondary,$req_fs;
       }
     }

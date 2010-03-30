@@ -7,13 +7,14 @@ use strict;
 use warnings;
 use Carp;
 use Tk::Adjuster;
+use Scalar::Util qw(blessed);
 
 our $VERSION = '0.01';
 
 sub new {
   my ($class,$parent,$opts) = @_;
   $opts||={};
-  croak("Usage: ".__PACKAGE__."->new(\$parent_widget)") unless (ref($parent) and UNIVERSAL::isa($parent,'Tk::Widget'));
+  croak("Usage: ".__PACKAGE__."->new(\$parent_widget)") unless (ref($parent) and (blessed($parent) and $parent->isa('Tk::Widget')));
   return bless {
     %$opts,
     frame => $parent->Frame(),

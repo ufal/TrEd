@@ -486,7 +486,7 @@ return sub {
     'backend',
     {
       '-underline' => 0,
-      '-variable' => \$Fslib::Debug
+      '-variable' => \$Treex::PML::Debug
      },
     undef
    ],
@@ -589,27 +589,27 @@ return sub {
    ],
   'MENUBAR:HELP:LIBRARY_MANUALS:FSLIB' => [
     'Button',
-    'Fslib',
+    'Treex::PML',
     {
-      '-command' => [ \&open_url_in_browser, $docDir.'/Fslib.html' ],
+      '-command' => [ \&open_url_in_browser, $docDir.'/Treex::PML.html' ],
       '-underline' => 0
      },
     undef
    ],
   'MENUBAR:HELP:LIBRARY_MANUALS:PMLINSTANCE' => [
     'Button',
-    'PMLInstance',
+    'Treex::PML::Instance',
     {
-      '-command' => [ \&open_url_in_browser, $docDir.'/PMLInstance.html' ],
+      '-command' => [ \&open_url_in_browser, $docDir.'/Treex::PML::Instance.html' ],
       '-underline' => 0
      },
     undef
    ],
   'MENUBAR:HELP:LIBRARY_MANUALS:PMLSCHEMA' => [
     'Button',
-    'PMLSchema',
+    'Treex::PML::Schema',
     {
-      '-command' => [ \&open_url_in_browser, $docDir.'/PMLSchema.html' ],
+      '-command' => [ \&open_url_in_browser, $docDir.'/Treex::PML::Schema.html' ],
       '-underline' => 0
      },
     undef

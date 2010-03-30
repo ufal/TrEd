@@ -9,6 +9,7 @@ package TrEd::Config;
 
 use strict;
 use File::Spec;
+use Cwd;
 BEGIN {
   use vars      qw($VERSION @ISA @EXPORT @EXPORT_OK @config_file_search_list $quiet);
   use Exporter  ();
@@ -398,8 +399,8 @@ sub set_config {
   if ($libDir) {
     unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
   }
-  $extensionsDir=tilde_expand(length($confs->{extensionsdir})
-				? $confs->{extensionsdir} : '~/.tred.d/extensions');
+  $extensionsDir=Cwd::abs_path(tilde_expand(length($confs->{extensionsdir})
+				? $confs->{extensionsdir} : '~/.tred.d/extensions'));
   $extensionRepos = val_or_def($confs,'extensionrepos','http://ufal.mff.cuni.cz/~pajas/tred/extensions');
 
   my $def_share_path=$libDir;
@@ -421,7 +422,7 @@ sub set_config {
       $def_share_path =~ m{/share/tred$} ? $def_share_path :
 	File::Spec->catdir($def_share_path,'resources');
     $def_res_path = tilde_expand(q(~/.tred.d)) . $resourcePathSplit . $def_res_path ;
-    my @r = split $resourcePathSplit, $Fslib::resourcePath;
+    my @r = split $resourcePathSplit, $Treex::PML::resourcePath;
     my $r;
     if (exists $confs->{resourcepath}) {
       my $path = 
@@ -438,7 +439,7 @@ sub set_config {
     }
     unshift @r, split($resourcePathSplit,$r),
     my %r;
-    $Fslib::resourcePath = join $resourcePathSplit, grep { defined and length } map { exists($r{$_}) ? () : ($r{$_}=$_) } @r
+    $Treex::PML::resourcePath = join $resourcePathSplit, grep { defined and length } map { exists($r{$_}) ? () : ($r{$_}=$_) } @r
   }
   if ($confs->{backgroundimage} ne "" 
       and ! -f $confs->{backgroundimage}
@@ -535,51 +536,51 @@ sub set_config {
   $imageMagickConvert = val_or_def($confs,"imagemagickconvert",'convert');
   $NoConvertWarning = val_or_def($confs,"noconvertwarning",0);
 
-  $IOBackend::reject_proto = val_or_def($confs,'rejectprotocols','^(pop3?s?|imaps?)\$');
-  $IOBackend::gzip = val_or_def($confs,"gzip",find_exe("gzip"));
-  if (!$IOBackend::gzip and -x "$libDir/../gzip") {
-    $IOBackend::gzip = "$libDir/../bin/gzip";
+  $Treex::PML::IO::reject_proto = val_or_def($confs,'rejectprotocols','^(pop3?s?|imaps?)\$');
+  $Treex::PML::IO::gzip = val_or_def($confs,"gzip",find_exe("gzip"));
+  if (!$Treex::PML::IO::gzip and -x "$libDir/../gzip") {
+    $Treex::PML::IO::gzip = "$libDir/../bin/gzip";
   }
-  $IOBackend::gzip_opts = val_or_def($confs,"gzipopts", "-c");
-  $IOBackend::zcat = val_or_def($confs,"zcat", find_exe("zcat"));
-  $IOBackend::zcat_opts = val_or_def($confs,"zcatopts", undef);
-  $IOBackend::ssh = val_or_def($confs,"ssh", undef);
-  $IOBackend::ssh_opts = val_or_def($confs,"sshopts", undef);
-  $IOBackend::kioclient = val_or_def($confs,"kioclient", undef);
-  $IOBackend::kioclient_opts = val_or_def($confs,"kioclientopts", undef);
-  $IOBackend::curl = val_or_def($confs,"curl", undef);
-  $IOBackend::curl_opts = val_or_def($confs,"curlopts", undef);
-  if (!$IOBackend::zcat) {
-    if ($IOBackend::gzip) {
-      $IOBackend::zcat=$IOBackend::gzip;
-      $IOBackend::zcat_opts='-d';
+  $Treex::PML::IO::gzip_opts = val_or_def($confs,"gzipopts", "-c");
+  $Treex::PML::IO::zcat = val_or_def($confs,"zcat", find_exe("zcat"));
+  $Treex::PML::IO::zcat_opts = val_or_def($confs,"zcatopts", undef);
+  $Treex::PML::IO::ssh = val_or_def($confs,"ssh", undef);
+  $Treex::PML::IO::ssh_opts = val_or_def($confs,"sshopts", undef);
+  $Treex::PML::IO::kioclient = val_or_def($confs,"kioclient", undef);
+  $Treex::PML::IO::kioclient_opts = val_or_def($confs,"kioclientopts", undef);
+  $Treex::PML::IO::curl = val_or_def($confs,"curl", undef);
+  $Treex::PML::IO::curl_opts = val_or_def($confs,"curlopts", undef);
+  if (!$Treex::PML::IO::zcat) {
+    if ($Treex::PML::IO::gzip) {
+      $Treex::PML::IO::zcat=$Treex::PML::IO::gzip;
+      $Treex::PML::IO::zcat_opts='-d';
     } elsif (-x "$libDir/../zcat") {
-      $IOBackend::zcat = "$libDir/../bin/zcat";
+      $Treex::PML::IO::zcat = "$libDir/../bin/zcat";
     }
   }
   $cstsToFs = val_or_def($confs,"cststofs",undef);
   $fsToCsts = val_or_def($confs,"fstocsts",undef);
 
-  $CSTSBackend::gzip = $IOBackend::gzip;
-  $CSTSBackend::zcat = $IOBackend::zcat;
-  $CSTSBackend::csts2fs=$cstsToFs;
-  $CSTSBackend::fs2csts=$fsToCsts;
+  #  $Treex::PML::Backends::CSTS::gzip = $Treex::PML::IO::gzip;
+  #  $Treex::PML::Backends::CSTS::zcat = $Treex::PML::IO::zcat;
+  #  $Treex::PML::Backends::CSTS::csts2fs=$cstsToFs;
+  #  $Treex::PML::Backends::CSTS::fs2csts=$fsToCsts;
 
   $sgmls       = val_or_def($confs,"sgmls","nsgmls");
   $sgmlsopts   = val_or_def($confs,"sgmlsopts","-i preserve.gen.entities");
   $cstsdoctype = val_or_def($confs,"cstsdoctype",undef);
   $cstsparsecommand = val_or_def($confs,"cstsparsercommand","\%s \%o \%d \%f");
 
-  $CSTS_SGML_SP_Backend::sgmls=$sgmls;
-  $CSTS_SGML_SP_Backend::sgmlsopts=$sgmlsopts;
-  $CSTS_SGML_SP_Backend::doctype=$cstsdoctype;
-  $CSTS_SGML_SP_Backend::sgmls_command=$cstsparsecommand;
+  $Treex::PML::Backends::CSTS::sgmls=$sgmls;
+  $Treex::PML::Backends::CSTS::sgmlsopts=$sgmlsopts;
+  $Treex::PML::Backends::CSTS::doctype=$cstsdoctype;
+  $Treex::PML::Backends::CSTS::sgmls_command=$cstsparsecommand;
 
   $keyboardDebug	      =	val_or_def($confs,"keyboarddebug",0);
   $hookDebug		      =	val_or_def($confs,"hookdebug",0);
   $macroDebug		      =	val_or_def($confs,"macrodebug",0);
   $tredDebug		      =	val_or_def($confs,"treddebug",$tredDebug);
-  $Fslib::Debug               = val_or_def($confs,"backenddebug",$Fslib::Debug);
+  $Treex::PML::Debug               = val_or_def($confs,"backenddebug",$Treex::PML::Debug);
   $defaultTemplateMatchMethod =	val_or_def($confs,"searchmethod",'R');
   $defaultMacroListOrder      =	val_or_def($confs,"macrolistorder",'M');
   $defCWidth		      =	val_or_def($confs,"canvaswidth",'18c');

@@ -25,7 +25,7 @@ if ($opt_h || !@files) {
   -r detailed report (show also trlemma+func+ord)
   -v verbose
   -V extra verbose
-  -D turn Fslib debugging messages ON
+  -D turn Treex::PML debugging messages ON
 
   -h print this help
 
@@ -47,10 +47,10 @@ if (exists $ENV{TREDHOME}) {
 print STDERR "Trying $libDir\n" if ($libDir and $opt_V);
 unshift @INC,"$libDir";
 
-use Fslib;
+use Treex::PML qw(UseBackends);
 
-my @backends=('FSBackend',ImportBackends(qw(TrXMLBackend CSTS_SGML_SP_Backend)));
-$Fslib::Debug=$opt_D;
+UseBackends(qw(FS TrXMLBackend CSTS));
+$Treex::PML::Debug=$opt_D;
 
 my @fs;
 my $filecount=scalar(@files);
@@ -72,7 +72,9 @@ foreach my $f (@files) {
   $fileno++;
   print STDERR "Reading $f\t($fileno/$filecount)\n" if $opt_v;
 
-  my $fs = FSFile->newFSFile($f,'iso-8859-2',@backends);
+  my $fs = Treex::PML::Factory->createDocumentFromFile($f,{
+    encoding=>'iso-8859-2',
+  });
 
   $fs->lastTreeNo<0 && die "$f: empty or corrupt file!\n";
   push @fs,$fs;

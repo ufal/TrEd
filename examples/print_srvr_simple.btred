@@ -60,17 +60,22 @@ sub make_pmltq {
     my @new_fsfiles;
     foreach my $f (map $_->[0], @$positions) {
       next if exists $fsfiles{$f};
-      my ($open) = grep { IOBackend::is_same_filename($_->filename, $f) }
+      my ($open) = grep { Treex::PML::IO::is_same_filename($_->filename, $f) }
 	@open_files;
       if ($open) {
 	# $keep_cur=1 if !$keep_cur and exists($cur_fsfiles{$open});
 	$fsfiles{$f}=$open;
       } else {
-	my $fsfile = FSFile->newFSFile($f, $TrEd::Convert::inputenc, [Backends()]);
+	my $fsfile = Treex::PML::Factory->createDocumentFromFile(
+	  $f,
+	  {
+	    encoding => $TrEd::Convert::inputenc,
+	    backends => [Backends()]
+	   });
 	$fsfile->changeFilename($f);
 	eval { OpenSecondaryFiles($fsfile); };
 	print STDERR "$@\n" if $@;
-	unless ($fsfile and $fsfile->lastTreeNo and $Fslib::FSError==0) {
+	unless ($fsfile and $fsfile->lastTreeNo and $Treex::PML::FSError==0) {
 	  my $err = $@ || $! || 'unknown error';
 	  warn("Failed to open $f: $err\n");
 	  return;
@@ -102,7 +107,7 @@ sub make_svg {
   my ($f,%opts)=@_;
   # TODO: implement complete caching
   my $cur = CurrentFile();
-  my ($open) = grep { IOBackend::is_same_filename($_->filename, $f) }
+  my ($open) = grep { Treex::PML::IO::is_same_filename($_->filename, $f) }
     ($cur ? ($cur, GetSecondaryFiles($cur)) : ());
   # primitive caching of the last file
 

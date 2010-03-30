@@ -84,18 +84,6 @@
    
 * PMLTQ
 
-- fix stupid limitations:
-
-  - BtrEd backend: ID-based iterators such a/lex.rf and coref
-    require the current FSFile to be known. Currently we use $grp to
-    keep this context. But that can in general break if we have
-    relations that need to follow ID-references from an
-    ID-referenced layer. The correct solution is to know the FSFile
-    of of each matched node, i.e. keep that information in the
-    iterator.
-
-- BtrEd: implement all documented functions
-
 -  SQL: FIXME: do not offer non-existing PMLREF columns in the completion
    for 'a' in a test (e.g. "coref_gram.rf")
 
@@ -116,7 +104,7 @@
 
 - true SQL backend relation plugins (pluggable query translation modules)
 
-- obtain relation source and target types from PMLSchema (if
+- obtain relation source and target types from Treex::PML::Schema (if
   provided), or a dedicated SQL table (in SQL/HTTP search)
 
 - [X] implement correct expression parser
@@ -235,8 +223,8 @@ matches the root of the defined query).
     This 1) eliminates the need to have these in dedicated attributes,
     2) allows for better coustomization.
 
-* PMLSchema
+* Treex::PML::Schema
 
-  - [ ] document PMLSchema's for_each_decl
-  - [ ] setters in PMLSchema objects
+  - [ ] document Treex::PML::Schema's for_each_decl
+  - [ ] setters in Treex::PML::Schema objects
 

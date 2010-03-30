@@ -53,7 +53,7 @@ use vars qw($svn_version $version $opt_u $opt_h $opt_c $opt_y
            );
 
 use Exporter;
-@ISA=qw(Exporter);
+@ISA   = qw(Exporter);
 @EXPORT= qw($insideEval
             $libDir $stderr $stdout
             @openfiles @filelists &min &max);
@@ -94,8 +94,8 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
   "no-locks" => \$no_locks,
   "autosave=i" => \$opt_auto_save,
   "carp" => \$carp,
-  "enable-extensions=s" => \$enable_extensions,
-  "disable-extensions=s" => \$disable_extensions,
+  "enable-extensions|j=s" => \$enable_extensions,
+  "disable-extensions|J=s" => \$disable_extensions,
   "command|C" => \$command,
 );
 $optparser->getoptions(%optmap) or $opt_u=1;
@@ -135,6 +135,8 @@ use File::Glob qw(:glob);
 use URI::file;
 use URI::Escape;
 use Fcntl;
+use Scalar::Util qw(blessed);
+use UNIVERSAL::DOES;
 
 use constant EMPTY => q{};
 
@@ -218,11 +220,14 @@ use Tk::Config ();
 # process the standard arguments for X resources
 Tk::CmdLine::SetArguments();
 
-require Fslib;
-import Fslib;
-import Fslib qw(&Index $FSError);
-import PMLSchema qw(:constants);
+require Treex::PML;
+import Treex::PML;
+import Treex::PML qw(&Index $FSError);
+import Treex::PML::Schema qw(:constants);
 require TrEd::UserAgent;
+
+# require Fslib; # compatibility
+
 sub uniq { my %a; grep { !($a{$_}++) } @_ }
 
 # import min and max functions
@@ -247,8 +252,8 @@ TrEd $VERSION
 Perl: $]
 Platform: $^O
 Tk: $Tk::VERSION
-Fslib: $Fslib::VERSION
-Fslib-API: $Fslib::API_VERSION
+Treex::PML: $Treex::PML::VERSION
+Treex::PML-API: $Treex::PML::API_VERSION
 EOF
   exit;
 }
@@ -276,8 +281,8 @@ if ($command) {
 	if ($command eq 'open') {
 	  @args = map {
 	    my ($filename,$suffix)=parseFileSuffix($_);
-	    require IOBackend;
-	    IOBackend::make_abs_URI($filename)->as_string.$suffix
+	    require Treex::PML::IO;
+	    Treex::PML::IO::make_abs_URI($filename)->as_string.$suffix
 	    } @args;
 	}
 	print $fh join("\0",$command,@args);
@@ -306,21 +311,21 @@ if (defined $opt_m) {
   $macroFile=$opt_m;
 }
 
-$PMLCompiledReader::STRICT=0;
+$Treex::PML::Instance::Reader::STRICT=0;
 
-initStylesheetPaths([split($Fslib::resourcePathSplit,$opt_S,-1)]);
+initStylesheetPaths([split($Treex::PML::resourcePathSplit,$opt_S,-1)]);
 
-$Fslib::resourcePath=
-  join($Fslib::resourcePathSplit,
-       map { length($_) ? $_ : $Fslib::resourcePath }
-       split($Fslib::resourcePathSplit, $opt_Z,-1))
+$Treex::PML::resourcePath=
+  join($Treex::PML::resourcePathSplit,
+       map { length($_) ? $_ : $Treex::PML::resourcePath }
+       split($Treex::PML::resourcePathSplit, $opt_Z,-1))
   if $opt_Z;
 
 $tredDebug=1 if $opt_D;
 
 $TrEd::TreeView::Debug=1 if $opt_D;
-$Fslib::Debug=1 if $opt_D;
-$IOBackend::Debug=1 if $opt_D;
+$Treex::PML::Debug=1 if $opt_D;
+$Treex::PML::IO::Debug=1 if $opt_D;
 
 # find documentation dir
 $docDir = first { -d $_ }
@@ -412,19 +417,18 @@ $TrEd::Basics::on_current_change= \&onCurrentChange;
 eval { require TrEd::Help; };
 
 #load back-ends
-#require CSTS_SGML_SP_Backend;
 @backends=(
-  'FSBackend',
+  'FS',
   ImportBackends(
     split(/,/,$opt_B),
     split(/,/,$ioBackends),
-    qw{NTREDBackend
-       StorableBackend
-       PMLBackend
-       CSTS_SGML_SP_Backend
-       TrXMLBackend
-       TEIXMLBackend
-       PMLTransformBackend
+    qw{NTRED
+       Storable
+       PML
+       CSTS
+       TrXML
+       TEIXML
+       PMLTransform
       })
  );
 
@@ -457,13 +461,13 @@ $stdout=\*STDOUT;
 $stderr=\*STDERR;
 
 %backend_map=(
-	      fs => 'FSBackend',
-	      csts => 'CSTS_SGML_SP_Backend',
-	      pml => 'PMLBackend',
-	      trxml => 'TrXMLBackend',
-	      teixml => 'TEIXMLBackend',
-	      ntred => 'NTREDBackend',
-	      storable => 'StorableBackend'
+	      fs => 'FS',
+	      csts => 'CSTS',
+	      pml => 'PML',
+	      trxml => 'TrXML',
+	      teixml => 'TEIXML',
+	      ntred => 'NTRED',
+	      storable => 'Storable'
 	 );
 
 @open_types=
@@ -744,7 +748,7 @@ print STDERR "Creating filelists...\n" if $tredDebug;
   my $default= new Filelist('Default');
   $default->add(0,map {
     my ($filename,$suffix)=parseFileSuffix($_);
-    IOBackend::make_abs_URI($filename)->as_string.$suffix
+    Treex::PML::IO::make_abs_URI($filename)->as_string.$suffix
     } @ARGV) if @ARGV;
   addNewFilelist(undef,$default);
 }
@@ -810,7 +814,7 @@ sub createCmdLineFilelists {
     s/\s+$// for @f;
     if ($l=~/\.fl$/i) {
       # make realtive filenames absolute relative to the .fl file
-      @f=map { Fslib::ResolvePath($l,$_) } @f;
+      @f=map { Treex::PML::ResolvePath($l,$_) } @f;
     } else {
       @f=absolutize(@f);
     }
@@ -1035,7 +1039,7 @@ sub get_save_filename {
 
 sub get_widget_descendants {
   my ($w)=@_;
-  if (UNIVERSAL::isa($w,'Tk::Widget')) {
+  if (blessed($w) and $w->isa('Tk::Widget')) {
     return ($w,map { get_widget_descendants($_) } $w->children);
   } else {
     return ();
@@ -1133,7 +1137,7 @@ sub ApplyGlobalConfig {
   return unless $grp;
 
   delete $grp->{icon};
-  foreach my $button (grep { UNIVERSAL::isa($_,'Tk::Button') } get_all_widgets($grp)) {
+  foreach my $button (grep { blessed($_) and $_->isa('Tk::Button') } get_all_widgets($grp)) {
     my $icon = $button->cget('-image');
     if (defined $icon) {
       my $f = filename($icon->cget('-file'));
@@ -1181,13 +1185,13 @@ sub currentFileNo {
 
 sub cast_to_win {
   my ($gw)=@_;
-  return UNIVERSAL::isa($gw,'TrEd::Window') ? $gw :
+  return (blessed($gw) and $gw->isa('TrEd::Window')) ? $gw :
     (ref($gw) ? $gw->{focusedWindow} : undef);
 }
 
 sub cast_to_grp {
   my ($gw)=@_;
-  return UNIVERSAL::isa($gw,'TrEd::Window') ? $gw->{framegroup} : $gw;
+  return (blessed($gw) and $gw->isa('TrEd::Window')) ? $gw->{framegroup} : $gw;
 }
 
 sub grp_win {
@@ -1276,7 +1280,7 @@ sub _filelistFullFileName {
   return unless ref $filelist;
   my $suffix;
   ($filename,$suffix)=parseFileSuffix($filename);
-  return Fslib::ResolvePath($filelist->filename(),$filename).$suffix;
+  return Treex::PML::ResolvePath($filelist->filename(),$filename).$suffix;
 }
 
 sub nextOrPrevFile {
@@ -1292,7 +1296,7 @@ sub nextOrPrevFile {
     my $f = $filename = filelistFullFileName($win,$pos);
     ($prev_filename) = parseFileSuffix($prev_filename);
     ($f) = parseFileSuffix($f);
-    while (IOBackend::is_same_filename($f, $prev_filename)) {
+    while (Treex::PML::IO::is_same_filename($f, $prev_filename)) {
       $pos+=$delta;
       $f=$filename=filelistFullFileName($win,$pos);
       ($f) = parseFileSuffix($f);
@@ -1462,10 +1466,10 @@ sub _last_err {
 
 sub setLock {
   my ($f) = @_; # filename
-  my $proto = IOBackend::get_protocol($f);
-  $f=IOBackend::strip_protocol($f) if ($proto eq 'file');
+  my $proto = Treex::PML::IO::get_protocol($f);
+  $f=Treex::PML::IO::strip_protocol($f) if ($proto eq 'file');
   return undef if ($proto eq 'ntred' or $proto =~ /$noLockProto/);
-  my $lock=eval { IOBackend::open_backend($f.".lock","w") };
+  my $lock=eval { Treex::PML::IO::open_backend($f.".lock","w") };
   if ($@ or not ref($lock)) {
     warn "Error creating lock-file: "._last_err()."\n";
     return undef;
@@ -1474,15 +1478,15 @@ sub setLock {
   my $mtime = [stat($f)]->[9];
   my $lockinfo = "by user ".$userlogin.'@'.$ENV{HOSTNAME}." pid ".$$." at ".localtime()." mtime: $mtime";
   $lock->print($lockinfo)."\n";
-  IOBackend::close_backend($lock);
+  Treex::PML::IO::close_backend($lock);
   return $lockinfo;
 }
 
 sub readLock {
   my ($f) = @_; # filename
-  my $proto = IOBackend::get_protocol($f);
+  my $proto = Treex::PML::IO::get_protocol($f);
   if ($proto eq 'file') {
-    $f=IOBackend::strip_protocol($f);
+    $f=Treex::PML::IO::strip_protocol($f);
     return undef unless -f "$f.lock";
   }
 
@@ -1490,7 +1494,7 @@ sub readLock {
   my $lockinfo;
   eval {
     print STDERR "reading lock $f.lock\n" if $tredDebug;
-    my ($file,$remove_file) = IOBackend::fetch_file($f.".lock");
+    my ($file,$remove_file) = Treex::PML::IO::fetch_file($f.".lock");
     open my $lock,"<",$file;
     $lockinfo = $lock->getline();
     $lock->close();
@@ -1506,8 +1510,8 @@ sub removeLock {
   my ($fsfile,$f,$force) = @_; # filename
   my $proto;
   if (defined $f) {
-    my $proto = IOBackend::get_protocol($f);
-    $f=IOBackend::strip_protocol($f) if ($proto eq 'file');
+    my $proto = Treex::PML::IO::get_protocol($f);
+    $f=Treex::PML::IO::strip_protocol($f) if ($proto eq 'file');
   } else {
     $f=$fsfile->filename();
     $proto = ref($f) ? $f->scheme : 'file';
@@ -1517,7 +1521,7 @@ sub removeLock {
   local $noCheckLocks=0;
   if ($force or !$fsfile or checkLock($fsfile,$f) =~ /^my|^changed/) {
     print STDERR "removing lock $f.lock\n" if $tredDebug;
-    IOBackend::unlink_uri($f.".lock");
+    Treex::PML::IO::unlink_uri($f.".lock");
   }
 }
 
@@ -2202,16 +2206,21 @@ sub loadFile {
   my $status = _new_status(ok => 0, filename => $file, backends => $bck, warnings => \@warnings);
   _clear_err();
   local $SIG{__WARN__} = sub { my $msg = shift; chomp $msg; print STDERR $msg."\n"; push @warnings,$msg; };
-  my $fsfile = FSFile->newFSFile($file,$TrEd::Convert::inputenc,
-				 $bck);
-  $status->{error} = _last_err();
-  
+  my $fsfile = Treex::PML::Factory->createDocumentFromFile(
+    $file,
+    {
+      encoding => $TrEd::Convert::inputenc,
+      backends => $bck,
+      recover => 1,
+    });
+  my $error = $Treex::PML::FSError;
+  $status->{error} = $error==1 ? 'No suitable backend!' : _last_err();
   $status->{report} = "Loading file '$file':\n\n";
 
-  if (ref($fsfile) and $fsfile->lastTreeNo>=0 and $Fslib::FSError==0) {
+  if (ref($fsfile) and $fsfile->lastTreeNo>=0 and $error==0) {
     $status->{ok} = @warnings ? -1 : 1;
   } else {
-    if (ref($fsfile) and $Fslib::FSError==0) {
+    if (ref($fsfile) and $error==0) {
       push @warnings, "NO TREES FOUND in this file.";
       $status->{ok} = -1;
     } else {
@@ -2275,7 +2284,7 @@ sub openFile {
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
 
   # File already open in current window? Simple!
-  if ($fsfile and IOBackend::is_same_filename($fsfile->filename(),$f)) {
+  if ($fsfile and Treex::PML::IO::is_same_filename($fsfile->filename(),$f)) {
     unless ($opts{-preload}) {
       updateTitle($grp);
       applyFileSuffix($win,$goto);
@@ -2298,7 +2307,7 @@ sub openFile {
   # the current file would get open again as a secondary file to $f
   if ($fsfile and
       first {
-	IOBackend::is_same_filename($_->filename(),$f) } getPrimaryFilesRecursively($fsfile)) {
+	Treex::PML::IO::is_same_filename($_->filename(),$f) } getPrimaryFilesRecursively($fsfile)) {
     $opts{-keep} = 1;
   }
 
@@ -2320,7 +2329,7 @@ sub openFile {
   # Search open files for requested file, resume if available
   unless ($opts{-justheader}) {
     foreach my $of ($fsfile,@openfiles) {
-      if (ref($of) and IOBackend::is_same_filename($of->filename,$f)) {
+      if (ref($of) and Treex::PML::IO::is_same_filename($of->filename,$f)) {
 	print "Opening postponed file\n" if $tredDebug;
 	unless ($opts{-preload}) {
 	  resumeFile($win,$of,$opts{-keep});
@@ -2618,7 +2627,7 @@ sub saveFile {
   my ($win,$f)=@_;
   $win=cast_to_win($win);
   my $fsfile;
-  if (UNIVERSAL::isa($f,'FSFile')) {
+  if (UNIVERSAL::DOES::does($f,'Treex::PML::Document')) {
     $fsfile = $f;
     $f=$f->filename;
   } else {
@@ -2683,7 +2692,7 @@ sub saveFile {
     return;
   }
   eval {
-    IOBackend::rename_uri($f,$f."~") unless $f=~/^ntred:/
+    Treex::PML::IO::rename_uri($f,$f."~") unless $f=~/^ntred:/
   };
   print STDERR $@;
   $fsfile->changeAppData('refs_save',$refs_to_save);
@@ -2709,7 +2718,7 @@ sub saveFile {
     errorMessage($win,"Error while saving file to '$f'!\nI'll try to recover the original from backup.\n"._last_err($err."\n".(@warnings ? join("\n",'WARNINGS:',@warnings) : ''))."\n"."Check file and directory permissions.\nSee also the console error output.");
     undef $!;
     eval {
-      IOBackend::rename_uri($f."~",$f) unless $f=~/^ntred:/; # if (-f $f);
+      Treex::PML::IO::rename_uri($f."~",$f) unless $f=~/^ntred:/; # if (-f $f);
     };
     if (_last_err()) {
       my $err = "Error while renaming backup file $f~ back to $f.\n";
@@ -2720,7 +2729,7 @@ sub saveFile {
     errorMessage($win,"Saving file to '$f':\n\n".
 		   join("\n",@warnings),'warn');
   } else {
-    IOBackend::unlink_uri($f."~") if $no_backups;
+    Treex::PML::IO::unlink_uri($f."~") if $no_backups;
   }
   setFSLockInfo($fsfile, setLock($f)) if $lockFiles;
   my $autosave=autosave_filename($f);
@@ -2749,20 +2758,20 @@ sub isShown { # test if node is shown (always 1 if $showHidden)
 
 sub HNext { # same as Next but obey $showHidden
   my ($win,$node,$top)= @_;
-  $node=Next($node,$top);
+  $node=$node->following($top);
   while ($node) {
     return $node if (isShown($win,$node));
-    $node=Next($node,$top);
+    $node=$node->following($top);
   }
   return 0;
 }
 
 sub HPrev { # same as Next but obey $showHidden
   my ($win,$node,$top)= @_;
-  $node=Prev($node,$top);
+  $node=$node->previous($top);
   while ($node) {
     return $node if (isShown($win,$node));
-    $node=Prev($node,$top);
+    $node=$node->previous($top);
   }
   return 0;
 }
@@ -2780,10 +2789,10 @@ sub DisplayedAncestor {
 sub NextDisplayed { # same as Next but obey $showHidden
   my ($win,$node,$top)= @_;
   my $tv = $win->treeView;
-  $node=Next($node,$top);
+  $node=$node->following($top);
   while ($node) {
     return $node if ($tv->node_is_displayed($node));
-    $node=Next($node,$top);
+    $node=$node->following($top);
   }
   return 0;
 }
@@ -2791,10 +2800,10 @@ sub NextDisplayed { # same as Next but obey $showHidden
 sub PrevDisplayed { # same as Next but obey $showHidden
   my ($win,$node,$top)= @_;
   my $tv = $win->treeView;
-  $node=Prev($node,$top);
+  $node=$node->previous($top);
   while ($node) {
     return $node if ($tv->node_is_displayed($node));
-    $node=Prev($node,$top);
+    $node=$node->previous($top);
   }
   return 0;
 }
@@ -2871,7 +2880,7 @@ sub set_value_line {
       $vl->configure(-wrap => ($valueLineWrap || 'word'));
     };
   }
-  my @oldtags=grep {/^FSNode/} $vl->tagNames();
+  my @oldtags=grep {/^[a-zA-Z:]+=(?:HASH|ARRAY)/} $vl->tagNames();
   if (@oldtags) {
     $vl->tagDelete(@oldtags);
   }
@@ -3827,7 +3836,7 @@ sub addNewFilelist {
     last unless $l;
     if ($top) {
       my $answer = 
-	IOBackend::is_same_file($l->filename,$fl->filename)
+	Treex::PML::IO::is_same_file($l->filename,$fl->filename)
 	  ? userQuery($top,
 		      "Filelist '".$fl->name."' already loaded.\n",
 		      -bitmap=> 'question',
@@ -6404,7 +6413,7 @@ sub startMain {
   Tk::MiscWorkarounds::apply_workarounds($top);
   $tred{top} = $top;
 
-  $IOBackend::lwp_user_agent = TrEd::UserAgent->new($top, keep_alive=>1);
+  $Treex::PML::IO::lwp_user_agent = TrEd::UserAgent->new($top, keep_alive=>1);
 
   if ($^O eq 'MSWin32') {
     # a workaround for focus being lost after popup menu usage on Win32
@@ -7112,7 +7121,7 @@ sub startMain {
   $top->Busy(-recurse=> 1);
   eval { loadMacros(\%tred,{preparedExtensions=>$preparedExtensions}) };
   errorMessage($top,$@) if $@;
-  print STDERR "Resource path: $Fslib::resourcePath\n" unless $opt_q;
+  print STDERR "Resource path: $Treex::PML::resourcePath\n" unless $opt_q;
   print "Starting in context $tred{focusedWindow}->{macroContext}\n" if $tredDebug;
   doEvalHook($tred{focusedWindow},"initialize_bindings_hook");
 
@@ -7369,7 +7378,7 @@ sub handleUSR2Signal {
 	openStandaloneFile($grp,$cmd[1]);
 	return;
       } elsif (($cmd[0]||'') eq 'reload' and @cmd==2) {
-	my ($fsfile) = grep { IOBackend::is_same_filename($_->filename, $cmd[1]) } @openfiles;
+	my ($fsfile) = grep { Treex::PML::IO::is_same_filename($_->filename, $cmd[1]) } @openfiles;
 	if ($fsfile) {
 	  if ($grp->{focusedWindow}->{FSFile} != $fsfile) {
 	    my ($win)=fsfileDisplayingWindows($grp,$fsfile);
@@ -7821,7 +7830,7 @@ sub urlDialog {
 	  @files = glob(TrEd::Config::tilde_expand($file).'*');
 	} elsif ($file =~ m{^\s*file:}) {
 	  $file = URI->new($file eq 'file:' ? 'file:///' : $file);
-	  if (UNIVERSAL::isa($file, 'URI::file')) {
+	  if ((blessed($file) and $file->isa('URI::file'))) {
 	    @files = map { URI::file->new($_)->as_string } glob($file->file.'*');
 	  }
 	}
@@ -7876,7 +7885,7 @@ sub askSaveReferences {
   my $i=0;
   while ($i<@refs) {
     my $r = $refs[$i][1];
-    if (UNIVERSAL::isa($r,'PMLInstance')) {
+    if (UNIVERSAL::DOES::does($r,'Treex::PML::Instance')) {
       my $schema = $r->get_schema;
       my $references = [ $schema->get_named_references ];
       next unless @$references;
@@ -8162,10 +8171,10 @@ sub renameFileInFilelist {
   for my $i (defined ($position) ? $position : 0..($filelist->file_count()-1)) {
     my $fn = $filelist->file_at($i);
     my ($f, $suffix) = parseFileSuffix($fn);
-    if (IOBackend::is_same_file(_filelistFullFileName($filelist,$f),$old_file)) {
+    if (Treex::PML::IO::is_same_file(_filelistFullFileName($filelist,$f),$old_file)) {
       my $pattern_no = $filelist->file_pattern_index($i);
       my $pattern = $pattern_list->[$pattern_no];
-      my $new_filename =  (Fslib::_is_absolute($f) ?
+      my $new_filename =  (Treex::PML::_is_absolute($f) ?
 	  $filename.$suffix : $rel_name.$suffix);
       $filelist->files_ref->[$i][0] = $new_filename;
       if ($pattern eq $fn) {
@@ -8293,7 +8302,7 @@ sub saveConfig {
    $top = $win->{top};
  }
  my ($default_trc)=File::Spec->catfile($libDir,'tredrc');
- if (IOBackend::is_same_file($configFile,$default_trc)) {
+ if (Treex::PML::IO::is_same_file($configFile,$default_trc)) {
    $configFile = File::Spec->catfile($ENV{HOME},'.tredrc');
  }
  my $exists = -e $configFile ? 1 : 0;
@@ -8312,7 +8321,7 @@ sub saveConfig {
  { 
    my $lasterr=conv_from_locale($!);
    my ($trc)=File::Spec->catfile($ENV{HOME},'.tredrc');
-   if (!IOBackend::is_same_file($configFile,$trc)  and
+   if (!Treex::PML::IO::is_same_file($configFile,$trc)  and
        ((defined($top) and
 	   $top->
 	     messageBox(-icon=> 'warning',
@@ -9666,7 +9675,7 @@ sub showMacrosAsHtml {
   use File::Temp;
   my $dir = File::Temp::tempdir( CLEANUP => 1 );
   eval {
-    IOBackend::copy_uri(File::Spec->catfile($libDir,'misc','sorttable.js'),
+    Treex::PML::IO::copy_uri(File::Spec->catfile($libDir,'misc','sorttable.js'),
 			File::Spec->catfile($dir,'sorttable.js'));
   };
   warn $@ if $@;
@@ -11668,7 +11677,7 @@ sub doEvalMacro {
   my $undo=prepare_undo($win,findMacroDescription($win,$macro,UNDO_DISPLAYED_TREES));
   my $result=do_eval_macro($win,$macro);
   my $current_win=get_macro_variable("grp");
-  if ($win != $current_win and UNIVERSAL::isa($current_win,'TrEd::Window') ) {
+  if ($win != $current_win and (blessed($current_win) and $current_win->isa('TrEd::Window')) ) {
     $win = $current_win;
   }
   my $current=get_macro_variable("this");
@@ -12071,7 +12080,7 @@ sub node_release {
 	  if ($parent and $node->parent!=$top) {
 	    save_undo($win,prepare_undo($win, "Cat/Paste node with mouse"),UNDO_DISPLAYED_TREES);
 	    my $oldparent=$node->parent;
-	    Fslib::Paste(Cut($node),
+	    $node->cut()->paste_on(
 			 $parent,
 			 $win->{FSFile}->FS);
 	    $win->{FSFile}->notSaved(1);
@@ -12583,7 +12592,7 @@ sub valueLineClick {
   if ($but eq 'Double-1' and $modif eq '') {
     doEvalHook($win,"value_line_click_hook", $but, $modif, \@tags);
     $ret = doEvalHook($win,"value_line_doubleclick_hook", @tags);
-    if (ref($ret) and ref($ret) =~ /^FSNode/) {
+    if (ref($ret) and UNIVERSAL::DOES::does($ret,'Treex::PML::Node')) {
       setCurrent($win,$ret);
       ensureCurrentIsDisplayed($win);
       centerTo($win,$ret);
@@ -12769,7 +12778,7 @@ sub manage_extensions {
 
     # reload stylesheets
     @TrEd::Utils::stylesheetPaths=();
-    initStylesheetPaths([split($Fslib::resourcePathSplit,$opt_S,-1)]);
+    initStylesheetPaths([split($Treex::PML::resourcePathSplit,$opt_S,-1)]);
 
     my $preparedExtensions = prepareExtensions($grp);
 
@@ -12831,16 +12840,6 @@ sub saveStdFilelist {
     $fl->save;
   }
 }
-
-## watch leaks
-# package Tk::Widget;
-# sub DESTROY {
-#  my $w = shift;
-#  print  "$w->DESTROY()\n";
-#  use Data::Dumper;
-#  print Dumper($w),"\n";
-#  $w->destroy if ($w->IsWidget);
-# }
 
 __END__
 
@@ -13041,6 +13040,18 @@ tree is built upon another. Note however, that this does not include so
 called knitting - an operation where the stand-off annotation is
 handled by a IO backend and the resulting knitted file appears to
 btred as a single unit.
+
+=item B<--enable-extensions|-j> list
+
+Give a comma-separated list of installed TrEd extension names to
+temporarily enable if disabled in the extension configuration.
+Use '*' to enable all currently enabled extensions.
+
+=item B<--disable-extensions|-J> list
+
+Give a comma-separated list of installed TrEd extension names to
+temporarily disable if enabled in the extension configuration.
+Use '*' to disable all currently enabled extensions.
 
 =item B<--tectogrammatical-trees|-R>
 

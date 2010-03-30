@@ -17,7 +17,7 @@ my $cfg = QuickPML(
     follow_current_node => ['choice' => 'yes', 'no'],
     alignment => ['choice' => 'horizontal', 'vertical'],
    ],
-  Fslib::Struct->new({
+  Treex::PML::Factory->createStructure({
     context_before=>5,
     context_after=>5,
     follow_current_node => 'yes',

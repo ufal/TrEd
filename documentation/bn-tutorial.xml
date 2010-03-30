@@ -360,7 +360,7 @@ Nodes, as Perl objects, have attributes and methods.
 The methods can be accessed using the
 <literal>$node->method(arguments)</literal> syntax.
 
- All the available methods are documented in Table <ulink url="rewrite:tred_manual#fsnode_methods">FSNode
+ All the available methods are documented in Table <ulink url="rewrite:tred_manual#fsnode_methods">Treex::PML::Node
  methods</ulink> in the <ulink url="rewrite:tred_manual"/>.
 
 

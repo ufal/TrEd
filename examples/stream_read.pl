@@ -1,15 +1,15 @@
 #!/usr/bin/perl
 
-use Fslib;
+use Treex::PML;
 
 open my $f, $ARGV[0];
 
-my $fsformat = FSFormat->ReadFrom($f);
+my $fsformat = Treex::PML::Factory->createFSFormat($f);
 
 my @trees,@tail;
 my $l;
 
-while ($l=Fslib::ReadTree($f)) {
+while ($l=Treex::PML::ReadTree($f)) {
   if ($l=~/^\[/) { # je to strom
     my $root=$fsformat->FS->parseFSTree($l);
     # process the tree, e.g.
@@ -21,7 +21,7 @@ open my $out, '>',$ARGV[0];
 
 $fsformat->writeTo($out); # ulozi hlavicku
 foreach my $root (@trees) {
-  Fslib::PrintFS($out,undef,
+  Treex::PML::PrintFS($out,undef,
 		 \@trees,
 		 $fsformat->list,
 		 $fsformat->defs);
@@ -29,6 +29,4 @@ foreach my $root (@trees) {
 print $out @tail;
 
 # destroy trees
-foreach (@trees) {
-  Fslib::DeleteTree($_);
-}
+$_->destroy for @trees;

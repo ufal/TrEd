@@ -399,9 +399,9 @@ sub parseFileSuffix {
   my ($filename)=@_;
   if ($filename=~s/(##?[0-9A-Z]+(?:-?\.[0-9]+)?)$// ) {
     return ($filename,$1);
-  } elsif ($filename=~/^(.*)(##[0-9]+\.)([^0-9#][^#]*)$/ and PMLSchema::CDATA->check_string_format($3,'ID')) {
+  } elsif ($filename=~/^(.*)(##[0-9]+\.)([^0-9#][^#]*)$/ and Treex::PML::Schema::CDATA->check_string_format($3,'ID')) {
     return ($1,$2.$3);
-  } elsif ($filename=~/^(.*)#([^#]+)$/ and PMLSchema::CDATA->check_string_format($2,'ID')) {
+  } elsif ($filename=~/^(.*)#([^#]+)$/ and Treex::PML::Schema::CDATA->check_string_format($2,'ID')) {
     return ($1,'#'.$2);
   } else {
     return ($filename,undef);
@@ -430,11 +430,11 @@ sub applyFileSuffix {
     $win->{treeNo}=$no;
   } elsif ($goto=~/^#([^#]+)$/) {
     my $id = $1;
-    if (PMLSchema::CDATA->check_string_format($id,'ID')) {
+    if (Treex::PML::Schema::CDATA->check_string_format($id,'ID')) {
       my $id_hash = $fsfile->appData('id-hash');
       if (UNIVERSAL::isa($id_hash,'HASH') and exists($id_hash->{$id})) {
 	my $node = $id_hash->{$id};
-	# we would like to use Fslib::Index() here, but can't
+	# we would like to use Treex::PML::Index() here, but can't
 	my $list = $fsfile->treeList;
 	my $root = UNIVERSAL::can($node,'root') && $node->root;
 	my $n = defined($root) && first {
@@ -451,9 +451,9 @@ sub applyFileSuffix {
 	    my $is_sequence;
 	    my $found;
 	    my @elements;
-	    if ($trees_type_is == PMLSchema::PML_LIST_DECL()) {
+	    if ($trees_type_is == Treex::PML::Schema::PML_LIST_DECL()) {
 	      @elements = ['LM',$trees_type->get_content_decl];
-	    } elsif ($trees_type_is == PMLSchema::PML_SEQUENCE_DECL()) {
+	    } elsif ($trees_type_is == Treex::PML::Schema::PML_SEQUENCE_DECL()) {
 	      @elements = map { [$_->get_name,$_->get_content_decl] } $trees_type->get_elements;
 	      $is_sequence=1;
 	    } else {
@@ -503,7 +503,7 @@ sub applyFileSuffix {
     }
   } elsif ($goto=~/\.([^0-9#][^#]*)$/) {
     my $id = $1;
-    if (PMLSchema::CDATA->check_string_format($id,'ID')) {
+    if (Treex::PML::Schema::CDATA->check_string_format($id,'ID')) {
       my $id_hash = $fsfile->appData('id-hash');
       if (UNIVERSAL::isa($id_hash,'HASH') and exists($id_hash->{$id})) {
 	return 1 if ($win->{currentNode}=$id_hash->{$id}); # assignment
