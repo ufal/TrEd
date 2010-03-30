@@ -247,7 +247,7 @@ sub trim_subtree {
   my $node=$this;
   CutNode($node);
   $grp->{FSFile}->set_tree($node,$grp->{treeNo});
-  Fslib::DeleteTree($root);
+  $root->destroy;
   $this=$node;
   $root=$node;
 }

@@ -20,13 +20,9 @@ use IO::File;
 use File::Glob qw(:glob);
 use Cwd;
 
-if ($^V lt v5.6.0) {
-  print STDERR '-' x 50,"\n";
-  print STDERR "WARNING: Your version of perl is older than v5.6.0\n";
-  print STDERR "THINGS MAY NOT WORK AS EXPECTED!\n";
-  print STDERR '-' x 50,"\n\n";
-}
+BEGIN {
 
+use 5.008;
 use strict;
 use vars qw($quiet $Quiet $debug $carp $csts_xargs $strip_prefix $add_prefix
 	    $strip_suffix $append_suffix $output_format $config_file
@@ -142,6 +138,7 @@ unless (open $_ERR, ">&STDERR") {
   warn("Cannot dup STDERR: $!");
   $_ERR=\*STDERR;
 }
+sub _msg { $_ERR->print("BTRED: ",@_); }
 
 $_ERR->autoflush(1);
 
@@ -165,10 +162,6 @@ if ($list_options) {
   }
   exit;
 }
-
-_set_encoding($_ERR,':utf8',"_ERR");
-_set_encoding(\*STDERR,$term_encoding,"STDERR");
-_set_encoding(\*STDOUT,$term_encoding,"STDOUT");
 
 
 # Default values of $libDir used to search for macro-file (tred.mac)
@@ -215,6 +208,12 @@ if (-d $libDir) {
   import TrEd::Utils qw(:all);
   find_win_home();
 
+  eval {
+    setFHEncoding($_ERR,':utf8',"_ERR");
+    setFHEncoding(\*STDERR,$term_encoding,"STDERR");
+    setFHEncoding(\*STDOUT,$term_encoding,"STDOUT");
+  };
+
   my $ld=$libDir;
   require TrEd::Config;
   import TrEd::Config;
@@ -234,10 +233,10 @@ if (defined $config_file) {
 if ($quiet) {
   $tredDebug=$keyboardDebug=$hookDebug=$macroDebug=0;
 } elsif ($debug) {
-  $IOBackend::Debug=$tredDebug=$keyboardDebug=$hookDebug=$macroDebug=1;
+  $Treex::PML::IO::Debug=$tredDebug=$keyboardDebug=$hookDebug=$macroDebug=1;
 }
 
-my $configFile=read_config();
+read_config();
 {
   unless (-d $libDir) {
     print <<'EOL';
@@ -260,8 +259,6 @@ EOL
   }
 }
 
-my $safe=$safe_mode; # so that it cannot be changed from outside
-
 $macroFile="$libDir/tred.mac" unless (defined $macroFile);
 if (defined $macro) {
   $macroFile=$macro;
@@ -271,16 +268,21 @@ if (defined $macro) {
 use Benchmark;
 
 
-require Fslib;
-import Fslib;
-import Fslib qw(&Index &ImportBackends);
-$Fslib::Debug=1 if $debug;
-$Fslib::resourcePath=join($Fslib::resourcePathSplit,
-			  map { length($_) ? $_ : $Fslib::resourcePath }
-			  map { split($Fslib::resourcePathSplit,$_,-1) }
+require Treex::PML;
+import Treex::PML;
+import Treex::PML qw(&Index &ImportBackends);
+$Treex::PML::Debug=1 if $debug;
+$Treex::PML::resourcePath=join($Treex::PML::resourcePathSplit,
+			  map { length($_) ? $_ : $Treex::PML::resourcePath }
+			  map { split($Treex::PML::resourcePathSplit,$_,-1) }
 			    @resource_paths) if @resource_paths;
 
-_msg("Resource path: $Fslib::resourcePath\n") unless $quiet;
+require Fslib;
+#require TrEd::Factory;
+#TrEd::Factory->make_default();
+
+
+_msg("Resource path: $Treex::PML::resourcePath\n") unless $quiet;
 
 # import min and max functions
 require TrEd::MinMax;
@@ -305,10 +307,10 @@ require TrEd::Basics;
 import TrEd::Basics;
 
 #load back-ends
-@backends=('FSBackend',ImportBackends(
+@backends=('FS',ImportBackends(
   split(/,/,$extra_backends),
   split(/,/,$ioBackends),
-  qw(NTREDBackend StorableBackend PMLBackend CSTS_SGML_SP_Backend TrXMLBackend TEIXMLBackend PMLTransformBackend)));
+  qw(NTRED Storable PML CSTS TrXML TEIXML PMLTransform)));
 
 
 # these are for macros
@@ -352,6 +354,11 @@ if ($]>=5.008) {
   };
 }
 require Encode;
+
+} # BEGIN
+
+
+my $safe=$safe_mode; # so that it cannot be changed from outside
 
 sub conv_from_locale {
   my ($str)=@_;
@@ -422,10 +429,10 @@ if ($file_list) {
     }
     @files=<$fh>;
     chomp @files;
-    shift @files if ($l=~/\.fl$/i and $files[0]!~m{[/.]} and ! -f Fslib::ResolvePath($l,$files[0]));
+    shift @files if ($l=~/\.fl$/i and $files[0]!~m{[/.]} and ! -f Treex::PML::ResolvePath($l,$files[0]));
     if ($l=~/\.fl$/i) {
 	# make realtive filenames absolute relative to the .fl file
-      @files=map { Fslib::ResolvePath($l,$_) } @files;
+      @files=map { Treex::PML::ResolvePath($l,$_) } @files;
     }
     close($fh) unless $fh==\*STDIN; # we don't close STDIN to avoid problems 
     # with open2 due to unresolved bug in perl: 
@@ -449,14 +456,14 @@ s/\s+$// for @files;
 
 
 %bkmap=(
-	fs => 'FSBackend',
-	csts => 'CSTS_SGML_SP_Backend',
-	trxml => 'TrXMLBackend',
-	tei => 'TEIXMLBackend',
-	storable => 'StorableBackend'
+	fs => 'FS',
+	csts => 'CSTS',
+	trxml => 'TrXML',
+	tei => 'TEIXML',
+	storable => 'Storable'
        );
 
-$FSBackend::CheckListValidity=$validate_fs;
+$Treex::PML::Backend::FS::CheckListValidity=$validate_fs;
 
 $csts_tecto && Csts2fs::setupTR();
 if ($csts_tree_attrs ne "") {
@@ -487,7 +494,13 @@ exit $exit_code;
 ############################
 ############################
 
-sub _msg { $_ERR->print("BTRED: ",@_); }
+sub _set_encoding {
+  eval {
+    _msg("forcing encoding $enc for $what\n") if $debug;
+    setFHEncoding(@_);
+  };
+  _msg($@) if $@;
+}
 sub _make_uniq ($) { my %U; @{$_[0]} = grep {!exists($U{$_}) && ($U{$_}=1)} @{$_[0]} }
 sub sign_md5 ($$) {
   my ($key,$message)=@_;
@@ -1012,7 +1025,7 @@ sub startMain {
 		  $fsfile->changeMetaData('fs-require',undef);
 		} else {
 		  $fsfile->changeMetaData('fs-require',[ map {
-		    [ $_->[0], "ntred://".Fslib::ResolvePath($fsfile->filename,$_->[1]) ] } @$req ]);
+		    [ $_->[0], "ntred://".Treex::PML::ResolvePath($fsfile->filename,$_->[1]) ] } @$req ]);
 		}
 	      }
 	      push @dump, [$fsfile->FS,
@@ -1021,7 +1034,7 @@ sub startMain {
 			   $fsfile->[13],
 			   [$fsfile->patterns],
 			   $fsfile->hint,
-			   $Fslib::API_VERSION
+			   $Treex::PML::API_VERSION
 			  ];
 	    }
 	    if (@dump) {
@@ -1037,36 +1050,6 @@ sub startMain {
 	  foreach my $saved (@save_req) {
 	    $saved->[0]->changeMetaData('fs-require',$saved->[1]);
 	  }
-# 	  } else {
-# 	    # old-default was FS. We leave it here for backward compatibility
-# 	    foreach my $f (grep /\S/,split /\n/,$request{STATE_default}) {
-# 	      next unless ($f);
-# 	      $f=~s{^ntred://}{};
-# 	      $f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
-# 	      next unless openFile($grp,$f,-justpreloaded => 1,
-# 				   -secondary => !$no_secondary);
-# 	      _msg "Dumping the tree $f at client's request\n";
-# 	      my $fsfile = $grp->{FSFile};
-# 	      _set_encoding($hub,$fsfile->encoding(),undef);
-# 	      $fsfile->FS->writeTo($hub);
-# 	      FSBackend::PrintFSFile($hub,
-# 				     $fsfile->FS,
-# 				     $f=_has_suffix($f) ? [$grp->{root}] : $fsfile->treeList);
-# 	      #	      Tredish custom attributes:
-# 	      $fsfile->changeTail(
-# 		(grep { $_!~/\/\/Tred:(?:Custom-Attribute(?:Cont)?|Balloon-Pattern):/ } $fsfile->tail),
-# 		(map {"//Tred:Custom-Attribute:$_\n"}
-# 		   map {
-# 		     join "\n//Tred:Custom-AttributeCont:",
-# 		       split /\n/,$_
-# 		     } $fsfile->patterns),
-# 		(map {"//Tred:Balloon-Pattern:$_\n"}
-# 		   split /\n/,$fsfile->hint)
-# 	       );
-# 	      $hub->print($fsfile->tail());
-# 	      $hub->print("\n\n//FSEND\n\n");
-# 	    }
-# 	  }
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'UPLOAD') {
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
@@ -1179,19 +1162,21 @@ sub startMain {
 	      gotoFile($grp,0);
 	      die $@ if $@;
 	      do {{
-		next unless ref($grp->{FSFile});
-		if ((!defined($regexp) or $grp->{'FSFile'}->filename =~ $regexp) and 
-		    (!$listed or $fl{ $grp->{'FSFile'}->filename })) {
-		  if ($request{REQUEST_TYPE} eq 'SAVE' or $grp->{FSFile}->notSaved()) {
+		my $fsfile = $grp->{FSFile};
+		my $filename = $fsfile->filename;
+		next unless ref($fsfile);
+		if ((!defined($regexp) or $filename =~ $regexp) and 
+		    (!$listed or $fl{ $filename })) {
+		  if ($request{REQUEST_TYPE} eq 'SAVE' or $fsfile->notSaved()) {
 		    my ($out,$error) = saveFile($grp);
 		    if (!defined($error)) {
-		      $macro_stdout->print("Saved ",$grp->{'FSFile'}->filename," as $out\n");
+		      $macro_stdout->print("Saved ",$filename," as $out\n");
 		    } else {
-		      $macro_stdout->print("ERROR SAVING",$grp->{'FSFile'}->filename,": $error\n");
+		      $macro_stdout->print("ERROR SAVING",$filename,": $error\n");
 		    }
 		  }
 		  unless ($no_secondary) {
-		    foreach my $secondary (secondaryFSFiles($grp,$grp->{FSFile})) {
+		    foreach my $secondary (secondaryDocumentsTo($grp,$fsfile)) {
 		      if ($request{REQUEST_TYPE} eq 'SAVE' or $secondary->notSaved()) {
 			# TODO: we should probably go recursion here...
 			# (secondary files of secondary files...)
@@ -1336,7 +1321,7 @@ EOL
             $exit_code ||= ERROR_SAVE;
           }
           unless ($no_secondary) {
-	    foreach my $secondary (secondaryFSFiles($grp,$grp->{FSFile})) {
+	    foreach my $secondary (secondaryDocumentsTo($grp,$grp->{FSFile})) {
 	      if ($save or $secondary->notSaved()) {
 	        # TODO: we should probably go recursion here...
 	        # (secondary files of secondary files...)
@@ -1437,18 +1422,22 @@ sub loadFile {
   local $SIG{__WARN__} = sub { my $msg = shift; chomp $msg; print STDERR $msg."\n"; push @warnings,$msg; };
 
   # a bit of a hack:
-  local $PMLBackend::allow_no_trees=1 if $allow_no_trees;
+  local $Treex::PML::Backend::PML::allow_no_trees=1 if $allow_no_trees;
 
-  my $fsfile = FSFile->newFSFile($file,$TrEd::Convert::inputenc, $bck);
+  my $fsfile = Treex::PML::Factory->createDocumentFromFile($file,
+   {
+     encoding => $TrEd::Convert::inputenc,
+     backends => $bck
+   });
   $status->{error} = _last_err();
   chomp $status->{error};
   $status->{report} = "Loading file '$file':\n";
   if (ref($fsfile) and ($allow_no_trees || $fsfile->lastTreeNo>=0)
-       and $Fslib::FSError==0) {
+       and $Treex::PML::FSError==0) {
     $status->{ok} = @warnings ? -1 : 1;
   } else {
     $status->{ok} = 0;
-    if (ref($fsfile) and !$allow_no_trees and $Fslib::FSError==0) {
+    if (ref($fsfile) and !$allow_no_trees and $Treex::PML::FSError==0) {
       $status->{error} = "No trees found in this file; if it is ok, try --allow-no-trees.";
     }
     $status->{report} .= "ERROR(s): ".$status->{error}."\n";
@@ -1616,17 +1605,18 @@ sub applyFileSuffix {
   # -- smells like PDT-specific code, at least the second case
   # but we want it, dont we:)
 
+  my $fsfile=$grp->{FSFile};
   if ($goto=~/^##([0-9]+)/) {
-    $grp->{treeNo}=min2(max2(0,$1-1),$grp->{FSFile}->lastTreeNo);
+    $grp->{treeNo}=min2(max2(0,$1-1),$fsfile->lastTreeNo);
   } elsif ($goto=~/^#([0-9]+)/) {
-    for (my $i=0;$i<=$grp->{FSFile}->lastTreeNo;$i++) {
-      $grp->{treeNo}=$i,last if ($grp->{FSFile}->treeList->[$i]->{'form'} eq "#$1");
+    for (my $i=0;$i<=$fsfile->lastTreeNo;$i++) {
+      $grp->{treeNo}=$i,last if ($fsfile->treeList->[$i]->{'form'} eq "#$1");
     }
   }
   # new: we're the dot in .[0-9]+ (TM)
   my $root;
   if ($goto=~/\.([0-9]+)$/) {
-    $root=$grp->{FSFile}->treeList->[$grp->{treeNo}];
+    $root=$fsfile->treeList->[$grp->{treeNo}];
     my $i=$1;
     while ($root and $i>0) {
       $i--;
@@ -1671,7 +1661,7 @@ sub saveFile {
   my $out=save_transform_filename($f);
   my $err = '';
   eval {
-    IOBackend::rename_uri($out,$out."~") unless $f=~/^ntred:/; # if (-f $f);
+    Treex::PML::IO::rename_uri($out,$out."~") unless $f=~/^ntred:/; # if (-f $f);
   };
   $err.="Error creating backup $f~: $@\n" if $@;
   #unlink "$f~" if (-e "$f~" ); # silly MS OSs need this
@@ -1721,12 +1711,12 @@ sub saveFile {
     $err .= $@ if $@;
     # try revert backup
     eval {
-      IOBackend::rename_uri($out."~",$out) unless $out=~/^ntred:/; # if (-f $f);
+      Treex::PML::IO::rename_uri($out."~",$out) unless $out=~/^ntred:/; # if (-f $f);
     };
     $err .= "Error reverting $f from backup $f~ after saving error: $@\n" if $@;
     return ($out,$err);
   }
-  IOBackend::unlink_uri($out."~") if $no_backups;
+  Treex::PML::IO::unlink_uri($out."~") if $no_backups;
   $fsfile->notSaved(0);
   return ($out, undef);
 }
@@ -1734,7 +1724,7 @@ sub saveFile {
 sub fileOrSecondariesNotSaved ($$) {
   my ($grp,$fsfile)=@_;
   return $fsfile->notSaved() or
-    (!$no_secondary and first { $_->notSaved() } secondaryFSFiles($grp,$fsfile));
+    (!$no_secondary and first { $_->notSaved() } secondaryDocumentsTo($grp,$fsfile));
 }
 
 sub secondaryFiles {
@@ -1747,7 +1737,7 @@ sub secondaryFiles {
   }
 }
 
-sub secondaryFSFiles ($$) {
+sub secondaryDocumentsTo ($$) {
   my ($grp,$fsfile)=@_;
   return grep { ref($_) } map { $grp->{secondary}->{$_} } secondaryFiles($fsfile);
 }
@@ -2042,23 +2032,6 @@ sub determineNodeType {
   return $node->type;
 }
 
-sub _set_encoding {
-  my ($fh, $enc, $what)=@_;
-  if ($]>=5.008) {
-    eval {
-      _msg("forcing encoding $enc for $what\n") if $debug;
-      $fh->flush();
-      binmode $fh; # first get rid of all I/O layers
-      if ($enc =~ /^:/) {
-	binmode $fh,$enc;
-      } elsif ($enc ne "") {
-	binmode $fh,":encoding($enc)";
-      }
-    };
-    _msg($@) if $@;
-  }
-}
-
 sub prepareExtensions {
   my ($opts)=@_;
   $opts||={};
@@ -2195,7 +2168,7 @@ context and defaults to `autostart()' as the macro code.
 
 The macro code may use all functions defined in a given macro file,
 the default macro file tred.def, plus all functions and methods from
-Fslib (see Fslib documentation).
+Treex::PML (see Treex::PML documentation).
 
 Note, that a lot of information on the current node, file etc. can be
 obtained using some pre-defined macro from `tred.def'. The
@@ -2205,22 +2178,22 @@ applicable situations.
 
 As in TrEd, the following variables can be used in macros:
 
-h$this - the current node (the root of the first tree in a file at the
+$this - the current node (the root of the first tree in a file at the
 beginning)
 
 $root - the root node of the current tree
 
-$grp->{FSFile} - current FSFile object (see section on FSFile in Fslib
+Among many other, the following functions are defined (see 'tred.def' for a full list):
+
+CurrentFile() - current FSFile object (see section on FSFile in Treex::PML
 documentation)
 
-$grp->{treeNo}       - current tree number
+CurrentTreeNumber() - current tree number
 
-$grp->{macroContext} - current macro context
+CurrentContext() - current macro context
 
-$FileChanged ($TredMacro::FileChanged) - macro may change this to 1 to
-indicate that the file should be saved at the end of the
-pocessing. This variable is called $FileNotSaved in older
-documentation. Both names are equally usable.
+ChangingFile() - - macro may call this function to indicate that the
+file should be saved at the end of the pocessing.
 
 =item B<--initial-code|-i> code
 
@@ -2374,7 +2347,7 @@ within the macro code.
 
 If a file is saved, save/update also listed types of reffiles the file
 pulled data from. For the moment, this only makes sense with the
-C<PMLBackend> which supports so called B<knitting>, i.e. a method to
+C<PML> backend which supports so called B<knitting>, i.e. a method to
 pull certain data from external resources and push it back (with all
 changes) to the original position in the resource when saving the
 file. This option allows to list the types of resources (in PML the
@@ -2460,7 +2433,7 @@ Do not stop (die) on errors, just warn.
 
 =item B<--validate-fs|-V>
 
-Force Fslib to test validity of values assigned to @L (list)
+Force Treex::PML to test validity of values assigned to @L (list)
 attributes in FS files.
 
 =item B<--quiet|-q>
@@ -2541,7 +2514,7 @@ to test their interaction.
 
 =item B<--lib>
 
-Prints path to module directory containing Fslib and other TrEd specific
+Prints path to module directory containing Treex::PML and other TrEd specific
 libraries and exit.
 
 

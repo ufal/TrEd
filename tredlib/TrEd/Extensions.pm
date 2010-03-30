@@ -7,13 +7,14 @@ use warnings;
 use Carp;
 use File::Spec;
 use File::Glob qw(:glob);
+use Scalar::Util qw(blessed);
 
 use URI;
 use URI::file;
 
 BEGIN {
   require Exporter;
-  require Fslib;
+  require Treex::PML;
 
   if (exists &Tk::MainLoop) {
     require Tk::DialogReturn;
@@ -56,18 +57,18 @@ sub getExtensionList {
   my ($repository)=@_;
   my $url;
   if ($repository) {
-    $url = IOBackend::make_URI($repository).'/extensions.lst';
+    $url = Treex::PML::IO::make_URI($repository).'/extensions.lst';
   } else {
     $url =
       File::Spec->catfile(getExtensionsDir(),'extensions.lst');
     return unless -f $url;
   }
-  my $fh = eval { IOBackend::open_uri($url) };
+  my $fh = eval { Treex::PML::IO::open_uri($url) };
   warn $@ if ($@);
   return [] unless $fh;
   my @extensions = grep { /^!?[[:alnum:]_-]+\s*$/ } <$fh>;
   s/\s+$// for @extensions;
-  IOBackend::close_uri($fh);
+  Treex::PML::IO::close_uri($fh);
   return \@extensions;
 }
 
@@ -81,13 +82,13 @@ sub initExtensions {
   $extension_dir||=getExtensionsDir();
   my (%m,%r,%i,%s);
   @s{ grep defined, @TrEd::Utils::stylesheetPaths } = () if defined @TrEd::Utils::stylesheetPaths;
-  @r{ Fslib::ResourcePaths() } = ();
+  @r{ Treex::PML::ResourcePaths() } = ();
   @m{ grep defined, @TrEd::Macros::macro_include_paths } = () if defined @TrEd::Macros::macro_include_paths;
   @i{ @INC } = ();
   for my $name (grep { !/^!/ } @$list) {
     my $dir = File::Spec->catdir($extension_dir,$name,'resources');
     if (-d $dir and !exists($r{$dir})) {
-      Fslib::AddResourcePath($dir);
+      Treex::PML::AddResourcePath($dir);
       $r{$dir}=1;
     }
     $dir = File::Spec->catdir($extension_dir,$name);
@@ -106,9 +107,8 @@ sub initExtensions {
       $s{$dir}=1;
     }
   }
-  PMLBackend::configure();
+  Treex::PML::Backend::PML::configure();
 }
-
 
 sub getPreInstalledExtensionList {
   my ($except,$preinst_dir)=@_;
@@ -162,14 +162,14 @@ sub getExtensionMacroPaths {
 sub getExtensionMetaData {
   my ($name,$extensions_dir)=@_;
   my $metafile;
-  if (UNIVERSAL::isa($name,'URI')) {
+  if ((blessed($name) and $name->isa('URI'))) {
     $metafile = URI->new('package.xml')->abs($name.'/');
   } else {
     $metafile =
       File::Spec->catfile($extensions_dir||getExtensionsDir(),$name,'package.xml');
     return unless -f $metafile;
   }
-  my $data =  eval { PMLInstance->load({
+  my $data =  eval { Treex::PML::Instance->load({
     filename => $metafile,
   })->get_root;
   };
@@ -241,7 +241,7 @@ sub _populate_extension_pane {
   my ($progress,$progressbar)=($opts->{progress},$opts->{progressbar});
   if ($opts->{install}) {
     my @list;
-    for my $repo (map { IOBackend::make_URI($_) } @{$opts->{repositories}}) {
+    for my $repo (map { Treex::PML::IO::make_URI($_) } @{$opts->{repositories}}) {
       push @list, map { [$repo,$_,URI->new($_)->abs($repo.'/')] } 
 	grep { $opts->{only_upgrades} ? exists($opts->{installed}{$_}) : 1 }
 	grep { length and defined }
@@ -371,7 +371,7 @@ sub _populate_extension_pane {
   $text->delete(qw(0.0 end));
   my $generic_icon;
   for my $name (@$list) {
-    my $short_name = UNIVERSAL::isa($name,'URI') ?
+    my $short_name = (blessed($name) and $name->isa('URI')) ?
       do { my $n=$name; $n=~s{.*/}{}; $n } : $name;
     my $data = $data{$name};
     my $start = $text->index('end');
@@ -381,8 +381,8 @@ sub _populate_extension_pane {
       $opts->{versions}{$name}=$data->{version};
       if ($data->{icon}) {
 	my ($path,$unlink,$format);
-	if (UNIVERSAL::isa($name,'URI')) {
-	  ($path,$unlink) = eval { IOBackend::fetch_file(URI->new($data->{icon})->abs($name.'/')) };
+	if ((blessed($name) and $name->isa('URI'))) {
+	  ($path,$unlink) = eval { Treex::PML::IO::fetch_file(URI->new($data->{icon})->abs($name.'/')) };
 	} else {
 	  my $dir = exists($pre_installed{ $name }) ? getPreInstalledExtensionsDir() : $extension_dir;
 	  $path = File::Spec->rel2abs($data->{icon},
@@ -447,7 +447,7 @@ sub _populate_extension_pane {
 
     $embeded{$name}=[$bf,$image ? $image : ()];
     $enable{$name}=1 if $opts->{only_upgrades};
-    if (UNIVERSAL::isa($name,'URI')) {
+    if ((blessed($name) and $name->isa('URI'))) {
       my @req_tred = $data && $data->{require} && $data->{require}->values('tred');
       my $requires_different_tred='';
       for my $r (@req_tred) {
@@ -605,7 +605,7 @@ sub _populate_extension_pane {
     {
       if ($data and ($data->{install_size} or $data->{package_size})) {
 	$text->insert('end', '(Size: ');
-	if (UNIVERSAL::isa($name,'URI')) {
+	if ((blessed($name) and $name->isa('URI'))) {
 	  $text->insert('end', _fmt_size($data->{package_size}). ' package') if $data->{package_size};
 	  $text->insert('end', ' / ') if $data->{package_size} && $data->{install_size};
 	}
@@ -874,7 +874,7 @@ EOF
       uninstallExtension($name); # or just rmtree
     }
     mkdir $dir;
-    my ($zip_file,$unlink) = eval { IOBackend::fetch_file($url.'.zip') };
+    my ($zip_file,$unlink) = eval { Treex::PML::IO::fetch_file($url.'.zip') };
     if ($@) {
       my $err = "Downloading ${url}.zip failed:\n".$@;
       if ($opts->{tk}) {

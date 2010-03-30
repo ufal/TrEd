@@ -18,9 +18,9 @@ pod_dir="${2:-$target_dir/pod}"
 #[ -d "$html_dir" ] || mkdir $html_dir || exit 1
 
 for f in $dir/../[bn]tred \
-         $dir/../tredlib/libs/fslib/Fslib.pm \
-         $dir/../tredlib/libs/pml-base/PMLSchema.pm \
-         $dir/../tredlib/libs/pml-base/PMLInstance.pm \
+         $dir/../tredlib/libs/fslib/Treex::PML.pm \
+         $dir/../tredlib/libs/pml-base/Treex::PML::Schema.pm \
+         $dir/../tredlib/libs/pml-base/Treex::PML::Instance.pm \
          $dir/../tredlib/tred.def ; do
     n="basename ${f%.pm}"
     n=$(basename "$n")
@@ -29,10 +29,10 @@ for f in $dir/../[bn]tred \
     podselect "$f" > "$pod"
 done
 
-for f in $dir/../tredlib/libs/pml-base/PMLSchema/*.pm; do
+for f in $dir/../tredlib/libs/pml-base/Treex::PML::Schema/*.pm; do
     n="basename ${f%.pm}"
     n=$(basename "$n")
-    pod="$pod_dir/PMLSchema__${n}.pod"
+    pod="$pod_dir/Treex::PML::Schema__${n}.pod"
     podchecker "$f"
     podselect "$f" > "$pod"
 done

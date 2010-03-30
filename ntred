@@ -1271,7 +1271,7 @@ sub distribute_files2 {
 sub r2a {
   my ($fl,$file)=@_;
   if (defined($fl)) {
-    return Fslib::ResolvePath($fl,$file);
+    return Treex::PML::ResolvePath($fl,$file);
   } else {
     return rel2abs($file);
   }
@@ -1840,7 +1840,7 @@ C<--list-changed-files>.
 
 If a file is saved, save/update also listed types of reffiles the file
 pulled data from. For the moment, this only makes sense with the
-C<PMLBackend> which supports so called B<knitting>, i.e. a method to
+C<PML> backend which supports so called B<knitting>, i.e. a method to
 pull certain data from external resources and push it back (with all
 changes) to the original position in the resource when saving the
 file. This option allows to list the types of resources (in PML the

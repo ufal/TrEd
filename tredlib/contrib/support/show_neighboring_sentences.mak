@@ -15,7 +15,7 @@ my $cfg = QuickPML(
     context_before => 'nonNegativeInteger',
     context_after => 'nonNegativeInteger',
    ],
-  Fslib::Struct->new({
+  Treex::PML::Factory->createStructure({
     context_before=>5,
     context_after=>5,
   }));

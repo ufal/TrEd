@@ -2,8 +2,8 @@
 BEGIN {
   use File::Basename;
   use lib dirname($0).'/../tredlib';
-  use Fslib;
-  use PMLInstance;
+  use Treex::PML;
+  use Treex::PML::Instance;
 };
 
 my $filename = 'test.t';
@@ -18,7 +18,7 @@ if (@ARGV>1) {
 }
 
 # where to look for PML schemata?
-Fslib::AddResourcePath(dirname($0).'/../resources');
+Treex::PML::AddResourcePath(dirname($0).'/../resources');
 
 my $aref = defined $a_file ?
   qq(<reffile id="a" href="$a_file" name="adata"/>) : q();
@@ -41,7 +41,7 @@ my $pml = <<"EOF";
 </tdata>
 EOF
 
-my $fsfile = PMLInstance->load({
+my $fsfile = Treex::PML::Instance->load({
   string   => $pml,
   filename => $filename,
 })->convert_to_fsfile();
@@ -52,10 +52,8 @@ my $schema = $fsfile->metaData('schema');
 my ($root,$node);
 foreach my $i (1..10) {
   # create a new tree
-  $root = $fsfile->new_tree($i-1);
-
-  # associate root-node with a PML type
-  $root->set_type_by_name($schema,'t-root.type');
+  $root=Treex::PML::Factory->createTypedNode('t-root.type' => $schema);
+  $fsfile->insert_tree($root, $i-1);
 
   # fill-in required attributes
   $root->{id}="tree.$i";
@@ -64,10 +62,7 @@ foreach my $i (1..10) {
 
   foreach my $j (1..4) {
     # create a new node
-    $node=FSNode->new();
-
-    # associate node with a PML type
-    $node->set_type_by_name($schema,'t-node.type');
+    $node=Treex::PML::Factory->createTypedNode('t-node.type' => $schema);
 
     # fill-in required attributes
     $node->{id}="node-$i.$j";
@@ -77,7 +72,7 @@ foreach my $i (1..10) {
     $node->{deepord}=$j;
 
     # paste the node on root
-    Fslib::Paste($node,$root,$fsfile->FS);
+    $node->paste_on($root,'deepord');
   }
   {
     # validate the tree against PML Schema

@@ -106,6 +106,7 @@ sub getFontName {
 package TrEd::Print;
 use strict;
 use Carp;
+use UNIVERSAL::DOES;
 
 BEGIN{
   use vars qw($bwModeNodeColor %media);
@@ -115,7 +116,7 @@ BEGIN{
   use Tk::Canvas::PDF;
   use Tk::Canvas::SVG;
   *media = *Tk::Canvas::PDF::media;
-  use Fslib;
+  use Treex::PML;
 
   use TrEd::Convert;
   import TrEd::Convert;
@@ -310,7 +311,7 @@ sub Print {
   local $QUIET = $opts{-quiet};
   my $command = $opts{-command};
   if ($opts{-to} eq 'convert' or ($opts{-format} =~ /ImageMagick/i)) {
-    $command = "$opts{-convert} -density $opts{-imageMagickResolution} - ".IOBackend::quote_filename($opts{-filename});
+    $command = "$opts{-convert} -density $opts{-imageMagickResolution} - ".Treex::PML::IO::quote_filename($opts{-filename});
   }
   if (defined $opts{-to}) {
     croak("Cannot use flags -to and -toFile at the same time!\n") if defined $opts{-toFile};
@@ -371,7 +372,7 @@ sub Print {
 }
 
 sub print_trees {
-  my ($fsfile,			# FSFile object
+  my ($fsfile,			# Treex::PML::Document object
       $toplevel,		# Tk window to make busy when printing output
       $c,			# Tk::Canvas object
       $printRange,		# print range
@@ -590,7 +591,7 @@ sub print_trees {
 	      foreach my $v (@$valtext) {
 		my ($value,@tags)=@$v;
 		@tags = map {
-		  if (ref($_) and UNIVERSAL::isa($_,'FSNode')) {
+		  if (UNIVERSAL::DOES::does($_,'Treex::PML::Node')) {
 		    my $node = $_;
 		    my $type = $node->type;
 		    my $id_attr = $types{$type};
@@ -600,7 +601,7 @@ sub print_trees {
 			if $id_attr;
 		    }
 		    ($id_attr and $node->{ $id_attr }) ? ('#'.$node->{ $id_attr }) : (); #$node
-		  } elsif (/^FSNode=HASH\(/) {
+		  } elsif (/^[a-zA-Z:_]+=HASH\(/) {
 		    ()
 		  } else {
 		    ($_)

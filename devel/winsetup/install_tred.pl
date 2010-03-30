@@ -100,7 +100,7 @@ sub InstallExtensions {
   map File::Spec->rel2abs($_,$install_target),
   qw(tredlib tredlib/libs/tk tredlib/libs/pml-base tredlib/libs/fslib);
 
-  require Fslib;
+  require Treex::PML;
   require TrEd::Extensions;
 
   require TrEd::Utils;
@@ -110,7 +110,7 @@ sub InstallExtensions {
   TrEd::Config::set_default_config_file_search_list();
   TrEd::Config::read_config();
 #  print $TrEd::Config::extensionsDir,"\n";
-  Fslib::AddResourcePath(File::Spec->rel2abs('resources',$install_target));
+  Treex::PML::AddResourcePath(File::Spec->rel2abs('resources',$install_target));
 
   my $list = TrEd::Extensions::getExtensionList() || [];
   if ($progressbar) {

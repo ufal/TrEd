@@ -45,7 +45,7 @@ my $output_dirname = delete $opts{'-out-dir'};
   package main;
   import TrEd::Utils ':all';
 
-  initStylesheetPaths([split($Fslib::resourcePathSplit,$opts{'stylesheet-paths'},-1)]);
+  initStylesheetPaths([split($Treex::PML::resourcePathSplit,$opts{'stylesheet-paths'},-1)]);
   loadStyleSheets($gui);
 
   sub __run_hook {

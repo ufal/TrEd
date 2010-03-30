@@ -25,8 +25,8 @@ cd documentation
 [ -d man ] || mkdir man
 [ -d man/man1 ] || mkdir man/man1
 [ -d man/man3 ] || mkdir man/man3
-for man in btred.1 ntred.1 Fslib.3 \
-           PMLSchema.3 PMLInstance.3 PML_mak.3 tred_def.3
+for man in btred.1 ntred.1 Treex::PML.3 \
+           Treex::PML::Schema.3 Treex::PML::Instance.3 PML_mak.3 tred_def.3
 do
   sect=${man##*.}
   pod2man "pod/${man%.[13]}.pod" > "man/man$sect/$man"
