@@ -10,14 +10,13 @@ use lib ("$FindBin::RealBin",
 	);
 
 use Treex::PML;
-use AG2FS;
 
 foreach my $file (@ARGV) {
   print "Processing $file\n";
-  my $fs = Treex::PML::Factory->createDocumentFromFile($file,{backends=>['AG2FS']});
+  my $fs = Treex::PML::Factory->createDocumentFromFile($file,{backends=>[ Treex::PML::ImportBackends('AG2PML') ]});
   print $fs->lastTreeNo,"\n";
   if ($fs->lastTreeNo<0) { die "File is empty or corrupted!\n"; }
-  $fs->changeBackend('Treex::PML::Backend::FS');
+  $fs->changeBackend('FS');
   print "Writing to $file.fs\n";
   $fs->writeFile("$file.fs");
   print "done\n";
