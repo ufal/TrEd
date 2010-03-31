@@ -512,7 +512,7 @@ Tk: 804.028
 	      <listitem>
 		<para>ordered list of values of any type except list
 		  (implemented as a Perl array reference of the
-		  <literal><ulink url="Treex::PML.html#Treex::PML_List">Treex::PML::List</ulink></literal> class). Currently
+		  <literal><ulink url="Treex__PML__List.html">Treex::PML::List</ulink></literal> class). Currently
 		  only supported by PML-backend.
 		</para>
 	      </listitem>
@@ -524,11 +524,11 @@ Tk: 804.028
 	      <listitem>
 		<para>alternative of values of any type except alternative
 		  (implemented as a Perl array reference of the
-		  <literal><ulink url="Treex::PML.html#Treex::PML_Alt">Treex::PML::Alt</ulink></literal> class).
+		  <literal><ulink url="Treex__PML__Alt.html">Treex::PML::Alt</ulink></literal> class).
 		  Alternative is very similar to unordered list but as long
 		  as it has only one single value,
 		  it is represented by that value (rather
-		  than a <literal><ulink url="Treex::PML.html#Treex::PML_Alt">Treex::PML::Alt</ulink></literal> array reference containing that value).
+		  than a <literal><ulink url="Treex__PML__Alt.html">Treex::PML::Alt</ulink></literal> array reference containing that value).
 		  Alternatives are currently supported by PML-backend.
 		</para>
 	      </listitem>
@@ -2841,12 +2841,12 @@ Tk: 804.028
       and files in FS format) offers support for
       string attributes, enumerated attributes,
       constant attributes,
-      <literal><ulink url="Treex::PML.html#Treex::PML_List">Treex::PML::List</ulink></literal>
-      lists of values of an arbitrary type, <literal><ulink url="Treex::PML.html#Treex::PML_Alt">Treex::PML::Alt</ulink></literal>
-      alternatives of values, and <literal><ulink url="Treex::PML.html#Treex::PML_Seq">Treex::PML::Seq</ulink></literal> sequences of named elements), and, 
+      <literal><ulink url="Treex__PML__List.html">Treex::PML::List</ulink></literal>
+      lists of values of an arbitrary type, <literal><ulink url="Treex__PML__Alt.html">Treex::PML::Alt</ulink></literal>
+      alternatives of values, and <literal><ulink url="Treex__PML__Seq.html">Treex::PML::Seq</ulink></literal> sequences of named elements), and, 
       most importantly,  for 
-      <firstterm>hierarchical attributes</firstterm> (<literal><ulink url="Treex::PML.html#Treex::PML_Struct">Treex::PML::Struct</ulink></literal>
-      and <literal><ulink url="Treex::PML.html#Treex::PML_Container">Treex::PML::Container</ulink></literal>).
+      <firstterm>hierarchical attributes</firstterm> (<literal><ulink url="Treex__PML__Struct.html">Treex::PML::Struct</ulink></literal>
+      and <literal><ulink url="Treex__PML__Container.html">Treex::PML::Container</ulink></literal>).
       Alternatives consisting of <literal>|</literal>-separated lists of strings used by FS format files are supported too.
 
     </para>
@@ -7511,12 +7511,12 @@ sub CreateImages {
     <section>
       <title>Accessing tree nodes</title> <para>All tree nodes in
       <application>TrEd</application> are represented
-      by <ulink url="Treex::PML/Node.html"><classname>Treex::PML::Node</classname></ulink> Perl objects. These objects are
+      by <ulink url="Treex__PML__Node.html"><classname>Treex::PML::Node</classname></ulink> Perl objects. These objects are
       basically only hash references where the
       attribute-name/attribute-value information is stored as a
       key/value pair (except that some hash keys are reserved for
       representing the tree structure).  
-      <ulink url="Treex::PML/Node.html"><classname>Treex::PML::Node</classname></ulink> objects provide several basic
+      <ulink url="Treex__PML__Node.html"><classname>Treex::PML::Node</classname></ulink> objects provide several basic
       methods, most of which are related to accessing their neighbouring nodes
       in the tree.
       </para>
@@ -7550,7 +7550,7 @@ sub CreateImages {
 	<title>Accessing node attributes</title>
 	<para>
 	  Let <literal>$node</literal> be a
-	  <ulink url="Treex::PML/Node.html"><classname>Treex::PML::Node</classname></ulink> object, i.e. a node of the
+	  <ulink url="Treex__PML__Node.html"><classname>Treex::PML::Node</classname></ulink> object, i.e. a node of the
 	  tree. Typically, nodes are attribute-value structures, so the
 	  attribute named <literal><replaceable>attrib</replaceable></literal>
 	  is accessible as <literal>$node-&gt;{<replaceable>attrib</replaceable>}</literal>.
@@ -7563,11 +7563,11 @@ sub CreateImages {
 	  Attribute values may not always be atomic, i.e. numbers or
 	  strings (although for most backends this is the case). They
 	  may also be AVS structures (represented as
-	  <ulink url="Treex::PML.html#Treex::PML::Struct"><classname>Treex::PML::Struct</classname></ulink> objects, which are
+	  <ulink url="Treex__PML__Struct.html"><classname>Treex::PML::Struct</classname></ulink> objects, which are
 	  basically just Perl hashes), lists (represented as Perl ARRAY
-	  references of the <ulink url="Treex::PML.html#Treex::PML::List"><classname>Treex::PML::List</classname></ulink> class)
+	  references of the <ulink url="Treex__PML__List.html"><classname>Treex::PML::List</classname></ulink> class)
 	  and alternatives (represented as Perl ARRAY references of
-	  the <ulink url="Treex::PML.html#Treex::PML::List"><classname>Treex::PML::List</classname></ulink> class). So let's
+	  the <ulink url="Treex__PML__List.html"><classname>Treex::PML::List</classname></ulink> class). So let's
 	  suppose for a while, that the value of <literal>$node-&gt;{<replaceable>attrib</replaceable>}</literal>
 	  is an AVS structure with attribute
 	  <replaceable>level2-attrib</replaceable> and its value is a
@@ -7633,9 +7633,9 @@ sub CreateImages {
 	<title>Accessing neighboring nodes</title>
 	<para>
 	  There is a few methods provided by every
-	  <ulink url="Treex::PML/Node.html"><classname>Treex::PML::Node</classname></ulink> reference that can be used
+	  <ulink url="Treex__PML__Node.html"><classname>Treex::PML::Node</classname></ulink> reference that can be used
 	  to access other nodes in the tree. Each of the methods
-	  returns either a <ulink url="Treex::PML/Node.html"><classname>Treex::PML::Node</classname></ulink> reference
+	  returns either a <ulink url="Treex__PML__Node.html"><classname>Treex::PML::Node</classname></ulink> reference
 	  pointing to the requested node, or zero if 
 	  the requested node does not exist. For example, the
 	  following code may be used to make the active node's
@@ -7649,11 +7649,11 @@ sub CreateImages {
 	</para>
 	<para>
 	  The following table describes some
-	  <ulink url="Treex::PML/Node.html"><classname>Treex::PML::Node</classname></ulink> methods.
-	  For a complete list, refer to the documentation of <ulink url="Treex::PML.html">Treex::PML.pm</ulink>.
+	  <ulink url="Treex__PML__Node.html"><classname>Treex::PML::Node</classname></ulink> methods.
+	  For a complete list, refer to the documentation of <ulink url="Treex__PML.html">Treex::PML.pm</ulink>.
 	</para>
 	<table>
-	  <title><ulink url="Treex::PML/Node.html"><classname>Treex::PML::Node</classname></ulink> methods</title>
+	  <title><ulink url="Treex__PML__Node.html"><classname>Treex::PML::Node</classname></ulink> methods</title>
 	  <tgroup cols="2">
 	    <colspec colnum="1" align="left"/>
 	    <colspec colnum="2" align="justify"/>
@@ -7710,7 +7710,7 @@ sub CreateImages {
 		  tree structure. E.g. if the given node has a child,
 		  this child is returned. If the node has no childs
 		  but does have a right brother,
-		  <ulink url="Treex::PML/Node.html"><classname>Treex::PML::Node</classname></ulink>
+		  <ulink url="Treex__PML__Node.html"><classname>Treex::PML::Node</classname></ulink>
 		  reference to the right brother is returned.
 		  If no child and no right brother exists for the
 		  given node, the method looks for a right brother
@@ -7719,7 +7719,7 @@ sub CreateImages {
 		  on the returned nodes ensures that all the nodes
 		  in the trees are accessed during the procedure.
 		  If the optional argument <replaceable>top</replaceable>
-		  contains a <ulink url="Treex::PML/Node.html"><classname>Treex::PML::Node</classname></ulink> reference,
+		  contains a <ulink url="Treex__PML__Node.html"><classname>Treex::PML::Node</classname></ulink> reference,
 		  the searching is limited to the subtree governed by 
 		  the node of <replaceable>top</replaceable>.
 		</entry>
@@ -7733,7 +7733,7 @@ sub CreateImages {
 		  <literal>following</literal>
 		  method for more detail on the ordering).
 		  If the optional argument <replaceable>top</replaceable>
-		  contains a <ulink url="Treex::PML/Node.html"><classname>Treex::PML::Node</classname></ulink> reference,
+		  contains a <ulink url="Treex__PML__Node.html"><classname>Treex::PML::Node</classname></ulink> reference,
 		  the searching is limited to the subtree governed by 
 		  the node of <replaceable>top</replaceable>.
 		</entry>
@@ -7771,11 +7771,11 @@ sub CreateImages {
 	<para>
 	  The current file is accessed via the
 	  <literal>CurrentFile()</literal> reference. This reference
-	  is a pointer to an object of the <ulink url="Treex::PML::Document.html"><classname>Treex::PML::Document</classname></ulink>
+	  is a pointer to an object of the <ulink url="Treex__PML__Document.html"><classname>Treex::PML::Document</classname></ulink>
 	  class. The following methods are provided for the class:
 	</para>
 	<table id="fsnode_methods">
-	  <title><ulink url="Treex::PML/Document.html"><classname>Treex::PML::Document</classname></ulink> class methods</title>
+	  <title><ulink url="Treex__PML__Document.html"><classname>Treex::PML::Document</classname></ulink> class methods</title>
 	  <tgroup cols="2">
 	    <colspec colnum="1" align="left"/>
 	    <colspec colnum="2" align="justify"/>
@@ -7797,13 +7797,13 @@ sub CreateImages {
 	      <row>
 		<entry><literal>FS</literal></entry>
 		<entry>Return a reference to an associated
-		  <ulink url="Treex::PML/FSFormat.html"><classname>Treex::PML::FSFormat</classname></ulink> object.
+		  <ulink url="Treex__PML__FSFormat.html"><classname>Treex::PML::FSFormat</classname></ulink> object.
 		</entry>
 	      </row>
 	      <row>
 		<entry><literal>trees</literal></entry>
 		<entry>Return a list of all trees (i.e.
-		  a list of <ulink url="Treex::PML/Node.html"><classname>Treex::PML::Node</classname></ulink>
+		  a list of <ulink url="Treex__PML__Node.html"><classname>Treex::PML::Node</classname></ulink>
 		  object references pointing to the roots
 		  of the trees).
 		</entry>
@@ -7843,20 +7843,20 @@ sub CreateImages {
 	  </tgroup>
 	</table>
 	<para>
-	  Actually, some other <ulink url="Treex::PML/Document.html"><classname>Treex::PML::Document</classname></ulink> methods
+	  Actually, some other <ulink url="Treex__PML__Document.html"><classname>Treex::PML::Document</classname></ulink> methods
 	  exist, but as they are not intended to be used from the
 	  macros directly, there is no reason to describe them here.
 	</para>
 	<para>
 	  The most important of the methods above is the <literal>FS</literal> method which may be used to
-	  access the <ulink url="Treex::PML/FSFormat.html"><classname>Treex::PML::FSFormat</classname></ulink> class object
+	  access the <ulink url="Treex__PML__FSFormat.html"><classname>Treex::PML::FSFormat</classname></ulink> class object
 	  associated with the given file. Similarly as in the case of
-	  <ulink url="Treex::PML/Document.html"><classname>Treex::PML::Document</classname></ulink> class, only the most importand
-	  methods of the <ulink url="Treex::PML/FSFormat.html"><classname>Treex::PML::FSFormat</classname></ulink> class are
+	  <ulink url="Treex__PML__Document.html"><classname>Treex::PML::Document</classname></ulink> class, only the most importand
+	  methods of the <ulink url="Treex__PML__FSFormat.html"><classname>Treex::PML::FSFormat</classname></ulink> class are
 	  described here.
 	</para>
 	<table>
-	  <title><ulink url="Treex::PML/FSFormat.html"><classname>Treex::PML::FSFormat</classname></ulink> class methods</title>
+	  <title><ulink url="Treex__PML__FSFormat.html"><classname>Treex::PML::FSFormat</classname></ulink> class methods</title>
 	  <tgroup cols="2">
 	    <colspec colnum="1" align="left"/>
 	    <colspec colnum="2" align="justify"/>
@@ -7904,7 +7904,7 @@ sub CreateImages {
 	      </row>
 	      <row>
 		<entry><literal>isHidden(<replaceable>node</replaceable>)</literal></entry>
-		<entry>Return true if the given <ulink url="Treex::PML/Node.html"><classname>Treex::PML::Node</classname></ulink>
+		<entry>Return true if the given <ulink url="Treex__PML__Node.html"><classname>Treex::PML::Node</classname></ulink>
 		<replaceable>node</replaceable> belongs to a hidden subtree.
 		</entry>
 	      </row>
@@ -8014,41 +8014,43 @@ sub CreateImages {
 	  <literal>hide</literal> described above
 	  are useful especially in macros of
 	  general purposes, where names of the corresponding
-	  attributes are not known in advance. However, one should
-	  keep in mind that calling these functions too often
-	  may result in considerably worse performence. 
-	  The following example which actually re-implements the
-	  <literal>make_sentence</literal> method shows usage
-	  of the <ulink url="Treex::PML/FSFormat.html"><classname>Treex::PML::FSFormat</classname></ulink> object member
-	  methods.	  
+	  attributes are not known in advance
+	</para>
+	<note>
+	  <para>
+	    In PML there is no equivalent of 
+	    <literal>sentord</literal>, <literal>value</literal> and <literal>hide</literal>.
+	    Nodes associated with a PML type implement
+	    the methods 
+	    <literal>$node->get_ordering_member_name()</literal>
+	    and
+	    <literal>$node->get_order()</literal>
+	    to get the name and value of their ordering attribute
+	    (i.e. associated with PML role #ORDER).
+	  </para>
+	</note>
+	<note>
+	<para>
+	  Calling the FSFormat methods
+	  <literal>sentord</literal>,
+	  <literal>order</literal>,
+	  <literal>value</literal>, and
+	  <literal>hide</literal>
+	  (as well as Node methods
+	  <literal>get_order</literal> and
+	  <literal>get_ordering_member_name</literal>
+	  too many times (e.g. in a sort or map operations on a set of nodes)
+	  may result in bad performence,
+	  so it is recommended to store their return values
+	  in local variables. Here is an example:
 	</para>
 	<informalexample>
 	  <programlisting format="linespecific">
-sub MakeSentence {
-  my ($top,$separator)=@_;   # two parameters
-
-  $separator = ' ' unless defined($separator);
-  my @nodes  = ();           # array to store the nodes in
-  my $ord    = FS()-&gt;sentord ||
-	       FS()-&gt;order;
+  my $ord    = FS()-&gt;sentord or FS()-&gt;order;
   my $value  = FS()-&gt;value;
-
-  my $node = $top;
-  while ($node) {
-    push @nodes, $node;      # collect all nodes in the nodes array
-    $node = $node-&gt;following($top);
-  }
-
-  # Translation of the following mighty Perl construct to English:
-  # 1. sort the collected nodes comparing their values for attribute $ord
-  # 2. get their values using a "map" which maps element $_ to $_-&gt;{$value}
-  # 3. join the values separating the fields with $separator
-  # 4. and finally return the string.
-
-  return join( $separator,
+  return join( ' ',
 	       map { $_-&gt;{$value} }
-	       sort { $a-&gt;{$ord} &lt;=&gt; $b-&gt;{$ord} } @nodes );
-}
+	       sort { $a-&gt;{$ord} &lt;=&gt; $b-&gt;{$ord} } GetDisplayedNodes() );
 	  </programlisting>
 	</informalexample>
 	<para>
@@ -8058,6 +8060,7 @@ sub MakeSentence {
 	  <literal>map</literal> function needs to compare or map
 	  nodes, the performance of the code would considerably decrease.
 	</para>
+	</note>
       </section>
     </section>
     <section id="defaultmacros">
@@ -8069,8 +8072,8 @@ sub MakeSentence {
 	Most of these pre-defined macros are just safe wrappers for 
 	<application>TrEd</application> internal function
 	calls. Pre-defined macros and object methods (namely those of
-	<literal><ulink url="Treex::PML/Node.html">Treex::PML::Node</ulink></literal>, <literal>Treex::PML::Document</literal> and
-	<ulink url="Treex::PML/FSFormat.html"><classname>Treex::PML::FSFormat</classname></ulink> should be the only access points
+	<literal><ulink url="Treex__PML__Node.html">Treex::PML::Node</ulink></literal>, <literal>Treex::PML::Document</literal> and
+	<ulink url="Treex__PML__FSFormat.html"><classname>Treex::PML::FSFormat</classname></ulink> should be the only access points
 	used by a macro to interact with <application>TrEd</application>. 
 	All other ways of creeping into <application>TrEd</application>'s
 	internals are dangerous and should be avoided.
@@ -8258,7 +8261,7 @@ sub MakeSentence {
 	      and may be used to provide a list of values
 	      to offer to the user using a list box. The hook gets the following
 	      arguments:
-	      an attribute path, the node, the <literal><ulink url="Treex::PML::Schema::Decl.html">Treex::PML::Schema::Decl</ulink></literal> object
+	      an attribute path, the node, the <literal><ulink url="Treex__PML__Schema__Decl.html">Treex::PML::Schema::Decl</ulink></literal> object
 	      corresponding to the attribute type, and
 	      a reference to the <literal>Tk::TrEdNodeEdit</literal>
 	      which is an object derived from <literal>Tk::HList</literal>.
@@ -8275,7 +8278,7 @@ sub MakeSentence {
 		for attribute values. The hook gets the following
 		arguments:
 		current value of the attribute,
-		an attribute path, the node, the <literal><ulink url="Treex::PML::Schema::Decl.html">Treex::PML::Schema::Decl</ulink></literal> object
+		an attribute path, the node, the <literal><ulink url="Treex__PML__Schema__Decl.html">Treex::PML::Schema::Decl</ulink></literal> object
 		corresponding to the attribute type, and
 		a reference to the <literal>Tk::TrEdNodeEdit</literal>
 		which is an object derived from <literal>Tk::HList</literal>.
@@ -8892,7 +8895,7 @@ sub MakeSentence {
 		<literal>Shift</literal>,
 		<literal>Alt</literal>, or
 		<literal>Meta</literal>.
-		  <replaceable>node</replaceable> is the  <ulink url="Treex::PML/Node.html">Treex::PML::Node</ulink> object
+		  <replaceable>node</replaceable> is the  <ulink url="Treex__PML__Node.html">Treex::PML::Node</ulink> object
 		  whose attribute was clicked.
 		  <replaceable>attr</replaceable> is name of the
 		  attribute which was clicked.
@@ -9164,7 +9167,7 @@ sub switch_context_hook {
       <para>
 	FS backend deals with a format called FS (feature structure). FS-format
 	was the first format supported by tred, and for a long time also the only one.
-	As a result, some of the Perl structures such as <literal><ulink url="Treex::PML/Node.html">Treex::PML::Node</ulink></literal>,
+	As a result, some of the Perl structures such as <literal><ulink url="Treex__PML__Node.html">Treex::PML::Node</ulink></literal>,
 	<literal>Treex::PML::Document</literal> used by <application>TrEd</application> as well as the underlying Perl library
 	<filename>Treex::PML.pm</filename> itself bear its name (even though they
 	are now equally used to represent data obtained from any other I/O
@@ -9502,34 +9505,34 @@ sub switch_context_hook {
 	<application>TrEd</application>.
       </para>
       <para>
-	PML schema is represented by a <ulink url="Treex::PML::Schema.html"><literal>Treex::PML::Schema</literal></ulink>
+	PML schema is represented by a <ulink url="Treex__PML__Schema.html"><literal>Treex::PML::Schema</literal></ulink>
 	object. This object can be retrieved from the current
 	<literal>Treex::PML::Document</literal> using the macro
 	  <literal>MetaData('schema')</literal>.
       </para>
       <para>
 	PML structures are represented as
-	<literal><ulink url="Treex::PML.html#Treex::PML_Struct">Treex::PML::Struct</ulink></literal> objects,
+	<literal><ulink url="Treex__PML__Struct.html">Treex::PML::Struct</ulink></literal> objects,
 	and so are PML containers, whose attributes
 	and content value become members of the
-	<literal><ulink url="Treex::PML.html#Treex::PML_Struct">Treex::PML::Struct</ulink></literal> object, the content value
+	<literal><ulink url="Treex__PML__Struct.html">Treex::PML::Struct</ulink></literal> object, the content value
 	being represented by a special member named
 	<literal>#content</literal>.  In both cases, if the role is
-	<literal>#NODE</literal>, then <literal><ulink url="Treex::PML/Node.html">Treex::PML::Node</ulink></literal>
-	object is used instead of <literal><ulink url="Treex::PML.html#Treex::PML_Struct">Treex::PML::Struct</ulink></literal>.
-	PML lists are represented as <literal><ulink url="Treex::PML.html#Treex::PML_List">Treex::PML::List</ulink></literal>
-	objects and PML alternatives as <literal><ulink url="Treex::PML.html#Treex::PML_Alt">Treex::PML::Alt</ulink></literal>
-	objects. PML sequences as <literal><ulink url="Treex::PML.html#Treex::PML_Seq">Treex::PML::Seq</ulink></literal>
+	<literal>#NODE</literal>, then <literal><ulink url="Treex__PML__Node.html">Treex::PML::Node</ulink></literal>
+	object is used instead of <literal><ulink url="Treex__PML__Struct.html">Treex::PML::Struct</ulink></literal>.
+	PML lists are represented as <literal><ulink url="Treex__PML__List.html">Treex::PML::List</ulink></literal>
+	objects and PML alternatives as <literal><ulink url="Treex__PML__Alt.html">Treex::PML::Alt</ulink></literal>
+	objects. PML sequences as <literal><ulink url="Treex__PML__Seq.html">Treex::PML::Seq</ulink></literal>
 	objects and its elements as
-	<literal><ulink url="Treex::PML.html#Treex::PML_Seq_Element">Treex::PML::Seq::Element</ulink></literal> objects.  The only
+	<literal><ulink url="Treex__PML__Seq_Element.html">Treex::PML::Seq::Element</ulink></literal> objects.  The only
 	exceptions are: a PML sequences with the role
 	<literal>#TREES</literal>, which is represented by the list of
 	the trees of the <literal>Treex::PML::Document</literal> object and a PML
 	sequence with role <literal>#CHILDNODES</literal>, which is
 	represented by the child-nodes of the node it belongs to.
 	Elements of these sequences therefore represented by by
-	<literal><ulink url="Treex::PML/Node.html">Treex::PML::Node</ulink></literal> (rather than
-	<literal><ulink url="Treex::PML.html#Treex::PML_Seq_Element">Treex::PML::Seq::Element</ulink></literal>) objects with a
+	<literal><ulink url="Treex__PML__Node.html">Treex::PML::Node</ulink></literal> (rather than
+	<literal><ulink url="Treex__PML__Seq_Element.html">Treex::PML::Seq::Element</ulink></literal>) objects with a
 	dedicated attribute <literal>#name</literal> carrying the
 	element's name.
       </para>
@@ -9566,7 +9569,7 @@ sub switch_context_hook {
 	<literal>readas="pml"</literal>, then the
 	<literal>PML</literal> backend
 	loads the corresponding PML instance
-	as a <ulink url="Treex::PML::Instance.html"><literal>Treex::PML::Instance</literal></ulink>
+	as a <ulink url="Treex__PML__Instance.html"><literal>Treex::PML::Instance</literal></ulink>
 	object and attaches this object
 	to the application data section of the in-memory
 	representation of the file.
@@ -9629,7 +9632,7 @@ sub switch_context_hook {
 	replaced with the corresponding entities in the referenced PML
 	instance. It is required that all such PML references refer to
 	resources specified in the PML schema either as
-	<literal>readas="dom"</literal> (in which case <ulink url="Treex::PML.html#Treex::PML"><classname>Treex::PML</classname></ulink>
+	<literal>readas="dom"</literal> (in which case <ulink url="Treex__PML.html"><classname>Treex::PML</classname></ulink>
 	representation of the referred data structure is created and
 	transformed back into DOM only at save) or
 	<literal>readas="pml"</literal> (in which case, after
@@ -9697,7 +9700,7 @@ sub switch_context_hook {
 	      the data format provides another way to determine the
 	      encoding. Most backends do not re-implement this
 	      function, but simply import (i.e. inherit) it from the
-	      base class <ulink url="Treex::PML::IO.html"><classname>Treex::PML::IO</classname></ulink>.
+	      base class <ulink url="Treex__PML__IO.html"><classname>Treex::PML::IO</classname></ulink>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -9711,20 +9714,20 @@ sub switch_context_hook {
 	      This function obtains two arguments: the
 	      <replaceable>$filehandle</replaceable> previously
 	      obtained by a call to backend's <function>open_backend</function>, 
-	      and an empty <ulink url="Treex::PML/Document.html"><classname>Treex::PML::Document</classname></ulink> object (i.e.
+	      and an empty <ulink url="Treex__PML__Document.html"><classname>Treex::PML::Document</classname></ulink> object (i.e.
 	      with no trees). It is supposed to parse the data format,
 	      build tree representation of the data (usually using
-	      functions such as <literal><ulink url="Treex::PML/Node.html">Treex::PML::Factory</ulink>-&gt;createNode()</literal>,
+	      functions such as <literal><ulink url="Treex__PML__Node.html">Treex::PML::Factory</ulink>-&gt;createNode()</literal>,
 	      and <literal><function>$child->paste(</function>(<replaceable>$parent</replaceable>,<replaceable>$ordering_attribute</replaceable>)</literal>
-	      and populate the <ulink url="Treex::PML/Document.html"><classname>Treex::PML::Document</classname></ulink>
+	      and populate the <ulink url="Treex__PML__Document.html"><classname>Treex::PML::Document</classname></ulink>
 	      with the resulting trees (e.g. using its
 	      <methodname>changeTrees</methodname> method).
-	      It should also setup <ulink url="Treex::PML/FSFormat.html"><classname>Treex::PML::FSFormat</classname></ulink>
+	      It should also setup <ulink url="Treex__PML__FSFormat.html"><classname>Treex::PML::FSFormat</classname></ulink>
 	      object associated with the
 	      <replaceable>$fsfile</replaceable>
 	      (<literal><replaceable>$fsfile</replaceable>-&gt;FS</literal>).
 	      Any additional information related to the file (but not representable
-	      as trees or <ulink url="Treex::PML/FSFormat.html"><classname>Treex::PML::FSFormat</classname></ulink>) may be attached to the file e.g. using 
+	      as trees or <ulink url="Treex__PML__FSFormat.html"><classname>Treex::PML::FSFormat</classname></ulink>) may be attached to the file e.g. using 
 	      <literal><replaceable>$fsfile</replaceable>-&gt;<methodname>changeMetaData(<replaceable>$key</replaceable>,<replaceable>$value</replaceable>)</methodname></literal>.
 	    </para>
 	  </listitem>
@@ -9735,7 +9738,7 @@ sub switch_context_hook {
 	    <para>
 	      This function is the opposite of
 	      <function>read</function>. By examining the
-	      <ulink url="Treex::PML/Document.html"><classname>Treex::PML::Document</classname></ulink> object
+	      <ulink url="Treex__PML__Document.html"><classname>Treex::PML::Document</classname></ulink> object
 	      <replaceable>$fsfile</replaceable>
 	      (especially its trees and meta data),
 	      it should write the corresponding representation
@@ -9755,7 +9758,7 @@ sub switch_context_hook {
 	      additional cleanup is necessary, it should be done here.
 	      Most backends do not re-implement this function, but
 	      simply import (i.e. inherit) it from the base class
-	      <ulink url="Treex::PML::IO"><classname>Treex::PML::IO</classname></ulink>.
+	      <ulink url="Treex__PML__IO"><classname>Treex::PML::IO</classname></ulink>.
 	    </para>
 	  </listitem>
 	</varlistentry>
