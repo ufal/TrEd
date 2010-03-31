@@ -8284,7 +8284,7 @@ sub CreateImages {
 		which is an object derived from <literal>Tk::HList</literal>.
 		The hook must return a non-zero defined value to indicate that the value is valid
 		or 0 to indicate that the value is invalid.
-		If the hook returns undef, the default Treex::PML::Schema-based validation
+		If the hook returns undef, the default <literal><ulink url="Treex__PML__Schema.html">Treex::PML::Schema</ulink></literal>-based validation
 		takes place.
 	      </para></entry>
 	    </row><row id="current_node_change_hook">
