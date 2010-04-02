@@ -6,10 +6,13 @@ if [ ! -f documentation/manual/tred.xml ]; then
 fi
 DEVELDIR=`dirname $0`
 
-echo "Generating documentation from tred.def"
-$DEVELDIR/pod2db.sh tredlib/tred.def > documentation/manual/tred_def.xml
+. "$DEVELDIR/config.sh"
+
 echo "Generating documentation from tred POD"
 $DEVELDIR/pod2db.sh tred > documentation/manual/tred_cmd.xml
+
+echo "Generating documentation from tred.def"
+$DEVELDIR/pod2db.sh tredlib/tred.def > documentation/manual/tred_def.xml
 
 DEVELDIR="${DEVELDIR:-$PWD}"
 pushd "$DEVELDIR" >/dev/null
@@ -25,11 +28,14 @@ cd documentation
 [ -d man ] || mkdir man
 [ -d man/man1 ] || mkdir man/man1
 [ -d man/man3 ] || mkdir man/man3
-for man in btred.1 ntred.1 Treex::PML.3 \
-           Treex::PML::Schema.3 Treex::PML::Instance.3 PML_mak.3 tred_def.3
-do
+
+for man in btred.1 ntred.1 PML_mak.3 tred_def.3; do
   sect=${man##*.}
   pod2man "pod/${man%.[13]}.pod" > "man/man$sect/$man"
+done
+
+for module in Fslib "${treex_pml[@]}"; do
+  pod2man "pod/${module}.pod" > "man/man3/${module}.3pm"
 done
 
 RUNXSLT="xsltproc --xinclude --stringparam html.stylesheet blue.css"
