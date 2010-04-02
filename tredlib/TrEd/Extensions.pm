@@ -454,13 +454,13 @@ sub _populate_extension_pane {
 	if ($r->{min_version}) {
 	  if (TrEd::Version::CMP_TRED_VERSION_AND($r->{min_version})<0) {
 	    $requires_different_tred.=' and ' if $requires_different_tred;
-	    $requires_different_tred='at least '.$r->{min_version}
+	    $requires_different_tred='at least '.$r->{min_version};
 	  }
 	}
 	if ($r->{max_version}) {
 	  if (TrEd::Version::CMP_TRED_VERSION_AND($r->{max_version})>0) {
 	    $requires_different_tred.=' and ' if $requires_different_tred;
-	    $requires_different_tred='at most '.$r->{max_version}
+	    $requires_different_tred='at most '.$r->{max_version};
 	  }
 	}
       }

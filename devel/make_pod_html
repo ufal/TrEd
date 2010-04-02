@@ -3,6 +3,9 @@
 # Usage: <path_to_tred>/devel/make_pod_html [target-html-dir [pod-dir]]
 
 dir=`dirname $0`
+
+. "$dir/config.sh"
+
 pod2xhtml="${dir}/pod_to_xhtml"
 
 target_dir="${1:-$PWD}"
@@ -18,10 +21,8 @@ pod_dir="${2:-$target_dir/pod}"
 #[ -d "$html_dir" ] || mkdir $html_dir || exit 1
 
 for f in $dir/../[bn]tred \
-         $dir/../tredlib/libs/fslib/Treex::PML.pm \
-         $dir/../tredlib/libs/pml-base/Treex::PML::Schema.pm \
-         $dir/../tredlib/libs/pml-base/Treex::PML::Instance.pm \
-         $dir/../tredlib/tred.def ; do
+         $dir/../tredlib/tred.def \
+         $dir/../tredlib/libs/fslib/Fslib.pm ; do
     n="basename ${f%.pm}"
     n=$(basename "$n")
     pod="$pod_dir/${n//./_}.pod"
@@ -29,14 +30,12 @@ for f in $dir/../[bn]tred \
     podselect "$f" > "$pod"
 done
 
-for f in $dir/../tredlib/libs/pml-base/Treex::PML::Schema/*.pm; do
-    n="basename ${f%.pm}"
-    n=$(basename "$n")
-    pod="$pod_dir/Treex::PML::Schema__${n}.pod"
+for module in "${treex_pml[@]}" ; do
+    f=$dir/../tredlib/libs/pml-base/${module//://}.pm
+    pod="$pod_dir/${module}.pod"
     podchecker "$f"
     podselect "$f" > "$pod"
 done
-
 
 {
   pushd $dir/../tredlib/contrib > /dev/null
@@ -67,7 +66,7 @@ done
 
 for pod in $pod_dir/*.pod ; do
     n=$(basename "${pod%.pod}")
-    html="$html_dir/$n.html"
+    html="$html_dir/${n//:/_}.html"
     "$pod2xhtml" --css blue.css --infile "$pod" --outfile "$html" --title "$n documentation"
 done
 
