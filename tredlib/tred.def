@@ -717,7 +717,7 @@ the node as a child node of the new parent.
 sub PasteNode {
   my ($node,$p)=@_; 
   my $ord=_node_ord($node);
-  $node->cut()->paste($p,$ord);
+  $node->cut()->paste_on($p,$ord);
   return $node;
 }
 
@@ -913,7 +913,7 @@ sub NewLBrother {
 
 Create a new child of the given parent node and recalculate the
 special FS numbering attribute values in the whole tree so that the
-new node is the first node left to the given parent. 
+new node is the first node right to the given parent.
 
 If no parent node is given, this function operates on C<$this> and
 B<resets> C<$this> to the newly created node. If a parent node is
@@ -930,7 +930,6 @@ sub NewSon {
   my $ord=_node_ord($ref);
   if (defined $ord) {
     $nd->{$ord}=$ref->{$ord}+1;
-      
     my $node=$ref->root;
     while ($node) {
       $node->{$ord}++ if ($node->{$ord}>$ref->{$ord});
