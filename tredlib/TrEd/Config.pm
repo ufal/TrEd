@@ -399,8 +399,9 @@ sub set_config {
   if ($libDir) {
     unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
   }
-  $extensionsDir=Cwd::abs_path(tilde_expand(length($confs->{extensionsdir})
-				? $confs->{extensionsdir} : '~/.tred.d/extensions'));
+  $extensionsDir=File::Spec->rel2abs(tilde_expand(length($confs->{extensionsdir})
+						  ? $confs->{extensionsdir} : '~/.tred.d/extensions'),
+				     Cwd::cwd());
   $extensionRepos = val_or_def($confs,'extensionrepos','http://ufal.mff.cuni.cz/~pajas/tred/extensions');
 
   my $def_share_path=$libDir;
