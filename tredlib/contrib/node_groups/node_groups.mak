@@ -46,6 +46,7 @@ sub draw_group {
   my $c=$tv->realcanvas;
   $c->delete('group'.$group_no);
 
+  define_stipples($c);
   my $color   = $opts->{color}   || ($opts->{colors}   ? $opts->{colors}[$group_no-1]   : $colors[$group_no-1]   );
   my $stipples = $opts->{stipples};
   my $stipple = $opts->{stipple} || ($stipples ? $stipples->[($group_no-1)%@$stipples] : stipple($c,$group_no-1));
@@ -299,7 +300,7 @@ sub draw_group {
   sub stipple {
     my $c = shift;
     my $no  =shift;
-    return $stipples[$no % @stipples] if define_stipples();
+    return $stipples[$no % @stipples] if define_stipples($c);
   }
   sub dense_stipples {
     my $grp=shift;
