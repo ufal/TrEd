@@ -234,6 +234,49 @@ sub _requires {
   }
 }
 
+sub _inst_file {
+  my($name) = @_;
+  my($dir,@packpath);
+  @packpath = split /::/, $name;
+  $packpath[-1] .= ".pm";
+  foreach $dir (@INC) {
+    my $pmfile = File::Spec->catfile($dir,@packpath);
+    if (-f $pmfile){
+      return $pmfile;
+    }
+  }
+  return;
+}
+sub _inst_version {
+  my($module) = @_;
+  require CPAN;
+  require ExtUtils::MM;
+  my $parsefile = _inst_file($module) or return;
+  local($^W) = 0;
+  my $have;
+  $have = MM->parse_version($parsefile) || "undef";
+  $have =~ s/^ | $//g;
+  $have = CPAN::Version->readable($have);
+  $have =~ s/\s*//g;
+  return $have;
+}
+
+sub get_module_version {
+  my ($name)=@_;
+  return _inst_version($name);
+}
+sub compare_module_versions {
+  my ($v1,$v2)=@_;
+  return undef unless eval { require CPAN; 1 };
+  return CPAN::Version->vcmp($v1,$v2);
+}
+
+sub _short_name {
+  my ($pkg_name)=@_;
+  my $short_name = (blessed($pkg_name) and $pkg_name->isa('URI')) ?
+    do { my $n=$pkg_name; $n=~s{.*/}{}; $n } : $pkg_name;
+}
+
 sub _populate_extension_pane {
   my ($tred,$d,$opts)=@_;
   my $list;
@@ -244,6 +287,7 @@ sub _populate_extension_pane {
     for my $repo (map { Treex::PML::IO::make_URI($_) } @{$opts->{repositories}}) {
       push @list, map { [$repo,$_,URI->new($_)->abs($repo.'/')] } 
 	grep { $opts->{only_upgrades} ? exists($opts->{installed}{$_}) : 1 }
+	map { /^!(.*)/ ? $1 : $_ }
 	grep { length and defined }
 	@{getExtensionList($repo)};
     }
@@ -370,9 +414,98 @@ sub _populate_extension_pane {
   $text->configure(-state=>'normal');
   $text->delete(qw(0.0 end));
   my $generic_icon;
+
+  my %uninstallable;
   for my $name (@$list) {
-    my $short_name = (blessed($name) and $name->isa('URI')) ?
-      do { my $n=$name; $n=~s{.*/}{}; $n } : $name;
+    my $data = $data{$name};
+    next unless ((blessed($name) and $name->isa('URI')));
+    my @req_tred = $data && $data->{require} && $data->{require}->values('tred');
+    my $requires_different_tred='';
+    for my $r (@req_tred) {
+      if ($r->{min_version}) {
+	if (TrEd::Version::CMP_TRED_VERSION_AND($r->{min_version})<0) {
+	  $requires_different_tred.=' and ' if $requires_different_tred;
+	  $requires_different_tred='at least '.$r->{min_version};
+	}
+      }
+      if ($r->{max_version}) {
+	if (TrEd::Version::CMP_TRED_VERSION_AND($r->{max_version})>0) {
+	  $requires_different_tred.=' and ' if $requires_different_tred;
+	  $requires_different_tred='at most '.$r->{max_version};
+	}
+      }
+    }
+    if (length $requires_different_tred) {
+      $requires_different_tred = 'Requires TrEd '.$requires_different_tred.' (this is '.TrEd::Version::TRED_VERSION().')'
+    }
+    my @req_module = $data && $data->{require} && $data->{require}->values('perl_module');
+    my $requires_modules='';
+    for my $r (@req_module) {
+      next unless ($r->{name} and (lc($r->{name}) ne 'perl'));
+      my $req = '';
+      my $available_version = eval { get_module_version($r->{name}) };
+      next if $@;
+      if (defined $available_version) {
+	if ($r->{min_version}) {
+	  if (compare_module_versions($available_version,$r->{min_version})<0) {
+	    $req='at least '.$r->{min_version};
+	  }
+	}
+	if ($r->{max_version}) {
+	  if (compare_module_versions($available_version,$r->{max_version})>0) {
+	    $req.=' and ' if $req;
+	    $req='at most '.$r->{max_version};
+	  }
+	}
+      }
+      if (length $req or not(defined($available_version))) {
+	$requires_modules .= "\n\t".$r->{name}." ".$req." ".
+	  (defined($available_version) ? "(installed version: $available_version)" : '(not installed)');
+      }
+    }
+    if (length $requires_modules) {
+      $requires_modules = 'Requires Perl Modules:'.$requires_modules;
+    }
+    my $requires_perl='';
+    for my $r (grep { lc($_->{name}) eq 'perl' } @req_module) {
+      my $req='';
+      if ($r->{min_version}) {
+	if ($]<$r->{min_version}) {
+	  $req='at least '.$r->{min_version};
+	}
+      }
+      if ($r->{max_version}) {
+	if ($]>$r->{max_version}) {
+	  $req.=' and ' if $req;
+	  $req='at most '.$r->{max_version};
+	}
+      }
+      if (length $req) {
+	$requires_perl = 'Requires Perl '.$req." (this is $])";
+      }
+    }
+    my $requires = join("\n",grep { defined($_) and length($_) } ($requires_different_tred,$requires_perl,$requires_modules));
+    if (length $requires) {
+      $uninstallable{$name}=$requires;
+    }
+  }
+  for my $name (@$list) {
+    next if $uninstallable{$name};
+    my @queue = @{$requires{$name}};
+    my %seen; @seen{@queue}=();
+    while (@queue) {
+      my $r = shift @queue;
+      if ($uninstallable{$r}) {
+	$uninstallable{$name}.="\n" if $uninstallable{$name};
+	$uninstallable{$name}.='Depends on uninstallable '._short_name($r);
+      }
+      my @more = grep !exists($seen{$_}), @{$requires{$r}};
+      @seen{@more}=();
+      push @queue,@more;
+    }
+  }
+  for my $name (@$list) {
+    my $short_name = _short_name($name);
     my $data = $data{$name};
     my $start = $text->index('end');
     my $bf = $text->Frame(-background=>'white');
@@ -448,24 +581,8 @@ sub _populate_extension_pane {
     $embeded{$name}=[$bf,$image ? $image : ()];
     $enable{$name}=1 if $opts->{only_upgrades};
     if ((blessed($name) and $name->isa('URI'))) {
-      my @req_tred = $data && $data->{require} && $data->{require}->values('tred');
-      my $requires_different_tred='';
-      for my $r (@req_tred) {
-	if ($r->{min_version}) {
-	  if (TrEd::Version::CMP_TRED_VERSION_AND($r->{min_version})<0) {
-	    $requires_different_tred.=' and ' if $requires_different_tred;
-	    $requires_different_tred='at least '.$r->{min_version};
-	  }
-	}
-	if ($r->{max_version}) {
-	  if (TrEd::Version::CMP_TRED_VERSION_AND($r->{max_version})>0) {
-	    $requires_different_tred.=' and ' if $requires_different_tred;
-	    $requires_different_tred='at most '.$r->{max_version};
-	  }
-	}
-      }
-      if (length $requires_different_tred) {
-	$bf->Label(-text=>'Requires TrEd '.$requires_different_tred.' (this is '.TrEd::Version::TRED_VERSION().')')->pack(-fill=>'x');
+      if ($uninstallable{$name}) {
+	$bf->Label(-text=>$uninstallable{$name}, -anchor=>'nw', -justify=>'left')->pack(-fill=>'x');
       } else {
 	$bf->Checkbutton(-text=> exists($opts->{installed}{$short_name})
 			   ? 'Upgrade' : 'Install',
