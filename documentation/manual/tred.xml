@@ -10070,8 +10070,8 @@ contrib/sample_extension/sample_macros2.mak
       <itemizedlist>
 	<listitem>
 	  <para>Check that there is a valid <literal>pacakge.xml</literal> file
-	  (validation requires the script <literal>validate_pml_stream</literal>
-	  from the <ulink url="http://ufal.mff.cuni.cz/jazz/PML">PML Project</ulink>).
+	  (validation requires the script <literal>pml_validate</literal>
+	  from the <ulink url="http://ufal.mff.cuni.cz/jazz/PML">PML Toolkit</ulink>).
 	  </para>
 	  <para>compress the the content of the extension directory into a ZIP archive</para>
 	  <para>check if a similarly named ZIP file is already contained in the repository:
