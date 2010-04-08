@@ -278,10 +278,7 @@ $Treex::PML::resourcePath=join($Treex::PML::resourcePathSplit,
 			  map { split($Treex::PML::resourcePathSplit,$_,-1) }
 			    @resource_paths) if @resource_paths;
 
-require Fslib;
-#require TrEd::Factory;
-#TrEd::Factory->make_default();
-
+# require Fslib; # compatibility
 
 _msg("Resource path: $Treex::PML::resourcePath\n") unless $quiet;
 
