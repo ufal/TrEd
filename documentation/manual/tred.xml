@@ -9211,9 +9211,10 @@ sub switch_context_hook {
       <para>
 	FS backend deals with a format called FS (feature structure). FS-format
 	was the first format supported by tred, and for a long time also the only one.
-	As a result, some of the Perl structures such as <literal><ulink url="Treex__PML__Node.html">Treex::PML::Node</ulink></literal>,
-	<literal>Treex::PML::Document</literal> used by <application>TrEd</application> as well as the underlying Perl library
-	<filename>Treex::PML.pm</filename> itself bear its name (even though they
+	As a result, some methods of the Perl classes 
+	used by <application>TrEd</application> and defined in the the underlying Perl library
+	<literal><ulink url="Treex__PML__Document.html">Treex::PML</ulink></literal>
+	still bear the name of the format (even though they
 	are now equally used to represent data obtained from any other I/O
 	backend).
       </para>
