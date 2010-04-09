@@ -430,7 +430,7 @@ sub get_pkg_file {
   for ($dir,$s) {
     s/\\/\\\\/g;
     s/"/\\"/g;
-    s/$/\\$/g;
+    s/\$/\\$/g;
   }
   $s=`ls "$dir/$s"[0-9]*.tar.gz |tail -1`;
   chomp $s;
