@@ -335,7 +335,7 @@ if ($FETCH_FROM_CPAN) {
 check_tools();
 if ($BASE_DIR_FLAG eq 'INSTALL_BASE') {
   unless (eval 'use ExtUtils::MakeMaker 6.31; 1') {
-    if (glob( 'ExtUtils-MakeMaker-*.tar.gz' )) {
+    if (get_pkg_file( 'ExtUtils-MakeMaker-' )) {
       warn "The flag --install-base requires ExtUtils::MakeMaker >= 6.31, which is not available\n".
 	"Prepending ExtUtils-MakeMaker to the list of installed Perl modules!";
       @PERL_MODULES = ('ExtUtils-MakeMaker-', grep { $_ ne 'ExtUtils-MakeMaker-' } @PERL_MODULES);
