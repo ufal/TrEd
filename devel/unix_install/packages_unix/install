@@ -2,6 +2,7 @@
 
 use File::Spec;
 
+sub package_dir {};
 sub check_tools {};
 sub check_prereq {};
 sub c_modules {};
@@ -18,6 +19,7 @@ sub module_build_input {};
 sub require_in_path {};
 sub ignore_module_build_fail {};
 sub version_from {};
+sub on_fetch_from_CPAN {};
 
 sub help { print <<EOF; }
 Usage: $0 [options] [[-b] --prefix=<prefix>]
@@ -64,6 +66,7 @@ $DO_MAKE_TEST=1;
 $NO_VERSION=0;
 $PRINT_ENV=undef;
 $ONLY_CHECK_UTILS=0;
+$FETCH_FROM_CPAN=0;
 
 if (! -f './install.cfg') {
   my $dir = $0; $dir =~ s{/[^/]*$}{};
@@ -149,39 +152,8 @@ while (@ARGV) {
     $QUIET=1;
     shift @ARGV;
   } elsif ($ARGV[0]=~/^-C$|^--CPAN$/) {
-    require CPAN;
-    import CPAN;
-    my @modules = perl_modules();
-    if ($BASE_DIR_FLAG eq 'INSTALL_BASE') {
-      unless (eval 'use ExtUtils::MakeMaker 6.31; 1') {
-	warn "The flag --install-base requires ExtUtils::MakeMaker >= 6.31, which is not available\n".
-	  "Prepending ExtUtils-MakeMaker to the list of fetched Perl modules!\n";
-	@modules = 'ExtUtils-MakeMaker-', grep { $_ ne 'ExtUtils-MakeMaker-' } @modules
-      }
-    }
-    foreach my $s (@modules) {
-      $s=~s/-$//;
-      $s=~s/-/::/g;
-      print "=====================================\n";
-      print "Looking up $s\n";
-      my $cpan = CPAN::Shell->expandany($s);
-      my $wget = $CPAN::Config->{wget};
-      my $file = $cpan->cpan_file if ($cpan);
-      my $base = $file; $base=~s{.*/}{};
-      if (-f $base) {
-	print "File $base already exists, skipping.\n";
-	next;
-      }
-      foreach (@{$CPAN::Config->{urllist}}) {
-	if ($file ne '') {
-	  my $url = $_."authors/id/".$file;
-	  print "Fetching URL '$url'\n";
-	  system($wget." '$url'")==0 && last;
-	  print "failed: exit status $?\n";
-	}
-      }
-    }
-    exit 1;
+    $FETCH_FROM_CPAN=1;
+    exit 0;
   } elsif ($LISTED and ($ARGV[0]!~/^-/)) {
     push @listed, shift(@ARGV);
   } else {
@@ -241,6 +213,7 @@ my @ERROR_C;
 my @INSTALLED_P;
 my @SKIPPED_P;
 my @ERROR_P;
+my $PACKAGE_DIR=package_dir();
 
 if ( defined($PERL_PREFIX) and ! -d "$PERL_PREFIX" ) {
   die "Prefix $PERL_PREFIX is not a directory\n";
@@ -346,6 +319,12 @@ EOF
 
 $ENV{LANG}='C';
 
+if ($FETCH_FROM_CPAN) {
+  fetch_from_CPAN();
+  on_fetch_from_CPAN();
+  exit;
+}
+
 check_tools();
 if ($BASE_DIR_FLAG eq 'INSTALL_BASE') {
   unless (eval 'use ExtUtils::MakeMaker 6.31; 1') {
@@ -386,6 +365,46 @@ if ($BASE_DIR_FLAG eq 'INSTALL_BASE') {
 exit 0 if $ONLY_CHECK_UTILS;
 
 
+sub fetch_from_CPAN {
+    require CPAN;
+    import CPAN;
+    my @modules = perl_modules();
+    if ($BASE_DIR_FLAG eq 'INSTALL_BASE') {
+      unless (eval 'use ExtUtils::MakeMaker 6.31; 1') {
+	warn "The flag --install-base requires ExtUtils::MakeMaker >= 6.31, which is not available\n".
+	  "Prepending ExtUtils-MakeMaker to the list of fetched Perl modules!\n";
+	@modules = 'ExtUtils-MakeMaker-', grep { $_ ne 'ExtUtils-MakeMaker-' } @modules
+      }
+    }
+    if ($PACKAGE_DIR) {
+      unless (-d $PACKAGE_DIR) {
+	mkdir $PACKAGE_DIR || die "Cannot create target directory '$PACKAGE_DIR' for downloaded packages: $!";
+      }
+      chdir $PACKAGE_DIR;
+    }
+    foreach my $s (@modules) {
+      $s=~s/-$//;
+      $s=~s/-/::/g;
+      print "=====================================\n";
+      print "Looking up $s\n";
+      my $cpan = CPAN::Shell->expandany($s);
+      my $wget = $CPAN::Config->{wget};
+      my $file = $cpan->cpan_file if ($cpan);
+      my $base = $file; $base=~s{.*/}{};
+      if (-f $base) {
+	print "File $base already exists, skipping.\n";
+	next;
+      }
+      foreach (@{$CPAN::Config->{urllist}}) {
+	if ($file ne '') {
+	  my $url = $_."authors/id/".$file;
+	  print "Fetching URL '$url'\n";
+	  system($wget." '$url'")==0 && last;
+	  print "failed: exit status $?\n";
+	}
+      }
+    }
+}
 
 sub fail {
   my ($message)=@_;
@@ -407,7 +426,13 @@ sub get_c_module_version {
 
 sub get_pkg_file {
   my $s=$_[0];
-  $s=`ls "$s"[0-9]*.tar.gz |tail -1`;
+  my $dir = $PACKAGE_DIR || '.';
+  for ($dir,$s) {
+    s/\\/\\\\/g;
+    s/"/\\"/g;
+    s/$/\\$/g;
+  }
+  $s=`ls "$dir/$s"[0-9]*.tar.gz |tail -1`;
   chomp $s;
   return $s;
 }
