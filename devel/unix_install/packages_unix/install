@@ -1,5 +1,8 @@
 #!/usr/bin/env perl
 
+use strict;
+use warnings;
+
 use File::Spec;
 
 sub package_dir {};
@@ -56,17 +59,19 @@ Alternatively, you can specify different prefixes for Perl modules and C librari
 
 EOF
 
-$QUIET=0;
-$LISTED=0;
-$BASE_DIR_FLAG="PREFIX";  # or INSTALL_BASE if option -b was used
-$FORCE=0;
-$PERL_PREFIX=undef;
-$C_PREFIX="/usr";
-$DO_MAKE_TEST=1;
-$NO_VERSION=0;
-$PRINT_ENV=undef;
-$ONLY_CHECK_UTILS=0;
-$FETCH_FROM_CPAN=0;
+our $QUIET=0;
+our $LISTED=0;
+our $BASE_DIR_FLAG="PREFIX";  # or INSTALL_BASE if option -b was used
+our $FORCE=0;
+our $PERL_PREFIX=undef;
+our $C_PREFIX="/usr";
+our $DO_MAKE_TEST=1;
+our $NO_VERSION=0;
+our $PRINT_ENV=undef;
+our $ONLY_CHECK_UTILS=0;
+our $FETCH_FROM_CPAN=0;
+our $BUILD_TMP;
+our $TEST_ONLY=0;
 
 if (! -f './install.cfg') {
   my $dir = $0; $dir =~ s{/[^/]*$}{};
@@ -74,7 +79,10 @@ if (! -f './install.cfg') {
     (($dir ne "" and $dir ne ".") ? "Hint: Try 'cd $dir' first.\n" : '');
 }
 
-unless (eval { require './install.cfg' }) {
+unless (eval {
+  no warnings qw(redefine);
+  require './install.cfg'
+}) {
   die "Failed to load install configuration file ./install.cfg\n$@";
 }
 
@@ -88,7 +96,7 @@ while (@ARGV) {
     exit 0;
   } elsif ($ARGV[0]=~/^-t$|^--test$/) {
     shift @ARGV;
-    $test=1;
+    $TEST_ONLY=1;
   } elsif ($ARGV[0]=~/^-l$|^--list$/) {
     print "C libraries:\n";
     foreach my $s (c_modules()) {
@@ -153,7 +161,7 @@ while (@ARGV) {
     shift @ARGV;
   } elsif ($ARGV[0]=~/^-C$|^--CPAN$/) {
     $FETCH_FROM_CPAN=1;
-    exit 0;
+    shift @ARGV;
   } elsif ($LISTED and ($ARGV[0]!~/^-/)) {
     push @listed, shift(@ARGV);
   } else {
@@ -177,7 +185,7 @@ for ($C_PREFIX, $PERL_PREFIX, $BUILD_TMP) {
 
 $BUILD_TMP ||= "/tmp/$ENV{USER}";
 
-if ($PERL_PREFIX=~/\s|['"\$]/ or $C_PREFIX=~/\s|['"\$]/) {
+if ((defined($PERL_PREFIX) and $PERL_PREFIX=~/\s|['"\$]/) or $C_PREFIX=~/\s|['"\$]/) {
   my $err = "Please avoid white-space and special characters in --prefix,\n--c-prefix, or --perl-prefix.\n".
     "Some of the installed modules may not be able to handle such prefix properly!\n";
   if ($FORCE) {
@@ -382,26 +390,33 @@ sub fetch_from_CPAN {
       }
       chdir $PACKAGE_DIR;
     }
-    foreach my $s (@modules) {
-      $s=~s/-$//;
-      $s=~s/-/::/g;
+    foreach my $module (@modules) {
+      my $s = $module;
+      if (exists $VERSION_FROM{$s}) {
+	$s=$VERSION_FROM{$s} ;
+      } else {
+	$s=~s/-$//;
+	$s=~s/-/::/g;
+      }
       print "=====================================\n";
       print "Looking up $s\n";
       my $cpan = CPAN::Shell->expandany($s);
       my $wget = $CPAN::Config->{wget};
       my $file = $cpan->cpan_file if ($cpan);
-      my $base = $file; $base=~s{.*/}{};
-      if (-f $base) {
-	print "File $base already exists, skipping.\n";
-	next;
-      }
-      foreach (@{$CPAN::Config->{urllist}}) {
-	if ($file ne '') {
+      if (defined($file) and length($file)) {
+	my $base = $file; $base=~s{.*/}{};
+	if (-f $base) {
+	  print "File $base already exists, skipping.\n";
+	  next;
+	}
+	foreach (@{$CPAN::Config->{urllist}}) {
 	  my $url = $_."authors/id/".$file;
 	  print "Fetching URL '$url'\n";
 	  system($wget." '$url'")==0 && last;
 	  print "failed: exit status $?\n";
 	}
+      } else {
+	warn "WARNING: Didn't find module $s on CPAN!";
       }
     }
 }
@@ -763,7 +778,7 @@ foreach my $s (@C_MODULES) {
   }
   print "will install $file\n";
   $installed_version{$s}=[1,$version];
-  install_c_module($file,$s) unless $test;
+  install_c_module($file,$s) unless $TEST_ONLY;
 }
 
 foreach my $s (@PERL_MODULES) {
@@ -789,7 +804,7 @@ foreach my $s (@PERL_MODULES) {
   }
   print "will install $file\n";
   $installed_version{$s}=[1,$version];
-  install_perl_module($file,$s) unless $test;
+  install_perl_module($file,$s) unless $TEST_ONLY;
 }
 
 if ($do_install and !$FORCE) {
@@ -873,9 +888,8 @@ if (!$QUIET) {
     $msg2 = "PERL5LIB for installed Perl modules"
   }
   if ($msg1 or $msg2) {
-    print wrap(
-      "------------------------------------------------------------\n"
-	."NOTE: If you chose to install to non-standard paths, make sure to set your"
+    print "------------------------------------------------------------\n";
+    print wrap("NOTE: If you chose to install to non-standard paths, make sure to set your"
 	  ." environment variables accordingly ("
 	    .join(" and ", grep { defined } ($msg1,$msg2))
 	      ."), e.g.:\n")
@@ -884,16 +898,16 @@ if (!$QUIET) {
     print
       "\n### Setup for C-shell (put in your ~/.cshrc)\n";
     print_env('tcsh');
-    print "\n"
+    print "\n";
+    print "------------------------------------------------------------\n";
   }
-  print "------------------------------------------------------------\n" if $msg ne "";
   print <<"EOF";
 ============================================================
 
 EOF
 }
 
-if ($test) {
+if ($TEST_ONLY) {
   print "THIS WAS ONLY A DRY-RUN.\n";
   print "NO FILES WERE ACTUALLY INSTALLED.\n\n";
 }
