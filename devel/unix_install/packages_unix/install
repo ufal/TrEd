@@ -326,12 +326,6 @@ EOF
 
 $ENV{LANG}='C';
 
-if ($FETCH_FROM_CPAN) {
-  fetch_from_CPAN();
-  on_fetch_from_CPAN();
-  exit;
-}
-
 check_tools();
 if ($BASE_DIR_FLAG eq 'INSTALL_BASE') {
   unless (eval 'use ExtUtils::MakeMaker 6.31; 1') {
@@ -344,6 +338,13 @@ if ($BASE_DIR_FLAG eq 'INSTALL_BASE') {
     }
   }
 }
+
+if ($FETCH_FROM_CPAN) {
+  fetch_from_CPAN();
+  on_fetch_from_CPAN();
+  exit;
+}
+
 
 {
   my @paths = split /:/,$ENV{PATH};
@@ -375,14 +376,15 @@ exit 0 if $ONLY_CHECK_UTILS;
 sub fetch_from_CPAN {
     require CPAN;
     import CPAN;
-    my @modules = perl_modules();
-    if ($BASE_DIR_FLAG eq 'INSTALL_BASE') {
-      unless (eval 'use ExtUtils::MakeMaker 6.31; 1') {
-	warn "The flag --install-base requires ExtUtils::MakeMaker >= 6.31, which is not available\n".
-	  "Prepending ExtUtils-MakeMaker to the list of fetched Perl modules!\n";
-	@modules = 'ExtUtils-MakeMaker-', grep { $_ ne 'ExtUtils-MakeMaker-' } @modules
-      }
-    }
+    my @modules = @PERL_MODULES;
+    # my @modules = perl_modules();
+    # if ($BASE_DIR_FLAG eq 'INSTALL_BASE') {
+    #   unless (eval 'use ExtUtils::MakeMaker 6.31; 1') {
+    # 	warn "The flag --install-base requires ExtUtils::MakeMaker >= 6.31, which is not available\n".
+    # 	  "Prepending ExtUtils-MakeMaker to the list of fetched Perl modules!\n";
+    # 	@modules = 'ExtUtils-MakeMaker-', grep { $_ ne 'ExtUtils-MakeMaker-' } @modules
+    #   }
+    # }
     if ($PACKAGE_DIR) {
       unless (-d $PACKAGE_DIR) {
 	mkdir $PACKAGE_DIR || die "Cannot create target directory '$PACKAGE_DIR' for downloaded packages: $!";
