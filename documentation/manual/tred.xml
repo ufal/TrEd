@@ -1542,8 +1542,8 @@ Tk: 804.028
 	annotation mode. Any macro can be invoked by selecting the corresponding item.
       </para>
       </section>
-      <section>
-      <title><guimenu>User-defined</guimenu></title>
+      <section id="usercommands">
+      <title><guimenu>All Modes</guimenu></title>
       <para>
 	This menu gathers
 	all available <link linkend="macros">macros</link>,
@@ -2698,73 +2698,21 @@ Tk: 804.028
 	  <guimenuitem>Edit Node Attributes...</guimenuitem></menuchoice> command.
     </para>
     <para>
-      To edit the tree structure with keyboard only, use the shortcuts
-      bound to the <link linkend="usercommands">User-defined menu
-      commands</link>. Most important of those are:
+      Note that certain annotation modes define shortcuts
+      which can be used to edit the tree structure with keyboard only,
+      see <link linkend="current-context-menu">
+      <menuchoice>
+	<guimenu>Macros</guimenu>
+	<guisubmenu>Current Mode</guisubmenu>
+      </menuchoice>
+      </link> and
+      <link linkend="usercommands">
+      <menuchoice>
+	<guimenu>Macros</guimenu>
+	<guisubmenu>All Modes</guisubmenu>
+	<guimenuitem>TredMacro</guimenuitem>
+      </menuchoice></link>.
       </para>
-      <variablelist>
-	<varlistentry>
-	<term><keycombo action="simul">
-	    <keycap>Ctrl</keycap>
-	    <keycap>Insert</keycap>
-	    </keycombo> (<guimenuitem>Cut Subtree</guimenuitem>)</term>
-	  <listitem>
-	    <para>      
-	      Cuts the whole subtree of the active node and stores it in an
-	      iternal clipboard. It may be then pasted as a subtree of any
-	      of the remaining nodes with the <guimenuitem>Paste Subtree</guimenuitem>
-	      command.
-	    </para>    
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term>
-	    <keycombo action="simul">
-	      <keycap>Shift</keycap>
-	      <keycap>Insert</keycap>
-	    </keycombo> (<guimenuitem>Paste Subtree</guimenuitem>)</term>
-	  <listitem>
-	    <para>
-	    Pastes the tree saved in an internal clipboard during the
-	    last call of the <guimenuitem>Cut Subtree</guimenuitem>
-	    command as a subtree of the active node.
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><keycombo action="simul">
-	      <keycap>Alt</keycap>
-	      <keycap>G</keycap></keycombo> (<guimenuitem>Go to...</guimenuitem>)</term>
-	  <listitem>
-	    <para>Promts user to enter an ordinal number of a tree and displays
-	      the tree.</para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><keycap>,</keycap> <quote>comma</quote> (<menuchoice>
-	      <guimenu>Tree</guimenu>
-	      <guimenuitem>Previous Tree</guimenuitem>
-	    </menuchoice>)</term>
-	  <listitem>
-	    <para>Displayes the previous tree in the current file.
-	      Note that this shorcuts operates on the focused
-	      view only, even if button <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject><textobject><phrase>lock</phrase></textobject></inlinemediaobject> is pressed and all views are tied.
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><keycap>.</keycap> <quote>dot</quote> (<menuchoice>
-	      <guimenu>Tree</guimenu>
-	      <guimenuitem>Next Tree</guimenuitem>
-	    </menuchoice>)</term>
-	  <listitem>
-	    <para>Displayes the next tree in the current file.
-	      Note that this shorcuts operates on the focused
-	      view only, even if button <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject><textobject><phrase>lock</phrase></textobject></inlinemediaobject> is pressed and all views are tied.
-	    </para>
-	  </listitem>
-	</varlistentry>
-      </variablelist>
     </section>
   </section>
   <section id="editnode">
@@ -3117,7 +3065,7 @@ Tk: 804.028
       <firstterm>vertical</firstterm>. Switching between
       these modes can be achieved
       either by
-      <link linkend="view-display-mode">
+      <link linkend="orientation">
       <menuchoice>
 	<guimenu>View</guimenu>
 	<guisubmenu>Orientation</guisubmenu>
