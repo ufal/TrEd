@@ -1530,6 +1530,21 @@ sub openSecondaryFiles {
   return $return;
 }
 
+sub resumeFile {
+  my ($grp,$fsfile)=@_;
+  my $f = $fsfile->filename;
+  $grp->{FSFile} = $fsfile;
+  $grp->{preloaded}->{$f}=$fsfile if ($fsfile and exists($grp->{preloaded}));
+  my $encoding=$fsfile->encoding;
+  if (!$term_encoding and $encoding ne "") {
+    _set_encoding(\*STDERR,$encoding,"STDERR");
+    _set_encoding(\*STDOUT,$encoding,"STDOUT");
+  }
+  $grp->{treeNo}=0;
+  $grp->{root}=$fsfile->tree(0);
+  $grp->{currentNode}=$grp->{root};
+}
+
 sub openFile {
   my ($grp,$f,%opts) = @_;
   if (doEvalHook($grp,"open_file_hook",$f,{%opts}) eq 'stop') {
@@ -1543,7 +1558,7 @@ sub openFile {
 	  trxml => 'tree XML format',
 	  any => 'any non-specific format (csts?), using CstsToFs');
 
-  my ($f,$goto) = parseFileSuffix($f);
+  ($f,$goto) = parseFileSuffix($f);
   my $return = 1;
   unless ($grp->{FSFile} and $grp->{FSFile}->filename eq $f) {
     closeFile($grp);
@@ -1585,7 +1600,7 @@ sub openFile {
       $return = 0;
     }
   }
-  $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
+  $grp->{root}=$grp->{FSFile}->tree(0);
   unless (!$grp->{FSFile} || defined($grp->{currentNode})) {
     $grp->{currentNode}=$grp->{root};
   }
