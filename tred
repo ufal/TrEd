@@ -12152,7 +12152,7 @@ sub prepare_undo {
   } elsif ($what == UNDO_TREE_ORDER) {
     $snapshot = [@{$fsfile->treeList}];
   } elsif ($what == UNDO_DISPLAYED_TREES) {
-    my $n = $win->{Nodes};
+    my $n = $win->{Nodes} || [];
     my %n; @n{@$n}=();
     # the following should be a bit faster than uniq map $_->root, @$n
     $data = [uniq map { my $p=$_->parent; $p && exists($n{$p}) ? () : ($p ? $p->root : $_) }  @$n ];
