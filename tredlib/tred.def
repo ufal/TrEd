@@ -2377,7 +2377,7 @@ sub ToggleHiding {
 
 =cut
 
-=item C<<<Bind( macro => bind-options,...)>>>
+=item C<<< Bind( macro => bind-options,...) >>>
 
 This macro can be used to dynamically create keyboard bindings and
 menu items for user-defined macros in TrEd. The arguments consist of
