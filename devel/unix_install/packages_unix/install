@@ -213,6 +213,8 @@ my %MODULE_BUILD_INPUT = module_build_input();
 my %IGNORE_MODULE_BUILD_FAIL = ignore_module_build_fail();
 my %CHECK_PREREQ = check_prereq();
 my %VERSION_FROM = version_from();
+my %installed_version;
+my %force_install = force_build();
 
 my @INSTALLED_C;
 my @SKIPPED_C;
@@ -288,48 +290,17 @@ if ($PRINT_ENV) {
   print "Using prefix $C_PREFIX for C libraries\n";
 }
 
-sub print_env {
-  my ($shell)=@_;
-  if (defined($PERL_PREFIX)) {
-    my $libs = join ':',@perllibpaths;
-    if ($shell eq 'bash') {
-      print <<"EOF";
-export PERL5LIB="$libs\${PERL5LIB:+:\$PERL5LIB}"
-EOF
-    } elsif ($shell eq 'tcsh') {
-      print <<"EOF";
-if (\$?PERL5LIB) then
-  setenv PERL5LIB "$libs:\${PERL5LIB}"
-else
-  setenv PERL5LIB "$libs"
-endif
-EOF
-    }
-  }
-  if (@C_MODULES and $C_PREFIX !~ m{^(?:/usr|/usr/local|/)$}) {
-    if ($shell eq 'bash') {
-      print <<"EOF"
-export LD_LIBRARY_PATH="$C_PREFIX/lib:\${LD_LIBRARY_PATH}"
-EOF
-    } elsif ($shell eq 'tcsh') {
-      print <<"EOF"
-if (\$?LD_LIBRARY_PATH) then
-  setenv LD_LIBRARY_PATH "$C_PREFIX/lib:\${LD_LIBRARY_PATH}"
-else
-  setenv LD_LIBRARY_PATH "$C_PREFIX/lib:"
-endif
-EOF
-    }
-  }
-}
-
 
 $ENV{LANG}='C';
 
 check_tools();
 if ($BASE_DIR_FLAG eq 'INSTALL_BASE') {
   unless (eval 'use ExtUtils::MakeMaker 6.31; 1') {
-    if (get_pkg_file( 'ExtUtils-MakeMaker-' )) {
+    if ($FETCH_FROM_CPAN) {
+      warn "The flag --install-base requires ExtUtils::MakeMaker >= 6.31, which is not available\n".
+	"Prepending ExtUtils-MakeMaker to the list of fetched Perl modules!\n";
+      @PERL_MODULES = ('ExtUtils-MakeMaker-', grep { $_ ne 'ExtUtils-MakeMaker-' } @PERL_MODULES);
+    } elsif (get_pkg_file( 'ExtUtils-MakeMaker-' )) {
       warn "The flag --install-base requires ExtUtils::MakeMaker >= 6.31, which is not available\n".
 	"Prepending ExtUtils-MakeMaker to the list of installed Perl modules!";
       @PERL_MODULES = ('ExtUtils-MakeMaker-', grep { $_ ne 'ExtUtils-MakeMaker-' } @PERL_MODULES);
@@ -371,6 +342,190 @@ if ($FETCH_FROM_CPAN) {
 }
 
 exit 0 if $ONLY_CHECK_UTILS;
+
+#======================================================================
+
+print "Running pre-install routine...\n";
+pre_install();
+print "Done.\n";
+
+my ($file,$ver,$version);
+my $do_install=1;
+my @to_install;
+my %will_install;
+
+foreach my $s (@C_MODULES) {
+
+  my $short_name = $s; $short_name=~s/-\s*$//;
+  print "Checking $short_name: ";
+  $file=get_pkg_file($s);
+
+  $ver=get_file_version($s,$file);
+  print "$ver available, ";
+  $version=get_c_module_version($s);
+  my $nice_version = $version || 'none';
+  print "$nice_version installed => ";
+  if (compare_c_versions($ver,$version)<=0) {
+    if ($NO_VERSION or check_force_install($s)) {
+      print "Forced installation of older or same version!\n";
+    } else {
+      print "No need to install\n";
+      push @SKIPPED_C, $file;
+      $installed_version{$s}=[0,$version];
+      next;
+    }
+  }
+  print "will install $file\n";
+  $installed_version{$s}=[1,$version];
+  install_c_module($file,$s) unless $TEST_ONLY;
+}
+
+foreach my $s (@PERL_MODULES) {
+  my $short_name = $s; $short_name=~s/-\s*$//;
+  print "Checking $short_name: ";
+  $file=get_pkg_file($s);
+
+  $ver=get_file_version($s,$file);
+  print "$ver available, ";
+  $version=get_current_version($PACKAGE_REAL_MODULE{$s} || $s);
+  my $nice_version = $version || 'none';
+  print "$nice_version installed => ";
+  $ver =~ s/_\d+$//;
+  if (compare_pm_versions($ver,$version)<=0) {
+    if ($NO_VERSION or check_force_install($s)) {
+      print "Forced installation of older or same version!\n";
+    } else {
+      print "No need to install\n";
+      $installed_version{$s}=[0,$ver];
+      push @SKIPPED_P, $file;
+      next;
+    }
+  }
+  print "will install $file\n";
+  $installed_version{$s}=[1,$version];
+  install_perl_module($file,$s) unless $TEST_ONLY;
+}
+
+if ($do_install and !$FORCE) {
+  do_install();
+} else {
+  fail("Installation aborted due to missing prerequisities (use -f to force)!");
+}
+
+print "Running post-install routine...\n";
+post_install();
+print "Done.\n";
+
+  print <<"EOF";
+
+============================================================
+
+INSTALLATION FINISHED.
+
+EOF
+
+if (@INSTALLED_C) {
+  print "The following C libraries have been successfully installed:\n\n";
+  print wrap(join(", ",map {my $s=$_; $s=~s/-$//; $s } @INSTALLED_C),"  ")."\n\n";
+}
+if (@SKIPPED_C) {
+  print "The following C libraries were up-to-date:\n\n";
+  print wrap(join(", ",map {my $s=$_; $s=~s/-$//; $s } @SKIPPED_C),"  ")."\n\n";
+}
+if (@ERROR_C) {
+  print "The following C libraries had errors:\n\n";
+  print wrap(join(", ",map {my $s=$_; $s=~s/-$//; $s } @ERROR_C),"  ")."\n\n";
+}
+
+if (@INSTALLED_P) {
+  print "The following Perl modules have been installed:\n\n";
+  print wrap(join(", ",map {my $s=$_; $s=~s/-$//; $s=~s/-/::/g; $s } @INSTALLED_P),"  ")."\n\n";
+}
+if (@SKIPPED_P) {
+  print "The following Perl modules were up-to-date:\n\n";
+  print wrap(join(", ",map {my $s=$_; $s=~s/-$//; $s=~s/-/::/g; $s } @SKIPPED_P),"  ")."\n\n";
+}
+if (@ERROR_P) {
+  print "The following Perl modules had errors:\n\n";
+  print wrap(join(", ",map {my $s=$_; $s=~s/-$//; $s=~s/-/::/g; $s } @ERROR_P),"  ")."\n\n";
+}
+
+if (!$QUIET) {
+  my ($msg1,$msg2);
+  if (@C_MODULES and $C_PREFIX !~ m{^(?:/usr|/usr/local|/)$}) {
+    $msg1 = "LD_LIBRARY_PATH for installed C libraries"
+  }
+  if (@PERL_MODULES and defined($PERL_PREFIX)) {
+    $msg2 = "PERL5LIB for installed Perl modules"
+  }
+  if ($msg1 or $msg2) {
+    print "------------------------------------------------------------\n";
+    print wrap("NOTE: If you chose to install to non-standard paths, make sure to set your"
+	  ." environment variables accordingly ("
+	    .join(" and ", grep { defined } ($msg1,$msg2))
+	      ."), e.g.:\n")
+      ."\n### Setup for Bash (put in your ~/.bash_profile or ~/.bashrc)\n";
+    print_env('bash');
+    print
+      "\n### Setup for C-shell (put in your ~/.cshrc)\n";
+    print_env('tcsh');
+    print "\n";
+    print "------------------------------------------------------------\n";
+  }
+  print <<"EOF";
+============================================================
+
+EOF
+}
+
+if ($TEST_ONLY) {
+  print "THIS WAS ONLY A DRY-RUN.\n";
+  print "NO FILES WERE ACTUALLY INSTALLED.\n\n";
+}
+
+
+#}
+
+exit 0;
+
+#============================================================
+# Auxiliary subroutines:
+#============================================================
+
+sub print_env {
+  my ($shell)=@_;
+  if (defined($PERL_PREFIX)) {
+    my $libs = join ':',@perllibpaths;
+    if ($shell eq 'bash') {
+      print <<"EOF";
+export PERL5LIB="$libs\${PERL5LIB:+:\$PERL5LIB}"
+EOF
+    } elsif ($shell eq 'tcsh') {
+      print <<"EOF";
+if (\$?PERL5LIB) then
+  setenv PERL5LIB "$libs:\${PERL5LIB}"
+else
+  setenv PERL5LIB "$libs"
+endif
+EOF
+    }
+  }
+  if (@C_MODULES and $C_PREFIX !~ m{^(?:/usr|/usr/local|/)$}) {
+    if ($shell eq 'bash') {
+      print <<"EOF"
+export LD_LIBRARY_PATH="$C_PREFIX/lib:\${LD_LIBRARY_PATH}"
+EOF
+    } elsif ($shell eq 'tcsh') {
+      print <<"EOF"
+if (\$?LD_LIBRARY_PATH) then
+  setenv LD_LIBRARY_PATH "$C_PREFIX/lib:\${LD_LIBRARY_PATH}"
+else
+  setenv LD_LIBRARY_PATH "$C_PREFIX/lib:"
+endif
+EOF
+    }
+  }
+}
 
 
 sub fetch_from_CPAN {
@@ -489,11 +644,9 @@ sub shell_quote {
   return "'".$arg."'";
 }
 
-my $do_install=1;
-my @to_install;
-my %will_install;
 sub will_install {
   my ($type,$name)=@_;
+  $type = lc($type);
   return $will_install{"$type:$name"};
 }
 sub do_install {
@@ -671,8 +824,6 @@ sub compare_pm_versions {
   }
 }
 
-my %installed_version;
-my %force_install = force_build();
 sub check_force_install {
   my ($s)=@_;
   my $when = $force_install{$s};
@@ -752,72 +903,6 @@ sub vstring {
     $n =~ s/^v// or die "vstring() called with invalid arg [$n]";
     pack "U*", split /\./, $n;
 }
-#======================================================================
-
-print "Running pre-install routine...\n";
-pre_install();
-print "Done.\n";
-
-my ($file,$ver,$version);
-
-foreach my $s (@C_MODULES) {
-
-  my $short_name = $s; $short_name=~s/-\s*$//;
-  print "Checking $short_name: ";
-  $file=get_pkg_file($s);
-
-  $ver=get_file_version($s,$file);
-  print "$ver available, ";
-  $version=get_c_module_version($s);
-  my $nice_version = $version || 'none';
-  print "$nice_version installed => ";
-  if (compare_c_versions($ver,$version)<=0) {
-    if ($NO_VERSION or check_force_install($s)) {
-      print "Forced installation of older or same version!\n";
-    } else {
-      print "No need to install\n";
-      push @SKIPPED_C, $file;
-      $installed_version{$s}=[0,$version];
-      next;
-    }
-  }
-  print "will install $file\n";
-  $installed_version{$s}=[1,$version];
-  install_c_module($file,$s) unless $TEST_ONLY;
-}
-
-foreach my $s (@PERL_MODULES) {
-  my $short_name = $s; $short_name=~s/-\s*$//;
-  print "Checking $short_name: ";
-  $file=get_pkg_file($s);
-
-  $ver=get_file_version($s,$file);
-  print "$ver available, ";
-  $version=get_current_version($PACKAGE_REAL_MODULE{$s} || $s);
-  my $nice_version = $version || 'none';
-  print "$nice_version installed => ";
-  $ver =~ s/_\d+$//;
-  if (compare_pm_versions($ver,$version)<=0) {
-    if ($NO_VERSION or check_force_install($s)) {
-      print "Forced installation of older or same version!\n";
-    } else {
-      print "No need to install\n";
-      $installed_version{$s}=[0,$ver];
-      push @SKIPPED_P, $file;
-      next;
-    }
-  }
-  print "will install $file\n";
-  $installed_version{$s}=[1,$version];
-  install_perl_module($file,$s) unless $TEST_ONLY;
-}
-
-if ($do_install and !$FORCE) {
-  do_install();
-} else {
-  fail("Installation aborted due to missing prerequisities (use -f to force)!");
-}
-
 
 sub wrap {
   my $text = shift;
@@ -846,78 +931,3 @@ sub wrap {
   return $out;
 }
 
-print "Running post-install routine...\n";
-post_install();
-print "Done.\n";
-
-  print <<"EOF";
-
-============================================================
-
-INSTALLATION FINISHED.
-
-EOF
-
-if (@INSTALLED_C) {
-  print "The following C libraries have been successfully installed:\n\n";
-  print wrap(join(", ",map {my $s=$_; $s=~s/-$//; $s } @INSTALLED_C),"  ")."\n\n";
-}
-if (@SKIPPED_C) {
-  print "The following C libraries were up-to-date:\n\n";
-  print wrap(join(", ",map {my $s=$_; $s=~s/-$//; $s } @SKIPPED_C),"  ")."\n\n";
-}
-if (@ERROR_C) {
-  print "The following C libraries had errors:\n\n";
-  print wrap(join(", ",map {my $s=$_; $s=~s/-$//; $s } @ERROR_C),"  ")."\n\n";
-}
-
-if (@INSTALLED_P) {
-  print "The following Perl modules have been installed:\n\n";
-  print wrap(join(", ",map {my $s=$_; $s=~s/-$//; $s=~s/-/::/g; $s } @INSTALLED_P),"  ")."\n\n";
-}
-if (@SKIPPED_P) {
-  print "The following Perl modules were up-to-date:\n\n";
-  print wrap(join(", ",map {my $s=$_; $s=~s/-$//; $s=~s/-/::/g; $s } @SKIPPED_P),"  ")."\n\n";
-}
-if (@ERROR_P) {
-  print "The following Perl modules had errors:\n\n";
-  print wrap(join(", ",map {my $s=$_; $s=~s/-$//; $s=~s/-/::/g; $s } @ERROR_P),"  ")."\n\n";
-}
-
-if (!$QUIET) {
-  my ($msg1,$msg2);
-  if (@C_MODULES and $C_PREFIX !~ m{^(?:/usr|/usr/local|/)$}) {
-    $msg1 = "LD_LIBRARY_PATH for installed C libraries"
-  }
-  if (@PERL_MODULES and defined($PERL_PREFIX)) {
-    $msg2 = "PERL5LIB for installed Perl modules"
-  }
-  if ($msg1 or $msg2) {
-    print "------------------------------------------------------------\n";
-    print wrap("NOTE: If you chose to install to non-standard paths, make sure to set your"
-	  ." environment variables accordingly ("
-	    .join(" and ", grep { defined } ($msg1,$msg2))
-	      ."), e.g.:\n")
-      ."\n### Setup for Bash (put in your ~/.bash_profile or ~/.bashrc)\n";
-    print_env('bash');
-    print
-      "\n### Setup for C-shell (put in your ~/.cshrc)\n";
-    print_env('tcsh');
-    print "\n";
-    print "------------------------------------------------------------\n";
-  }
-  print <<"EOF";
-============================================================
-
-EOF
-}
-
-if ($TEST_ONLY) {
-  print "THIS WAS ONLY A DRY-RUN.\n";
-  print "NO FILES WERE ACTUALLY INSTALLED.\n\n";
-}
-
-
-#}
-
-exit 0
