@@ -30,6 +30,8 @@ use Win32::TieRegistry (Delimiter=>'/');
 
 our @obsolete_files = qw(
   resources/tree_query_schema.xml
+  resources/pmlbackend_conf_schema.xml
+  resources/csts.doctype
 );
 
 our %win32_dir = (
