@@ -34,7 +34,7 @@ for man in btred.1 ntred.1 PML_mak.3 tred_def.3; do
   pod2man "pod/${man%.[13]}.pod" > "man/man$sect/$man"
 done
 
-for module in Fslib "${treex_pml[@]}"; do
+for module in "${local_pm[@]}"; do
   pod2man "pod/${module}.pod" > "man/man3/${module}.3pm"
 done
 
