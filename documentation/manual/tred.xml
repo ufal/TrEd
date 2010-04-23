@@ -9918,7 +9918,7 @@ contrib/sample_extension/sample_macros2.mak
 	(e.g. from some directory appearing earlier in the stylesheet directory list),
 	the stylesheet is ignored.
 	If the stylesheet name contains non-ascii or non-alphanumeric characters,
-	they must be <ulink url="http://en.wikipedia.org/wiki/Percent-encoding"http://search.cpan.org/~pajas/Treex-PML/lib/>URI-escaped</ulink>.
+	they must be <ulink url="http://en.wikipedia.org/wiki/Percent-encoding">http://search.cpan.org/~pajas/Treex-PML/lib/>URI-escaped</ulink>.
 	If the user modifies a stylesheet loaded from an extension,
 	TrEd saves the modified version into the user's private
 	stylesheet directory <filename>~/tred.d/stylesheets</filename>,
