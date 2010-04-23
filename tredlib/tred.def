@@ -214,7 +214,7 @@ sub PrevTree {
 =item C<GetTrees()>
 
 Return a list of trees in current L<Treex::PML::Document>. Equivallent to
-C<<<CurrentFile()->trees>>>.
+C<<<C urrentFile()->trees >>>.
 
 =cut
 
@@ -322,7 +322,7 @@ sub PrevVisibleNode {
 
 Return true if the given node is member of a hidden subtree. This
 macro is only an abbreviation for
-C<<FS()->isHidden(node)>>
+C<< FS()->isHidden(node) >>
 
 =cut
 
@@ -2407,7 +2407,7 @@ given, no menu-item is created for the macro.
 =item changing_file
 
 if the key C<changing_file> exists in the bind-options hash and its
-value is I<value>, a call to the macro C<<<ChangignFile(I<value>)>>>
+value is I<value>, a call to the macro C<<< ChangignFile(I<value>) >>>
 is made immediatelly after each invocation of the macro via this
 binding.
 
@@ -3099,7 +3099,7 @@ sub FS {
 
 Return value of the special numbering FS attribute. This macro
 actually returns the same value as
-C<<<$node-E<gt>{FS()->order()}>>>
+C<<< $node-E<gt>{FS()->order()} >>>
 
 =cut
 
