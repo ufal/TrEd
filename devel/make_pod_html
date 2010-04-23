@@ -30,7 +30,7 @@ for f in $dir/../[bn]tred \
 done
 
 for module in "${local_pm[@]}" ; do
-    f=$dir/../tredlib/libs/*/${module//://}.pm
+    f=`echo $dir/../tredlib/libs/*/${module//://}.pm`
     pod="$pod_dir/${module}.pod"
     podchecker "$f"
     podselect "$f" > "$pod"
