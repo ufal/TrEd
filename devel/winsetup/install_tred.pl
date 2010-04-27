@@ -595,7 +595,7 @@ sub Install_PPM_Modules {
     Log("Finding packages for upgrade...");
     my @packages;
     my %seen;
-    for my $best (@best) {
+    PKG: for my $best (@best) {
       my $name=$best->name;
       if ($seen{$name}) {
 	Log("Skipping duplicate '$name'\n");
@@ -611,6 +611,7 @@ sub Install_PPM_Modules {
 	  $seen{$name}=1;
 	  Log("upgrade '$name'\n");
 	  push @packages,$best;
+	  last PKG;
 	} else {
 	  Log("keep $name\t".$pkg->version."\n") if $pkg;
 	}
