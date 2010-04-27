@@ -574,8 +574,9 @@ sub Install_PPM_Modules {
     @features = grep !/^!/, @features;
     for my $name (@remove) {
       $name=~s/^!//;
-      for my $area_name ($ppm->areas) {
+      AREA: for my $area_name ($ppm->areas) {
 	my $area = $ppm->area($area_name);
+	next AREA if ! $area->initialized;
 	my $pkg = $area->package($name);
 	if ($pkg) {
 	  Log("Uninstalling $name\n");
@@ -593,15 +594,19 @@ sub Install_PPM_Modules {
     }
     Log("Finding packages for upgrade...");
     my @packages;
+    my %seen;
     for my $best (@best) {
-      for my $area_name ($ppm->areas) {
+      my $name=$best->name;
+      next if $seen{$name};
+      AREA: for my $area_name ($ppm->areas) {
 	my $area = $ppm->area($area_name);
-	my $name=$best->name;
+	next AREA if ! $area->initialized;
 	my $pkg = $area->package($name);
 	if ($pkg and
 	    $pkg->name eq $name and
 	    $pkg->version ne $best->version and
 	    eval{ _better_than($best,$pkg) }) {
+	  $seen{$name}=1;
 	  Log("upgrade $name\n");
 	  push @packages,$best;
 	} else {
