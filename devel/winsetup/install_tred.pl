@@ -597,7 +597,9 @@ sub Install_PPM_Modules {
     my %seen;
     for my $best (@best) {
       my $name=$best->name;
-      next if $seen{$name};
+      if ($seen{$name}) {
+	Log("Skipping duplicate '$name'\n");
+      }
       AREA: for my $area_name ($ppm->areas) {
 	my $area = $ppm->area($area_name);
 	next AREA if ! $area->initialized;
@@ -607,7 +609,7 @@ sub Install_PPM_Modules {
 	    $pkg->version ne $best->version and
 	    eval{ _better_than($best,$pkg) }) {
 	  $seen{$name}=1;
-	  Log("upgrade $name\n");
+	  Log("upgrade '$name'\n");
 	  push @packages,$best;
 	} else {
 	  Log("keep $name\t".$pkg->version."\n") if $pkg;
