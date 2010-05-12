@@ -1,2 +1,0 @@
-#!/bin/sh
-screen sh -c 'while qstat "$@" |grep .; do sleep 2; clear; done'
