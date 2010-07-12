@@ -14,7 +14,7 @@ XML-LibXML-Iterator
 XML-LibXSLT
 XML-CompactTree
 XML-CompactTree-XS
-!XML-Writer
+XML-Writer
 Syntax-Highlight-Perl
 Tk-CodeText
 Parse-RecDescent
@@ -24,5 +24,6 @@ Graph-Kruskal
 Class-Std
 Graph-ReadWrite
 version
+Class-Inspector
 File-ShareDir
 Treex-PML
