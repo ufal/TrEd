@@ -214,7 +214,7 @@ sub PrevTree {
 =item C<GetTrees()>
 
 Return a list of trees in current L<Treex::PML::Document>. Equivallent to
-C<<<C urrentFile()->trees >>>.
+C<<< CurrentFile()->trees >>>.
 
 =cut
 
