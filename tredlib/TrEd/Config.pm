@@ -98,6 +98,7 @@ BEGIN {
   $enableTearOff
   %defaultPrintConfig
   %c_fonts
+  $sidePanelWrap
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
   @config_file_search_list=();
@@ -606,6 +607,7 @@ sub set_config {
   $skipStartupVersionCheck    =	val_or_def($confs,"skipstartupversioncheck",undef);
   $enableTearOff              =	val_or_def($confs,"enabletearoff",0);
 
+  $sidePanelWrap              = val_or_def($confs,"sidepanelwrap",0);
   # ADD NEW OPTIONS HERE
 
   &$set_user_config($confs) if (ref($set_user_config)); # let this be the very last line
