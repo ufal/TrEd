@@ -1090,7 +1090,7 @@ sub RemoveTree {
   return $res;
 }
 
-=item C<DestroyTreeNo(n?,fsfile?)>
+=item C<DestroyTree(n?,fsfile?)>
 
 Like RemoveTree but immediatelly destroys the removed tree. Returns 1
 on success.
