@@ -325,7 +325,8 @@ if ($FETCH_FROM_CPAN) {
 		qw(true tee patch),
 		require_in_path()) {
     # try to find the tool in path, fail otherwise
-    unless (File::Spec->file_name_is_absolute($tool) and -x $tool) {
+    next TOOL if File::Spec->file_name_is_absolute($tool) and -x $tool;
+    if (!File::Spec->file_name_is_absolute($tool)) {
       for my $path (@paths) {
 	if (-x File::Spec->rel2abs($tool,$path)) {
 	  next TOOL;
