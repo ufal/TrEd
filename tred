@@ -10481,14 +10481,15 @@ sub findNodeDialog {
   my $result= ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
   if ($result=~ /Find/) {
 #    %$template = (); # cleanup template
-    my $search_code = q`sub {
-  my ($node)=@_;`;
+    my $search_code = 'sub {
+  my ($node)=@_;
+  my $all_found = 1;';
     my $method=substr($grp->{templateMatchMethod},0,1);
     foreach my $t (@atord) {
       my $val = decode($e{$t}->get);
       $searchTemplate{$t}=$val;
       if ($val ne EMPTY) {
-	$search_code.='  for ($node->all(q{'.$t.'})) { return 1 if ';
+	$search_code.='  for ($node->all(q{'.$t.'})) { undef $all_found unless ';
 	if ($method eq 'E') {
 	  my $re = qr{^$val$};
 	  $search_code .= '$_ =~ m('.$re.')';
@@ -10508,7 +10509,7 @@ sub findNodeDialog {
 	$search_code .= " }\n";
       }
     }
-    $search_code .= "  return 0;\n}";
+    $search_code .= '  return $all_found;'."\n}";
     print STDERR "$search_code\n" if $tredDebug;
     $search_code = eval $search_code;
     $grp->{searchCode}=$search_code;
