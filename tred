@@ -12431,17 +12431,24 @@ sub cleanup_tredmacro {
 	       grep {/\S/} grep { !/^main$|^TrEd::/ }
 	       map  { (/^\s*package\s+([^;\s]+)\s*;/) } (@TrEd::Macros::macros))
 	    } = ();
+  my %kept_pkg;
+  my %deleted_pkg;
   foreach my $package ( sort { length($b)<=>length($a) } keys %packages ) {
     no strict qw(refs);
     print STDERR ("Cleaning package $package\n") if $tredDebug;
     my $pkg_file = $package;
     $pkg_file =~ s{::}{/}g;
     $pkg_file .= '.pm';
-    %{$package."::"}=();
+    delete ${$package.'::'}{$_} foreach grep !/::$/, keys %{$package.'::'};
+    undef @kept_pkg{ map $package.'::'.$_, keys %{$package.'::'} } if %{$package.'::'};
+    undef $deleted_pkg{$package.'::'};
     delete $INC{$pkg_file};
     eval("package $package; use UNIVERSAL qw(isa can);");
     print STDERR $@ if $@;
   }
+  print STDERR "KEPT: @{[join qq(\n\t),keys %kept_pkg]}.\n",
+    "DELETED: @{[join qq(\n\t),keys %deleted_pkg]}\n"
+      if $tredDebug;
 }
 
 sub declareMinorMode {
