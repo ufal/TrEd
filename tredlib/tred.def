@@ -4415,6 +4415,7 @@ sub _import {
   my $type;
   my @exports = @_;
   foreach my $k (@exports) {
+    next if $k =~ /::$/; # do not export packages themselves
     unless ($k =~ s/^(\W)//) {
       *{"${caller}::$k"} = \&{"${pkg}::$k"} unless exists (&{"${caller}::$k"});
        next;
