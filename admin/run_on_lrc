@@ -1,0 +1,48 @@
+#!/bin/bash
+
+#
+# this script tries to be smart:
+#
+#  - if called on LRC-TWO, uses 1st arg as the current working directory and runs the given command
+#  - if called as a part of a SGE job, initializes environment and runs given command
+#  - if called with --comand flag ...., initializes environment and runs given command
+#  - if called from outside the cluster, opens ssh to lrc-two and calls itself from there
+#    passing $PWD as the first argument
+#
+
+
+if [ -z "$1" ]; then
+    echo "Usage: $0 command [arguments...]" 1>&2
+    exit 1;
+fi
+
+LRC=lrc-two.ufal.hide.ms.mff.cuni.cz
+
+init_env() {
+    # setup PERLLIB, and RH8 variables
+    . /net/work/projects/perl_repo/admin/bin/setup_platform
+}
+
+if [ "$1" = '--command' ]; then
+    shift;
+    init_env
+    "$@"
+elif [ -n "$SGE_O_HOST" ]; then
+    init_env
+    "$@"
+elif [ "@$HOSTNAME" = @"$LRC" ] ; then
+    # setup SGE cluster
+    . /net/projects/SGE/user/sge_profile >&2
+
+    init_env
+    
+    cd "$1"
+    shift
+    
+    echo "$@"
+    "$@"
+else
+    self=$(readlink -f "$0")
+    ssh -t "$LRC" "$self" "$PWD" "$@"
+fi
+
