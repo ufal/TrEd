@@ -1,0 +1,217 @@
+# -*- org -*-
+
+Basic HOW-TO for TrEd maintanance.
+
+* How do I fix a bug in the documentation
+
+The source of TrEd documentation (the manual) is in
+tred/documentation/manual/tred.xml.
+
+The source for TrEd's WEB page is tred/documentation/index.html
+
+The result of a change can be tested by compiling the documentation in
+the working copy by calling:
+
+	cd tred
+	devel/make_manual
+	firefox documentation/index.html # e.g.
+
+Don't forget to commit the changes and create a new release.
+
+* How do I create a new extension for TrEd
+
+See TrEd's manual and use other extensions available in extensions/ as
+an example. Extensions like conll2009 or hydt are quite good templates.
+
+* Where do I put my new TrEd extensions
+
+Assume your new extension is named YOUR_EXTENSION. The easiest way is
+to use TrEd's SVN to store the extension. In that case, just:
+
+	cd extensions/
+	cp -R PATH_TO_YOUR_WORK_DIR/YOUR_EXTENSION .
+	svn add YOUR_EXTENSION
+	svn commit -m 'Added new extension YOUR_EXTENSION'
+
+Then you can release the extension (see below how).
+
+If you wan't to keep the extension in a different SVN, you can still
+add it to the TrEd's tree as an SVN external:
+
+	cd extensions/
+	svn propedit svn:externals
+	# in the editor, add
+	YOUR_EXTENSION https://svn.ms.mff.cuni.cz/svn/YOUR_PROJECT/PATH_TO/YOUR_EXTENSION
+	# save file and close the editor
+	svn commit -m 'added YOUR_EXTENSION external' .
+	svn up
+
+Now, each time the extensions/ directory is SVN-updated, the
+up-to-date version of your extension is fetched from your SVN.
+
+If you can't do even that, you are on your own. Either setup a
+repository and ask your users to add it in TrEd's Extension Manager
+(see TrEd User's Manual for details) or pack and install the extension 
+to the default repository by hand:
+
+
+	TRED_DEVEL_DIR=/net/work/projects/tred
+	REPO_SOURCE=/home/pajas/WWW/tred/extensions
+	cd PATH_TO_YOUR_WORK_DIR/
+	ls YOUR_EXTENSION # you must be on the same level
+	
+	$TRED_DEVEL_DIR/tred/devel/pack_extension.sh YOUR_EXTENSION $REPO_SOURCE
+
+	$EDITOR $REPO_SOURCE/packages.lst
+	# add YOUR_EXTENSION on a separate line (if not present)
+	# save and exit
+
+	cd $TRED_DEVEL_DIR
+	make sync-www
+
+* How do I release a new version of an extension
+
+If your extension is in the extensions/ dir, run:
+	cd extensions
+	./make <extension_name>
+	cd ..
+	make sync-www
+
+Otherwise see above.
+
+* How do I release TrEd
+
+Run 'make release-tred' and cross fingers. Don't forget to confirm
+rsync of the WWW source tree to the web-server (ufal.mff.cuni.cz).
+
+* How do I add a new dependency
+
+Each package not available by minimal supported Perl distribution
+(5.8.x) must be included in the installation packages:
+
+For UNIX:
+	- list the dependency in tred/devel/unix_install/install.cfg
+	- if not available on CPAN, add hook to fetch the distribution
+          package
+	- commit the changes to SVN
+	- run make update-unix-dep-packages
+	- run make test-dep-packages
+
+For Windows:
+	- list the dependency in tred/devel/winsetup/packages_list_58
+          (if needed for Perl 5.8) and
+	  tred/devel/winsetup/packages_list_510 (if needed for Perl
+          5.10)
+	- use e.g. http://kobesearch.cpan.org/ (or Google) to find a
+          repository where PPD packages for Active Perl 5.8 and 5.10
+	  are available for the newly added module 
+	- commit the changes to SVN
+	- make sure the repository is listed in
+		get_packages_tred_58.sh
+	  and
+		get_packages_tred_510.sh
+	- run:
+		make update-win32-dep-packages
+
+And eventually release TrEd.
+
+* How do I add a new command to the main menu of TrEd
+
+You have implemented a new main-application feature of TrEd (not just
+an extension) and you want to add it to the menu.
+
+For example, suppose you want to add an entry named 'Preview in 3D'
+into the 'View' menu. The function will be implemented as a function
+named 'preview3D' in the main package of TrEd which takes the TrEd's
+frame-group variable '$grp' variable as its only argument. Do the
+following:
+
+- edit the file: ./tredlib/TrEd/Menu/menubar.inc
+
+- find an entry corresponding to the menu or sub-menu where you want to
+add your entry (MENUBAR:VIEW in our example)
+
+- add a symbolic hierarchical ID of your entry (of your choice
+provided it is unique) to the the corresponding list of subentries:
+
+	  'MENUBAR:VIEW' => [
+	      'Cascade',
+	      'View',
+	      {
+		'-underline' => 0
+	       },
+	      [
+		'MENUBAR:VIEW:LIST_OF_SENTENCES',
+		'SEPARATOR',
+		...
+		...
+		'MENUBAR:VIEW:PREVIEW_IN_3D', # <-- your newly added entry
+	      ]
+	  ],
+
+- add a top-level entry to the main HASH using the ID as key
+  describing the menu entry:
+
+	  'MENUBAR:VIEW:PREVIEW_IN_3D' => [
+	      'Button',
+	      'Preview in 3D',
+	      {
+		'-command' => [\&preview3D,$grp],
+		'-underline' => 11, # underline 3 as a keyboard shortcut
+	       },
+	      undef
+	     ],
+
+Then, document the new entry the TrEd's User Manual
+(documentation/manual/tred.xml).
+
+* How do I add a new configuration option to TrEd
+
+For historical reasons, TrEd stores most of its configuration options
+in variables of the package $TrEd::Config which are (for even more
+historical reasons) all exported to the package 'main'. (I know!)
+
+To declare a new configuration option, add a variable to @EXPORT
+(check for name collisions in 'tred' first!)
+
+Then add a line like
+
+   $yourNewOptionVariable=val_or_def($confs,"youroption",'DEFAULT VALUE');
+
+where $yourNewOptionVariable is the variable you added, 
+'youroption' is the name of the new option (all lowercase here!,
+user's may use e.g. YourOption in their ~/.tredrc) and 'DEFAULT VALUE'
+is the default value.
+
+You may also add a commented-out example of usage and some short
+description to tredlib/tredrc.
+
+Please don't forget to document the option in the TrEd's User Manual
+(documentation/manual/tred.xml)!
+
+* How do I add a new command-line option to TrEd
+
+First, consider adding just a configuration option (those can be set
+from the command-line using the -O option=value syntax).
+
+Then, make sure neither the long nor the short name is not used for
+something else in btred or ntred. If yes (and especially if either way
+one of the options could somehow make sense for the other tool),
+consider a different name. Note that you don't have to provide a short
+name for options less likely to be used.
+
+Declare a global variable for the option in the 'use vars
+section'. If the command-line option corresponds to a configuration
+option, use this global variable only as a temporary holder of the
+value and set the corresponding configuration variable according to
+the command-line option value in sub ApplyGlobalConfig { ... }.
+
+Don't forget to update the POD in 'tred' (and 'btred', 'ntred',
+wherever you added the option) and also TrEd's User Manual
+(documentation/manual/tred.xml)!
+
+* What are the $grp and $win variables used inside 'tred'
+
+* Where is the function XY called from 'tred' implemented?
+
+
