@@ -9,6 +9,8 @@ include admin/env.sh
 all: help
 
 help:
+	@echo "Please, set proper paths in admin/env.sh before running make." 
+	@echo 
 	@echo "You can:" 
 	@echo 
 	@echo "  make install-tred        - install TrEd and extensions into $(INSTALL_BASE)" 
