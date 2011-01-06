@@ -566,7 +566,8 @@ sub fetch_from_CPAN {
 	  print "File $base already exists, skipping.\n";
 	  next;
 	}
-	foreach (@{$CPAN::Config->{urllist}}) {
+	my @mirror_list = (@{$CPAN::Config->{urllist}}, "http://www.perl.com/CPAN/");
+	foreach (@mirror_list) {
 	  my $url = $_."authors/id/".$file;
 	  print "Fetching URL '$url'\n";
 	  system($wget." '$url'")==0 && last;
