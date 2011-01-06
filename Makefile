@@ -9,20 +9,20 @@ include admin/env.sh
 all: help
 
 help:
-	@echo "Please, set proper paths in admin/env.sh before running make." 
+	@echo "Please, set proper paths in admin/env.sh before running make."
 	@echo 
-	@echo "You can:" 
+	@echo "You can:"
 	@echo 
-	@echo "  make install-tred        - install TrEd and extensions into $(INSTALL_BASE)" 
-	@echo "  make release-tred        - install-tred + build distribution packages and upload to $(REMOTE_WWW)" 
+	@echo "  make install-tred        - install TrEd and extensions into $(INSTALL_BASE)"
+	@echo "  make release-tred        - install-tred + build distribution packages and upload to remote server ($(REMOTE_WWW))"
 	@echo 
-	@echo "  make release-tred-qcmd   - like release-tred but uses non-interactive SGE jobs rather than qrsh" 
-	@echo "  make update-dist-dir     - only update TrEd distribution tree in $(DIST_DIR)" 
-	@echo "  make update-dep-packages - fetch latest versions of required modules and libraries" 
-	@echo "  make release-dep-package - only release tred dependency package on $(REMOTE_WWW)" 
-	@echo "  make new-treex-pml       - create and install new Treex::PML packages" 
+	@echo "  make release-tred-qcmd   - like release-tred but uses non-interactive SGE jobs rather than qrsh"
+	@echo "  make update-dist-dir     - only update TrEd distribution tree in $(DIST_DIR)"
+	@echo "  make update-dep-packages - fetch latest versions of required modules and libraries"
+	@echo "  make release-dep-package - only release tred dependency package to remote server ($(REMOTE_WWW))"
+	@echo "  make new-treex-pml       - create and install new Treex::PML packages"
 	@echo 
-	@echo "  make sync-www            - rsync WWW source tree to ufal.mff.cuni.cz/~pajas/WWW" 
+	@echo "  make sync-www            - rsync WWW source tree to remote server ($(REMOTE_WWW))"
 	
 
 prereq:
