@@ -9,8 +9,7 @@ function perl_module_presence_test {
     perl -M$1 -e 1 2> /dev/null;
     if [ "$?" -ne "0" ]; 
     then
-        echo "Please install package '$1' from CPAN (e.g. perl -MCPAN -e 'install $1' or use your distro-specific way)";
-	exit 1;
+        echo "*** Please install package '$1' from CPAN (e.g. perl -MCPAN -e 'install $1' or use your distro-specific way)";
     else
         echo "$1 found, OK.";
     fi
@@ -78,9 +77,25 @@ function get_7zExtra {
 }
 
 
-perl_module_presence_test 'Pod::XML';
-perl_module_presence_test 'XML::XSH2';
-perl_module_presence_test 'XML::RSS';       #for changelog2rss script
+NEEDED_MODULES="DateTime::Locale parent Class::Load DateTime::TimeZone Class::Singleton Test::Exception DateTime Pod::XML XML::XSH2 XML::RSS File::ShareDir File::Which UNIVERSAL::DOES XML::CompactTree XML::LibXML XML::Writer XML::CompactTree::XS XML::LibXSLT";
+MODULES_PERL_STR="";
+
+# Check for all needed PERL modules
+for MODULE in $NEEDED_MODULES
+do
+	perl_module_presence_test $MODULE;
+	MODULES_PERL_STR="-M${MODULE} $MODULES_PERL_STR";
+done
+
+# If any of the modules is missing, exit.
+perl $MODULES_PERL_STR -e 1 2> /dev/null;
+if [ "$?" -ne "0" ]; 
+then
+	echo "Please install required packages from CPAN";
+	exit 1;
+else 
+	echo "All CPAN modules found, OK."
+fi
 
 
 if [ -x "$SVN_TO_CHANGELOG" ]; then
