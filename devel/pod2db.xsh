@@ -1,6 +1,8 @@
 #!/usr/bin/env xsh2
 # -*- mode: cperl; coding: utf8; -*-
 
+## Takes care of cross-references in file (plus handles URLs starting with 'http://' correctly)
+
 my $sectid=0;
 
 foreach //link/@linkend {
@@ -10,7 +12,14 @@ foreach //link/@linkend {
       insert attribute { "id=sect-".($sectid++) } into $sect;
     }
   } else {
-    echo :e "Section:" string(.) "not found";
+    my $current = string(.);
+    perl {
+      if($current =~ /http:\/\//){
+        # print STDERR "URL: $current\n";
+      } else { 
+        print STDERR "Section: $current not found\n";
+      }
+    }
   }
   insert text $sect/@id into .;
 }
