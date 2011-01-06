@@ -41,6 +41,7 @@ function get_svn2cl {
 		echo "done"
 	else
 		echo "MD5 sum error, please download and unpack svn2cl to dir $ADMIN_DIR/svn2cl manually..."
+		exit 1;
 	fi
 	rm $SVN2CL_FILE_DL
 	rm -f web
@@ -70,6 +71,7 @@ function get_7zExtra {
 		echo "done"
 	else
 		echo "MD5 sum error, please download and unpack 7zip extra manually to $ADMIN_DIR/7zExtra directory..."
+		exit 1;
 	fi
 	rm $SEVENZIP_FILE
 	rm -f web
