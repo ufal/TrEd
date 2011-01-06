@@ -9517,7 +9517,7 @@ sub switch_context_hook {
 	objects and PML alternatives as <literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Alt.pm">Treex::PML::Alt</ulink></literal>
 	objects. PML sequences as <literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Seq.pm">Treex::PML::Seq</ulink></literal>
 	objects and its elements as
-	<literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Seq_Element.pm">Treex::PML::Seq::Element</ulink></literal> objects.  The only
+	<literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Seq/Element.pm">Treex::PML::Seq::Element</ulink></literal> objects.  The only
 	exceptions are: a PML sequences with the role
 	<literal>#TREES</literal>, which is represented by the list of
 	the trees of the <literal>Treex::PML::Document</literal> object and a PML
@@ -9525,7 +9525,7 @@ sub switch_context_hook {
 	represented by the child-nodes of the node it belongs to.
 	Elements of these sequences therefore represented by by
 	<literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm">Treex::PML::Node</ulink></literal> (rather than
-	<literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Seq_Element.pm">Treex::PML::Seq::Element</ulink></literal>) objects with a
+	<literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Seq/Element.pm">Treex::PML::Seq::Element</ulink></literal>) objects with a
 	dedicated attribute <literal>#name</literal> carrying the
 	element's name.
       </para>
