@@ -10,7 +10,7 @@ svn update ${TRED_SRC_DIR} >> $LOG && \
 echo "done" && \
 
 # find the current revision number of svn
-LAST_COMMIT_NO=`svn info ~/ufal_work/ms.mff.cuni.cz/net_work_projects_tred/tred/ | grep "Revision:" | cut -d ':' -f 2 | cut -d ' ' -f 2` && \
+LAST_COMMIT_NO=`svn info ${TRED_SRC_DIR} | grep "Revision:" | cut -d ':' -f 2 | cut -d ' ' -f 2` && \
 
 if [ -a ${TRED_SRC_DIR}/ChangeLog ]; then
 	# if ChangeLog exists, we should update it only if it does not already contain the last revision
