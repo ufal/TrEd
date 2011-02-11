@@ -21,8 +21,5 @@ echo "Generating new index (takes a couple of minutes)" && \
 cd $TRED_DPAN_DIR/dpan && \
 dpan -f config && \
 
-echo "Generate windows installer" && \
-cd $TRED_STRAWBERRYPERL_DIR && \
-makensis tred-installer.nsi
 
 echo "Updating win32 dependency packages done."
