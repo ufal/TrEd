@@ -92,10 +92,11 @@ pack-extensions:
 # Create TrEd distribution packages, update the documentation and Changelog 
 # in the source WWW tree from the source distribution tree 
 # The package sizes on the main page are computed by the admin/create_tred_packages.sh script
+# update-dist-dir and build-dep-package should be run before prepare-tred-web-release
 prepare-tred-web-release:
 	cd admin && ./prepare-tred-web-release.sh
 
-update-dep-packages: update-unix-dep-packages update-win32-dep-packages update-win32-strawberry-dep-packages
+update-dep-packages: prereq update-unix-dep-packages update-win32-dep-packages update-win32-strawberry-dep-packages
 
 # Fetch fresh dependency packages from CPAN and other sources
 # (in the unix_install/packages_unix directory)
