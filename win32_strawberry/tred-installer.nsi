@@ -94,7 +94,7 @@ Var PerlInstalledLabel
 ; nsDialogs Button for installation Strawberry Perl
 Var nsB_Strawberry
 ; nsDialogs Button for installation Active Perl
-Var nsB_ActivePerl
+;Var nsB_ActivePerl
 ; nsDialogs CheckBox for custom Perl dir
 Var CB_ChoosePerlDir
 ; state of the CheckBox for custom Perl dir
@@ -302,38 +302,38 @@ Function findActivePerlLink
 	done:
 FunctionEnd
 
-Function installActivePerl
-	; find download link on acitestate site
-	Call findActivePerlLink
-	
-	; download msi installer
-	MessageBox MB_YESNO|MB_ICONQUESTION \
-			"Do you want to download file from URL: $\n\
-			$DownLink $\n \
-			and install Active Perl?" \
-			IDNO done
-	;;; docasne, aby sa nemuselo znova stahovat...
-	IfFileExists $TEMP\$PerlInstallerName install
-	; the installer's name can not be other than the original name on the website, otherwise setup fails!
-	inetc::get /POPUP "$DownLink" /CAPTION "Downloading Active Perl..." "$DownLink" "$TEMP\$PerlInstallerName" /END
-	Pop $R0 ;Get the return value
-	StrCmp $R0 "OK" +3
-		MessageBox MB_OK "Download failed: $R0 $\nPlease exit installer and install Perl manually."
-		Quit
-		
-	; start active perl installation
-	install:
-	ExecWait '"msiexec" /i "$TEMP\$PerlInstallerName"'
-	IfErrors error done
-	error:
-		MessageBox MB_OK "Installation failed. $\nPlease exit installer and install Perl manually."
-		Quit
-	done:
-		Call testPerl
-		; Update label after Perl installation
-		${NSD_CreateLabel} 0 0 100% 25u $PerlMsg
-		Pop $Label
-FunctionEnd
+; Function installActivePerl
+;	; find download link on acitestate site
+;	Call findActivePerlLink
+;	
+;	; download msi installer
+;	MessageBox MB_YESNO|MB_ICONQUESTION \
+;			"Do you want to download file from URL: $\n\
+;			$DownLink $\n \
+;			and install Active Perl?" \
+;			IDNO done
+;	;;; docasne, aby sa nemuselo znova stahovat...
+;	IfFileExists $TEMP\$PerlInstallerName install
+;	; the installer's name can not be other than the original name on the website, otherwise setup fails!
+;	inetc::get /POPUP "$DownLink" /CAPTION "Downloading Active Perl..." "$DownLink" "$TEMP\$PerlInstallerName" /END
+;	Pop $R0 ;Get the return value
+;	StrCmp $R0 "OK" +3
+;		MessageBox MB_OK "Download failed: $R0 $\nPlease exit installer and install Perl manually."
+;		Quit
+;		
+;	; start active perl installation
+;	install:
+;	ExecWait '"msiexec" /i "$TEMP\$PerlInstallerName"'
+;	IfErrors error done
+;	error:
+;		MessageBox MB_OK "Installation failed. $\nPlease exit installer and install Perl manually."
+;		Quit
+;	done:
+;		Call testPerl
+;		; Update label after Perl installation
+;		${NSD_CreateLabel} 0 0 100% 25u $PerlMsg
+;		Pop $Label
+;FunctionEnd
 
 Function findStrawberryPerlLink
 	ClearErrors
