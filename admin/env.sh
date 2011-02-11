@@ -9,7 +9,7 @@ INSTALL_BASE=~/ufal_work/ms.mff.cuni.cz/f_common
 # Local (source) web tree
 WWW=~/ufal_work/ms.mff.cuni.cz/pajas_WWW
 # Remote web tree
-REMOTE_WWW="" # ufal.mff.cuni.cz:/home/pajas/WWW
+REMOTE_WWW="fabip4am@u-pl10.ms.mff.cuni.cz:/afs/ms/u/f/fabip4am/BIG/tred/" # ufal.mff.cuni.cz:/home/pajas/WWW
 
 # TrEd project direcotry (from which Makefile is executed)
 PROJECT_DIR=~/ufal_work/ms.mff.cuni.cz/net_work_projects_tred
@@ -56,6 +56,9 @@ TREEX_PML_DIR=${PROJECT_DIR}/Treex-PML
 TRED_UNIXINST_DIR=${PROJECT_DIR}/unix_install
 TRED_WININST_DIR=${PROJECT_DIR}/win32_install
 TRED_PPM_DIR=${PROJECT_DIR}/win32_ppm
+
+TRED_STRAWBERRYPERL_DIR=${PROJECT_DIR}/win32_strawberry
+TRED_DPAN_DIR=${PROJECT_DIR}/dpan
 
 TREEX_PML_EXPORT=${PROJECT_DIR}/generated/Treex-PML
 
