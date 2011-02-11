@@ -15,7 +15,7 @@ rm -f ${WWW}/tred/ar01*.html && \
 cp -Rf ${TRED_DIST_DIR}/documentation/{*.html,*.css,pics} ${WWW}/tred/ && \
 ##TODO comment!
 xsh2 -P ${WWW}/tred/index.html 'nobackups; rm //*[@class="offline"]; map :i { s{^http://ufal.mff.cuni.cz/~pajas/tred/}{./} } //@href;' && \
-## po nom sa moze otestovat existencia tred_wininst, tred-current
+
 ##ATT we need to run win32_ppm/get_packages_tred_58 a get_packages_tred_510.sh before this is run
 ${ADMIN_DIR}/create_tred_packages.sh ${DIST_DIR} ${TRED_WININST_DIR} ${WWW}/tred && \
 echo ${HOSTNAME} && \
