@@ -1,0 +1,84 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Spec;
+use File::Path;
+use Config;
+use Carp;
+use English;
+use Getopt::Long;
+use FindBin;
+
+# We have to set proper PERL5LIB before running the actual installation, so this is a small wrapper script
+my $perl = $^X; 
+
+my $install_base = "";
+my $cpan_online_install = 0;
+my $log = "";
+
+my $result = GetOptions (	"install-base=s" 	=> \$install_base,
+				"log=s"				=> \$log,
+				"online-install"  	=> \$cpan_online_install);
+
+
+if ($install_base eq ""){
+	print("Please specify directory for installation tred-dependencies (--install-base)");
+	exit(0);
+} else {
+	# Don't ask on windows, we use an automatic installer...
+	if($^O ne "MSWin32") {
+		print("Do you really want to install perl modules to $install_base?\n [yes/no]\n");
+		my $user_confirm = <STDIN>;
+		chomp($user_confirm);
+		if($user_confirm =~ /^yes$/i){
+			print("Ok, installing...\n");
+		} else {
+			print("Cancelling.\n");
+			exit(0);
+		}
+	}
+}
+
+# if we call this script on Win32 with sth like recall.pl --install_base "c:\path\somewhere\"
+# then the last quote is escaped, so the user should not do it, warn and die...
+if ($install_base =~ /"/){
+	croak 'Please, don\'t use backslash at the end of install_base, eg use --install_base "c:\dir" instead of --install_base "c:\dir\" or don\'t quote the argument.';
+};
+
+# Construct paths to be added to PERL5LIB in platform-independent way 
+my ($volume,$directories,$file) = File::Spec->splitpath($install_base);
+my @install_base_dirs = File::Spec->splitdir($directories);
+
+my $inc_dirs_1 = File::Spec->catdir(@install_base_dirs, $file, "lib", "perl5" );
+my $inc_dirs_2 = File::Spec->catdir(@install_base_dirs, $file, "lib", "perl5", $Config{'archname'} );
+
+my $inc_extension_1 = File::Spec->catpath($volume, $inc_dirs_1);
+my $inc_extension_2 = File::Spec->catpath($volume, $inc_dirs_2);
+my $inc_extension_3 = File::Spec->catpath($FindBin::Bin);
+
+my $script = File::Spec->catfile($FindBin::Bin, "install_deps_2.pl");
+
+my $platform = $^O;
+my $PERL5LIB_SEPARATOR = $platform eq "MSWin32" ? ";" : ":";
+
+my $previous_perl5lib = defined($ENV{'PERL5LIB'}) ? $ENV{'PERL5LIB'} : "" ;
+$ENV{'PERL5LIB'} = join($PERL5LIB_SEPARATOR, ($inc_extension_1, $inc_extension_2, $inc_extension_3, $previous_perl5lib));
+print "PERL5LIB = " . $ENV{'PERL5LIB'} . "\n"; 
+
+my @cmd;
+if ($cpan_online_install == 0) {
+	@cmd = ("$perl", "$script", "--install-base", "$install_base");
+} else {
+	@cmd = ("$perl", "$script", "--install-base", "$install_base", "--online-install");
+}
+if ($log ne ""){
+	($volume,$directories,$file) = File::Spec->splitpath($log);
+	mkpath($volume . $directories);
+	push(@cmd, ("--log", "$log"));
+}
+
+# print "Run " . join(' ', @cmd) . "\n\n";
+# 'system' return value is false on success, therefore we have to use and instead of or...
+system(@cmd)
+	and croak "Couldn't run: " . join(' ', @cmd) . " ($OS_ERROR)\n";
