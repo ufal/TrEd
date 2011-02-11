@@ -77,7 +77,7 @@ function get_7zExtra {
 }
 
 
-NEEDED_MODULES="DateTime::Locale parent Class::Load DateTime::TimeZone Class::Singleton Test::Exception DateTime Pod::XML XML::XSH2 XML::RSS File::ShareDir File::Which UNIVERSAL::DOES XML::CompactTree XML::LibXML XML::Writer XML::CompactTree::XS XML::LibXSLT";
+NEEDED_MODULES="Archive::Extract DateTime::Locale parent Class::Load DateTime::TimeZone Class::Singleton Test::Exception DateTime Pod::XML XML::XSH2 XML::RSS File::ShareDir File::Which UNIVERSAL::DOES XML::CompactTree XML::LibXML XML::Writer XML::CompactTree::XS XML::LibXSLT MyCPAN::App::DPAN version";
 MODULES_PERL_STR="";
 
 # Check for all needed PERL modules
@@ -114,10 +114,24 @@ XSH2=`which xsh2`
 if [ -x "$XSH2" ]; then
 	echo "xsh2 found, OK."
 else 
-	echo "Please, fix your xsh2 link (UFAL: link a startup script, others: make a symlink xsh2 which will point to xsh)"
+	echo "Please, fix your xsh2 link (UFAL: link a startup script, others: make a symlink xsh2 which will point to xsh)."
 	     exit 1;
 fi
 
+NSIS=`which makensis`
+if [ -x "$NSIS" ]; then
+	echo "makensis found, OK."
+else 
+	echo "Please, install Nullsoft Scriptable Install System >= 2.46."
+	     exit 1;
+fi
+
+NSIS_VERSION=`makensis -VERSION`
+if [ $NSIS_VERSION \> "v2.46" ]; then 
+	echo "NSIS version ok."; 
+else 
+	echo "Please, install Nullsoft Scriptable Install System >= 2.46."; 
+fi;
 
 ## create or update Treex-PML directory
 if [ -d "$TREEX_PML_DIR" ];then 

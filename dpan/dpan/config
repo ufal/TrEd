@@ -1,0 +1,26 @@
+alarm	30
+copy_bad_dists	0
+fresh_start	1
+indexer_id	Peter Fabian <peter.fabian1000@gmail.com>
+organize_dists	1
+skip_perl	1
+
+indexer_class MyIndexer::DPAN
+
+# queue_class MyCPAN::Indexer::Queue
+
+# the Perl class to use to hand out indexing jobs.
+# dispatcher_class MyCPAN::Indexer::Dispatch::Parallel
+
+# interface_class MyCPAN::Indexer::Interface::Text
+
+# worker_class    MyCPAN::Indexer::Worker
+
+# reporter_class  MyCPAN::Indexer::DPAN
+
+# The number of parallel jobs to run
+# parallel_jobs 2
+
+
+#extra_reports_dir indexer_reports/my_reports
+
