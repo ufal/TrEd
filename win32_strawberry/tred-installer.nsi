@@ -132,8 +132,6 @@ Var Result
 ; Position of anchor with a link to Perl installer
 Var AnchorBeginPos
 Var AnchorEndPos
-; String with version of the Perl which is going to be downloaded
-Var VersString
 ; The link for downloading Perl distribution
 Var DownLink
 ; Name of Perl installer (both on their servers and locally)
@@ -227,113 +225,6 @@ Function testPerl
 FunctionEnd
 
 
-; Tries to find link to Active Perl installer on ActiveState website
-Function findActivePerlLink
-	ClearErrors
-	;; find build number
-	; download webpage with list of perl versions (with release numbers)
-	inetc::get /SILENT "http://downloads.activestate.com/ActivePerl/releases/" "$TEMP\activeperl-page.html"
-	Pop $R0 ;Get the return value
-	StrCmp $R0 "OK" +3
-		MessageBox MB_OK "Download failed: $R0 $\nPlease exit installer and install Active Perl manually."
-		Quit
-	; find version string on the page
-	FileOpen $HtmlPage $TEMP\activeperl-page.html r
-	IfErrors done
-	loop:
-		FileRead $HtmlPage $Line
-		IfErrors close
-		${StrLoc} $Result $Line $DesiredPerlVersion ">"
-		IntCmp $Result 0 loop
-		; find position of string "<a href=" in the line
-		${StrLoc} $AnchorBeginPos $Line "<a href=" ">"
-		; find position of string "</a>" in the line
-		${StrLoc} $AnchorEndPos $Line "</a>" ">"
-		; copy the text between these 2 strings to VersString
-		IntOp $0 $AnchorEndPos - $AnchorBeginPos
-		StrCpy $VersString $Line $0 $AnchorBeginPos
-		; search for end-tag in VersString
-		${StrLoc} $0 $VersString ">" "<"
-		StrCpy $VersString $VersString "" -$0
-		StrLen $1 $VersString
-		IntOp $2 $1 - 1
-		StrCpy $VersString $VersString $2
-		
-		;MessageBox MB_OK "riadok: $VersString"
-		;Goto loop
-	close:
-		FileClose $HtmlPage
-	;; find link to active perl installation package
-	; download the list of releases of desired perl version
-	inetc::get /SILENT "http://downloads.activestate.com/ActivePerl/releases/$VersString/" "$TEMP\activeperl-page.html"
-	Pop $R0 ;Get the return value
-	StrCmp $R0 "OK" +3
-		MessageBox MB_OK "Download failed: $R0 $\nPlease exit installer and install Perl manually."
-		Quit
-	; find the link on the page
-	FileOpen $HtmlPage $TEMP\activeperl-page.html r
-	IfErrors done
-	loop2:
-		FileRead $HtmlPage $Line
-		IfErrors close2
-		; find line with correct perl version
-		${StrLoc} $Result $Line "ActivePerl-$VersString-MSWin32-x86" ">"
-		IntCmp $Result 0 loop2
-		; find position of string ".msi" in the line
-		${StrLoc} $Result $Line ".msi" ">"
-		IntCmp $Result 0 loop2
-		; hmhm
-		; find position of string "<a href=" in the line
-		${StrLoc} $AnchorBeginPos $Line "<a href=" ">"
-		; find position of string "</a>" in the line
-		${StrLoc} $AnchorEndPos $Line "</a>" ">"
-		; copy the text between these 2 strings to DownLink
-		IntOp $0 $AnchorEndPos - $AnchorBeginPos
-		StrCpy $PerlInstallerName $Line $0 $AnchorBeginPos
-		
-		${StrLoc} $AnchorEndPos $PerlInstallerName ">" "<"
-		StrCpy $PerlInstallerName $PerlInstallerName "" -$AnchorEndPos
-		StrCpy $DownLink "http://downloads.activestate.com/ActivePerl/releases/$VersString/$PerlInstallerName"
-		
-		;Goto loop2
-	close2:
-		FileClose $HtmlPage
-	
-	done:
-FunctionEnd
-
-; Function installActivePerl
-;	; find download link on acitestate site
-;	Call findActivePerlLink
-;	
-;	; download msi installer
-;	MessageBox MB_YESNO|MB_ICONQUESTION \
-;			"Do you want to download file from URL: $\n\
-;			$DownLink $\n \
-;			and install Active Perl?" \
-;			IDNO done
-;	;;; docasne, aby sa nemuselo znova stahovat...
-;	IfFileExists $TEMP\$PerlInstallerName install
-;	; the installer's name can not be other than the original name on the website, otherwise setup fails!
-;	inetc::get /POPUP "$DownLink" /CAPTION "Downloading Active Perl..." "$DownLink" "$TEMP\$PerlInstallerName" /END
-;	Pop $R0 ;Get the return value
-;	StrCmp $R0 "OK" +3
-;		MessageBox MB_OK "Download failed: $R0 $\nPlease exit installer and install Perl manually."
-;		Quit
-;		
-;	; start active perl installation
-;	install:
-;	ExecWait '"msiexec" /i "$TEMP\$PerlInstallerName"'
-;	IfErrors error done
-;	error:
-;		MessageBox MB_OK "Installation failed. $\nPlease exit installer and install Perl manually."
-;		Quit
-;	done:
-;		Call testPerl
-;		; Update label after Perl installation
-;		${NSD_CreateLabel} 0 0 100% 25u $PerlMsg
-;		Pop $Label
-;FunctionEnd
 
 Function findStrawberryPerlLink
 	ClearErrors
@@ -356,7 +247,7 @@ Function findStrawberryPerlLink
 		${StrLoc} $AnchorBeginPos $Line "<a href=" ">"
 		; find position of string "$\">" in the line
 		${StrLoc} $AnchorEndPos $Line "$\">" ">"
-		; copy the text between these 2 strings to VersString
+		; copy the text between these 2 strings to DownLink
 		IntOp $0 $AnchorEndPos - $AnchorBeginPos
 		IntOp $1 $0 - 9
 		IntOp $AnchorBeginPos $AnchorBeginPos + 9
@@ -559,8 +450,9 @@ Function createBat
 		GoTo done
 	no_error:
 	FileWrite $0 "@echo off$\r$\n"
-	FileWrite $0 "set PATH=%PATH%;$\"$INSTDIR\bin$\";$\"$INSTDIR\dependencies\bin$\"$\r$\n"
-	FileWrite $0 "set PERL5LIB=$INSTDIR_SHORT\dependencies\lib\perl5;$INSTDIR_SHORT\dependencies\lib\perl5\$PerlConfigArchname;%PERL5LIB%"
+	FileWrite $0 "set PATH=%PATH%;$INSTDIR_SHORT\bin;$INSTDIR_SHORT\dependencies\bin$\r$\n"
+	FileWrite $0 "set PERL5LIB=$INSTDIR_SHORT\dependencies\lib\perl5;$INSTDIR_SHORT\dependencies\lib\perl5\$PerlConfigArchname;%PERL5LIB%$\r$\n"
+	FileWrite $0 "set TRED_DIR=$INSTDIR_SHORT$\r$\n"
 	FileWrite $0 "$\r$\n"
 	FileWrite $0 "if $\"%OS%$\" == $\"Windows_NT$\" goto WinNT$\r$\n"
 	FileWrite $0 "$PerlPath $PerlScript %1 %2 %3 %4 %5 %6 %7 %8 %9$\r$\n"
@@ -590,6 +482,8 @@ Section "TrEd" SecTrEd
 	SetOutPath "$INSTDIR\bin"
 	File /r "tools\nsgmls\*"
 	File /r "tools\print\*"
+	; remove the svn hidden directory
+	RMDir /r "$INSTDIR\bin\.svn\"
 
 	CreateDirectory "$tredDataDir"
 	
