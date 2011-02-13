@@ -80,7 +80,7 @@ sub new {
 	);
 	
 	my @universal_pkgs = qw(
-		*tieto_potrebujeme_na_buildovanie_alebo_su_zavislosti_tych_vyssie
+		*these_are_needed_for_building
 		IPC::Run3
 		Probe::Perl
 		Test::Exception
@@ -193,9 +193,12 @@ sub new {
 		XML::XPath
 		*tieto_su_v_pkg_liste_no_neboli_najdene_ako_potrebne_automatickym_nastrojom
 		Class::Inspector
+		Compress::Raw::Zlib
+		Compress::Raw::Bzip2
 		Graph
 		Graph::ChuLiuEdmonds
 		!Graph::Reader
+		IO::Compress::Gzip
 		Parse::RecDescent
 		Text::Iconv
 		version
@@ -206,7 +209,7 @@ sub new {
 	);
 
 	# * = core packages, ! = don't install these
-	# it seems that Graph::Reader is not used in TrEd, try to exclude it, it has some tests that doesn't pass on windows,
+	# it seems that Graph::Reader is not used in TrEd, try to exclude it, it has some tests that don't pass on windows,
 	# because of wrong line endings
 	# PDF::API2::Basic::TTF::Font (quite old)
 	# Tk::MatchEntry (quite old)
