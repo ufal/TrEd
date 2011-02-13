@@ -18,8 +18,6 @@ use CPAN;
 use CPAN::HandleConfig;
 use Config;
 use FindBin;
-# so we can use IO::CaptureOutput in special location
-use lib "$FindBin::Bin/../lib";
 use IO::CaptureOutput qw(capture);
 use File::Spec;
 # use Data::Dumper;
@@ -205,6 +203,7 @@ sub _restore_cpan_conf {
 		} \$log_output, \$log_output;
 		print({$self->{'logfh'}} $log_output);
 	};
+	CPAN::Index->force_reload;
 }
 
 sub DESTROY {
