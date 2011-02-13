@@ -155,6 +155,8 @@ sub _init_metainfo {
 			}
 		} else {
 			warn "WARNING: Didn't find module $module_name on CPAN!";
+			# should we die if we didn't find the module?
+			#my $dummy = <STDIN>;
 		}
 	}
 	
