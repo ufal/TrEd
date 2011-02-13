@@ -47,15 +47,19 @@ if ($install_base =~ /"/){
 };
 
 # Construct paths to be added to PERL5LIB in platform-independent way 
-my ($volume,$directories,$file) = File::Spec->splitpath($install_base);
+my ($volume_1_2,$directories,$file) = File::Spec->splitpath($install_base);
 my @install_base_dirs = File::Spec->splitdir($directories);
 
-my $inc_dirs_1 = File::Spec->catdir(@install_base_dirs, $file, "lib", "perl5" );
-my $inc_dirs_2 = File::Spec->catdir(@install_base_dirs, $file, "lib", "perl5", $Config{'archname'} );
+my $inc_dirs_1 = File::Spec->catdir(@install_base_dirs, $file, "lib", "perl5");
+my $inc_dirs_2 = File::Spec->catdir(@install_base_dirs, $file, "lib", "perl5", $Config{'archname'});
 
-my $inc_extension_1 = File::Spec->catpath($volume, $inc_dirs_1);
-my $inc_extension_2 = File::Spec->catpath($volume, $inc_dirs_2);
-my $inc_extension_3 = File::Spec->catpath($FindBin::Bin);
+my ($volume_3,$directories_3,$file_3) = File::Spec->splitpath($FindBin::Bin);
+my @find_bin_dirs = File::Spec->splitdir($directories_3);
+my $inc_dirs_3 = File::Spec->catdir(@find_bin_dirs, $file_3, "lib");
+
+my $inc_extension_1 = File::Spec->catpath($volume_1_2, $inc_dirs_1);
+my $inc_extension_2 = File::Spec->catpath($volume_1_2, $inc_dirs_2);
+my $inc_extension_3 = File::Spec->catpath($volume_3, $inc_dirs_3);
 
 my $script = File::Spec->catfile($FindBin::Bin, "install_deps_2.pl");
 
@@ -73,8 +77,8 @@ if ($cpan_online_install == 0) {
 	@cmd = ("$perl", "$script", "--install-base", "$install_base", "--online-install");
 }
 if ($log ne ""){
-	($volume,$directories,$file) = File::Spec->splitpath($log);
-	mkpath($volume . $directories);
+	($volume_1_2,$directories,$file) = File::Spec->splitpath($log);
+	mkpath($volume_1_2 . $directories);
 	push(@cmd, ("--log", "$log"));
 }
 

@@ -91,4 +91,5 @@ rm -f tred_wininst_en.exe
 rm -f tred_wininst_en.7z
 ln "${WINPKG}.7z" tred_wininst_en.7z
 ln "${WINPKG}.exe" tred_wininst_en.exe
+rm -f tred_win32strawberry_en.exe
 ln "tred-installer.exe" tred_win32strawberry_en.exe
