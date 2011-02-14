@@ -6,6 +6,7 @@ It lists modules to install. Each module is specified by
 its filename without version number and extension.
 
 Changelog:
+	0.0.4 -- Added more complex and powerful way of passing custom build & install parameters to cpan
 	0.0.3 -- Added dpan_mirror location
 	0.0.2 -- using quotes in anonymous hash keys
 
@@ -20,22 +21,48 @@ use strict;
 use Exporter;
 use version;
 use Carp;
+use CPAN;
+use CPAN::HandleConfig;
 # use Data::Dumper;
 
 use vars qw($VERSION @ISA @EXPORT);
 
-our $VERSION = qv('0.0.3');
+our $VERSION = qv('0.0.4');
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw(custom_build_params special_module_msg win_pkgs patched_pkgs universal_pkgs dpan_mirror);
 
 sub new {
 	my $package = shift;
+	
+	# init cpan
+	CPAN::HandleConfig->load;
+	CPAN::HandleConfig->require_myconfig_or_config();
+	CPAN::Shell::setup_output;
+	
+	my $make_command = $CPAN::Config->{'make'};
+	if (!defined($make_command) || $make_command eq ""){
+		$make_command = "make";
+	}
+	
+	my %Tk_makepl_arg = ("add" => {"makepl_arg" => "XFT=1"});
+	my %XML_LibXSLT_makepl_arg = ("add" => {"makepl_arg" => "SKIP_SAX_INSTALL=1"});
+	
+	# If XML::SAX is installed by root user or in location not writable by us, the installation on XML::LibXML will fail
+	# because it needs to write to XML/SAX/ParserDetails.ini, which in situated in 
+	# /usr/local/share/perl/version (on linux)
+	# /System/Library/Perl/Extras/version (on Mac OS X)
+	# so we need to run installation as super-user
+	my %XML_LibXML_make_install_make_command = ("replace" => {"make_install_make_command" => "sudo $make_command"});
+	
 	# Custom build parameters for some packages
 	my %custom_build_params = (
-		"Tk" 			=> "XFT=1",
-		"XML::LibXSLT" 		=> "SKIP_SAX_INSTALL=1",
+		"Tk" 			=> \%Tk_makepl_arg,
+		"XML::LibXSLT" 		=> \%XML_LibXSLT_makepl_arg,
 	);
+	if($^O ne "MSWin32"){
+		$custom_build_params{"XML::LibXML"} = \%XML_LibXML_make_install_make_command;
+	}
 	
 	# Some messages for better communication with the
 	my %special_module_msg = (
@@ -206,6 +233,7 @@ sub new {
 		XML::NamespaceSupport
 		XML::SAX
 		XML::LibXML::Iterator
+		Mac::SystemDirectory
 	);
 
 	# * = core packages, ! = don't install these
@@ -239,11 +267,10 @@ sub dpan_dir {
 
 sub custom_build_params {
 	my ($self, $module_name) = @_;
-
 	if(defined($self->{'custom_build_params_ref'}->{$module_name})){
 		return $self->{'custom_build_params_ref'}->{$module_name};
 	} else {
-		return "";
+		return undef;
 	}
 }
 
