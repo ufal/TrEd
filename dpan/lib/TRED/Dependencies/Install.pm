@@ -3,6 +3,7 @@
 
 
 Changelog:
+	0.0.3 -- More sophisticated build & install parameters
 	0.0.2 -- Rewrite to module instead of simple script
 
 =head1 AUTHOR
@@ -26,7 +27,7 @@ use version;
 
 use vars qw($VERSION @ISA @EXPORT);
 
-our $VERSION = qv('0.0.2');
+our $VERSION = qv('0.0.3');
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw(install_tred_deps);
@@ -57,9 +58,9 @@ sub _init_cpan {
 	my ($self) = @_;
 	my $log_output = "";
 	# Init CPAN
-	CPAN::HandleConfig->load;
+	CPAN::HandleConfig->load();
 	CPAN::HandleConfig->require_myconfig_or_config();
-	CPAN::Shell::setup_output;
+	CPAN::Shell::setup_output();
 
 	capture {
 		# Don't colorize output to log
@@ -109,13 +110,13 @@ sub _common_cpan_conf {
 		
 		# we don't support SQLite CPAN (yet)
 		CPAN::Shell->o("conf", "use_sqlite", 0);
-		# if UNINST=1 is set, we could mess up the standard installation on windows => unset UNINST=1
+		# if UNINST=1 is set, we could mess up the standard installation make  => unset UNINST=1
 		CPAN::Shell->o("conf", "make_install_arg", "");
 		CPAN::Shell->o("conf", "mbuild_install_arg", "");
 		# reload cpan
-		CPAN::HandleConfig->load;
-		CPAN::Shell::setup_output;
-		CPAN::Index->force_reload;
+		CPAN::HandleConfig->load();
+		CPAN::Shell::setup_output();
+		CPAN::Index->force_reload();
 		# set installation directory, but be careful, because on Windows direcotries contain spaces
 		# the only choice to handle spaces in MakeMaker is to use 8.3 names, so we have to rely on the installer to pass us
 		# proper filename
@@ -124,6 +125,45 @@ sub _common_cpan_conf {
 	} \$log_output, \$log_output;
 	print({$self->{'logfh'}} $log_output);
 }
+
+sub _set_custom_parameters {
+	my ($self, $custom_build_params_ref, $backup_ref) = @_;
+	
+	# replace
+	my $params_to_replace_ref = $custom_build_params_ref->{"replace"};
+	foreach my $param_key (keys(%{$params_to_replace_ref})){
+		#create backup
+		$backup_ref->{$param_key} = $CPAN::Config->{$param_key};
+		#replace the parameter
+		CPAN::Shell->o("conf", $param_key, $params_to_replace_ref->{$param_key});
+		print "custom param: $param_key=|".$CPAN::Config->{$param_key}."|\n";
+	}
+	
+	#add
+	my $params_to_add_ref = $custom_build_params_ref->{"add"};
+	foreach my $param_key (keys(%{$params_to_add_ref})){
+		#create backup
+		$backup_ref->{$param_key} = $CPAN::Config->{$param_key};
+		
+		#add the parameter
+		if(defined($CPAN::Config->{$param_key})){
+			CPAN::Shell->o("conf", $param_key, $CPAN::Config->{$param_key} . ' ' . $params_to_add_ref->{$param_key});
+		} else {
+			CPAN::Shell->o("conf", $param_key, $params_to_add_ref->{$param_key});
+		}
+		print "custom param: $param_key=|".$CPAN::Config->{$param_key}."|\n";
+	}
+
+}
+
+sub _restore_after_custom_parameters {
+	my ($self, $backup_ref) = @_;
+	# set params back
+	foreach my $key (keys(%{$backup_ref})){
+		CPAN::Shell->o("conf", $key, $backup_ref->{$key});
+	}
+}
+
 
 sub _install_modules {
 	my ($self, $module_list_ref) = @_;
@@ -141,26 +181,22 @@ sub _install_modules {
 		
 		my $log_output = "";
 		capture {
-			my $custom_build_params = $self->{'install_config'}->custom_build_params($module_name);
-			if($custom_build_params ne ""){
-				# add new args to make/build
-				my $makepl_arg = $CPAN::Config->{'makepl_arg'};
-				my $mbuildpl_arg = $CPAN::Config->{'mbuildpl_arg'};
-				CPAN::Shell->o("conf", "makepl_arg", "$makepl_arg $custom_build_params");
-				CPAN::Shell->o("conf", "mbuildpl_arg", "$mbuildpl_arg $custom_build_params");
+			my $custom_build_params_ref = $self->{'install_config'}->custom_build_params($module_name);
+			if(defined($custom_build_params_ref)){
+				my %custom_params_backup = ();
+				# set custom make parameters
+				$self->_set_custom_parameters($custom_build_params_ref, \%custom_params_backup);
 				# install module
-				print "makepl_arg: |".$CPAN::Config->{'makepl_arg'}."|\nmbuildpl_arg: |".$CPAN::Config->{'mbuildpl_arg'}."|\n";
 				CPAN::Shell->install($module_name);
-				# set args back
-				CPAN::Shell->o("conf", "makepl_arg", "$makepl_arg");
-				CPAN::Shell->o("conf", "mbuildpl_arg", "$mbuildpl_arg");
+				# restore usual config after using custom parameters
+				$self->_restore_after_custom_parameters(\%custom_params_backup);
+				
 			} else {
-				print "makepl_arg: |".$CPAN::Config->{'makepl_arg'}."|\nmbuildpl_arg: |".$CPAN::Config->{'mbuildpl_arg'}."|\n";
 				CPAN::Shell->install($module_name);
 			}
 		} \$log_output, \$log_output;
 		my @log_lines = split("\n", $log_output);
-		my @make_reports = grep(/ -- (NOT )?OK$|up to date|Running install for module/, @log_lines);
+		my @make_reports = grep(/ -- (NOT )?OK$|up to date |Running install for module/, @log_lines);
 		
 		my $install_status = join("\n", @make_reports);
 		print(STDOUT $install_status . "\n\n");
@@ -203,7 +239,7 @@ sub _restore_cpan_conf {
 		} \$log_output, \$log_output;
 		print({$self->{'logfh'}} $log_output);
 	};
-	CPAN::Index->force_reload;
+	CPAN::Index->force_reload();
 }
 
 sub DESTROY {
@@ -220,7 +256,7 @@ sub install_tred_deps {
 
 	# Let's install modules
 	# But be careful, if sth fails, we have to restore original CPAN configuration
-# 	eval {
+	eval {
 
 		# these modules must be installed from local CPAN mirror, because they are patched or modified
 		$self->_install_local_modules($self->{'install_config'}->patched_pkgs());
@@ -233,7 +269,7 @@ sub install_tred_deps {
 		if ($self->{'platform'} eq "MSWin32"){
 			$self->_install_modules_smartly($self->{'install_config'}->win_pkgs());
 		}
-# 	};
+	};
 
 	# Report which packages failed to install
 	print("Installing Perl modules done.\n");
