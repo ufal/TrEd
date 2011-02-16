@@ -1,5 +1,5 @@
 package TrEd::Utils;
-# pajas@ufal.ms.mff.cuni.cz          28 úno 2007
+# pajas@ufal.ms.mff.cuni.cz          28 uno 2007
 
 use 5.008;
 use strict;
@@ -17,8 +17,8 @@ use constant {
   STYLESHEET_FROM_FILE  => "<From File>",
   NEW_STYLESHEET        => "<New From Current>",
   DELETE_STYLESHEET     => "<Delete Current>",
-
-  EMPTY                 => qw(),
+  
+  EMPTY                 => "",
 };
 
 # Items to export into callers namespace by default. Note: do not export
@@ -59,7 +59,15 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(  );
 our $VERSION = '0.01';
 
-sub fetch_from_win32_reg {
+#######################################################################################
+# Usage         : fetch_from_win32_reg_old('HKEY_LOCAL_MACHINE', q(SOFTWARE\Classes\.html)[, $subkey])
+# Purpose       : Read a value from windows registry, 
+# Returns       : Value read or undef when the key was not found
+# Parameters    : string $registry, string $key[, string $subkey]
+# Throws        : no exceptions
+# Comments      : Loads Win32::Registry; Now obsolete, just for testing purposes, see newer version: fetch_from_win32_reg
+# See Also      : fetch_from_win32_reg
+sub fetch_from_win32_reg_old {
   my ($registry,$key,$subkey)=@_;
   my ($reg,%data);
 
@@ -75,9 +83,53 @@ sub fetch_from_win32_reg {
   return undef;
 }
 
+######################################################################################
+# Usage         : fetch_from_win32_reg('HKEY_LOCAL_MACHINE', q(SOFTWARE\Classes\.html)[, $subkey])
+# Purpose       : Read a value from windows registry, 
+# Returns       : Value read or undef when the key was not found
+# Parameters    : string $registry, string $key[, string $subkey]
+# Throws        : no exceptions
+# Comments      : Loads Win32::TieRegistry
+# See Also      : fetch_from_win32_reg_old, Win32::TieRegistry (cpan)
+sub fetch_from_win32_reg_2 {
+  my ($registry,$key,$subkey)=@_;
+
+  my $reg_ref;
+  my $delimiter = "\\";
+  require Win32::TieRegistry;
+  import Win32::TieRegistry ( Delimiter=>$delimiter, ArrayValues=>1, DWordsToHex=>1, TiedRef => \$reg_ref, "REG_DWORD");
+  my $query = ($registry . $delimiter . $key . $delimiter);
+  # if subkey is not defined, we have to use one more delimiter to let the module know, we want the default value
+  if(defined($subkey)){
+    $query .= $subkey;
+  } else {
+    $query .= $delimiter;
+  }
+  # Array returned by the registry reader:
+  # array_ref->[0] == value
+  # array_ref->[1] == type
+  my $value_array_ref = $reg_ref->{$query};
+  if (defined $value_array_ref) { 
+    # print "key was found.\n";
+  } else {
+    # print "key not found.\n";
+    return undef;
+  }
+  # to be coherent with the old version, which returns decimal instead of hexadecimal value   
+  return ($value_array_ref->[1] == REG_DWORD()) ? hex($value_array_ref->[0]) : $value_array_ref->[0];
+}
+
+######################################################################################
+# Usage         : find_win_home()
+# Purpose       : Set 'HOME' environment variable on Windows to user's AppData 
+# Returns       : nothing
+# Parameters    : no
+# Throws        : a string; dies if the 'HOME' env variable is not set and AppData could not be read from the registry 
+# Comments      : Loads Win32::TieRegistry indirectly
+# See Also      : fetch_from_win32_reg, Win32::TieRegistry (cpan)
 sub find_win_home {
-  # in Windows, if HOME not defined, use user's AppData folder instaed
-  if ($^O eq "MSWin32" and !exists $ENV{HOME}) {
+  # in Windows, if HOME not defined, use user's AppData folder instead
+  if ($^O eq "MSWin32" and !exists($ENV{HOME})) {
     my $key = q(Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders);
     my $home = fetch_from_win32_reg
       ('HKEY_CURRENT_USER',
@@ -86,7 +138,7 @@ sub find_win_home {
     if (defined($home)) {
       $ENV{HOME}= $home;
     } else {
-      die "Couldn't fetch $key from Win32 registry: $^E\n";
+      croak("Couldn't fetch $key from Win32 registry: $^E\n");
     }
   }
 }
@@ -562,15 +614,31 @@ sub loadStyleSheets {
   }
 }
 
+#######################################################################################
+# Usage         : setFHEncoding(\*STDOUT, ':utf8', "STDOUT")
+# Purpose       : Set encoding on a file handle  
+# Returns       : nothing
+# Parameters    : filehandle $fh, string $encoding, string $what
+# Throws        : a string; When binmode or flush call fails
+# Comments      : Be careful, don't use :utf8 on input files and STDIN (http://en.wikibooks.org/wiki/Perl_Programming/Unicode_UTF-8);
+#                 It seems that the third parameter is not used in the sub, why is it here?
+# See Also      : binmode (perldoc)
+#TODO: mixing of camel and underscore, should be used in a coherent manner...
 sub setFHEncoding {
   my ($fh, $enc, $what)=@_;
   return unless $enc;
-  $fh->flush();
-  binmode $fh; # first get rid of all I/O layers
+  $fh->flush()
+    or croak("Could not flush $what");
+  # first get rid of all I/O layers
+  binmode($fh)
+    or croak("Could not set binmode on $what");
+  
   if ($enc =~ /^:/) {
-    binmode $fh,$enc;
+    binmode($fh,$enc)
+      or croak("Could not use binmode to set encoding to $enc on $what");
   } else {
-    binmode $fh,":encoding($enc)";
+    binmode($fh,":encoding($enc)")
+      or croak("Could not use binmode to set encoding to $enc on $what");
   }
 }
 

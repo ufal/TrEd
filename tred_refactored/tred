@@ -115,6 +115,8 @@ if ($manpage) {
 }
 if ($list_options) {
   foreach my $o (keys %optmap) {
+  	# Removes type Getopt::Long's type information from optmap
+  	# However, tt does not work for 'option|O=s@'
     $o=~s/=.$//;
     foreach my $oo (split /\|/,$o) {
       print sort ((length($oo)>1) ? "--$oo\n" : "-$oo\n");
@@ -128,6 +130,7 @@ if ($list_options) {
 ($userlogin =~ /\S/) || warn "Couldn\'t deterbmine user\'s login name\n";
 use Carp;
 
+#TODO: ktore IO moduly sa vlastne pouzivaju? zistit a importovat iba tie, samotne IO je uz deprecated
 use IO;
 use Cwd;
 use File::Spec;
@@ -171,7 +174,9 @@ unshift @INC,$libDir if -d $libDir;
 
 require TrEd::Utils;
 import TrEd::Utils qw(:all);
+# set HOME environment variable on Windows to user's AppData
 find_win_home();
+# set output encoding to utf8 on stdout and stderr
 setFHEncoding(\*STDERR,':utf8',"STDERR");
 setFHEncoding(\*STDOUT,':utf8',"STDOUT");
 
@@ -188,6 +193,7 @@ setFHEncoding(\*STDOUT,':utf8',"STDOUT");
   $TrEd::Config::quiet = $opt_q;
 }
 
+# custom configuration file
 if (defined $opt_c) {
   @TrEd::Config::config_file_search_list=($opt_c); # override any other possible config files
 } else {
@@ -195,6 +201,7 @@ if (defined $opt_c) {
 }
 
 my $initial_config;
+#TODO: why is this sub defined here, in the BEGIN section?
 sub applyInitialConfig { setConfig($initial_config); undef $initial_config }
 $TrEd::Config::set_user_config=sub { $initial_config=shift };	# tred specific configuration
 $configFile=read_config(); # this may setup a new $libDir
