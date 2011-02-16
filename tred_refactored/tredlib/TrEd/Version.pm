@@ -1,5 +1,5 @@
 package TrEd::Version;
-# pajas@ufal.mff.cuni.cz          17 øíj 2008
+# pajas@ufal.mff.cuni.cz          17 maj 2008
 
 use 5.008;
 use strict;
@@ -17,6 +17,7 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw( TRED_VERSION );
 
+# next line is modified automatically during the release
 our $VERSION = "SVN_VERSION"; # DO NOT MODIFY THIS LINE !!
 
 # Preloaded methods go here.
