@@ -65,7 +65,7 @@ our $VERSION = '0.01';
 # Returns       : Value read or undef when the key was not found
 # Parameters    : string $registry, string $key[, string $subkey]
 # Throws        : no exceptions
-# Comments      : Loads Win32::Registry; Now obsolete, just for testing purposes, see newer version: fetch_from_win32_reg
+# Comments      : Requires Win32::Registry; Now obsolete, just for testing purposes, see newer version: fetch_from_win32_reg
 # See Also      : fetch_from_win32_reg
 sub fetch_from_win32_reg_old {
   my ($registry,$key,$subkey)=@_;
@@ -89,7 +89,7 @@ sub fetch_from_win32_reg_old {
 # Returns       : Value read or undef when the key was not found
 # Parameters    : string $registry, string $key[, string $subkey]
 # Throws        : no exceptions
-# Comments      : Loads Win32::TieRegistry
+# Comments      : Requires Win32::TieRegistry
 # See Also      : fetch_from_win32_reg_old, Win32::TieRegistry (cpan)
 sub fetch_from_win32_reg_2 {
   my ($registry,$key,$subkey)=@_;
@@ -125,7 +125,7 @@ sub fetch_from_win32_reg_2 {
 # Returns       : nothing
 # Parameters    : no
 # Throws        : a string; dies if the 'HOME' env variable is not set and AppData could not be read from the registry 
-# Comments      : Loads Win32::TieRegistry indirectly
+# Comments      : Requires Win32::TieRegistry indirectly
 # See Also      : fetch_from_win32_reg, Win32::TieRegistry (cpan)
 sub find_win_home {
   # in Windows, if HOME not defined, use user's AppData folder instead

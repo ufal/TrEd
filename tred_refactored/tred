@@ -202,8 +202,10 @@ if (defined $opt_c) {
 
 my $initial_config;
 #TODO: why is this sub defined here, in the BEGIN section?
+# see perlsub
 sub applyInitialConfig { setConfig($initial_config); undef $initial_config }
 $TrEd::Config::set_user_config=sub { $initial_config=shift };	# tred specific configuration
+# global $configFile
 $configFile=read_config(); # this may setup a new $libDir
 
 unless (-d $libDir) {

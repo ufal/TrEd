@@ -7,6 +7,8 @@ package TrEd::Config;
 # This software covered by GPL - The General Public Licence
 #
 
+use Data::Dumper;
+
 use strict;
 use File::Spec;
 use Cwd;
@@ -183,6 +185,15 @@ $printOptions={};
 
 my $resourcePathSplit = ($^O eq "MSWin32") ? ',' : ':';
 
+######################################################################################
+# Usage         : set_default_config_file_search_list()
+# Purpose       : Set @config_file_search_list values to common places where 
+#                 tredrc cofiguration file is usually found
+# Returns       : nothing
+# Parameters    : no
+# Throws        : nothing
+# Comments      : Requires FindBin
+# See Also      : 
 sub set_default_config_file_search_list {
   require FindBin;
   @config_file_search_list=
@@ -205,29 +216,92 @@ sub tilde_expand {
   return $a;
 }
 
+#####################################################################################
+# Usage         : parse_config_line()
+# Purpose       : Parse each line of the config file to extract key and value pair and 
+#                 save it into hash $confs
+# Returns       : nothing
+# Parameters    : string $line, hash_ref $confs_ref
+# Throws        : nothing
+# Comments      : Longer because of comments of quite sophisticated regexp
+# See Also      : read_config() -- a caller of this ftion
 sub parse_config_line {
-  local $_=shift;
-  my $confs=shift;
+  my ($line, $confs_ref) = @_;
   my $key;
-  unless (/^\s*[;\#]/ or /^\s*$/) {
-    chomp;
-    if (/^\s*([a-zA-Z_]+[a-zA-Z_0-9]*(::[a-zA-Z_]+[a-zA-Z_0-9:]*)?)\s*=\s*('(?:[^\\']|\\.)*'|"(?:[^\\"]|\\.)*"|(?:\s*(?:[^;\\\s]|\\.)+)*)/) {
+  my $spaces_re = qr{\s*};
+  my $optional_subkey_re = qr{
+    ::[a-zA-Z_]+[a-zA-Z_0-9:]*
+  }x;
+  my $key_standard_re = qr{
+    [a-zA-Z_]+[a-zA-Z_0-9]*
+  }x;
+  my $single_quot_value_re = qr{
+    '(?:[^\\']|\\.)*' # we want the regexp to be able to match escaped single quotes and backslashes in string and use it, 
+                      # so |'" \'sth_else| or |'abc\'\'| does not match
+                      # but |'" \'sth_else'| or |'abcd\''| matches and it extracts |" \'sth_else| and |abcd\'|, respectively
+                      # be careful, though: |'abcd\\''| matches, but the last quote is not extracted: |abcd\\|
+  }x;
+  my $double_quot_value_re = qr {
+    "(?:[^\\"]|\\.)*" # the same situation as with single quotes, just change ' => " and vice versa
+  }x;
+  my $unquot_value_re = qr {
+    (?:\s*(?:[^;\\\s]|\\.)+)* # we want to allow strings like C:\\Documents and Settings\\John\\Application Data\\
+                              # so we basically accept everything except for ';', which is a start for a commentary (but it can be escaped)
+                              # everything after the ';' until the end of the line is thrown away
+                              # backslash, ';' and whitespace at the end of the string is chopped, but only if they are not escaped
+  }x;
+  my $parse_config_re = qr{
+    ^
+    $spaces_re # any number of spaces
+    #key capturing
+    (	
+    $key_standard_re
+    ($optional_subkey_re)?
+    )
+    $spaces_re # any number of spaces
+    =	       # equal sign as the key-value delimiter
+    $spaces_re # any number of spaces
+    #capture value
+    (
+    #single quoted value
+    $single_quot_value_re
+    | # or
+    $double_quot_value_re
+    | # or
+    $unquot_value_re
+    )
+  }x;
+  
+  # if line starts with ; or # or contains only spaces, don't do anything
+  unless ($line =~ /^\s*[;#]/ or $line =~ /^\s*$/) {
+    chomp($line);
+    if ($line =~ $parse_config_re) {
+      # if there is no "::" in key, lowercase it 
       $key = $2 ? $1 : lc($1);
-      $confs->{$key}=$3;
-      $confs->{$key}=~s/\\(.)/$1/g;
-      $confs->{$key}=$1 if ($confs->{$key}=~/^'(.*)'$/ or $confs->{$key}=~/^"(.*)"$/);
+      $confs_ref->{$key} = $3;
+      $confs_ref->{$key} =~ s/\\(.)/$1/g;
+      # remove quotes
+      if ($confs_ref->{$key}=~/^'(.*)'$/ or $confs_ref->{$key}=~/^"(.*)"$/){
+        $confs_ref->{$key}=$1;
+      }
     }
   }
 }
 
+#####################################################################################
+# Usage         : read_config()
+# Purpose       : Set @config_file_search_list values to common places where 
+#                 tredrc cofiguration file is usually found
+# Returns       : Path to the config file from which the configuration was read
+# Parameters    : [List of tredrc possible locations]
+# Throws        : nothing
+# Comments      : Simple configuration file handling
+# See Also      : parse_config_line(), set_config()
 sub read_config {
-  #
-  # Simple configuration file handling
-  #
   my %confs;
   my ($key, $f);
   local *F;
-  my $openOk=0;
+  my $config_found = 0;
   my $config_file;
 
   foreach $f (@_,@config_file_search_list) {
@@ -235,15 +309,15 @@ sub read_config {
     if (defined($f) and open($fh,'<',$f)) {
       print STDERR "Config file: $f\n" unless $quiet;
       while (<$fh>) {
-	parse_config_line($_,\%confs);
+        parse_config_line($_,\%confs);
       }
       close($fh);
-      $openOk=1;
-      $config_file=$f;
+      $config_found = 1;
+      $config_file = $f;
       last;
     }
   }
-  unless ($openOk) {
+  unless ($config_found) {
     print STDERR
       "Warning: Cannot open any file in:\n",
       join(":",@config_file_search_list),"\n" .
@@ -275,23 +349,23 @@ sub set_config {
       my ($n,$v) = split /=/,$opt,2;
       $n=lc($n) unless $n=~/::/;
       if ($n=~s{([-+;:.,&|/ \t]|\\s|\\t)([-.+]?)$}{}) {
-	my $delim=$1;
-	my $operation=$2;
-	my $wdelim = $delim;
-	$wdelim=' ' if $delim eq '\s';
-	$wdelim="\t" if $delim eq '\t';
-	if (defined($confs->{$n}) and length($confs->{$n})) {
-	  if (!$operation) {
-	    $confs->{$n}=$v.$wdelim.$confs->{$n};
-	  } elsif ($operation eq '+') {
-  	    $confs->{$n}=$confs->{$n}.$wdelim.$v;
-	  } elsif ($operation eq '-') {
-	    $confs->{$n}=join $wdelim, grep { $_ ne $v } split /[$delim]/,$confs->{$n};
-	  }
-	  next;
-	} else {
-	  next if $operation and $operation eq '-';
-	}
+        my $delim=$1;
+        my $operation=$2;
+        my $wdelim = $delim;
+        $wdelim=' ' if $delim eq '\s';
+        $wdelim="\t" if $delim eq '\t';
+        if (defined($confs->{$n}) and length($confs->{$n})) {
+          if (!$operation) {
+            $confs->{$n}=$v.$wdelim.$confs->{$n};
+          } elsif ($operation eq '+') {
+            $confs->{$n}=$confs->{$n}.$wdelim.$v;
+          } elsif ($operation eq '-') {
+            $confs->{$n}=join $wdelim, grep { $_ ne $v } split /[$delim]/,$confs->{$n};
+          }
+          next;
+        } else {
+          next if $operation and $operation eq '-';
+        }
       }
       $confs->{$n}=$v;
     }

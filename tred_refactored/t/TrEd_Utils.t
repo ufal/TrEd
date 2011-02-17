@@ -56,52 +56,53 @@ SKIP: {
   
 }
 
+
 ###################################
 ####### Test setFHEncoding()
 ###################################
+sub _write_text_to_file {
+  my ($fname, $encoding, $text) = @_;
+  my $fh;
+  open($fh, ">", $fname)
+    or die "Could not open file $fname";
+  setFHEncoding($fh, $encoding);
+  print $fh $text
+    or die "Could not write to file $fname";;
+  close($fh);
+}
+
+sub _read_text_from_file {
+  my ($fname, $encoding) = @_;
+  my $fh;
+  open($fh, "<", $fname)
+    or die "Could not open file $fname";
+  if(defined($encoding)){
+    binmode($fh, $encoding);
+  } else {
+    binmode($fh);
+  }
+  my $file_bytes=<$fh>;
+  close($fh);
+  return $file_bytes;
+}
+
 my $utf8_test_string = "Příliš žluťoučký kůň úpěl ďábelské ódy\n";
 my $cp1250_test_string = encode("cp1250", $utf8_test_string);
 my $utf8_file_name = "utf8_file.txt";
 my $cp1250_file_name = "cp1250_file.txt";
 
-# Write cp 1250 string to the file
-my $fh;
-open($fh, ">", $cp1250_file_name)
-  or die "Could not open file $cp1250_file_name";
-setFHEncoding($fh, "cp1250");
-print $fh $utf8_test_string
-  or die "Could not write to file $cp1250_file_name";;
-# writing in cp1250
-close($fh);
+# Write strings to files using different encoding
+_write_text_to_file($cp1250_file_name,  "cp1250", $utf8_test_string);
+_write_text_to_file($utf8_file_name,    ":utf8",  $utf8_test_string);
 
-# Write utf8 string to the file
-my $fh_2;
-open($fh_2, ">", $utf8_file_name)
-  or die "Could not open file $utf8_file_name";
-setFHEncoding($fh_2, ":utf8");
-print $fh_2 $utf8_test_string
-  or die "Could not write to $utf8_file_name";
-# writing in utf8
-close($fh_2);
-
-# Read the string from cp1250 file
-open($fh, "<", $cp1250_file_name)
-  or die "Could not open file $cp1250_file_name";
-binmode($fh);
-my $cp1250_bytes=<$fh>;
-close($fh);
-
-# Read the string from utf8 file
-open($fh_2, "<", $utf8_file_name)
-  or die "Could not open file $utf8_file_name";
-binmode($fh_2, ":encoding(utf8)");
-my $utf8_bytes=<$fh_2>;
-close($fh_2);
+# Read the strings from files
+my $cp1250_bytes = _read_text_from_file($cp1250_file_name, undef);
+my $utf8_bytes = _read_text_from_file($utf8_file_name, ":encoding(utf8)");
 
 is($utf8_test_string,   $utf8_bytes,    "setFHEncoding(): utf8 strings are equal");
 is($cp1250_test_string, $cp1250_bytes,  "setFHEncoding(): cp1250 strings are equal");
 
 # Remove temporary files
-unlink $fh;
-unlink $fh_2;
+unlink $utf8_file_name;
+unlink $cp1250_file_name;
 
