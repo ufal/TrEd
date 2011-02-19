@@ -1,4 +1,5 @@
 #!/usr/bin/env perl
+# tests for TrEd::Config
 
 use strict;
 use warnings;
@@ -9,17 +10,17 @@ use Cwd;
 
 use Test::More 'no_plan';#tests => 19;
 
-my @subs = qw(
-  read_config
-  apply_config
-  set_default_config_file_search_list
-);
+BEGIN {
+  my $module_name = 'TrEd::Config';
+  our @subs = qw(
+    read_config
+    apply_config
+    set_default_config_file_search_list
+  );
+  use_ok($module_name, @subs);
+}
 
-my $module_name = 'TrEd::Config';
-
-use_ok($module_name, @subs)
-  or die('Could not load module $module_name');
-
+our @subs;
 can_ok(__PACKAGE__, @subs);
 
 {
@@ -122,22 +123,36 @@ SKIP: {
   {
     no warnings "once";
     # 3 double quoted string tests:
-    is($TrEd::Config::canvasBalloonInitWait, $control_hash{'hintwait'}, "using double quotes in config file");
-    is($TrEd::Config::canvasBalloonForeground, $control_hash{'hintforeground'}, "escaping double quote at the end of double-quoted string");
-    is($TrEd::Config::canvasBalloonBackground, $control_hash{'hintbackground'}, "escaping double quote in the middle of double-quoted string");
+    is($TrEd::Config::canvasBalloonInitWait,    $control_hash{'hintwait'}, 
+    "read_config(): using double quotes in config file");
+    is($TrEd::Config::canvasBalloonForeground,  $control_hash{'hintforeground'},
+    "read_config(): escaping double quote at the end of double-quoted string");
+    is($TrEd::Config::canvasBalloonBackground,  $control_hash{'hintbackground'},
+    "read_config(): escaping double quote in the middle of double-quoted string");
     # 6 single quoted string tests:
-    is($TrEd::Config::toolbarBalloonInitWait, $control_hash{'toolbarhintwait'}, "using single quotes in config file, ignore other text");
-    is($TrEd::Config::toolbarBalloonForeground, $control_hash{'toolbarhintforeground'}, "commentary with unpaired single quote");
-    is($TrEd::Config::toolbarBalloonBackground, $control_hash{'toolbarhintbackground'}, "escaping single quote in the middle of single-quoted string");
-    is($TrEd::Config::activeTextColor, $control_hash{'activetextcolor'}, "don't treat comments in quotes as comments");
-    is($TrEd::Config::stippleInactiveWindows, $control_hash{'stippleinactivewindows'}, "1 backslash from 3");
-    is($TrEd::Config::highlightWindowColor, $control_hash{'highlightwindowcolor'}, "don't let comments with quotes confuse us");
+    is($TrEd::Config::toolbarBalloonInitWait,   $control_hash{'toolbarhintwait'},
+    "read_config(): using single quotes in config file, ignore other text");
+    is($TrEd::Config::toolbarBalloonForeground, $control_hash{'toolbarhintforeground'},
+    "read_config(): commentary with unpaired single quote");
+    is($TrEd::Config::toolbarBalloonBackground, $control_hash{'toolbarhintbackground'},
+    "read_config(): escaping single quote in the middle of single-quoted string");
+    is($TrEd::Config::activeTextColor,          $control_hash{'activetextcolor'},
+    "read_config(): don't treat comments in quotes as comments");
+    is($TrEd::Config::stippleInactiveWindows,   $control_hash{'stippleinactivewindows'},
+    "read_config(): 1 backslash from 3");
+    is($TrEd::Config::highlightWindowColor,     $control_hash{'highlightwindowcolor'},
+    "read_config(): don't let comments with quotes confuse us");
     # 5 unquoted string tests:
-    is($TrEd::Config::highlightWindowWidth, $control_hash{'highlightwindowwidth'}, "treat comments correctly");
-    is($TrEd::Config::valueLineHeight, $control_hash{'vlineheight'}, "eating one backslash");
-    is($TrEd::Config::valueLineAlign, $control_hash{'vlinealign'}, "escaped comment");
-    is($TrEd::Config::valueLineWrap, $control_hash{'vlinewrap'}, "don't delete escaped whitespace at the end");
-    is($TrEd::Config::valueLineReverseLines, $control_hash{'vlinereverselines'}, "windows path using spaces and backslashes");
+    is($TrEd::Config::highlightWindowWidth,     $control_hash{'highlightwindowwidth'},
+    "read_config(): treat comments correctly");
+    is($TrEd::Config::valueLineHeight,          $control_hash{'vlineheight'},
+    "read_config(): eating one backslash");
+    is($TrEd::Config::valueLineAlign,           $control_hash{'vlinealign'},
+    "read_config(): escaped comment");
+    is($TrEd::Config::valueLineWrap,            $control_hash{'vlinewrap'},
+    "read_config(): don't delete escaped whitespace at the end");
+    is($TrEd::Config::valueLineReverseLines,    $control_hash{'vlinereverselines'},
+    "read_config(): windows path using spaces and backslashes");
   }
   
   unlink($dummy_config);

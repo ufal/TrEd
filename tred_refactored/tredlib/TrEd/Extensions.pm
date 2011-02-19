@@ -1,5 +1,5 @@
 package TrEd::Extensions;
-# pajas@ufal.ms.mff.cuni.cz          02 øíj 2008
+# pajas@ufal.ms.mff.cuni.cz          02 ï¿½ï¿½j 2008
 
 use 5.008;
 use strict;
@@ -81,7 +81,7 @@ sub initExtensions {
   }
   $extension_dir||=getExtensionsDir();
   my (%m,%r,%i,%s);
-  @s{ grep defined, @TrEd::Utils::stylesheetPaths } = () if defined @TrEd::Utils::stylesheetPaths;
+  @s{ grep defined, @TrEd::Utils::stylesheet_paths } = () if defined @TrEd::Utils::stylesheet_paths;
   @r{ Treex::PML::ResourcePaths() } = ();
   @m{ grep defined, @TrEd::Macros::macro_include_paths } = () if defined @TrEd::Macros::macro_include_paths;
   @i{ @INC } = ();
@@ -103,7 +103,7 @@ sub initExtensions {
     }
     $dir = File::Spec->catdir($extension_dir,$name,'stylesheets');
     if (-d $dir and !exists($s{$dir})) {
-      push @TrEd::Utils::stylesheetPaths, $dir;
+      push @TrEd::Utils::stylesheet_paths, $dir;
       $s{$dir}=1;
     }
   }
