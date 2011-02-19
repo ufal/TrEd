@@ -2732,7 +2732,7 @@ Save given TrEd's stylesheet (to ~/.tred.d/stylesheets/name).
 
 sub SaveStylesheet {
   my ($patterns,$stylesheet) = @_;
-  main::saveStyleSheetFile($grp->{framegroup},$main::defaultStylesheetPath,$stylesheet) if GUI();
+  main::save_stylesheet_file($grp->{framegroup},$main::defaultStylesheetPath,$stylesheet) if GUI();
 }
 
 =item C<SaveStylesheets()>
@@ -2759,7 +2759,7 @@ sub ReloadStylesheet {
   if (GUI()) {
     require URI::Escape;
     my $file = File::Spec->catfile($dir,URI::Escape::uri_escape_utf8($name));
-    main::readStyleSheetFile($grp->{framegroup},$file);
+    main::read_stylesheet_file($grp->{framegroup},$file);
   }
 }
 

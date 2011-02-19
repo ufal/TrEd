@@ -38,8 +38,8 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
   read_stylesheets
   save_stylesheets
   removeStylesheetFile
-  readStyleSheetFile
-  saveStyleSheetFile
+  read_stylesheet_file
+  save_stylesheet_file
   getStylesheetPatterns
   setStylesheetPatterns
   updateStylesheetMenu
@@ -143,7 +143,16 @@ sub find_win_home {
   }
 }
 
-sub saveStyleSheetFile {
+######################################################################################
+# Usage         : init_stylesheet_paths(\@list)
+# Purpose       : Set 'HOME' environment variable on Windows to user's AppData 
+# Returns       : nothing
+# Parameters    : list_ref \@list
+# Throws        : no exceptions 
+# Comments      : 
+# See Also      : read_stylesheets(), save_stylesheets()
+#TODO: tests
+sub save_stylesheet_file {
   my ($gui,$dir,$name)=@_;
   if (-f $dir) {
     # old interface
@@ -171,23 +180,34 @@ sub saveStyleSheetFile {
   close $f;
 }
 
-sub readStyleSheetFile {
-  my ($gui,$stylesheetFile,$opts)=@_;
-  $opts||={};
-  my (undef,undef,$f) = File::Spec->splitpath($stylesheetFile);
+######################################################################################
+# Usage         : read_stylesheet_file(\%gui, $stylesheet_file[, \%opts])
+# Purpose       : Load options from $stylesheet_file to \%gui hash_reference 
+# Returns       : Sub-hash of %gui: gui{"stylesheets"}{$file_name} or 
+#                 undef if stylesheet_file could not be opened or 
+#                 if %opts{"no_overwrite"} is set and %gui{"stylesheets"}{$file_name} has already been defined
+# Parameters    : hash_ref $gui_ref, string $stylesheet_file[, hash_ref $opts_ref]
+# Throws        : no exceptions 
+# Comments      : 
+# See Also      : read_stylesheets(), split_patterns()
+sub read_stylesheet_file {
+  my ($gui_ref, $stylesheet_file, $opts_ref)=@_;
+  $opts_ref ||= {};
+  my (undef,undef,$f) = File::Spec->splitpath($stylesheet_file);
   my $name = URI::Escape::uri_unescape($f);
-  my $ss =  $gui->{stylesheets}||={};
-  return if $opts->{no_overwrite} and grep /^\Q$name\E$/i, keys %$ss;
-  open my $f, '<:utf8',$stylesheetFile || do {
-    print STDERR "cannot read stylesheet file: $stylesheetFile: $!\n";
+  my $ss_ref = $gui_ref->{"stylesheets"} ||= {};
+  return if $opts_ref->{"no_overwrite"} and grep /^\Q$name\E$/i, keys %{$ss_ref};
+  open my $filehandle, '<:encoding(utf8)', $stylesheet_file || do {
+    carp("cannot read stylesheet file: $stylesheet_file: $!\n");
     return;
   };
-  my $s = $ss->{$name} ||= {};
+  my $s_ref = $ss_ref->{$name} ||= {};
   local $/;
-  ($s->{hint},$s->{context},$s->{patterns})=splitPatterns(<$f>);
-  close $f;
-
-  return $s;
+  ($s_ref->{"hint"}, $s_ref->{"context"}, $s_ref->{"patterns"}) = split_patterns(<$filehandle>);
+  close $filehandle;
+#  print "read_stylesheet_file\n";
+#  print Dumper($s_ref);
+  return $s_ref;
 }
 
 sub removeStylesheetFile {
@@ -205,6 +225,15 @@ sub removeStylesheetFile {
   }
 }
 
+######################################################################################
+# Usage         : init_stylesheet_paths(\@list)
+# Purpose       : Set 'HOME' environment variable on Windows to user's AppData 
+# Returns       : nothing
+# Parameters    : list_ref \@list
+# Throws        : no exceptions 
+# Comments      : 
+# See Also      : read_stylesheets(), save_stylesheets()
+#TODO: tests
 sub save_stylesheets {
   my ($gui,$where)=@_;
   if (-d $where || ! -e $where) {
@@ -216,7 +245,7 @@ sub save_stylesheets {
     }
     foreach my $stylesheet (keys (%{$gui->{stylesheets}})) {
       next if $stylesheet eq STYLESHEET_FROM_FILE();
-      saveStyleSheetFile($gui,$where,$stylesheet);
+      save_stylesheet_file($gui,$where,$stylesheet);
     }
   } else {
     open my $f, '>:utf8',$where || do {
@@ -242,66 +271,90 @@ sub save_stylesheets {
 }
 
 ######################################################################################
-# Usage         : read_stylesheets(\@list)
-# Purpose       : .. 
-# Returns       : nothing
-# Parameters    : ..
+# Usage         : read_stylesheets(\%gui, $file[, $options])
+# Purpose       : Calls read_stylesheets_old if $file is a regular file, 
+#                 Calls read_stylesheets_new if $file is a directory.
+# Returns       : Return value from the called function 
+# Parameters    : hash_ref $gui_ref, string $file_name[, hash_ref $opts_ref]
 # Throws        : no exceptions 
 # Comments      : 
-# See Also      : ..
+# See Also      : read_stylesheets_new(), read_stylesheets_old()
 #TODO: tests
 sub read_stylesheets {
-  my ($gui,$file,$opts)=@_;
+  my ($gui_ref, $file, $opts_ref)=@_;
   if (-f $file) {
-    readStyleSheetsOld($gui,$file,$opts);
+    read_stylesheets_old($gui_ref, $file, $opts_ref);
   } elsif (-d $file) {
-    readStyleSheetsNew($gui,$file,$opts);
+    read_stylesheets_new($gui_ref, $file, $opts_ref);
   }
 }
 
-
-sub readStyleSheetsNew {
-  my ($gui,$dir,$opts)=@_;
-  $opts||={};
+######################################################################################
+# Usage         : read_stylesheets_new(\%gui, $dir_name, \%opts)
+# Purpose       : Load all the stylesheets in the $dir_name directory into %gui hash
+# Returns       : Zero if the $dir_name could not be opened, 1 otherwise
+# Parameters    : hash_ref $gui_ref, string $dir_name, hash_ref $opts_ref
+# Throws        : no exceptions 
+# Comments      : Skips files with names starting with '#', '.', or ending with '#', '~'
+# See Also      : read_stylesheets()
+sub read_stylesheets_new {
+  my ($gui_ref, $dir, $opts_ref)=@_;
+  $opts_ref ||= {};
   opendir(my $dh, $dir) || do {
-    print STDERR "cannot read stylesheet directory: $dir: $!\n";
+    carp("Can not read stylesheet directory: '$dir'\n $!\n");
     return 0;
   };
-  $gui->{stylesheets}={} unless $opts->{no_overwrite};
-  while (my $f = readdir($dh)){
-    next if $f =~ /~$|^#|#$|^\./;
-    my $stylesheetFile = File::Spec->catfile($dir,$f);
-    next unless -f $stylesheetFile;
-    readStyleSheetFile($gui,$stylesheetFile,$opts);
+  $gui_ref->{"stylesheets"}={} unless $opts_ref and $opts_ref->{"no_overwrite"};
+  while (my $file = readdir($dh)){
+    # skip files with names starting with '#' and '.' or ending with '#' or '~'
+    next if $file =~ /~$|^#|#$|^\./;
+    my $stylesheet_file = File::Spec->catfile($dir, $file);
+    next unless -f $stylesheet_file;
+    read_stylesheet_file($gui_ref, $stylesheet_file, $opts_ref);
   }
   return 1;
 }
 
-sub readStyleSheetsOld {
-  my ($gui,$filename,$opts)=@_;
-  open my $f, '<:utf8',$filename || do {
-    print STDERR "no stylesheet file: $filename\n";
+######################################################################################
+# Usage         : read_stylesheets_old(\%gui, $filename[, \%opts])
+# Purpose       : Load old-style stylesheets from stylesheet file into %gui hash
+# Returns       : If the file could not be opened, returns 0, 
+#                 1 otherwise
+# Parameters    : hash_ref $gui_ref, string $filename[, hash_ref $opts_ref]
+# Throws        : no exceptions 
+# Comments      : Changed :utf8 to :encoding(utf8), see 
+#                 http://en.wikibooks.org/wiki/Perl_Programming/Unicode_UTF-8#Input_-_Files.2C_File_Handles
+# See Also      : read_stylesheets_new(), read_stylesheets()
+#TODO: tests, uprav ten zadny for loop na normalny blokovy
+sub read_stylesheets_old {
+  my ($gui_ref, $filename, $opts_ref)=@_;
+  open(my $f, '<:encoding(utf8)', $filename) || do {
+    carp("No stylesheet file: '$filename'\n");
     return 0;
   };
+  
   my $stylesheet="Default";
-  $gui->{stylesheets}={} unless $opts and $opts->{no_overwrite};
+  $gui_ref->{"stylesheets"}={} unless $opts_ref and $opts_ref->{"no_overwrite"};
   while (<$f>) {
+    # remove whitespace at the end of line
     s/\s+$//;
+    # continue only if there are any non-whitespace characters left
     next unless /\S/;
+    # skip lines starting with '#' (comments)
     next if /^#/;
     if (/^stylesheet:\s*(.*)/) {
       $stylesheet = $1;
     } elsif (s/^(hint|context)://) {
-      if ($gui->{stylesheets}->{$stylesheet}->{$1} ne qw()) {
-	$gui->{stylesheets}->{$stylesheet}->{$1}.="\n".$_;
+      if ($gui_ref->{"stylesheets"}->{$stylesheet}->{$1} ne qw()) {
+        $gui_ref->{"stylesheets"}->{$stylesheet}->{$1}.="\n".$_;
       } else {
-	$gui->{stylesheets}->{$stylesheet}->{$1}.=$_;
+        $gui_ref->{"stylesheets"}->{$stylesheet}->{$1}.=$_;
       }
     } else {
       tr/\013/\n/;
-      push @{$gui->{stylesheets}->{$stylesheet}->{patterns}},$_;
+      push @{$gui_ref->{stylesheets}->{$stylesheet}->{patterns}},$_;
     }
-    chomp $gui->{stylesheets}{$stylesheet}{$_} for qw(hint context);
+    chomp $gui_ref->{"stylesheets"}{$stylesheet}{$_} for qw(hint context);
   }
   close $f;
   return 1;
@@ -348,7 +401,7 @@ sub setStylesheetPatterns {
   if (ref($text)) {
     ($hint,$context,$patterns)=@$text;
   } else {
-    ($hint,$context,$patterns)=splitPatterns($text);
+    ($hint,$context,$patterns)=split_patterns($text);
   }
   $stylesheet = $win->{stylesheet} unless defined $stylesheet;
   if ($stylesheet eq STYLESHEET_FROM_FILE()) {
@@ -416,44 +469,61 @@ sub applyWindowStylesheet {
   $win->{stylesheet}=$stylesheet;
 }
 
-sub splitPatterns {
+######################################################################################
+# Usage         : split_patterns($text)
+# Purpose       : Parse stylesheet and divide it into hints, context and other patterns 
+# Returns       : List of two strings (hints and context) and a referrence to array (containing other patterns)
+# Parameters    : string $text
+# Throws        : no exceptions 
+# Comments      : EMTPY is our constant for empty string
+# See Also      : read_stylesheet_file(), EMPTY
+#TODO: is the format of stylesheet formally defined somewhere?
+sub split_patterns {
   my ($text)=@_;
-  my @lines = split /(\n)/,$text;
+  my @lines = split(/(\n)/, $text);
   my @result;
   my $pattern = EMPTY;
   my $hint = EMPTY;
   my $context;
   while (@lines) {
-    my $line = shift @lines;
-    if ($line=~/^([a-z]+):/) {
+    my $line = shift(@lines);
+    # line starts with at least one small letter (a-z) followed by ':'
+    if ($line =~ /^([a-z]+):/) {
+      # pattern contains non-whitespace character
       if ($pattern =~ /\S/) {
-	chomp $pattern;
-	if ($pattern=~s/^hint:\s*//) {
-	  $hint .= "\n" if $hint ne EMPTY;
-	  $hint .= $pattern;
-	} elsif ($pattern=~s/^context:\s*//) {
-	  $context = $pattern;
-	  chomp $context;
-	} else {
-	  push @result, $pattern;
-	}
+        chomp($pattern);
+        if ($pattern =~ s/^hint:\s*//) {
+          # 'hint' processing
+          if ($hint ne EMPTY){
+            $hint .= "\n" ;
+          }
+          $hint .= $pattern;
+        } elsif ($pattern=~s/^context:\s*//) {
+          # 'context' processing
+          $context = $pattern;
+          chomp($context);
+        } else {
+          # other patterns than hint or context
+          push(@result, $pattern);
+        }
       }
       $pattern = $line;
     } else {
-      $pattern.=$line;
+      $pattern .= $line;
     }
   }
+  # process the last line 
+  # but the code ignores context on the last line... 
   if ($pattern =~ /\S/) {
     chomp $pattern;
-    if ($pattern=~s/^hint:\s*//) {
+    if ($pattern =~ s/^hint:\s*//) {
       $hint .= "\n" if $hint ne EMPTY;
       $hint .= $pattern;
     } else {
-      push @result, $pattern;
+      push(@result, $pattern);
     }
-
   }
-  return $hint,$context,\@result;
+  return ($hint,$context,\@result);
 }
 
 sub parseFileSuffix {
@@ -603,10 +673,10 @@ sub init_stylesheet_paths {
   my $stylesheet_dir = File::Spec->catfile($ENV{HOME},'.tred.d','stylesheets');
   if (!-d $stylesheet_dir and -f $default_stylesheet_path) {
     print STDERR "Converting old stylesheets from $default_stylesheet_path to $stylesheet_dir...\n";
-    my $gui = { stylesheets => {} };
-    read_stylesheets($gui,$default_stylesheet_path);
+    my $gui_ref = { stylesheets => {} };
+    read_stylesheets($gui_ref,$default_stylesheet_path);
     if (mkdir $stylesheet_dir) {
-      save_stylesheets($gui,$stylesheet_dir);
+      save_stylesheets($gui_ref,$stylesheet_dir);
       print STDERR "done.\n";
     } else {
       print STDERR "failed to create $stylesheet_dir: $!.\n";
