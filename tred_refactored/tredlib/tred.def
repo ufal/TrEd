@@ -2743,7 +2743,7 @@ Save all TrEd's stylesheets (to ~/.tred.d/stylesheets/).
 
 sub SaveStylesheets {
   my ($patterns) = @_;
-  main::saveStyleSheets($grp->{framegroup},$main::defaultStylesheetPath) if GUI();
+  main::save_stylesheets($grp->{framegroup},$main::defaultStylesheetPath) if GUI();
 }
 
 =item C<ReloadStylesheet(name,dir?)>

@@ -1,4 +1,5 @@
 #!/usr/bin/env perl
+# tests for TrEd::Config
 
 use strict;
 use warnings;
@@ -9,32 +10,32 @@ use IO qw(File Handle);
 use utf8;
 use Encode;
 
-my @subs = qw(
-  fetch_from_win32_reg
-  find_win_home
-  loadStyleSheets
-  initStylesheetPaths
-  readStyleSheets
-  saveStyleSheets
-  removeStylesheetFile
-  readStyleSheetFile
-  saveStyleSheetFile
-  getStylesheetPatterns
-  setStylesheetPatterns
-  updateStylesheetMenu
-  getStylesheetMenuList
-  applyFileSuffix
-  parseFileSuffix
-  getNodeByNo
-  applyWindowStylesheet
-  setFHEncoding
-);
+BEGIN {
+  my $module_name = 'TrEd::Utils';
+  our @subs = qw(
+    fetch_from_win32_reg
+    find_win_home
+    loadStyleSheets
+    init_stylesheet_paths
+    read_stylesheets
+    save_stylesheets
+    removeStylesheetFile
+    readStyleSheetFile
+    saveStyleSheetFile
+    getStylesheetPatterns
+    setStylesheetPatterns
+    updateStylesheetMenu
+    getStylesheetMenuList
+    applyFileSuffix
+    parseFileSuffix
+    getNodeByNo
+    applyWindowStylesheet
+    set_fh_encoding
+  );
+  use_ok($module_name, @subs);
+}
 
-my $module_name = 'TrEd::Utils';
-
-use_ok($module_name, @subs)
-  or die('Could not load module $module_name');
-
+our @subs;
 can_ok(__PACKAGE__, @subs);
 
 # Test two windows functions
@@ -58,14 +59,14 @@ SKIP: {
 
 
 ###################################
-####### Test setFHEncoding()
+####### Test set_fh_encoding()
 ###################################
 sub _write_text_to_file {
   my ($fname, $encoding, $text) = @_;
   my $fh;
   open($fh, ">", $fname)
     or die "Could not open file $fname";
-  setFHEncoding($fh, $encoding);
+  set_fh_encoding($fh, $encoding);
   print $fh $text
     or die "Could not write to file $fname";;
   close($fh);
@@ -99,8 +100,8 @@ _write_text_to_file($utf8_file_name,    ":utf8",  $utf8_test_string);
 my $cp1250_bytes = _read_text_from_file($cp1250_file_name, undef);
 my $utf8_bytes = _read_text_from_file($utf8_file_name, ":encoding(utf8)");
 
-is($utf8_test_string,   $utf8_bytes,    "setFHEncoding(): utf8 strings are equal");
-is($cp1250_test_string, $cp1250_bytes,  "setFHEncoding(): cp1250 strings are equal");
+is($utf8_test_string,   $utf8_bytes,    "set_fh_encoding(): utf8 strings are equal");
+is($cp1250_test_string, $cp1250_bytes,  "set_fh_encoding(): cp1250 strings are equal");
 
 # Remove temporary files
 unlink $utf8_file_name;

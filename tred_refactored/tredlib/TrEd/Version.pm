@@ -22,10 +22,25 @@ our $VERSION = "SVN_VERSION"; # DO NOT MODIFY THIS LINE !!
 
 # Preloaded methods go here.
 
+#######################################################################################
+# Usage         : TRED_VERSION()
+# Purpose       : Returns current tred's version 
+# Returns       : Current version of tred
+# Parameters    : no
+# Throws        : no exceptions
+# Comments      : Is automatically changed to proper version durinng release to 1.commit#
 sub TRED_VERSION {
   return $VERSION
 }
 
+#######################################################################################
+# Usage         : CMP_TRED_VERSION_AND($other_version)
+# Purpose       : Compare version of tred with other version number 
+# Returns       : 0 if the versions are equal, -1 if TRED_VERSION is less than $other_version and 1 otherwise.
+# Parameters    : string $other_version
+# Throws        : no exceptions
+# Comments      : Version format: 1.svn_commit_number, e.g. 1.4552
+# See Also      : TRED_VERSION()
 sub CMP_TRED_VERSION_AND {
   my ($version)=@_;
   return 1 if $VERSION eq 'SVN_VERSION';

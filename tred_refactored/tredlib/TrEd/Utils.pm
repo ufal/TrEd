@@ -12,13 +12,13 @@ use URI::Escape;
 require Exporter;
 
 our @ISA = qw(Exporter);
-use vars qw(@stylesheetPaths $defaultStylesheetPath);
+use vars qw(@stylesheet_paths $default_stylesheet_path);
 use constant {
   STYLESHEET_FROM_FILE  => "<From File>",
   NEW_STYLESHEET        => "<New From Current>",
   DELETE_STYLESHEET     => "<Delete Current>",
   
-  EMPTY                 => "",
+  EMPTY                 => q{},
 };
 
 # Items to export into callers namespace by default. Note: do not export
@@ -29,14 +29,14 @@ use constant {
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = ( 'all' => [ qw(
-  @stylesheetPaths
-  $defaultStylesheetPath
+  @stylesheet_paths
+  $default_stylesheet_path
   fetch_from_win32_reg
   find_win_home
   loadStyleSheets
-  initStylesheetPaths
-  readStyleSheets
-  saveStyleSheets
+  init_stylesheet_paths
+  read_stylesheets
+  save_stylesheets
   removeStylesheetFile
   readStyleSheetFile
   saveStyleSheetFile
@@ -48,7 +48,7 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
   parseFileSuffix
   getNodeByNo
   applyWindowStylesheet
-  setFHEncoding
+  set_fh_encoding
 
   STYLESHEET_FROM_FILE
   NEW_STYLESHEET
@@ -91,7 +91,7 @@ sub fetch_from_win32_reg_old {
 # Throws        : no exceptions
 # Comments      : Requires Win32::TieRegistry
 # See Also      : fetch_from_win32_reg_old, Win32::TieRegistry (cpan)
-sub fetch_from_win32_reg_2 {
+sub fetch_from_win32_reg {
   my ($registry,$key,$subkey)=@_;
 
   my $reg_ref;
@@ -147,7 +147,7 @@ sub saveStyleSheetFile {
   my ($gui,$dir,$name)=@_;
   if (-f $dir) {
     # old interface
-    return saveStyleSheets($gui,$dir);
+    return save_stylesheets($gui,$dir);
   }
   unless (-d $dir) {
     mkdir $dir || do {
@@ -201,11 +201,11 @@ sub removeStylesheetFile {
     }
   } elsif (-f $path) {
     delete $gui->{stylesheets}->{$name};
-    saveStyleSheets($gui,$path);
+    save_stylesheets($gui,$path);
   }
 }
 
-sub saveStyleSheets {
+sub save_stylesheets {
   my ($gui,$where)=@_;
   if (-d $where || ! -e $where) {
     if (!-d $where) {
@@ -241,7 +241,16 @@ sub saveStyleSheets {
   }
 }
 
-sub readStyleSheets {
+######################################################################################
+# Usage         : read_stylesheets(\@list)
+# Purpose       : .. 
+# Returns       : nothing
+# Parameters    : ..
+# Throws        : no exceptions 
+# Comments      : 
+# See Also      : ..
+#TODO: tests
+sub read_stylesheets {
   my ($gui,$file,$opts)=@_;
   if (-f $file) {
     readStyleSheetsOld($gui,$file,$opts);
@@ -579,43 +588,54 @@ sub getNodeByNo {
   return $root;
 }
 
-sub initStylesheetPaths{
-  my ($userPaths)=@_;
-  $defaultStylesheetPath = $ENV{HOME}."/.tred-stylesheets";
-  my $stylesheetDir = File::Spec->catfile($ENV{HOME},'.tred.d','stylesheets');
-  if (!-d $stylesheetDir and -f $defaultStylesheetPath) {
-    print STDERR "Converting old stylesheets from $defaultStylesheetPath to $stylesheetDir...\n";
+######################################################################################
+# Usage         : init_stylesheet_paths(\@list)
+# Purpose       : Set 'HOME' environment variable on Windows to user's AppData 
+# Returns       : nothing
+# Parameters    : list_ref \@list
+# Throws        : no exceptions 
+# Comments      : 
+# See Also      : read_stylesheets(), save_stylesheets()
+#TODO: tests
+sub init_stylesheet_paths {
+  my ($user_paths)=@_;
+  $default_stylesheet_path = $ENV{HOME}."/.tred-stylesheets";
+  my $stylesheet_dir = File::Spec->catfile($ENV{HOME},'.tred.d','stylesheets');
+  if (!-d $stylesheet_dir and -f $default_stylesheet_path) {
+    print STDERR "Converting old stylesheets from $default_stylesheet_path to $stylesheet_dir...\n";
     my $gui = { stylesheets => {} };
-    readStyleSheets($gui,$defaultStylesheetPath);
-    if (mkdir $stylesheetDir) {
-      saveStyleSheets($gui,$stylesheetDir);
+    read_stylesheets($gui,$default_stylesheet_path);
+    if (mkdir $stylesheet_dir) {
+      save_stylesheets($gui,$stylesheet_dir);
       print STDERR "done.\n";
     } else {
-      print STDERR "failed to create $stylesheetDir: $!.\n";
-      $stylesheetDir=$defaultStylesheetPath;
+      print STDERR "failed to create $stylesheet_dir: $!.\n";
+      $stylesheet_dir=$default_stylesheet_path;
     }
   }
-  $defaultStylesheetPath=$stylesheetDir if -d $stylesheetDir;
+  if (-d $stylesheet_dir){
+    $default_stylesheet_path = $stylesheet_dir;
+  }  
   my %uniq;
-  if (ref($userPaths) and @$userPaths) {
-    @stylesheetPaths = grep { !($uniq{$_}++) } ( (map { length($_) ? $_ : ($defaultStylesheetPath) } @$userPaths), @stylesheetPaths ),
-    $defaultStylesheetPath=$stylesheetPaths[0];
+  if (ref($user_paths) and @$user_paths) {
+    @stylesheet_paths = grep { !($uniq{$_}++) } ( (map { length($_) ? $_ : ($default_stylesheet_path) } @$user_paths), @stylesheet_paths ),
+    $default_stylesheet_path=$stylesheet_paths[0];
   } else {
-    @stylesheetPaths = grep { !($uniq{$_}++) } ($defaultStylesheetPath,@stylesheetPaths);
+    @stylesheet_paths = grep { !($uniq{$_}++) } ($default_stylesheet_path,@stylesheet_paths);
   }
 }
 
 sub loadStyleSheets {
   my ($gui)=@_;
   my $later=0;
-  for my $p (@stylesheetPaths) {
-    readStyleSheets($gui, $p, {no_overwrite=>$later});
+  for my $p (@stylesheet_paths) {
+    read_stylesheets($gui, $p, {no_overwrite=>$later});
     $later=1;
   }
 }
 
 #######################################################################################
-# Usage         : setFHEncoding(\*STDOUT, ':utf8', "STDOUT")
+# Usage         : set_fh_encoding(\*STDOUT, ':utf8', "STDOUT")
 # Purpose       : Set encoding on a file handle  
 # Returns       : nothing
 # Parameters    : filehandle $fh, string $encoding, string $what
@@ -623,8 +643,7 @@ sub loadStyleSheets {
 # Comments      : Be careful, don't use :utf8 on input files and STDIN (http://en.wikibooks.org/wiki/Perl_Programming/Unicode_UTF-8);
 #                 It seems that the third parameter is not used in the sub, why is it here?
 # See Also      : binmode (perldoc)
-#TODO: mixing of camel and underscore, should be used in a coherent manner...
-sub setFHEncoding {
+sub set_fh_encoding {
   my ($fh, $enc, $what)=@_;
   return unless $enc;
   $fh->flush()

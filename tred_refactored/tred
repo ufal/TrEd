@@ -177,8 +177,8 @@ import TrEd::Utils qw(:all);
 # set HOME environment variable on Windows to user's AppData
 find_win_home();
 # set output encoding to utf8 on stdout and stderr
-setFHEncoding(\*STDERR,':utf8',"STDERR");
-setFHEncoding(\*STDOUT,':utf8',"STDOUT");
+set_fh_encoding(\*STDERR,':utf8',"STDERR");
+set_fh_encoding(\*STDOUT,':utf8',"STDOUT");
 
 {
   my $ld=$libDir;
@@ -201,7 +201,7 @@ if (defined $opt_c) {
 }
 
 my $initial_config;
-#TODO: why is this sub defined here, in the BEGIN section?
+#TODO: why is this sub defined here, in the BEGIN section? Because it uses $initial_config
 # see perlsub
 sub applyInitialConfig { setConfig($initial_config); undef $initial_config }
 $TrEd::Config::set_user_config=sub { $initial_config=shift };	# tred specific configuration
@@ -241,6 +241,8 @@ require TrEd::UserAgent;
 
 # require Fslib; # compatibility
 
+# create a hash, increment value of the key on each iteration, but return only list of those which were zero
+# which is like creating a hash and then returning its keys...
 sub uniq { my %a; grep { !($a{$_}++) } @_ }
 
 # import min and max functions
@@ -279,6 +281,7 @@ applyInitialConfig();
 
 my $pid_file = File::Spec->catfile($tred_d,'tred.pid');
 
+# handle -C argument passed to tred -- only able to open file now...
 if ($command) {
   if (open(my $fh, '<',$pid_file)) {
     my $pid = <$fh>;
@@ -286,17 +289,18 @@ if ($command) {
     if ($pid and kill(0,$pid)) {
       my $cmd_file = File::Spec->catfile($tred_d,'cmd_'.$pid);
       if (sysopen(my $fh, $cmd_file, O_TRUNC|O_CREAT|O_WRONLY, 0600)) {
-	my ($command,@args) = @ARGV;
-	if ($command eq 'open') {
-	  @args = map {
-	    my ($filename,$suffix)=parseFileSuffix($_);
-	    require Treex::PML::IO;
-	    Treex::PML::IO::make_abs_URI($filename)->as_string.$suffix
-	    } @args;
-	}
-	print $fh join("\0",$command,@args);
-	close $fh;
-	kill "USR2", $pid;
+        my ($command,@args) = @ARGV;
+        if ($command eq 'open') {
+          #TODO: require in map? what is the purpose of this construct?
+          @args = map {
+            my ($filename,$suffix)=parseFileSuffix($_);
+            require Treex::PML::IO;
+            Treex::PML::IO::make_abs_URI($filename)->as_string.$suffix
+          } @args;
+	    }
+        print $fh join("\0",$command,@args);
+        close $fh;
+        kill "USR2", $pid;
       }
       exit(0);
     }
@@ -307,6 +311,8 @@ if ($command) {
     exit(1);
   }
 }
+
+# write PID to $pid_file
 if (open(my $fh, '>',$pid_file)) {
   print $fh $$;
   close $fh;
@@ -320,9 +326,11 @@ if (defined $opt_m) {
   $macroFile=$opt_m;
 }
 
+# don't die on error in Treex::PML::Instance::Reader, just warn...
 $Treex::PML::Instance::Reader::STRICT=0;
 
-initStylesheetPaths([split($Treex::PML::resourcePathSplit,$opt_S,-1)]);
+###
+init_stylesheet_paths([split($Treex::PML::resourcePathSplit,$opt_S,-1)]);
 
 $Treex::PML::resourcePath=
   join($Treex::PML::resourcePathSplit,
@@ -1102,7 +1110,14 @@ sub bookmarkFilelist {
   return findFilelist('Bookmarks')
 }
 
-
+#######################################################################################
+# Usage         : setConfig($configs)
+# Purpose       : Load recently opened files and set autoSave according to value from config  
+# Returns       : nothing
+# Parameters    : hash_ref \%confs
+# Throws        : no exceptions
+# Comments      : Requires Filelist module
+# See Also      : Filelist, addNewFilelist(), $autoSave 
 sub setConfig {
   my $confs=shift;
   foreach (0..9) {
@@ -1110,7 +1125,7 @@ sub setConfig {
   }
   @recentFiles=grep {$_} @recentFiles;
 
-  require Filelist;
+  require Filelist; #TODO consider renaming
   my $fl;
   foreach (sort { substr($a,8)<=>substr($b,8) } grep /^filelist[0-9]+/, keys %$confs) {
     print "Reading $_\n"  if $tredDebug;
@@ -1123,6 +1138,7 @@ sub setConfig {
     };
     warn $@ if $@;
   }
+  #TODO: what does autosave do? What does it saves automatically?
   $autoSave = $opt_auto_save if defined $opt_auto_save;
   print STDERR "Applying configuration.\n" if $tredDebug;
 }
@@ -5584,7 +5600,7 @@ sub switchStylesheet {
       $grp->{stylesheets}->{$stylesheet}->{context}=$context;
       $grp->{stylesheets}->{$stylesheet}->{patterns}=$patterns;
       updateStylesheetMenu($grp);
-      saveStyleSheetFile($grp,$defaultStylesheetPath,$stylesheet);
+      saveStyleSheetFile($grp,$default_stylesheet_path,$stylesheet);
     }
     applyWindowStylesheet($win,$stylesheet);
     $grp->{selectedStylesheet} = $stylesheet if isFocused($win);
@@ -8738,7 +8754,7 @@ sub stylesheetUsingWindows {
 
 sub deleteStylesheet {
   my ($grp,$stylesheet)=@_;
-  removeStylesheetFile($grp,$defaultStylesheetPath,$stylesheet);
+  removeStylesheetFile($grp,$default_stylesheet_path,$stylesheet);
   updateStylesheetMenu($grp);
   foreach my $win (stylesheetUsingWindows($grp,$stylesheet)) {
     if ($grp->{focusedWindow} == $win) {
@@ -9046,9 +9062,9 @@ sub openSimpleHtml {
 		     "\nSentences could not be saved!",1);
     my $encoding=$TrEd::Convert::outputenc;
     if ($TrEd::Convert::support_unicode) {
-      setFHEncoding($html,$encoding,"html-out");
+      set_fh_encoding($html,$encoding,"html-out");
     } else {
-      setFHEncoding($html,':bytes',"html-out");
+      set_fh_encoding($html,':bytes',"html-out");
     }
     print $html "<html>\n";
     print $html "<head>\n";
@@ -10329,7 +10345,7 @@ EOF
     if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
       $win->{FSFile}->notSaved(1);
     } else {
-      saveStyleSheetFile($grp,$defaultStylesheetPath,$win->{stylesheet});
+      saveStyleSheetFile($grp,$default_stylesheet_path,$win->{stylesheet});
     }
     get_nodes_fsfile($grp,$win->{FSFile});
     update_value_line($grp);
@@ -12797,8 +12813,8 @@ sub manage_extensions {
   if ($do_reload and $reload_macros) {
 
     # reload stylesheets
-    @TrEd::Utils::stylesheetPaths=();
-    initStylesheetPaths([split($Treex::PML::resourcePathSplit,$opt_S,-1)]);
+    @TrEd::Utils::stylesheet_paths=();
+    init_stylesheet_paths([split($Treex::PML::resourcePathSplit,$opt_S,-1)]);
 
     my $preparedExtensions = prepareExtensions($grp);
 

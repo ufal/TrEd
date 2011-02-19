@@ -1,7 +1,8 @@
 # -*- cperl -*-
-# pajas@ufal.mff.cuni.cz          24 zבר 2008
+# pajas@ufal.mff.cuni.cz          24 zar 2008
 
 package TrEd::UserAgent;
+
 use strict;
 use base qw(LWP::UserAgent);
 use Tk::BindButtons;
