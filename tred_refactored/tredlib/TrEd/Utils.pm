@@ -144,39 +144,45 @@ sub find_win_home {
 }
 
 ######################################################################################
-# Usage         : init_stylesheet_paths(\@list)
-# Purpose       : Set 'HOME' environment variable on Windows to user's AppData 
-# Returns       : nothing
-# Parameters    : list_ref \@list
-# Throws        : no exceptions 
+# Usage         : save_stylesheet_file(\%gui, $dir_name, $file_name)
+# Purpose       : 
+# Returns       : 
+# Parameters    : hash_ref $hash_ref, string $dir_name, string $file_name
+# Throws        : no exceptions
 # Comments      : 
-# See Also      : read_stylesheets(), save_stylesheets()
+# See Also      : save_stylesheets()
 #TODO: tests
 sub save_stylesheet_file {
-  my ($gui,$dir,$name)=@_;
+  my ($gui, $dir, $name)=@_;
   if (-f $dir) {
     # old interface
     return save_stylesheets($gui,$dir);
   }
-  unless (-d $dir) {
+  if (! -d $dir) {
     mkdir $dir || do {
-      print STDERR "Cannot create styleheet directory: $dir: $!";
+      carp("Cannot create styleheet directory: $dir: $!");
       return 0
     };
   }
-  my $stylesheetFile = File::Spec->catfile($dir,URI::Escape::uri_escape_utf8($name));
-  open my $f, '>:utf8',$stylesheetFile || do {
-    print STDERR "cannot write to stylesheet file: $stylesheetFile: $!\n";
+  my $stylesheet_file = File::Spec->catfile($dir, URI::Escape::uri_escape_utf8($name));
+  open(my $f, '>:utf8', $stylesheet_file) || do {
+    carp("cannot write to stylesheet file: $stylesheet_file: $!\n");
     return 0;
   };
-  my $s = $gui->{stylesheets}->{$name};
-  if (defined($s->{context}) and $s->{context} =~ /\S/) {
-    $s->{context}=~s/^\s+|\s+$//g;
-    print $f "context: ".$s->{context}."\n";
+  my $current_stylesheet = $gui->{"stylesheets"}->{$name};
+  # print context
+  if (defined($current_stylesheet->{"context"}) and $current_stylesheet->{"context"} =~ /\S/) {
+    # context is valid
+    # get rid of leading and trailing whitespace
+    $current_stylesheet->{"context"} =~ s/^\s+|\s+$//g;
+    print $f "context: ".$current_stylesheet->{"context"}."\n";
   }
-  print $f map { /\n\s*$/ ? $_ : $_."\n" } @{$s->{patterns}}
-    if ref($s->{patterns});
-  print $f "\nhint:". $s->{hint} if defined($s->{hint}) and length($s->{hint});
+  if (ref($current_stylesheet->{"patterns"})){
+    print $f map { /\n\s*$/ ? $_ : $_."\n" } @{$current_stylesheet->{"patterns"}};
+  }
+  if (defined($current_stylesheet->{"hint"}) and length($current_stylesheet->{"hint"})){
+    print $f "\nhint:". $current_stylesheet->{"hint"};
+  }
   close $f;
 }
 
@@ -205,8 +211,6 @@ sub read_stylesheet_file {
   local $/;
   ($s_ref->{"hint"}, $s_ref->{"context"}, $s_ref->{"patterns"}) = split_patterns(<$filehandle>);
   close $filehandle;
-#  print "read_stylesheet_file\n";
-#  print Dumper($s_ref);
   return $s_ref;
 }
 
@@ -226,43 +230,46 @@ sub removeStylesheetFile {
 }
 
 ######################################################################################
-# Usage         : init_stylesheet_paths(\@list)
-# Purpose       : Set 'HOME' environment variable on Windows to user's AppData 
-# Returns       : nothing
-# Parameters    : list_ref \@list
+# Usage         : save_stylesheets(\%gui, $destination)
+# Purpose       : Save stylesheets from the hash reference \%gui to $destination on the hdd
+# Returns       : Zero if the destination directory could not be created or if the file could not be opened
+#                 Returns the return value of save_stylesheet_file() or close() function otherwise.
+# Parameters    : hash_ref $gui_ref, string $destination
 # Throws        : no exceptions 
-# Comments      : 
-# See Also      : read_stylesheets(), save_stylesheets()
-#TODO: tests
+# Comments      : Supports both new and old stylesheets
+# See Also      : save_stylesheet_file()
+#TODO: tests still not finished
 sub save_stylesheets {
-  my ($gui,$where)=@_;
+  my ($gui, $where)=@_;
   if (-d $where || ! -e $where) {
-    if (!-d $where) {
+    if (! -d $where) {
       mkdir $where || do {
-	print STDERR "cannot create stylesheet directory: $where: $!\n";
-	return 0;
+        carp("cannot create stylesheet directory: $where: $!\n");
+        return 0;
       };
     }
-    foreach my $stylesheet (keys (%{$gui->{stylesheets}})) {
-      next if $stylesheet eq STYLESHEET_FROM_FILE();
-      save_stylesheet_file($gui,$where,$stylesheet);
+    foreach my $stylesheet (keys (%{$gui->{"stylesheets"}})) {
+      next if($stylesheet eq STYLESHEET_FROM_FILE());
+      save_stylesheet_file($gui, $where, $stylesheet);
     }
   } else {
-    open my $f, '>:utf8',$where || do {
-      print STDERR "cannot write to stylesheet file: $where: $!\n";
+    # $where is not a directory, and it is a file
+    open(my $f, '>:utf8', $where) || do {
+      carp("cannot write to stylesheet file: $where: $!\n");
       return 0;
     };
-    foreach my $stylesheet (sort keys (%{$gui->{stylesheets}})) {
-      next if $stylesheet eq STYLESHEET_FROM_FILE();
+    # obsolete way -- write all stylesheets into one file
+    foreach my $stylesheet (sort keys (%{$gui->{"stylesheets"}})) {
+      next if($stylesheet eq STYLESHEET_FROM_FILE());
       print $f "#"x 50,"\n";
       print $f "stylesheet: $stylesheet\n";
-      for ($gui->{stylesheets}->{$stylesheet}) {
-	if ($_->{context} =~ /\S/) {
-	  print $f map { "context: ".$_."\n" } split /\n/, $_->{context};
-	}
-	print $f map { local $_=$_; tr/\n/\013/; $_."\n" } 
-	  map { /^#/ ? 'node:'.$_ : $_ } @{$_->{patterns}};
-	print $f map { 'hint:'.$_."\n" } split /\n/, $_->{hint};
+      for ($gui->{"stylesheets"}->{$stylesheet}) {
+        if ($_->{"context"} =~ /\S/) {
+          print $f map { "context: ".$_."\n" } split /\n/, $_->{"context"};
+        }
+        print $f map { local $_=$_; tr/\n/\013/; $_."\n" } 
+                      map { /^#/ ? 'node:'.$_ : $_ } @{$_->{patterns}};
+        print $f map { 'hint:'.$_."\n" } split /\n/, $_->{"hint"};
       }
       print $f "\n\n";
     }
@@ -279,7 +286,6 @@ sub save_stylesheets {
 # Throws        : no exceptions 
 # Comments      : 
 # See Also      : read_stylesheets_new(), read_stylesheets_old()
-#TODO: tests
 sub read_stylesheets {
   my ($gui_ref, $file, $opts_ref)=@_;
   if (-f $file) {
@@ -325,7 +331,6 @@ sub read_stylesheets_new {
 # Comments      : Changed :utf8 to :encoding(utf8), see 
 #                 http://en.wikibooks.org/wiki/Perl_Programming/Unicode_UTF-8#Input_-_Files.2C_File_Handles
 # See Also      : read_stylesheets_new(), read_stylesheets()
-#TODO: tests, uprav ten zadny for loop na normalny blokovy
 sub read_stylesheets_old {
   my ($gui_ref, $filename, $opts_ref)=@_;
   open(my $f, '<:encoding(utf8)', $filename) || do {
@@ -354,7 +359,9 @@ sub read_stylesheets_old {
       tr/\013/\n/;
       push @{$gui_ref->{stylesheets}->{$stylesheet}->{patterns}},$_;
     }
-    chomp $gui_ref->{"stylesheets"}{$stylesheet}{$_} for qw(hint context);
+    foreach my $stylesheet_item qw(hint context) {
+      chomp $gui_ref->{"stylesheets"}{$stylesheet}{$stylesheet_item};
+    }
   }
   close $f;
   return 1;
@@ -659,14 +666,20 @@ sub getNodeByNo {
 }
 
 ######################################################################################
-# Usage         : init_stylesheet_paths(\@list)
-# Purpose       : Set 'HOME' environment variable on Windows to user's AppData 
+# Usage         : init_stylesheet_paths(\@custom_stylesheets_paths)
+# Purpose       : Set the @stylesheet_paths and $default_stylesheet_path variable 
+#                 according to the environment and argument @custom_stylesheets_paths
 # Returns       : nothing
-# Parameters    : list_ref \@list
-# Throws        : no exceptions 
-# Comments      : 
+# Parameters    : list_ref $list_ref
+# Throws        : no exceptions
+# Comments      : If valid @user_paths list is passed, this list is 'uniqued' and 
+#                 put before the default path in the @stylesheet_paths array.
+#                 If ~/.tred-stylesheets is an ordinary file, directory ~/.tred.d/stylesheets is created and 
+#                 new stylesheets are created in this new directory from old tred-stylesheets file. 
+#                 The $default_stylesheet_path is ~/.tred-stylesheets, this is changed to 
+#                 ~/.tred.d/stylesheets/ if the conversion from old to new stylesheets happened or
+#                 it changes to the first item in @stylesheet_paths if user defined any custom paths.
 # See Also      : read_stylesheets(), save_stylesheets()
-#TODO: tests
 sub init_stylesheet_paths {
   my ($user_paths)=@_;
   $default_stylesheet_path = $ENV{HOME}."/.tred-stylesheets";
@@ -674,12 +687,12 @@ sub init_stylesheet_paths {
   if (!-d $stylesheet_dir and -f $default_stylesheet_path) {
     print STDERR "Converting old stylesheets from $default_stylesheet_path to $stylesheet_dir...\n";
     my $gui_ref = { stylesheets => {} };
-    read_stylesheets($gui_ref,$default_stylesheet_path);
+    read_stylesheets($gui_ref, $default_stylesheet_path);
     if (mkdir $stylesheet_dir) {
-      save_stylesheets($gui_ref,$stylesheet_dir);
+      save_stylesheets($gui_ref, $stylesheet_dir);
       print STDERR "done.\n";
     } else {
-      print STDERR "failed to create $stylesheet_dir: $!.\n";
+      carp("failed to create $stylesheet_dir: $!.\n");
       $stylesheet_dir=$default_stylesheet_path;
     }
   }
@@ -687,11 +700,12 @@ sub init_stylesheet_paths {
     $default_stylesheet_path = $stylesheet_dir;
   }  
   my %uniq;
-  if (ref($user_paths) and @$user_paths) {
-    @stylesheet_paths = grep { !($uniq{$_}++) } ( (map { length($_) ? $_ : ($default_stylesheet_path) } @$user_paths), @stylesheet_paths ),
-    $default_stylesheet_path=$stylesheet_paths[0];
+  if (ref($user_paths) and @{$user_paths}) {
+    my @nonempty_user_paths = map { length($_) ? $_ : ($default_stylesheet_path) } @$user_paths;
+    @stylesheet_paths = grep { !($uniq{$_}++) } ( @nonempty_user_paths, @stylesheet_paths );
+    $default_stylesheet_path = $stylesheet_paths[0];
   } else {
-    @stylesheet_paths = grep { !($uniq{$_}++) } ($default_stylesheet_path,@stylesheet_paths);
+    @stylesheet_paths = grep { !($uniq{$_}++) } ($default_stylesheet_path, @stylesheet_paths);
   }
 }
 

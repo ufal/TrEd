@@ -12,6 +12,7 @@ use Encode;
 use Data::Dumper;
 use File::Spec;
 use Cwd;
+use File::Copy; # need move
 
 BEGIN {
   my $module_name = 'TrEd::Utils';
@@ -280,24 +281,23 @@ SKIP: {
 ####################################################
 ####### Test read_stylesheets_new()
 ####################################################
-# 19 tests
+# 18 tests
+# since more functions call this one, it is convenient to test all its functionality within 
+# these functions with one function 
 sub _test_read_stylesheet_new {
-  my ($function, $stylesheet_dir, $file_name, $file_name_2) = @_;
+  my ($function, $fn_name, $stylesheet_dir, $file_name, $file_name_2) = @_;
   my $gui_ref = {};
   my $opts_ref = {};
   
   my $ret_value = &{$function}($gui_ref, $stylesheet_dir, $opts_ref);
   
   # 5 tests
-  _test_stylesheet_hash($gui_ref->{"stylesheets"}{$file_name}, "read_stylesheets_new", "first_hints;", "second_hints;", "PML_A", "PML_A", \@patterns);
+  _test_stylesheet_hash($gui_ref->{"stylesheets"}{$file_name}, $fn_name, "first_hints;", "second_hints;", "PML_A", "PML_A", \@patterns);
   # 5 tests
-  _test_stylesheet_hash($gui_ref->{"stylesheets"}{$file_name_2}, "read_stylesheets_new", "first_hints_2", "second_hints_2", "PML_A2_2", "PML_A2_2", \@patterns2);
+  _test_stylesheet_hash($gui_ref->{"stylesheets"}{$file_name_2}, $fn_name, "first_hints_2", "second_hints_2", "PML_A2_2", "PML_A2_2", \@patterns2);
 
-  is($ret_value, 1, "read_stylesheets_new(): correct return value if successful");
+  is($ret_value, 1, "$fn_name(): correct return value if successful");
   
-  $ret_value = &{$function}($gui_ref, "not_existing_directory", $opts_ref);
-  is($ret_value, 0, "read_stylesheets_new(): correct return value if directory not found");
-
   # test also proper use of 'no_overwrite'
   # here it means 'do not change already defined values' 
   $gui_ref->{"stylesheets"}{$file_name} = {
@@ -314,25 +314,25 @@ sub _test_read_stylesheet_new {
   $opts_ref->{"no_overwrite"} = 1;
   $ret_value = &{$function}($gui_ref, $stylesheet_dir, $opts_ref);
   
-  is($ret_value, 1, "read_stylesheets_new(): correct return value if not overwriting");
+  is($ret_value, 1, "$fn_name(): correct return value if not overwriting");
   
   is($gui_ref->{"stylesheets"}{$file_name}{"context"}, "old_context",
-      "read_stylesheets_new(): File 1: don't overwrite context if 'no_overwrite' is set");
+      "$fn_name(): File 1: don't overwrite context if 'no_overwrite' is set");
       
   is($gui_ref->{"stylesheets"}{$file_name}{"hint"}, "old_hint",
-      "read_stylesheets_new(): File 1: don't overwrite hints if 'no_overwrite' is set");
+      "$fn_name(): File 1: don't overwrite hints if 'no_overwrite' is set");
       
   is($gui_ref->{"stylesheets"}{$file_name}{"patterns"}, "old_patterns",
-      "read_stylesheets_new(): File 1: don't overwrite patterns if 'no_overwrite' is set");
+      "$fn_name(): File 1: don't overwrite patterns if 'no_overwrite' is set");
       
   is($gui_ref->{"stylesheets"}{$file_name_2}{"context"}, "old_context",
-      "read_stylesheets_new(): File 2: don't overwrite context if 'no_overwrite' is set");
+      "$fn_name(): File 2: don't overwrite context if 'no_overwrite' is set");
       
   is($gui_ref->{"stylesheets"}{$file_name_2}{"hint"}, "old_hint",
-      "read_stylesheets_new(): File 2: don't overwrite hints if 'no_overwrite' is set");
+      "$fn_name(): File 2: don't overwrite hints if 'no_overwrite' is set");
       
   is($gui_ref->{"stylesheets"}{$file_name_2}{"patterns"}, "old_patterns",
-      "read_stylesheets_new(): File 2: don't overwrite patterns if 'no_overwrite' is set");
+      "$fn_name(): File 2: don't overwrite patterns if 'no_overwrite' is set");
 }
 
 
@@ -342,12 +342,17 @@ SKIP: {
   my $file_name = "stylesheet.file";
   my $file_name_2 = "stylesheet.file2";
   my $stylesheet_dir = File::Spec->catdir($orig_dir, "stylesheets");
+  my $fn_name = "read_stylesheets_new";
   
   # skip tests, if the files could not be created
   skip "Could not create stylesheets", 19 if !(_create_new_stylesheet_structure($stylesheet_dir, $file_name, $file_name_2));
   
-  # 19 tests
-  _test_read_stylesheet_new(\&TrEd::Utils::read_stylesheets_new, $stylesheet_dir, $file_name, $file_name_2);
+  # 18 tests
+  _test_read_stylesheet_new(\&TrEd::Utils::read_stylesheets_new, $fn_name, $stylesheet_dir, $file_name, $file_name_2);
+  
+  my $ret_value = TrEd::Utils::read_stylesheets_new({}, "not_existing_directory", {});
+  is($ret_value, 0, "read_stylesheets_new(): correct return value if directory not found");
+  
   
   _clean_up_new_stylesheet_structure($stylesheet_dir, $file_name, $file_name_2);
   chdir $orig_dir;
@@ -356,9 +361,11 @@ SKIP: {
 ####################################################
 ####### Test read_stylesheets_old()
 ####################################################
-# 19 tests
+# 18 tests
+# since more functions call this one, it is convenient to test all its functionality within 
+# these functions with one function 
 sub _test_read_stylesheet_old {
-  my ($function, $file_name, $stylesheet_name_1, $stylesheet_name_2) = @_;
+  my ($function, $fn_name, $file_name, $stylesheet_name_1, $stylesheet_name_2) = @_;
   my $gui_ref = {};
   my $opts_ref = {};
   
@@ -366,14 +373,11 @@ sub _test_read_stylesheet_old {
   my $ret_value = &{$function}($gui_ref, $file_name, $opts_ref);
   
   # 5 tests
-  _test_stylesheet_hash($gui_ref->{"stylesheets"}{$stylesheet_name_1}, "read_stylesheets_old", "first_hints;", "second_hints;", "PML_A", "PML_A", \@patterns);
+  _test_stylesheet_hash($gui_ref->{"stylesheets"}{$stylesheet_name_1}, $fn_name, "first_hints;", "second_hints;", "PML_A", "PML_A", \@patterns);
   # 5 tests
-  _test_stylesheet_hash($gui_ref->{"stylesheets"}{$stylesheet_name_2}, "read_stylesheets_old", "first_hints_2", "second_hints_2", "PML_A2_1", "PML_A2_2", \@patterns2);
+  _test_stylesheet_hash($gui_ref->{"stylesheets"}{$stylesheet_name_2}, $fn_name, "first_hints_2", "second_hints_2", "PML_A2_1", "PML_A2_2", \@patterns2);
 
-  is($ret_value, 1, "read_stylesheets_old(): correct return value if successful");
-  
-  $ret_value = &{$function}($gui_ref, "this_file_does_not_exist", $opts_ref);
-  is($ret_value, 0, "read_stylesheets_old(): correct return value if the file is not found");
+  is($ret_value, 1, "$fn_name(): correct return value if successful");
 
   # test also proper use of 'no_overwrite'
   # here it means 'add new values to the previously defined ones'
@@ -391,31 +395,31 @@ sub _test_read_stylesheet_old {
   $opts_ref->{"no_overwrite"} = 1;
   $ret_value = &{$function}($gui_ref, $file_name, $opts_ref);
   
-  is($ret_value, 1, "read_stylesheets_old(): correct return value if no_overwrite is in use");
+  is($ret_value, 1, "$fn_name(): correct return value if no_overwrite is in use");
   
   like( $gui_ref->{"stylesheets"}{$stylesheet_name_1}{"context"}, 
         qr{old_context.*$context1.*$context2}ms,
-        "read_stylesheets_old(): File 1: add context");
+        "$fn_name(): File 1: add context");
   like( $gui_ref->{"stylesheets"}{$stylesheet_name_1}{"hint"}, 
         qr{old_hint.*first_hints.*second_hints}ms,
-        "read_stylesheets_old(): File 1: add hint");
+        "$fn_name(): File 1: add hint");
 
   my $patterns_in_stylesheet = grep(/old_patterns|rootstyle/, @{$gui_ref->{"stylesheets"}{$stylesheet_name_1}{"patterns"}});
   is($patterns_in_stylesheet, 2,
-    "read_stylesheets_old(): File 1: add other patterns");
+    "$fn_name(): File 1: add other patterns");
 
   
   like( $gui_ref->{"stylesheets"}{$stylesheet_name_2}{"context"}, 
         qr{old_context.*$context2_1.*$context2_2}ms,
-        "read_stylesheets_old(): File 2: add context");
+        "$fn_name(): File 2: add context");
       
   like( $gui_ref->{"stylesheets"}{$stylesheet_name_2}{"hint"}, 
         qr{old_hint.*first_hints_2.*second_hints_2}ms,
-        "read_stylesheets_old(): File 2: add hint");
+        "$fn_name(): File 2: add hint");
         
   $patterns_in_stylesheet = grep(/old_patterns|rootstyle/, @{$gui_ref->{"stylesheets"}{$stylesheet_name_1}{"patterns"}});
   is($patterns_in_stylesheet, 2,
-    "read_stylesheets_old(): File 2: add other patterns");
+    "$fn_name(): File 2: add other patterns");
 }
 
 SKIP: {
@@ -423,19 +427,168 @@ SKIP: {
   my $stylesheet_name_1 = "stylesheet_1";
   my $stylesheet_name_2 = "stylesheet_2";
   my $old_stylesheet_text = "stylesheet: $stylesheet_name_1 \n$stylesheet_file \nstylesheet: $stylesheet_name_2 \n$stylesheet_file_2\n";
-  
+  my $fn_name = "read_stylesheets_old";
   # skip tests, if the file could not be created
   skip "Could not create stylesheet file", 19 if !_create_stylesheet($file_name, $old_stylesheet_text);
   
-  # 19 tests
-  _test_read_stylesheet_old(\&TrEd::Utils::read_stylesheets_old, $file_name, $stylesheet_name_1, $stylesheet_name_2);
-
+  # 18 tests
+  _test_read_stylesheet_old(\&TrEd::Utils::read_stylesheets_old, $fn_name, $file_name, $stylesheet_name_1, $stylesheet_name_2);
+  
+  my $ret_value = TrEd::Utils::read_stylesheets_old({}, "this_file_does_not_exist", {});
+  is($ret_value, 0, "read_stylesheets_old(): correct return value if the file is not found");
+  
   unlink $file_name;
 }
 
 ####################################################
 ####### Test read_stylesheets()
 ####################################################
+SKIP: {
+  my $orig_dir = getcwd();
+  
+  my $file_name = "stylesheet.file1";
+  my $file_name_2 = "stylesheet.file2";
+  my $stylesheet_dir = File::Spec->catdir($orig_dir, "stylesheets");
+  my $fn_name = "read_stylesheets";
+  # skip tests, if the files could not be created
+  skip "Could not create stylesheets dir", 19 if !(_create_new_stylesheet_structure($stylesheet_dir, $file_name, $file_name_2));
+  
+  # 18 tests
+  _test_read_stylesheet_new(\&TrEd::Utils::read_stylesheets, $fn_name, $stylesheet_dir, $file_name, $file_name_2);
+  
+   my $ret_value = read_stylesheets({}, "this_dir_does_not_exist", {});
+  ok(!defined($ret_value), "read_stylesheets(): correct return value if the directory does not exist");
+  
+  _clean_up_new_stylesheet_structure($stylesheet_dir, $file_name, $file_name_2);
+  chdir $orig_dir;
+}
 
+SKIP: {
+  my $file_name = "stylesheet.file";
+  my $stylesheet_name_1 = "stylesheet_1";
+  my $stylesheet_name_2 = "stylesheet_2";
+  my $old_stylesheet_text = "stylesheet: $stylesheet_name_1 \n$stylesheet_file \nstylesheet: $stylesheet_name_2 \n$stylesheet_file_2\n";
+  my $fn_name = "read_stylesheets";
+  
+  # skip tests, if the file could not be created
+  skip "Could not create stylesheet file", 19 if !_create_stylesheet($file_name, $old_stylesheet_text);
+  
+  # 18 tests
+  _test_read_stylesheet_old(\&TrEd::Utils::read_stylesheets, $fn_name, $file_name, $stylesheet_name_1, $stylesheet_name_2);
+  
+  my $ret_value = read_stylesheets({}, "this_file_does_not_exist", {});
+  ok(!defined($ret_value), "read_stylesheets(): correct return value if the file is not found");
+  
+  unlink $file_name;
+}
 
+####################################################
+####### Test init_stylesheet_paths()
+####################################################
+# test conversion from old to new stylesheet
+# and setting two exported variables
+SKIP: {
+  my $old_home = $ENV{'HOME'};
+  # fake home directory
+  $ENV{'HOME'} = getcwd();
+  my $home = $ENV{'HOME'};
+  my $tred_d_dir = File::Spec->catdir($home, ".tred.d");
+  mkdir($tred_d_dir);
+  
+  my $new_stylesheet_dir = File::Spec->catdir($home, ".tred.d", "stylesheets");
+  my $file_name = File::Spec->catfile($home, ".tred-stylesheets");
 
+  my $stylesheet_name_1 = "stylesheet_1";
+  my $stylesheet_name_2 = "stylesheet_2";
+  my $old_stylesheet_text = "stylesheet: $stylesheet_name_1 \n$stylesheet_file \nstylesheet: $stylesheet_name_2 \n$stylesheet_file_2\n";
+  
+  my $fn_name = "init_stylesheet_paths";
+  
+  # skip tests, if the file could not be created
+  skip "Could not create an old-style stylesheet file", 6 if !_create_stylesheet($file_name, $old_stylesheet_text);
+  
+  init_stylesheet_paths();
+
+  # does the change from old to new stylesheets work?
+  my $fh;
+  my $style_1_ok = 0;
+  if(open($fh, '<:encoding(utf8)', File::Spec->catfile($new_stylesheet_dir, $stylesheet_name_1))){
+    local $/;
+    my $style_1 = <$fh>;
+    if($style_1 =~ /first_hints;/ms &&
+       $style_1 =~ /second_hints;/ms && 
+       $style_1 =~ /rootstyle: #{NodeLabel-skipempty:1}/ms &&
+       $style_1 =~ /context: PML_T/ms){
+         $style_1_ok = 1;
+       }
+  }
+  my $style_2_ok = 0;
+  if(open($fh, '<:encoding(utf8)', File::Spec->catfile($new_stylesheet_dir, $stylesheet_name_2))){
+    local $/;
+    my $style_2 = <$fh>;
+    if($style_2 =~ /first_hints_2/ms &&
+       $style_2 =~ /second_hints_2/ms && 
+       $style_2 =~ /rootstyle: #root_style_2/ms &&
+       $style_2 =~ /context: PML_A2_1/ms){
+         $style_2_ok = 1;
+       }
+  }
+  ok($style_1_ok, "init_stylesheet_paths(): newly created style 1 ok");
+  ok($style_2_ok, "init_stylesheet_paths(): newly created style 2 ok");
+
+  is($TrEd::Utils::stylesheet_paths[0], $new_stylesheet_dir,
+      "init_stylesheet_paths(): setting stylesheet_paths without custom paths");
+  is($TrEd::Utils::default_stylesheet_path, $new_stylesheet_dir,
+      "init_stylesheet_paths(): setting default_stylesheet_path without custom paths");
+  
+  my @custom_paths = ("/path/to/stylesheets_1", "/path/to/stylesheets_2", "/path/to/stylesheets_1");
+  init_stylesheet_paths(\@custom_paths);
+  is($TrEd::Utils::stylesheet_paths[0], "/path/to/stylesheets_1",
+      "init_stylesheet_paths(): setting stylesheet_paths with custom paths");
+  is($TrEd::Utils::default_stylesheet_path, "/path/to/stylesheets_1",
+      "init_stylesheet_paths(): setting default_stylesheet_path with custom paths");
+  
+  # clean up created files and directories
+  unlink $file_name;
+  unlink File::Spec->catfile($new_stylesheet_dir, $stylesheet_name_1);
+  unlink File::Spec->catfile($new_stylesheet_dir, $stylesheet_name_2);
+  rmdir $new_stylesheet_dir;
+  rmdir $tred_d_dir;
+  $ENV{'HOME'} = $old_home;  
+}
+
+####################################################
+####### Test save_stylesheets()
+####################################################
+
+SKIP: {
+  my $fh;
+  my $file_name = ".tred-stylesheets";
+  
+  # skip tests, if the file could not be created
+  skip "Could not create an old-style stylesheet file", 4 if !open($fh, '>:utf8', $file_name);
+  
+  print $fh "old_stylesheet\n";
+  close($fh);
+  
+  my $stylesheet_1 = "style_1";
+  my $stylesheet_2 = "style_2";
+  my %gui;
+  $gui{"stylesheets"}{$stylesheet_1} = (
+    "context"     =>    $context1,
+    "hint"        =>    $hint1,
+    "patterns"    =>    \@patterns,
+  );
+  
+  $gui{"stylesheets"}{$stylesheet_2} = (
+    "context"     =>    $context2,
+    "hint"        =>    $hint2_1,
+    "patterns"    =>    \@patterns2,
+  );
+  
+  
+  
+  # clean up created files and directories
+  unlink $file_name;
+
+}
