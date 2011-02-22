@@ -61,9 +61,11 @@ our $VERSION = '0.01';
 
 #######################################################################################
 # Usage         : fetch_from_win32_reg_old('HKEY_LOCAL_MACHINE', q(SOFTWARE\Classes\.html)[, $subkey])
-# Purpose       : Read a value from windows registry, 
-# Returns       : Value read or undef when the key was not found
-# Parameters    : string $registry, string $key[, string $subkey]
+# Purpose       : Read a value from windows registry 
+# Returns       : Value from the registry key or undef when the key was not found
+# Parameters    : string $registry -- name of the registry (HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER, etc), 
+#                 string $key -- name of the key (backslash-delimited)
+#                 [string $subkey] -- optional -- subkey name
 # Throws        : no exceptions
 # Comments      : Requires Win32::Registry; Now obsolete, just for testing purposes, see newer version: fetch_from_win32_reg
 # See Also      : fetch_from_win32_reg
@@ -85,9 +87,11 @@ sub fetch_from_win32_reg_old {
 
 ######################################################################################
 # Usage         : fetch_from_win32_reg('HKEY_LOCAL_MACHINE', q(SOFTWARE\Classes\.html)[, $subkey])
-# Purpose       : Read a value from windows registry, 
+# Purpose       : Read a value from windows registry
 # Returns       : Value read or undef when the key was not found
-# Parameters    : string $registry, string $key[, string $subkey]
+# Parameters    : string $registry -- name of the registry (HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER, etc), 
+#                 string $key -- name of the key (backslash-delimited)
+#                 [string $subkey] -- optional -- subkey name
 # Throws        : no exceptions
 # Comments      : Requires Win32::TieRegistry
 # See Also      : fetch_from_win32_reg_old, Win32::TieRegistry (cpan)
@@ -145,18 +149,22 @@ sub find_win_home {
 
 ######################################################################################
 # Usage         : save_stylesheet_file(\%gui, $dir_name, $file_name)
-# Purpose       : 
-# Returns       : 
-# Parameters    : hash_ref $hash_ref, string $dir_name, string $file_name
+# Purpose       : Save stylesheet $name to file $name under directory $dir_name or 
+#                 call save_stylesheets() if $dir is a file, not a directory 
+# Returns       : Zero if the directory could not be created or the file could not be opened for writing
+# Parameters    : hash_ref $gui_ref -- hash should contain subkey 'stylesheets', subkeys of 'stylesheets' are the names of the stylesheets
+#                                      these should contain 3 subkeys: 'context', 'hint', 'patterns'. First two are strings, the last one
+#                                      should be an array_ref containing other stylesheet items
+#                 string $dir_name -- the stylesheet will be saved to the directory $dir_name
+#                 string $file_name -- both the name of the stylesheet file and the subkey in %gui hash
 # Throws        : no exceptions
 # Comments      : 
 # See Also      : save_stylesheets()
-#TODO: tests
 sub save_stylesheet_file {
-  my ($gui, $dir, $name)=@_;
+  my ($gui_ref, $dir, $name)=@_;
   if (-f $dir) {
     # old interface
-    return save_stylesheets($gui,$dir);
+    return save_stylesheets($gui_ref, $dir);
   }
   if (! -d $dir) {
     mkdir $dir || do {
@@ -166,10 +174,10 @@ sub save_stylesheet_file {
   }
   my $stylesheet_file = File::Spec->catfile($dir, URI::Escape::uri_escape_utf8($name));
   open(my $f, '>:utf8', $stylesheet_file) || do {
-    carp("cannot write to stylesheet file: $stylesheet_file: $!\n");
+    carp("Cannot write to stylesheet file: $stylesheet_file: $!\n");
     return 0;
   };
-  my $current_stylesheet = $gui->{"stylesheets"}->{$name};
+  my $current_stylesheet = $gui_ref->{"stylesheets"}->{$name};
   # print context
   if (defined($current_stylesheet->{"context"}) and $current_stylesheet->{"context"} =~ /\S/) {
     # context is valid
@@ -177,9 +185,11 @@ sub save_stylesheet_file {
     $current_stylesheet->{"context"} =~ s/^\s+|\s+$//g;
     print $f "context: ".$current_stylesheet->{"context"}."\n";
   }
+  # print patterns
   if (ref($current_stylesheet->{"patterns"})){
     print $f map { /\n\s*$/ ? $_ : $_."\n" } @{$current_stylesheet->{"patterns"}};
   }
+  # print hint
   if (defined($current_stylesheet->{"hint"}) and length($current_stylesheet->{"hint"})){
     print $f "\nhint:". $current_stylesheet->{"hint"};
   }
@@ -238,7 +248,6 @@ sub removeStylesheetFile {
 # Throws        : no exceptions 
 # Comments      : Supports both new and old stylesheets
 # See Also      : save_stylesheet_file()
-#TODO: tests still not finished
 sub save_stylesheets {
   my ($gui, $where)=@_;
   if (-d $where || ! -e $where) {
@@ -478,9 +487,9 @@ sub applyWindowStylesheet {
 
 ######################################################################################
 # Usage         : split_patterns($text)
-# Purpose       : Parse stylesheet and divide it into hints, context and other patterns 
-# Returns       : List of two strings (hints and context) and a referrence to array (containing other patterns)
-# Parameters    : string $text
+# Purpose       : Parse stylesheet text and divide it into hints, context and other patterns 
+# Returns       : List of 3 items: two strings (hints and context) and a referrence to array (containing other patterns)
+# Parameters    : string $text -- contents of the stylesheet
 # Throws        : no exceptions 
 # Comments      : EMTPY is our constant for empty string
 # See Also      : read_stylesheet_file(), EMPTY

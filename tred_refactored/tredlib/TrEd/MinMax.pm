@@ -24,7 +24,8 @@ $VERSION = "0.1";
 #                 This pair consists of the value returned by sub in previous iteration
 #                 and new value from the list  
 # Returns       : Whatever is returned by the last run of sub (scalar context)
-# Parameters    : anonymous_sub \&sub, list @list
+# Parameters    : anonymous_sub \&sub -- subroutine that takes two args and returns a scalar
+#                 list @list -- list of values
 # Throws        : no exceptions
 # Comments      : Prototyped function
 # See Also      : perlsub
@@ -69,7 +70,7 @@ sub max2 ($$) {
 ######################################################################################
 # Usage         : sum(@list)
 # Purpose       : Sum the elements of the list  
-# Returns       : The sum of the elements of the list (or their numeric value) 
+# Returns       : The sum of the elements of the @list (or their numeric value) 
 # Parameters    : list @list
 # Throws        : no exceptions
 # Comments      : Prototyped function
@@ -80,7 +81,7 @@ sub sum (@) {
 
 #######################################################################################
 # Usage         : min(@list)
-# Purpose       : Find the smallest element of the list (in numeric value)
+# Purpose       : Find the smallest element of the @list (in numeric value)
 # Returns       : The smallest number in the list 
 # Parameters    : list @list
 # Throws        : no exceptions
@@ -93,7 +94,7 @@ sub min (@) {
 
 #######################################################################################
 # Usage         : max(@list)
-# Purpose       : Find the biggest element of the list (in numeric value)
+# Purpose       : Find the biggest element of the @list (in numeric value)
 # Returns       : The biggest number in the list 
 # Parameters    : list @list
 # Throws        : no exceptions
@@ -106,7 +107,7 @@ sub max (@) {
 
 #######################################################################################
 # Usage         : minstr(@list)
-# Purpose       : Find the string that is first in lexicographical ordering 
+# Purpose       : Find the string that is first in lexicographical ordering in the @list
 # Returns       : The first string in lexicographical order
 # Parameters    : list @list
 # Throws        : no exceptions
@@ -119,7 +120,7 @@ sub minstr (@) {
 
 #######################################################################################
 # Usage         : maxstr(@list)
-# Purpose       : Find the string that is last in lexicographical ordering  
+# Purpose       : Find the string that is last in lexicographical ordering in the @list
 # Returns       : The last string in lexicographical order 
 # Parameters    : list @list
 # Throws        : no exceptions
@@ -136,7 +137,9 @@ sub maxstr (@) {
 #                 (no arguments are passed to the sub, it has to use $_);
 #                 Return undef otherwise (or empty list in list context)
 # Returns       : see Purpose 
-# Parameters    : anonymous_sub \&sub, list @list
+# Parameters    : anonymous_sub \&sub -- subroutine that does not take any arguments and 
+#                                         returns values which can be evaluated to true or false
+#                 list @list -- first element from the @list, which is accepted by \&sub is then returned
 # Throws        : no exceptions
 # Comments      : Prototyped function
 sub first (&@) {

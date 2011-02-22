@@ -281,7 +281,7 @@ applyInitialConfig();
 
 my $pid_file = File::Spec->catfile($tred_d,'tred.pid');
 
-# handle -C argument passed to tred -- only able to open file now...
+# handle -C argument passed to tred -- for now it can only open file in already opened TrEd...
 if ($command) {
   if (open(my $fh, '<',$pid_file)) {
     my $pid = <$fh>;
@@ -330,14 +330,16 @@ if (defined $opt_m) {
 $Treex::PML::Instance::Reader::STRICT=0;
 
 ###
-init_stylesheet_paths([split($Treex::PML::resourcePathSplit,$opt_S,-1)]);
+init_stylesheet_paths([split($Treex::PML::resourcePathSplit, $opt_S, -1)]);
 
+# well, setter would be nicer..
 $Treex::PML::resourcePath=
   join($Treex::PML::resourcePathSplit,
        map { length($_) ? $_ : $Treex::PML::resourcePath }
        split($Treex::PML::resourcePathSplit, $opt_Z,-1))
   if $opt_Z;
 
+# not very convenient... at least group to a fn
 $tredDebug=1 if $opt_D;
 
 $TrEd::TreeView::Debug=1 if $opt_D;
@@ -354,6 +356,7 @@ $docDir = first { -d $_ }
 if ($docDir ne EMPTY) {
   $docDir = 'file://'.$docDir;
 } else {
+  #TODO this is quite ugly
   $docDir = 'http://ufal.mff.cuni.cz/~pajas/tred';
 }
 
@@ -399,13 +402,14 @@ require TrEd::Macros;
 import TrEd::Macros;
 
 TrEd::Macros::define_symbol('TRED');
+#opt_y -- define symbol
 if ($opt_y) {
   foreach my $def (@$opt_y) {
-    foreach my $sym (split /,/, $def) {
-      if ($sym=~/=/) {
-	TrEd::Macros::define_symbol(split(/=/,$sym,2));
+    foreach my $sym (split(/,/, $def)) {
+      if ($sym =~ /=/) {
+        TrEd::Macros::define_symbol(split(/=/, $sym, 2));
       } else {
-	TrEd::Macros::define_symbol($sym);
+        TrEd::Macros::define_symbol($sym);
       }
     }
   }
@@ -617,15 +621,15 @@ my %default_binding = (
     ],
   '<KeyPress-Right>'=>
     [sub {
-       my $grp = $_[1];
-       if (treeIsVertical($grp)) {
-	 currentDown($grp);
-       } else {
-	 treeIsReversed($grp)
-	 ? currentLeft($grp)
-	 : currentRight($grp);
-       }
-       Tk->break;
+      my $grp = $_[1];
+      if (treeIsVertical($grp)) {
+        currentDown($grp);
+      } else {
+        treeIsReversed($grp)
+        ? currentLeft($grp)
+        : currentRight($grp);
+      }
+        Tk->break;
      },
      'select right sibling',
     ],
@@ -725,7 +729,7 @@ eval {
     if ($TrEd::Convert::support_unicode) {
       my $lc_collate=setlocale(LC_COLLATE);
       if ($lc_collate !~ /\.utf-?8/i) {
-	setlocale(LC_COLLATE,$lc_collate.".UTF-8");
+        setlocale(LC_COLLATE,$lc_collate.".UTF-8");
       }
       my $lc_ctype=setlocale(LC_CTYPE);
       $lc_ctype=~s/\.utf-?8//i; # Tk doesn't support this
@@ -740,12 +744,12 @@ eval {
        setlocale(LC_ALL,undef);
 
        if ($TrEd::Convert::support_unicode) {
-	 setlocale(LC_COLLATE,"cs_CZ.UTF-8");
-	 setlocale('LANG',"cs_CZ.UTF-8");
-	 setlocale('LC_CTYPE',"cs_CZ");
+         setlocale(LC_COLLATE,"cs_CZ.UTF-8");
+         setlocale('LANG',"cs_CZ.UTF-8");
+         setlocale('LC_CTYPE',"cs_CZ");
        } else {
-	 setlocale(LC_COLLATE,"cs_CZ");
-	 setlocale('LANG',"cs_CZ");
+         setlocale(LC_COLLATE,"cs_CZ");
+         setlocale('LANG',"cs_CZ");
        }
        setlocale(LC_NUMERIC,"C");
      };
@@ -1118,6 +1122,7 @@ sub bookmarkFilelist {
 # Throws        : no exceptions
 # Comments      : Requires Filelist module
 # See Also      : Filelist, addNewFilelist(), $autoSave 
+# TODO: tests
 sub setConfig {
   my $confs=shift;
   foreach (0..9) {
@@ -1143,6 +1148,15 @@ sub setConfig {
   print STDERR "Applying configuration.\n" if $tredDebug;
 }
 
+#######################################################################################
+# Usage         : setConfig($configs)
+# Purpose       : Load recently opened files and set autoSave according to value from config  
+# Returns       : nothing
+# Parameters    : hash_ref \%confs
+# Throws        : no exceptions
+# Comments      : Requires Filelist module
+# See Also      : Filelist, addNewFilelist(), $autoSave 
+# TODO: tests
 sub ApplyGlobalConfig {
   my ($grp)=@_;
 
@@ -3848,6 +3862,16 @@ sub createNewFilelist {
   }
 }
 
+#######################################################################################
+# Usage         : addNewFilelist(..)
+# Purpose       : ...  
+# Returns       : ..
+# Parameters    : ..
+# Throws        : ..
+# Comments      : ..
+# See Also      : .. 
+# TODO: tests
+# TODO: to je iny filelist ako je ten tredlib/Filelist.pm?
 sub addNewFilelist {
   my ($grp,$fl,$top)=@_;
   return if not defined($fl) or $fl eq EMPTY;
@@ -4416,6 +4440,10 @@ sub filelistDialog {
   }
 
 }
+
+####
+### End of subs related to file list
+####
 
 sub generateSortedMacroTable {
   my ($grp,$context,$flags,$order_by) = @_;
@@ -5600,7 +5628,7 @@ sub switchStylesheet {
       $grp->{stylesheets}->{$stylesheet}->{context}=$context;
       $grp->{stylesheets}->{$stylesheet}->{patterns}=$patterns;
       updateStylesheetMenu($grp);
-      saveStyleSheetFile($grp,$default_stylesheet_path,$stylesheet);
+      save_stylesheet_file($grp,$default_stylesheet_path,$stylesheet);
     }
     applyWindowStylesheet($win,$stylesheet);
     $grp->{selectedStylesheet} = $stylesheet if isFocused($win);
@@ -10345,7 +10373,7 @@ EOF
     if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
       $win->{FSFile}->notSaved(1);
     } else {
-      saveStyleSheetFile($grp,$default_stylesheet_path,$win->{stylesheet});
+      save_stylesheet_file($grp,$default_stylesheet_path,$win->{stylesheet});
     }
     get_nodes_fsfile($grp,$win->{FSFile});
     update_value_line($grp);
