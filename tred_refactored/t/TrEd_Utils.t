@@ -305,7 +305,7 @@ sub _subtest_read_stylesheet_new {
   my $gui_ref = {};
   my $opts_ref = {};
   
-  my $ret_value = &{$function}($gui_ref, $stylesheet_dir, $opts_ref);
+  my $ret_value = $function->($gui_ref, $stylesheet_dir, $opts_ref);
   
   # 5 tests
   _test_stylesheet_hash($gui_ref->{"stylesheets"}{$file_name}, $fn_name, "first_hints;", "second_hints;", "PML_A", "PML_A", \@patterns);
@@ -328,7 +328,7 @@ sub _subtest_read_stylesheet_new {
   };
   
   $opts_ref->{"no_overwrite"} = 1;
-  $ret_value = &{$function}($gui_ref, $stylesheet_dir, $opts_ref);
+  $ret_value = $function->($gui_ref, $stylesheet_dir, $opts_ref);
   
   is($ret_value, 1, "$fn_name(): correct return value if not overwriting");
   
@@ -386,7 +386,7 @@ sub _subtest_read_stylesheet_old {
   my $opts_ref = {};
   
   # test that function reads values from the specified file correctly
-  my $ret_value = &{$function}($gui_ref, $file_name, $opts_ref);
+  my $ret_value = $function->($gui_ref, $file_name, $opts_ref);
   
   # 5 tests
   _test_stylesheet_hash($gui_ref->{"stylesheets"}{$stylesheet_name_1}, $fn_name, "first_hints;", "second_hints;", "PML_A", "PML_A", \@patterns);
@@ -409,7 +409,7 @@ sub _subtest_read_stylesheet_old {
   };
   
   $opts_ref->{"no_overwrite"} = 1;
-  $ret_value = &{$function}($gui_ref, $file_name, $opts_ref);
+  $ret_value = $function->($gui_ref, $file_name, $opts_ref);
   
   is($ret_value, 1, "$fn_name(): correct return value if no_overwrite is in use");
   

@@ -7,7 +7,7 @@ package TrEd::Config;
 # This software covered by GPL - The General Public Licence
 #
 
-use Data::Dumper;
+#use Data::Dumper;
 
 use strict;
 use File::Spec;

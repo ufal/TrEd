@@ -1,6 +1,7 @@
 # -*- cperl -*-
 
 package TrEd::CPConvert;
+# used in vallex and pdt15_obsolete
 
 sub encoding_to {
   my ($self)=@_;
