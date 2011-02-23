@@ -32,6 +32,7 @@ our $VERSION = qv('0.0.3');
 our @ISA = qw(Exporter);
 our @EXPORT = qw(install_tred_deps);
 
+#TODO: use named args
 sub new {
 	my ($package, $install_base, $logfile_name, $cpan_online_install) = @_;
 	my %cpan_conf_backup = ();

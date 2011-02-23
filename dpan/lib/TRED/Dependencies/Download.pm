@@ -30,6 +30,7 @@ our $VERSION = qv('0.0.1');
 our @ISA = qw(Exporter);
 our @EXPORT = qw(download_from_cpan);
 
+#TODO: use named args
 sub new {
 	my ($package) = @_;
 	
@@ -80,6 +81,7 @@ sub download_from_cpan {
 }
 
 # we use older pdf::api2, that has also other dependencies, that's why we have to get rid of this newer one...
+#TODO: port to new PDF::API2
 sub _nasty_hack {
 	my ($self) = @_;
 	my $package_dir = File::Spec->catdir($self->{'dpan_config'}->dpan_dir(), "authors", "id", "D", "DP", "DPAN");

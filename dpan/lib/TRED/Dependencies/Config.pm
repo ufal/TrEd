@@ -107,11 +107,11 @@ sub new {
 	);
 	
 	my @universal_pkgs = qw(
-		*these_are_needed_for_building
+		!these_are_needed_for_building
 		IPC::Run3
 		Probe::Perl
 		Test::Exception
-		*CPAN_Build_system_does_not_work_without_Test::Harness
+		!CPAN_Build_system_does_not_work_without_Test__Harness
 		Test::Harness
 		Test::Script
 		XML::NodeFilter
@@ -121,7 +121,7 @@ sub new {
 		*Benchmark
 		*Carp
 		*Class::Struct
-		Class::Std
+		!Class::Std
 		*CPAN
 		*Cwd
 		*Data::Dumper
@@ -178,13 +178,13 @@ sub new {
 		Tk::Derived
 		Tk::Dialog
 		Tk::DialogBox
-		!Tk::DialogReturn
+		!Tk::DialogReturn__in_tred
 		Tk::Entry
 		Tk::Font
 		Tk::Frame
 		Tk::HistEntry
 		Tk::ItemStyle
-		!Tk::JComboBox_0_02
+		!Tk::JComboBox_0_02__in_tred
 		Tk::JPEG
 		Tk::LabFrame
 		Tk::Listbox
@@ -218,7 +218,7 @@ sub new {
 		XML::LibXSLT
 		XML::Writer
 		XML::XPath
-		*tieto_su_v_pkg_liste_no_neboli_najdene_ako_potrebne_automatickym_nastrojom
+		!tieto_su_v_pkg_liste_no_neboli_najdene_ako_potrebne_automatickym_nastrojom
 		Class::Inspector
 		Compress::Raw::Zlib
 		Compress::Raw::Bzip2
@@ -242,6 +242,7 @@ sub new {
 	# PDF::API2::Basic::TTF::Font (quite old)
 	# Tk::MatchEntry (quite old)
 	# IO-Compress -- for PDF::API2
+	# Class::Std -- listed in win32 dependencies, but never actually used in code (neither in extensions), try to ignore...
 	
 	my $self = {
 		'custom_build_params_ref' 	=> \%custom_build_params,

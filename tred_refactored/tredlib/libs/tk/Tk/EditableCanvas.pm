@@ -1,6 +1,7 @@
 package Tk::EditableCanvas;
 # pajas@ufal.mff.cuni.cz          17 èec 2007
-
+# looks like it's not used anywhere...
+ 
 use 5.008;
 use strict; 
 use warnings;

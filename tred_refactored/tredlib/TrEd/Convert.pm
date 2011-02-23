@@ -56,6 +56,15 @@ BEGIN {
 
 no integer;
 
+#######################################################################################
+# Usage         : encode($str)
+# Purpose       : Encodes the $str string into $outputenc  
+# Returns       : Encoded string (sequence of octets)
+# Parameters    : string $str (or a list of strings) to encode
+# Throws        : no exception
+# Comments      : ...
+# See Also      : Encode::encode, tr, arabjoin(), remix(), TrEd::ConvertArab, TrEd::ArabicRemix
+#TODO: tests, doc revision
 sub encode {
   my $str = join '', @_;
   if ($support_unicode) { # we've got support for UNICODE in perl5.8/Tk8004
@@ -68,7 +77,7 @@ sub encode {
         #   $inputenc eq 'windows-1256' )
 	 ) {
       if ($str=~$needs_arabic_remix_re) {
-	$str = remix(arabjoin($str));
+        $str = remix(arabjoin($str));
       }
     }
   } elsif ($]>=5.008) {
@@ -80,6 +89,14 @@ sub encode {
   return $str;
 }
 
+#######################################################################################
+# Usage         : decode($str)
+# Purpose       : Decodes sequence of octets from $outputenc to $inputenc
+# Returns       : Decoded string 
+# Parameters    : string $str (or list of strings) to decode
+# Throws        : no exception
+# Comments      : ...
+# See Also      : Encode::decode, tr, 
 sub decode {
   my $str = join '', @_;
   $lefttoright or ($str=~s{([^[:ascii:]]+)}{reverse $1}eg);
@@ -96,6 +113,15 @@ sub decode {
   }
 }
 
+#######################################################################################
+# Usage         : dirname()
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : ...
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc, stil needed? or can we use File::Spec instead?
 sub dirname {
   my $a=shift;
   # this is for the sh*tty winz where
@@ -106,6 +132,15 @@ sub dirname {
           substr($a,0,max(rindex($a,$Ds),rindex($a,'/'))+1) : ".$Ds";
 }
 
+#######################################################################################
+# Usage         : filename()
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : ...
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc, still needed? Same as with dirname, maybe we could use File::Spec...
 sub filename {
   my $a=shift;
   # this is for the sh*tty winz where

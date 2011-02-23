@@ -3,6 +3,9 @@
 use strict;
 use warnings;
 use Getopt::Long;
+use FindBin;
+use lib "$FindBin::Bin/lib";
+
 use TRED::Dependencies::Download;
 
 

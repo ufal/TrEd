@@ -116,7 +116,7 @@ if ($manpage) {
 if ($list_options) {
   foreach my $o (keys %optmap) {
   	# Removes type Getopt::Long's type information from optmap
-  	# However, tt does not work for 'option|O=s@'
+  	# However, this does not work for 'option|O=s@'
     $o=~s/=.$//;
     foreach my $oo (split /\|/,$o) {
       print sort ((length($oo)>1) ? "--$oo\n" : "-$oo\n");
@@ -203,7 +203,7 @@ if (defined $opt_c) {
 my $initial_config;
 #TODO: why is this sub defined here, in the BEGIN section? Because it uses $initial_config
 # see perlsub
-sub applyInitialConfig { setConfig($initial_config); undef $initial_config }
+sub apply_initial_config { set_config($initial_config); undef $initial_config }
 $TrEd::Config::set_user_config=sub { $initial_config=shift };	# tred specific configuration
 # global $configFile
 $configFile=read_config(); # this may setup a new $libDir
@@ -269,7 +269,7 @@ EOF
   exit;
 }
 
-applyInitialConfig();
+apply_initial_config();
 
 {
   # ensure ~/.tred.d exists
@@ -329,7 +329,7 @@ if (defined $opt_m) {
 # don't die on error in Treex::PML::Instance::Reader, just warn...
 $Treex::PML::Instance::Reader::STRICT=0;
 
-###
+###from TrEd::Utils
 init_stylesheet_paths([split($Treex::PML::resourcePathSplit, $opt_S, -1)]);
 
 # well, setter would be nicer..
@@ -1115,7 +1115,7 @@ sub bookmarkFilelist {
 }
 
 #######################################################################################
-# Usage         : setConfig($configs)
+# Usage         : set_config($configs)
 # Purpose       : Load recently opened files and set autoSave according to value from config  
 # Returns       : nothing
 # Parameters    : hash_ref \%confs
@@ -1123,7 +1123,7 @@ sub bookmarkFilelist {
 # Comments      : Requires Filelist module
 # See Also      : Filelist, addNewFilelist(), $autoSave 
 # TODO: tests
-sub setConfig {
+sub set_config {
   my $confs=shift;
   foreach (0..9) {
     $recentFiles[$_]=$confs->{"recentfile$_"};
@@ -1149,7 +1149,7 @@ sub setConfig {
 }
 
 #######################################################################################
-# Usage         : setConfig($configs)
+# Usage         : ApplyGlobalConfig($configs)
 # Purpose       : Load recently opened files and set autoSave according to value from config  
 # Returns       : nothing
 # Parameters    : hash_ref \%confs
