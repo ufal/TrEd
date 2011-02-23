@@ -543,7 +543,7 @@ SectionEnd
 
 	VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "TrEd"
 	VIAddVersionKey /LANG=${LANG_ENGLISH} "CompanyName" "UFAL"
-	VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "© Petr Pajas"
+	VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "(c) Petr Pajas"
 	VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "Tree Editor"
 	VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "1.4.5.1.3"
 

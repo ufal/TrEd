@@ -233,14 +233,18 @@ sub _restore_cpan_conf {
 	# if cpan does not auto commit, we didn't commit anything, so there is no need to make any changes
 	# However, if the cpan uses auto_commit, we have to commit after restoring previous values
 	my $cpan_uses_autocommit = $CPAN::Config->{'auto_commit'};
+	my $log_output;
 	if($cpan_uses_autocommit){
-		my $log_output;
+		
 		capture {
 			CPAN::Shell->o("conf", "commit");
 		} \$log_output, \$log_output;
 		print({$self->{'logfh'}} $log_output);
 	};
-	CPAN::Index->force_reload();
+	capture {
+		CPAN::Index->force_reload();
+	} \$log_output, \$log_output;
+	print({$self->{'logfh'}} $log_output);
 }
 
 sub DESTROY {
@@ -269,6 +273,10 @@ sub install_tred_deps {
 		# these are windows-specific packages, that can be installed according to user's choice, either from the internet, or from local CPAN mirror
 		if ($self->{'platform'} eq "MSWin32"){
 			$self->_install_modules_smartly($self->{'install_config'}->win_pkgs());
+		}
+		
+		if ($self->{'platform'} eq "darwin"){
+			$self->_install_modules_smartly($self->{'install_config'}->mac_pkgs());
 		}
 	};
 

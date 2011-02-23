@@ -125,8 +125,8 @@ job-tred-release: install-tred new-treex-pml build-dep-package pack-extensions p
 #hm, this is kindof weird (look also at next target)
 job-tred-pkg-release:
 	
-
-job-tred-pkg-no-release: build-dep-package prepare-tred-web-release
+# Don't forget prepare-tred-web-release prerequisities...
+job-tred-pkg-no-release: update-dist-dir build-dep-package prepare-tred-web-release
 
 # netreba tu pridat dalsie ciele, aby to ozaj bolo len bez instalacie...?
 job-tred-release-no-install: update-dist-dir build-dep-package prepare-tred-web-release
