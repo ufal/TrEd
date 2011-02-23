@@ -1,5 +1,5 @@
 package TrEd::Version;
-# pajas@ufal.mff.cuni.cz          17 maj 2008
+# pajas@ufal.mff.cuni.cz          17 øíj 2008
 
 use 5.008;
 use strict;
@@ -22,6 +22,7 @@ our $VERSION = "SVN_VERSION"; # DO NOT MODIFY THIS LINE !!
 
 # Preloaded methods go here.
 
+
 #######################################################################################
 # Usage         : TRED_VERSION()
 # Purpose       : Returns current tred's version 
@@ -35,7 +36,7 @@ sub TRED_VERSION {
 
 #######################################################################################
 # Usage         : CMP_TRED_VERSION_AND($other_version)
-# Purpose       : Compare version of tred with other version number 
+# Purpose       : Compare version of tred with other version number (1.xyz)
 # Returns       : 0 if the versions are equal, -1 if TRED_VERSION is less than $other_version and 1 otherwise.
 # Parameters    : string $other_version
 # Throws        : no exceptions

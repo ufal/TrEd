@@ -106,6 +106,10 @@ sub new {
 		Tk
 	);
 	
+	my @mac_pkgs = qw(
+		Mac::SystemDirectory
+	);
+	
 	my @universal_pkgs = qw(
 		!these_are_needed_for_building
 		IPC::Run3
@@ -121,7 +125,7 @@ sub new {
 		*Benchmark
 		*Carp
 		*Class::Struct
-		!Class::Std
+		Class::Std
 		*CPAN
 		*Cwd
 		*Data::Dumper
@@ -233,7 +237,6 @@ sub new {
 		XML::NamespaceSupport
 		XML::SAX
 		XML::LibXML::Iterator
-		Mac::SystemDirectory
 	);
 
 	# * = core packages, ! = don't install these
@@ -243,11 +246,13 @@ sub new {
 	# Tk::MatchEntry (quite old)
 	# IO-Compress -- for PDF::API2
 	# Class::Std -- listed in win32 dependencies, but never actually used in code (neither in extensions), try to ignore...
+	#            -- Actually, it is needed for TectoMT base extension, so we should better keep it.
 	
 	my $self = {
 		'custom_build_params_ref' 	=> \%custom_build_params,
 		'special_module_msg_ref'	=> \%special_module_msg,
 		'win_pkgs_ref'			=> \@win_pkgs,
+		'mac_pkgs_ref'			=> \@mac_pkgs,
 		'patched_pkgs_ref'		=> \@patched_pkgs,
 		'universal_pkgs_ref'		=> \@universal_pkgs,
 		'dpan_mirror'			=> $dpan_mirror,
@@ -290,6 +295,11 @@ sub win_pkgs {
 	return $self->{'win_pkgs_ref'};
 }
 
+# packages only for running TrEd on Mac OS
+sub mac_pkgs {
+	my $self = shift;
+	return $self->{'mac_pkgs_ref'};
+}
 
 # patched or modified packages
 sub patched_pkgs {
