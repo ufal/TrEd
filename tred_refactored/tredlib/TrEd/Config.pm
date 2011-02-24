@@ -43,8 +43,8 @@ BEGIN {
   $sortAttrs
   $sortAttrValues
   $macroFile
-  $defaultMacroFile
-  $defaultMacroEncoding
+  $default_macro_file
+  $default_macro_encoding
   $printOptions
   $showHidden
   $createMacroMenu
@@ -221,7 +221,8 @@ sub tilde_expand {
 # Purpose       : Parse each line of the config file to extract key and value pair and 
 #                 save it into hash $confs
 # Returns       : nothing
-# Parameters    : string $line, hash_ref $confs_ref
+# Parameters    : string $line, 
+#                 hash_ref $confs_ref
 # Throws        : nothing
 # Comments      : Longer because of comments of quite sophisticated regexp
 # See Also      : read_config() -- a caller of this ftion
@@ -289,11 +290,11 @@ sub parse_config_line {
 }
 
 #####################################################################################
-# Usage         : read_config()
+# Usage         : read_config(@list)
 # Purpose       : Set @config_file_search_list values to common places where 
 #                 tredrc cofiguration file is usually found
 # Returns       : Path to the config file from which the configuration was read
-# Parameters    : [List of tredrc possible locations]
+# Parameters    : [list @list -- List of tredrc possible locations]
 # Throws        : nothing
 # Comments      : Simple configuration file handling
 # See Also      : parse_config_line(), set_config()
@@ -530,8 +531,8 @@ sub set_config {
   $appIcon=(exists $confs->{appicon}) ? tilde_expand($confs->{appicon}) : "$libDir/tred.xpm";
   $iconPath=(exists $confs->{iconpath}) ? tilde_expand($confs->{iconpath}) : "$libDir/icons/crystal";
   $macroFile=tilde_expand($confs->{macrofile}) if (exists $confs->{macrofile});
-  $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? tilde_expand($confs->{defaultmacrofile}) : "$libDir/tred.def";
-  $defaultMacroEncoding=val_or_def($confs,"defaultmacroencoding",'utf8');
+  $default_macro_file=(exists $confs->{defaultmacrofile}) ? tilde_expand($confs->{defaultmacrofile}) : "$libDir/tred.def";
+  $default_macro_encoding=val_or_def($confs,"defaultmacroencoding",'utf8');
   $sortAttrs	     =	val_or_def($confs,"sortattributes",1);
   $sortAttrValues   =	val_or_def($confs,"sortattributevalues",1);
   for my $opt (keys %defaultPrintConfig) {

@@ -25,12 +25,12 @@ use CPAN;
 use CPAN::HandleConfig;
 # use Data::Dumper;
 
-use vars qw($VERSION @ISA @EXPORT);
-
+# use vars qw($VERSION @ISA @EXPORT);
+use vars qw($VERSION);
 our $VERSION = qv('0.0.4');
 
-our @ISA = qw(Exporter);
-our @EXPORT = qw(custom_build_params special_module_msg win_pkgs patched_pkgs universal_pkgs dpan_mirror);
+# our @ISA = qw(Exporter);
+# our @EXPORT = qw(custom_build_params special_module_msg win_pkgs patched_pkgs universal_pkgs dpan_mirror);
 
 sub new {
 	my $package = shift;

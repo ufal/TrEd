@@ -63,9 +63,9 @@ our $VERSION = '0.01';
 # Usage         : fetch_from_win32_reg_old('HKEY_LOCAL_MACHINE', q(SOFTWARE\Classes\.html)[, $subkey])
 # Purpose       : Read a value from windows registry 
 # Returns       : Value from the registry key or undef when the key was not found
-# Parameters    : string $registry -- name of the registry (HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER, etc), 
-#                 string $key -- name of the key (backslash-delimited)
-#                 [string $subkey] -- optional -- subkey name
+# Parameters    : string $registry  -- name of the registry (HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER, etc), 
+#                 string $key       -- name of the key (backslash-delimited)
+#                 [string $subkey]  -- optional -- subkey name
 # Throws        : no exceptions
 # Comments      : Requires Win32::Registry; Now obsolete, just for testing purposes, see newer version: fetch_from_win32_reg
 # See Also      : fetch_from_win32_reg
@@ -89,9 +89,9 @@ sub fetch_from_win32_reg_old {
 # Usage         : fetch_from_win32_reg('HKEY_LOCAL_MACHINE', q(SOFTWARE\Classes\.html)[, $subkey])
 # Purpose       : Read a value from windows registry
 # Returns       : Value read or undef when the key was not found
-# Parameters    : string $registry -- name of the registry (HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER, etc), 
-#                 string $key -- name of the key (backslash-delimited)
-#                 [string $subkey] -- optional -- subkey name
+# Parameters    : string $registry  -- name of the registry (HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER, etc), 
+#                 string $key       -- name of the key (backslash-delimited)
+#                 [string $subkey]  -- optional -- subkey name
 # Throws        : no exceptions
 # Comments      : Requires Win32::TieRegistry
 # See Also      : fetch_from_win32_reg_old, Win32::TieRegistry (cpan)
@@ -155,7 +155,7 @@ sub find_win_home {
 # Parameters    : hash_ref $gui_ref -- hash should contain subkey 'stylesheets', subkeys of 'stylesheets' are the names of the stylesheets
 #                                      these should contain 3 subkeys: 'context', 'hint', 'patterns'. First two are strings, the last one
 #                                      should be an array_ref containing other stylesheet items
-#                 string $dir_name -- the stylesheet will be saved to the directory $dir_name
+#                 string $dir_name  -- the stylesheet will be saved to the directory $dir_name
 #                 string $file_name -- both the name of the stylesheet file and the subkey in %gui hash
 # Throws        : no exceptions
 # Comments      : 
@@ -202,7 +202,9 @@ sub save_stylesheet_file {
 # Returns       : Sub-hash of %gui: gui{"stylesheets"}{$file_name} or 
 #                 undef if stylesheet_file could not be opened or 
 #                 if %opts{"no_overwrite"} is set and %gui{"stylesheets"}{$file_name} has already been defined
-# Parameters    : hash_ref $gui_ref, string $stylesheet_file[, hash_ref $opts_ref]
+# Parameters    : hash_ref $gui_ref, 
+#                 string $stylesheet_file,
+#                 [hash_ref $opts_ref]
 # Throws        : no exceptions 
 # Comments      : 
 # See Also      : read_stylesheets(), split_patterns()
@@ -244,7 +246,8 @@ sub removeStylesheetFile {
 # Purpose       : Save stylesheets from the hash reference \%gui to $destination on the hdd
 # Returns       : Zero if the destination directory could not be created or if the file could not be opened
 #                 Returns the return value of save_stylesheet_file() or close() function otherwise.
-# Parameters    : hash_ref $gui_ref, string $destination
+# Parameters    : hash_ref $gui_ref   -- reference to hash that contains stylesheets, 
+#                 string $destination -- name of the file or directory
 # Throws        : no exceptions 
 # Comments      : Supports both new and old stylesheets
 # See Also      : save_stylesheet_file()
@@ -291,7 +294,9 @@ sub save_stylesheets {
 # Purpose       : Calls read_stylesheets_old if $file is a regular file, 
 #                 Calls read_stylesheets_new if $file is a directory.
 # Returns       : Return value from the called function 
-# Parameters    : hash_ref $gui_ref, string $file_name[, hash_ref $opts_ref]
+# Parameters    : hash_ref $gui_ref, 
+#                 string $file_name, 
+#                 [hash_ref $opts_ref]
 # Throws        : no exceptions 
 # Comments      : 
 # See Also      : read_stylesheets_new(), read_stylesheets_old()
@@ -308,7 +313,9 @@ sub read_stylesheets {
 # Usage         : read_stylesheets_new(\%gui, $dir_name, \%opts)
 # Purpose       : Load all the stylesheets in the $dir_name directory into %gui hash
 # Returns       : Zero if the $dir_name could not be opened, 1 otherwise
-# Parameters    : hash_ref $gui_ref, string $dir_name, hash_ref $opts_ref
+# Parameters    : hash_ref $gui_ref, 
+#                 string $dir_name, 
+#                 hash_ref $opts_ref
 # Throws        : no exceptions 
 # Comments      : Skips files with names starting with '#', '.', or ending with '#', '~'
 # See Also      : read_stylesheets()
@@ -335,7 +342,9 @@ sub read_stylesheets_new {
 # Purpose       : Load old-style stylesheets from stylesheet file into %gui hash
 # Returns       : If the file could not be opened, returns 0, 
 #                 1 otherwise
-# Parameters    : hash_ref $gui_ref, string $filename[, hash_ref $opts_ref]
+# Parameters    : hash_ref $gui_ref, 
+#                 string $filename, 
+#                 [hash_ref $opts_ref]
 # Throws        : no exceptions 
 # Comments      : Changed :utf8 to :encoding(utf8), see 
 #                 http://en.wikibooks.org/wiki/Perl_Programming/Unicode_UTF-8#Input_-_Files.2C_File_Handles
@@ -679,7 +688,7 @@ sub getNodeByNo {
 # Purpose       : Set the @stylesheet_paths and $default_stylesheet_path variable 
 #                 according to the environment and argument @custom_stylesheets_paths
 # Returns       : nothing
-# Parameters    : list_ref $list_ref
+# Parameters    : list_ref $list_ref -- list of custom stylesheet paths
 # Throws        : no exceptions
 # Comments      : If valid @user_paths list is passed, this list is 'uniqued' and 
 #                 put before the default path in the @stylesheet_paths array.
@@ -731,7 +740,9 @@ sub loadStyleSheets {
 # Usage         : set_fh_encoding(\*STDOUT, ':utf8', "STDOUT")
 # Purpose       : Set encoding on a file handle  
 # Returns       : nothing
-# Parameters    : filehandle $fh, string $encoding, string $what
+# Parameters    : filehandle $fh    -- filehandle, 
+#                 string $encoding  -- same encoding, as is accepted by open/binmode functions, e.g. ":encoding(utf8)"
+#                 string $what      -- name of the flush (so we can report error if any occurs)
 # Throws        : a string; When binmode or flush call fails
 # Comments      : Be careful, don't use :utf8 on input files and STDIN (http://en.wikibooks.org/wiki/Perl_Programming/Unicode_UTF-8);
 #                 It seems that the third parameter is not used in the sub, why is it here?

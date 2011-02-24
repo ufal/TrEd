@@ -25,12 +25,12 @@ use File::Spec;
 use TRED::Dependencies::Config;
 use version;
 
-use vars qw($VERSION @ISA @EXPORT);
-
+# use vars qw($VERSION @ISA @EXPORT);
+use vars qw($VERSION);
 our $VERSION = qv('0.0.3');
 
-our @ISA = qw(Exporter);
-our @EXPORT = qw(install_tred_deps);
+# our @ISA = qw(Exporter);
+# our @EXPORT = qw(install_tred_deps);
 
 #TODO: use named args
 sub new {
