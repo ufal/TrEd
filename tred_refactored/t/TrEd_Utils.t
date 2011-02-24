@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../tredlib";
-use Test::More 'no_plan';#tests => 19;
+use Test::More 'no_plan';
 use IO qw(File Handle);
 use utf8;
 use Encode;

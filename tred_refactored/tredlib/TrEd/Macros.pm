@@ -1,5 +1,7 @@
 package TrEd::Macros;
 
+use strict;
+
 BEGIN {
   use Cwd;
   use Treex::PML;
@@ -7,7 +9,7 @@ BEGIN {
   use File::Glob qw(:glob);
   use TrEd::Config;
   use TrEd::Basics;
-  import TrEd::Config qw($defaultMacroFile $defaultMacroEncoding $macroDebug $hookDebug);
+  import TrEd::Config qw($default_macro_file $default_macro_encoding $macroDebug $hookDebug);
   use TrEd::Convert;
   use Encode ();
   use Exporter  ();
@@ -31,35 +33,75 @@ BEGIN {
     %menuBindings
     @macros
     $macrosEvaluated
-    &getContexts
+    &get_contexts
   );
   $useEncoding = ($]>=5.008);
 }
 
-use strict;
 
+#######################################################################################
+# Usage         : define_symbol($name, $value)
+# Purpose       : Define symbol with name $name and assigns the value $value to it
+# Returns       : Function's second argument -- $value
+# Parameters    : scalar $name  -- name of the variable to be defined
+#                 scalar $value -- the value that will be assigned to the variable $name 
+# Throws        : no exception
+# Comments      : Information about defines is stored in file-scoped hash %defines
+# See Also      : undefine_symbol(), is_defined()
 sub define_symbol {
   my ($name, $value) = @_;
-  $defines{$name}=$value;
+  $defines{$name} = $value;
   return $value;
 }
 
+#######################################################################################
+# Usage         : undefine_symbol($name)
+# Purpose       : Deletes the definition of symbol $name  
+# Returns       : The value or values deleted in list context, or the last such element in scalar context
+# Parameters    : string $name -- name of the symbol
+# Throws        : no exception
+# Comments      : ...
+# See Also      : define_symbol(), is_defined(), delete()
 sub undefine_symbol {
   my ($name) = @_;
-  return delete $defines{$name};
+  return delete($defines{$name});
 }
 
+#######################################################################################
+# Usage         : is_defined($name)
+# Purpose       : Tell whether symbol $name is defined  
+# Returns       : True if the symbol $name is defined, false otherwise
+# Parameters    : string $name -- name of the symbol
+# Throws        : no exception
+# Comments      : ...
+# See Also      : exists(), define_symbol(), undefine_symbol()
 sub is_defined {
   my ($name) = @_;
-  return exists $defines{$name};
+  return exists($defines{$name});
 }
 
-sub getContexts {
-  return
+#######################################################################################
+# Usage         : get_contexts()
+# Purpose       : Returns sorted and uniqued list of contexts, i.e. keys of %menuBindings and %keyBindings hashes 
+# Returns       : List of contexts
+# Parameters    : no parameters
+# Throws        : no exception
+# Comments      : 
+# See Also      : %menuBindings, %keyBindings
+# TODO: better purpose description, tests
+sub get_contexts {
+  return #TrEd::Basics::
     uniq sort {$a cmp $b} (keys(%menuBindings),
 			   keys(%keyBindings))
 }
 
+#######################################################################################
+# Usage         : _normalize_key($key)
+# Purpose       : Normalize the keybinding description 
+# Returns       : Normalizes key description
+# Parameters    : string $key -- represents the key combination, e.g. 'Ctrl+X'
+# Throws        : no exception
+# Comments      : Changes the '-' character to '+' and uppercases modifier keys 
 sub _normalize_key {
   my ($key)=@_;
   $key=~s/\-/+/g;	# convert ctrl-x to ctrl+x
@@ -67,39 +109,86 @@ sub _normalize_key {
   return $key;
 }
 
+#######################################################################################
+# Usage         : bind_key($context, $key, $macro)
+# Purpose       : Binds key (combination) $key to macro $macro in $context
+# Returns       : nothing
+# Parameters    : string $context       -- the context, in which the binding is valid
+#                 string $key           -- key or key combination, e.g. 'Ctrl+x'
+#                 string or ref $macro  -- macro which will be bound to the key $key
+#                                          if $macro is a reference or string like sth->macro, 
+#                                          then it's used as is, 
+#                                          otherwise "$context->$macro" is bound to the $key
+# Throws        : no exception
+# Comments      : Works only if macro is defined
+# See Also      : unbind_key(), _normalize_key(), get_bindings_for_macro(), get_binding_for_key()
 sub bind_key {
-  my ($context,$key,$macro)=@_;
+  my ($context, $key, $macro)=@_;
   if (defined($macro) and length($macro)) {
-    $keyBindings{$context}={} unless exists($keyBindings{$context});
+    if(!exists($keyBindings{$context})){
+      $keyBindings{$context}={};
+    }
     $keyBindings{$context}->{_normalize_key($key)} = (ref($macro) or $macro=~/^\w+-\>/) ? $macro : $context.'->'.$macro,
   }
 }
+
+#######################################################################################
+# Usage         : unbind_key($context, $key, $delete)
+# Purpose       : Discard binding for key $key in specified $context (if $delete is true, delete it, otherwise set bound macro to undef)
+# Returns       : The result of delete function or undef/empty list, depending on the context
+# Parameters    : string $context -- context in which the binding is being deleted
+#                 string $key     -- key or key combination, e.g. 'Ctrl+x'
+#                 bool $delete    -- if set to true, binding is deleted, otherwise the macro is just set to undef
+# Throws        : no exception
+# Comments      : ...
+# See Also      : bind_key(), get_binding_for_key(), get_bindings_for_macro()
 sub unbind_key {
-  my ($context,$key,$delete)=@_;
-  my $h = $keyBindings{$context};
-  if (ref($h)) {
+  my ($context, $key, $delete)=@_;
+  my $bindings_ref = $keyBindings{$context};
+  if (ref($bindings_ref)) {
     if ($delete) {
-      return delete $h->{_normalize_key($key)};
+      return delete($bindings_ref->{_normalize_key($key)});
     } else {
-      $h->{_normalize_key($key)}=undef;  # we do not delete so that we may override TrEdMacro
+      $bindings_ref->{_normalize_key($key)}=undef;  # we do not delete so that we may override TrEdMacro
     }
   }
   return;
 }
+
+#######################################################################################
+# Usage         : unbind_macro($context, $macro, $delete)
+# Purpose       : Discards all the bindings for $macro in context $context (if $delete is true, delete it, otherwise set to undef)
+# Returns       : nothing
+# Parameters    : string $context       -- context in which the binding is being deleted
+#                 string or ref $macro  -- string in the form "sth->$macro" or ref to macro subroutine
+#                 bool $delete          -- if set to true, binding is deleted, otherwise the macro is just set to undef
+# Throws        : no exception
+# See Also      : bind_key(), unbind_key(),
+#TODO: tests 
 sub unbind_macro {
-  my ($context,$macro, $delete)=@_;
-  my $h = $keyBindings{$context};
-  if (ref($h)) {
-    while (my($k,$v)=each %$h) {
-      next unless $v eq $macro;
+  my ($context, $macro, $delete)=@_;
+  my $bindings_ref = $keyBindings{$context};
+  if (ref($bindings_ref)) {
+    while (my($key, $m)=each %{$bindings_ref}) {
+      next unless $m eq $macro;
       if ($delete) {
-	delete $h->{$k};
+        delete $bindings_ref->{$key};
       } else {
-	$h->{$k} = undef; # we do not delete so that we may override TrEdMacro
+        $bindings_ref->{$key} = undef; # we do not delete so that we may override TrEdMacro
       }
     }
   }
 }
+
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub get_bindings_for_macro {
   my ($context,$macro)=@_;
   my $h = $keyBindings{$context};
@@ -113,11 +202,30 @@ sub get_bindings_for_macro {
   }
   return @ret;
 }
+
+#######################################################################################
+# Usage         : get_binding_for_key($context, $key)
+# Purpose       : Return the binding for the $key in specified $context
+# Returns       : Key binding if defined, undef otherwise
+# Parameters    : string $context   -- context for key binding
+#                 string $key       -- key or key combination, e.g. 'Ctrl+x'
+# Throws        : no exception
+# See Also      : unbind_key(), bind_key()
 sub get_binding_for_key {
-  my ($context,$key)=@_;
-  my $h = $keyBindings{$context};
-  return ref($h) ? $h->{_normalize_key($key)} : undef;
+  my ($context, $key)=@_;
+  my $binding = $keyBindings{$context};
+  return ref($binding) ? $binding->{_normalize_key($key)} : undef;
 }
+
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub add_to_menu {
   my ($context,$label,$macro)=@_;
   if (defined($label) and length($label)) {
@@ -128,6 +236,16 @@ sub add_to_menu {
      ];
   }
 }
+
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub remove_from_menu {
   my ($context,$label)=@_;
   if (exists($menuBindings{$context})) {
@@ -135,6 +253,16 @@ sub remove_from_menu {
   }
   return;
 }
+
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub remove_from_menu_macro {
   my ($context,$macro)=@_;
   my $h = $menuBindings{$context};
@@ -145,6 +273,16 @@ sub remove_from_menu_macro {
     }
   }
 }
+
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub get_menus_for_macro {
   my ($context,$macro)=@_;
   my $h = $menuBindings{$context};
@@ -158,22 +296,62 @@ sub get_menus_for_macro {
   }
   return @ret;
 }
+
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub get_macro_for_menu {
   my ($context,$label)=@_;
   my $h = $menuBindings{$context};
   return ref($h) ? $h->{$label} : undef;
 
 }
+
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub get_menuitems {
   my ($context)=@_;
   my $h = $menuBindings{$context};
   return ref($h) ? %$h : undef;
 }
+
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub get_keybindings {
   my ($context)=@_;
   my $h = $keyBindings{$context};
   return ref($h) ? %$h : undef;
 }
+
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub copy_key_bindings {
   my ($source_context, $destination_context)=@_;
   my $s = $keyBindings{$source_context};
@@ -184,6 +362,16 @@ sub copy_key_bindings {
   }
   return $d;
 }
+
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub copy_menu_bindings {
   my ($source_context, $destination_context)=@_;
   my $s = $menuBindings{$source_context};
@@ -195,6 +383,15 @@ sub copy_menu_bindings {
   return $d;
 }
 
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub read_macros {
   # This subroutine reads macro file. Macros are usual perl
   # subroutines and may use this program's namespace. They are also
@@ -214,23 +411,23 @@ sub read_macros {
   my ($file,$libDir,$keep,$encoding)=(shift,shift,shift,shift);
   $macrosEvaluated=0;
   my @contexts=@_;
-  $encoding = $defaultMacroEncoding unless $encoding ne "";
+  $encoding = $default_macro_encoding unless $encoding ne "";
   @contexts=("TredMacro") unless (@contexts);
   unless ($keep) {
     %keyBindings=();
     %menuBindings=();
     @macros=();
     $exec_code=undef;
-    print STDERR "Reading $defaultMacroFile\n" if $macroDebug;
-    Encode::_utf8_off($defaultMacroFile);
-    push @macros,"\n#line 1 \"$defaultMacroFile\"\n";
+    print STDERR "Reading $default_macro_file\n" if $macroDebug;
+    Encode::_utf8_off($default_macro_file);
+    push @macros,"\n#line 1 \"$default_macro_file\"\n";
     my $fh;
-    open(my $fh,'<',$defaultMacroFile) or do {
-      print "ERROR: Cannot open macros: $defaultMacroFile!\n";
+    open(my $fh,'<',$default_macro_file) or do {
+      print "ERROR: Cannot open macros: $default_macro_file!\n";
       return 0
     };
     set_encoding($fh,$encoding);
-    preprocess($fh,$defaultMacroFile,\@macros,\@contexts);
+    preprocess($fh,$default_macro_file,\@macros,\@contexts);
     #    push @macros, <$fh>;
     close $fh;
   }
@@ -246,6 +443,15 @@ sub read_macros {
 
 }
 
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub preprocess {
   my ($F,$file,$macros,$contexts)=@_;
   Encode::_utf8_off($file);
@@ -438,9 +644,18 @@ sub preprocess {
   return 1;
 }
 
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc, similar to set_fh_encoding, check for duplicity
 sub set_encoding {
   my $fh = shift;
-  my $enc = shift || $defaultMacroEncoding;
+  my $enc = shift || $default_macro_encoding;
   if ($useEncoding and $enc) {
     eval {
       $fh->flush();
@@ -455,7 +670,16 @@ sub set_encoding {
   }
 }
 
-#
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
+
 # The $win parameter to the following two routines should be
 # a hash reference, having at least the following keys:
 #
@@ -518,6 +742,15 @@ sub initialize_macros {
   return $result;
 }
 
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub macro_variable {
   my $prefix = ($_[0] =~ /::/) ? '' : 'TredMacro::';
   if (defined($safeCompartment)) {
@@ -527,11 +760,29 @@ sub macro_variable {
   }
 }
 
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub get_macro_variable {
   no strict 'refs';
   ${ &macro_variable };
 }
 
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub set_macro_variable {
   no strict 'refs';
   while (@_) {
@@ -542,6 +793,15 @@ sub set_macro_variable {
 
 my @_saved_vars = qw(grp this root FileNotSaved forceFileSaved);
 
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub save_ctxt {
   no strict 'refs';
   if (defined($safeCompartment)) {
@@ -550,6 +810,16 @@ sub save_ctxt {
     return [ map ${'TredMacro::'.$_}, @_saved_vars ];
   }
 }
+
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub restore_ctxt {
   my $ctxt = shift;
   my $i=0;
@@ -566,6 +836,15 @@ sub restore_ctxt {
   return;
 }
 
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub do_eval_macro {
   my ($win,$macro)=@_;		# $win is a reference
 				# which should in this way be made visible
@@ -612,6 +891,15 @@ sub do_eval_macro {
   return $result;
 }
 
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub context_can {
   my ($context,$sub)=@_;
   if (defined($safeCompartment)) {
@@ -632,6 +920,15 @@ sub context_isa {
   }
 }
 
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub do_eval_hook {
   my ($win,$context,$hook)=(shift,shift,shift);  # $win is a reference
 				# which should in this way be made visible

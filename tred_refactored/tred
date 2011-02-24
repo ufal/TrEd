@@ -18,7 +18,7 @@ BEGIN {
 # start of BEGIN section
 ############################################################
 
-if ($^V lt v5.8.3) {
+if ($^V lt 'v5.8.3') {
   print STDERR '-' x 50,"\n";
   print STDERR "WARNING: Your version of perl is older than v5.8.3\n";
   print STDERR "THINGS MAY NOT WORK AS EXPECTED OR NOT AT ALL!\n";
@@ -4568,7 +4568,7 @@ sub macrolistDialog {
     $grp->{Macrolist}->raise;
     return;
   }
-  unless (scalar(getContexts())) {
+  unless (scalar(get_contexts())) {
     errorMessage($grp->{focusedWindow},"No named macros in current context ($context)",1);
     return;
   }
@@ -4603,7 +4603,7 @@ sub macrolistDialog {
 	    -underline => 1,
 	   )->pack(qw/-side left/);
   my $om = 
-    $f->Optionmenu(-options      => [getContexts()],
+    $f->Optionmenu(-options      => [get_contexts()],
 		   -textvariable => \$context,
 		   -command      => $renew_callback,
 		   -relief       => 'groove', #$menubarRelief,
@@ -8741,7 +8741,7 @@ sub autoSelectContext {
 sub getApplicableContexts {
   my ($win)=@_;
   my $prevcontext = $win->{macroContext};
-  my @ret = grep { (doEvalHook($win,"allow_switch_context_hook",$prevcontext,$win->{macroContext}=$_)||'') ne 'stop' } getContexts();
+  my @ret = grep { (doEvalHook($win,"allow_switch_context_hook",$prevcontext,$win->{macroContext}=$_)||'') ne 'stop' } get_contexts();
   $win->{macroContext}=$prevcontext;
   return @ret;
 }
