@@ -606,8 +606,8 @@ EOF
   die $! unless $test_socket;
   msg "Opening connections to servers...\n";
   my $i = 0;
- SERVER:
   my $queue_not_ready=0; # this is a countdown for all servers
+ SERVER:
   foreach my $srv (@running) {
     $i++;
     my $retries = $max_server_retries || ($srv->{protocol} eq 'qsub' ? 20 : 10);
