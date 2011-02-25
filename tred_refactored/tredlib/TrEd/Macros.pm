@@ -1,6 +1,7 @@
 package TrEd::Macros;
 
 use strict;
+use Carp;
 
 BEGIN {
   use Cwd;
@@ -35,6 +36,7 @@ BEGIN {
     $macrosEvaluated
     &get_contexts
   );
+  # can be used from perl 5.8
   $useEncoding = ($]>=5.008);
 }
 
@@ -88,25 +90,38 @@ sub is_defined {
 # Throws        : no exception
 # Comments      : 
 # See Also      : %menuBindings, %keyBindings
-# TODO: better purpose description, tests
 sub get_contexts {
   return #TrEd::Basics::
-    uniq sort {$a cmp $b} (keys(%menuBindings),
-			   keys(%keyBindings))
+    uniq sort {$a cmp $b} (keys(%menuBindings), keys(%keyBindings))
 }
 
 #######################################################################################
 # Usage         : _normalize_key($key)
 # Purpose       : Normalize the keybinding description 
-# Returns       : Normalizes key description
+# Returns       : Normalized key description
 # Parameters    : string $key -- represents the key combination, e.g. 'Ctrl+X'
 # Throws        : no exception
 # Comments      : Changes the '-' character to '+' and uppercases modifier keys 
 sub _normalize_key {
-  my ($key)=@_;
-  $key=~s/\-/+/g;	# convert ctrl-x to ctrl+x
-  $key=~s/([^+]+[+-])/uc($1)/eg; # uppercase modifiers
+  my ($key) = @_;
+  $key =~ s/\-/+/g;	# convert ctrl-x to ctrl+x
+  $key =~ s/([^+]+[+-])/uc($1)/eg; # uppercase modifiers
   return $key;
+}
+
+#######################################################################################
+# Usage         : _normalize_macro($context, $macro)
+# Purpose       : Test whether the $macro is a valid macro name or reference, or construct its name from context and macro name 
+# Returns       : Normalized macro string that is accepted as $macro in functions
+# Parameters    : string or ref $macro -- string in the form "sth->$macro" or ref to macro subroutine
+# Throws        : no exception
+# Comments      : none yet
+sub _normalize_macro {
+  my ($context, $macro) = @_;
+  if(scalar(@_) < 2){
+    croak("You must specify both context and macro in _normalize_macro");
+  };
+  return (ref($macro) or $macro=~/^\w+-\>/) ? $macro : $context.'->'.$macro;
 }
 
 #######################################################################################
@@ -123,12 +138,12 @@ sub _normalize_key {
 # Comments      : Works only if macro is defined
 # See Also      : unbind_key(), _normalize_key(), get_bindings_for_macro(), get_binding_for_key()
 sub bind_key {
-  my ($context, $key, $macro)=@_;
+  my ($context, $key, $macro) = @_;
   if (defined($macro) and length($macro)) {
     if(!exists($keyBindings{$context})){
-      $keyBindings{$context}={};
+      $keyBindings{$context} = {};
     }
-    $keyBindings{$context}->{_normalize_key($key)} = (ref($macro) or $macro=~/^\w+-\>/) ? $macro : $context.'->'.$macro,
+    $keyBindings{$context}->{_normalize_key($key)} = _normalize_macro($context, $macro);
   }
 }
 
@@ -143,13 +158,13 @@ sub bind_key {
 # Comments      : ...
 # See Also      : bind_key(), get_binding_for_key(), get_bindings_for_macro()
 sub unbind_key {
-  my ($context, $key, $delete)=@_;
+  my ($context, $key, $delete) = @_;
   my $bindings_ref = $keyBindings{$context};
   if (ref($bindings_ref)) {
     if ($delete) {
       return delete($bindings_ref->{_normalize_key($key)});
     } else {
-      $bindings_ref->{_normalize_key($key)}=undef;  # we do not delete so that we may override TrEdMacro
+      $bindings_ref->{_normalize_key($key)} = undef;  # we do not delete so that we may override TrEdMacro
     }
   }
   return;
@@ -163,16 +178,16 @@ sub unbind_key {
 #                 string or ref $macro  -- string in the form "sth->$macro" or ref to macro subroutine
 #                 bool $delete          -- if set to true, binding is deleted, otherwise the macro is just set to undef
 # Throws        : no exception
+# Comments      : Shouldn't we normalize $macro here as well?
 # See Also      : bind_key(), unbind_key(),
-#TODO: tests 
 sub unbind_macro {
-  my ($context, $macro, $delete)=@_;
+  my ($context, $macro, $delete) = @_;
   my $bindings_ref = $keyBindings{$context};
   if (ref($bindings_ref)) {
-    while (my($key, $m)=each %{$bindings_ref}) {
-      next unless $m eq $macro;
+    while (my($key, $m) = each(%{$bindings_ref})) {
+      next if($m ne $macro);
       if ($delete) {
-        delete $bindings_ref->{$key};
+        delete($bindings_ref->{$key});
       } else {
         $bindings_ref->{$key} = undef; # we do not delete so that we may override TrEdMacro
       }
@@ -181,23 +196,32 @@ sub unbind_macro {
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : get_bindings_for_macro($context, $macro)
+# Purpose       : Return all the bindings for macro $macro in the specified $context
+# Returns       : Array of the bindings in list context, first binding in scalar context
+# Parameters    : string $context       -- context in which to look for the macro bindings
+#                 string or ref $macro  -- string in the form "sth->$macro" or ref to macro subroutine
 # Throws        : no exception
-# Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
+# Comments      : Be aware, that the 'first' binding means first one in the hash, 
+#                 and you can hardly tell, which one that is
+#                 Maybe we should normalize $macro here as well... 
+# See Also      : get_binding_for_key(), bind_key(), unbind_key(), unbind_macro()
 sub get_bindings_for_macro {
-  my ($context,$macro)=@_;
-  my $h = $keyBindings{$context};
+  my ($context, $macro) = @_;
+  my $bindings_ref = $keyBindings{$context};
   my @ret;
-  if (ref($h)) {
-    while (my($k,$v)=each %$h) {
-      next unless $v eq $macro;
-      wantarray || return $k;
-      push @ret, $k;
+  if (ref($bindings_ref)) {
+    while (my($key, $m) = each(%{$bindings_ref})) {
+      next if($m ne $macro);
+      if(wantarray()){
+        push(@ret, $key);
+      } else {
+        # if called in scalar context, the internal hash iterator stops somewhere in the middle of
+        # the hash %keyBindings (if it finds the $macro, of course) and other functions calling each() 
+        # would not work properly, because they all share the hash's internal iterator, thus we need to reset it
+        keys(%{$bindings_ref});
+        return $key
+      }
     }
   }
   return @ret;
@@ -212,175 +236,195 @@ sub get_bindings_for_macro {
 # Throws        : no exception
 # See Also      : unbind_key(), bind_key()
 sub get_binding_for_key {
-  my ($context, $key)=@_;
+  my ($context, $key) = @_;
   my $binding = $keyBindings{$context};
   return ref($binding) ? $binding->{_normalize_key($key)} : undef;
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : get_keybindings($context)
+# Purpose       : Return hash of key bindings in context $context
+# Returns       : Hash of key bindings in context $context if there are any, undef otherwise
+# Parameters    : string $context -- context we are examinig
 # Throws        : no exception
 # Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
+# See Also      : get_binding_for_key(), bind_key(), unbind_key(), copy_key_bindings()
+sub get_keybindings {
+  my ($context) = @_;
+  my $bindings_ref = $keyBindings{$context};
+  return ref($bindings_ref) ? %{$bindings_ref} : undef;
+}
+
+#######################################################################################
+# Usage         : copy_key_bindings($source_context, $destination_context)
+# Purpose       : Copy key bindings from one context $source_context to another ($destination_context)
+#                 The $destination_context is created, if it does not exist. 
+# Returns       : Hash reference to destination context's keybindings or undef if $source_context does not exist 
+#                 (or empty list in array context)
+# Parameters    : string $source_context
+#                 string $destination_context
+# Throws        : no exception
+# See Also      : bind_key(), unbind_key(), get_contexts(), 
+sub copy_key_bindings {
+  my ($source_context, $destination_context) = @_;
+  my $source_bindings_ref = $keyBindings{$source_context};
+  return unless ref($source_bindings_ref);
+  my $dest_bindings_ref = ($keyBindings{$destination_context} ||= {});
+  while (my ($key, $macro) = each(%{$source_bindings_ref})) {
+    $dest_bindings_ref->{$key} = $macro;
+  }
+  return $dest_bindings_ref;
+}
+
+
+#######################################################################################
+# Usage         : add_to_menu($context, $label, $macro)
+# Purpose       : Adds new menu binding to macro $macro with label $label in context $context
+# Returns       : nothing
+# Parameters    : string $context       -- context for macro $macro 
+#                 string $label         -- nonempty menu label for the $macro
+#                 string or ref $macro  -- string in the form "sth->$macro" or ref to macro subroutine
+# Throws        : no exception
+# Comments      : If label is empty, nothing is done, $context is created if it does not exist, 
+#                 But more interestingly, undef is the second element in anon array, whose first element is
+#                 the $macro
+#                 TODO: Why do we use the array_ref???, the implementation of get_menus_for_macro is then not working...
+# See Also      : remove_from_menu()
 sub add_to_menu {
-  my ($context,$label,$macro)=@_;
+  my ($context, $label, $macro) = @_;
   if (defined($label) and length($label)) {
-    $menuBindings{$context}={} unless exists($menuBindings{$context});
+    if(!exists($menuBindings{$context})){
+      $menuBindings{$context} = {};
+    }
     $menuBindings{$context}->{$label}=[
-      (ref($macro) or $macro=~/^\w+-\>/) ? $macro : $context.'->'.$macro,
+      _normalize_macro($context, $macro),
       undef
      ];
   }
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : remove_from_menu($context, $label)
+# Purpose       : Remove menu binding with label $label in specified $context 
+# Returns       : List of removed elements, i.e. list containing one array reference,
+#                 or undef in scalar context if $context or $label in $context does not exist
+# Parameters    : string $context -- name of the context
+#                 string $label   -- menu label
 # Throws        : no exception
-# Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
+# Comments      : Confusion between perl context and macro context in explanation is not very good I guess... 
+# See Also      : add_menu(), remove_from_menu_macro()
 sub remove_from_menu {
-  my ($context,$label)=@_;
+  my ($context, $label) = @_;
   if (exists($menuBindings{$context})) {
-    return delete $menuBindings{$context}{$label}
+    return delete($menuBindings{$context}{$label});
   }
   return;
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : remove_from_menu_macro($context, $macro)
+# Purpose       : Remove menu binding for macro $macro in specified $context 
+# Returns       : nothing
+# Parameters    : string $context       -- context for macro $macro 
+#                 string or ref $macro  -- string in the form "sth->$macro" or ref to macro subroutine
 # Throws        : no exception
 # Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
+# See Also      : remove_from_menu(), add_menu()
+#TODO: actually it is never used (not even in extensions, nor here)
+#TODO: Shall we use _normalize_macro()?
 sub remove_from_menu_macro {
-  my ($context,$macro)=@_;
-  my $h = $menuBindings{$context};
-  if (ref($h)) {
-    while (my($k,$v)=each %$h) {
-      next unless $v eq $macro;
-      delete $h->{$k};
+  my ($context, $macro) = @_;
+  my $bindings_ref = $menuBindings{$context};
+  if (ref($bindings_ref)) {
+    while (my($key, $array_ref) = each(%{$bindings_ref})) {
+      next if($array_ref->[0] ne $macro);
+      delete($bindings_ref->{$key});
     }
   }
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : get_menus_for_macro($context, $macro)
+# Purpose       : Return all the menus bound to $macro in $context
+# Returns       : Array of all menu labels bound with specified $macro in context $context, 
+#                 or 'first' label in scalar context
+# Parameters    : string $context       -- name of the context
+#                 string or ref $macro  -- string in the form "sth->$macro" or ref to macro subroutine
 # Throws        : no exception
-# Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
+# Comments      : Be aware, that the 'first' label means first one in the hash, 
+#                 and you can hardly tell, which one that is
+# See Also      : get_macro_for_menu(), add_menu(), remove_from_menu()
+#TODO: never actually used...
+#TODO: Shouldn't we normalize macro here as well?
 sub get_menus_for_macro {
-  my ($context,$macro)=@_;
-  my $h = $menuBindings{$context};
+  my ($context, $macro) = @_;
+  my $bindings_ref = $menuBindings{$context};
   my @ret;
-  if (ref($h)) {
-    while (my($k,$v)=each %$h) {
-      next unless $v eq $macro;
-      wantarray || return $k;
-      push @ret, $k;
+  if (ref($bindings_ref)) {
+    while (my($key,$array_ref)=each %{$bindings_ref}) {
+      next if($array_ref->[0] ne $macro);
+      if(wantarray){
+        push(@ret, $key);
+      } else {
+        # if called in scalar context, the internal hash iterator stops somewhere in the middle of
+        # the hash %menuBindings (if it finds the $macro, of course) and other functions calling each() 
+        # would not work properly, because they all share the hash's internal iterator, thus we need to reset it
+        keys(%{$bindings_ref});
+        return $key;
+      }
     }
   }
   return @ret;
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : get_macro_for_menu($context, $label)
+# Purpose       : Return macro bound to menu $label in specified $context
+# Returns       : Array reference with macro or undef if there is no menu binding with $label in $context
+# Parameters    : string $context -- name of the desired context
+#                 string $label   -- menu label
 # Throws        : no exception
-# Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
+# See Also      : get_menus_for_macro(), get_menuitems(), add_menu(), remove_from_menu()
 sub get_macro_for_menu {
-  my ($context,$label)=@_;
-  my $h = $menuBindings{$context};
-  return ref($h) ? $h->{$label} : undef;
+  my ($context, $label) = @_;
+  my $bindings_ref = $menuBindings{$context};
+  return ref($bindings_ref) ? $bindings_ref->{$label} : undef;
 
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : get_menuitems($context)
+# Purpose       : Return all the menu bindings in context $context
+# Returns       : Hash of menu bindings, or undef if no menu bindigs exists for specified $context
+# Parameters    : string $cotnext -- context searched for menu bindings
 # Throws        : no exception
-# Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
+# See Also      : add_to_menu(), remove_from_menu()
 sub get_menuitems {
-  my ($context)=@_;
-  my $h = $menuBindings{$context};
-  return ref($h) ? %$h : undef;
+  my ($context) = @_;
+  my $menu_bindings_ref = $menuBindings{$context};
+  return ref($menu_bindings_ref) ? %{$menu_bindings_ref} : undef;
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : copy_menu_bindings($source_context, $destination_context)
+# Purpose       : Copies menu bindings from $source_context to $destination_context
+# Returns       : Hash reference to destination context's menu bindings, or undef if no menu bindings for $source_context exists
+# Parameters    : string $source_context      -- string representation (aka name) of source context
+#                 string $destination_context -- name of the destination context
 # Throws        : no exception
-# Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
-sub get_keybindings {
-  my ($context)=@_;
-  my $h = $keyBindings{$context};
-  return ref($h) ? %$h : undef;
-}
-
-#######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
-# Throws        : no exception
-# Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
-sub copy_key_bindings {
-  my ($source_context, $destination_context)=@_;
-  my $s = $keyBindings{$source_context};
-  return unless ref($s);
-  my $d = ($keyBindings{$destination_context}||={});
-  while (my ($k,$v)=each %$s) {
-    $d->{$k} = $v;
-  }
-  return $d;
-}
-
-#######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
-# Throws        : no exception
-# Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
+# Comments      : Destination context is created if it does not exist
+# See Also      : add_menu(), remove_from_menu(), get_contexts()
+#TODO: tests
 sub copy_menu_bindings {
-  my ($source_context, $destination_context)=@_;
-  my $s = $menuBindings{$source_context};
-  return unless ref($s);
-  my $d = ($menuBindings{$destination_context}||={});
-  while (my ($k,$v)=each %$s) {
-    $d->{$k} = $v;
+  my ($source_context, $destination_context) = @_;
+  my $source_bindings_ref = $menuBindings{$source_context};
+  return if(!ref($source_bindings_ref));
+  
+  my $dest_bindings_ref = ($menuBindings{$destination_context} ||= {});
+  while (my ($key, $macro_arr) = each(%{$source_bindings_ref})) {
+    $dest_bindings_ref->{$key} = $macro_arr;
   }
-  return $d;
+  return $dest_bindings_ref;
 }
 
 #######################################################################################
@@ -408,26 +452,31 @@ sub read_macros {
   # should be some of Shift, Ctrl and Alt) and the specified KeySym
   # (this probabbly depends on platform too :( ).
 
-  my ($file,$libDir,$keep,$encoding)=(shift,shift,shift,shift);
-  $macrosEvaluated=0;
-  my @contexts=@_;
-  $encoding = $default_macro_encoding unless $encoding ne "";
-  @contexts=("TredMacro") unless (@contexts);
-  unless ($keep) {
-    %keyBindings=();
-    %menuBindings=();
-    @macros=();
-    $exec_code=undef;
+  my ($file, $libDir, $keep, $encoding) = (shift, shift, shift, shift);
+  $macrosEvaluated = 0;
+  my @contexts = @_;
+  if($encoding eq ""){
+    $encoding = $default_macro_encoding;
+  }
+  if(!@contexts){
+    @contexts = ("TredMacro");
+  }
+  if (!$keep) {
+    %keyBindings = ();
+    %menuBindings = ();
+    @macros = ();
+    $exec_code = undef;
     print STDERR "Reading $default_macro_file\n" if $macroDebug;
+    #Hmm, turn off UTF-8 flag in string $default_macro_file... what for? 
     Encode::_utf8_off($default_macro_file);
-    push @macros,"\n#line 1 \"$default_macro_file\"\n";
+    push(@macros,"\n#line 1 \"$default_macro_file\"\n");
     my $fh;
     open(my $fh,'<',$default_macro_file) or do {
-      print "ERROR: Cannot open macros: $default_macro_file!\n";
+      carp("ERROR: Cannot open macros: $default_macro_file!\n");
       return 0
     };
-    set_encoding($fh,$encoding);
-    preprocess($fh,$default_macro_file,\@macros,\@contexts);
+    set_encoding($fh, $encoding);
+    preprocess($fh, $default_macro_file, \@macros, \@contexts);
     #    push @macros, <$fh>;
     close $fh;
   }
@@ -435,12 +484,13 @@ sub read_macros {
   my $F;
   open($F,'<',$file)
     || (!$keep && ($file="$libDir/$file") && open($F,'<',$file)) ||
-      die "ERROR: Cannot open macros: $file ($!)!\n";
-  set_encoding($F,$encoding);
-  preprocess($F,$file,\@macros,\@contexts);
+      croak("ERROR: Cannot open macros: $file ($!)!\n");
+  set_encoding($F, $encoding);
+  preprocess($F, $file, \@macros, \@contexts);
   close($F);
-  print STDERR "Read ",scalar(@macros)." lines of code.\n" if !$keep and $macroDebug;
-
+  if (!$keep and $macroDebug){
+    print STDERR "Read ".scalar(@macros)." lines of code.\n";
+  }
 }
 
 #######################################################################################
@@ -454,6 +504,7 @@ sub read_macros {
 #TODO: tests, doc
 sub preprocess {
   my ($F,$file,$macros,$contexts)=@_;
+  # Again, turn off UTF-8 flag for string $file? Why we do that? $file contains name of some file...
   Encode::_utf8_off($file);
 
 #
@@ -910,6 +961,15 @@ sub context_can {
   }
 }
 
+#######################################################################################
+# Usage         : ...
+# Purpose       : ...  
+# Returns       : ...
+# Parameters    : ...
+# Throws        : no exception
+# Comments      : ...
+# See Also      : ...
+#TODO: tests, doc
 sub context_isa {
   my ($context,$package)=@_;
   if (defined($safeCompartment)) {
