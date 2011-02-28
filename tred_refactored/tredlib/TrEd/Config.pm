@@ -254,7 +254,7 @@ sub parse_config_line {
   my $parse_config_re = qr{
     ^
     $spaces_re # any number of spaces
-    #key capturing
+    #capturing key to $1
     (	
     $key_standard_re
     ($optional_subkey_re)?
@@ -262,7 +262,7 @@ sub parse_config_line {
     $spaces_re # any number of spaces
     =	       # equal sign as the key-value delimiter
     $spaces_re # any number of spaces
-    #capture value
+    #capture value to $2
     (
     #single quoted value
     $single_quot_value_re
