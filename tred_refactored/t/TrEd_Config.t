@@ -8,7 +8,7 @@ use lib "$FindBin::Bin/../tredlib";
 use File::Spec;
 use Cwd;
 
-use Test::More 'no_plan';#tests => 19;
+use Test::More 'no_plan';
 
 BEGIN {
   my $module_name = 'TrEd::Config';
@@ -31,6 +31,9 @@ can_ok(__PACKAGE__, @subs);
 #############################################################
 ####### Test set_default_config_file_search_list()
 #############################################################
+my $tredhome_backup = $ENV{"TREDHOME"}; 
+$ENV{'TREDHOME'} = "$FindBin::Bin/../tredlib";
+
 set_default_config_file_search_list();
 # test that at least sth is set
 ok(scalar(@TrEd::Config::config_file_search_list) > 0, "set_default_config_file_search_list(): config_file_search_list not empty");
@@ -41,16 +44,21 @@ like( $TrEd::Config::config_file_search_list[0],
 
 # test if a tredrc can be found and opened 
 # (since it is in tredlib directory in svn, we're able to test it)
+
 my $config_found = 0;
-foreach my $f (@TrEd::Config::config_file_search_list) {
+foreach my $file_name (@TrEd::Config::config_file_search_list) {
   my $fh;
-  if (defined($f) and open($fh,'<',$f)) {
+  note("$file_name\n");
+  if (defined($file_name) and open($fh,'<',$file_name)) {
     close($fh);
     $config_found = 1;
     last;
   }
 }
+
 ok($config_found == 1, "set_default_config_file_search_list(): config file found and opened sucessfully");
+
+$ENV{'TREDHOME'} = $tredhome_backup;
 
 #############################################################
 ####### Test read_config()
