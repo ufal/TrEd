@@ -288,7 +288,7 @@ sub copy_key_bindings {
 # Comments      : If label is empty, nothing is done, $context is created if it does not exist, 
 #                 But more interestingly, undef is the second element in anon array, whose first element is
 #                 the $macro
-#                 TODO: Why do we use the array_ref???, the implementation of get_menus_for_macro is then not working...
+#TODO: Why do we use the array_ref???
 # See Also      : remove_from_menu()
 sub add_to_menu {
   my ($context, $label, $macro) = @_;
@@ -414,7 +414,6 @@ sub get_menuitems {
 # Throws        : no exception
 # Comments      : Destination context is created if it does not exist
 # See Also      : add_menu(), remove_from_menu(), get_contexts()
-#TODO: tests
 sub copy_menu_bindings {
   my ($source_context, $destination_context) = @_;
   my $source_bindings_ref = $menuBindings{$source_context};
@@ -428,9 +427,9 @@ sub copy_menu_bindings {
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
+# Usage         : read_macros($file, $libDir, $keep, $encoding, @contexts);
+# Purpose       : Read default macros and the specified macro $file using encoding $encoding
+# Returns       : nothing
 # Parameters    : ...
 # Throws        : no exception
 # Comments      : ...
@@ -453,8 +452,8 @@ sub read_macros {
   # (this probabbly depends on platform too :( ).
 
   my ($file, $libDir, $keep, $encoding) = (shift, shift, shift, shift);
-  $macrosEvaluated = 0;
   my @contexts = @_;
+  $macrosEvaluated = 0;
   if($encoding eq ""){
     $encoding = $default_macro_encoding;
   }
@@ -470,44 +469,43 @@ sub read_macros {
     #Hmm, turn off UTF-8 flag in string $default_macro_file... what for? 
     Encode::_utf8_off($default_macro_file);
     push(@macros,"\n#line 1 \"$default_macro_file\"\n");
-    my $fh;
-    open(my $fh,'<',$default_macro_file) or do {
+    my $default_macro_fh;
+    open($default_macro_fh,'<',$default_macro_file) or do {
       carp("ERROR: Cannot open macros: $default_macro_file!\n");
       return 0
     };
-    set_encoding($fh, $encoding);
-    preprocess($fh, $default_macro_file, \@macros, \@contexts);
+    set_encoding($default_macro_fh, $encoding);
+    preprocess($default_macro_fh, $default_macro_file, \@macros, \@contexts);
     #    push @macros, <$fh>;
-    close $fh;
+    close $default_macro_fh;
   }
   print STDERR "Reading $file\n" if $macroDebug;
-  my $F;
-  open($F,'<',$file)
-    || (!$keep && ($file="$libDir/$file") && open($F,'<',$file)) ||
+  my $macro_filehandle;
+  open($macro_filehandle,'<',$file)
+    || (!$keep && ($file="$libDir/$file") && open($macro_filehandle,'<',$file)) ||
       croak("ERROR: Cannot open macros: $file ($!)!\n");
-  set_encoding($F, $encoding);
-  preprocess($F, $file, \@macros, \@contexts);
-  close($F);
+  set_encoding($macro_filehandle, $encoding);
+  preprocess($macro_filehandle, $file, \@macros, \@contexts);
+  close($macro_filehandle);
   if (!$keep and $macroDebug){
     print STDERR "Read ".scalar(@macros)." lines of code.\n";
   }
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
-# Throws        : no exception
+# Usage         : preprocess($file_handle, $file_name, \@macros, \@contexts)
+# Purpose       : Preprocess file $file_name, save the results to macros and contexts arrays
+#                 Include #includes and #ifincludes respecting #ifdefs, #ifndefs, #elsifs, etc.
+# Returns       : nothing
+# Parameters    : file_handle $file_handle  -- handle to opened file
+#                 string $file_name         -- name of the file whose handle is passed as arg 1
+#                 array_ref $macros         -- reference to array storing lines of macro files
+#                 array_ref $contexts       -- reference to array storing macro contexts, i.e. TrEd modes
+# Throws        : a scalar (string) if it fails to include a file or finds unmatched elseif/endif
 # Comments      : ...
-# See Also      : ...
+# See Also      : read_macros(), 
 #TODO: tests, doc
-sub preprocess {
-  my ($F,$file,$macros,$contexts)=@_;
-  # Again, turn off UTF-8 flag for string $file? Why we do that? $file contains name of some file...
-  Encode::_utf8_off($file);
 
-#
 # new "pragmas":
 #
 # include <file>  ... relative to tred's libdir
@@ -524,186 +522,193 @@ sub preprocess {
 # bind <method> [to] [key[sym]] <key> [menu <menu>[/submenu[/...]]]
 #
 # insert <method> [as] [menu] <menu>[/submenu[/...]]
-#
 
-  push @$macros,"\n#line 1 \"$file\"\n";
-  my $line=1;
+sub preprocess {
+  my ($F, $file, $macros_ref, $contexts_ref) = @_;
+  # Again, turn off UTF-8 flag for string $file? Why we do that? $file contains name of some file...
+  Encode::_utf8_off($file);
+
+  push(@$macros_ref,"\n#line 1 \"$file\"\n");
+  my $line = 1;
   my @conditions;
-  my $ifok=1;
+  my $ifok = 1;
   while (<$F>) {
     $line++;
     if (/^\#endif(?:$|\s)/) {
-      push @$macros,$_;
+      push(@$macros_ref, $_);
       if (@conditions) {
-	pop @conditions;
-	$ifok = (!@conditions || $conditions[$#conditions]);
+        pop(@conditions);
+        $ifok = (!@conditions || $conditions[$#conditions]);
       } else {
-	die "unmatched #endif in \"$file\" line $line\n";
+        die "unmatched #endif in \"$file\" line $line\n";
       }
     } elsif (/^\#elseif\s+(\S*)$|^\#else(?:if)?(?:\s|$)/) {
+      # tu sa nerobi push @$macros?
       if (@conditions) {
-	my $prev = ($#conditions>0) ? $conditions[$#conditions-1] : 1;
-	if (defined($1)) {
-	  $conditions[$#conditions]= $prev &&
-	    !$conditions[$#conditions] && is_defined($1);
-	} else {
-	  $conditions[$#conditions]=$prev && !$conditions[$#conditions];
-	}
-	$ifok = $conditions[$#conditions];
+        my $prev = ($#conditions>0) ? $conditions[$#conditions-1] : 1;
+        if (defined($1)) {
+          $conditions[$#conditions] = $prev &&
+          !$conditions[$#conditions] && is_defined($1);
+        } else {
+          $conditions[$#conditions] = $prev && !$conditions[$#conditions];
+        }
+        $ifok = $conditions[$#conditions];
       } else {
-	die "unmatched #elseif in \"$file\" line $line\n";
+        die "unmatched #elseif in \"$file\" line $line\n";
       }
     } elsif (/^\#ifdef\s+(\S*)/) {
-      push @$macros,$_;
-      push @conditions, (is_defined($1) && (!@conditions || $conditions[$#conditions]));
+      push(@$macros_ref, $_);
+      push(@conditions, (is_defined($1) && (!@conditions || $conditions[$#conditions])));
       $ifok = $conditions[$#conditions];
     } elsif (/^\#ifndef\s+(\S*)/) {
-      push @$macros,$_;
-      push @conditions, (!is_defined($1) && (!@conditions || $conditions[$#conditions]));
+      push(@$macros_ref, $_);
+      push(@conditions, (!is_defined($1) && (!@conditions || $conditions[$#conditions])));
       $ifok = $conditions[$#conditions];
     } else {
       if ($ifok) {
-	if (/^\s*__END__/) {
-	  last;
-	} elsif (/^\s*__DATA__/) {
-	  warn "Warning: __DATA__ has no meaning in TredMacro (use __END__ instead) at $file line $line\n";
-	  last;
-	}
-	push @$macros,$_;
-	if (/^\#!(.*)$/) {
-	  $exec_code=$1 unless defined $exec_code; # first wins
-	} elsif (/^\#define\s+(\S*)(?:\s+(.*))?/) {
-	  define_symbol($1, $2); # there is no use for $2 so far
-	} elsif (/^\#undefine\s+(\S*)/) {
-	  undefine_symbol($1);
-	} elsif (/^\#\s*binding-context\s+(.*)/) {
-	  @$contexts=(split /\s+/,$1) if $ifok;
-	} elsif (/^\#\s*key-binding-adopt\s+(.*)/) {
-	  my @toadopt=(split /\s+/,$1);
-	  foreach my $context (@$contexts) {
-	    foreach my $toadopt (@toadopt) {
-	      copy_key_bindings($toadopt,$context);
-	    }
-	  }
-	} elsif (/^\#\s*menu-binding-adopt\s+(.*)/) {
-	  my @toadopt=(split /\s+/,$1);
-	  foreach my $context (@$contexts) {
-	    foreach my $toadopt (@toadopt) {
-	      copy_menu_bindings($toadopt,$context);
-	    }
-	  }
-	} elsif (/^\#[ \t]*unbind-key[ \t]+([^ \t\r\n]+)/) {
-	  my $key=$1;
-	  unbind_key($_,$key) for @$contexts;
-	} elsif (/^\#[ \t]*bind[ \t]+(\w+(?:-\>\w+)?)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+([^\r\n]+))?/) {
-	  my ($macro,$key,$menu)=($1,$2,$3);
-	  $menu = TrEd::Convert::encode($menu);
-	  if ($menu) { add_to_menu($_, $menu => $macro) for @$contexts; }
-	  bind_key($_, $key => $macro) for @$contexts;
-	} elsif (/^\#\s*insert[ \t]+(\w*)[ \t]+(?:as[ \t]+)?(?:menu[ \t]+)?([^\r\n]+)/) {
-	  my $macro=$1;
-	  my $menu=TrEd::Convert::encode($2);
-	  add_to_menu($_, $menu, $macro) for @$contexts;
-	} elsif (/^\#\s*remove-menu[ \t]+([^\r\n]+)/) {
-	  my $menu=TrEd::Convert::encode($1);
-	  remove_from_menu($_, $menu) for @$contexts;
-	} elsif (/^\#\s*(if)?include\s+\<([^\r\n]+\S)\>\s*(?:encoding\s+(\S+)\s*)?$/) {
-	  my $conditional_include = $1 eq 'if' ? 1 : 0;
-	  my $enc = $3;
-	  my $f = $2;
-	  Encode::_utf8_off($f);
-	  my $found;
-	  for my $path ($libDir, @macro_include_paths) {
-	    my $mf="$path/$f";
-	    if (-f $mf) {
-	      read_macros($mf,$libDir,1,$enc,@$contexts);
-	      push @$macros,"\n\n=pod\n\n=cut\n\n#line $line \"$file\"\n";
-	      $found = 1;
-	      last;
-	    }
-	  }
-	  if (!$found and !$conditional_include) {
-	    die
-	      "Error including macros $f\n from $file: ",
-		"file not found in search paths: $libDir @macro_include_paths\n";
-	  }
-	} elsif (/^\#\s*(if)?include\s+"([^\r\n]+\S)"\s*(?:encoding\s+(\S+)\s*)?$/) {
-	  my $enc = $3;
-	  my $pattern = $2;
-	  my $if=$1;
-	  Encode::_utf8_off($pattern);
-
-	  my @includes;
-	  if ($pattern=~/^<(.*)>$/) {
-	    my $glob = $1;
-	    my ($vol,$dir) = File::Spec->splitpath(dirname($file));
-	    $dir = File::Spec->catpath($vol,$dir); 
-	    my $cwd = cwd();
-	    chdir $dir;
-	    @includes = map { File::Spec->rel2abs($_) } glob($glob);
-	    chdir $cwd;
-	  } else {
-	    @includes = (dirname($file).$pattern);
-	  }
-	  foreach my $mf (@includes) {
-	    if (-f $mf) {
-	      read_macros($mf,$libDir,1,$enc,@$contexts);
-	      push @$macros,"\n\n=pod\n\n=cut\n\n#line $line \"$file\"\n";
-	    } elsif ($if ne 'if') {
-	      die
-		"Error including macros $mf\n from $file: ",
-		  "file not found!\n";
-	    }
-	  }
-	} elsif (/^\#\s*(if)?include\s+([^\r\n]+?\S)\s*(?:encoding\s+(\S+)\s*)?$/) {
-	  my ($if,$f,$enc) = ($1,$2,$3);
-	  Encode::_utf8_off($f);
-
-	  if ($f=~m%^/%) {
-	    read_macros($f,$libDir,1,$enc,@$contexts);
-	    push @$macros,"\n\n=pod\n\n=cut\n\n#line $line \"$file\"\n";
-	  } else {
-	    my $mf=$f;
-	    print STDERR "including $mf\n" if $macroDebug;
-	    unless (-f $mf) {
-	      $mf=dirname($file).$mf;
-	      print STDERR "trying $mf\n" if $macroDebug;
-	      unless (-f $mf) {
-		$mf="$libDir/$f";
-		print STDERR "not found, trying $mf\n" if $macroDebug;
-	      }
-	    }
-	    if (-f $mf) {
-	      read_macros($mf,$libDir,1,$enc,@$contexts);
-	      push @$macros,"\n\n=pod\n\n=cut\n\n#line $line \"$file\"\n";
-	    } elsif ($if ne 'if') {
-	      die
-		"Error including macros $mf\n from $file: ",
-		  "file not found!\n";
-	    }
-	  }
-	} elsif (/^\#\s*encoding\s+(\S+)\s*$/) {
-	  set_encoding($F,$1);
-	}
+        if (/^\s*__END__/) {
+          last;
+        } elsif (/^\s*__DATA__/) {
+          warn "Warning: __DATA__ has no meaning in TredMacro (use __END__ instead) at $file line $line\n";
+          last;
+        }
+        push(@$macros_ref, $_);
+        if (/^\#!(.*)$/) {
+          $exec_code = $1 unless defined $exec_code; # first wins
+        } elsif (/^\#define\s+(\S*)(?:\s+(.*))?/) {
+          define_symbol($1, $2); # there is no use for $2 so far
+        } elsif (/^\#undefine\s+(\S*)/) {
+          undefine_symbol($1);
+        } elsif (/^\#\s*binding-context\s+(.*)/) {
+          @$contexts_ref = (split /\s+/,$1) if $ifok;
+        } elsif (/^\#\s*key-binding-adopt\s+(.*)/) {
+          my @toadopt=(split /\s+/,$1);
+          foreach my $context (@$contexts_ref) {
+            foreach my $toadopt (@toadopt) {
+              copy_key_bindings($toadopt, $context);
+            }
+          }
+        } elsif (/^\#\s*menu-binding-adopt\s+(.*)/) {
+          my @toadopt=(split /\s+/,$1);
+          foreach my $context (@$contexts_ref) {
+            foreach my $toadopt (@toadopt) {
+              copy_menu_bindings($toadopt, $context);
+            }
+          }
+        } elsif (/^\#[ \t]*unbind-key[ \t]+([^ \t\r\n]+)/) {
+          my $key = $1;
+          unbind_key($_, $key) for @$contexts_ref;
+        } elsif (/^\#[ \t]*bind[ \t]+(\w+(?:-\>\w+)?)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+([^\r\n]+))?/) {
+          my ($macro,$key,$menu)=($1, $2, $3);
+          $menu = TrEd::Convert::encode($menu);
+          if ($menu) { 
+            add_to_menu($_, $menu => $macro) for @$contexts_ref; 
+          }
+          bind_key($_, $key => $macro) for @$contexts_ref;
+        } elsif (/^\#\s*insert[ \t]+(\w*)[ \t]+(?:as[ \t]+)?(?:menu[ \t]+)?([^\r\n]+)/) {
+          my $macro = $1;
+          my $menu = TrEd::Convert::encode($2);
+          add_to_menu($_, $menu, $macro) for @$contexts_ref;
+        } elsif (/^\#\s*remove-menu[ \t]+([^\r\n]+)/) {
+          my $menu=TrEd::Convert::encode($1);
+          remove_from_menu($_, $menu) for @$contexts_ref;
+        } elsif (/^\#\s*(if)?include\s+\<([^\r\n]+\S)\>\s*(?:encoding\s+(\S+)\s*)?$/) {
+          my $conditional_include = $1 eq 'if' ? 1 : 0;
+          my $enc = $3;
+          my $f = $2;
+          Encode::_utf8_off($f);
+          my $found;
+          for my $path ($libDir, @macro_include_paths) {
+            my $mf="$path/$f";
+            if (-f $mf) {
+              read_macros($mf,$libDir,1,$enc,@$contexts_ref);
+              push @$macros_ref,"\n\n=pod\n\n=cut\n\n#line $line \"$file\"\n";
+              $found = 1;
+              last;
+            }
+          }
+          if (!$found and !$conditional_include) {
+            die
+              "Error including macros $f\n from $file: ",
+              "file not found in search paths: $libDir @macro_include_paths\n";
+          }
+        } elsif (/^\#\s*(if)?include\s+"([^\r\n]+\S)"\s*(?:encoding\s+(\S+)\s*)?$/) {
+          my $enc = $3;
+          my $pattern = $2;
+          my $if = $1;
+          Encode::_utf8_off($pattern);
+        
+          my @includes;
+          if ($pattern=~/^<(.*)>$/) {
+            my $glob = $1;
+            my ($vol,$dir) = File::Spec->splitpath(dirname($file));
+            $dir = File::Spec->catpath($vol,$dir); 
+            my $cwd = cwd();
+            chdir $dir;
+            @includes = map { File::Spec->rel2abs($_) } glob($glob);
+            chdir $cwd;
+          } else {
+            @includes = (dirname($file).$pattern);
+          }
+          foreach my $mf (@includes) {
+            if (-f $mf) {
+              read_macros($mf,$libDir,1,$enc,@$contexts_ref);
+              push @$macros_ref,"\n\n=pod\n\n=cut\n\n#line $line \"$file\"\n";
+            } elsif ($if ne 'if') {
+              die "Error including macros $mf\n from $file: ",  "file not found!\n";
+            }
+          }
+        } elsif (/^\#\s*(if)?include\s+([^\r\n]+?\S)\s*(?:encoding\s+(\S+)\s*)?$/) {
+          my ($if, $f, $enc) = ($1, $2, $3);
+          Encode::_utf8_off($f);
+        
+          if ($f=~m%^/%) {
+            read_macros($f, $libDir, 1, $enc, @$contexts_ref);
+            push @$macros_ref,"\n\n=pod\n\n=cut\n\n#line $line \"$file\"\n";
+          } else {
+            my $mf=$f;
+            print STDERR "including $mf\n" if $macroDebug;
+            unless (-f $mf) {
+              $mf=dirname($file).$mf;
+              print STDERR "trying $mf\n" if $macroDebug;
+              unless (-f $mf) {
+                $mf="$libDir/$f";
+                print STDERR "not found, trying $mf\n" if $macroDebug;
+              }
+            }
+            if (-f $mf) {
+              read_macros($mf,$libDir,1,$enc,@$contexts_ref);
+              push @$macros_ref,"\n\n=pod\n\n=cut\n\n#line $line \"$file\"\n";
+            } elsif ($if ne 'if') {
+              die
+                "Error including macros $mf\n from $file: ",
+                "file not found!\n";
+            }
+          }
+        } elsif (/^\#\s*encoding\s+(\S+)\s*$/) {
+          set_encoding($F,$1);
+        }
       } else {
-	# $ifok == 0
-	push @$macros,"\n"; # only for line numbering purposes
+        # $ifok == 0
+        push @$macros_ref,"\n"; # only for line numbering purposes
       }
     }
   }
-  die "Missing #endif in $file line $line (".scalar(@conditions)." unmatched #if-pragmas)\n" if (@conditions);
+  if (@conditions){
+    die "Missing #endif in $file line $line (".scalar(@conditions)." unmatched #if-pragmas)\n";
+  }
   return 1;
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : set_encoding($file_handle, $encoding);
+# Purpose       : Set encoding for file $file_handle to $encoding (or to default_macro_encoding, if no encoding is specified)
+# Returns       : nothing
+# Parameters    : file handle $file_handle  -- handle to a file
+#                 [string $encoding          -- encoding name]
 # Throws        : no exception
-# Comments      : ...
-# See Also      : ...
-#TODO: tests, doc, similar to set_fh_encoding, check for duplicity
+# Comments      : ':utf8' should only be used for output, using ':encoding(utf8)' instead
+#TODO: tests
 sub set_encoding {
   my $fh = shift;
   my $enc = shift || $default_macro_encoding;
@@ -712,9 +717,9 @@ sub set_encoding {
       $fh->flush();
       binmode $fh;  # first get rid of all I/O layers
       if (lc($enc) =~ /^utf-?8$/) {
-	binmode $fh,":utf8";
+        binmode($fh,":encoding(utf8)");
       } else {
-	binmode $fh,":encoding($enc)";
+        binmode($fh,":encoding($enc)");
       }
     };
     print STDERR $@ if $@;
@@ -753,7 +758,7 @@ sub set_encoding {
 # $TredMacos::forceFileSaved ... if 1, macro claims it saved the file itself
 
 sub initialize_macros {
-  my ($win)=@_;		# $win is a reference
+  my ($win_ref) = @_;		# $win is a reference
                         # which should in this way be made visible
                         # to macros
   my $result = 2;
@@ -762,83 +767,96 @@ sub initialize_macros {
     my $macros = "";
     $macros .= "use strict;"   if $strict;
     $macros .= "use warnings; no warnings 'redefine';" if $warnings;
-    $macros.="{\n".$utf.join("",
+    $macros .= "{\n".$utf.join("",
 			     map { Encode::_utf8_off($_); $_ }
 			     @macros
 			    )."\n}; 1;\n";
     print STDERR "FirstEvaluation of macros\n" if $macroDebug;
     if (defined($safeCompartment)) {
-      set_macro_variable('grp',$win);
+      set_macro_variable('grp',$win_ref);
       my %packages;
       # dirty hack to support ->isa in safe compartment
       $macros=~s{(\n\s*package\s+(\S+?)\s*;)}
-	{ exists($packages{$2}) ? $1 : do { $packages{$2} = 1; $1.'sub isa {for(@ISA){return 1 if $_ eq $_[1]}}'} }ge;
+      { 
+        exists($packages{$2}) ? $1 : do { $packages{$2} = 1 ; 
+                                          $1.'sub isa {
+                                                        for(@ISA){
+                                                          return 1 if $_ eq $_[1]}
+                                                        }'
+                                        }
+      }ge;
       $macrosEvaluated=1;
       {
-	no strict;
-	$result = $safeCompartment->reval($macros);
+        no strict;
+        $result = $safeCompartment->reval($macros);
       }
-      TrEd::Basics::errorMessage($win,$@) if $@;
+      TrEd::Basics::errorMessage($win_ref,$@) if $@;
     } else {
       no strict;
-      ${"TredMacro::grp"}=$win;
-      $macrosEvaluated=1;
-      $result=eval { my $res=eval ($macros); die $@ if $@; $res; };
+      ${"TredMacro::grp"} = $win_ref;
+      $macrosEvaluated = 1;
+      $result = eval { 
+        my $res = eval ($macros); 
+        die $@ if $@; 
+        $res; 
+      };
     }
     print STDERR "Returned with: $result\n\n" if $macroDebug;
-    TrEd::Basics::errorMessage($win,$@) if $@;
+    TrEd::Basics::errorMessage($win_ref, $@) if $@;
   }
   no strict 'refs';
-  set_macro_variable('grp',$win);
+  set_macro_variable('grp', $win_ref);
   return $result;
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : macro_variable($var_name)
+# Purpose       : Construct a symbolic reference for getter and setter of macro variables
+# Returns       : Name of the variable, either from Safe compartment, or with macro namespace prefix
+# Parameters    : string $var_name -- name of the variable
 # Throws        : no exception
 # Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
+# See Also      : get_macro_variable(), set_macro_variable()
+#TODO: tests
 sub macro_variable {
   my $prefix = ($_[0] =~ /::/) ? '' : 'TredMacro::';
   if (defined($safeCompartment)) {
-    $safeCompartment->varglob($prefix.$_[0]);
+    return $safeCompartment->varglob($prefix.$_[0]);
   } else {
-    $prefix.$_[0]
+    return $prefix.$_[0]
   }
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : get_macro_variable($var_name)
+# Purpose       : Retrieve value of specified macro variable
+# Returns       : Value of the macro variable
+# Parameters    : string $var_name  -- name of the variable
 # Throws        : no exception
 # Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
+# See Also      : set_macro_variable(), macro_variable()
+#TODO: tests
 sub get_macro_variable {
   no strict 'refs';
-  ${ &macro_variable };
+  return ${ &macro_variable };
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : set_macro_variable($var_name, $var_value)
+# Purpose       : Set macro variable in desired namespace
+# Returns       : nothing
+# Parameters    : string $var_name  -- name of the variable, e.g. TredMacro::my_variable
+#                 scalar $var_value -- value of the var, e.g. 'value_of_var'
 # Throws        : no exception
 # Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
+# See Also      : get_macro_variable(), macro_variable()
+#TODO: tests
 sub set_macro_variable {
   no strict 'refs';
   while (@_) {
     ${ &macro_variable } = $_[1];
-    shift; shift;
+    shift; 
+    shift;
   }
 }
 
