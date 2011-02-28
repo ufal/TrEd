@@ -197,11 +197,11 @@ my $resourcePathSplit = ($^O eq "MSWin32") ? ',' : ':';
 sub set_default_config_file_search_list {
   require FindBin;
   @config_file_search_list=
-    (File::Spec->catfile($ENV{HOME},'.tredrc'),
+    (File::Spec->catfile($ENV{'HOME'},'.tredrc'),
      map {
        File::Spec->catfile($_,'tredrc')
      } (
-       (exists($ENV{TREDHOME}) ? $ENV{TREDHOME} : ()),
+       (exists($ENV{'TREDHOME'}) ? $ENV{'TREDHOME'} : ()),
        $FindBin::RealBin,
        File::Spec->catfile($FindBin::RealBin,'tredlib'),
        File::Spec->catfile($FindBin::RealBin,'..','lib','tredlib'),
