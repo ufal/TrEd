@@ -1,6 +1,7 @@
 package TrEd::Macros;
 
 use strict;
+use warnings;
 use Carp;
 
 BEGIN {
@@ -21,7 +22,7 @@ BEGIN {
 	      %menuBindings
 	     );
 
-  @ISA=qw(Exporter);
+  use base qw(Exporter);
   $VERSION = "0.1";
   @EXPORT = qw(
     &read_macros
@@ -145,6 +146,7 @@ sub bind_key {
     }
     $keyBindings{$context}->{_normalize_key($key)} = _normalize_macro($context, $macro);
   }
+  return;
 }
 
 #######################################################################################
@@ -193,6 +195,7 @@ sub unbind_macro {
       }
     }
   }
+  return;
 }
 
 #######################################################################################
@@ -301,6 +304,7 @@ sub add_to_menu {
       undef
      ];
   }
+  return;
 }
 
 #######################################################################################
@@ -341,6 +345,7 @@ sub remove_from_menu_macro {
       delete($bindings_ref->{$key});
     }
   }
+  return;
 }
 
 #######################################################################################
@@ -427,6 +432,40 @@ sub copy_menu_bindings {
 }
 
 #######################################################################################
+# Usage         : _read_default_macro_file($encoding, \@contexts);
+# Purpose       : Read default macro file in encoding $encoding into package variable @macros
+# Returns       : nothing
+# Parameters    : string $encoding        -- encoding of the default macro file
+#                 array_ref $contexts_ref -- reference to array of contexts
+# Throws        : no exception
+# Comments      : Sub extracted from read_macros to decrease its complexity
+#                 Default macro file is set by TrEd::Config and can be configured via tredrc file.
+#                 The default 'default macro file' is $libDir/tred.def (where $libDir is set by TrEd::Config, too)
+# See Also      : read_macros(), $TrEd::Config::default_macro_file, $TrEd::Config::libDir
+sub _read_default_macro_file {
+  my ($encoding, $contexts_ref) = @_;
+  # overwrite key and menu bindings
+  %keyBindings = ();
+  %menuBindings = ();
+  @macros = ();
+  $exec_code = undef;
+  print STDERR "Reading $TrEd::Config::default_macro_file\n" if $macroDebug;
+  #Hmm, turn off UTF-8 flag in string $default_macro_file... what for? 
+  Encode::_utf8_off($TrEd::Config::default_macro_file);
+  push(@macros,"\n#line 1 \"$TrEd::Config::default_macro_file\"\n");
+  my $default_macro_fh;
+  open($default_macro_fh,'<',$TrEd::Config::default_macro_file) or do {
+    carp("ERROR: Cannot open macros: $TrEd::Config::default_macro_file!\n");
+    # return value is never used, why should it return some code...
+    return;
+  };
+  set_encoding($default_macro_fh, $encoding);
+  preprocess($default_macro_fh, $TrEd::Config::default_macro_file, \@macros, $contexts_ref);
+  close($default_macro_fh);
+  return;
+}
+
+#######################################################################################
 # Usage         : read_macros($file, $libDir, $keep, $encoding, @contexts);
 # Purpose       : Read default macros and the specified macro $file using encoding $encoding
 # Returns       : nothing
@@ -455,40 +494,26 @@ sub read_macros {
   my @contexts = @_;
   $macrosEvaluated = 0;
   if($encoding eq ""){
-    $encoding = $default_macro_encoding;
+    $encoding = $TrEd::Config::default_macro_encoding;
   }
   if(!@contexts){
     @contexts = ("TredMacro");
   }
   if (!$keep) {
-    %keyBindings = ();
-    %menuBindings = ();
-    @macros = ();
-    $exec_code = undef;
-    print STDERR "Reading $default_macro_file\n" if $macroDebug;
-    #Hmm, turn off UTF-8 flag in string $default_macro_file... what for? 
-    Encode::_utf8_off($default_macro_file);
-    push(@macros,"\n#line 1 \"$default_macro_file\"\n");
-    my $default_macro_fh;
-    open($default_macro_fh,'<',$default_macro_file) or do {
-      carp("ERROR: Cannot open macros: $default_macro_file!\n");
-      return 0
-    };
-    set_encoding($default_macro_fh, $encoding);
-    preprocess($default_macro_fh, $default_macro_file, \@macros, \@contexts);
-    #    push @macros, <$fh>;
-    close $default_macro_fh;
+    _read_default_macro_file($encoding, @contexts);
   }
   print STDERR "Reading $file\n" if $macroDebug;
   my $macro_filehandle;
+  # try to open file
   open($macro_filehandle,'<',$file)
-    || (!$keep && ($file="$libDir/$file") && open($macro_filehandle,'<',$file)) ||
+  # or to open it from different location
+    || (!$keep && ($file = "$libDir/$file") && open($macro_filehandle,'<',$file)) ||
       croak("ERROR: Cannot open macros: $file ($!)!\n");
   set_encoding($macro_filehandle, $encoding);
   preprocess($macro_filehandle, $file, \@macros, \@contexts);
   close($macro_filehandle);
-  if (!$keep and $macroDebug){
-    print STDERR "Read ".scalar(@macros)." lines of code.\n";
+  if (!$keep && $macroDebug){
+    print STDERR "Read " . scalar(@macros) . " lines of code.\n";
   }
 }
 
@@ -860,6 +885,7 @@ sub set_macro_variable {
   }
 }
 
+# variables used in macros
 my @_saved_vars = qw(grp this root FileNotSaved forceFileSaved);
 
 #######################################################################################
@@ -868,7 +894,7 @@ my @_saved_vars = qw(grp this root FileNotSaved forceFileSaved);
 # Returns       : ...
 # Parameters    : ...
 # Throws        : no exception
-# Comments      : ...
+# Comments      : 
 # See Also      : ...
 #TODO: tests, doc
 sub save_ctxt {
@@ -970,7 +996,7 @@ sub do_eval_macro {
 # See Also      : ...
 #TODO: tests, doc
 sub context_can {
-  my ($context,$sub)=@_;
+  my ($context, $sub) = @_;
   if (defined($safeCompartment)) {
     no strict;
     return $safeCompartment->reval("\${'${context}::'}{'$sub'}");
@@ -989,7 +1015,7 @@ sub context_can {
 # See Also      : ...
 #TODO: tests, doc
 sub context_isa {
-  my ($context,$package)=@_;
+  my ($context, $package) = @_;
   if (defined($safeCompartment)) {
     no strict;
     return grep { $_ eq $package } $safeCompartment->reval("\@${context}::ISA") ? 1 : undef;
@@ -1032,9 +1058,9 @@ sub do_eval_hook {
   } else {
     if (!context_can($context,$hook)) {
       if ($context ne "TredMacro" and context_can('TredMacro',$hook)) {
-	$context = "TredMacro";
+        $context = "TredMacro";
       } else {
-	return;
+        return;
       }
     }
     print STDERR "running hook $context"."::"."$hook\n" if $hookDebug;
