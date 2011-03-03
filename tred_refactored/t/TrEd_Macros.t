@@ -7,6 +7,9 @@ use FindBin;
 use lib "$FindBin::Bin/../tredlib";
 use Test::More 'no_plan';
 use Data::Dumper;
+ use List::Util qw( first );
+
+use TrEd::Config;
 
 BEGIN {
   my $module_name = 'TrEd::Macros';
@@ -341,6 +344,35 @@ foreach my $macro_cand (keys(%macro_normalization)){
             "remove_from_menu_macro(): remove all labels bound to macro; get_menuitems(): reflect it");
   
   
+}
+
+# Test reading macros into memory
+{
+  # we need to init some basic configuration
+  my $encoding = 'utf8';
+  my @contexts = ("TredMacro");
+  
+  $TrEd::Config::libDir = "tredlib";
+  TrEd::Macros::define_symbol('TRED');
+  
+  TrEd::Config::set_config();
+  
+  # Test reading default macro file first...
+  TrEd::Macros::_read_default_macro_file($encoding, \@contexts);
+  
+  my $package_found = first { /package TredMacro/ } @TrEd::Macros::macros; 
+  my $line_info_found = first { /line 1/ } @TrEd::Macros::macros;
+  my $file_name_found = first { /tred.def/ } @TrEd::Macros::macros;  
+  ok($package_found, "_read_default_macro_file(): macro read successfully && it contains TredMacro package");
+  ok($line_info_found, "_read_default_macro_file(): macro read successfully && it contains line number information");
+  ok($file_name_found, "_read_default_macro_file(): macro read successfully && it contains file information");
+  
+  # check that key a menu bindigns are empty...
+  ok(scalar(keys(%TrEd::Macros::keyBindings)) == 0, "_read_default_macro_file(): erase key bindings");
+  ok(scalar(keys(%TrEd::Macros::menuBindings)) == 0, "_read_default_macro_file(): erase menu bindings");
+
+  
+
 }
 
 #testuj get_contexts priebezne

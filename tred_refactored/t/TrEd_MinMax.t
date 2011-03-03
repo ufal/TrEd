@@ -61,15 +61,23 @@ is(minstr(@list_str), $str_a,
 is(maxstr(@list_str), $str_b,
     "maxstr(): find the last string in the lexicographical ordering from the list");
 
-my $first_satisfying = first { $_ eq $str_a} @list_str;
+my $first_satisfying = first { $_ eq $str_a } @list_str;
 is($first_satisfying, $str_a,
     "first(): find the first item in the list for which the subroutine returns true");
+
+$first_satisfying = first { $_ eq "not_exist" } @list_str;
+ok(!defined($first_satisfying), "first(): return undef if nothing satisfies give condition");
+
     
 my $subtract_all = reduce { $_[0] - $_[1] } @list;
 my $correct_subtraction = 1 - 2 - $num_a - 3 - 4 - $num_b - 5 - 210;
 is($subtract_all, $correct_subtraction,
     "reduce(): apply subroutine incrementally on the list");
-    
+
+my $one_element_list_reduce = reduce { $_[0] - $_[1] } (1);
+is($one_element_list_reduce, 1,
+    "reduce(): return the only element, if the list length is 1");
+
 ##############################
 ####### Test shuffle()
 ##############################
