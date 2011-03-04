@@ -6,8 +6,11 @@ use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../tredlib";
 use Test::More 'no_plan';
+use Test::Exception;
 use Data::Dumper;
- use List::Util qw( first );
+use List::Util qw( first );
+use File::Spec;
+use Cwd;
 
 use TrEd::Config;
 
@@ -58,7 +61,7 @@ ok(!exists($TrEd::Macros::defines{$def_name}), "undefine_symbol(): undefines sym
 ok(!TrEd::Macros::is_defined($def_name), "is_defined(): correctly reports a symbol, that is not defined");
 
 ##
-## Public function test -- get_contexts()
+## Test of public function get_contexts()
 ##
 sub _test_get_contexts {
   my ($expected_contexts_ref) = @_;
@@ -114,6 +117,9 @@ foreach my $macro_cand (keys(%macro_normalization)){
 {
   my @keys = keys(%key_normalization);
   
+  # Return undef if macro is not defined
+  ok(!defined(TrEd::Macros::bind_key($context, $keys[0])), "bind_key(): return undef if there is no macro argument passed to function");
+
   # Try to set some bindings
   TrEd::Macros::bind_key($context, $keys[0] => $macro);
   TrEd::Macros::bind_key($another_context, $keys[3], $another_macro);
@@ -158,20 +164,23 @@ foreach my $macro_cand (keys(%macro_normalization)){
   my %key_bindings_before_unbind = (
     $key_normalization{$keys[0]} => $macro,
     $key_normalization{$keys[3]} => $macro,
+    $key_normalization{$keys[2]} => $another_macro,
   );
   
   my %key_bindings_after_unbind = (
     $key_normalization{$keys[0]} => undef,
     $key_normalization{$keys[3]} => undef,
+    $key_normalization{$keys[2]} => $another_macro,
   );
   
   # Bind 2 key combinations with the same macro
   TrEd::Macros::bind_key($context, $keys[0] => $macro);
   TrEd::Macros::bind_key($context, $keys[3], $macro);
+  TrEd::Macros::bind_key($context, $keys[2], $another_macro);
   
   
   # Test get_bindings_for_macro function
-  my @expected_bindings = sort(keys(%key_bindings_after_unbind));
+  my @expected_bindings = sort($key_normalization{$keys[3]}, $key_normalization{$keys[0]});
   my @bindings = sort(TrEd::Macros::get_bindings_for_macro($context, $macro));
   my $first_binding = TrEd::Macros::get_bindings_for_macro($context, $macro);
   
@@ -219,15 +228,18 @@ foreach my $macro_cand (keys(%macro_normalization)){
   # Test copying key bindings with context that does not exist
   ok(!defined(TrEd::Macros::copy_key_bindings("not_existing_context", $context_copy)), "copy_key_bindings(): correct return value if context does not exist");
   
+  my %key_bindings_after_delete = (
+    $key_normalization{$keys[2]} => $another_macro
+  );
   
   # Remove bindings for both key combinations (delete it this time)
   TrEd::Macros::unbind_macro($context, $macro, $delete);
-  is_deeply($TrEd::Macros::keyBindings{$context}, {}, 
+  is_deeply($TrEd::Macros::keyBindings{$context}, \%key_bindings_after_delete, 
             "unbind_macro(): delete macro bindings");
   
   # Test get_keybindings function -- when the keybindings does not exist
   %keybindings = TrEd::Macros::get_keybindings($context);
-  is_deeply(\%keybindings, {},
+  is_deeply(\%keybindings, \%key_bindings_after_delete,
                 "get_keybindings(): empty hash");
   
   # Test get_bindings_for_macro with empty keybindings hash
@@ -237,6 +249,19 @@ foreach my $macro_cand (keys(%macro_normalization)){
   
   # Test get_keybindings function -- when the keybindings does not exist
   ok(!defined(TrEd::Macros::get_keybindings("not_xisting_context")), "get_keybindings(): return undef if context does not exist");
+  
+  # Test unbinding when context does not exist
+  ok(!defined(TrEd::Macros::unbind_key("not_xisting_context", "key", $delete)), "unbind_key(): return undef if context does not exist");
+  
+  # Test unbinding when context does not exist
+  ok(!defined(TrEd::Macros::unbind_macro("not_xisting_context", "macro", $delete)), "unbind_macro(): return undef if context does not exist");
+  
+  # Test get_bindings_for_macro when context does not exist
+  my @not_exist_context_result = TrEd::Macros::get_bindings_for_macro("not_xisting_context", $macro);
+  my @empty_array = ();
+  is(@not_exist_context_result, @empty_array,
+      "get_bindings_for_macro(): return empty array if context does not exist");
+  
 }
 
 ############################################
@@ -250,6 +275,8 @@ foreach my $macro_cand (keys(%macro_normalization)){
   my $another_label_2 = "str_macro_2_menu_label";
   my $menu_only_context = "menu_context";
   
+  # Empty label
+  ok(!defined(TrEd::Macros::add_to_menu($context, "", $macro)), "add_to_menu(): return undef if the label is empty");
   
   # Add new menu items
   TrEd::Macros::add_to_menu($context, $label, $macro);
@@ -287,12 +314,22 @@ foreach my $macro_cand (keys(%macro_normalization)){
   is_deeply(\%got_menu_items, \%expected_menu_items, 
             "add_to_menu(): using another context; get_menuitems(): reflect it");
   
-  # Test that get_contexts unifies correctly
+  # Test that get_contexts unifies bindings correctly
   TrEd::Macros::add_to_menu($menu_only_context, $label, $macro);
   _test_get_contexts([$context, $another_context, $context_copy, $menu_only_context]);
   
   # Test not existing context
   ok(!defined(TrEd::Macros::get_menuitems("not_existing_context")), "get_menuitems(): correct return value for context that does not exist");
+  
+  # Test copying menu bindings with context that does not exist
+  ok(!defined(TrEd::Macros::copy_menu_bindings("not_existing_context", $menu_only_context)), "copy_menu_bindings(): return undef if context does not exist");
+  # original context is still there and untouched
+  %got_menu_items = TrEd::Macros::get_menuitems($menu_only_context);
+  %expected_menu_items = (
+    $label  =>  [$macro, undef],
+  );
+  is_deeply(\%got_menu_items, \%expected_menu_items, 
+            "get_menuitems(): writing for another context does not affect other contexts");
   
   # Test copying menu bindings
   TrEd::Macros::copy_menu_bindings($another_context, $menu_only_context);
@@ -311,11 +348,22 @@ foreach my $macro_cand (keys(%macro_normalization)){
   is_deeply(TrEd::Macros::get_macro_for_menu($another_context, $another_label), [$another_macro, undef], "get_macro_for_menu(): find correct string macro");
   ok(!defined(TrEd::Macros::get_macro_for_menu("not_existing_context", $another_label)), "get_macro_for_menu(): return undef when asked for unknown context");
 
-  # Test get_menus_for_macro
+  # Test get_menus_for_macro in array context
   my @got_labels = sort(TrEd::Macros::get_menus_for_macro($menu_only_context, $another_macro));
   my @expected_labels = sort($another_label, $another_label_2);
   is_deeply(\@got_labels, \@expected_labels,
-            "get_menus_for_macro(): return all labels for macro");
+            "get_menus_for_macro(): return all labels for macro in array context");
+  
+  # Test get_menus_for_macro in scalar context
+  my $menus = TrEd::Macros::get_menus_for_macro($menu_only_context, $another_macro);
+  ok($menus eq $another_label || $menus eq $another_label_2, "get_menus_for_macro(): return one of the labels for macro in scalar context");
+  
+  
+  # Test get_menus_for_macro if context does not exist
+  my @not_exist_context_result = TrEd::Macros::get_menus_for_macro("not_existing_context", $another_macro);
+  my @empty_arr = ();
+  is_deeply(\@not_exist_context_result, \@empty_arr,
+              "get_menus_for_macro(): return undef if the context is unknown");
             
   # Test remove_from_menu with existing item
   my $removed_arr_ref = TrEd::Macros::remove_from_menu($another_context, $another_label);
@@ -333,6 +381,9 @@ foreach my $macro_cand (keys(%macro_normalization)){
   $removed_arr_ref = TrEd::Macros::remove_from_menu($another_context, "not_existing_label");
   ok(!defined($removed_arr_ref), "remove_from_menu(): correct return value -- label does not exist");
   
+  # Test remove_from_menu_macro($context, $macro) with context that does not exist
+  ok(!defined(TrEd::Macros::remove_from_menu_macro("not_existing_context", $another_macro)), "remove_from_menu_macro(): return undef when not existing context is passed to the function");
+  
   # Test remove_from_menu_macro($context, $macro)
   TrEd::Macros::remove_from_menu_macro($menu_only_context, $another_macro);
   %expected_menu_items = (
@@ -343,8 +394,28 @@ foreach my $macro_cand (keys(%macro_normalization)){
   is_deeply(\%got_menu_items, \%expected_menu_items, 
             "remove_from_menu_macro(): remove all labels bound to macro; get_menuitems(): reflect it");
   
-  
 }
+
+sub _test_macros_contain {
+  my ($patterns_ref) = @_;
+  # for every pattern, test that macros contain desired string and 
+  # report if the test was successful
+  foreach my $pattern (keys(%$patterns_ref)){
+    my $macro_found = first { $_ =~ /$pattern/ } @TrEd::Macros::macros;
+    ok($macro_found, qq/$patterns_ref->{$pattern}/);
+  }
+}
+
+sub _test_macros_dont_contain {
+  my ($patterns_ref) = @_;
+  # for every pattern, test that macros contain desired string and 
+  # report if the test was successful
+  foreach my $pattern (keys(%$patterns_ref)){
+    my $macro_found = first { $_ =~ /$pattern/ } @TrEd::Macros::macros;
+    ok(!defined($macro_found), qq/$patterns_ref->{$pattern}/);
+  }
+}
+
 
 # Test reading macros into memory
 {
@@ -359,20 +430,94 @@ foreach my $macro_cand (keys(%macro_normalization)){
   
   # Test reading default macro file first...
   TrEd::Macros::_read_default_macro_file($encoding, \@contexts);
+  my %default_macro_file_cont = (
+    "package TredMacro" =>  "_read_default_macro_file(): macro read successfully into memory && TredMacro package found",
+    "line 1"            =>  "_read_default_macro_file(): macro read successfully into memory && line number information found",
+    "tred.def"          =>  "_read_default_macro_file(): macro read successfully into memory && file name found",
+  );
   
-  my $package_found = first { /package TredMacro/ } @TrEd::Macros::macros; 
-  my $line_info_found = first { /line 1/ } @TrEd::Macros::macros;
-  my $file_name_found = first { /tred.def/ } @TrEd::Macros::macros;  
-  ok($package_found, "_read_default_macro_file(): macro read successfully && it contains TredMacro package");
-  ok($line_info_found, "_read_default_macro_file(): macro read successfully && it contains line number information");
-  ok($file_name_found, "_read_default_macro_file(): macro read successfully && it contains file information");
-  
+  _test_macros_contain(\%default_macro_file_cont);
+
   # check that key a menu bindigns are empty...
   ok(scalar(keys(%TrEd::Macros::keyBindings)) == 0, "_read_default_macro_file(): erase key bindings");
   ok(scalar(keys(%TrEd::Macros::menuBindings)) == 0, "_read_default_macro_file(): erase menu bindings");
 
-  
+  my $simple_macro_name = "simple-macro.mac";
+  my $simple_macro_file = File::Spec->catfile($FindBin::Bin, "test_macros", $simple_macro_name);
 
+  TrEd::Macros::read_macros($simple_macro_file, $TrEd::Config::libDir, 0, q{});
+  my %simple_macro_test_file_cont = (
+    $simple_macro_name  =>  "read_macros(): test macro no. 1 read into memory",
+    "tred.def"          =>  "read_macros(): default macro read successfully into memory && file name found",
+  );
+  _test_macros_contain(\%simple_macro_test_file_cont);
+
+  # now test that $keep = 0 really erases macros from before
+  my $test_macro_1 = "test_macro_01.mak";
+  my $test_macro_file_1 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_1);
+  TrEd::Macros::read_macros($test_macro_file_1, $TrEd::Config::libDir, 0, q{});
+  my %test_macro_1_file_name_only = (
+    $test_macro_1   =>  "read_macros(): new macro is loaded into memory",
+  );
+  my %test_macro_1_simple_name = (
+    $simple_macro_name    =>  "read_macros(): \$keep = 0 really overwrites",
+  );
+  _test_macros_dont_contain(\%test_macro_1_simple_name);
+  _test_macros_contain(\%test_macro_1_file_name_only);
+  
+  # now testing that $keep = 1 just adds new macro 
+  TrEd::Macros::read_macros($simple_macro_file, $TrEd::Config::libDir, 1, q{});
+  my %keep_1_test_macro_cont = (
+    $simple_macro_name  => "read_macros(): new macro loaded into memory",
+    $test_macro_1       => "read_macros(): old macro is still in the memory",
+    "tred.def"          => "read_macros(): default macro is still in the memory",
+  );
+  _test_macros_contain(\%keep_1_test_macro_cont);
+  
+  #TODO: potom este nieco, co otestuje predavanie contexts
+  
+  # Test that read_macros dies if the macro file does not exist... as a side effect, clean the binding from before
+  dies_ok(sub { TrEd::Macros::read_macros("not_existing_file", $TrEd::Config::libDir, 0, q{}) }, "read_macros(): die if the macro file does not exist");
+  
+  # testing first test-macro
+  open(my $macro_fh, '<', $test_macro_file_1) or 
+    die("Could not open $test_macro_file_1\n");
+  
+  TrEd::Macros::preprocess($macro_fh, $test_macro_file_1, \@TrEd::Macros::macros, \@TrEd::Macros::contexts);
+  
+  # should contain first test-macro and default macro
+  my %test_macro_1_tred_defined = (
+    "tred_defined"        =>  "preprocess(): #ifdef test",
+    "ntred_not_defined"   =>  "preprocess(): #ifndef test",
+    
+  );
+  %default_macro_file_cont = (
+    "package TredMacro" =>  "preprocess(): macro read successfully into memory && TredMacro package found",
+    "line 1"            =>  "preprocess(): macro read successfully into memory && line number information found",
+    "tred.def"          =>  "preprocess(): macro read successfully into memory && file name found",
+  );
+  _test_macros_contain(\%test_macro_1_tred_defined);
+  _test_macros_contain(\%default_macro_file_cont);
+  
+  # Macro file no. 2
+  my $test_macro_2 = "test_macro_02.mak";
+  my $test_macro_file_2 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_2);
+  open($macro_fh, '<', $test_macro_file_2) or 
+    die("Could not open $test_macro_file_2\n");
+  @TrEd::Macros::macros = ();
+  %test_macro_1_tred_defined = (
+    "tred_defined"        =>  "preprocess(): #ifdef test after #undefine",
+    "ntred_not_defined"   =>  q{preprocess(): #ifndef test after #undefine},
+    
+  );
+  my %test_macro_2_tred_not_defined = (
+    "mtred_elseif_defined"     => "preprocess(): #elseif test",
+  );
+  TrEd::Macros::preprocess($macro_fh, $test_macro_file_2, \@TrEd::Macros::macros, \@TrEd::Macros::contexts);
+  _test_macros_contain(\%test_macro_2_tred_not_defined);
+  _test_macros_dont_contain(\%test_macro_1_tred_defined);
+  
+  
 }
 
 #testuj get_contexts priebezne
