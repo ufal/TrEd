@@ -243,6 +243,7 @@ require TrEd::UserAgent;
 
 # create a hash, increment value of the key on each iteration, but return only list of those which were zero
 # which is like creating a hash and then returning its keys...
+#TODO: anyway, this function appears 3 more times in various packages (tred.def, Print.pm, Basics.pm) -> clean up
 sub uniq { my %a; grep { !($a{$_}++) } @_ }
 
 # import min and max functions

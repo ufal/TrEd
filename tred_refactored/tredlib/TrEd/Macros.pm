@@ -452,7 +452,8 @@ sub _read_default_macro_file {
   print STDERR "Reading $TrEd::Config::default_macro_file\n" if $macroDebug;
   #Hmm, turn off UTF-8 flag in string $default_macro_file... what for? 
   Encode::_utf8_off($TrEd::Config::default_macro_file);
-  push(@macros,"\n#line 1 \"$TrEd::Config::default_macro_file\"\n");
+  # this push is also done in preprocess, shouldn't we remove it from here?
+#  push(@macros,"\n#line 1 \"$TrEd::Config::default_macro_file\"\n");
   my $default_macro_fh;
   open($default_macro_fh,'<',$TrEd::Config::default_macro_file) or do {
     carp("ERROR: Cannot open macros: $TrEd::Config::default_macro_file!\n");
@@ -474,26 +475,28 @@ sub _read_default_macro_file {
 # Comments      : ...
 # See Also      : ...
 #TODO: tests, doc
+#TODO: what will happen, if we would call read_macros with $keep = 1 for the first time?
+# well, obviously, default macro would not be loaded... which is not good, I guess...
+#
+# This subroutine reads macro file. Macros are usual perl
+# subroutines and may use this program's namespace. They are also
+# provided some special names for certain variables which override
+# the original namespace.
+
+# Macros may be bound to a keysym with a special form of a comment.
+# The synax is:
+#
+# # bind MacroName to key [[Modifyer+]*]KeySym
+#
+# which causes subroutine MacroName to be bound to keyboard event of
+# simoultaneous pressing the optionally specified Modifyer(s) (which
+# should be some of Shift, Ctrl and Alt) and the specified KeySym
+# (this probabbly depends on platform too :( ).
 sub read_macros {
-  # This subroutine reads macro file. Macros are usual perl
-  # subroutines and may use this program's namespace. They are also
-  # provided some special names for certain variables which override
-  # the original namespace.
-
-  # Macros may be bound to a keysym with a special form of a comment.
-  # The synax is:
-  #
-  # # bind MacroName to key [[Modifyer+]*]KeySym
-  #
-  # which causes subroutine MacroName to be bound to keyboard event of
-  # simoultaneous pressing the optionally specified Modifyer(s) (which
-  # should be some of Shift, Ctrl and Alt) and the specified KeySym
-  # (this probabbly depends on platform too :( ).
-
   my ($file, $libDir, $keep, $encoding) = (shift, shift, shift, shift);
   my @contexts = @_;
   $macrosEvaluated = 0;
-  if($encoding eq ""){
+  if(!defined($encoding) || $encoding eq ""){
     $encoding = $TrEd::Config::default_macro_encoding;
   }
   if(!@contexts){
@@ -547,17 +550,17 @@ sub read_macros {
 # bind <method> [to] [key[sym]] <key> [menu <menu>[/submenu[/...]]]
 #
 # insert <method> [as] [menu] <menu>[/submenu[/...]]
-
+#TODO: hmm, what if extensions would be subclasses of tred.def...?
 sub preprocess {
-  my ($F, $file, $macros_ref, $contexts_ref) = @_;
-  # Again, turn off UTF-8 flag for string $file? Why we do that? $file contains name of some file...
-  Encode::_utf8_off($file);
+  my ($file_handle, $file_name, $macros_ref, $contexts_ref) = @_;
+  # Again, turn off UTF-8 flag for string $file_name? Why we do that? $file_name contains just a name of some file...
+  Encode::_utf8_off($file_name);
 
-  push(@$macros_ref,"\n#line 1 \"$file\"\n");
+  push(@$macros_ref,"\n#line 1 \"$file_name\"\n");
   my $line = 1;
   my @conditions;
   my $ifok = 1;
-  while (<$F>) {
+  while (<$file_handle>) {
     $line++;
     if (/^\#endif(?:$|\s)/) {
       push(@$macros_ref, $_);
@@ -565,10 +568,9 @@ sub preprocess {
         pop(@conditions);
         $ifok = (!@conditions || $conditions[$#conditions]);
       } else {
-        die "unmatched #endif in \"$file\" line $line\n";
+        die "unmatched #endif in \"$file_name\" line $line\n";
       }
     } elsif (/^\#elseif\s+(\S*)$|^\#else(?:if)?(?:\s|$)/) {
-      # tu sa nerobi push @$macros?
       if (@conditions) {
         my $prev = ($#conditions>0) ? $conditions[$#conditions-1] : 1;
         if (defined($1)) {
@@ -579,7 +581,7 @@ sub preprocess {
         }
         $ifok = $conditions[$#conditions];
       } else {
-        die "unmatched #elseif in \"$file\" line $line\n";
+        die "unmatched #elseif in \"$file_name\" line $line\n";
       }
     } elsif (/^\#ifdef\s+(\S*)/) {
       push(@$macros_ref, $_);
@@ -594,7 +596,7 @@ sub preprocess {
         if (/^\s*__END__/) {
           last;
         } elsif (/^\s*__DATA__/) {
-          warn "Warning: __DATA__ has no meaning in TredMacro (use __END__ instead) at $file line $line\n";
+          warn "Warning: __DATA__ has no meaning in TredMacro (use __END__ instead) at $file_name line $line\n";
           last;
         }
         push(@$macros_ref, $_);
@@ -638,7 +640,7 @@ sub preprocess {
           my $menu=TrEd::Convert::encode($1);
           remove_from_menu($_, $menu) for @$contexts_ref;
         } elsif (/^\#\s*(if)?include\s+\<([^\r\n]+\S)\>\s*(?:encoding\s+(\S+)\s*)?$/) {
-          my $conditional_include = $1 eq 'if' ? 1 : 0;
+          my $conditional_include = defined($1) && ($1 eq 'if') ? 1 : 0;
           my $enc = $3;
           my $f = $2;
           Encode::_utf8_off($f);
@@ -647,14 +649,14 @@ sub preprocess {
             my $mf="$path/$f";
             if (-f $mf) {
               read_macros($mf,$libDir,1,$enc,@$contexts_ref);
-              push @$macros_ref,"\n\n=pod\n\n=cut\n\n#line $line \"$file\"\n";
+              push @$macros_ref,"\n\n=pod\n\n=cut\n\n#line $line \"$file_name\"\n";
               $found = 1;
               last;
             }
           }
           if (!$found and !$conditional_include) {
             die
-              "Error including macros $f\n from $file: ",
+              "Error including macros $f\n from $file_name: ",
               "file not found in search paths: $libDir @macro_include_paths\n";
           }
         } elsif (/^\#\s*(if)?include\s+"([^\r\n]+\S)"\s*(?:encoding\s+(\S+)\s*)?$/) {
@@ -666,21 +668,21 @@ sub preprocess {
           my @includes;
           if ($pattern=~/^<(.*)>$/) {
             my $glob = $1;
-            my ($vol,$dir) = File::Spec->splitpath(dirname($file));
+            my ($vol, $dir) = File::Spec->splitpath(dirname($file_name));
             $dir = File::Spec->catpath($vol,$dir); 
             my $cwd = cwd();
             chdir $dir;
             @includes = map { File::Spec->rel2abs($_) } glob($glob);
             chdir $cwd;
           } else {
-            @includes = (dirname($file).$pattern);
+            @includes = (dirname($file_name).$pattern);
           }
           foreach my $mf (@includes) {
             if (-f $mf) {
               read_macros($mf,$libDir,1,$enc,@$contexts_ref);
-              push @$macros_ref,"\n\n=pod\n\n=cut\n\n#line $line \"$file\"\n";
+              push @$macros_ref,"\n\n=pod\n\n=cut\n\n#line $line \"$file_name\"\n";
             } elsif ($if ne 'if') {
-              die "Error including macros $mf\n from $file: ",  "file not found!\n";
+              die "Error including macros $mf\n from $file_name: ",  "file not found!\n";
             }
           }
         } elsif (/^\#\s*(if)?include\s+([^\r\n]+?\S)\s*(?:encoding\s+(\S+)\s*)?$/) {
@@ -689,12 +691,12 @@ sub preprocess {
         
           if ($f=~m%^/%) {
             read_macros($f, $libDir, 1, $enc, @$contexts_ref);
-            push @$macros_ref,"\n\n=pod\n\n=cut\n\n#line $line \"$file\"\n";
+            push @$macros_ref,"\n\n=pod\n\n=cut\n\n#line $line \"$file_name\"\n";
           } else {
             my $mf=$f;
             print STDERR "including $mf\n" if $macroDebug;
             unless (-f $mf) {
-              $mf=dirname($file).$mf;
+              $mf=dirname($file_name).$mf;
               print STDERR "trying $mf\n" if $macroDebug;
               unless (-f $mf) {
                 $mf="$libDir/$f";
@@ -702,16 +704,16 @@ sub preprocess {
               }
             }
             if (-f $mf) {
-              read_macros($mf,$libDir,1,$enc,@$contexts_ref);
-              push @$macros_ref,"\n\n=pod\n\n=cut\n\n#line $line \"$file\"\n";
+              read_macros($mf, $libDir, 1, $enc, @$contexts_ref);
+              push @$macros_ref,"\n\n=pod\n\n=cut\n\n#line $line \"$file_name\"\n";
             } elsif ($if ne 'if') {
               die
-                "Error including macros $mf\n from $file: ",
+                "Error including macros $mf\n from $file_name: ",
                 "file not found!\n";
             }
           }
         } elsif (/^\#\s*encoding\s+(\S+)\s*$/) {
-          set_encoding($F,$1);
+          set_encoding($file_handle,$1);
         }
       } else {
         # $ifok == 0
@@ -720,7 +722,7 @@ sub preprocess {
     }
   }
   if (@conditions){
-    die "Missing #endif in $file line $line (".scalar(@conditions)." unmatched #if-pragmas)\n";
+    die "Missing #endif in $file_name line $line (".scalar(@conditions)." unmatched #if-pragmas)\n";
   }
   return 1;
 }
