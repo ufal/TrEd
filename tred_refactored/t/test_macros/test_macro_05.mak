@@ -1,10 +1,10 @@
 # test macro file no 5
-# Test binding-context and includes in various contexts (before and after setting context...)
+# Test encoding setting -- iso-8859-2
+# Setting encoding to 2 different encodings in one file does not work very well...
 
-#include...
 
-#binding-context Conll2009 here or leave it to some other 
+#encoding iso-8859-2
 
-#include...
-
-#TODO: ifinclude -- 1 for existing, 1 for not existing file without complaints...
+sub ì¹èø {
+	print "¾lu»ouèký kùò úpìl ïábelské ódy hm\n";
+}
