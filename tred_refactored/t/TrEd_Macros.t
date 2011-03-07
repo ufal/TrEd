@@ -11,7 +11,8 @@ use Data::Dumper;
 use List::Util qw( first );
 use File::Spec;
 use Cwd;
-
+use Encode;
+use utf8;
 use TrEd::Config;
 
 BEGIN {
@@ -27,6 +28,9 @@ BEGIN {
   );
   use_ok($module_name, @subs);
 }
+
+binmode(STDOUT, ':utf8');
+#binmode(STDERR, ':utf8');
 
 our @subs;
 can_ok(__PACKAGE__, @subs);
@@ -78,7 +82,7 @@ my %key_normalization = (
   "Ctrl + Alt + Del"  => "CTRL + ALT + Del",
   "Ctrl-Alt+Del"      => "CTRL+ALT+Del",
   "Ctrl+X"            => "CTRL+X",
-  "Meta-�"            => "META+�",
+  "Meta-č"            => "META+č",
   "Alt->"             => "ALT+>"
 );
 
@@ -416,10 +420,45 @@ sub _test_macros_dont_contain {
   }
 }
 
+sub _test_macro_file {
+  my ($macro_file_name, $should_contain_ref, $should_not_contain_ref, $encoding) = @_;
+  open(my $macro_fh, '<', $macro_file_name) or 
+    die("Could not open $macro_file_name\n");
+  # clear macros loaded before
+  @TrEd::Macros::macros = ();
+  # load macro from new macro file
+  TrEd::Macros::preprocess($macro_fh, $macro_file_name, \@TrEd::Macros::macros, \@TrEd::Macros::contexts);
+  # check if it contains what it should 
+  if(defined($should_contain_ref) && ref($should_contain_ref)) {
+    _test_macros_contain($should_contain_ref);
+  }
+  # and that it does not contain what it should not...
+  if(defined($should_not_contain_ref) && ref($should_not_contain_ref)) {
+    _test_macros_dont_contain($should_not_contain_ref);
+  }
+  close($macro_fh);
+}
+
+sub _test_macro_bindings { 
+  my ($arg_ref) = @_;
+  my $key_combination = $arg_ref->{"key_combination"};
+  my $menu_item = $arg_ref->{"menu_item"};
+  my $context = $arg_ref->{"context"};
+  my $macro_name = $arg_ref->{"macro_name"};
+  
+  $macro_name = "$context->$macro_name";
+  is(TrEd::Macros::get_binding_for_key($context, $key_combination), $macro_name, 
+      "preprocess() -- key binding created");
+  my $macro_name_ref = TrEd::Macros::get_macro_for_menu($context, $menu_item);
+  is(@{$macro_name_ref}[0], $macro_name,
+      "preprocess() -- menu binding created");
+  return;
+}
 
 # Test reading macros into memory
 {
   # we need to init some basic configuration
+  # set default encoding and context
   my $encoding = 'utf8';
   my @contexts = ("TredMacro");
   
@@ -437,7 +476,7 @@ sub _test_macros_dont_contain {
   );
   
   _test_macros_contain(\%default_macro_file_cont);
-
+  
   # check that key a menu bindigns are empty...
   ok(scalar(keys(%TrEd::Macros::keyBindings)) == 0, "_read_default_macro_file(): erase key bindings");
   ok(scalar(keys(%TrEd::Macros::menuBindings)) == 0, "_read_default_macro_file(): erase menu bindings");
@@ -451,6 +490,12 @@ sub _test_macros_dont_contain {
     "tred.def"          =>  "read_macros(): default macro read successfully into memory && file name found",
   );
   _test_macros_contain(\%simple_macro_test_file_cont);
+  
+#  ($key_combination, $menu_item, $context, $macro_name)
+  _test_macro_bindings({"key_combination" => "CTRL+ALT+Del", 
+                        "menu_item"       => "My First Macro", 
+                        "context"         => $contexts[0], 
+                        "macro_name"      => "my_first_macro"});
 
   # now test that $keep = 0 really erases macros from before
   my $test_macro_1 = "test_macro_01.mak";
@@ -479,45 +524,101 @@ sub _test_macros_dont_contain {
   # Test that read_macros dies if the macro file does not exist... as a side effect, clean the binding from before
   dies_ok(sub { TrEd::Macros::read_macros("not_existing_file", $TrEd::Config::libDir, 0, q{}) }, "read_macros(): die if the macro file does not exist");
   
-  # testing first test-macro
-  open(my $macro_fh, '<', $test_macro_file_1) or 
-    die("Could not open $test_macro_file_1\n");
   
-  TrEd::Macros::preprocess($macro_fh, $test_macro_file_1, \@TrEd::Macros::macros, \@TrEd::Macros::contexts);
   
-  # should contain first test-macro and default macro
+  
+  # testing first test-macro -- simple #ifdef and #ifndef directives
+  # should contain first test-macro
   my %test_macro_1_tred_defined = (
     "tred_defined"        =>  "preprocess(): #ifdef test",
     "ntred_not_defined"   =>  "preprocess(): #ifndef test",
-    
   );
-  %default_macro_file_cont = (
-    "package TredMacro" =>  "preprocess(): macro read successfully into memory && TredMacro package found",
-    "line 1"            =>  "preprocess(): macro read successfully into memory && line number information found",
-    "tred.def"          =>  "preprocess(): macro read successfully into memory && file name found",
-  );
-  _test_macros_contain(\%test_macro_1_tred_defined);
-  _test_macros_contain(\%default_macro_file_cont);
   
-  # Macro file no. 2
+  _test_macro_file($test_macro_file_1, \%test_macro_1_tred_defined);
+  
+  
+  # Macro file no. 2 -- test #ifdef, #ifndef, #elseif, #define and #undefine
   my $test_macro_2 = "test_macro_02.mak";
   my $test_macro_file_2 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_2);
-  open($macro_fh, '<', $test_macro_file_2) or 
-    die("Could not open $test_macro_file_2\n");
-  @TrEd::Macros::macros = ();
-  %test_macro_1_tred_defined = (
+  
+  my %test_macro_2_not_contain = (
     "tred_defined"        =>  "preprocess(): #ifdef test after #undefine",
-    "ntred_not_defined"   =>  q{preprocess(): #ifndef test after #undefine},
+    "ntred_not_defined"   =>  "preprocess(): #ifndef test after #undefine",
     
   );
   my %test_macro_2_tred_not_defined = (
     "mtred_elseif_defined"     => "preprocess(): #elseif test",
   );
-  TrEd::Macros::preprocess($macro_fh, $test_macro_file_2, \@TrEd::Macros::macros, \@TrEd::Macros::contexts);
-  _test_macros_contain(\%test_macro_2_tred_not_defined);
-  _test_macros_dont_contain(\%test_macro_1_tred_defined);
+  
+  _test_macro_file($test_macro_file_2, \%test_macro_2_tred_not_defined, \%test_macro_2_not_contain);
+  
+  # Macro file no. 3 -- test including other files via #include and #ifinclude directives
+  my $test_macro_3 = "test_macro_03.mak";
+  my $test_macro_file_3 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_3);
+  
+  my %test_macro_3_cont = (
+    "sub include1"      => "preprocess(): double quoted include",
+    "sub include2"      => "preprocess(): include <file>",
+    "include0x"         => 'preprocess(): include "<file*.inc>", file 1 included',
+    "include0y"         => 'preprocess(): include "<file*.inc>", file 2 included',
+    "sub include3"      => "preprocess(): include without quotes",
+    "sub include4"      => "preprocess(): ifinclude "
+    
+  );
+  _test_macro_file($test_macro_file_3, \%test_macro_3_cont);
+  
+  _test_macro_bindings({"key_combination" => "CTRL+ř", 
+                        "menu_item"       => "include1_label", 
+                        "context"         => $contexts[0], 
+                        "macro_name"      => "include1"});
+  
+  _test_macro_bindings({"key_combination" => "CTRL+ě", 
+                        "menu_item"       => "include2_label", 
+                        "context"         => $contexts[0], 
+                        "macro_name"      => "include2"});
+  
+  _test_macro_bindings({"key_combination" => "CTRL+3", 
+                        "menu_item"       => "include3_label", 
+                        "context"         => $contexts[0], 
+                        "macro_name"      => "include3"});
+                        
+  _test_macro_bindings({"key_combination" => "CTRL+ž", 
+                        "menu_item"       => "include0x_label", 
+                        "context"         => $contexts[0], 
+                        "macro_name"      => "include0x"});
+  
+  _test_macro_bindings({"key_combination" => "CTRL+q", 
+                        "menu_item"       => "include0x_label_2", 
+                        "context"         => $contexts[0], 
+                        "macro_name"      => "include0x"});
+                        
+  _test_macro_bindings({"key_combination" => "CTRL+4", 
+                        "menu_item"       => "include4_label", 
+                        "context"         => $contexts[0], 
+                        "macro_name"      => "include4"});
+  
+  # Macro file no. 4 -- test #encoding directive
+  my $test_macro_4 = "test_macro_04.mak";
+  my $test_macro_file_4 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_4);
+  
+  my $utf8_pattern = "žluťoučký kůň úpěl ďábelské ódy";
+  my %test_macro_4_cont = (
+    $utf8_pattern      => "preprocess() & set_encoding(): encoding in utf-8",
+  );
+  _test_macro_file($test_macro_file_4, \%test_macro_4_cont);
   
   
+  # Macro file no. 5 -- test #encoding directive
+  my $test_macro_5 = "test_macro_05.mak";
+  my $test_macro_file_5 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_5);
+  
+  
+  my $iso_8859_2_pattern = "žluťoučký kůň úpěl ďábelské ódy";
+  my %test_macro_5_cont = (
+    $iso_8859_2_pattern      => "preprocess() & set_encoding(): encoding in iso-8859-2",
+  );
+  _test_macro_file($test_macro_file_5, \%test_macro_5_cont);
+
 }
 
 #testuj get_contexts priebezne

@@ -14,9 +14,12 @@
 # 1. Current directory is searched.
 # 2. The directory of the file where the #include directive occured is searched.
 # 3. TrEd's library directory is searched.
-
 #include ../t/test_macros/include/include3.inc
 
-#TODO: ifinclude -- 1 for existing, 1 for not existing file without complaints...
+# This file should be included
+#ifinclude "include/include4.inc"
 
-#TODO: also include that does not exist, dies_ok...
+# This file does not exist, should continue without complaints
+#ifinclude "include/include5.inc"
+
+#TODO: also include file that does not exist, test with dies_ok...

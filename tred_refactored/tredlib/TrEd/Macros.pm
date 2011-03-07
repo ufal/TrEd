@@ -735,7 +735,6 @@ sub preprocess {
 #                 [string $encoding          -- encoding name]
 # Throws        : no exception
 # Comments      : ':utf8' should only be used for output, using ':encoding(utf8)' instead
-#TODO: tests
 sub set_encoding {
   my $fh = shift;
   my $enc = shift || $default_macro_encoding;
@@ -751,6 +750,7 @@ sub set_encoding {
     };
     print STDERR $@ if $@;
   }
+  return;
 }
 
 #######################################################################################
