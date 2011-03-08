@@ -21,5 +21,3 @@
 
 # This file does not exist, should continue without complaints
 #ifinclude "include/include5.inc"
-
-#TODO: also include file that does not exist, test with dies_ok...

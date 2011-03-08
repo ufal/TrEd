@@ -474,7 +474,6 @@ sub _read_default_macro_file {
 # Throws        : no exception
 # Comments      : ...
 # See Also      : ...
-#TODO: tests, doc
 #TODO: what will happen, if we would call read_macros with $keep = 1 for the first time?
 # well, obviously, default macro would not be loaded... which is not good, I guess...
 #
@@ -532,7 +531,6 @@ sub read_macros {
 # Throws        : a scalar (string) if it fails to include a file or finds unmatched elseif/endif
 # Comments      : ...
 # See Also      : read_macros(), 
-#TODO: tests, doc
 
 # new "pragmas":
 #
@@ -662,7 +660,7 @@ sub preprocess {
         } elsif (/^\#\s*(if)?include\s+"([^\r\n]+\S)"\s*(?:encoding\s+(\S+)\s*)?$/) {
           my $enc = $3;
           my $pattern = $2;
-          my $if = $1;
+          my $if = defined($1) ? $1 : 0;
           Encode::_utf8_off($pattern);
         
           my @includes;
@@ -754,14 +752,13 @@ sub set_encoding {
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : initialize_macros($win_ref)
+# Purpose       : Initializes macros, run them for the first time either using eval or in safe compartment
+# Returns       : Return value of macro evaluation or 2 if the macros were already evaluated
+# Parameters    : hash_ref $win_ref -- see below
 # Throws        : no exception
 # Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
+#TODO: tests
 
 # The $win parameter to the following two routines should be
 # a hash reference, having at least the following keys:
@@ -785,10 +782,10 @@ sub set_encoding {
 # $TredMacos::forceFileSaved ... if 1, macro claims it saved the file itself
 
 sub initialize_macros {
-  my ($win_ref) = @_;		# $win is a reference
+  my ($win_ref) = @_;	# $win is a reference
                         # which should in this way be made visible
                         # to macros
-  my $result = 2;
+  my $result = 2; #hm?
   my $utf = ($useEncoding) ? "use utf8;\n" : "";
   unless ($macrosEvaluated) {
     my $macros = "";
@@ -842,9 +839,9 @@ sub initialize_macros {
 # Returns       : Name of the variable, either from Safe compartment, or with macro namespace prefix
 # Parameters    : string $var_name -- name of the variable
 # Throws        : no exception
-# Comments      : ...
+# Comments      : Symbolic references are kind of deprecated in Perl Best Practices, maybe think up some other way to do this...
+#                 although in Safe.pm the implementation is similar...
 # See Also      : get_macro_variable(), set_macro_variable()
-#TODO: tests
 sub macro_variable {
   my $prefix = ($_[0] =~ /::/) ? '' : 'TredMacro::';
   if (defined($safeCompartment)) {
@@ -862,7 +859,6 @@ sub macro_variable {
 # Throws        : no exception
 # Comments      : ...
 # See Also      : set_macro_variable(), macro_variable()
-#TODO: tests
 sub get_macro_variable {
   no strict 'refs';
   return ${ &macro_variable };
@@ -877,7 +873,6 @@ sub get_macro_variable {
 # Throws        : no exception
 # Comments      : ...
 # See Also      : get_macro_variable(), macro_variable()
-#TODO: tests
 sub set_macro_variable {
   no strict 'refs';
   while (@_) {
@@ -891,14 +886,13 @@ sub set_macro_variable {
 my @_saved_vars = qw(grp this root FileNotSaved forceFileSaved);
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : save_ctxt()
+# Purpose       : Allow saving current context by returning values of chosen variables
+# Returns       : Reference to array with values of selected variables from current context
+# Parameters    : no
 # Throws        : no exception
-# Comments      : 
-# See Also      : ...
-#TODO: tests, doc
+# Comments      : selected variables: grp, this, root, FileNotSaved, forceFileSaved 
+# See Also      : restore_ctxt()
 sub save_ctxt {
   no strict 'refs';
   if (defined($safeCompartment)) {
@@ -909,25 +903,24 @@ sub save_ctxt {
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : restore_ctxt($old_context)
+# Purpose       : Restore selected context variables from previously saved array reference
+# Returns       : nothing
+# Parameters    : array_ref $old_context -- context returned from function save_ctxt()
 # Throws        : no exception
-# Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
+# Comments      : selected variables: grp, this, root, FileNotSaved, forceFileSaved
+# See Also      : save_ctxt()
 sub restore_ctxt {
-  my $ctxt = shift;
+  my $ctxt_ref = shift;
   my $i=0;
   no strict 'refs';
   if (defined($safeCompartment)) {
     for my $var (@_saved_vars) {
-      ${ $safeCompartment->varglob('TredMacro::'.$var) } = $ctxt->[$i++];
+      ${ $safeCompartment->varglob('TredMacro::'.$var) } = $ctxt_ref->[$i++];
     }
   } else {
     for my $var (@_saved_vars) {
-      ${'TredMacro::'.$var} = $ctxt->[$i++];
+      ${'TredMacro::'.$var} = $ctxt_ref->[$i++];
     }
   }
   return;
@@ -989,40 +982,43 @@ sub do_eval_macro {
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : context_can($context, $sub)
+# Purpose       : Determine whether the context $context has a method called $sub
+# Returns       : Reference to method called $sub in context $context or undef if there is no such method
+# Parameters    : string $context -- Name of the context
+#                 string $sub     -- Name of subroutine
 # Throws        : no exception
-# Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
+# Comments      : supports using safe compartment
+# See Also      : context_isa()
 sub context_can {
   my ($context, $sub) = @_;
   if (defined($safeCompartment)) {
     no strict;
     return $safeCompartment->reval("\${'${context}::'}{'$sub'}");
   } else {
-    return UNIVERSAL::can($context,$sub);
+#    return undef if (!defined($context));
+#    return eval { $context->can($sub) };
+    return UNIVERSAL::can($context, $sub);
   }
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : context_isa($context, $package)
+# Purpose       : Determine whether context $context is in package $package
+# Returns       : True if context contains specified package, false otherwise
+# Parameters    : string $context -- Name of the context
+#                 string $package -- Name of package
 # Throws        : no exception
-# Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
+# Comments      : supports using safe compartment (via a nasty hack introduced in initialize_macros)
+# See Also      : initialize_macros(), context_can()
+#TODO: tests
 sub context_isa {
   my ($context, $package) = @_;
   if (defined($safeCompartment)) {
     no strict;
     return grep { $_ eq $package } $safeCompartment->reval("\@${context}::ISA") ? 1 : undef;
   } else {
-    return UNIVERSAL::isa($context,$package);
+    return UNIVERSAL::isa($context, $package);
   }
 }
 

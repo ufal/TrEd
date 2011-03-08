@@ -15,9 +15,16 @@ sub tred_defined {
 #elseif MTRED
 
 sub mtred_elseif_defined {
+	print("MTRED is defined\n");
+}
+
+#ifdef TRED
+
+sub nested_tred_defined {
 	print("TRED is defined\n");
 }
 
+#endif
 
 #endif
 
