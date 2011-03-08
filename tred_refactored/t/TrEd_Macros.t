@@ -445,13 +445,19 @@ sub _test_macro_bindings {
   my $menu_item = $arg_ref->{"menu_item"};
   my $context = $arg_ref->{"context"};
   my $macro_name = $arg_ref->{"macro_name"};
+  my $negat = $arg_ref->{"negat"};
   
-  $macro_name = "$context->$macro_name";
-  is(TrEd::Macros::get_binding_for_key($context, $key_combination), $macro_name, 
-      "preprocess() -- key binding created");
-  my $macro_name_ref = TrEd::Macros::get_macro_for_menu($context, $menu_item);
-  is(@{$macro_name_ref}[0], $macro_name,
-      "preprocess() -- menu binding created");
+  if($negat){
+    ok(!defined(TrEd::Macros::get_binding_for_key($context, $key_combination)), "preprocess() -- key binding should not exist");
+    ok(!defined(TrEd::Macros::get_macro_for_menu($context, $menu_item)), "preprocess() -- menu binding should not exist");
+  } else {
+#  $macro_name = "$context->$macro_name";
+    is(TrEd::Macros::get_binding_for_key($context, $key_combination), $macro_name, 
+        "preprocess() -- key binding created");
+    my $macro_name_ref = TrEd::Macros::get_macro_for_menu($context, $menu_item);
+    is(@{$macro_name_ref}[0], $macro_name,
+        "preprocess() -- menu binding created");
+  }
   return;
 }
 
@@ -484,7 +490,7 @@ sub _test_macro_bindings {
   my $simple_macro_name = "simple-macro.mac";
   my $simple_macro_file = File::Spec->catfile($FindBin::Bin, "test_macros", $simple_macro_name);
 
-  TrEd::Macros::read_macros($simple_macro_file, $TrEd::Config::libDir, 0, q{});
+  TrEd::Macros::read_macros($simple_macro_file, $TrEd::Config::libDir, 0, "");
   my %simple_macro_test_file_cont = (
     $simple_macro_name  =>  "read_macros(): test macro no. 1 read into memory",
     "tred.def"          =>  "read_macros(): default macro read successfully into memory && file name found",
@@ -495,12 +501,12 @@ sub _test_macro_bindings {
   _test_macro_bindings({"key_combination" => "CTRL+ALT+Del", 
                         "menu_item"       => "My First Macro", 
                         "context"         => $contexts[0], 
-                        "macro_name"      => "my_first_macro"});
+                        "macro_name"      => "$contexts[0]->my_first_macro"});
 
   # now test that $keep = 0 really erases macros from before
   my $test_macro_1 = "test_macro_01.mak";
   my $test_macro_file_1 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_1);
-  TrEd::Macros::read_macros($test_macro_file_1, $TrEd::Config::libDir, 0, q{});
+  TrEd::Macros::read_macros($test_macro_file_1, $TrEd::Config::libDir, 0, "utf-8");
   my %test_macro_1_file_name_only = (
     $test_macro_1   =>  "read_macros(): new macro is loaded into memory",
   );
@@ -570,34 +576,34 @@ sub _test_macro_bindings {
   _test_macro_bindings({"key_combination" => "CTRL+ř", 
                         "menu_item"       => "include1_label", 
                         "context"         => $contexts[0], 
-                        "macro_name"      => "include1"});
+                        "macro_name"      => "$contexts[0]->include1"});
   
   _test_macro_bindings({"key_combination" => "CTRL+ě", 
                         "menu_item"       => "include2_label", 
                         "context"         => $contexts[0], 
-                        "macro_name"      => "include2"});
+                        "macro_name"      => "$contexts[0]->include2"});
   
   _test_macro_bindings({"key_combination" => "CTRL+3", 
                         "menu_item"       => "include3_label", 
                         "context"         => $contexts[0], 
-                        "macro_name"      => "include3"});
+                        "macro_name"      => "$contexts[0]->include3"});
                         
   _test_macro_bindings({"key_combination" => "CTRL+ž", 
                         "menu_item"       => "include0x_label", 
                         "context"         => $contexts[0], 
-                        "macro_name"      => "include0x"});
+                        "macro_name"      => "$contexts[0]->include0x"});
   
   _test_macro_bindings({"key_combination" => "CTRL+q", 
                         "menu_item"       => "include0x_label_2", 
                         "context"         => $contexts[0], 
-                        "macro_name"      => "include0x"});
+                        "macro_name"      => "$contexts[0]->include0x"});
                         
   _test_macro_bindings({"key_combination" => "CTRL+4", 
                         "menu_item"       => "include4_label", 
                         "context"         => $contexts[0], 
-                        "macro_name"      => "include4"});
+                        "macro_name"      => "$contexts[0]->include4"});
   
-  # Macro file no. 4 -- test #encoding directive
+  # Macro file no. 4 -- test #encoding utf-8 directive
   my $test_macro_4 = "test_macro_04.mak";
   my $test_macro_file_4 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_4);
   
@@ -608,7 +614,7 @@ sub _test_macro_bindings {
   _test_macro_file($test_macro_file_4, \%test_macro_4_cont);
   
   
-  # Macro file no. 5 -- test #encoding directive
+  # Macro file no. 5 -- test #encoding iso-8859-2 directive
   my $test_macro_5 = "test_macro_05.mak";
   my $test_macro_file_5 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_5);
   
@@ -619,6 +625,230 @@ sub _test_macro_bindings {
   );
   _test_macro_file($test_macro_file_5, \%test_macro_5_cont);
 
+  # Macro file no. 6 -- test #binding-context, #key-binding-adopt, #menu-binding-adopt directives
+  my $test_macro_6 = "test_macro_06.mak";
+  my $test_macro_file_6 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_6);
+  my $new_context = "my_new_extension";
+  my %test_macro_6_cont = (
+    "include3"      => "preprocess(): include no. 3 included successfully",
+    "include4"      => "preprocess(): include no. 4 included successfully",
+  );
+  
+  _test_macro_file($test_macro_file_6, \%test_macro_6_cont);
+  
+  # adopted bindings
+  _test_macro_bindings({"key_combination" => "CTRL+ř", 
+                        "menu_item"       => "include1_label", 
+                        "context"         => $new_context, 
+                        "macro_name"      => "$contexts[0]->include1"});
+  
+  _test_macro_bindings({"key_combination" => "CTRL+ě", 
+                        "menu_item"       => "include2_label", 
+                        "context"         => $new_context, 
+                        "macro_name"      => "$contexts[0]->include2"});
+  
+  _test_macro_bindings({"key_combination" => "CTRL+3", 
+                        "menu_item"       => "include3_label", 
+                        "context"         => $new_context, 
+                        "macro_name"      => "$contexts[0]->include3"});
+                        
+  _test_macro_bindings({"key_combination" => "CTRL+ž", 
+                        "menu_item"       => "include0x_label", 
+                        "context"         => $new_context, 
+                        "macro_name"      => "$contexts[0]->include0x"});
+  
+  _test_macro_bindings({"key_combination" => "CTRL+q", 
+                        "menu_item"       => "include0x_label_2", 
+                        "context"         => $new_context, 
+                        "macro_name"      => "$contexts[0]->include0x"});
+                        
+  _test_macro_bindings({"key_combination" => "CTRL+4", 
+                        "menu_item"       => "include4_label", 
+                        "context"         => $new_context, 
+                        "macro_name"      => "$contexts[0]->include4"});
+  
+  # new binding
+  _test_macro_bindings({"key_combination" => "CTRL+ALT+Esc", 
+                        "menu_item"       => "My New Extension", 
+                        "context"         => $new_context, 
+                        "macro_name"      => "$new_context->my_new_ext_macro"});
+
+
+  # Test context_can, context_isa and initialize_macros
+#  note(Dumper(\%TrEd::Macros::keyBindings));
+#  note(Dumper(\%TrEd::Macros::menuBindings));
+#  note(Dumper(\@TrEd::Macros::macros));
+  # initialize basic variables for macro initialization
+  my $grp = {
+	   treeNo => 0,
+	   FSFile => undef,
+	   macroContext =>  'TredMacro',
+	   currentNode => undef,
+	   root => undef
+	  };
+#  $TrEd::Config::macroDebug = 1;
+  # init macros
+  TrEd::Macros::initialize_macros($grp);
+  
+  my $fn_ref = TrEd::Macros::context_can("my_new_extension", "my_new_ext_macro");
+  ok($fn_ref, "context_can(): find existing method");
+  is(&{$fn_ref}, "here is my new extension macro function",
+      "context_can(): returned coderef is correct");
+  
+  ok(!defined(TrEd::Macros::context_can("my_new_extension", "not_existing_method")), "context_can(): return undef if method does not exist");
+  ok(!defined(TrEd::Macros::context_can(undef, "not_existing_method")), "context_can(): return undef if context is not defined");
+
+#  print "context_isa: |" . TrEd::Macros::context_isa("my_new_extension", "my_new_extension") . "|\n";
+
+  # Macro file no. 7 -- test #unbind-key and #remove-menu
+  my $test_macro_7 = "test_macro_07.mak";
+  my $test_macro_file_7 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_7);
+  $new_context = "my_new_extension";
+  # macro is empty
+  my %test_macro_7_cont = (
+  );
+  # open macro and preprocess it
+  _test_macro_file($test_macro_file_7, \%test_macro_7_cont);
+  
+  # removed binding, should not exist
+  _test_macro_bindings({"negat"           => 1,
+                        "key_combination" => "CTRL+ALT+Esc", 
+                        "menu_item"       => "My New Extension", 
+                        "context"         => $new_context, 
+                        "macro_name"      => "$new_context->my_new_ext_macro",});
+  
+  # Macro file no. 8 -- test unmatched #elseif
+  my $test_macro_8 = "test_macro_08.mak";
+  my $test_macro_file_8 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_8);
+  
+  open(my $macro_fh, '<', $test_macro_file_8) or 
+    die("Could not open $test_macro_file_8\n");
+  # clear macros loaded before
+  @TrEd::Macros::macros = ();
+  # should die on unmatched #elseif
+  dies_ok(sub { TrEd::Macros::preprocess($macro_fh, $test_macro_8, \@TrEd::Macros::macros, \@TrEd::Macros::contexts) }, "preprocess(): die on unmatched elseif in macro");  
+  
+  # Macro file no. 9 -- test unmatched #endif
+  my $test_macro_9 = "test_macro_09.mak";
+  my $test_macro_file_9 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_9);
+  
+  open($macro_fh, '<', $test_macro_file_9) or 
+    die("Could not open $test_macro_file_9\n");
+  # clear macros loaded before
+  @TrEd::Macros::macros = ();
+  # should die on unmatched #endif
+  dies_ok(sub { TrEd::Macros::preprocess($macro_fh, $test_macro_9, \@TrEd::Macros::macros, \@TrEd::Macros::contexts) }, "preprocess(): die on unmatched endif in macro");  
+  
+  # Macro file no. 10 -- test missing #endif and exec code
+  my $test_macro_10 = "test_macro_10.mak";
+  my $test_macro_file_10 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_10);
+  
+  open($macro_fh, '<', $test_macro_file_10) or 
+    die("Could not open $test_macro_file_10\n");
+  # clear macros loaded before
+  @TrEd::Macros::macros = ();
+  # should die on missing #endif
+  dies_ok(sub { TrEd::Macros::preprocess($macro_fh, $test_macro_10, \@TrEd::Macros::macros, \@TrEd::Macros::contexts) }, "preprocess(): die on missing endif in macro");  
+  is($TrEd::Macros::exec_code, "/usr/bin/env perl",
+      "preprocess(): set exec_code");
+      
+  # Macro file no. 11 -- test die on not existing file
+  my $test_macro_11 = "test_macro_11.mak";
+  my $test_macro_file_11 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_11);
+  
+  open($macro_fh, '<', $test_macro_file_11) or 
+    die("Could not open $test_macro_file_11\n");
+  # clear macros loaded before
+  @TrEd::Macros::macros = ();
+  # should die on unmatched #endif
+  dies_ok(sub { TrEd::Macros::preprocess($macro_fh, $test_macro_11, \@TrEd::Macros::macros, \@TrEd::Macros::contexts) }, "preprocess(): die if include file does not exist");  
+  
+  # Macro file no. 12 -- test die on not existing file, other kind of include 
+  my $test_macro_12 = "test_macro_12.mak";
+  my $test_macro_file_12 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_12);
+  
+  open($macro_fh, '<', $test_macro_file_12) or 
+    die("Could not open $test_macro_file_12\n");
+  # clear macros loaded before
+  @TrEd::Macros::macros = ();
+  # should die on unmatched #endif
+  dies_ok(sub { TrEd::Macros::preprocess($macro_fh, $test_macro_12, \@TrEd::Macros::macros, \@TrEd::Macros::contexts) }, "preprocess(): die if include file does not exist");  
+  
+  
 }
+
+{
+  # Test working with macro vriables
+  my $macro_var_name_1 = "test_name";
+  my $macro_var_name_2 = "Extension::test_name";
+  my %macro_vars_test = (
+    $macro_var_name_1  => "test_value",
+    $macro_var_name_2  => "Extension_test_value"
+  );
+  
+  TrEd::Macros::set_macro_variable($macro_var_name_1, $macro_vars_test{$macro_var_name_1});
+  TrEd::Macros::set_macro_variable($macro_var_name_2, $macro_vars_test{$macro_var_name_2});
+  
+  
+  is(TrEd::Macros::get_macro_variable($macro_var_name_1), $macro_vars_test{$macro_var_name_1}, 
+      "set_macro_variable() && get_macro_variable() -- without full name qualification");
+      
+  is(TrEd::Macros::get_macro_variable($macro_var_name_2), $macro_vars_test{$macro_var_name_2}, 
+      "set_macro_variable() && get_macro_variable() -- with full name qualification");
+}
+
+{    
+  # Test saving and restoring context
+  
+  # set saved contex variables
+  my @context_save_vars = qw(grp this root FileNotSaved forceFileSaved);
+  my @context_save_vals = qw(context_test_grp context_test_this context_test_root context_test_fns context_test_ffs);
+  TrEd::Macros::set_macro_variable($context_save_vars[0], $context_save_vals[0]);
+  TrEd::Macros::set_macro_variable($context_save_vars[1], $context_save_vals[1]);
+  TrEd::Macros::set_macro_variable($context_save_vars[2], $context_save_vals[2]);
+  TrEd::Macros::set_macro_variable($context_save_vars[3], $context_save_vals[3]);
+  TrEd::Macros::set_macro_variable($context_save_vars[4], $context_save_vals[4]);
+
+  my $old_context = TrEd::Macros::save_ctxt();
+  my @sorted_old_context = sort(@$old_context);
+  my @sorted_expected_context = sort(@context_save_vals); 
+  is_deeply(\@sorted_old_context, \@sorted_expected_context,
+              "save_ctxt(): save values of selected variables");
+  
+  TrEd::Macros::set_macro_variable($context_save_vars[0], "other_value");
+  TrEd::Macros::set_macro_variable($context_save_vars[1], "other_value");
+  TrEd::Macros::set_macro_variable($context_save_vars[2], "other_value");
+  TrEd::Macros::set_macro_variable($context_save_vars[3], "other_value");
+  TrEd::Macros::set_macro_variable($context_save_vars[4], "other_value");
+  
+  # Test new, overwritten values
+  is(TrEd::Macros::get_macro_variable($context_save_vars[0]), "other_value", 
+      "set_macro_variable() && get_macro_variable() -- change context saved vars -- grp");
+  is(TrEd::Macros::get_macro_variable($context_save_vars[1]), "other_value", 
+      "set_macro_variable() && get_macro_variable() -- change context saved vars -- this");
+  is(TrEd::Macros::get_macro_variable($context_save_vars[2]), "other_value", 
+      "set_macro_variable() && get_macro_variable() -- change context saved vars -- root");
+  is(TrEd::Macros::get_macro_variable($context_save_vars[3]), "other_value", 
+      "set_macro_variable() && get_macro_variable() -- change context saved vars -- FileNotSaved");
+  is(TrEd::Macros::get_macro_variable($context_save_vars[4]), "other_value", 
+      "set_macro_variable() && get_macro_variable() -- change context saved vars -- forceFileSaved");
+  
+  TrEd::Macros::restore_ctxt($old_context);
+  
+  # Test restored values
+  is(TrEd::Macros::get_macro_variable($context_save_vars[0]), $context_save_vals[0], 
+      "restore_ctxt() -- restore context -- grp");
+  is(TrEd::Macros::get_macro_variable($context_save_vars[1]), $context_save_vals[1], 
+      "restore_ctxt() -- restore context -- this");
+  is(TrEd::Macros::get_macro_variable($context_save_vars[2]), $context_save_vals[2], 
+      "restore_ctxt() -- restore context -- root");
+  is(TrEd::Macros::get_macro_variable($context_save_vars[3]), $context_save_vals[3], 
+      "restore_ctxt() -- restore context -- FileNotSaved");
+  is(TrEd::Macros::get_macro_variable($context_save_vars[4]), $context_save_vals[4], 
+      "restore_ctxt() -- restore context -- forceFileSaved");
+
+#  note(Dumper($old_context));
+}   
+# bude treba to otsetovat aj pre safeCompartment...
 
 #testuj get_contexts priebezne
