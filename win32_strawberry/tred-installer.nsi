@@ -9,6 +9,7 @@
 ;	${StrStr} # Supportable for Install Sections and Functions 
 ;    ${UnStrStr} # Supportable for Uninstall Sections and Functions
 	${StrLoc} # Supportable for Install Sections and Functions 
+	${StrStrAdv} # Supportable for Install Sections and Functions 
 ;    ${UnStrLoc} # Supportable for Uninstall Sections and Functions
 ;---------------------------------
 
@@ -115,6 +116,10 @@ Var PerlVersionOk
 Var PerlFlavour
 ; Path, where perl.exe is found, set by testPerl function
 Var PerlPath
+; Base path of Perl installation, for Active Perl it is PerlPath without "\bin", 
+; for Strawberry Perl PerlPath without "perl\bin"
+Var PerlPathBase
+
 ; Information for the user about his perl version, flavour and folder
 Var PerlMsg
 ; Shared return value from various functions
@@ -151,9 +156,15 @@ Var INSTDIR_SHORT
 ; perl's architecture name
 Var PerlConfigArchname
 
+; original PATH environment variable
+Var OriginalPath
+
 Function .onInit
 	; we don't know yet whether any kind of perl is installed
 	StrCpy $PerlVersionOk "0"
+	
+	; save original path env variable
+	ReadEnvStr $OriginalPath "PATH"
 	
 	; try to find perl executable and version
 	Call testPerl
@@ -167,17 +178,26 @@ FunctionEnd
 
 ; Checks whether Perl exists and its version 
 Function testPerl
+	; set original PATH (if the user changes his decision to go from custom perl path to default one)
+	StrCpy $R0 "$OriginalPath"
+	System::Call 'Kernel32::SetEnvironmentVariableA(t, t) i("PATH", R0).r0'
+	StrCmp $0 0  "" +2
+		MessageBox MB_OK "Can't set environment variable"
+	
 	; In case we use Perl distribution which is not in the PATH
 	${If} $CustomPerlFolder == ""
 		; we do not have to modify PATH variable
 	${Else}
-		; modify PATH variable (for this installer only)
-		ReadEnvStr $R0 "PATH"
-		StrCpy $R0 "$CustomPerlFolder;$R0;"
-		; MessageBox MB_OK "$R0"
-		System::Call 'Kernel32::SetEnvironmentVariableA(t, t) i("PATH", R0).r0'
-		StrCmp $0 0 "" +2
-			MessageBox MB_OK "Could not set environment variable"
+		; Modify path only if custom path is not empty && checkbox is checked
+		${If} $CB_state_ChoosePerlDir == ${BST_CHECKED}
+			; modify PATH variable (for this installer only)
+			ReadEnvStr $R0 "PATH"
+			StrCpy $R0 "$CustomPerlFolder;$R0;"
+			; MessageBox MB_OK "$R0"
+			System::Call 'Kernel32::SetEnvironmentVariableA(t, t) i("PATH", R0).r0'
+			StrCmp $0 0 "" +2
+				MessageBox MB_OK "Could not set environment variable"
+		${EndIf}
 			
 	${EndIf}
 	
@@ -219,7 +239,7 @@ Function testPerl
 		StrCpy $PerlMsg "$PerlFlavour Perl $PerlVersion found in $PerlPath, OK."
 		StrCpy $PerlVersionOk "1"
 	${Else}
-		StrCpy $PerlMsg "Perl version not supported. Please install Perl 5.8, 5.10 or choose a directory containing Perl executable."
+		StrCpy $PerlMsg "Perl version not supported. Please install Perl 5.8, 5.10 or 5.12, or choose a directory containing Perl executable."
 	${EndIf}
 	done:
 FunctionEnd
@@ -287,7 +307,11 @@ Function installStrawberryPerl
 	ExecWait '"msiexec" /i "$TEMP\$PerlInstallerName"'
 	IfErrors error done
 	error:
-		MessageBox MB_OK "Installation failed. $\nPlease exit installer and install Perl manually."
+		MessageBox MB_OK "Installation failed. $\nSometimes it is a false alarm (usually on Windows 7). $\nIf not, please exit installer and install Perl manually."
+		Call testPerl
+		; Update label after Perl installation
+		${NSD_SetText} $PerlInstalledLabel $PerlMsg
+		Pop $Label
 		Quit
 	done:
 		Call testPerl
@@ -305,7 +329,7 @@ FunctionEnd
 
 ; Function for showing installer Page 2 -- install Perl 
 Function nsdChoosePerl
-	!insertmacro MUI_HEADER_TEXT "Perl installation" "Choose your favourite Perl distribution or custom Perl directory"
+	!insertmacro MUI_HEADER_TEXT "Perl installation" "Choose your Perl distribution or custom Perl directory"
 	nsDialogs::Create 1018
 	Pop $Dialog
 
@@ -320,9 +344,9 @@ Function nsdChoosePerl
 	; if there are some problems with version or finding perl, offer installation options
 	${If} $PerlVersionOk == "1"
 	${Else}
-		${NSD_CreateLabel}  40u 39u -30u 12u "Install Strawberry Perl"
+		${NSD_CreateLabel}  40u 39u -30u 12u "Strawberry Perl"
 		Pop $Label
-		${NSD_CreateButton} 5u 28u 30u 30u "Strawb"
+		${NSD_CreateButton} 5u 28u 30u 30u "Install"
 		Pop $nsB_Strawberry
 		${NSD_OnClick} $nsB_Strawberry installStrawberryPerl
 		
@@ -368,9 +392,38 @@ Function nsdChoosePerlPageLeave
 	
 	${If} $PerlVersionOk == "1"
 		; let the user go to the next page
+		; We need to set path environment variable for the rest of the script
+		; so it does not use other make, g++, gcc and so on (ie when both ActivePerl and Strawberry Perl are installed)...
+		ReadEnvStr $R0 "PATH"
+		${If} $PerlFlavour == "Active" 
+			; search from left (>) in PerlPath for string "bin" and return string to the left of the found string (<)
+			; exclude "\bin.*" from result, do not loop and be case-insensitive
+			${StrStrAdv} $PerlPathBase $PerlPath "\bin" ">" "<" "0" "0" "0"
+			; put active perl's executables (dmake, g++, gcc, perl) before any other executables
+			StrCpy $R0 "$PerlPathBase\site\bin;$PerlPathBase\bin;$R0;"
+		${Else}
+			; search from left (>) in PerlPath for string "\perl\bin" and return string to the left of the found string (<)
+			; exclude "\perl\bin.*" from result, do not loop and be case-insensitive
+			${StrStrAdv} $PerlPathBase $PerlPath "\perl\bin" ">" "<" "0" "0" "0"
+			; put strawberry perl's executables (dmake, g++, gcc, perl) before any other executables
+			StrCpy $R0 "$PerlPathBase\c\bin;$PerlPathBase\perl\site\bin;$PerlPathBase\perl\bin;$R0;"
+		${EndIf}
+		 
+		; MessageBox MB_OK "path: $R0"
+		System::Call 'Kernel32::SetEnvironmentVariableA(t, t) i("PATH", R0).r0'
+		StrCmp $0 0 "" +2
+			MessageBox MB_OK "Could not set PATH environment variable"
+		
+		ReadEnvStr $R0 "LIBRARY_PATH"
+		StrCpy $R0 "$PerlPathBase\c\lib\gcc\mingw32\3.4.5\;$PerlPathBase\c\lib;$R0"
+		
+		;MessageBox MB_OK "library_path: $R0"
+		System::Call 'Kernel32::SetEnvironmentVariableA(t, t) i("LIBRARY_PATH", R0).r0'
+		StrCmp $0 0 "" +2
+			MessageBox MB_OK "Could not set LIBRARY_PATH environment variable"
 	${Else}
 		; don't leave this page until perl is correctly installed
-		MessageBox MB_ICONEXCLAMATION "Perl not installed correctly, can not continue. Please install Perl using buttons above or manually."
+		MessageBox MB_ICONEXCLAMATION "Perl not installed correctly, can not continue. Please install Strawberry Perl using the button above or manually."
 		Abort
 	${EndIf}
 	
@@ -381,8 +434,8 @@ Function enableNext
 
   GetDlgItem $0 $HWNDPARENT 1
   EnableWindow $0 $R0
-  GetDlgItem $0 $HWNDPARENT 2
-  EnableWindow $0 $R0
+;  GetDlgItem $0 $HWNDPARENT 2
+;  EnableWindow $0 $R0
   GetDlgItem $0 $HWNDPARENT 3
   EnableWindow $0 $R0
 
@@ -409,6 +462,7 @@ Function nsdInstallPerlModules
 		"Installing TrEd dependencies...$\r$\n"
 		Pop $hwnd
 	
+	; Extract local cpan files to temporary installation directory
 	SetOutPath "$TEMP\local_cpan"
 	File /r "resources\cpan_script\*.*"
 	
@@ -423,7 +477,7 @@ Function nsdInstallPerlModules
 	CreateDirectory $INSTDIR
 	GetFullPathName /SHORT $INSTDIR_SHORT $INSTDIR
 	
-	ExecDos::exec /NOUNLOAD /ASYNC /TOWINDOW /ENDFUNC=$R2 "cmd.exe /c perl $\"$TEMP\local_cpan\dpan\install_deps.pl$\" --install-base $INSTDIR_SHORT\dependencies --log $INSTDIR_SHORT\dependencies-install-log.txt" "" $hwnd
+ 	ExecDos::exec /NOUNLOAD /ASYNC /TOWINDOW /ENDFUNC=$R2 "cmd.exe /c perl $\"$TEMP\local_cpan\dpan\install_deps.pl$\" --install-base $INSTDIR_SHORT\dependencies --log $INSTDIR_SHORT\dependencies-install-log.txt 2>&1" "" $hwnd
 	Pop $R9
 	
 	nsDialogs::Show
