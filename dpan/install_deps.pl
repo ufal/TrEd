@@ -66,8 +66,20 @@ my $script = File::Spec->catfile($FindBin::Bin, "install_deps_2.pl");
 my $platform = $^O;
 my $PERL5LIB_SEPARATOR = $platform eq "MSWin32" ? ";" : ":";
 
+my @inc_extensions = ($inc_extension_1, $inc_extension_2, $inc_extension_3);
+
+# use quotes if appropriate
+if ($platform eq "MSWin32") {
+	foreach my $inc_str (@inc_extensions){
+		#if string contains whitespace, quote it
+		if($inc_str =~ m/ /){
+			$inc_str = '"' . $inc_str . '"';
+		}
+	}
+}
+
 my $previous_perl5lib = defined($ENV{'PERL5LIB'}) ? $ENV{'PERL5LIB'} : "" ;
-$ENV{'PERL5LIB'} = join($PERL5LIB_SEPARATOR, ($inc_extension_1, $inc_extension_2, $inc_extension_3, $previous_perl5lib));
+$ENV{'PERL5LIB'} = join($PERL5LIB_SEPARATOR, (@inc_extensions, $previous_perl5lib));
 print "PERL5LIB = " . $ENV{'PERL5LIB'} . "\n"; 
 
 my @cmd;

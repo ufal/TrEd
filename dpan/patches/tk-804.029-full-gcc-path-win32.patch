@@ -1,0 +1,40 @@
+diff -crB Tk-804.029/Makefile.PL Tk-804.029-2/Makefile.PL
+*** Tk-804.029/Makefile.PL	2010-04-26 23:10:25.000000000 +0200
+--- Tk-804.029-2/Makefile.PL	2011-03-18 22:32:47.831172002 +0100
+***************
+*** 127,133 ****
+     }
+     else {
+       push(@{$self->{'O_FILES'}},
+!           ($Config{'cc'} =~ /^gcc/i) ?
+                 'pTk\\tkres$(OBJ_EXT)' : 'pTk\\tk.res');
+     }
+    }
+--- 127,133 ----
+     }
+     else {
+       push(@{$self->{'O_FILES'}},
+!           ($Config{'cc'} =~ /gcc/i) ?
+                 'pTk\\tkres$(OBJ_EXT)' : 'pTk\\tk.res');
+     }
+    }
+diff -crB Tk-804.029/pTk/Makefile.PL Tk-804.029-2/pTk/Makefile.PL
+*** Tk-804.029/pTk/Makefile.PL	2008-10-01 23:02:27.000000000 +0200
+--- Tk-804.029-2/pTk/Makefile.PL	2011-03-19 02:09:13.941172002 +0100
+***************
+*** 243,249 ****
+   {
+    my $cc = $Config{'cc'};
+    my $file = 'tk.res';
+!   if ($cc =~ /^gcc/i)
+     {
+      $file = 'tkres$(OBJ_EXT)';
+      $dep .= "$file : mTk/win/rc/tk.rc\n\t";
+--- 243,249 ----
+   {
+    my $cc = $Config{'cc'};
+    my $file = 'tk.res';
+!   if ($cc =~ /gcc/i)
+     {
+      $file = 'tkres$(OBJ_EXT)';
+      $dep .= "$file : mTk/win/rc/tk.rc\n\t";
