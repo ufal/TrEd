@@ -31,7 +31,7 @@ cd $DIR_NAME && \
 
 patch -p1 -i ../tk-804.029-64bit-strawberry-win32.patch && \
 patch -p1 -i ../tk-804.029-libpng-macos.patch && \
-
+patch -p1 -i ../tk-804.029-full-gcc-path-win32.patch && \
 ## end of patching
 
 cd $EXTDIR

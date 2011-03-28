@@ -23,12 +23,12 @@ use Cwd;
 use TRED::Dependencies::Config;
 use version;
 
-# use vars qw($VERSION @ISA @EXPORT);
-use vars qw($VERSION);
+use vars qw($VERSION @ISA @EXPORT);
+
 our $VERSION = qv('0.0.1');
 
-# our @ISA = qw(Exporter);
-# our @EXPORT = qw(download_from_cpan);
+our @ISA = qw(Exporter);
+our @EXPORT = qw(download_from_cpan);
 
 #TODO: use named args
 sub new {
