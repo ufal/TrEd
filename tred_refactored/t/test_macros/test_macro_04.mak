@@ -1,6 +1,5 @@
 # test macro file no 4
 # Test encoding setting -- utf8
-# Setting encoding to 2 different encodings in one file does not work very well...
 
 
 #encoding utf-8

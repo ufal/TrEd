@@ -233,15 +233,16 @@ sub errorMessage {
     } elsif (ref($win) eq 'MainWindow') {
       $top = $win;
     } elsif (exists($win->{framegroup}) and
-	ref($win->{framegroup}) and
-      exists($win->{framegroup}{top}) and
-	ref($win->{framegroup}{top})) {
+              ref($win->{framegroup}) and
+              exists($win->{framegroup}{top}) and
+              ref($win->{framegroup}{top})) {
       $top = $win->{framegroup}->{top}->toplevel;
     }
-    # report the error from the highest displayed toplevel window in stacking order
-    my ($highest) = reverse $top->stackorder();
-    $top = $top->Widget($highest);
+    
     if ($top) {
+      # report the error from the highest displayed toplevel window in stacking order
+      my ($highest) = reverse $top->stackorder();
+      $top = $top->Widget($highest);
       _messageBox($top,'Error',$msg,$nobug);
     } else {
       print STDERR "$msg\n";

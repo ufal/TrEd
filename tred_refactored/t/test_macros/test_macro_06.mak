@@ -2,15 +2,15 @@
 # Test binding-context and includes in various contexts (before and after setting context...)
 
 package my_new_extension;
-BEGIN { import TredMacro; }
-
-use strict;
 
 #binding-context my_new_extension
 
+our @ISA = qw(TredMacro);
+
+use strict;
+
 #include ../t/test_macros/include/include3.inc
 #include "include/include4.inc"
-
 
 #key-binding-adopt TredMacro
 #menu-binding-adopt TredMacro

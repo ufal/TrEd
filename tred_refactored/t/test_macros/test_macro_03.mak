@@ -16,8 +16,10 @@
 # 3. TrEd's library directory is searched.
 #include ../t/test_macros/include/include3.inc
 
-# This file should be included
+# These files should be included
 #ifinclude "include/include4.inc"
+#ifinclude ../t/test_macros/include/include4.inc
+#ifinclude <../t/test_macros/include/include4.inc>
 
 # This file does not exist, should continue without complaints
 #ifinclude "include/include5.inc"
