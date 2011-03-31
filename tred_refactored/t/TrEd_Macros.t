@@ -2,7 +2,6 @@
 # tests for TrEd::Macros
 
 use strict;
-use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../tredlib";
 use Test::More 'no_plan';
@@ -14,6 +13,9 @@ use Cwd;
 use Encode;
 use utf8;
 use TrEd::Config;
+use TrEd::Utils;
+# to make summarization work in safe compartment
+use Devel::Cover;
 
 BEGIN {
   my $module_name = 'TrEd::Macros';
@@ -30,12 +32,11 @@ BEGIN {
 }
 
 binmode(STDOUT, ':utf8');
-#binmode(STDERR, ':utf8');
+binmode(STDERR, ':utf8');
 
 our @subs;
 can_ok(__PACKAGE__, @subs);
 
-# write tests
 # principial question: should we or should we not test 'private' methods? 
 # So these are tests for private methods
 
@@ -397,7 +398,6 @@ foreach my $macro_cand (keys(%macro_normalization)){
   %got_menu_items = TrEd::Macros::get_menuitems($menu_only_context);
   is_deeply(\%got_menu_items, \%expected_menu_items, 
             "remove_from_menu_macro(): remove all labels bound to macro; get_menuitems(): reflect it");
-  
 }
 
 sub _test_macros_contain {
@@ -421,9 +421,12 @@ sub _test_macros_dont_contain {
 }
 
 sub _test_macro_file {
-  my ($macro_file_name, $should_contain_ref, $should_not_contain_ref, $encoding) = @_;
+  my ($macro_file_name, $should_contain_ref, $should_not_contain_ref) = @_;
   open(my $macro_fh, '<', $macro_file_name) or 
     die("Could not open $macro_file_name\n");
+    
+  $TrEd::Macros::macrosEvaluated = 0;
+  
   # clear macros loaded before
   @TrEd::Macros::macros = ();
   # load macro from new macro file
@@ -674,32 +677,6 @@ sub _test_macro_bindings {
                         "macro_name"      => "$new_context->my_new_ext_macro"});
 
 
-  # Test context_can, context_isa and initialize_macros
-#  note(Dumper(\%TrEd::Macros::keyBindings));
-#  note(Dumper(\%TrEd::Macros::menuBindings));
-#  note(Dumper(\@TrEd::Macros::macros));
-  # initialize basic variables for macro initialization
-  my $grp = {
-	   treeNo => 0,
-	   FSFile => undef,
-	   macroContext =>  'TredMacro',
-	   currentNode => undef,
-	   root => undef
-	  };
-#  $TrEd::Config::macroDebug = 1;
-  # init macros
-  TrEd::Macros::initialize_macros($grp);
-  
-  my $fn_ref = TrEd::Macros::context_can("my_new_extension", "my_new_ext_macro");
-  ok($fn_ref, "context_can(): find existing method");
-  is(&{$fn_ref}, "here is my new extension macro function",
-      "context_can(): returned coderef is correct");
-  
-  ok(!defined(TrEd::Macros::context_can("my_new_extension", "not_existing_method")), "context_can(): return undef if method does not exist");
-  ok(!defined(TrEd::Macros::context_can(undef, "not_existing_method")), "context_can(): return undef if context is not defined");
-
-#  print "context_isa: |" . TrEd::Macros::context_isa("my_new_extension", "my_new_extension") . "|\n";
-
   # Macro file no. 7 -- test #unbind-key and #remove-menu
   my $test_macro_7 = "test_macro_07.mak";
   my $test_macro_file_7 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_7);
@@ -727,6 +704,7 @@ sub _test_macro_bindings {
   @TrEd::Macros::macros = ();
   # should die on unmatched #elseif
   dies_ok(sub { TrEd::Macros::preprocess($macro_fh, $test_macro_8, \@TrEd::Macros::macros, \@TrEd::Macros::contexts) }, "preprocess(): die on unmatched elseif in macro");  
+  close($macro_fh);
   
   # Macro file no. 9 -- test unmatched #endif
   my $test_macro_9 = "test_macro_09.mak";
@@ -738,6 +716,7 @@ sub _test_macro_bindings {
   @TrEd::Macros::macros = ();
   # should die on unmatched #endif
   dies_ok(sub { TrEd::Macros::preprocess($macro_fh, $test_macro_9, \@TrEd::Macros::macros, \@TrEd::Macros::contexts) }, "preprocess(): die on unmatched endif in macro");  
+  close($macro_fh);
   
   # Macro file no. 10 -- test missing #endif and exec code
   my $test_macro_10 = "test_macro_10.mak";
@@ -747,11 +726,12 @@ sub _test_macro_bindings {
     die("Could not open $test_macro_file_10\n");
   # clear macros loaded before
   @TrEd::Macros::macros = ();
-  # should die on missing #endif
+  # should die because of missing #endif
   dies_ok(sub { TrEd::Macros::preprocess($macro_fh, $test_macro_10, \@TrEd::Macros::macros, \@TrEd::Macros::contexts) }, "preprocess(): die on missing endif in macro");  
-  is($TrEd::Macros::exec_code, "/usr/bin/env perl",
-      "preprocess(): set exec_code");
-      
+  is($TrEd::Macros::exec_code, "/usr/bin/perl",
+      "preprocess(): set exec_code, first wins");
+  close($macro_fh);
+  
   # Macro file no. 11 -- test die on not existing file
   my $test_macro_11 = "test_macro_11.mak";
   my $test_macro_file_11 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_11);
@@ -760,8 +740,9 @@ sub _test_macro_bindings {
     die("Could not open $test_macro_file_11\n");
   # clear macros loaded before
   @TrEd::Macros::macros = ();
-  # should die on unmatched #endif
-  dies_ok(sub { TrEd::Macros::preprocess($macro_fh, $test_macro_11, \@TrEd::Macros::macros, \@TrEd::Macros::contexts) }, "preprocess(): die if include file does not exist");  
+  # should die because included file does not exist 
+  dies_ok(sub { TrEd::Macros::preprocess($macro_fh, $test_macro_11, \@TrEd::Macros::macros, \@TrEd::Macros::contexts) }, "preprocess(): die if include file does not exist -- quoted include");  
+  close($macro_fh);
   
   # Macro file no. 12 -- test die on not existing file, other kind of include 
   my $test_macro_12 = "test_macro_12.mak";
@@ -771,14 +752,48 @@ sub _test_macro_bindings {
     die("Could not open $test_macro_file_12\n");
   # clear macros loaded before
   @TrEd::Macros::macros = ();
-  # should die on unmatched #endif
-  dies_ok(sub { TrEd::Macros::preprocess($macro_fh, $test_macro_12, \@TrEd::Macros::macros, \@TrEd::Macros::contexts) }, "preprocess(): die if include file does not exist");  
+  # should die because included file does not exist
+  dies_ok(sub { TrEd::Macros::preprocess($macro_fh, $test_macro_12, \@TrEd::Macros::macros, \@TrEd::Macros::contexts) }, "preprocess(): die if include file does not exist -- <> include");  
+  close($macro_fh);
   
+  # Macro file no. 16 -- test die on not existing file, other kind of include 
+  my $test_macro_16 = "test_macro_16.mak";
+  my $test_macro_file_16 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_16);
+  
+  open($macro_fh, '<', $test_macro_file_16) or 
+    die("Could not open $test_macro_file_16\n");
+  # clear macros loaded before
+  @TrEd::Macros::macros = ();
+  # should die because included file does not exist
+  dies_ok(sub { TrEd::Macros::preprocess($macro_fh, $test_macro_16, \@TrEd::Macros::macros, \@TrEd::Macros::contexts) }, "preprocess(): die if include file does not exist -- unquoted include");  
+  close($macro_fh);
+  
+  # testing __END__
+  my $test_macro_14 = "test_macro_14.mak";
+  my $test_macro_file_14 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_14);
+  open($macro_fh, '<', $test_macro_file_14) or 
+    die("Could not open $test_macro_file_14\n");
+  # clear macros loaded before
+  @TrEd::Macros::macros = ();
+  # should not die because __END__ directive stops processing
+  lives_ok(sub { TrEd::Macros::preprocess($macro_fh, $test_macro_14, \@TrEd::Macros::macros, \@TrEd::Macros::contexts) }, "preprocess(): don't die -- die is after __END__");  
+  close($macro_fh);
+  
+  # testing __DATA__
+  my $test_macro_15 = "test_macro_15.mak";
+  my $test_macro_file_15 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_15);
+  open($macro_fh, '<', $test_macro_file_15) or 
+    die("Could not open $test_macro_file_15\n");
+  # clear macros loaded before
+  @TrEd::Macros::macros = ();
+  # should not die because __DATA__ directive stops processing
+  lives_ok(sub { TrEd::Macros::preprocess($macro_fh, $test_macro_15, \@TrEd::Macros::macros, \@TrEd::Macros::contexts) }, "preprocess(): don't die -- die is after __DATA__");  
+  close($macro_fh);
   
 }
 
 {
-  # Test working with macro vriables
+  # Test working with macro variables
   my $macro_var_name_1 = "test_name";
   my $macro_var_name_2 = "Extension::test_name";
   my %macro_vars_test = (
@@ -797,12 +812,14 @@ sub _test_macro_bindings {
       "set_macro_variable() && get_macro_variable() -- with full name qualification");
 }
 
-{    
-  # Test saving and restoring context
-  
+
   # set saved contex variables
   my @context_save_vars = qw(grp this root FileNotSaved forceFileSaved);
   my @context_save_vals = qw(context_test_grp context_test_this context_test_root context_test_fns context_test_ffs);
+
+sub test_macro_context_operations {
+  # Test saving and restoring context
+  
   TrEd::Macros::set_macro_variable($context_save_vars[0], $context_save_vals[0]);
   TrEd::Macros::set_macro_variable($context_save_vars[1], $context_save_vals[1]);
   TrEd::Macros::set_macro_variable($context_save_vars[2], $context_save_vals[2]);
@@ -848,7 +865,229 @@ sub _test_macro_bindings {
       "restore_ctxt() -- restore context -- forceFileSaved");
 
 #  note(Dumper($old_context));
-}   
-# bude treba to otsetovat aj pre safeCompartment...
+}
 
-#testuj get_contexts priebezne
+sub test_running_macros {
+  $TrEd::Config::default_macro_encoding = "utf8";
+  $TrEd::Config::default_macro_file = 'tredlib/tred.def';
+  # initialize basic variables for macro initialization
+  my $grp = {
+	   treeNo => 0,
+	   FSFile => undef,
+	   macroContext =>  'TredMacro',
+	   currentNode => undef,
+	   root => undef
+	  };
+  # $TrEd::Config::macroDebug = 1;
+  
+  # default macro does not work in Safe compartment, it seems
+  my $default_keep_value = 1;
+  
+  ###################
+  ### Macro 13
+  ###################
+  my $test_macro_13 = "test_macro_13.mak";
+  my $test_macro_file_13 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_13);
+  @TrEd::Macros::macros = ();
+  
+  # load dying macro, we have to 
+  TrEd::Macros::read_macros($test_macro_file_13, $TrEd::Config::libDir, $default_keep_value);
+  my $ret_val;
+  lives_ok(sub { $ret_val = TrEd::Macros::initialize_macros($grp) }, "initialize_macros(): don't die if macro dies");
+  ok(!defined($ret_val), "initialize_macros(): return undef if macro dies");
+  
+  $TrEd::Macros::macrosEvaluated = 0;
+  ok(!defined(TrEd::Macros::do_eval_macro($grp, "some->macro")), "do_eval_macro(): return undef if macro dies");
+  
+  
+  
+  ###################
+  ### Macro 06
+  ###################
+  # Test context_can, context_isa and initialize_macros
+  my $test_macro_6 = "test_macro_06.mak";
+  my $test_macro_file_6 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_6);
+  my $new_context = "my_new_extension";
+  @TrEd::Macros::macros = ();
+
+  # load another macro
+  TrEd::Macros::read_macros($test_macro_file_6, $TrEd::Config::libDir, $default_keep_value);
+#  _test_macro_file($test_macro_file_6, {});
+
+  # init macros
+  TrEd::Macros::initialize_macros($grp);
+
+  my $fn_ref = TrEd::Macros::context_can("my_new_extension", "my_new_ext_macro");
+  ok($fn_ref, "context_can(): find existing method");
+  is($fn_ref->(), "here is my new extension macro function",
+      "context_can(): returned coderef is correct");
+  
+  ok(!defined(TrEd::Macros::context_can("my_new_extension", "not_existing_method")), "context_can(): return undef if method does not exist");
+  ok(!defined(TrEd::Macros::context_can(undef, "not_existing_method")), "context_can(): return undef if context is not defined");
+  
+  # testing context_isa
+  ok(TrEd::Macros::context_isa("my_new_extension", "TredMacro"), "context_isa(): context is-a package");
+  ok(!TrEd::Macros::context_isa("dummy_pkg", "dummy_pkg"), "context_isa(): return false when context & package does not exist");
+  ok(!TrEd::Macros::context_isa("my_new_extension", "dummy_pkg"), "context_isa(): return false when package does not exist");
+  ok(!TrEd::Macros::context_isa("dummy_pkg", "my_new_extension"), "context_isa(): return false when context does not exist");
+  ok(!TrEd::Macros::context_isa(undef, "my_new_extension"), "context_isa(): return false when context does not exist");
+
+  ###################
+  ### Macro 05
+  ###################
+  #test context_can, do_eval_macro, do_eval_hook
+  my $test_macro_5 = "test_macro_05.mak";
+  my $test_macro_file_5 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_5);
+  @TrEd::Macros::macros = ();
+  
+  my $iso_8859_2_pattern = "žluťoučký kůň úpěl ďábelské ódy";
+
+  TrEd::Macros::read_macros($test_macro_file_5, $TrEd::Config::libDir, $default_keep_value);
+   my %test_macro_5_file_cont = (
+    $test_macro_5           =>  "read_macros(): test macro no. 5 read into memory",
+    $iso_8859_2_pattern     =>  "preprocess() & set_encoding(): encoding in iso-8859-2",
+  );
+  
+  _test_macros_contain(\%test_macro_5_file_cont);
+
+  $grp = {
+	   treeNo => 0,
+	   FSFile => undef,
+	   macroContext =>  'encode_test',
+	   currentNode => undef,
+	   root => undef
+	  };
+	  
+  TrEd::Macros::initialize_macros($grp);
+
+  $fn_ref = TrEd::Macros::context_can("encode_test", "fn_from_pdt20_ext");
+
+  my $pattern = "svůj-1_^(přivlast.)";
+  ok($fn_ref->($pattern), "calling function with diacritics...");
+
+  is(TrEd::Macros::do_eval_macro($grp), $context_save_vals[1], 
+    "do_eval_macro(): return value in scalar context: return TredMacro::this if no macro is passed as an argument");
+  
+  my @arr = TrEd::Macros::do_eval_macro($grp);
+  my @expected_result = (0, 0, $context_save_vals[1]);
+  is_deeply(\@arr, \@expected_result,
+    "do_eval_macro(): return value in list context if no macro is passed as an argument");
+
+
+  is(TrEd::Macros::do_eval_macro($grp, "encode_test->macro5_return"), 5,
+    "do_eval_macro(): eval macro using string call, test return value of the macro");
+  
+  ### do_eval_macro only accepts name of function in Safe compartment 
+  if(!defined($TrEd::Macros::safeCompartment)){  
+    $fn_ref = TrEd::Macros::context_can("encode_test", "macro5_return");
+    is(TrEd::Macros::do_eval_macro($grp, $fn_ref), 5,
+      "do_eval_macro(): eval macro using code ref call, test return value of the macro");
+    
+    $fn_ref = TrEd::Macros::context_can("encode_test", "fn_from_pdt20_ext");
+    my @call_array = ($fn_ref, $pattern);
+    is(TrEd::Macros::do_eval_macro($grp, \@call_array), 1,
+      "do_eval_macro(): eval macro using array ref call, test return value of the macro");
+  }
+  
+  ok(!defined(TrEd::Macros::do_eval_hook($grp, "encode_test", "hook_that_does_not_exist")), "do_eval_hook(): return undef if hook does not exist");
+  ok(!defined(TrEd::Macros::do_eval_hook($grp, "encode_test")), "do_eval_hook(): return undef if there was no hook name passed as an argument");
+  
+  is(TrEd::Macros::do_eval_hook($grp, "encode_test", "repeater_hook", 10), 10,
+    "do_eval_hook(): hook is run & returns value correctly");
+
+  ###################
+  ### Macro 17
+  ###################
+  # test TrEd::Macros::do_eval_hook 
+  my $test_macro_17 = "test_macro_17.mak";
+  my $test_macro_file_17 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_17);
+  @TrEd::Macros::macros = ();
+  
+  TrEd::Macros::read_macros($test_macro_file_17, $TrEd::Config::libDir, $default_keep_value);
+
+  $TrEd::Macros::warnings = 1;
+  TrEd::Macros::initialize_macros($grp);
+    
+  is(TrEd::Macros::do_eval_hook($grp, "wrong_context", "repeater_hook", 10), 20,
+    "do_eval_hook(): hook is run in default context & returns value correctly");
+ 
+  ###################
+  ### Macro 18
+  ###################
+  # test macro that is-a TrEd::Context 
+      
+  my $test_macro_18 = "test_macro_18.mak";
+  my $test_macro_file_18 = File::Spec->catfile($FindBin::Bin, "test_macros", $test_macro_18);
+  @TrEd::Macros::macros = ();
+  
+  TrEd::Macros::read_macros($test_macro_file_18, $TrEd::Config::libDir, $default_keep_value);
+
+  $TrEd::Macros::warnings = 1;
+  TrEd::Macros::initialize_macros($grp);
+  
+  # I do not really know why, but do_eval_macro does not support safe compartment when using TrEd::Context
+  if(!defined($TrEd::Macros::safeCompartment)){
+    is(TrEd::Macros::do_eval_macro($grp, "tred_context_descendant->tred_context_macro"), "hello from tred_context_macro",
+      "do_eval_macro(): eval macro using new calling convention, test return value of the macro");
+  }  
+  
+  is(TrEd::Macros::do_eval_hook($grp, "tred_context_descendant", "repeater_hook", 10), 10,
+    "do_eval_hook(): hook is run using new calling convention & returns value correctly");
+  
+  @TrEd::Macros::macros = ();
+  @TrEd::Macros::keyBindings = ();
+  @TrEd::Macros::menuBindings = ();
+}
+
+################################
+### NOT in Safe compartment
+################################
+
+test_macro_context_operations();
+test_running_macros();
+
+# testing safe compartment
+{
+  require Safe;
+  $TrEd::Config::default_macro_encoding = "utf8";
+  $TrEd::Config::default_macro_file = 'tredlib/tred.def';
+  
+  $TrEd::Macros::macrosEvaluated=0;
+  $TrEd::Macros::safeCompartment=undef;
+
+  %{TredMacroCompartment::}=();
+  my $compartment = Safe->new('TredMacroCompartment');
+  $compartment->{Erase} = 1;
+  $compartment->reval("package TredMacro;");
+  $compartment->share_from('TrEd::Config',[qw($libDir)]);
+  # this is just for Devel::Cover purposes
+  $compartment->share_from('main',[qw(Devel::Cover::use_file)]);
+  $compartment->deny_only(qw{});
+  
+  $TrEd::Macros::safeCompartment = $compartment;
+  
+  my $grp = {
+	   treeNo => 0,
+	   FSFile => undef,
+	   macroContext =>  'TredMacro',
+	   currentNode => undef,
+	   root => undef
+	  };
+  TrEd::Macros::initialize_macros($grp);
+  
+  
+  $compartment->permit_only(qw(:base_core :base_mem :base_loop :base_math :base_orig
+			       entereval caller dofile
+			       print entertry leavetry tie untie bless
+			       sprintf localtime gmtime sort require));
+  $compartment->deny(qw(getppid getpgrp setpgrp getpriority setpriority
+			pipe_op sselect select dbmopen dbmclose tie untie
+		       ));
+  $TrEd::Macros::safeCompartment = $compartment;
+
+  note("\n## Using safe compartment:");
+  test_macro_context_operations();
+  note("\n## Using safe compartment:");
+  test_running_macros();
+
+}

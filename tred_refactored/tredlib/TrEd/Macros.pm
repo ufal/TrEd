@@ -4,6 +4,8 @@ use strict;
 use warnings;
 use Carp;
 
+#use Data::Dumper;
+
 BEGIN {
   use Cwd;
   use Treex::PML;
@@ -548,7 +550,7 @@ sub read_macros {
 # bind <method> [to] [key[sym]] <key> [menu <menu>[/submenu[/...]]]
 #
 # insert <method> [as] [menu] <menu>[/submenu[/...]]
-#TODO: hmm, what if extensions would be subclasses of tred.def...?
+#TODO: hmm, what if extensions would be subclasses of ~tred.def...?
 sub preprocess {
   my ($file_handle, $file_name, $macros_ref, $contexts_ref) = @_;
   # Again, turn off UTF-8 flag for string $file_name? Why we do that? $file_name contains just a name of some file...
@@ -687,11 +689,11 @@ sub preprocess {
           my ($if, $f, $enc) = ($1, $2, $3);
           Encode::_utf8_off($f);
         
-          if ($f=~m%^/%) {
+          if ($f =~ m%^/%) {
             read_macros($f, $libDir, 1, $enc, @$contexts_ref);
             push @$macros_ref,"\n\n=pod\n\n=cut\n\n#line $line \"$file_name\"\n";
           } else {
-            my $mf=$f;
+            my $mf = $f;
             print STDERR "including $mf\n" if $macroDebug;
             unless (-f $mf) {
               $mf=dirname($file_name).$mf;
@@ -704,7 +706,7 @@ sub preprocess {
             if (-f $mf) {
               read_macros($mf, $libDir, 1, $enc, @$contexts_ref);
               push @$macros_ref,"\n\n=pod\n\n=cut\n\n#line $line \"$file_name\"\n";
-            } elsif ($if ne 'if') {
+            } elsif (!defined($if) || $if ne 'if') {
               die
                 "Error including macros $mf\n from $file_name: ",
                 "file not found!\n";
@@ -754,7 +756,7 @@ sub set_encoding {
 #######################################################################################
 # Usage         : initialize_macros($win_ref)
 # Purpose       : Initializes macros, run them for the first time either using eval or in safe compartment
-# Returns       : Return value of macro evaluation or 2 if the macros were already evaluated
+# Returns       : Return the result of macro evaluation or 2 if the macros were already evaluated
 # Parameters    : hash_ref $win_ref -- see below
 # Throws        : no exception
 # Comments      : ...
@@ -800,7 +802,7 @@ sub initialize_macros {
       set_macro_variable('grp',$win_ref);
       my %packages;
       # dirty hack to support ->isa in safe compartment
-      $macros=~s{(\n\s*package\s+(\S+?)\s*;)}
+      $macros =~ s{(\n\s*package\s+(\S+?)\s*;)}
       { 
         exists($packages{$2}) ? $1 : do { $packages{$2} = 1 ; 
                                           $1.'sub isa {
@@ -809,7 +811,7 @@ sub initialize_macros {
                                                         }'
                                         }
       }ge;
-      $macrosEvaluated=1;
+      $macrosEvaluated = 1;
       {
         no strict;
         $result = $safeCompartment->reval($macros);
@@ -822,7 +824,7 @@ sub initialize_macros {
       $result = eval { 
         my $res = eval ($macros); 
         die $@ if $@; 
-        $res; 
+        return $res; 
       };
     }
     print STDERR "Returned with: $result\n\n" if $macroDebug;
@@ -927,23 +929,36 @@ sub restore_ctxt {
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : do_eval_macro($win_ref, $macro)
+# Purpose       : Evaluate macro and pass $win to macro context
+# Returns       : The return value of evaluated macro, if macro is not supported
+#                 function returns $TredMacro::this in scalar context or a list containing 
+#                 two zeroes and $TredMacro::this in list context
+# Parameters    : hash_ref $win_ref -- for details, see initialize_macros function
+#                 string $macro     -- name of macro to evaluate or 
+#                 code_ref $macro   -- reference to macro function or 
+#                 array_ref $macro  -- array with function reference as the first element and function arguments as other elements
 # Throws        : no exception
-# Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
+# Comments      : Safe compartment accepts only string $macro parameter
+# See Also      : initialize_macros(), set_macro_variable()
 sub do_eval_macro {
-  my ($win,$macro)=@_;		# $win is a reference
-				# which should in this way be made visible
-				# to macros
-  return 0,0,$TredMacro::this unless $macro;
+  my ($win, $macro) = @_;   # $win is a reference
+                            # which should in this way be made visible
+                            # to macros
+  # hm, this would not work in safe compartment...
+  if (!$macro){
+    if (defined($safeCompartment)) {
+      my $return_val = $safeCompartment->reval('$TredMacro::this');
+      return 0,0,$return_val;
+    } else {
+      return 0,0,$TredMacro::this;
+    }
+  }
   my $result;
   undef $@;
   initialize_macros($win);
   return undef if $@;
+  
   if (!ref($macro) and $macro=~/^\s*([_[:alpha:]][_[:alnum:]]*)-[>]([_[:alpha:]][_[:alnum:]]*)$/) {
     my ($context,$call)=($1,$2);
     if (context_isa($context,'TrEd::Context')) {
@@ -992,13 +1007,13 @@ sub do_eval_macro {
 # See Also      : context_isa()
 sub context_can {
   my ($context, $sub) = @_;
+  return undef if (!defined($context));
   if (defined($safeCompartment)) {
     no strict;
     return $safeCompartment->reval("\${'${context}::'}{'$sub'}");
   } else {
-#    return undef if (!defined($context));
-#    return eval { $context->can($sub) };
-    return UNIVERSAL::can($context, $sub);
+    return eval { $context->can($sub) };
+#    return UNIVERSAL::can($context, $sub);
   }
 }
 
@@ -1011,30 +1026,33 @@ sub context_can {
 # Throws        : no exception
 # Comments      : supports using safe compartment (via a nasty hack introduced in initialize_macros)
 # See Also      : initialize_macros(), context_can()
-#TODO: tests
 sub context_isa {
   my ($context, $package) = @_;
+  return undef if (!defined($context));
   if (defined($safeCompartment)) {
-    no strict;
-    return grep { $_ eq $package } $safeCompartment->reval("\@${context}::ISA") ? 1 : undef;
+    my $arr_ref = $safeCompartment->reval('\@' . ${context} . '::ISA');
+    my @list = grep { $_ eq $package } @$arr_ref;
+    return scalar(@list) ? 1 : undef;
   } else {
-    return UNIVERSAL::isa($context, $package);
+    return eval { $context->isa($package) };
+#    return UNIVERSAL::isa($context, $package);
   }
 }
 
 #######################################################################################
-# Usage         : ...
-# Purpose       : ...  
-# Returns       : ...
-# Parameters    : ...
+# Usage         : do_eval_hook($win_ref, $context, $hook, @args)
+# Purpose       : Evaluate hook 
+# Returns       : The result of hook eval or undef if no hook is specified
+# Parameters    : hash_ref $win_ref -- see initialize_macros for details
+#                 string $context   -- context name
+#                 string $hook      -- name of the hook
+#                 list @args        -- list of hook arguments 
 # Throws        : no exception
-# Comments      : ...
-# See Also      : ...
-#TODO: tests, doc
+# See Also      : initialize_macros()
 sub do_eval_hook {
-  my ($win,$context,$hook)=(shift,shift,shift);  # $win is a reference
-				# which should in this way be made visible
-				# to hooks
+  my ($win, $context, $hook)=(shift, shift, shift);   # $win is a reference
+                                                      # which should in this way be made visible
+                                                      # to hooks
   print STDERR "about to run the hook: '$hook' (in $context context)\n" if $hookDebug;
   return undef unless $hook; # and $TredMacro::this;
   my $utf = ($useEncoding) ? "use utf8;\n" : "";
@@ -1043,18 +1061,18 @@ sub do_eval_hook {
   return undef if $@;
   my $result=undef;
 
-  if (context_isa($context,'TrEd::Context') and context_can($context,$hook)) {
+  if (context_isa($context,'TrEd::Context') and context_can($context, $hook)) {
     # experimental new-style calling convention
     print STDERR "running hook $context".'->global->'.$hook."\n" if $hookDebug;
     if (defined($safeCompartment)) {
-      no strict;
-      $safeCompartment->reval($utf."$context\-\>global\-\>$hook(\@_)");
+#      no strict;
+      $result = $safeCompartment->reval($utf."$context\-\>global\-\>$hook(@_)");
     } else {
-      no strict;
-      $result=eval($utf."$context\-\>global\-\>$hook(\@_)");
+#      no strict;
+      $result = eval($utf."$context\-\>global\-\>$hook(\@_)");
     }
   } else {
-    if (!context_can($context,$hook)) {
+    if (!context_can($context, $hook)) {
       if ($context ne "TredMacro" and context_can('TredMacro',$hook)) {
         $context = "TredMacro";
       } else {
@@ -1063,11 +1081,12 @@ sub do_eval_hook {
     }
     print STDERR "running hook $context"."::"."$hook\n" if $hookDebug;
     if (defined($safeCompartment)) {
-      no strict;
-      $safeCompartment->reval($utf."\&$context\:\:$hook(\@_)");
+#      no strict;
+      my $reval_str = $utf . "$context\:\:$hook(@_)";
+      $result = $safeCompartment->reval($reval_str);
     } else {
-      no strict;
-      $result=eval($utf."\&$context\:\:$hook(\@_)");
+#      no strict;
+      $result = eval($utf . "\&$context\:\:$hook(\@_)");
     }
   }
   return $result;
