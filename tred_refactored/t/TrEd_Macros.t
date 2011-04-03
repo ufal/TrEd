@@ -534,8 +534,6 @@ sub _test_macro_bindings {
   dies_ok(sub { TrEd::Macros::read_macros("not_existing_file", $TrEd::Config::libDir, 0, q{}) }, "read_macros(): die if the macro file does not exist");
   
   
-  
-  
   # testing first test-macro -- simple #ifdef and #ifndef directives
   # should contain first test-macro
   my %test_macro_1_tred_defined = (

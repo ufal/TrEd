@@ -1012,6 +1012,7 @@ sub context_can {
     no strict;
     return $safeCompartment->reval("\${'${context}::'}{'$sub'}");
   } else {
+    # needs testing, if it works in Class::Std
     return eval { $context->can($sub) };
 #    return UNIVERSAL::can($context, $sub);
   }
@@ -1034,6 +1035,7 @@ sub context_isa {
     my @list = grep { $_ eq $package } @$arr_ref;
     return scalar(@list) ? 1 : undef;
   } else {
+    # needs testing, if it works in Class::Std
     return eval { $context->isa($package) };
 #    return UNIVERSAL::isa($context, $package);
   }
