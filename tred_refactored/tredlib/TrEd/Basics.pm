@@ -45,7 +45,7 @@ BEGIN {
   );
   use Treex::PML::Schema;
 }
-
+use Data::Dumper;
 use strict;
 use warnings;
 
@@ -234,17 +234,16 @@ sub moveTree {
 #######################################################################################
 # Usage         : makeRoot($win_ref, $node, $discard)
 # Purpose       : Make the specified $node new root of the current tree, 
-#                 optionally deleting the rest of the tree if $discard is true
+#                 optionally throwing out the former root if $discard is true
 # Returns       : Undef if $win_ref->{FSFile} or $node is not defined, or 
 #                 if the current's tree root is different from $node's root, 1 otherwise
 # Parameters    : hash_ref $win_ref           -- see comment of gotoTree function
 #                 Treex::PML::Node ref $node  -- reference to Treex::PML::Node object
-#                 scalar $discard             -- switch telling if the rest of the tree is discarded
+#                 scalar $discard             -- switch telling if the root of the tree is discarded
 # Throws        : no exception
 # Comments      : Marks the modified file as notSaved(1), calls on_node_chage() callback
+#                 Node types are not changed, i.e. attr('nodetype') of the new root will be preserved
 # See Also      : Treex::PML::Node::cut(), Treex::PML::Node::paste_on(), on_node_change(), Treex::PML::Document::notSaved()
-#TODO tests
-#TODO: check node types -- how do they behave?
 sub makeRoot {
   my ($win_ref, $node, $discard) = @_;
   my $fsfile = $win_ref->{FSFile};
@@ -258,40 +257,40 @@ sub makeRoot {
   # Disconnect the node from its parent and siblings
   $node->cut();
   # Make the node new root node
-  $fsfile->treeList()->[$no]=$node;
-  # If the rest is not to be discarded, put it under the new root
+  $fsfile->treeList()->[$no] = $node;
+  # If old root is not to be discarded, put it under the new root
   if (!$discard) {
     $root->paste_on($node, $fsfile->FS()->order());
   }
   $win_ref->{FSFile}->notSaved(1);
-  &$on_node_change($win_ref,'makeRoot',$node) if $on_tree_change;
+  &$on_node_change($win_ref, 'makeRoot', $node) if $on_tree_change;
   return 1;
 }
 
 #######################################################################################
 # Usage         : newNode($win_ref)
-# Purpose       : Create new node as (the last?) child of current node
+# Purpose       : Create new node as a new child of current node
 # Returns       : Undef if $win_ref->{FSFile} or $win_ref->{currentNode} are not defined, 
 #                 reference to new Treex::PML::Node object otherwise
 # Parameters    : hash_ref $win_ref  -- see comment of gotoTree function 
 # Throws        : no exception
 # Comments      : Marks the modified file as notSaved(1), calls on_node_chage() callback
 # See Also      : Treex::PML::Node::new(), Treex::PML::Struct::set_member(), Treex::PML::Struct::paste_on()
-#TODO tests
-# test actual behaviour of paste_on
 sub newNode {
   ## Adds new son to current node
   my ($win_ref) = @_;
   my $parent = $win_ref->{currentNode};
   return if !($win_ref->{FSFile} and $parent);
 
-  my $new_node = $parent->new(); # Treex::PML::Node warns users against using Treex::PML::Node->new()  
+  my $new_node = $parent->new(); # Treex::PML::Node warns users against using Treex::PML::Node->new(), hm?
   $new_node->paste_on($parent, $win_ref->{FSFile}->FS());
-  my $order = $win_ref->{FSFile}->FS()->order();
+  my $order = $win_ref->{FSFile}->FS()->order();  
   if ($order) {
     # set_member and get_member are inherited from Treex::PML::Struct
     # and they have Treex::PML::Node equivalents setAttribute and getAttribute
-    $new_node->set_member($order, $parent->get_member($order));
+    # Implementation of setAttribute is problematic and neither setAttribute, nor set_member 
+    # can not be used without calling set_member with fully-qualified name 
+    Treex::PML::Struct::set_member($new_node, $order, $parent->getAttribute($order));
   }
   setCurrent($win_ref, $new_node);
   $win_ref->{FSFile}->notSaved(1);
@@ -342,7 +341,6 @@ sub pruneNode {
 #                 Treex::PML::Node ref $node  -- reference to Treex::PML::Node object that becomes the current node
 # Throws        : no exception
 # Comments      : calls on_current_chage() callback
-#TODO tests
 sub setCurrent {
   my ($win_ref, $node) = @_;
   my $prev = $win_ref->{currentNode};

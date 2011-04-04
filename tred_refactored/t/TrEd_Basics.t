@@ -2,6 +2,7 @@
 # tests for TrEd::Basics
 
 use strict;
+use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../tredlib";
 use Test::More 'no_plan';
@@ -99,7 +100,8 @@ sub test_gotoTree {
    root => undef
   };
   
-  ok(!defined(TrEd::Basics::gotoTree($win_ref)), "gotoTree(): return undef if FSFile is not defined");
+  is(TrEd::Basics::gotoTree($win_ref), undef, 
+    "gotoTree(): return undef if FSFile is not defined");
   
   $win_ref = {
    treeNo => 128,
@@ -125,7 +127,8 @@ sub test_gotoTree {
   TrEd::Basics::gotoTree($win_ref, -1);
   is($win_ref->{treeNo}, 0,
     "gotoTree(): do not modify win_ref->{treeNo}, if the position does not change");
-  ok(!defined($win_ref->{root}), "gotoTree(): do not modify win_ref->{root}, if the position does not change");
+  is($win_ref->{root}, undef, 
+    "gotoTree(): do not modify win_ref->{root}, if the position does not change");
   
   ## Tree number bigger than number of trees in file
   is(TrEd::Basics::gotoTree($win_ref, 55), 53,
@@ -270,8 +273,6 @@ sub test_prevTree {
     "prevTree() set root and treeNo correctly");
 }
 
-$Data::Dumper::Maxdepth = 1;
-
 sub test_newTree {
   my ($fsfile) = @_;
   ################
@@ -279,6 +280,7 @@ sub test_newTree {
   ################
   # set notSaved to 0, so we see if it is changed
   $fsfile->notSaved(0);
+  
   my $first_tree = $fsfile->tree(0);
   my $second_tree = $fsfile->tree(1);
   my $win_ref = {
@@ -326,7 +328,8 @@ sub test_newTree {
    root           => undef,
   };
   
-  ok(!defined(TrEd::Basics::newTree($win_ref)), "newTree(): return undef if fsfile is not defined");
+  is(TrEd::Basics::newTree($win_ref), undef, 
+    "newTree(): return undef if fsfile is not defined");
   
   ## Try position out of bounds of the loaded file
   $win_ref = {
@@ -357,7 +360,8 @@ sub _test_newTreeAfter_undef {
    root           => undef,
   };
   
-  ok(!defined(TrEd::Basics::newTreeAfter($win_ref)), "newTreeAfter(): return undef if fsfile is not defined");
+  is(TrEd::Basics::newTreeAfter($win_ref), undef, 
+    "newTreeAfter(): return undef if fsfile is not defined");
 }
 
 sub _test_newTreeAfter_in_bounds {
@@ -663,11 +667,13 @@ sub _test_pruneTree_undef {
    root           => undef,
   };
   
-  ok(!defined(TrEd::Basics::pruneTree($win_ref)), "pruneTree(): return undef if fsfile is not defined");
+  is(TrEd::Basics::pruneTree($win_ref), undef, 
+    "pruneTree(): return undef if fsfile is not defined");
   
   ## pruneTree after the end of file
   $win_ref->{treeNo} = $fsfile->lastTreeNo() + 1;  
-  ok(!defined(TrEd::Basics::pruneTree($win_ref)), "pruneTree(): tree out of bounds: position after the end of file");
+  is(TrEd::Basics::pruneTree($win_ref), undef, 
+    "pruneTree(): tree out of bounds: position after the end of file");
 
 }
 
@@ -726,7 +732,8 @@ sub _test_moveTree_out_of_bounds {
    currentNode    => undef, 
    root           => $first_tree->root(),
   };
-  ok(!defined(TrEd::Basics::moveTree($win_ref, 0)), "moveTree(): delta is 0");
+  is(TrEd::Basics::moveTree($win_ref, 0), undef, 
+    "moveTree(): delta is 0");
   
   $win_ref = {
    treeNo         => 0,
@@ -735,21 +742,10 @@ sub _test_moveTree_out_of_bounds {
    currentNode    => undef, 
    root           => undef,
   };
-  ok(!defined(TrEd::Basics::moveTree($win_ref, 0)), "moveTree(): fsfile not defined");
+  is(TrEd::Basics::moveTree($win_ref, 0), undef, 
+    "moveTree(): fsfile not defined");
 }
 
-#sub moveTree {
-#  my ($win_ref,$delta) = @_;
-#  my $fsfile = $win_ref->{FSFile};
-#  return if (!$fsfile);
-#  my $no = $win_ref->{treeNo};
-#  $fsfile->move_tree_to($no, $no + $delta) || return;
-#  $win_ref->{treeNo} = $no + $delta;
-#  $win_ref->{root} = $win_ref->{FSFile}->treeList()->[$win_ref->{treeNo}];
-#  $win_ref->{FSFile}->notSaved(1);
-#  &$on_tree_change($win_ref,'moveTree',$win_ref->{treeNo}) if $on_tree_change;
-#  return 1;
-#}
 sub _test_moveTree {
   my ($fsfile) = @_;
   ##################
@@ -813,16 +809,324 @@ sub test_moveTree {
   _test_moveTree_out_of_bounds($fsfile);
 }
 
+sub _test_makeRoot_undef {
+  my ($fsfile) = @_;
+  ################
+  #### Before ####
+  ################
+  my $win_ref = {
+   treeNo         => 0,
+   FSFile         => undef,
+   macroContext   => 'TredMacro',
+   currentNode    => undef, 
+   root           => undef,
+  };
+  
+  # notSaved to default position
+  $fsfile->notSaved(0);
+  
+  my $first_tree = $fsfile->tree(0);
+  my $second_tree = $fsfile->tree(1);
+  my $node_in_second_tree = $second_tree->firstson();
+  is(TrEd::Basics::makeRoot($win_ref, $node_in_second_tree), undef,
+    "makeRoot(): no fsfile");
+  
+  is($fsfile->notSaved(), 0, 
+    "makeRoot(): do not modify Treex::PML::Document::notSaved if not successful");
+  
+  $win_ref->{FSFile} = $fsfile;
+  is(TrEd::Basics::makeRoot($win_ref), undef,
+    "makeRoot(): no node");
+  is($fsfile->notSaved(), 0, 
+    "makeRoot(): do not modify Treex::PML::Document::notSaved if not successful");
+  
+  
+  is(TrEd::Basics::makeRoot($win_ref, $node_in_second_tree), undef,
+    "makeRoot(): node is not part of the current tree");
+  is($fsfile->notSaved(), 0, 
+    "makeRoot(): do not modify Treex::PML::Document::notSaved if not successful");
+  # notSaved to default position
+  $fsfile->notSaved(0);
+  
+}
+
+#$Data::Dumper::Maxdepth = 3;
+
+sub _test_makeRoot_discard {
+  my ($fsfile) = @_;
+  # notSaved to default position
+  $fsfile->notSaved(0);
+  
+  my $second_tree = $fsfile->tree(1);
+  my $win_ref = {
+   treeNo         => 1,
+   FSFile         => $fsfile,
+   macroContext   => 'TredMacro',
+   currentNode    => $second_tree,
+   root           => $second_tree,
+  };
+  my $node = $second_tree->firstson();
+  my $node_type = $node->attr('nodetype');
+  my @nodes_children = $node->children();
+  
+#  print "root = $second_tree,\n id= " . $second_tree->attr('id') . "\n";
+#  foreach my $child_node (@nodes_children) {
+#    print "child " . $child_node->attr('id') . "\n";
+#  }
+  
+  ################
+  #### After  ####
+  ################
+  is(TrEd::Basics::makeRoot($win_ref, $node, 1), 1, 
+    "makeRoot(): correct return value");
+  
+  my $new_root = $fsfile->tree(1);
+  my $new_root_type = $new_root->attr('nodetype');
+  my @new_roots_children = $new_root->children();
+  
+  is($new_root, $node, 
+    "makeRoot(): node is the new root");
+    
+  is($new_root_type, $node_type, 
+    "makeRoot(): node's type is preserved");
+    
+  is_deeply(\@nodes_children, \@new_roots_children, 
+    "makeRoot(): children of the node becomes the root's children");
+    
+#  print "root = $new_root,\n ".$new_root->attr('id')."\n";
+#  foreach my $child_node (@new_roots_children) {
+#    print "child " . $child_node->attr('id') . "\n";
+#  }
+  
+  is($fsfile->notSaved(), 1, 
+    "makeRoot(): Treex::PML::Document::notSaved set to 1");
+  # notSaved to default position
+  $fsfile->notSaved(0);
+  
+}
+
+sub _test_makeRoot_nodiscard {
+  my ($fsfile) = @_;
+  # notSaved to default position
+  $fsfile->notSaved(0);
+  
+  my $second_tree = $fsfile->tree(1);
+  my $win_ref = {
+   treeNo         => 1,
+   FSFile         => $fsfile,
+   macroContext   => 'TredMacro',
+   currentNode    => $second_tree,
+   root           => $second_tree,
+  };
+  my $node = $second_tree->firstson();
+  my @nodes_children = $node->children();
+  my $node_type = $node->attr('nodetype');
+#  print "root = $second_tree,\n " . $second_tree->attr('id') . "\n";
+#  foreach my $child_node (@nodes_children) {
+#    print "child " . $child_node->attr('id') . "\n";
+#  }
+  
+  ################
+  #### After  ####
+  ################
+  is(TrEd::Basics::makeRoot($win_ref, $node, 0), 1, 
+    "makeRoot(): correct return value");
+  
+  my $new_root = $fsfile->tree(1);
+  my $new_root_type = $new_root->attr('nodetype');
+  my @new_roots_children = $new_root->children();
+  my @nodes_children_and_former_root = (@nodes_children, $second_tree);
+  
+  is($new_root, $node, 
+    "makeRoot(): node is the new root");
+  
+  is($new_root_type, $node_type, 
+    "makeRoot(): node's type is preserved");
+    
+  is_deeply(\@nodes_children_and_former_root, \@new_roots_children, 
+    "makeRoot(): children of the node becomes the root's children");
+
+#  print "root = $new_root,\n ".$new_root->attr('id')."\n";
+#  foreach my $child_node (@new_roots_children) {
+#    print "child " . $child_node->attr('id') . "\n";
+#  }
+  
+  is($fsfile->notSaved(), 1, 
+    "makeRoot(): Treex::PML::Document::notSaved set to 1");
+  # notSaved to default position
+  $fsfile->notSaved(0);
+}
+
+sub test_makeRoot {
+  my ($fsfile) = @_;
+  _test_makeRoot_undef($fsfile);
+  _test_makeRoot_discard($fsfile);
+  _test_makeRoot_nodiscard($fsfile);
+}
+
+sub test_setCurrent {
+  my $win_ref = {
+    currentNode => 'node1',
+  };
+  
+  my $new_node = 'node2';
+  is(TrEd::Basics::setCurrent($win_ref, $new_node), undef,
+    "setCurrent(): return value");
+  
+  is($win_ref->{currentNode}, $new_node, 
+    "setCurrent(): currentNode changed in win_ref");
+  
+  is($win_ref->{msg}, "Changed current from node1 to $new_node by setCurrent", 
+    "setCurrent(): callback on_current_change called");  
+  
+}
+
+
+sub _test_newNode_undef {
+  my ($fsfile) = @_;
+  
+  $fsfile->notSaved(0);
+  
+  my $first_tree_root = $fsfile->tree(0);
+  my $roots_child = $first_tree_root->firstson();
+  
+  my $win_ref = {
+   treeNo         => 0,
+   FSFile         => undef,
+   macroContext   => 'TredMacro',
+   currentNode    => $first_tree_root,
+   root           => $first_tree_root,
+  };
+  
+  ## FSFile undefined
+  is(TrEd::Basics::newNode($win_ref), undef,
+    "newNode(): fsfile not defined");
+  is($fsfile->notSaved(), 0, 
+    "newNode(): Treex::PML::Document::notSaved unchanged");
+  
+  ## currentNode undefined 
+  $win_ref->{FSFile} = $fsfile;
+  $win_ref->{currentNode} = undef;
+  is(TrEd::Basics::newNode($win_ref), undef, 
+    "newNode(): parent does not exist");
+  is($fsfile->notSaved(), 0, 
+    "newNode(): Treex::PML::Document::notSaved unchanged");
+  
+  # back to default
+  $fsfile->notSaved(0);
+}
+
+sub _test_newNode {
+  my ($fsfile) = @_;
+  $fsfile->notSaved(0);
+  
+  my $tree_root = $fsfile->tree(3);
+  my $node = $tree_root->firstson();
+  my $nodes_son = $node->firstson();
+  my @children_before = $node->children();
+  
+  my $win_ref = {
+   treeNo         => 0,
+   FSFile         => $fsfile,
+   macroContext   => 'TredMacro',
+   currentNode    => $node,
+   root           => $tree_root,
+  };
+  
+  ## create new child of root
+  my $new_node = TrEd::Basics::newNode($win_ref);
+  ok(UNIVERSAL::DOES::does($new_node, 'Treex::PML::Node'), "newNode(): new node created");
+    
+  ## verify the root's children
+  # a) new node is node's first son
+  is($node->firstson(), $new_node, 
+    "newNode(): new node becomes the first son");
+  # b) node's old first son becomes new first son's right brother
+  is($new_node->rbrother(), $nodes_son, 
+    "newNode(): former first son becomes new node's right brother");
+  # c) new node is old first son's left brother
+  is($nodes_son->lbrother(), $new_node, 
+    "newNode(): new node becomes former first son's left brother");
+  # d) all the other sons are untouched
+  my @got_children = $node->children();
+  my @expected_children = ($new_node, @children_before);
+  my $i = 0;
+  foreach my $node_ref (@got_children){
+    is($node_ref, $expected_children[$i], 
+      "newNode(): child $i found at a correct place");
+    $i++;
+  }
+  ## currentNode set to new node
+  is($win_ref->{currentNode}, $new_node, 
+    "newNode(): set win_ref->{currentNode} to new node");
+  
+  ## callback on_node_change called
+  is($win_ref->{msg}, "Node $new_node changed by newNode", 
+    "newNode(): set win_ref->{currentNode} to new node");
+  
+  ## order set
+  my $order = $win_ref->{FSFile}->FS()->order();
+  if ($order) {
+    is($new_node->get_member($order), $new_node->parent()->get_member($order), 
+      "newNode(): order is set to parents order");
+    
+  }
+  
+  ## notSaved set to 1
+  is($fsfile->notSaved(), 1, 
+    "newNode(): Treex::PML::Document::notSaved set to 1");
+  
+  # back to default
+  $fsfile->notSaved(0);
+}
+
+sub test_newNode {
+  my ($fsfile) = @_;
+  _test_newNode_undef($fsfile);
+  _test_newNode($fsfile);
+}
+
 ### Run tests
 
 test_uniq();
+# create callbacks
+
+$TrEd::Basics::on_current_change = sub {
+  my ($win_ref, $new_current, $old_current, $fn_name) = @_;
+  $win_ref->{msg} = "Changed current from $old_current to $new_current by $fn_name"; 
+  return;
+};
+
+$TrEd::Basics::on_node_change = sub {
+  my ($win_ref, $fn_name, $new_node) = @_;
+  $win_ref->{msg} = "Node $new_node changed by $fn_name"; 
+  return;
+};
 
 my $sample_file = File::Spec->catfile($FindBin::Bin, "test_files", "sample0.t.gz");
 my $fsfile = _init_fsfile($sample_file);
+
 test_gotoTree($fsfile);
 test_nextTree($fsfile);
 test_prevTree($fsfile);
+
+# new empty tree created at position 0 and 56 
 test_newTree($fsfile);
+
+# two more empty trees at the end of file, one in the beginning
 test_newTreeAfter($fsfile);
+
+# two empty trees from the end and one from the beginning of file are deleted
 test_pruneTree($fsfile);
+
+# first (empty) tree moved to position 3
 test_moveTree($fsfile);
+
+# modify 2nd tree -- at first 'pripravovat' becomes the root, discarding the original root
+# then 'vystavba' becomes root, but 'pripravovat' is not discarded, it becomes the subtree of 'vystavba' 
+test_makeRoot($fsfile);
+
+test_setCurrent();
+
+test_newNode($fsfile);
+#$fsfile->save("after_newNode.t.gz");
