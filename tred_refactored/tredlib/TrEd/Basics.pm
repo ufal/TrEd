@@ -203,7 +203,7 @@ sub pruneTree {
   $win_ref->{treeNo} = max(0, min($win_ref->{treeNo}, $fsfile->lastTreeNo));
   $win_ref->{root} = $fsfile->treeList()->[$win_ref->{treeNo}];
   $fsfile->notSaved(1);
-  &$on_tree_change($win_ref,'pruneTree',$win_ref->{treeNo}) if $on_tree_change;
+  &$on_tree_change($win_ref, 'pruneTree', $win_ref->{treeNo}) if $on_tree_change;
   return 1;
 }
 
@@ -227,7 +227,7 @@ sub moveTree {
   $win_ref->{treeNo} = $no + $delta;
   $win_ref->{root} = $win_ref->{FSFile}->treeList()->[$win_ref->{treeNo}];
   $win_ref->{FSFile}->notSaved(1);
-  &$on_tree_change($win_ref,'moveTree',$win_ref->{treeNo}) if $on_tree_change;
+  &$on_tree_change($win_ref, 'moveTree', $win_ref->{treeNo}) if $on_tree_change;
   return 1;
 }
 
@@ -310,7 +310,6 @@ sub newNode {
 # Throws        : no exception
 # Comments      : Marks the modified file as notSaved(1), calls on_node_chage() callback
 # See Also      : Treex::PML::Node::destroy_leaf(), setCurrent()
-#TODO: tests
 sub pruneNode {
   ## Deletes given node
   my ($win_ref, $node)=@_;
@@ -325,8 +324,9 @@ sub pruneNode {
   if ($node == $win_ref->{currentNode}) {
     setCurrent($win_ref, $node->parent());
   }
-  
+  #TODO:
   # Hm, destroy_leaf returns 1 (a scalar value), why is the son == 1?
+  # and on_node_change is called with 'newTree' as a fn name?
   $son = $node->destroy_leaf();
   $win_ref->{FSFile}->notSaved(1);
   &$on_node_change($win_ref, 'newTree', $son) if $on_node_change;
@@ -360,7 +360,6 @@ sub setCurrent {
 # Throws        : no exception
 # Comments      : requires Tk::ErrorReport
 # See Also      : Tk::ErrorReport()
-#TODO: tests
 sub _messageBox {
   my ($top, $title, $msg, $nobug) = @_;
   require Tk::ErrorReport;
@@ -389,7 +388,6 @@ sub _messageBox {
 # Throws        : no exception
 # Comments      : requires Tk::ErrorReport
 # See Also      : _messageBox(), Tk::ErrorReport()
-#TODO tests
 sub errorMessage {
   my ($win_ref, $msg, $nobug)=@_;
   if ($on_error) {
@@ -426,9 +424,8 @@ sub errorMessage {
 #                 scalar $filename              -- a relative path to a file
 #                 scalar $search_resource_paths -- 0 or 1
 # Throws        : no exception
-# Comments      : just calls Treex::PML::ResolvePath()
+# Comments      : just calls Treex::PML::ResolvePath(@_)
 # See Also      : Treex::PML::ResolvePath()
-#TODO tests
 sub absolutize_path {
   return &Treex::PML::ResolvePath;
 }
@@ -455,7 +452,6 @@ sub absolutize {
 # Throws        : no exception
 # Comments      : Should return the same value as calling $fsfile->schema() (according to Treex::PML doc)
 # See Also      : Treex::PML::Document::metaData(), Treex::PML::Document::schema()
-#TODO: tests
 sub fileSchema {
   my ($fsfile) = @_;
   return $fsfile->metaData('schema');
@@ -468,9 +464,8 @@ sub fileSchema {
 # Parameters    : Treex::PML::Document ref $fsfile -- the file whose secondary files we are searching for 
 # Throws        : no exception
 # See Also      : Treex::PML::Document::appData(), getSecondaryFilesRecursively()
-#TODO tests
 sub getSecondaryFiles {
-  my ($fsfile)=@_;
+  my ($fsfile) = @_;
   # is probably the same as Treex::PML::Document->relatedDocuments()
   # a reference to a list of pairs (id, URL)
   my $requires = $fsfile->metaData('fs-require');
@@ -495,7 +490,6 @@ sub getSecondaryFiles {
 # Parameters    : Treex::PML::Document ref $fsfile -- the file whose secondary files we are searching for 
 # Throws        : no exception
 # See Also      : Treex::PML::Document::appData(), getSecondaryFiles()
-#TODO tests
 sub getSecondaryFilesRecursively {
   my ($fsfile) = @_;
   my @secondary = getSecondaryFiles($fsfile);
@@ -519,7 +513,6 @@ sub getSecondaryFilesRecursively {
 # Parameters    : Treex::PML::Document ref $fsfile -- the file whose primary files we are searching for 
 # Throws        : no exception
 # See Also      : Treex::PML::Document::appData(), getPrimaryFilesRecursively()
-#TODO tests
 sub getPrimaryFiles {
   my ($fsfile) = @_;
   # probably the same as Treex::PML::Document->relatedSuperDocuments()
@@ -534,7 +527,6 @@ sub getPrimaryFiles {
 # Parameters    : Treex::PML::Document ref $fsfile -- the file whose primary files we are searching for 
 # Throws        : no exception
 # See Also      : getPrimaryFiles()
-#TODO tests
 sub getPrimaryFilesRecursively {
   my ($fsfile)=@_;
   my @primary = getPrimaryFiles($fsfile);

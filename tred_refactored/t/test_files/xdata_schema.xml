@@ -11,8 +11,8 @@
   <description>PDT 2.0 analytical trees</description>
   <reference name="mdata" readas="dom"/>
   <reference name="wdata" readas="dom"/>
-  <reference name="xdata" readas="trees"/>
-  <root name="adata" type="a-adata.type"/>
+  
+  <root name="xdata" type="a-adata.type"/>
 
   <type name="a-adata.type">
     <structure>
@@ -38,9 +38,6 @@
     <structure role="#NODE" name="a-root">
       <member name="id" role="#ID" as_attribute="1" required="1"><cdata format="ID"/></member>
       <member name="s.rf"><cdata format="PMLREF"/></member>
-      <member name="xtree.rf">
-        <cdata format="PMLREF"/>
-      </member>
       <member name="afun"><constant>AuxS</constant></member>
       <member name="ord" role="#ORDER" required="1"><cdata format="nonNegativeInteger"/></member>
       <member name="children" role="#CHILDNODES">
