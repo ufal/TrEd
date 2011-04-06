@@ -800,14 +800,14 @@ sub _test_moveTree {
    root           => $first_tree->root(),
   };
   
-#  print "b4 pruneTree" . Dumper($fsfile->treeList());
+#  print "b4 moveTree" . Dumper($fsfile->treeList());
   is(TrEd::Basics::moveTree($win_ref, 2), 1, 
     "moveTree(): return value");
   
   ################
   #### After  ####
   ################
-#  print "after pruneTree" . Dumper($fsfile->treeList());
+#  print "after moveTree" . Dumper($fsfile->treeList());
   my $now_first_tree  = $fsfile->tree(0);
   my $now_second_tree = $fsfile->tree(1);
   my $now_third_tree  = $fsfile->tree(2);

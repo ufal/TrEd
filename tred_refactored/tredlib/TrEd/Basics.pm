@@ -15,7 +15,7 @@ BEGIN {
 	      $on_error
 	    );
   @ISA=qw(Exporter);
-  $VERSION = "0.1";
+  $VERSION = "0.2";
   @EXPORT = qw(
     $on_tree_change
     $on_node_change
@@ -84,7 +84,7 @@ sub uniq {
 # Comments      : modifies $win_ref, calls on_tree_chage() callback
 # See Also      : on_tree_change(), Treex::PML::Document::lastTreeNo(), Treex::PML::Document::treeList() 
 #
-# The $win parameter to the following two routines should be
+# The $win_ref parameter to the following two routines should be
 # a hash reference, having at least the following keys:
 #
 # FSFile       => reference of the current Treex::PML::Document
@@ -382,7 +382,6 @@ sub _messageBox {
 # Purpose       : Displays an error message in GUI or calls on_error() callback, if it is set
 # Returns       : Nothing
 # Parameters    : hash_ref $win_ref -- see documentation for gotoTree function
-#                 scalar $title     -- title of the message window
 #                 scalar $msg       -- message to be displayed in the message window
 #                 scalar $nobug     -- severity of message -- 'warn' means warning, everything else means error
 # Throws        : no exception
@@ -520,7 +519,7 @@ sub getPrimaryFiles {
 }
 
 #######################################################################################
-# Usage         : getPrimaryFilesRecursively()
+# Usage         : getPrimaryFilesRecursively($fsfile)
 # Purpose       : Find a list of Treex::PML::Document objects representing related superior documents, 
 #                 and then list of all their superior documents, etc recursively
 # Returns       : List of Treex::PML::Document objects representing related superior documents
@@ -551,49 +550,756 @@ __END__
 =head1 NAME
 
 
-TrEd::Basics - ...
+TrEd::Basics - Basic functions for manipulating trees in L<Treex::PML::Document|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>
 
 
 =head1 VERSION
 
 This documentation refers to 
-TrEd::Basics version 0.1.
+TrEd::Basics version 0.2.
 
 
 =head1 SYNOPSIS
 
   use TrEd::Basics;
   
+  # backends to use by Treex::PML
+  my @backends=(
+    'FS',
+    ImportBackends(
+      qw{NTRED
+         Storable
+         PML
+         CSTS
+         TrXML
+         TEIXML
+         PMLTransform
+        })
+    );
+  
+  # create Treex::PML::Document
+  my $file_name = "my_file";
+  my $fsfile = Treex::PML::Factory->createDocumentFromFile(
+    $file_name,
+    {
+      encoding => 'utf8',
+      backends => \@backends,
+      recover => 1,
+    });
+  
+  my $win_ref = { 
+    treeNo => 0,
+    FSFile => $fsfile,
+    macroContext =>  'TredMacro',
+    currentNode => $fsfile->tree(0),
+    root => $fsfile->tree(0),
+  }
+  
+  # Changing position in file
+  my $new_position = TrEd::Basics::gotoTree($win_ref, 42);
+  
+  my $success = TrEd::Basics::nextTree($win_ref);
+  $success = TrEd::Basics::prevTree($win_ref);
+  
+  # Tree manipulation -- creating, deleting and moving trees
+  $success = TrEd::Basics::newTree($win_ref);
+  $success = TrEd::Basics::newTreeAfter($win_ref);
+  
+  $success = TrEd::Basics::pruneTree($win_ref);
+  
+  my $delta = "3";
+  $success = TrEd::Basics::moveTree($win_ref, $delta);
+  
+  # Node manipulation -- creating, deleting, creating new root from existing node
+  my $root = $fsfile->tree(0);
+  my $node = $root->firstson();
+  my $discard_old_root = 1;
+  
+  $win_ref->{treeNo} = 0;
+  $win_ref->{root} = $fsfile->tree(0);
+  
+  $success = TrEd::Basics::makeRoot($win_ref, $node, $discard_old_root);
+  my $new_node = TrEd::Basics::newNode($win_ref);
+  $success = TrEd::Basics::pruneNode($win_ref, $new_node);
+  
+  # FSFile metainfo retrieval
+  
+  my $schema_ref = TrEd::Basics::fileSchema($fsfile);
+  
+  my @secondary_files         = TrEd::Basics::getSecondaryFiles($fsfile);
+  my @secondary_files_recurs  = TrEd::Basics::getSecondaryFilesRecursively($fsfile);
+  
+  # Find ref to related Treex::PML::Documents loaded by Treex::PML::Document->loadRelatedDocuments()
+  my $id = $secondary_files[0]->[0];
+  my $fsfile_2 = $fsfile->referenceObjectHash()->{$id};
+  
+  my @primary_files         = TrEd::Basics::getPrimaryFiles($fsfile_2);
+  my @primary_files_recurs  = TrEd::Basics::getPrimaryFilesRecursively($fsfile_2);
+  
+  
+  # Utility functions 
+  TrEd::Basics::setCurrent($win_ref, $node);
+  
+  my @array = qw{1 1 2 3 4 4 5 8 8 9};
+  my @uniqed_array = uniq(@array);      # without duplicities
+  
+  my $filename = "passwd";
+  my $ref_path = "/etc";
+  my $search_res_path = 1;
+  my $absolute_path = TrEd::Basics::absolutize_path($ref_path, $filename, $search_res_path);
+  
+  my @input_paths = (
+    "     ",
+    "/home/something/unusual",
+    "x:/Documents and Settings/John",
+    "t/test_macros/include/../simple-macro.mac",
+  );
+  my @absolute_paths = TrEd::Basics::absolutize(@input_paths);
+  
   
 
 =head1 DESCRIPTION
 
-...
+Most of these functions are wrappers around some of the L<Treex::PML::Document|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm> and 
+L<Treex::PML::Node|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Node.pm> functions that set up win_ref/grp_ref according to needs of tred
+and call callbacks. 
+
 
 =head1 SUBROUTINES/METHODS
 
 =over 4 
 
-=item * C<TrEd::Basics::uniq ()>
+=item * C<TrEd::Basics::uniq (@array)>
 
 =over 6
 
 =item Purpose
 
-...
+Remove duplicit elements from array
 
 =item Parameters
 
-C<@array> -- some array
+C<@array> -- array to be uniqued
 
 =item Description
+
+Preserves type and order of elements.
+
+=item Returns
+
+Array without repeating elements
+
+=back
+
+
+=item * C<TrEd::Basics::gotoTree ($win_ref, $tree_no)>
+
+=over 6
+
+=item Purpose
+
+Change the position in $win_ref to specified tree in current file
+
+=item Parameters
+
+C<$win_ref> -- hash reference, see description below
+C<$tree_no> -- the ordinal number of the desired tree (counted from 0)
+
+=item Description
+
+The $win_ref parameter to the following two routines should be
+a hash reference, having at least the following keys:
+
+  FSFile       => reference to the current L<Treex::PML::Document|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>
+  treeNo       => number of the current tree in the file
+  macroContext => current context under which macros are run
+  currentNode  => pointer to the current node
+  root         => pointer to the root node of current tree
+
+Function modifies $win_ref and calls on_tree_chage() callback.
+
+=item See also
+
+L<Treex::PML::Document::lastTreeNo|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>, 
+L<Treex::PML::Document::treeList|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>
+
+=item Returns
+
+The ordinal number of the 'destination' tree (counted from 0), 
+undef if $win_ref->{FSFile} is not defined (empty list in list context)
+
+=back
+
+
+=item * C<TrEd::Basics::nextTree($win_ref)>
+
+=over 6
+
+=item Purpose
+
+Activate the next tree from the current file (if there is any such tree).
+
+=item Parameters
+
+C<$win_ref> -- hash reference, see description for L<gotoTree>
+
+=item See also
+
+L<gotoTree>
+
+=item Returns
+
+Zero if we are on the last tree, 1 otherwise
+
+=back
+
+
+=item * C<TrEd::Basics::prevTree($win_ref)>
+
+=over 6
+
+=item Purpose
+
+Activate the previous tree from the current file (if there is any such tree)
+
+=item Parameters
+
+C<$win_ref> -- hash reference, see description for L<gotoTree>
+
+=item See also
+
+L<gotoTree>
+
+=item Returns
+
+Zero if we are on the first tree, 1 otherwise
+
+=back
+
+
+=item * C<TrEd::Basics::newTree($win_ref)>
+
+=over 6
+
+=item Purpose
+
+Create new tree at the current position in the current file
+
+=item Parameters
+
+C<$win_ref> -- hash reference, see description for L<gotoTree>
+
+=item Description
+
+Marks the modified file as notSaved(1), calls on_tree_chage() callback
+The tree on the current position and all the trees with position 
+greater than the current position move to position + 1.
+
+If $win_ref->{treeNo} is negative, new tree is created at the position counted from 
+the end of file, if the position is after the end of file, new tree is created after 
+the last tree
+
+=item See also
+
+L<Treex::PML::Document::new_tree|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>, 
+L<gotoTree>, L<Treex::PML::Document::notSaved|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>
+
+=item Returns
+
+Undef if $win_ref->{FSFile} is not defined, 1 otherwise.
+
+=back
+
+
+=item * C<TrEd::Basics::newTreeAfter($win_ref)>
+
+=over 6
+
+=item Purpose
+
+Create new tree at the position after the current position in the current file
+
+=item Parameters
+
+C<$win_ref> -- hash reference, see description for L<gotoTree>
+
+=item Description
+
+Marks the modified file as notSaved(1), calls on_tree_chage() callback.
+
+The tree after the current position and all the trees with position 
+greater than the one after the current position move to position + 1
+
+Unlike newTree and pruneTree, this function does not support negative indices
+
+=item See also
+
+L<Treex::PML::Document::new_tree|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>, 
+L<gotoTree>, 
+L<Treex::PML::Document::notSaved()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>
+
+=item Returns
+
+Undef if $win_ref->{FSFile} is not defined, 1 otherwise
+
+=back
+
+
+=item * C<TrEd::Basics::pruneTree($win_ref)>
+
+=over 6
+
+=item Purpose
+
+Delete tree at the current position in the current file
+
+=item Parameters
+
+C<$win_ref> -- hash reference, see description for L<gotoTree>
+
+=item Description
+
+Marks the modified file as notSaved(1), calls on_tree_chage() callback
+
+The trees with position greater than the current position are moved to position - 1
+ 
+This implementation allows deleting from the end of file using negative indices, e.g. $win_ref->treeNo = -1
+
+=item See also
+
+L<Treex::PML::Document::destroy_tree|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>, 
+L<gotoTree>, 
+L<Treex::PML::Document::notSaved()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>
+
+=item Returns
+
+Undef if $win_ref->{FSFile} or the current tree is not defined, 1 otherwise
+
+=back
+
+
+=item * C<TrEd::Basics::moveTree($win_ref, $delta)>
+
+=over 6
+
+=item Purpose
+
+Move current tree to new position: current position + $delta
+
+=item Parameters
+
+C<$win_ref> -- hash reference, see description for L<gotoTree>
+C<$delta> -- the number of positions to move the tree
+
+=item Description
+
+Marks the modified file as notSaved(1), calls on_tree_chage() callback
+
+All the trees with position greater than current position + $delta move to their current position + 1
+
+=item See also
+
+L<Treex::PML::Document::move_tree_to|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>, 
+L<gotoTree>, 
+L<Treex::PML::Document::notSaved()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>
+
+=item Returns
+
+Undef if $win_ref->{FSFile} is undefined or if delta is 0, 1 otherwise
+
+=back
+
+
+=item * C<TrEd::Basics::makeRoot($win_ref, $node, $discard)>
+
+=over 6
+
+=item Purpose
+
+Make the specified $node new root of the current tree, 
+optionally throwing out the former root if $discard is true
+
+=item Parameters
+
+C<$win_ref> -- hash reference, see description for L<gotoTree>
+C<$node> -- reference to Treex::PML::Node object that becomes new tree
+C<$discard> -- switch telling if the root of the tree is discarded
+
+=item Description
+
+Marks the modified file as notSaved(1), calls on_node_chage() callback
+
+Node types are not changed, i.e. attr('nodetype') of the new root will be preserved
+
+=item See also
+
+L<Treex::PML::Node::cut|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Node.pm>, 
+L<Treex::PML::Node::paste_on|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Node.pm>,
+L<gotoTree>, 
+L<Treex::PML::Document::notSaved()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>
+
+=item Returns
+
+Undef if win_ref->{FSFile} is not defined, 1 otherwise
+
+=back
+
+
+=item * C<TrEd::Basics::newNode($win_ref)>
+
+=over 6
+
+=item Purpose
+
+Create new node as a new child of current node
+
+=item Parameters
+
+C<$win_ref> -- hash reference, see description for L<gotoTree>
+
+=item Description
+
+Marks the modified file as notSaved(1), calls on_node_chage() callback
+
+=item See also
+
+L<Treex::PML::Node::new|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Node.pm>,
+L<Treex::PML::Struct::set_member|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Struct.pm>,
+L<Treex::PML::Struct::paste_on|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Struct.pm>,
+L<gotoTree>, 
+L<Treex::PML::Document::notSaved()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>
+
+=item Returns
+
+Undef if $win_ref->{FSFile} or $win_ref->{currentNode} are not defined, 
+reference to new Treex::PML::Node object otherwise
+
+=back
+
+
+
+=item * C<TrEd::Basics::pruneNode($win_ref, $node)>
+
+=over 6
+
+=item Purpose
+
+Delete specified node from current file
+
+
+=item Parameters
+
+  C<$win_ref> -- hash_ref $win_ref     -- see comment of gotoTree function
+  C<$node> -- : Treex::PML::Node ref  -- reference to the node to delete
+
+=item Description
+
+Marks the modified file as notSaved(1), calls on_node_chage() callback
+
+
+=item See Also
+
+L<Treex::PML::Node::destroy_leaf()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Node::destroy_leaf.pm>,
+L<setCurrent>,
+
+=item Returns
+
+Undef if $win_ref->{FSFile} or $node or $node's parent are not defined, 
+return value of Treex::PML::Node::destroy_leaf() is returned otherwise 
+(which currently means that 1 is returned)
+
+=back
+
+
+=item * C<TrEd::Basics::setCurrent($win_ref, $node)>
+
+=over 6
+
+=item Purpose
+
+Set $node as the current node (in $win_ref)
+
+
+=item Parameters
+
+  C<$win_ref> -- hash_ref $win_ref           -- see comment of gotoTree function
+  C<$node> -- Treex::PML::Node ref $node  -- reference to Treex::PML::Node object that becomes the current node
+
+=item Description
+
+calls on_current_chage() callback
+
 
 
 =item Returns
 
-Uniqued array
+Nothing
+
 
 =back
+
+
+=item * C<TrEd::Basics::_messageBox($top, $title, $msg, $nobug)>
+
+=over 6
+
+=item Purpose
+
+Displays an error message in GUI
+
+
+=item Parameters
+
+  C<$top> -- hash_ref $top   -- reference to top GUI window (probably a Tk object)
+  C<$title> -- scalar $title   -- title of the message window
+  C<$msg> -- scalar $msg     -- message to be displayed in the message window
+  C<$nobug> -- scalar $nobug   -- severity of message -- 'warn' means warning, everything else means error
+
+=item Description
+
+requires Tk::ErrorReport
+
+
+=item See Also
+
+L<Tk::ErrorReport>,
+
+=item Returns
+
+Nothing
+
+
+=back
+
+
+=item * C<TrEd::Basics::errorMessage($win_ref, $msg, $nobug)>
+
+=over 6
+
+=item Purpose
+
+Displays an error message in GUI or calls on_error() callback, if it is set
+
+
+=item Parameters
+
+  C<$win_ref> -- hash_ref $win_ref -- see documentation for gotoTree function
+  C<$msg> -- scalar $msg       -- message to be displayed in the message window
+  C<$nobug> -- scalar $nobug     -- severity of message -- 'warn' means warning, everything else means error
+
+=item Description
+
+requires Tk::ErrorReport
+
+
+=item See Also
+
+L<_messageBox>,
+L<Tk::ErrorReport>,
+
+=item Returns
+
+Nothing
+
+
+=back
+
+
+=item * C<TrEd::Basics::absolutize_path($ref_filename, $filename, [$search_resource_path])>
+
+=over 6
+
+=item Purpose
+
+Return absolute path unchanged, resolve relative path
+
+
+=item Parameters
+
+  C<$ref_filename> -- scalar $ref_path              -- a reference filename
+  C<$filename> -- scalar $filename              -- a relative path to a file
+  C<[$search_resource_path]> -- scalar $search_resource_paths -- 0 or 1
+
+=item Description
+
+just calls Treex::PML::ResolvePath(@_)
+
+
+=item See Also
+
+L<Treex::PML::ResolvePath()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/ResolvePath.pm>,
+
+=item Returns
+
+Resolved path, return value from Treex::PML::ResolvePath
+
+
+=back
+
+
+=item * C<TrEd::Basics::absolutize(@array)>
+
+=over 6
+
+=item Purpose
+
+Make all paths in the @array absolute
+
+
+=item Parameters
+
+  C<@array> -- list @array -- list of paths to be changed into absolute paths
+
+
+=item See Also
+
+L<File::Spec->rel2abs>,
+
+=item Returns
+
+Array of absolute paths
+
+
+=back
+
+
+=item * C<TrEd::Basics::fileSchema($fsfile)>
+
+=over 6
+
+=item Purpose
+
+Return schema from file's metadata
+
+
+=item Parameters
+
+  C<$fsfile> -- Treex::PML::Document ref $fsfile -- the file whose schema we are searching for
+
+=item Description
+
+Should return the same value as calling $fsfile->schema() (according to Treex::PML doc)
+
+
+=item See Also
+
+L<Treex::PML::Document::metaData()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document::metaData.pm>,
+L<Treex::PML::Document::schema()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document::schema.pm>,
+
+=item Returns
+
+Schema for $fsfile
+
+
+=back
+
+
+=item * C<TrEd::Basics::getSecondaryFiles($fsfile)>
+
+=over 6
+
+=item Purpose
+
+Find all secondary files required by Treex::PML::Document $fsfile according to its PML schema
+
+
+=item Parameters
+
+  C<$fsfile> -- Treex::PML::Document ref $fsfile -- the file whose secondary files we are searching for 
+
+
+=item See Also
+
+L<Treex::PML::Document::appData()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document::appData.pm>,
+L<getSecondaryFilesRecursively>,
+
+=item Returns
+
+List of Treex::PML::Document objects (every object appears just once in the list)
+
+
+=back
+
+
+=item * C<TrEd::Basics::getSecondaryFilesRecursively($fsfile)>
+
+=over 6
+
+=item Purpose
+
+Find all secondary files required by Treex::PML::Document $fsfile according to its PML schema, 
+and also all secondary files of these secondary files, etc recursively
+
+=item Parameters
+
+  C<$fsfile> -- Treex::PML::Document ref $fsfile -- the file whose secondary files we are searching for 
+
+
+=item See Also
+
+L<Treex::PML::Document::appData()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document::appData.pm>,
+L<getSecondaryFiles>,
+
+=item Returns
+
+List of Treex::PML::Document objects (every object appears just once in the list) 
+
+
+=back
+
+
+=item * C<TrEd::Basics::getPrimaryFiles($fsfile)>
+
+=over 6
+
+=item Purpose
+
+Find a list of Treex::PML::Document objects representing related superior documents
+
+
+=item Parameters
+
+  C<$fsfile> -- Treex::PML::Document ref $fsfile -- the file whose primary files we are searching for 
+
+
+=item See Also
+
+L<Treex::PML::Document::appData()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document::appData.pm>,
+L<getPrimaryFilesRecursively>,
+
+=item Returns
+
+List of Treex::PML::Document objects representing related superior documents
+
+
+=back
+
+
+=item * C<TrEd::Basics::getPrimaryFilesRecursively($fsfile)>
+
+=over 6
+
+=item Purpose
+
+Find a list of Treex::PML::Document objects representing related superior documents, 
+and then list of all their superior documents, etc recursively
+
+=item Parameters
+
+  C<$fsfile> -- Treex::PML::Document ref $fsfile -- the file whose primary files we are searching for 
+
+
+=item See Also
+
+L<getPrimaryFiles>,
+
+=item Returns
+
+List of Treex::PML::Document objects representing related superior documents
+
+
+=back
+
 
 
 =back
@@ -617,7 +1323,7 @@ Uniqued array
 
 There are no known bugs in this module.
 Please report problems to 
-Zdenek Zabokrtsky <email@address.cz>
+Zdenek Zabokrtsky <zabokrtsky@ufal.ms.mff.cuni.cz>
 
 Patches are welcome.
 
