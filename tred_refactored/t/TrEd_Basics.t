@@ -1191,7 +1191,7 @@ sub _test_pruneNode {
   
   ## callback on_node_change called 
                       ## this is not a copy-paste mistake, this is testing copy-paste mistakes ;)
-  is($win_ref->{msg}, "Node 1 changed by newTree", 
+  is($win_ref->{msg}, "Node 1 changed by pruneNode", 
     "pruneNode(): callback called");
   
   ## notSaved set to 1
