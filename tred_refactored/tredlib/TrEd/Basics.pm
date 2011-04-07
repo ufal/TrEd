@@ -195,7 +195,7 @@ sub newTreeAfter {
 sub pruneTree {
   my ($win_ref) = @_;
   my $fsfile = $win_ref->{FSFile};
-  # why we don't use $fsfile->tree($win_ref->{treeNo}) instead?
+  # why could use $fsfile->tree($win_ref->{treeNo}) instead?
   return if (!($fsfile and $fsfile->treeList()->[$win_ref->{treeNo}]));
   $win_ref->{root} = undef;
   my $no = $win_ref->{treeNo};
@@ -326,10 +326,9 @@ sub pruneNode {
   }
   #TODO:
   # Hm, destroy_leaf returns 1 (a scalar value), why is the son == 1?
-  # and on_node_change is called with 'newTree' as a fn name?
   $son = $node->destroy_leaf();
   $win_ref->{FSFile}->notSaved(1);
-  &$on_node_change($win_ref, 'newTree', $son) if $on_node_change;
+  &$on_node_change($win_ref, 'pruneNode', $son) if $on_node_change;
   return $son;
 }
 
@@ -999,7 +998,7 @@ Marks the modified file as notSaved(1), calls on_node_chage() callback
 
 =item See Also
 
-L<Treex::PML::Node::destroy_leaf()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Node::destroy_leaf.pm>,
+L<Treex::PML::Node::destroy_leaf()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Node.pm>,
 L<setCurrent>,
 
 =item Returns
@@ -1183,8 +1182,8 @@ Should return the same value as calling $fsfile->schema() (according to Treex::P
 
 =item See Also
 
-L<Treex::PML::Document::metaData()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document::metaData.pm>,
-L<Treex::PML::Document::schema()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document::schema.pm>,
+L<Treex::PML::Document::metaData()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>,
+L<Treex::PML::Document::schema()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>,
 
 =item Returns
 
@@ -1237,7 +1236,7 @@ and also all secondary files of these secondary files, etc recursively
 
 =item See Also
 
-L<Treex::PML::Document::appData()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document::appData.pm>,
+L<Treex::PML::Document::appData()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>,
 L<getSecondaryFiles>,
 
 =item Returns
@@ -1264,7 +1263,7 @@ Find a list of Treex::PML::Document objects representing related superior docume
 
 =item See Also
 
-L<Treex::PML::Document::appData()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document::appData.pm>,
+L<Treex::PML::Document::appData()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>,
 L<getPrimaryFilesRecursively>,
 
 =item Returns
@@ -1313,11 +1312,11 @@ List of Treex::PML::Document objects representing related superior documents
 
 =head1 DEPENDENCIES
 
+L<Treex::PML|http://search.cpan.org/~zaba/Treex-PML/>,
 
 =head1 INCOMPATIBILITIES
 
 ...
-
 
 =head1 BUGS AND LIMITATIONS
 
