@@ -1120,8 +1120,9 @@ sub uninstallExtension {
 
 
 1;
+
 __END__
-# Below is stub documentation for your module. You'd better edit it!
+
 
 =head1 NAME
 
