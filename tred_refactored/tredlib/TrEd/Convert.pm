@@ -66,8 +66,8 @@ no integer;
 # Comments      : This function is affected by setting $FORCE_REMIX and $FORCE_NO_REMIX variables.
 #                 If $FORCE_REMIX is set or current platform is MS Win32 and $string needs arabic remix,
 #                 we use functions for arabic text, unless $FORCE_NO_REMIX is not set to true. 
-#                 On Perl version greater than 5.8, Encode module is used. Otherwise, tr/// is used.
-# See Also      : Encode::encode, tr, TrEd::ConvertArab::arabjoin(), TrEd::ArabicRemix::remix()
+#                 On Perl version greater than or equal to 5.8, Encode::encode() is used. Otherwise, tr/// is used.
+# See Also      : Encode::encode(), tr(), TrEd::ConvertArab::arabjoin(), TrEd::ArabicRemix::remix()
 #TODO: tests
 sub encode {
   my $str = join('', @_);
@@ -106,9 +106,9 @@ sub encode {
 # Parameters    : string $str (or list of strings) to decode
 # Throws        : no exception
 # Comments      : If the Tk version used is greater than 804.00, or $input and $output encoding are the same,
-#                 function just returns joined strings. Otherwise it uses Encode module with Perl > 5.8
-#                 or tr
-# See Also      : Encode::decode, tr, 
+#                 function just returns joined strings. Otherwise it uses Encode::decode with Perl >= 5.8
+#                 or tr for Perl < 5.8
+# See Also      : Encode::decode(), tr(), 
 sub decode {
   my $str = join '', @_;
 #  $lefttoright or ($str=~s{([^[:ascii:]]+)}{reverse $1}eg);
@@ -128,7 +128,7 @@ sub decode {
   }
 }
 
-#TODO: Do these function really belong here? What do they have in common with converting
+#TODO: Do these function really belong here? What do they have in common with converting..?
 
 #######################################################################################
 # Usage         : dirname($path)
@@ -139,7 +139,7 @@ sub decode {
 # Comments      : If $path does not contain any slash (fw or bw), dot and directory separator is returned, i. e. 
 #                 "./" on Unices, ".\" on Win32
 # See Also      : index(), rindex(), substr()
-#TODO: tests, stil needed? or can we use File::Spec instead?
+#TODO: stil needed? or can we use File::Spec instead?
 # do we still support Perl 5.5?
 sub dirname {
   my $a = shift;
@@ -157,9 +157,9 @@ sub dirname {
 # Returns       : Part of the string after the last slash
 # Parameters    : scalar $path -- path with file name
 # Throws        : 
-# Comments      : 
+# Comments      : E.g. returns 'filename' from '/home/john/docs/filename'
 # See Also      : index(), rindex(), substr()
-#TODO: tests, doc, still needed? Same as with dirname, maybe we could use File::Spec...
+#TODO: still needed? Same as with dirname, maybe we could use File::Spec...
 sub filename {
   my $a = shift;
   # this is for the sh*tty winz where
@@ -207,6 +207,143 @@ TrEd::Convert version 0.2.
 =over 4 
 
 
+=item * C<TrEd::Convert::encode(@strings)>
+
+=over 6
+
+=item Purpose
+
+Change all the strings from Perl's internal representation into $outputenc 
+
+and return them joined in one string
+
+=item Parameters
+
+  C<@strings> -- string $str (or a list of strings) to encode
+
+=item Comments
+
+This function is affected by setting $FORCE_REMIX and $FORCE_NO_REMIX variables.
+
+If $FORCE_REMIX is set or current platform is MS Win32 and $string needs arabic remix,
+we use functions for arabic text, unless $FORCE_NO_REMIX is not set to true. 
+On Perl version greater than or equal to 5.8, Encode::encode() is used. Otherwise, tr/// is used.
+
+=item See Also
+
+L<Encode::encode>,
+L<tr>,
+L<TrEd::ConvertArab::arabjoin>,
+L<TrEd::ArabicRemix::remix>,
+
+=item Returns
+
+Encoded string (sequence of octets)
+
+
+=back
+
+
+=item * C<TrEd::Convert::decode($str)>
+
+=over 6
+
+=item Purpose
+
+Decodes sequence of octets from $outputenc to Perl's internal representation
+
+or $inputenc
+
+=item Parameters
+
+  C<$str> -- string $str (or list of strings) to decode
+
+=item Comments
+
+If the Tk version used is greater than 804.00, or $input and $output encoding are the same,
+
+function just returns joined strings. Otherwise it uses Encode::decode with Perl >= 5.8
+or tr for Perl < 5.8
+
+=item See Also
+
+L<Encode::decode>,
+L<tr>,
+
+=item Returns
+
+Decoded string 
+
+
+=back
+
+
+=item * C<TrEd::Convert::dirname($path)>
+
+=over 6
+
+=item Purpose
+
+Find out the name of the directory of $path
+
+
+=item Parameters
+
+  C<$path> -- scalar $path -- path whose dirname we are looking for
+
+=item Comments
+
+If $path does not contain any slash (fw or bw), dot and directory separator is returned, i. e. 
+
+"./" on Unices, ".\" on Win32
+
+=item See Also
+
+L<index>,
+L<rindex>,
+L<substr>,
+
+=item Returns
+
+Part of the string from the first character to the last forward/backward slash
+
+
+=back
+
+
+=item * C<TrEd::Convert::filename($path)>
+
+=over 6
+
+=item Purpose
+
+Extract filename from $path
+
+
+=item Parameters
+
+  C<$path> -- scalar $path -- path with file name
+
+=item Comments
+
+E.g. returns 'filename' from '/home/john/docs/filename'
+
+
+=item See Also
+
+L<index>,
+L<rindex>,
+L<substr>,
+
+=item Returns
+
+Part of the string after the last slash
+
+
+=back
+
+
+
 
 =back
 
@@ -223,6 +360,7 @@ Encode, TrEd::ArabicRemix, TrEd::ConvertArab, TrEd::MinMax
 
 =head1 INCOMPATIBILITIES
 
+Names of encode and decode functions collide with Encode functions. 
 
 =head1 BUGS AND LIMITATIONS
 
