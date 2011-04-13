@@ -531,25 +531,22 @@ sub read_macros {
 #                 array_ref $macros         -- reference to array storing lines of macro files
 #                 array_ref $contexts       -- reference to array storing macro contexts, i.e. TrEd modes
 # Throws        : a scalar (string) if it fails to include a file or finds unmatched elseif/endif
-# Comments      : ...
+# Comments      : new "pragmas":
+#                   include <file>  ... relative to tred's libdir
+#                   include "file"  ... relative to dir of the current macro file
+#                   include file    ... absolute or relative to current dir or one of the above
+#
+#                   ifinclude       ... as include but without producing an error if file doesn't exist
+#
+#                   binding-context <context> [<context> [...]]
+#
+#                   key-binding-adopt <contexts>
+#                   menu-binding-adopt <contexts>
+#
+#                   bind <method> [to] [key[sym]] <key> [menu <menu>[/submenu[/...]]]
+#
+#                   insert <method> [as] [menu] <menu>[/submenu[/...]]
 # See Also      : read_macros(), 
-
-# new "pragmas":
-#
-# include <file>  ... relative to tred's libdir
-# include "file"  ... relative to dir of the current macro file
-# include file    ... absolute or relative to current dir or one of the above
-#
-# ifinclude       ... as include but without producing an error if file doesn't exist
-#
-# binding-context <context> [<context> [...]]
-#
-# key-binding-adopt <contexts>
-# menu-binding-adopt <contexts>
-#
-# bind <method> [to] [key[sym]] <key> [menu <menu>[/submenu[/...]]]
-#
-# insert <method> [as] [menu] <menu>[/submenu[/...]]
 #TODO: hmm, what if extensions would be subclasses of ~tred.def...?
 sub preprocess {
   my ($file_handle, $file_name, $macros_ref, $contexts_ref) = @_;
@@ -759,29 +756,25 @@ sub set_encoding {
 # Returns       : Return the result of macro evaluation or 2 if the macros were already evaluated
 # Parameters    : hash_ref $win_ref -- see below
 # Throws        : no exception
-# Comments      : ...
-#TODO: tests
-
-# The $win parameter to the following two routines should be
-# a hash reference, having at least the following keys:
+# Comments      : The $win_ref parameter to the following two routines should be
+#                 a hash reference, having at least the following keys:
 #
-# FSFile       => FSFile blessed reference of the current FSFile
-# treeNo       => number of the current tree in the file
-# macroContext => current context under which macros are run 
+#                 FSFile       => FSFile blessed reference of the current FSFile
+#                 treeNo       => number of the current tree in the file
+#                 macroContext => current context under which macros are run 
 #
-# the $win itself is passed to the macro in the $grp variable
+#                 the $win_ref itself is passed to the macro in the $grp variable
 #
-# Macros expect the following (minimally) variables set:
-# $TredMacro::root    ... root of the current tree
-# $TredMacro::this    ... current node
-# $TredMacro::libDir  ... path to TrEd's library directory
+#                 Macros expect the following (minimally) variables set:
+#                 $TredMacro::root    ... root of the current tree
+#                 $TredMacro::this    ... current node
+#                 $TredMacro::libDir  ... path to TrEd's library directory
 #
-# Macros signal the results of their operation using the following
-# variables
-#
-# $TredMacro::FileNotSaved   ... if 0, macro claims it has done no no changes
+#                 Macros signal the results of their operation using the following
+#                 variables:
+#                 $TredMacro::FileNotSaved   ... if 0, macro claims it has done no no changes
 #                                that would need saving
-# $TredMacos::forceFileSaved ... if 1, macro claims it saved the file itself
+#                 $TredMacos::forceFileSaved ... if 1, macro claims it saved the file itself
 
 sub initialize_macros {
   my ($win_ref) = @_;	# $win is a reference
@@ -930,7 +923,7 @@ sub restore_ctxt {
 
 #######################################################################################
 # Usage         : do_eval_macro($win_ref, $macro)
-# Purpose       : Evaluate macro and pass $win to macro context
+# Purpose       : Evaluate macro and pass $win_ref to macro context
 # Returns       : The return value of evaluated macro, if macro is not supported
 #                 function returns $TredMacro::this in scalar context or a list containing 
 #                 two zeroes and $TredMacro::this in list context
