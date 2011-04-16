@@ -25,7 +25,7 @@ BEGIN {
 	     );
 
   use base qw(Exporter);
-  $VERSION = "0.1";
+  $VERSION = "0.2";
   @EXPORT = qw(
     &read_macros
     &do_eval_macro
@@ -114,9 +114,10 @@ sub _normalize_key {
 
 #######################################################################################
 # Usage         : _normalize_macro($context, $macro)
-# Purpose       : Test whether the $macro is a valid macro name or reference, or construct its name from context and macro name 
+# Purpose       : Test whether the $macro is a valid macro name or reference and construct its name from context and macro name 
 # Returns       : Normalized macro string that is accepted as $macro in functions
-# Parameters    : string or ref $macro -- string in the form "sth->$macro" or ref to macro subroutine
+# Parameters    : string $context      -- the context which is used for name construction
+#                 string or ref $macro -- string in the form "sth->$macro" or ref to macro subroutine
 # Throws        : no exception
 # Comments      : none yet
 sub _normalize_macro {
@@ -293,8 +294,8 @@ sub copy_key_bindings {
 # Comments      : If label is empty, nothing is done, $context is created if it does not exist, 
 #                 But more interestingly, undef is the second element in anon array, whose first element is
 #                 the $macro
-#TODO: Why do we use the array_ref???
 # See Also      : remove_from_menu()
+#TODO: Why do we use the array_ref???
 sub add_to_menu {
   my ($context, $label, $macro) = @_;
   if (defined($label) and length($label)) {
@@ -440,7 +441,7 @@ sub copy_menu_bindings {
 # Parameters    : string $encoding        -- encoding of the default macro file
 #                 array_ref $contexts_ref -- reference to array of contexts
 # Throws        : no exception
-# Comments      : Sub extracted from read_macros to decrease its complexity
+# Comments      : Origin: Sub extracted from read_macros to decrease its complexity
 #                 Default macro file is set by TrEd::Config and can be configured via tredrc file.
 #                 The default 'default macro file' is $libDir/tred.def (where $libDir is set by TrEd::Config, too)
 # See Also      : read_macros(), $TrEd::Config::default_macro_file, $TrEd::Config::libDir
@@ -452,14 +453,15 @@ sub _read_default_macro_file {
   @macros = ();
   $exec_code = undef;
   print STDERR "Reading $TrEd::Config::default_macro_file\n" if $macroDebug;
-  #Hmm, turn off UTF-8 flag in string $default_macro_file... what for? 
+  #Hmm, turn off UTF-8 flag in string $default_macro_file... 
+  # -> the name becomes part of the macro (in comment) 
   Encode::_utf8_off($TrEd::Config::default_macro_file);
   # this push is also done in preprocess, shouldn't we remove it from here?
 #  push(@macros,"\n#line 1 \"$TrEd::Config::default_macro_file\"\n");
   my $default_macro_fh;
   open($default_macro_fh,'<',$TrEd::Config::default_macro_file) or do {
     carp("ERROR: Cannot open macros: $TrEd::Config::default_macro_file!\n");
-    # return value is never used, why should it return some code...
+    # return value is never used, do not return a number code...
     return;
   };
   set_encoding($default_macro_fh, $encoding);
@@ -472,27 +474,29 @@ sub _read_default_macro_file {
 # Usage         : read_macros($file, $libDir, $keep, $encoding, @contexts);
 # Purpose       : Read default macros and the specified macro $file using encoding $encoding
 # Returns       : nothing
-# Parameters    : ...
+# Parameters    : scalar $file      -- file name
+#                 scalar $libDir    -- library directory (usually tred/tredlib)
+#                 scalar $keep      -- 0/1 -- keep already loaded macros in memory?
+#                 scalar $encoding  -- set the encoding of macro file
+#                 list @contexts    -- list of contexts returned from preprocess function
 # Throws        : no exception
-# Comments      : ...
-# See Also      : ...
+# Comments      : This subroutine reads macro file. Macros are usual perl
+#                 subroutines and may use this program's namespace. They are also
+#                 provided some special names for certain variables which override
+#                 the original namespace.
+#                 Macros may be bound to a keysym with a special form of a comment.
+#
+#                 The synax is:
+#
+#                   # bind MacroName to key [[Modifyer+]*]KeySym
+#
+#                 which causes subroutine MacroName to be bound to keyboard event of
+#                 simoultaneous pressing the optionally specified Modifyer(s) (which
+#                 should be some of Shift, Ctrl and Alt) and the specified KeySym
+#                 (this probabbly depends on platform too :( ).
+# See Also      : preprocess(), set_encoding()
 #TODO: what will happen, if we would call read_macros with $keep = 1 for the first time?
 # well, obviously, default macro would not be loaded... which is not good, I guess...
-#
-# This subroutine reads macro file. Macros are usual perl
-# subroutines and may use this program's namespace. They are also
-# provided some special names for certain variables which override
-# the original namespace.
-
-# Macros may be bound to a keysym with a special form of a comment.
-# The synax is:
-#
-# # bind MacroName to key [[Modifyer+]*]KeySym
-#
-# which causes subroutine MacroName to be bound to keyboard event of
-# simoultaneous pressing the optionally specified Modifyer(s) (which
-# should be some of Shift, Ctrl and Alt) and the specified KeySym
-# (this probabbly depends on platform too :( ).
 sub read_macros {
   my ($file, $libDir, $keep, $encoding) = (shift, shift, shift, shift);
   my @contexts = @_;
@@ -550,7 +554,7 @@ sub read_macros {
 #TODO: hmm, what if extensions would be subclasses of ~tred.def...?
 sub preprocess {
   my ($file_handle, $file_name, $macros_ref, $contexts_ref) = @_;
-  # Again, turn off UTF-8 flag for string $file_name? Why we do that? $file_name contains just a name of some file...
+  # Again, turn off UTF-8 flag for string $file_name, it is used as a comment in macro string
   Encode::_utf8_off($file_name);
 
   push(@$macros_ref,"\n#line 1 \"$file_name\"\n");
@@ -725,7 +729,7 @@ sub preprocess {
 }
 
 #######################################################################################
-# Usage         : set_encoding($file_handle, $encoding);
+# Usage         : set_encoding($file_handle, [$encoding]);
 # Purpose       : Set encoding for file $file_handle to $encoding (or to default_macro_encoding, if no encoding is specified)
 # Returns       : nothing
 # Parameters    : file handle $file_handle  -- handle to a file
@@ -775,7 +779,7 @@ sub set_encoding {
 #                 $TredMacro::FileNotSaved   ... if 0, macro claims it has done no no changes
 #                                that would need saving
 #                 $TredMacos::forceFileSaved ... if 1, macro claims it saved the file itself
-
+# See Also      : set_macro_variable()
 sub initialize_macros {
   my ($win_ref) = @_;	# $win is a reference
                         # which should in this way be made visible
@@ -852,7 +856,7 @@ sub macro_variable {
 # Returns       : Value of the macro variable
 # Parameters    : string $var_name  -- name of the variable
 # Throws        : no exception
-# Comments      : ...
+# Comments      : 
 # See Also      : set_macro_variable(), macro_variable()
 sub get_macro_variable {
   no strict 'refs';
@@ -866,7 +870,7 @@ sub get_macro_variable {
 # Parameters    : string $var_name  -- name of the variable, e.g. TredMacro::my_variable
 #                 scalar $var_value -- value of the var, e.g. 'value_of_var'
 # Throws        : no exception
-# Comments      : ...
+# Comments      : 
 # See Also      : get_macro_variable(), macro_variable()
 sub set_macro_variable {
   no strict 'refs';
@@ -928,9 +932,8 @@ sub restore_ctxt {
 #                 function returns $TredMacro::this in scalar context or a list containing 
 #                 two zeroes and $TredMacro::this in list context
 # Parameters    : hash_ref $win_ref -- for details, see initialize_macros function
-#                 string $macro     -- name of macro to evaluate or 
-#                 code_ref $macro   -- reference to macro function or 
-#                 array_ref $macro  -- array with function reference as the first element and function arguments as other elements
+#                 scalar $macro     -- name of macro to evaluate or reference to macro function or 
+#                                      array with function reference as the first element and function arguments as other elements
 # Throws        : no exception
 # Comments      : Safe compartment accepts only string $macro parameter
 # See Also      : initialize_macros(), set_macro_variable()
@@ -1088,3 +1091,1173 @@ sub do_eval_hook {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+
+TrEd::Macros - package for handling TrEd's macros   
+
+
+=head1 VERSION
+
+This documentation refers to 
+TrEd::Macros version 0.2.
+
+
+=head1 SYNOPSIS
+
+  use TrEd::Macros;
+  
+  
+  
+=head1 DESCRIPTION
+
+
+ 
+=head1 SUBROUTINES/METHODS
+
+=over 4 
+
+
+
+=item * C<TrEd::Macros::define_symbol($name, $value)>
+
+=over 6
+
+=item Purpose
+
+Define symbol with name $name and assigns the value $value to it
+
+
+=item Parameters
+
+  C<$name> -- scalar $name  -- name of the variable to be defined
+  C<$value> -- scalar $value -- the value that will be assigned to the variable $name 
+
+=item Comments
+
+Information about defines is stored in file-scoped hash %defines
+
+
+=item See Also
+
+L<undefine_symbol>,
+L<is_defined>,
+
+=item Returns
+
+Function's second argument -- $value
+
+
+=back
+
+
+=item * C<TrEd::Macros::undefine_symbol($name)>
+
+=over 6
+
+=item Purpose
+
+Deletes the definition of symbol $name  
+
+
+=item Parameters
+
+  C<$name> -- string $name -- name of the symbol
+
+=item Comments
+
+...
+
+
+=item See Also
+
+L<define_symbol>,
+L<is_defined>,
+L<delete>,
+
+=item Returns
+
+The value or values deleted in list context, or the last such element in scalar context
+
+
+=back
+
+
+=item * C<TrEd::Macros::is_defined($name)>
+
+=over 6
+
+=item Purpose
+
+Tell whether symbol $name is defined  
+
+
+=item Parameters
+
+  C<$name> -- string $name -- name of the symbol
+
+=item Comments
+
+...
+
+
+=item See Also
+
+L<exists>,
+L<define_symbol>,
+L<undefine_symbol>,
+
+=item Returns
+
+True if the symbol $name is defined, false otherwise
+
+
+=back
+
+
+=item * C<TrEd::Macros::get_contexts()>
+
+=over 6
+
+=item Purpose
+
+Returns sorted and uniqued list of contexts, i.e. keys of %menuBindings and %keyBindings hashes 
+
+
+=item Parameters
+
+
+
+=item See Also
+
+
+=item Returns
+
+List of contexts
+
+
+=back
+
+
+=item * C<TrEd::Macros::_normalize_key($key)>
+
+=over 6
+
+=item Purpose
+
+Normalize the keybinding description 
+
+
+=item Parameters
+
+  C<$key> -- string $key -- represents the key combination, e.g. 'Ctrl+X'
+
+=item Comments
+
+Changes the '-' character to '+' and uppercases modifier keys 
+
+
+
+=item Returns
+
+Normalized key description
+
+
+=back
+
+
+=item * C<TrEd::Macros::_normalize_macro($context, $macro)>
+
+=over 6
+
+=item Purpose
+
+Test whether the $macro is a valid macro name or reference and construct its name from context and macro name 
+
+
+=item Parameters
+
+  C<$context> -- string $context      -- the context which is used for name construction
+  C<$macro> -- string or ref $macro -- string in the form "sth->$macro" or ref to macro subroutine
+
+=item Comments
+
+none yet
+
+
+
+=item Returns
+
+Normalized macro string that is accepted as $macro in functions
+
+
+=back
+
+
+=item * C<TrEd::Macros::bind_key($context, $key, $macro)>
+
+=over 6
+
+=item Purpose
+
+Binds key (combination) $key to macro $macro in $context
+
+
+=item Parameters
+
+  C<$context> -- string $context       -- the context, in which the binding is valid
+  C<$key> -- string $key           -- key or key combination, e.g. 'Ctrl+x'
+  C<$macro> -- string or ref $macro  -- macro which will be bound to the key $key
+                                        if $macro is a reference or string like sth->macro, 
+                                        then it's used as is, otherwise "$context->$macro" is bound to the $key
+
+=item Comments
+
+Works only if macro is defined
+
+
+=item See Also
+
+L<unbind_key>,
+L<_normalize_key>,
+L<get_bindings_for_macro>,
+L<get_binding_for_key>,
+
+=item Returns
+
+nothing
+
+
+=back
+
+
+=item * C<TrEd::Macros::unbind_key($context, $key, $delete)>
+
+=over 6
+
+=item Purpose
+
+Discard binding for key $key in specified $context (if $delete is true, delete it, otherwise set bound macro to undef)
+
+
+=item Parameters
+
+  C<$context> -- string $context -- context in which the binding is being deleted
+  C<$key> -- string $key     -- key or key combination, e.g. 'Ctrl+x'
+  C<$delete> -- bool $delete    -- if set to true, binding is deleted, otherwise the macro is just set to undef
+
+=item Comments
+
+...
+
+
+=item See Also
+
+L<bind_key>,
+L<get_binding_for_key>,
+L<get_bindings_for_macro>,
+
+=item Returns
+
+The result of delete function or undef/empty list, depending on the context
+
+
+=back
+
+
+=item * C<TrEd::Macros::unbind_macro($context, $macro, $delete)>
+
+=over 6
+
+=item Purpose
+
+Discards all the bindings for $macro in context $context (if $delete is true, delete it, otherwise set to undef)
+
+
+=item Parameters
+
+  C<$context> -- string $context       -- context in which the binding is being deleted
+  C<$macro> -- string or ref $macro  -- string in the form "sth->$macro" or ref to macro subroutine
+  C<$delete> -- bool $delete          -- if set to true, binding is deleted, otherwise the macro is just set to undef
+
+=item Comments
+
+Shouldn't we normalize $macro here as well?
+
+
+=item See Also
+
+L<bind_key>,
+L<unbind_key>,
+
+=item Returns
+
+nothing
+
+
+=back
+
+
+=item * C<TrEd::Macros::get_bindings_for_macro($context, $macro)>
+
+=over 6
+
+=item Purpose
+
+Return all the bindings for macro $macro in the specified $context
+
+
+=item Parameters
+
+  C<$context> -- string $context       -- context in which to look for the macro bindings
+  C<$macro> -- string or ref $macro  -- string in the form "sth->$macro" or ref to macro subroutine
+
+=item Comments
+
+Be aware, that the 'first' binding means first one in the hash, 
+
+and you can hardly tell, which one that is
+Maybe we should normalize $macro here as well... 
+
+=item See Also
+
+L<get_binding_for_key>,
+L<bind_key>,
+L<unbind_key>,
+L<unbind_macro>,
+
+=item Returns
+
+Array of the bindings in list context, first binding in scalar context
+
+
+=back
+
+
+=item * C<TrEd::Macros::get_binding_for_key($context, $key)>
+
+=over 6
+
+=item Purpose
+
+Return the binding for the $key in specified $context
+
+
+=item Parameters
+
+  C<$context> -- string $context   -- context for key binding
+  C<$key> -- string $key       -- key or key combination, e.g. 'Ctrl+x'
+
+
+=item See Also
+
+L<unbind_key>,
+L<bind_key>,
+
+=item Returns
+
+Key binding if defined, undef otherwise
+
+
+=back
+
+
+=item * C<TrEd::Macros::get_keybindings($context)>
+
+=over 6
+
+=item Purpose
+
+Return hash of key bindings in context $context
+
+
+=item Parameters
+
+  C<$context> -- string $context -- context we are examinig
+
+=item Comments
+
+...
+
+
+=item See Also
+
+L<get_binding_for_key>,
+L<bind_key>,
+L<unbind_key>,
+L<copy_key_bindings>,
+
+=item Returns
+
+Hash of key bindings in context $context if there are any, undef otherwise
+
+
+=back
+
+
+=item * C<TrEd::Macros::copy_key_bindings($source_context, $destination_context)>
+
+=over 6
+
+=item Purpose
+
+Copy key bindings from one context $source_context to another ($destination_context)
+
+The $destination_context is created, if it does not exist. 
+
+=item Parameters
+
+  C<$source_context> -- string $source_context
+  C<$destination_context> -- string $destination_context
+
+
+=item See Also
+
+L<bind_key>,
+L<unbind_key>,
+L<get_contexts>,
+
+=item Returns
+
+Hash reference to destination context's keybindings or undef if $source_context does not exist 
+
+(or empty list in array context)
+
+=back
+
+
+=item * C<TrEd::Macros::add_to_menu($context, $label, $macro)>
+
+=over 6
+
+=item Purpose
+
+Adds new menu binding to macro $macro with label $label in context $context
+
+
+=item Parameters
+
+  C<$context> -- string $context       -- context for macro $macro 
+  C<$label> -- string $label         -- nonempty menu label for the $macro
+  C<$macro> -- string or ref $macro  -- string in the form "sth->$macro" or ref to macro subroutine
+
+=item Comments
+
+If label is empty, nothing is done, $context is created if it does not exist, 
+
+But more interestingly, undef is the second element in anon array, whose first element is
+the $macro
+
+=item See Also
+
+L<remove_from_menu>,
+
+=item Returns
+
+nothing
+
+
+=back
+
+
+=item * C<TrEd::Macros::remove_from_menu($context, $label)>
+
+=over 6
+
+=item Purpose
+
+Remove menu binding with label $label in specified $context 
+
+
+=item Parameters
+
+  C<$context> -- string $context -- name of the context
+  C<$label> -- string $label   -- menu label
+
+=item Comments
+
+Confusion between perl context and macro context in explanation is not very good I guess... 
+
+
+=item See Also
+
+L<add_menu>,
+L<remove_from_menu_macro>,
+
+=item Returns
+
+List of removed elements, i.e. list containing one array reference,
+
+or undef in scalar context if $context or $label in $context does not exist
+
+=back
+
+
+=item * C<TrEd::Macros::remove_from_menu_macro($context, $macro)>
+
+=over 6
+
+=item Purpose
+
+Remove menu binding for macro $macro in specified $context 
+
+
+=item Parameters
+
+  C<$context> -- string $context       -- context for macro $macro 
+  C<$macro> -- string or ref $macro  -- string in the form "sth->$macro" or ref to macro subroutine
+
+=item Comments
+
+...
+
+
+=item See Also
+
+L<remove_from_menu>,
+L<add_menu>,
+
+=item Returns
+
+nothing
+
+
+=back
+
+
+=item * C<TrEd::Macros::get_menus_for_macro($context, $macro)>
+
+=over 6
+
+=item Purpose
+
+Return all the menus bound to $macro in $context
+
+
+=item Parameters
+
+  C<$context> -- string $context       -- name of the context
+  C<$macro> -- string or ref $macro  -- string in the form "sth->$macro" or ref to macro subroutine
+
+=item Comments
+
+Be aware, that the 'first' label means first one in the hash, 
+
+and you can hardly tell, which one that is
+
+=item See Also
+
+L<get_macro_for_menu>,
+L<add_menu>,
+L<remove_from_menu>,
+
+=item Returns
+
+Array of all menu labels bound with specified $macro in context $context, 
+
+or 'first' label in scalar context
+
+=back
+
+
+=item * C<TrEd::Macros::get_macro_for_menu($context, $label)>
+
+=over 6
+
+=item Purpose
+
+Return macro bound to menu $label in specified $context
+
+
+=item Parameters
+
+  C<$context> -- string $context -- name of the desired context
+  C<$label> -- string $label   -- menu label
+
+
+=item See Also
+
+L<get_menus_for_macro>,
+L<get_menuitems>,
+L<add_menu>,
+L<remove_from_menu>,
+
+=item Returns
+
+Array reference with macro or undef if there is no menu binding with $label in $context
+
+
+=back
+
+
+=item * C<TrEd::Macros::get_menuitems($context)>
+
+=over 6
+
+=item Purpose
+
+Return all the menu bindings in context $context
+
+
+=item Parameters
+
+  C<$context> -- string $cotnext -- context searched for menu bindings
+
+
+=item See Also
+
+L<add_to_menu>,
+L<remove_from_menu>,
+
+=item Returns
+
+Hash of menu bindings, or undef if no menu bindigs exists for specified $context
+
+
+=back
+
+
+=item * C<TrEd::Macros::copy_menu_bindings($source_context, $destination_context)>
+
+=over 6
+
+=item Purpose
+
+Copies menu bindings from $source_context to $destination_context
+
+
+=item Parameters
+
+  C<$source_context> -- string $source_context      -- string representation (aka name) of source context
+  C<$destination_context> -- string $destination_context -- name of the destination context
+
+=item Comments
+
+Destination context is created if it does not exist
+
+
+=item See Also
+
+L<add_menu>,
+L<remove_from_menu>,
+L<get_contexts>,
+
+=item Returns
+
+Hash reference to destination context's menu bindings, or undef if no menu bindings for $source_context exists
+
+
+=back
+
+
+=item * C<TrEd::Macros::_read_default_macro_file($encoding, \@contexts);>
+
+=over 6
+
+=item Purpose
+
+Read default macro file in encoding $encoding into package variable @macros
+
+
+=item Parameters
+
+  C<$encoding> -- string $encoding        -- encoding of the default macro file
+  C<\@contexts> -- array_ref $contexts_ref -- reference to array of contexts
+
+=item Comments
+
+Origin: Sub extracted from read_macros to decrease its complexity
+
+Default macro file is set by TrEd::Config and can be configured via tredrc file.
+The default 'default macro file' is $libDir/tred.def (where $libDir is set by TrEd::Config, too)
+
+=item See Also
+
+L<read_macros>,
+
+=item Returns
+
+nothing
+
+
+=back
+
+
+=item * C<TrEd::Macros::read_macros($file, $libDir, $keep, $encoding, @contexts);>
+
+=over 6
+
+=item Purpose
+
+Read default macros and the specified macro $file using encoding $encoding
+
+
+=item Parameters
+
+  C<$file> -- scalar $file      -- file name
+  C<$libDir> -- scalar $libDir    -- library directory (usually tred/tredlib)
+  C<$keep> -- scalar $keep      -- 0/1 -- keep already loaded macros in memory?
+  C<$encoding> -- scalar $encoding  -- set the encoding of macro file
+  C<@contexts> -- list @contexts    -- list of contexts returned from preprocess function
+
+=item Comments
+
+This subroutine reads macro file. Macros are usual perl
+
+subroutines and may use this program's namespace. They are also
+provided some special names for certain variables which override
+the original namespace.
+Macros may be bound to a keysym with a special form of a comment.
+The synax is:
+# bind MacroName to key [[Modifyer+]*]KeySym
+which causes subroutine MacroName to be bound to keyboard event of
+simoultaneous pressing the optionally specified Modifyer(s) (which
+should be some of Shift, Ctrl and Alt) and the specified KeySym
+(this probabbly depends on platform too :( ).
+
+=item See Also
+
+L<preprocess>,
+L<set_encoding>,
+
+=item Returns
+
+nothing
+
+
+=back
+
+
+=item * C<TrEd::Macros::preprocess($file_handle, $file_name, \@macros, \@contexts)>
+
+=over 6
+
+=item Purpose
+
+Preprocess file $file_name, save the results to macros and contexts arrays
+
+Include #includes and #ifincludes respecting #ifdefs, #ifndefs, #elsifs, etc.
+
+=item Parameters
+
+  C<$file_handle> -- file_handle $file_handle  -- handle to opened file
+  C<$file_name> -- string $file_name         -- name of the file whose handle is passed as arg 1
+  C<\@macros> -- array_ref $macros         -- reference to array storing lines of macro files
+  C<\@contexts> -- array_ref $contexts       -- reference to array storing macro contexts, i.e. TrEd modes
+
+=item Comments
+
+new "pragmas":
+
+include <file>  ... relative to tred's libdir
+include "file"  ... relative to dir of the current macro file
+include file    ... absolute or relative to current dir or one of the above
+ifinclude       ... as include but without producing an error if file doesn't exist
+binding-context <context> [<context> [...]]
+key-binding-adopt <contexts>
+menu-binding-adopt <contexts>
+bind <method> [to] [key[sym]] <key> [menu <menu>[/submenu[/...]]]
+insert <method> [as] [menu] <menu>[/submenu[/...]]
+
+=item See Also
+
+L<read_macros>,
+
+=item Returns
+
+nothing
+
+
+=back
+
+
+=item * C<TrEd::Macros::set_encoding($file_handle, [$encoding]);>
+
+=over 6
+
+=item Purpose
+
+Set encoding for file $file_handle to $encoding (or to default_macro_encoding, if no encoding is specified)
+
+
+=item Parameters
+
+  C<$file_handle> -- file handle $file_handle  -- handle to a file
+  C<[$encoding]> -- [string $encoding          -- encoding name]
+
+=item Comments
+
+':utf8' should only be used for output, using ':encoding(utf8)' instead
+
+
+
+=item Returns
+
+nothing
+
+
+=back
+
+
+=item * C<TrEd::Macros::initialize_macros($win_ref)>
+
+=over 6
+
+=item Purpose
+
+Initializes macros, run them for the first time either using eval or in safe compartment
+
+
+=item Parameters
+
+  C<$win_ref> -- hash_ref $win_ref -- see below
+
+=item Comments
+
+The $win_ref parameter to the following two routines should be
+
+a hash reference, having at least the following keys:
+FSFile       => FSFile blessed reference of the current FSFile
+treeNo       => number of the current tree in the file
+macroContext => current context under which macros are run 
+the $win_ref itself is passed to the macro in the $grp variable
+Macros expect the following (minimally) variables set:
+$TredMacro::root    ... root of the current tree
+$TredMacro::this    ... current node
+$TredMacro::libDir  ... path to TrEd's library directory
+Macros signal the results of their operation using the following
+variables:
+$TredMacro::FileNotSaved   ... if 0, macro claims it has done no no changes
+that would need saving
+$TredMacos::forceFileSaved ... if 1, macro claims it saved the file itself
+
+=item See Also
+
+L<set_macro_variable>,
+
+=item Returns
+
+Return the result of macro evaluation or 2 if the macros were already evaluated
+
+
+=back
+
+
+=item * C<TrEd::Macros::macro_variable($var_name)>
+
+=over 6
+
+=item Purpose
+
+Construct a symbolic reference for getter and setter of macro variables
+
+
+=item Parameters
+
+  C<$var_name> -- string $var_name -- name of the variable
+
+=item Comments
+
+Symbolic references are kind of deprecated in Perl Best Practices, maybe think up some other way to do this...
+
+although in Safe.pm the implementation is similar...
+
+=item See Also
+
+L<get_macro_variable>,
+L<set_macro_variable>,
+
+=item Returns
+
+Name of the variable, either from Safe compartment, or with macro namespace prefix
+
+
+=back
+
+
+=item * C<TrEd::Macros::get_macro_variable($var_name)>
+
+=over 6
+
+=item Purpose
+
+Retrieve value of specified macro variable
+
+
+=item Parameters
+
+  C<$var_name> -- string $var_name  -- name of the variable
+
+
+=item See Also
+
+L<set_macro_variable>,
+L<macro_variable>,
+
+=item Returns
+
+Value of the macro variable
+
+
+=back
+
+
+=item * C<TrEd::Macros::set_macro_variable($var_name, $var_value)>
+
+=over 6
+
+=item Purpose
+
+Set macro variable in desired namespace
+
+
+=item Parameters
+
+  C<$var_name> -- string $var_name  -- name of the variable, e.g. TredMacro::my_variable
+  C<$var_value> -- scalar $var_value -- value of the var, e.g. 'value_of_var'
+
+
+=item See Also
+
+L<get_macro_variable>,
+L<macro_variable>,
+
+=item Returns
+
+nothing
+
+
+=back
+
+
+=item * C<TrEd::Macros::save_ctxt()>
+
+=over 6
+
+=item Purpose
+
+Allow saving current context by returning values of chosen variables
+
+
+=item Parameters
+
+
+=item Comments
+
+selected variables: grp, this, root, FileNotSaved, forceFileSaved 
+
+
+=item See Also
+
+L<restore_ctxt>,
+
+=item Returns
+
+Reference to array with values of selected variables from current context
+
+
+=back
+
+
+=item * C<TrEd::Macros::restore_ctxt($old_context)>
+
+=over 6
+
+=item Purpose
+
+Restore selected context variables from previously saved array reference
+
+
+=item Parameters
+
+  C<$old_context> -- array_ref $old_context -- context returned from function save_ctxt()
+
+=item Comments
+
+selected variables: grp, this, root, FileNotSaved, forceFileSaved
+
+
+=item See Also
+
+L<save_ctxt>,
+
+=item Returns
+
+nothing
+
+
+=back
+
+
+=item * C<TrEd::Macros::do_eval_macro($win_ref, $macro)>
+
+=over 6
+
+=item Purpose
+
+Evaluate macro and pass $win_ref to macro context
+
+
+=item Parameters
+
+  C<$win_ref> -- hash_ref $win_ref -- for details, see initialize_macros function
+  C<$macro> -- scalar $macro     -- name of macro to evaluate or reference to macro function or 
+                                    array with function reference as the first element and function arguments as other elements
+
+=item Comments
+
+Safe compartment accepts only string $macro parameter
+
+
+=item See Also
+
+L<initialize_macros>,
+L<set_macro_variable>,
+
+=item Returns
+
+The return value of evaluated macro, if macro is not supported
+
+function returns $TredMacro::this in scalar context or a list containing 
+two zeroes and $TredMacro::this in list context
+
+=back
+
+
+=item * C<TrEd::Macros::context_can($context, $sub)>
+
+=over 6
+
+=item Purpose
+
+Determine whether the context $context has a method called $sub
+
+
+=item Parameters
+
+  C<$context> -- string $context -- Name of the context
+  C<$sub> -- string $sub     -- Name of subroutine
+
+=item Comments
+
+supports using safe compartment
+
+
+=item See Also
+
+L<context_isa>,
+
+=item Returns
+
+Reference to method called $sub in context $context or undef if there is no such method
+
+
+=back
+
+
+=item * C<TrEd::Macros::context_isa($context, $package)>
+
+=over 6
+
+=item Purpose
+
+Determine whether context $context is in package $package
+
+
+=item Parameters
+
+  C<$context> -- string $context -- Name of the context
+  C<$package> -- string $package -- Name of package
+
+=item Comments
+
+supports using safe compartment (via a nasty hack introduced in initialize_macros)
+
+
+=item See Also
+
+L<initialize_macros>,
+L<context_can>,
+
+=item Returns
+
+True if context contains specified package, false otherwise
+
+
+=back
+
+
+=item * C<TrEd::Macros::do_eval_hook($win_ref, $context, $hook, @args)>
+
+=over 6
+
+=item Purpose
+
+Evaluate hook 
+
+
+=item Parameters
+
+  C<$win_ref> -- hash_ref $win_ref -- see initialize_macros for details
+  C<$context> -- string $context   -- context name
+  C<$hook> -- string $hook      -- name of the hook
+  C<@args> -- list @args        -- list of hook arguments 
+
+
+=item See Also
+
+L<initialize_macros>,
+
+=item Returns
+
+The result of hook eval or undef if no hook is specified
+
+
+=back
+
+
+
+
+=back
+
+
+=head1 DIAGNOSTICS
+
+
+=head1 CONFIGURATION AND ENVIRONMENT
+
+
+=head1 DEPENDENCIES
+
+Carp, Cwd, Treex::PML, File::Spec, File::Glob, TrEd::Config, TrEd::Basics, TrEd::Convert, Encode, Exporter
+
+
+=head1 INCOMPATIBILITIES
+
+
+
+=head1 BUGS AND LIMITATIONS
+
+There are no known bugs in this module.
+Please report problems to 
+Zdenek Zabokrtsky <zabokrtsky@ufal.ms.mff.cuni.cz>
+
+Patches are welcome.
+
+
+=head1 AUTHOR
+
+Petr Pajas <pajas@matfyz.cz>
+
+Copyright (c) 
+2010 Petr Pajas <pajas@matfyz.cz>
+2011 Peter Fabian (documentation & tests). 
+All rights reserved.
+
+
+This software is distributed under GPL - The General Public Licence.
+Full text of the GPL can be found in the LICENSE file distributed with
+this program and also on-line at http://www.gnu.org/copyleft/gpl.html .
