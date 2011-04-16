@@ -6,9 +6,12 @@ use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../tredlib";
 use File::Spec;
+use File::Find;
 use Cwd;
+use TrEd::Utils qw(find_win_home);
+use TrEd::Basics qw(uniq);
 
-use Data::Dumper;
+#use Data::Dumper;
 use Tk qw{};
 
 use Test::More 'no_plan';
@@ -99,6 +102,7 @@ sub test_read_parse_config {
       'vlinealign'            =>  "b\\;ab", # one backslash, cancel commentary
       'vlinewrap'             =>  "bab\\ ", # one backslash, leave escaped whitespace
       'vlinereverselines'     =>  "c:\\\\documents and settings\\\\space in folder name is a great invention\\\\my file.txt",
+      'one::tWo'              =>  "one_two",
     ); 
     
     my %control_hash = (
@@ -119,65 +123,71 @@ sub test_read_parse_config {
       'vlinealign'            =>  "b;ab",
       'vlinewrap'             =>  "bab ",
       'vlinereverselines'     =>  "c:\\documents and settings\\space in folder name is a great invention\\my file.txt",
+      'one::tWo'              =>  "one_two",
     );
     
-    print $config_fh "; this is a comment\n";
-    print $config_fh "# this is a comment\n";
-    foreach my $key (keys(%input_hash)){
-      print $config_fh $key . " =  " . $input_hash{$key} . "\n";
-    };
-    close($config_fh);
-    
-    my $cur_dir = getcwd();
-    my $config_file_path = File::Spec->catfile($cur_dir, $dummy_config);
-    
-    my $used_config = read_config($config_file_path);
-    like( $used_config,
-          qr/$dummy_config/, 
-          "read_config(): Read supplied config file");
-    {
-      no warnings "once";
-      # 3 double quoted string tests:
-      is($TrEd::Config::canvasBalloonInitWait,    $control_hash{'hintwait'}, 
-      "read_config(): using double quotes in config file");
-      is($TrEd::Config::canvasBalloonForeground,  $control_hash{'hintforeground'},
-      "read_config(): escaping double quote at the end of double-quoted string");
-      is($TrEd::Config::canvasBalloonBackground,  $control_hash{'hintbackground'},
-      "read_config(): escaping double quote in the middle of double-quoted string");
-      # 6 single quoted string tests:
-      is($TrEd::Config::toolbarBalloonInitWait,   $control_hash{'toolbarhintwait'},
-      "read_config(): using single quotes in config file, ignore other text");
-      is($TrEd::Config::toolbarBalloonForeground, $control_hash{'toolbarhintforeground'},
-      "read_config(): commentary with unpaired single quote");
-      is($TrEd::Config::toolbarBalloonBackground, $control_hash{'toolbarhintbackground'},
-      "read_config(): escaping single quote in the middle of single-quoted string");
-      is($TrEd::Config::activeTextColor,          $control_hash{'activetextcolor'},
-      "read_config(): don't treat comments in quotes as comments");
-      is($TrEd::Config::stippleInactiveWindows,   $control_hash{'stippleinactivewindows'},
-      "read_config(): 1 backslash from 3");
-      is($TrEd::Config::highlightWindowColor,     $control_hash{'highlightwindowcolor'},
-      "read_config(): don't let comments with quotes confuse us");
-      # 5 unquoted string tests:
-      is($TrEd::Config::highlightWindowWidth,     $control_hash{'highlightwindowwidth'},
-      "read_config(): treat comments correctly");
-      is($TrEd::Config::valueLineHeight,          $control_hash{'vlineheight'},
-      "read_config(): eating one backslash");
-      is($TrEd::Config::valueLineAlign,           $control_hash{'vlinealign'},
-      "read_config(): escaped comment");
-      is($TrEd::Config::valueLineWrap,            $control_hash{'vlinewrap'},
-      "read_config(): don't delete escaped whitespace at the end");
-      is($TrEd::Config::valueLineReverseLines,    $control_hash{'vlinereverselines'},
-      "read_config(): windows path using spaces and backslashes");
+    if ($config_fh) {
+      print $config_fh "; this is a comment\n";
+      print $config_fh "# this is a comment\n";
+      foreach my $key (keys(%input_hash)){
+        print $config_fh $key . " =  " . $input_hash{$key} . "\n";
+      };
+      close($config_fh);
     }
-    
+    # if sth bails out, we should remove the dummy config file we've created, so eval tests
+    eval {
+      my $cur_dir = getcwd();
+      my $config_file_path = File::Spec->catfile($cur_dir, $dummy_config);
+      
+      my $used_config = read_config($config_file_path);
+      like( $used_config,
+            qr/$dummy_config/, 
+            "read_config(): Read supplied config file");
+
+        no warnings "once";
+        # 3 double quoted string tests:
+        is($TrEd::Config::canvasBalloonInitWait,    $control_hash{'hintwait'}, 
+        "read_config(): using double quotes in config file");
+        is($TrEd::Config::canvasBalloonForeground,  $control_hash{'hintforeground'},
+        "read_config(): escaping double quote at the end of double-quoted string");
+        is($TrEd::Config::canvasBalloonBackground,  $control_hash{'hintbackground'},
+        "read_config(): escaping double quote in the middle of double-quoted string");
+        # 6 single quoted string tests:
+        is($TrEd::Config::toolbarBalloonInitWait,   $control_hash{'toolbarhintwait'},
+        "read_config(): using single quotes in config file, ignore other text");
+        is($TrEd::Config::toolbarBalloonForeground, $control_hash{'toolbarhintforeground'},
+        "read_config(): commentary with unpaired single quote");
+        is($TrEd::Config::toolbarBalloonBackground, $control_hash{'toolbarhintbackground'},
+        "read_config(): escaping single quote in the middle of single-quoted string");
+        is($TrEd::Config::activeTextColor,          $control_hash{'activetextcolor'},
+        "read_config(): don't treat comments in quotes as comments");
+        is($TrEd::Config::stippleInactiveWindows,   $control_hash{'stippleinactivewindows'},
+        "read_config(): 1 backslash from 3");
+        is($TrEd::Config::highlightWindowColor,     $control_hash{'highlightwindowcolor'},
+        "read_config(): don't let comments with quotes confuse us");
+        # 5 unquoted string tests:
+        is($TrEd::Config::highlightWindowWidth,     $control_hash{'highlightwindowwidth'},
+        "read_config(): treat comments correctly");
+        is($TrEd::Config::valueLineHeight,          $control_hash{'vlineheight'},
+        "read_config(): eating one backslash");
+        is($TrEd::Config::valueLineAlign,           $control_hash{'vlinealign'},
+        "read_config(): escaped comment");
+        is($TrEd::Config::valueLineWrap,            $control_hash{'vlinewrap'},
+        "read_config(): don't delete escaped whitespace at the end");
+        is($TrEd::Config::valueLineReverseLines,    $control_hash{'vlinereverselines'},
+        "read_config(): windows path using spaces and backslashes");
+        is($one::tWo,                               $control_hash{'one::tWo'},
+        "read_config(): name with ::");
+    };
     unlink($dummy_config);
   }
-
+  @TrEd::Config::config_file_search_list = ();
+  is(read_config(), undef, 
+      "read_config(): return undef if no config file found");
+    
 }
 
 sub test_tilde_expand {
-  #TODO: neviem, ci to bude fungovat na windowse, otestuj..
-  # dalsia moznost je zavolat TrEd::Utils::find_win_home() ;)
   my %test_hash = (
     "~/directory/one" => $ENV{HOME} . "/directory/one",
     "abc~/dir/two"    => "abc" . $ENV{HOME} . "/dir/two",
@@ -239,8 +249,8 @@ sub test__parse_cmdline_options {
     "name1=value2",
     "Name::SubName=value3",
     "NewName=value4",
-    "zero-length\\s-=value5",
-    "zero-length\\s=value6",
+    "zero-length\\t-=value5",
+    "zero-length\\t=value6",
     "urls\\s+=http://www.newurl.com",
     "urls\\s-=http://www.url1.com",
     "urls\\s=http://www.prependedurl.com",
@@ -409,30 +419,392 @@ sub test__set_fonts {
 }
 
 sub test__set_resource_path {
-#  my ($confs_ref, $def_share_path) = @_;
-#  my $def_res_path  = $def_share_path =~ m{/share/tred$} ? $def_share_path : File::Spec->catdir($def_share_path,'resources');
-#  $def_res_path = tilde_expand(q(~/.tred.d)) . $resourcePathSplit . $def_res_path ;
-#  my @r = split $resourcePathSplit, $Treex::PML::resourcePath;
-#  my $r;
-#  if (exists $confs_ref->{resourcepath}) {
-#    my $path = 
-#      join($resourcePathSplit, map { tilde_expand($_) } split(/\Q$resourcePathSplit\E/, $confs_ref->{resourcepath}));
-#    if ($path=~/^\Q$resourcePathSplit\E/) {
-#      $path=$def_res_path.$path;
-#    } elsif ($path=~/\Q$resourcePathSplit\E$/) {
-#      $path.=$def_res_path;
-#    }
-#    $r = $path;
-#  } else {
-#    $r = $def_res_path;
-#  }
-#  unshift @r, split($resourcePathSplit,$r),
-#  my %r;
-#  $Treex::PML::resourcePath = join $resourcePathSplit, grep { defined and length } map { exists($r{$_}) ? () : ($r{$_}=$_) } @r;
+  my $separator = ($^O eq "MSWin32") ? ',' : ':';
+  my $default_share_dir = "/home/john/share/tred";
+  $Treex::PML::resourcePath = "/home/john/.tred.d/" . $separator . "/home/john/.local/.tred.d/";
+  
+  my $home_backup = $ENV{HOME};
+  $ENV{HOME} = "/home/john";
+  
+  my $default_resource_path = $ENV{HOME} . "/.tred.d" . $separator . $default_share_dir;
+  my $expected_res_path = join($separator, ($default_resource_path, $Treex::PML::resourcePath));
+  
+  TrEd::Config::_set_resource_path({}, $default_share_dir);
+  is($Treex::PML::resourcePath, $expected_res_path,
+    "_set_resource_path(): set Treex::PML::resourcePath correctly");
+  
+  # init Treex::PML::resourcePath again
+  $Treex::PML::resourcePath = "/home/john/.tred.d/" . $separator . "/home/john/.local/.tred.d/";
+  # resourcepath in configuration set
+  my %confs = (
+    'resourcepath'  => $separator ."~/.tred.d/" . $separator . "~/tred.resources" . $separator,
+  );
+  # another kind of share dir -- does not end with "/share/tred"
+  $default_share_dir = "/home/tred/";
+  
+  # prepare expected results
+  $default_resource_path = $ENV{HOME} . "/.tred.d" . $separator . "${default_share_dir}resources";
+  my $conf_res_paths = $ENV{HOME} . "/.tred.d/" . $separator . $ENV{HOME} . "/tred.resources";
+  $expected_res_path = join($separator, ($default_resource_path, $conf_res_paths, $Treex::PML::resourcePath));
+  my @expected_paths = sort(TrEd::Basics::uniq(split($separator, $expected_res_path)));
+  
+  TrEd::Config::_set_resource_path(\%confs, $default_share_dir);
+  my @got_paths = sort(split($separator, $Treex::PML::resourcePath));
+  is_deeply(\@got_paths, \@expected_paths, 
+    "_set_resource_path(): set Treex::PML::resourcePath correctly when configuration is set");
+  
+  $ENV{HOME} = $home_backup;
+}
+
+sub _compare_print_options {
+  my ($confs_ref, $expected_printOptions_ref, $msg) = @_;
+  if(!defined($msg)) {
+    $msg = "";
+  }
+  
+  TrEd::Config::_set_print_options($confs_ref);
+  
+  my $ttf_font_found = 0;
+  
+  # look for *.ttf files in directories from ttFontPath
+  find( sub { if($_ =~ /\.ttf$/i) { $ttf_font_found = 1 } }, 
+        split(/,/, $TrEd::Config::printOptions->{'ttFontPath'}) );
+  
+  is($ttf_font_found, 1, 
+    "_set_print_options(): TTF fonts found; $msg");
+  
+  # We've already tested ttFontPath and if we don't want to copy the same logic as _set_print_options
+  # uses, we just set ttFontPath to undef 
+  $TrEd::Config::printOptions->{'ttFontPath'} = undef;
+  
+  is_deeply($TrEd::Config::printOptions, $expected_printOptions_ref, 
+    "_set_print_options(): set fonts correctly according to configuration hash; $msg");
+}
+
+sub test__set_print_options {
+  # we need this default options, they are used in printOptions
+  my %defaultPrintConfig = (
+    printOnePerFile => ['-oneTreePerFile',0],
+    printTo => [undef,'printer'],
+    printFormat => ['-format','PS'],
+    printFileExtension => [undef,'ps'],
+    printSentenceInfo => ['-sentenceInfo', 0],
+    printFileInfo => ['-fileInfo', 0],
+    printImageMagickResolution => ['-imageMagickResolution', 80],
+    printNoRotate=> ['-noRotate',0],
+    printColors => ['-colors', 1],
+    ttFont=> ['-ttFontName',"Arial"],
+    ttFontPath => ['-ttFontPath', undef],
+    psFontFile => ['-psFontFile', undef],
+    psFontAFMFile => ['-psFontAFMFile', undef],
+    psFontSize => ['-fontSize', (($^O=~/^MS/) ? 14 : 12)],
+    prtFmtWidth => ['-fmtWidth', 595],
+    prtFmtHeight => ['-fmtHeight', 842],
+    prtVMargin => ['-vMargin', '3c'],
+    prtHMargin => ['-hMargin', '2c'],
+    psMedia => ['-psMedia', 'A4'],
+    psFile => [undef, undef],
+    maximizePrintSize => ['-maximize', 0],
+    defaultPrintCommand => ['-command', (($^O eq 'MSWin32') ? 'prfile32.exe /-' : 'lpr')],
+  );
+  
+  # change one string and one numeric value (overwrite defaults)
+  my %confs = (
+    'defaultprintcommand' => 'other_print',
+    'printsentenceinfo'   => 1,
+  );
+  
+  # construct expected printOptions hash
+  my %expected_printOptions;
+  foreach my $opt_name (keys(%defaultPrintConfig)) {
+    $expected_printOptions{$opt_name} = $defaultPrintConfig{$opt_name}->[1];
+  };
+  
+  $expected_printOptions{'defaultPrintCommand'} = 'other_print';
+  $expected_printOptions{'printSentenceInfo'} = 1;
+  
+  # find out the default font
+  $TrEd::Config::libDir = "$FindBin::Bin/../tredlib";
+  my $default_font; 
+  if (!defined($Tk::VERSION) or $Tk::VERSION >= 804) {
+    $default_font = "n019003l.pfa";
+  } else {
+    $default_font = "ariam___.pfa";
+  }
+  
+  
+  # psFontFile
+  #
+  ## 1) psFontFile defined in $printOptions 
+  ### a) length = 0; 
+  $confs{'psfontfile'} = "";
+  $expected_printOptions{'psFontFile'} = "$TrEd::Config::libDir/fonts/$default_font";
+  
+  # find out expected AFM font
+  my $AFM_font = "$TrEd::Config::libDir/fonts/$default_font";
+  $AFM_font =~ s/\.pfa/\.afm/;
+  
+  if (-f $AFM_font) {
+    $expected_printOptions{'psFontAFMFile'} = $AFM_font;
+  } else {
+    $expected_printOptions{'psFontAFMFile'} = "$TrEd::Config::libDir/$AFM_font";
+  }
+  
+  _compare_print_options(\%confs, \%expected_printOptions, "psFontFile defined, but length = 0");
+  
+  ### b) $confs{'psFontFile'} pointing to existing file 
+  my $fake_font_name = "fake_font.pfa";
+  my $fake_font_created = open(my $fake_font, '>', $fake_font_name);
+  
+  $AFM_font = $fake_font_name;
+  $AFM_font =~ s/\.pfa/\.afm/;
+  my $fake_AFM_created = open(my $fake_AFM, '>', $AFM_font);
+  
+  if($fake_font_created and $fake_AFM_created) {
+    ## here is the difference between the previous and current test case
+    $confs{'psfontfile'} = $fake_font_name;
+    $expected_printOptions{'psFontFile'} = $fake_font_name;
+    
+    if (-f $AFM_font) {
+      $expected_printOptions{'psFontAFMFile'} = $AFM_font;
+    } else {
+      $expected_printOptions{'psFontAFMFile'} = "$TrEd::Config::libDir/$AFM_font";
+    }
+    # in case of death, we have to clean up files we've created
+    eval {
+      _compare_print_options(\%confs, \%expected_printOptions, "psfontfile pointing to existing file");
+    };
+    unlink($fake_AFM);
+    unlink($fake_font);
+  }
+  
+  ### c) existing, but must add $libDir before -> psFontFile = $libDir/fonts/n019003l.pfa
+  $confs{'psfontfile'} = "fonts/$default_font";
+  $expected_printOptions{'psFontFile'} = "$TrEd::Config::libDir/" . $confs{'psfontfile'};
+  
+  # find out expected AFM font
+  $AFM_font = "$TrEd::Config::libDir/" . $confs{'psfontfile'};
+  $AFM_font =~ s/\.pfa/\.afm/;
+  if (-f $AFM_font) {
+    $expected_printOptions{'psFontAFMFile'} = $AFM_font;
+  } else {
+    $expected_printOptions{'psFontAFMFile'} = "$TrEd::Config::libDir/$AFM_font";
+  }
+  
+  _compare_print_options(\%confs, \%expected_printOptions, "psfontfile pointing to existing file, but libDir must be prepended");
+  
+  ### d) file that does not exist and adding $libDir does not help neither
+  $confs{'psfontfile'} = "fonts/non_existing_font.pfa";
+  $expected_printOptions{'psFontFile'} = $confs{'psfontfile'};
+  
+  # find out expected AFM font
+  $expected_printOptions{'psFontAFMFile'} = "fonts/afm/non_existing_font.afm";
+  
+  _compare_print_options(\%confs, \%expected_printOptions, "psfontfile pointing to file that does not exist");
+  
+  
+  ## 2) psFontFile not defined
+  $confs{'psfontfile'} = undef;
+  
+  $expected_printOptions{'psFontFile'} = "$TrEd::Config::libDir/fonts/$default_font";
+  
+  # find out expected AFM font
+  $AFM_font = "$TrEd::Config::libDir/fonts/$default_font";
+  $AFM_font =~ s/\.pfa/\.afm/;
+  
+  if (-f $AFM_font) {
+    $expected_printOptions{'psFontAFMFile'} = $AFM_font;
+  } else {
+    $expected_printOptions{'psFontAFMFile'} = "$TrEd::Config::libDir/$AFM_font";
+  }
+  
+  _compare_print_options(\%confs, \%expected_printOptions, "psFontFile defined, but length = 0");
+  
+  
+  # psFontAFMFile
+  #
+  ## 1) psFontAFMFile defined in $printOptions
+  ### a) length = 0;
+  $confs{'psfontafmfile'} = "";
+  $confs{'psfontfile'} = undef;
+  
+  $expected_printOptions{'psFontFile'} = "$TrEd::Config::libDir/fonts/$default_font";
+  
+  # find out expected AFM font
+  $AFM_font = "$TrEd::Config::libDir/fonts/$default_font";
+  $AFM_font =~ s/\.pfa/\.afm/;
+  
+  if (-f $AFM_font) {
+    $expected_printOptions{'psFontAFMFile'} = $AFM_font;
+  } else {
+    $expected_printOptions{'psFontAFMFile'} = "$TrEd::Config::libDir/$AFM_font";
+  }
+  
+  _compare_print_options(\%confs, \%expected_printOptions, "psFontFile defined, but length = 0");
+  
+  ### b) existing as is
+  $confs{'psfontfile'} = undef;
+  $expected_printOptions{'psFontFile'} = "$TrEd::Config::libDir/fonts/$default_font";
+  
+  
+  # find out expected AFM font
+  $AFM_font = "$TrEd::Config::libDir/fonts/$default_font";
+  $AFM_font =~ s/\.pfa/\.afm/;
+  $confs{'psfontafmfile'} = $AFM_font;
+  
+  if (-f $AFM_font) {
+    $expected_printOptions{'psFontAFMFile'} = $AFM_font;
+  } else {
+    $expected_printOptions{'psFontAFMFile'} = "$TrEd::Config::libDir/$AFM_font";
+  }
+  
+  _compare_print_options(\%confs, \%expected_printOptions, "psFontFile defined, but length = 0");
+  
+  # c) existing, but must add $libDir before
+  $confs{'psfontfile'} = undef;
+  $expected_printOptions{'psFontFile'} = "$TrEd::Config::libDir/fonts/$default_font";
+  
+  
+  # find out expected AFM font
+  $AFM_font = "fonts/$default_font";
+  $AFM_font =~ s/\.pfa/\.afm/;
+  $confs{'psfontafmfile'} = $AFM_font;
+  
+  if (-f $AFM_font) {
+    $expected_printOptions{'psFontAFMFile'} = $AFM_font;
+  } else {
+    $expected_printOptions{'psFontAFMFile'} = "$TrEd::Config::libDir/$AFM_font";
+  }
+  
+  _compare_print_options(\%confs, \%expected_printOptions, "psFontFile defined, but length = 0");
+  
+  
+  ## these have been already tried when testing psFontFile
+  ## 2) psFontAFMFile not defined
+  ### a) psFontFile with afm ending is in the same dir
+  ### b) is in afm subdir (undefining Tk::VERSION should be enough for this)
+}
+
+sub test__set_extensions {
+  my $default_repos = "http://ufal.mff.cuni.cz/~pajas/tred/extensions";
+  
+  # 1 -- $confs_ref->{extensionsdir}'s length = 0
+  my %confs = (
+    'extensionsdir' => "",
+  );
+  my $default_share_path = "/home/john/share";
+  
+  my $expected_extensionsDir = $ENV{'HOME'} . "/.tred.d/extensions";
+  my $expected_extensionsRepos = $default_repos;
+  my $expected_preinstalledExtDir = File::Spec->catdir($default_share_path, 'tred-extensions');
+  
+  TrEd::Config::_set_extensions(\%confs, $default_share_path);
+  
+  is($TrEd::Config::extensionsDir, $expected_extensionsDir, 
+    "_set_extensions(): default extensionsDir set correctly");
+  
+  is($TrEd::Config::extensionRepos, $expected_extensionsRepos, 
+    "_set_extensions(): default extensionsRepos set correctly");
+  
+  is($TrEd::Config::preinstalledExtensionsDir, $expected_preinstalledExtDir, 
+    "_set_extensions(): default preinstalledExtensionsDir set correctly");
+  
+  # 2 -- $confs_ref->{extensionsdir}'s length > 0
+  %confs = (
+    'extensionsdir' => "/home/john/extensions",
+  );
+  
+  $expected_extensionsDir = "/home/john/extensions";
+  $expected_extensionsRepos = $default_repos;
+  $expected_preinstalledExtDir = File::Spec->catdir($default_share_path, 'tred-extensions');
+  
+  TrEd::Config::_set_extensions(\%confs, $default_share_path);
+  
+  is($TrEd::Config::extensionsDir, $expected_extensionsDir, 
+    "_set_extensions(): extensionsDir set correctly from config");
+  
+  is($TrEd::Config::extensionRepos, $expected_extensionsRepos, 
+    "_set_extensions(): default extensionsRepos set correctly");
+  
+  is($TrEd::Config::preinstalledExtensionsDir, $expected_preinstalledExtDir, 
+    "_set_extensions(): default preinstalledExtensionsDir set correctly");
+  
+  
+  # 3 -- $confs_ref->{extensionrepos} is set
+  my $repository = "/home/john/extensions/repository";
+  %confs = (
+    'extensionrepos' => $repository,
+  );
+  
+  $expected_extensionsDir = $ENV{'HOME'} . "/.tred.d/extensions";
+  $expected_extensionsRepos = $repository;
+  $expected_preinstalledExtDir = File::Spec->catdir($default_share_path, 'tred-extensions');
+  
+  TrEd::Config::_set_extensions(\%confs, $default_share_path);
+  
+  is($TrEd::Config::extensionsDir, $expected_extensionsDir, 
+    "_set_extensions(): default extensionsDir set correctly");
+  
+  is($TrEd::Config::extensionRepos, $expected_extensionsRepos, 
+    "_set_extensions(): extensionsRepos set correctly from config");
+  
+  is($TrEd::Config::preinstalledExtensionsDir, $expected_preinstalledExtDir, 
+    "_set_extensions(): default preinstalledExtensionsDir set correctly");
+  
+  # 4 -- $confs_ref->{extensionrepos} is not set -- already tested
+  
+  # 5 -- $confs_ref->{preinstalledextensionsdir}'s length != 0
+  my $preinstalled_ext_dir = "/home/john/preinstalled/extensions";
+  %confs = (
+    'preinstalledextensionsdir' => $preinstalled_ext_dir,
+  );
+  
+  $expected_extensionsDir = $ENV{'HOME'} . "/.tred.d/extensions";
+  $expected_extensionsRepos = $default_repos;;
+  $expected_preinstalledExtDir = $preinstalled_ext_dir;
+  
+  TrEd::Config::_set_extensions(\%confs, $default_share_path);
+  
+  is($TrEd::Config::extensionsDir, $expected_extensionsDir, 
+    "_set_extensions(): default extensionsDir set correctly");
+  
+  is($TrEd::Config::extensionRepos, $expected_extensionsRepos, 
+    "_set_extensions(): default extensionsRepos set correctly");
+  
+  is($TrEd::Config::preinstalledExtensionsDir, $expected_preinstalledExtDir, 
+    "_set_extensions(): preinstalledExtensionsDir set correctly from config");
+    
+  # 6 -- $confs_ref->{preinstalledextensionsdir}'s length = 0 && $def_share_path =~ m{/share/tred$}
+  $default_share_path = "/home/john/share/tred";
+  %confs = (
+    'preinstalledextensionsdir' => "",
+  );
+  
+  $expected_extensionsDir = $ENV{'HOME'} . "/.tred.d/extensions";
+  $expected_extensionsRepos = $default_repos;;
+  $expected_preinstalledExtDir = $default_share_path . '-extensions';
+  
+  TrEd::Config::_set_extensions(\%confs, $default_share_path);
+  
+  is($TrEd::Config::extensionsDir, $expected_extensionsDir, 
+    "_set_extensions(): default extensionsDir set correctly");
+  
+  is($TrEd::Config::extensionRepos, $expected_extensionsRepos, 
+    "_set_extensions(): default extensionsRepos set correctly");
+  
+  is($TrEd::Config::preinstalledExtensionsDir, $expected_preinstalledExtDir, 
+    "_set_extensions(): preinstalledExtensionsDir set correctly from default share path");
+  
+  # 7 -- $confs_ref->{preinstalledextensionsdir}'s length = 0 && not ($def_share_path =~ m{/share/tred$}) -- already tested
   
 }
 
-## Run tests
+####################
+#### Run tests #####
+####################
+
+# we need to set HOME env variable also on Windows at least for tilde_expand() and _set_resource_path();
+TrEd::Utils::find_win_home();
 
 test_set_default_config_file_search_list();
 test_read_parse_config();
@@ -443,3 +815,6 @@ test__parse_cmdline_options();
 test__set_treeViewOpts();
 test__set_font_encoding();
 test__set_fonts();
+test__set_resource_path();
+test__set_print_options();
+test__set_extensions();

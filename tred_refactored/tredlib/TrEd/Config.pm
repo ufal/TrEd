@@ -7,17 +7,17 @@ package TrEd::Config;
 # This software covered by GPL - The General Public Licence
 #
 
-#use Data::Dumper;
 
 use strict;
 use File::Spec;
 use Cwd;
+
 BEGIN {
   use vars      qw($VERSION @ISA @EXPORT @EXPORT_OK @config_file_search_list $quiet);
   use Exporter  ();
   @ISA=qw(Exporter);
   #  use Tk; # Tk::strictMotif
-  $VERSION = "0.1";
+  $VERSION = "0.2";
   @EXPORT = qw(@config_file_search_list $set_user_config $override_options
   $appName
   $buttonsRelief
@@ -150,35 +150,35 @@ $treeViewOpts={
 
   # we want to create scalar references to these options:
   clearTextBackground => 1,
-  drawEdgeBoxes => 0,
-  drawBoxes => 0,
-  showHidden => 0,
-  displayMode => 0,
+  drawEdgeBoxes       => 0,
+  drawBoxes           => 0,
+  showHidden          => 0,
+  displayMode         => 0,
 };
 
 %defaultPrintConfig = (
-  printOnePerFile => ['-oneTreePerFile',0],
-  printTo => [undef,'printer'],
-  printFormat => ['-format','PS'],
-  printFileExtension => [undef,'ps'],
-  printSentenceInfo => ['-sentenceInfo', 0],
-  printFileInfo => ['-fileInfo', 0],
-  printImageMagickResolution => ['-imageMagickResolution', 80],
-  printNoRotate=> ['-noRotate',0],
-  printColors => ['-colors', 1],
-  ttFont=> ['-ttFontName',"Arial"],
-  ttFontPath => ['-ttFontPath', undef],
-  psFontFile => ['-psFontFile', undef],
-  psFontAFMFile => ['-psFontAFMFile', undef],
-  psFontSize => ['-fontSize', (($^O=~/^MS/) ? 14 : 12)],
-  prtFmtWidth => ['-fmtWidth', 595],
-  prtFmtHeight => ['-fmtHeight', 842],
-  prtVMargin => ['-vMargin', '3c'],
-  prtHMargin => ['-hMargin', '2c'],
-  psMedia => ['-psMedia', 'A4'],
-  psFile => [undef, undef],
-  maximizePrintSize => ['-maximize', 0],
-  defaultPrintCommand => ['-command', (($^O eq 'MSWin32') ? 'prfile32.exe /-' : 'lpr')],
+  printOnePerFile             => ['-oneTreePerFile',0],
+  printTo                     => [undef,'printer'],
+  printFormat                 => ['-format','PS'],
+  printFileExtension          => [undef,'ps'],
+  printSentenceInfo           => ['-sentenceInfo', 0],
+  printFileInfo               => ['-fileInfo', 0],
+  printImageMagickResolution  => ['-imageMagickResolution', 80],
+  printNoRotate               => ['-noRotate',0],
+  printColors                 => ['-colors', 1],
+  ttFont                      => ['-ttFontName',"Arial"],
+  ttFontPath                  => ['-ttFontPath', undef],
+  psFontFile                  => ['-psFontFile', undef],
+  psFontAFMFile               => ['-psFontAFMFile', undef],
+  psFontSize                  => ['-fontSize', (($^O=~/^MS/) ? 14 : 12)],
+  prtFmtWidth                 => ['-fmtWidth', 595],
+  prtFmtHeight                => ['-fmtHeight', 842],
+  prtVMargin                  => ['-vMargin', '3c'],
+  prtHMargin                  => ['-hMargin', '2c'],
+  psMedia                     => ['-psMedia', 'A4'],
+  psFile                      => [undef, undef],
+  maximizePrintSize           => ['-maximize', 0],
+  defaultPrintCommand         => ['-command', (($^O eq 'MSWin32') ? 'prfile32.exe /-' : 'lpr')],
 );
 
 $printOptions={};
@@ -196,6 +196,7 @@ $printOptions={};
 #                 TREDHOME environment variable and relative to the original perl script's 
 #                 directory: under subdirectory tredlib, ../lib/tredlib, ../lib/tred
 # See Also      : $FindBin::RealBin
+#TODO: can't this be done on load/construction/compilation of the module?
 sub set_default_config_file_search_list {
   require FindBin;
   @config_file_search_list=
@@ -229,7 +230,7 @@ sub tilde_expand {
 }
 
 #####################################################################################
-# Usage         : parse_config_line()
+# Usage         : parse_config_line($line, $confs_ref)
 # Purpose       : Parse each line of the config file to extract key and value pair and 
 #                 save it into hash $confs_ref
 # Returns       : nothing
@@ -322,7 +323,7 @@ sub read_config {
     if (defined($f) and open($fh,'<',$f)) {
       print STDERR "Config file: $f\n" unless $quiet;
       while (<$fh>) {
-        parse_config_line($_,\%confs);
+        parse_config_line($_, \%confs);
       }
       close($fh);
       $config_found = 1;
@@ -345,13 +346,13 @@ sub read_config {
 # Purpose       : Apply configuration @options
 # Returns       : Nothing
 # Parameters    : list @options -- list of option_name=option_value strings
-# Throws        : 
+# Throws        : nothing
 # Comments      : Parses configuration @options, calls set_config() with new options
 # See Also      : set_config(), parse_config_line() 
 sub apply_config {
   my %confs;
-  foreach (@_) {
-    parse_config_line($_,\%confs);
+  foreach my $line (@_) {
+    parse_config_line($line, \%confs);
   }
   set_config(\%confs);
   return;
@@ -536,100 +537,136 @@ sub _set_font_encoding {
 
 #####################################################################################
 # Usage         : _set_resource_path($confs_ref, $default_share_path)
-# Purpose       : ...
-# Returns       : ...
+# Purpose       : Add resource paths from configuration hash and default resource path to $Treex::PML::resourcePath
+# Returns       : nothing
 # Parameters    : hash_ref $confs_ref         -- hash with configuration options
-#                 scalar $default_share_path  -- share path
+#                 scalar $default_share_path  -- default share path
 # Throws        : nothing
-# Comments      : 
-# See Also      : set_config(), _set_font_encoding()
+# Comments      : HOME environment variable should be set before running this function, on Windows, 
+#                 one can run TrEd::Utils::find_win_home() to set HOME variable for this purpose
+#                 Default resource path is constructed from $def_share_path
+# See Also      : set_config(), _set_font_encoding(), tilde_expand()
 sub _set_resource_path {
   my ($confs_ref, $def_share_path) = @_;
-  
+  # resource path delimiter
   my $resourcePathSplit = ($^O eq "MSWin32") ? ',' : ':';
   
-  my $def_res_path  = $def_share_path =~ m{/share/tred$} ? $def_share_path : File::Spec->catdir($def_share_path,'resources');
+  # construct default resource path
+  my $def_res_path = ($def_share_path =~ m{/share/tred$}) ? $def_share_path : File::Spec->catdir($def_share_path,'resources');
   $def_res_path = tilde_expand(q(~/.tred.d)) . $resourcePathSplit . $def_res_path ;
-  my @r = split $resourcePathSplit, $Treex::PML::resourcePath;
+  # original resourcePath
+  my @r = split($resourcePathSplit, $Treex::PML::resourcePath);
   my $r;
-  if (exists($confs_ref->{resourcepath})) {
-    my $path = 
-      join($resourcePathSplit, map { tilde_expand($_) } split(/\Q$resourcePathSplit\E/, $confs_ref->{resourcepath}));
+  if (exists($confs_ref->{'resourcepath'})) {
+    # tilde-expand all the resource paths in confs_ref
+    my $path = join($resourcePathSplit, map { tilde_expand($_) } split(/\Q$resourcePathSplit\E/, $confs_ref->{'resourcepath'}));
+    # if there is a delimiter at the beginning of the string, prepend default resource path ($def_res_path)
+    # side note:  By default, empty leading fields are preserved, and empty trailing ones are deleted, so it is
+    # actually not possible for the $resourcePathSplit to be at the end of $path
     if ($path =~ /^\Q$resourcePathSplit\E/) {
       $path = $def_res_path . $path;
     } elsif ($path =~ /\Q$resourcePathSplit\E$/) {
+      # if there is a delimiter at the end of the string, append default resource path ($def_res_path)
       $path .= $def_res_path;
     }
+    # use both default resource path and all the paths from config hash
     $r = $path;
   } else {
+    # there is no resource path in configuration hash, just use default resource path
     $r = $def_res_path;
   }
-  #TODO: whats with the comma?
-  unshift @r, split($resourcePathSplit, $r),
+  unshift(@r, split($resourcePathSplit, $r));
   my %r;
-  $Treex::PML::resourcePath = join $resourcePathSplit, grep { defined and length } map { exists($r{$_}) ? () : ($r{$_}=$_) } @r;
+  $Treex::PML::resourcePath = join($resourcePathSplit, grep { defined and length } map { exists($r{$_}) ? () : ($r{$_}=$_) } @r);
+  return;
 }
 
+#####################################################################################
+# Usage         : _set_print_options($confs_ref)
+# Purpose       : Set print options from $defaultPrintConfig, try to find ps, AFM font file and path for TTF fonts
+# Returns       : nothing
+# Parameters    : hash_ref $confs_ref         -- hash with configuration options
+# Throws        : nothing
+# Comments      : Prefers using options in $confs_ref. If the option is not defined there, uses 
+#                 default option set in %defaultPrintConfig
+#                 psFontFile and psFontAFMFile are looked for in directories found in $printOptions, 
+#                 if they do not exist there, they are looked up in $libDir. If this fails, too, 
+#                 default paths for font files supplied with TrEd are used.  
+#                 TTF font directory is determined from the registry on Windows, from /etc/fonts/fonts.conf otherwise
+# See Also      : set_config()
 sub _set_print_options {
   my ($confs_ref) = @_;
-  for my $opt (keys %defaultPrintConfig) {
-    $printOptions->{$opt} = val_or_def($confs_ref,lc($opt),$defaultPrintConfig{$opt}[1]);
+  for my $opt (keys(%defaultPrintConfig)) {
+    $printOptions->{$opt} = val_or_def($confs_ref, lc($opt), $defaultPrintConfig{$opt}[1]);
   }
   {
     my $psFontFile = $printOptions->{psFontFile};
-    my $psFontAFMFile = $printOptions->{psFontAFMFile};
-    if (defined $psFontFile and length $psFontFile) {
+    # try to find psFontFile
+    if (defined($psFontFile) and length($psFontFile)) {
       $psFontFile = tilde_expand($psFontFile);
       if (not -f $psFontFile and -f "$libDir/".$psFontFile) {
-        $psFontFile = "$libDir/".$psFontFile;
+        $psFontFile = "$libDir/" . $psFontFile;
       }
     } else {
       if (!defined($Tk::VERSION) or $Tk::VERSION >= 804) {
-        $psFontFile="$libDir/fonts/n019003l.pfa";
+        $psFontFile = "$libDir/fonts/n019003l.pfa";
       } else {
-        $psFontFile="$libDir/fonts/ariam___.pfa";
+        $psFontFile = "$libDir/fonts/ariam___.pfa";
       }
     }
-    if (defined $psFontAFMFile and length $psFontAFMFile) {
-      $psFontAFMFile=tilde_expand($psFontAFMFile);
+    # try to find psFontAFMFile
+    my $psFontAFMFile = $printOptions->{psFontAFMFile};
+    if (defined($psFontAFMFile) and length($psFontAFMFile)) {
+      $psFontAFMFile = tilde_expand($psFontAFMFile);
       if (not -f $psFontAFMFile and -f "$libDir/".$psFontAFMFile) {
-        $psFontAFMFile="$libDir/".$psFontAFMFile;
+        $psFontAFMFile = "$libDir/" . $psFontAFMFile;
       }
     } else {
-      $psFontAFMFile=$psFontFile;
-      $psFontAFMFile=~s/\.[^.]+$/.afm/;
+      $psFontAFMFile = $psFontFile;
+      # change extension of the psFontFile to .afm and test whether it exists
+      $psFontAFMFile =~ s/\.[^.]+$/.afm/;
+      # if not, try to search for afm font file in afm subdirectory (relative to psFontFile)
       if (!(-f $psFontAFMFile)) {
-        $psFontAFMFile=~s!/([^/]+)$!/afm/$1!;
+        $psFontAFMFile =~ s!/([^/]+)$!/afm/$1!;
       }
     }
     $printOptions->{psFontFile}=$psFontFile;
     $printOptions->{psFontAFMFile}=$psFontAFMFile;
   }
+  
   {
     my $ttFontPath = $printOptions->{ttFontPath};
-    if (defined $ttFontPath and length $ttFontPath) {
+    if (defined($ttFontPath) and length($ttFontPath)) {
       $ttFontPath = tilde_expand($confs_ref->{ttfontpath});
-      $ttFontPath = "$libDir/".$ttFontPath if (not -d $ttFontPath and -d "$libDir/".$ttFontPath);
+      if (not -d $ttFontPath and -d "$libDir/" . $ttFontPath) {
+        $ttFontPath = "$libDir/" . $ttFontPath;
+      }
     } else {
       my @fontpath;
+      # Read paths from registry on Windows
       if ($^O eq "MSWin32") {
         require Win32::Registry;
         my %shf;
         my $ShellFolders;
-        my $shfolders="Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders";
-        $::HKEY_CURRENT_USER->Open($shfolders,$ShellFolders) or warn "Cannot read $shfolders $^E\n";
+        my $shfolders = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders";
+        $::HKEY_CURRENT_USER->Open($shfolders, $ShellFolders) or warn "Cannot read $shfolders $^E\n";
         $ShellFolders->GetValues(\%shf);
         @fontpath = ($shf{Fonts}[2]);
         #		 qw(c:/windows/fonts/ c:/winnt/fonts/);
       } else {
         # use fontconfig here?
-        if (open my $fc,'/etc/fonts/fonts.conf') {
-          while (<$fc>) {
-            push @fontpath,tilde_expand($1) if m{<dir>([^<]*)</dir>} and -d tilde_expand($1);
-            # naive, should subst. entities, etc.
+        if (open(my $fc, '/etc/fonts/fonts.conf')) {
+          my $line;
+          while ($line = <$fc>) {
+            # there can be more than one <dir></dir> tag on one line
+            while ($line =~ m{<dir>([^<]*)<\/dir>}g and -d tilde_expand($1)) {
+              push(@fontpath, tilde_expand($1));
+              # naive, should subst. entities, etc.
+            }
           }
         }
-        unless (@fontpath) {
+        # Use some default paths if no paths were found using fontconfig configuration file
+        if (!(@fontpath)) {
           @fontpath = ("$ENV{HOME}/.fonts/",
                qw(
         	   /usr/X11R6/lib/X11/fonts/TTF/
@@ -640,25 +677,36 @@ sub _set_print_options {
           );
         }
       }
-      $ttFontPath = join ",",map tilde_expand($_),@fontpath;
+      $ttFontPath = join(",", map(tilde_expand($_), @fontpath));
     }
     $printOptions->{ttFontPath} = $ttFontPath;
   }
+  return;
 }
 
-sub _set_extension_dirs {
+#####################################################################################
+# Usage         : _set_extensions($confs_ref, $default_share_path)
+# Purpose       : Set variables which are related to TrEd extensions
+# Returns       : nothing
+# Parameters    : hash_ref $confs_ref         -- hash with configuration options
+#                 scalar $default_share_path  -- default share path
+# Throws        : nothing
+# Comments      : Takes care of setting $extensionsDir, $extensionsRepos and $preinstalledExtensionsDir variables. 
+#                 Tries to set these variables from $confs_ref, if there is no value in the $confs_ref hash, 
+#                 function uses default values
+# See Also      : set_config(), _set_font_encoding(), tilde_expand()
+sub _set_extensions {
   my ($confs_ref, $def_share_path) = @_;
-  $extensionsDir  = File::Spec->rel2abs(tilde_expand(length($confs_ref->{extensionsdir})
-                  ? $confs_ref->{extensionsdir} : '~/.tred.d/extensions'),
-                    Cwd::cwd());
+  my $conf_extension_dir = length($confs_ref->{extensionsdir}) ? $confs_ref->{extensionsdir} : '~/.tred.d/extensions';
+  $extensionsDir  = File::Spec->rel2abs(tilde_expand($conf_extension_dir), Cwd::cwd());
                     
-  $extensionRepos = val_or_def($confs_ref,'extensionrepos','http://ufal.mff.cuni.cz/~pajas/tred/extensions');
+  $extensionRepos = val_or_def($confs_ref, 'extensionrepos', 'http://ufal.mff.cuni.cz/~pajas/tred/extensions');
   
   $preinstalledExtensionsDir =  length($confs_ref->{preinstalledextensionsdir})   ? tilde_expand($confs_ref->{preinstalledextensionsdir})
-                             :  $def_share_path =~ m{/share/tred$}                ? $def_share_path.'-extensions'
-                             :                                                      File::Spec->catdir($def_share_path,'tred-extensions')
+                             :  $def_share_path =~ m{/share/tred$}                ? $def_share_path . '-extensions'
+                             :                                                      File::Spec->catdir($def_share_path, 'tred-extensions')
                              ;
-  
+  return;
 }
 
 #####################################################################################
@@ -667,7 +715,7 @@ sub _set_extension_dirs {
 # Returns       : nothing
 # Parameters    : hash_ref @confs_ref -- hash with configuration options
 # Throws        : nothing
-# Comments      : 
+# Comments      : Also runs $set_user_config($confs_ref) function.
 # See Also      : apply_config(), read_config()
 sub set_config {
   my ($confs_ref) = @_;
@@ -749,7 +797,7 @@ sub set_config {
     }
   }
   
-  _set_extension_dirs($confs_ref, $def_share_path);
+  _set_extensions($confs_ref, $def_share_path);
   
   _set_resource_path($confs_ref, $def_share_path);
   
@@ -839,13 +887,17 @@ sub set_config {
 
   $sidePanelWrap              = val_or_def($confs_ref,"sidepanelwrap",0);
   # ADD NEW OPTIONS HERE
-
-  &$set_user_config($confs_ref) if (ref($set_user_config)); # let this be the very last line
+  
+  if (ref($set_user_config)) {
+    &$set_user_config($confs_ref) ; 
+  }
+  # let this be the very last line
+  
   {
     no strict qw(vars refs);
     foreach (keys %$confs_ref) {
       if (/::/) {
-	${"$_"}=$confs_ref->{$_};
+        ${"$_"} = $confs_ref->{$_};
       }
     }
   }
@@ -859,29 +911,603 @@ __END__
 =head1 NAME
 
 
-TrEd::Config - ...
+TrEd::Config - TrEd's configuration file loader and parser  
 
 
 =head1 VERSION
 
 This documentation refers to 
-TrEd::Config version 0.x.
+TrEd::Config version 0.2.
 
 
 =head1 SYNOPSIS
 
   use TrEd::Config;
-    
   
-
+  # $default_option = 'default_value'
+  my $default_option = TrEd::Config::val_or_def($configuration_hash_ref, 'buttonsrelief', 'default_value');
+  
+  # set value in cofiguration hash
+  my %confs = (
+    "buttonrelief"  => 'other_value',
+  );
+  
+  # use configuration hash in helper function
+  # $option = 'other_value'
+  my $option = TrEd::Config::val_or_def($configuration_hash_ref, "buttonsrelief", 'default value');
+  
+  my $home = TrEd::Config::tilde_expand("~");
+  
+  # apply alternative options right now
+  my @alternative_options = (
+    "width = 50",
+    "height = 100",
+  );
+  TrEd::Config::apply_config(@alternative_options);
+  
+  my $line = "width = 50";
+  my $config_ref = {};
+  TrEd::Config::parse_config_line($line, $config_ref);
+  # $config_ref now contains new key-value pair: 'width' => 50  
+  
+  # set standard paths where TrEd's config is usually found
+  TrEd::Config::set_default_config_file_search_list();
+  
+  # read first existing configuration file from list and load all the options into memory
+  my @config_paths = qw(/home/john/.tred.d/tredrc /home/john/.tredrc);
+  TrEd::Config::read_config(@config_paths);
+  
+  # set all the configuration values from $confs_ref
+  TrEd::Config::set_config($confs_ref);
+  
+  
 =head1 DESCRIPTION
 
+This module contains basic functions for reading and parsing configuration files in simple format
 
+  option_name = "option value"
 
+Comments are created by putting # or ; characters at the beginning of the line. 
+
+By default, it exports *a lot of* variables, here is the list:
+  @config_file_search_list
+  $set_user_config
+  $override_options
+  $appName
+  $buttonsRelief
+  $menubarRelief
+  $buttonBorderWidth
+  $canvasBalloonInitWait
+  $canvasBalloonForeground
+  $canvasBalloonBackground
+  $toolbarBalloonInitWait
+  $toolbarBalloonForeground
+  $toolbarBalloonBackground
+  $activeTextColor
+  $treeViewOpts
+  $font
+  $guiFont
+  $vLineFont
+  $libDir
+  $extensionsDir
+  $preinstalledExtensionsDir
+  $extensionRepos
+  $iconPath
+  $appIcon
+  $sortAttrs
+  $sortAttrValues
+  $macroFile
+  $default_macro_file
+  $default_macro_encoding
+  $printOptions
+  $showHidden
+  $createMacroMenu
+  $maxMenuLines
+  $useCzechLocales
+  $useLocales
+  $imageMagickConvert
+  $cstsToFs
+  $fsToCsts
+  $sgmls
+  $sgmlsopts
+  $cstsdoctype
+  $cstsparsecommand
+  $cstsparsezcommand
+  $keyboardDebug
+  $hookDebug
+  $macroDebug
+  $tredDebug
+  $defaultTemplateMatchMethod
+  $defaultMacroListOrder
+  $defCWidth
+  $defCHeight
+  $geometry
+  $maxDisplayedValues
+  $maxDisplayedAttributes
+  $highlightWindowColor
+  $highlightWindowWidth
+  $lastAction
+  $reverseNodeOrder
+  $valueLineHeight
+  $valueLineAlign
+  $valueLineWrap
+  $valueLineReverseLines
+  $valueLineFocusBackground
+  $valueLineFocusForeground
+  $valueLineBackground
+  $valueLineForeground
+  $maxUndo
+  $reloadKeepsPatterns
+  $autoSave
+  $displayStatusLine
+  $openFilenameCommand
+  $saveFilenameCommand
+  $NoConvertWarning
+  $lockFiles
+  $noLockProto
+  $stippleInactiveWindows
+  $userConf
+  $ioBackends
+  $htmlBrowser
+  $showSidePanel
+  $skipStartupVersionCheck
+  $enableTearOff
+  %defaultPrintConfig
+  %c_fonts
+  $sidePanelWrap
+ 
 =head1 SUBROUTINES/METHODS
 
 =over 4 
 
+
+=item * C<TrEd::Config::set_default_config_file_search_list()>
+
+=over 6
+
+=item Purpose
+
+Set @config_file_search_list values to common places where 
+
+tredrc cofiguration file (tredrc) is usually found
+
+=item Parameters
+
+
+=item Comments
+
+Requires FindBin. Tredrc paths are set to HOME environment variable, 
+
+TREDHOME environment variable and relative to the original perl script's 
+directory: under subdirectory tredlib, ../lib/tredlib, ../lib/tred
+
+=item See Also
+
+
+=item Returns
+
+nothing
+
+
+=back
+
+
+=item * C<TrEd::Config::tilde_expand($path_str)>
+
+=over 6
+
+=item Purpose
+
+If string contains tilde, substitute tilde with home directory of current user
+
+
+=item Parameters
+
+  C<$path_str> -- scalar $path_str -- string containing path
+
+
+
+=item Returns
+
+String after the substitution
+
+
+=back
+
+
+=item * C<TrEd::Config::parse_config_line($line, $confs_ref)>
+
+=over 6
+
+=item Purpose
+
+Parse each line of the config file to extract key and value pair and 
+
+save it into hash $confs_ref
+
+=item Parameters
+
+  C<$line> -- string $line        -- line to be parsed
+  C<$confs_ref> -- hash_ref $confs_ref -- hash of configuration key-value pairs
+
+=item Comments
+
+Longer because of comments of quite sophisticated regexp
+
+
+=item See Also
+
+L<read_config>,
+
+=item Returns
+
+nothing
+
+
+=back
+
+
+=item * C<TrEd::Config::read_config(@paths_to_config_file)>
+
+=over 6
+
+=item Purpose
+
+Read configuration values from file and save it to %confs hash
+
+
+=item Parameters
+
+  C<@paths_to_config_file> -- list @paths_to_config_file -- array containing file name of config file(s)
+
+=item Comments
+
+Tries to open config file, first from list supported by argument, if it does not succeed, 
+
+function tries to open files from @config_file_search_list. If any of these files is opened
+successfully, the configuration is then read to memory from this file. 
+
+=item See Also
+
+L<set_config>,
+L<parse_config_line>,
+
+=item Returns
+
+Name/path to config file that was used to read cofiguration values
+
+
+=back
+
+
+=item * C<TrEd::Config::apply_config(@options)>
+
+=over 6
+
+=item Purpose
+
+Apply configuration @options
+
+
+=item Parameters
+
+  C<@options> -- list @options -- list of option_name=option_value strings
+
+=item Comments
+
+Parses configuration @options, calls set_config() with new options
+
+
+=item See Also
+
+L<set_config>,
+L<parse_config_line>,
+
+=item Returns
+
+Nothing
+
+
+=back
+
+
+=item * C<TrEd::Config::val_or_def($configuration_hash, $key, $default_value)>
+
+=over 6
+
+=item Purpose
+
+Choose value from $configuration_hash with $key if it exists or $default_value otherwise
+
+
+=item Parameters
+
+  C<$configuration_hash> -- hash_ref $configuration_hash  -- reference to hash with configuration options
+  C<$key> -- scalar $key                   -- string containing name of the option
+  C<$default_value> -- scalar $default_value         -- scalar containing the value of configuration option
+
+
+
+=item Returns
+
+Value set in $configuration_hash reference with key $key if it exists, $default_value otherwise
+
+
+=back
+
+
+=item * C<TrEd::Config::_parse_cmdline_options($confs_ref)>
+
+=over 6
+
+=item Purpose
+
+Parse options from command line switch -O and save them in $confs_ref
+
+
+=item Parameters
+
+  C<$confs_ref> -- hash_ref @confs_ref -- hash with configuration options
+
+=item Comments
+
+Uses array reference $override_options, where the command line options are 
+
+stored. The syntax of -O argument is specified in tred manual, in short these options
+are supported: 
+* name=value    -- set option 'name' to 'value'
+* nameX=value   -- treat the option as a list delimited by the delimiter X and prepend the value to the list.
+* nameX+=value  -- treat the option as a list delimited by the delimiter X and append the value to the list.
+* nameX-=value  -- treat the option as a list delimited by the delimiter X and remove the value from the list (if exists).
+Only the following characters can be used as a delimiter:
+; : , & | / + - \s \t SPACE
+Can be combined, i.e. -O "extensionRepos\\s"-=http://foo/bar -O "extensionRepos\\s"+=http://foo/bar
+first removes any occurrence of the URL http://foo/bar from the white-space separated list of extensionRepos and then appends the URL to the end of the list. 
+
+=item See Also
+
+L<set_config>,
+
+=item Returns
+
+nothing
+
+
+=back
+
+
+=item * C<TrEd::Config::_set_treeViewOpts($confs_ref)>
+
+=over 6
+
+=item Purpose
+
+Set various options in treeViewOpts hash
+
+
+=item Parameters
+
+  C<$confs_ref> -- hash_ref @confs_ref -- hash with configuration options
+
+=item Comments
+
+Tries to set all options found in treeViewOpts from $confs_ref. 
+
+In addition, sets these options: currentNodeHeight, -Width, nodeHeight, -Width,
+customColor..., font and backgroundImage
+$TrEd::Config::font should be set before running this function e.g. by calling _set_fonts()
+
+=item See Also
+
+L<set_config>,
+
+=item Returns
+
+nothing
+
+
+=back
+
+
+=item * C<TrEd::Config::_set_fonts($confs_ref)>
+
+=over 6
+
+=item Purpose
+
+Set font family, size and encoding
+
+
+=item Parameters
+
+  C<$confs_ref> -- hash_ref $confs_ref -- hash with configuration options
+
+=item Comments
+
+If font is set in $confs_ref, it is used. Otherwise Arial is picked as a default font 
+
+on Windows and Helvetica on other OSes.
+Function also sets vlinefont, guifont and 
+guifont_small/small_bold/heading/fixed/default/bold/italic fonts.
+
+=item See Also
+
+L<set_config>,
+L<_set_font_encoding>,
+
+=item Returns
+
+nothing
+
+
+=back
+
+
+=item * C<TrEd::Config::_set_font_encoding()>
+
+=over 6
+
+=item Purpose
+
+Choose font encoding according to Tk version and TrEd::Convert::outputenc
+
+
+=item Parameters
+
+
+=item Comments
+
+If $TrEd::Convert::outputenc is set, it is used, otherwise iso8859-2 is used 
+
+with Tk versions older than 804, iso10646-1 for newer versions
+
+=item See Also
+
+L<set_config>,
+L<_set_font_encoding>,
+
+=item Returns
+
+Font encoding
+
+
+=back
+
+
+=item * C<TrEd::Config::_set_resource_path($confs_ref, $default_share_path)>
+
+=over 6
+
+=item Purpose
+
+Add resource paths from configuration hash and default resource path to $Treex::PML::resourcePath
+
+
+=item Parameters
+
+  C<$confs_ref> -- hash_ref $confs_ref         -- hash with configuration options
+  C<$default_share_path> -- scalar $default_share_path  -- default share path
+
+=item Comments
+
+HOME environment variable should be set before running this function, on Windows, 
+
+one can run TrEd::Utils::find_win_home() to set HOME variable for this purpose
+Default resource path is constructed from $def_share_path
+
+=item See Also
+
+L<set_config>,
+L<_set_font_encoding>,
+L<tilde_expand>,
+
+=item Returns
+
+nothing
+
+
+=back
+
+
+=item * C<TrEd::Config::_set_print_options($confs_ref)>
+
+=over 6
+
+=item Purpose
+
+Set print options from $defaultPrintConfig, try to find ps, AFM font file and path for TTF fonts
+
+
+=item Parameters
+
+  C<$confs_ref> -- hash_ref $confs_ref         -- hash with configuration options
+
+=item Comments
+
+Prefers using options in $confs_ref. If the option is not defined there, uses 
+
+default option set in %defaultPrintConfig
+psFontFile and psFontAFMFile are looked for in directories found in $printOptions, 
+if they do not exist there, they are looked up in $libDir. If this fails, too, 
+default paths for font files supplied with TrEd are used.  
+TTF font directory is determined from the registry on Windows, from /etc/fonts/fonts.conf otherwise
+
+=item See Also
+
+L<set_config>,
+
+=item Returns
+
+nothing
+
+
+=back
+
+
+=item * C<TrEd::Config::_set_extensions($confs_ref, $default_share_path)>
+
+=over 6
+
+=item Purpose
+
+Set variables which are related to TrEd extensions
+
+
+=item Parameters
+
+  C<$confs_ref> -- hash_ref $confs_ref         -- hash with configuration options
+  C<$default_share_path> -- scalar $default_share_path  -- default share path
+
+=item Comments
+
+Takes care of setting $extensionsDir, $extensionsRepos and $preinstalledExtensionsDir variables. 
+
+Tries to set these variables from $confs_ref, if there is no value in the $confs_ref hash, 
+function uses default values
+
+=item See Also
+
+L<set_config>,
+L<_set_font_encoding>,
+L<tilde_expand>,
+
+=item Returns
+
+nothing
+
+
+=back
+
+
+=item * C<TrEd::Config::set_config($confs_ref)>
+
+=over 6
+
+=item Purpose
+
+Set configuration values to values in $confs_ref hash (if defined) or to default values
+
+
+=item Parameters
+
+  C<$confs_ref> -- hash_ref @confs_ref -- hash with configuration options
+
+=item Comments
+
+Also runs $set_user_config($confs_ref) function.
+
+
+=item See Also
+
+L<apply_config>,
+L<read_config>,
+
+=item Returns
+
+nothing
+
+
+=back
 
 
 
@@ -896,7 +1522,7 @@ TrEd::Config version 0.x.
 
 =head1 DEPENDENCIES
 
-
+File::Spec, Cwd, FindBin, Win32::Registry on Windows
 
 =head1 INCOMPATIBILITIES
 
