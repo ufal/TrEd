@@ -222,7 +222,15 @@ foreach $char (split ' ', "
     $transparent{$char} = 1;
 }
 
-sub arabjoin {   
+
+#######################################################################################
+# Usage         : arabjoin($string)
+# Purpose       : Performs Arabic glyph joining on $string and output a UTF-8 octet stream
+# Returns       : UTF-8 octet stream in a visual order
+# Parameters    : scalar $string -- arabic string to filter
+# Throws        : no exception
+# See Also      : 
+sub arabjoin {
 
     local $_ = $_[0];
 
@@ -344,3 +352,107 @@ sub arabjoin {
 # U+FA00 compatibility zone.  You may want to insert your private
 # glyphs or approximation glyphs for them:
 
+__END__
+
+=head1 NAME
+
+
+TrEd::ConvertArab - a simple filter to render Arabic text
+
+
+=head1 VERSION
+
+This documentation refers to 
+TrEd::ConvertArab version 0.2.
+
+
+=head1 SYNOPSIS
+
+  use TrEd::ConvertArab;
+  
+  print TrEd::ConvertArab::arabjoin("\x{0623}\x{0647}\x{0644}\x{0627}\x{064B} \x{0628}\x{0627}\x{0644}\x{0639}\x{0627}\x{0644}\x{0645}!");
+  # prints  !\x{FEE2}\x{FEDF}\x{FE8E}\x{FECC}\x{FEDF}\x{FE8E}\x{FE91} \x{064B}\x{FEFC}\x{FEEB}\x{FE83}
+  # which is the Arabic version of "Hello world!"
+  
+
+=head1 DESCRIPTION
+
+This filter takes Arabic text (encoded in UTF-8 using the Unicode
+characters from the U+0600 Arabic block in logical order) as input
+and performs Arabic glyph joining on it and outputs a UTF-8 octet
+stream that is no longer logically arranged but in a visual order
+which gives readable results when formatted with a simple Unicode
+renderer like Yudit that does not handle Arabic differently yet 
+but simply outputs all glyphs in left-to-right order.
+
+This little script also demonstrates that Arabic rendering is not
+that complicated after all (it makes you wonder why some software
+companies are still asking hundreds of dollars from poor students
+who just want to print their Arabic texts) and that even Perl 4 can
+handle Unicode text in UTF-8 without any nifty new add-ons.
+
+Latest version at http://czyborra.com/unicode/
+
+=head1 SUBROUTINES/METHODS
+
+=over 4 
+
+
+=item * C<TrEd::ArabJoin::arabjoin($string)>
+
+=over 6
+
+=item Purpose
+
+Performs Arabic glyph joining on $string and output a UTF-8 octet stream
+
+=item Parameters
+
+  C<$string> -- scalar $string -- arabic string to filter
+
+
+
+=item Returns
+
+UTF-8 octet stream in a visual order
+
+=back
+
+
+=back
+
+
+=head1 DIAGNOSTICS
+
+
+=head1 CONFIGURATION AND ENVIRONMENT
+
+
+=head1 DEPENDENCIES
+
+
+=head1 INCOMPATIBILITIES
+
+
+=head1 BUGS AND LIMITATIONS
+
+There are no known bugs in this module.
+Please report problems to 
+Zdenek Zabokrtsky <zabokrtsky@ufal.ms.mff.cuni.cz>
+
+Patches are welcome.
+
+
+=head1 AUTHOR
+
+Petr Pajas <pajas@matfyz.cz>
+
+Copyright (c) 
+1998 Roman Czyborra <roman@czyborra.com>
+2011 Peter Fabian (POD formating). 
+All rights reserved.
+
+
+This software is distributed under GPL - The General Public Licence.
+Full text of the GPL can be found in the LICENSE file distributed with
+this program and also on-line at http://www.gnu.org/copyleft/gpl.html .
