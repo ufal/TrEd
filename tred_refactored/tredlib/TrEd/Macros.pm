@@ -1169,7 +1169,6 @@ Deletes the definition of symbol $name
 
 =item Comments
 
-...
 
 
 =item See Also
@@ -1201,7 +1200,6 @@ Tell whether symbol $name is defined
 
 =item Comments
 
-...
 
 
 =item See Also
@@ -1351,8 +1349,6 @@ Discard binding for key $key in specified $context (if $delete is true, delete i
 
 =item Comments
 
-...
-
 
 =item See Also
 
@@ -1418,7 +1414,6 @@ Return all the bindings for macro $macro in the specified $context
 =item Comments
 
 Be aware, that the 'first' binding means first one in the hash, 
-
 and you can hardly tell, which one that is
 Maybe we should normalize $macro here as well... 
 
@@ -1480,8 +1475,6 @@ Return hash of key bindings in context $context
 
 =item Comments
 
-...
-
 
 =item See Also
 
@@ -1504,8 +1497,7 @@ Hash of key bindings in context $context if there are any, undef otherwise
 
 =item Purpose
 
-Copy key bindings from one context $source_context to another ($destination_context)
-
+Copy key bindings from one context $source_context to another ($destination_context).
 The $destination_context is created, if it does not exist. 
 
 =item Parameters
@@ -1523,7 +1515,6 @@ L<get_contexts>,
 =item Returns
 
 Hash reference to destination context's keybindings or undef if $source_context does not exist 
-
 (or empty list in array context)
 
 =back
@@ -1546,8 +1537,7 @@ Adds new menu binding to macro $macro with label $label in context $context
 
 =item Comments
 
-If label is empty, nothing is done, $context is created if it does not exist, 
-
+If label is empty, nothing is done, $context is created if it does not exist.
 But more interestingly, undef is the second element in anon array, whose first element is
 the $macro
 
@@ -1590,7 +1580,6 @@ L<remove_from_menu_macro>,
 =item Returns
 
 List of removed elements, i.e. list containing one array reference,
-
 or undef in scalar context if $context or $label in $context does not exist
 
 =back
@@ -1645,7 +1634,6 @@ Return all the menus bound to $macro in $context
 =item Comments
 
 Be aware, that the 'first' label means first one in the hash, 
-
 and you can hardly tell, which one that is
 
 =item See Also
@@ -1657,7 +1645,6 @@ L<remove_from_menu>,
 =item Returns
 
 Array of all menu labels bound with specified $macro in context $context, 
-
 or 'first' label in scalar context
 
 =back
@@ -1811,8 +1798,9 @@ subroutines and may use this program's namespace. They are also
 provided some special names for certain variables which override
 the original namespace.
 Macros may be bound to a keysym with a special form of a comment.
+
 The synax is:
-# bind MacroName to key [[Modifyer+]*]KeySym
+  # bind MacroName to key [[Modifyer+]*]KeySym
 which causes subroutine MacroName to be bound to keyboard event of
 simoultaneous pressing the optionally specified Modifyer(s) (which
 should be some of Shift, Ctrl and Alt) and the specified KeySym
@@ -1838,7 +1826,6 @@ nothing
 =item Purpose
 
 Preprocess file $file_name, save the results to macros and contexts arrays
-
 Include #includes and #ifincludes respecting #ifdefs, #ifndefs, #elsifs, etc.
 
 =item Parameters
@@ -1962,7 +1949,6 @@ Construct a symbolic reference for getter and setter of macro variables
 =item Comments
 
 Symbolic references are kind of deprecated in Perl Best Practices, maybe think up some other way to do this...
-
 although in Safe.pm the implementation is similar...
 
 =item See Also
@@ -2120,7 +2106,6 @@ L<set_macro_variable>,
 =item Returns
 
 The return value of evaluated macro, if macro is not supported
-
 function returns $TredMacro::this in scalar context or a list containing 
 two zeroes and $TredMacro::this in list context
 
