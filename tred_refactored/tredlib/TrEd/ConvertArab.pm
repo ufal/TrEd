@@ -45,6 +45,11 @@ use Encode;
 # Arabic letter from the end of this script:
 
 
+# The following table lists the presentation variants of each
+# character.  Each value from the U+0600 block means that the
+# necessary glyph variant has not been assigned a code in Unicode's
+# U+FA00 compatibility zone.  You may want to insert your private
+# glyphs or approximation glyphs for them:
 @data = split ' ', "
 
 \x{0621}	\x{FE80}
@@ -232,53 +237,53 @@ foreach $char (split ' ', "
 # See Also      : 
 sub arabjoin {
 
-    local $_ = $_[0];
+  local $_ = $_[0];
 
-    s/\n$//; # chop off the end of the line so it won't jump upfront
+  s/\n$//; # chop off the end of the line so it won't jump upfront
 
-    # Finally we can process our text:
+  # Finally we can process our text:
 
-    @uchar = split //, $_;
+  @uchar = split //, $_;
 
-    # We walk through the line of text and do contextual analysis:
+  # We walk through the line of text and do contextual analysis:
 
-    for ($i = $[; $i <= $#uchar; $i = $j) {
+  for ($i = $[; $i <= $#uchar; $i = $j) {
 
-	for ($b = $uchar[$j = $i]; $transparent{$c = $uchar[++$j]}; ) { }
+    for ($b = $uchar[$j = $i]; $transparent{$c = $uchar[++$j]}; ) { }
 
-	# The following assignment is the heart of the algorithm.
-	# It reduces the Arabic joining algorithm described on
-	# pages 6-24 to 6-26 of the Arabic character block description
-	# in the Unicode 2.0 Standard to four lines of Perl:
+    # The following assignment is the heart of the algorithm.
+    # It reduces the Arabic joining algorithm described on
+    # pages 6-24 to 6-26 of the Arabic character block description
+    # in the Unicode 2.0 Standard to four lines of Perl:
+        
+    $uchar[$i] = $a && $final{$c} && $medial{$b} 
+    || $final{$c} && $initial{$b}
+    || $a && $final{$b}
+    || $isolated{$b}
+    || $b;
+        
+    $a = $initial{$b} && $final{$c};
+  }
 
-	$uchar[$i] = $a && $final{$c} && $medial{$b} 
-	|| $final{$c} && $initial{$b}
-	|| $a && $final{$b}
-	|| $isolated{$b}
-	|| $b;
-
-	$a = $initial{$b} && $final{$c};
-    }
-
-    # Until the Unicode Consortium publishes its Unicode Technical
-    # Report #9 (Bidirectional Algorithm Reference Implementation)
-    # at http://www.unicode.org/unicode/reports/techreports.html
-    # let us oversimplify things a bit and reverse everything:
+  # Until the Unicode Consortium publishes its Unicode Technical
+  # Report #9 (Bidirectional Algorithm Reference Implementation)
+  # at http://www.unicode.org/unicode/reports/techreports.html
+  # let us oversimplify things a bit and reverse everything:
  
-    $_ = join '', @uchar;
+  $_ = join '', @uchar;
 
-    # The following 8 obligatory LAM+ALEF ligatures are encoded in the
-    # U+FE70 Arabic Presentation Forms-B block in Unicode's
-    # compatibility zone:
+  # The following 8 obligatory LAM+ALEF ligatures are encoded in the
+  # U+FE70 Arabic Presentation Forms-B block in Unicode's
+  # compatibility zone:
 
-    s/\x{FEDF}\x{FE82}/\x{FEF5}/g;
-    s/\x{FEE0}\x{FE82}/\x{FEF6}/g;
-    s/\x{FEDF}\x{FE84}/\x{FEF7}/g;
-    s/\x{FEE0}\x{FE84}/\x{FEF8}/g;
-    s/\x{FEDF}\x{FE88}/\x{FEF9}/g;
-    s/\x{FEE0}\x{FE88}/\x{FEFA}/g;
-    s/\x{FEDF}\x{FE8E}/\x{FEFB}/g;
-    s/\x{FEE0}\x{FE8E}/\x{FEFC}/g;
+  s/\x{FEDF}\x{FE82}/\x{FEF5}/g;
+  s/\x{FEE0}\x{FE82}/\x{FEF6}/g;
+  s/\x{FEDF}\x{FE84}/\x{FEF7}/g;
+  s/\x{FEE0}\x{FE84}/\x{FEF8}/g;
+  s/\x{FEDF}\x{FE88}/\x{FEF9}/g;
+  s/\x{FEE0}\x{FE88}/\x{FEFA}/g;
+  s/\x{FEDF}\x{FE8E}/\x{FEFB}/g;
+  s/\x{FEE0}\x{FE8E}/\x{FEFC}/g;
 
     # Bitstream's Cyberbit font offers 57 of the other 466 optional
     # ligatures in the U+FB50 Arabic Presentation Forms-A block:
@@ -346,11 +351,6 @@ sub arabjoin {
 
 1;
 
-# The following table lists the presentation variants of each
-# character.  Each value from the U+0600 block means that the
-# necessary glyph variant has not been assigned a code in Unicode's
-# U+FA00 compatibility zone.  You may want to insert your private
-# glyphs or approximation glyphs for them:
 
 __END__
 
@@ -371,7 +371,7 @@ TrEd::ConvertArab version 0.2.
   use TrEd::ConvertArab;
   
   print TrEd::ConvertArab::arabjoin("\x{0623}\x{0647}\x{0644}\x{0627}\x{064B} \x{0628}\x{0627}\x{0644}\x{0639}\x{0627}\x{0644}\x{0645}!");
-  # prints  !\x{FEE2}\x{FEDF}\x{FE8E}\x{FECC}\x{FEDF}\x{FE8E}\x{FE91} \x{064B}\x{FEFC}\x{FEEB}\x{FE83}
+  # prints  \x{FE83}\x{FEEB}\x{FEFC}\x{064B} \x{FE91}\x{FE8E}\x{FEDF}\x{FECC}\x{FE8E}\x{FEDF}\x{FEE2}! 
   # which is the Arabic version of "Hello world!"
   
 
@@ -380,10 +380,7 @@ TrEd::ConvertArab version 0.2.
 This filter takes Arabic text (encoded in UTF-8 using the Unicode
 characters from the U+0600 Arabic block in logical order) as input
 and performs Arabic glyph joining on it and outputs a UTF-8 octet
-stream that is no longer logically arranged but in a visual order
-which gives readable results when formatted with a simple Unicode
-renderer like Yudit that does not handle Arabic differently yet 
-but simply outputs all glyphs in left-to-right order.
+stream.
 
 This little script also demonstrates that Arabic rendering is not
 that complicated after all (it makes you wonder why some software
@@ -392,6 +389,9 @@ who just want to print their Arabic texts) and that even Perl 4 can
 handle Unicode text in UTF-8 without any nifty new add-ons.
 
 Latest version at http://czyborra.com/unicode/
+
+Note: the implementation is changed from the original script and this script
+does not reverse the string orientation.
 
 =head1 SUBROUTINES/METHODS
 
