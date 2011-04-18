@@ -157,7 +157,24 @@ TrEd::CPConvert version 0.2.
 
 =head1 SYNOPSIS
 
-  use TrEd::CPConvert
+  # file encoded in iso-8859-2
+  use Encode;
+  use TrEd::CPConvert;
+  
+  my $convert = TrEd::CPConvert->new("iso-8859-2", "cp1250");
+  
+  # From encode function viewpoint
+  my $source_encoding = $convert->decoding_to();
+  my $dest_encoding   = $convert->encoding_to();
+  
+  my $str_iso88592 = "ì¹èø¾ýáíéù";
+  my $str_cp1250   = $str_iso88592;
+  Encode::from_to($str_cp1250, "iso-8859-2", "cp1250");
+  
+  my $str_cp1250_2 = $convert->decode($str_iso88592);
+  
+  my $str_iso88592_2 = $convert->encode($str_cp1250_2);
+  
   
 =head1 DESCRIPTION
 
