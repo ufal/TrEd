@@ -14,7 +14,7 @@ BEGIN {
 	      $on_current_change
 	      $on_error
 	    );
-  @ISA=qw(Exporter);
+  use base qw(Exporter);
   $VERSION = "0.2";
   @EXPORT = qw(
     $on_tree_change
@@ -54,7 +54,8 @@ use warnings;
 use File::Spec;
 if (not File::Spec->can('rel2abs')) {
   die "The currently installed version of the File::Spec module doesn't provide rel2abs() method. Please upgrade it!\n";
-} else {
+} 
+else {
   require File::Spec::Functions;
   import File::Spec::Functions qw(rel2abs);
 }
@@ -305,8 +306,8 @@ sub newNode {
 # Returns       : Undef if $win_ref->{FSFile} or $node or $node's parent are not defined, 
 #                 return value of Treex::PML::Node::destroy_leaf() is returned otherwise 
 #                 (which currently means that 1 is returned)
-# Parameters    : hash_ref $win_ref     -- see comment of gotoTree function
-#               : Treex::PML::Node ref  -- reference to the node to delete
+# Parameters    : hash_ref $win_ref          -- see comment of gotoTree function
+#               : Treex::PML::Node ref $node -- reference to the node to delete
 # Throws        : no exception
 # Comments      : Marks the modified file as notSaved(1), calls on_node_chage() callback
 # See Also      : Treex::PML::Node::destroy_leaf(), setCurrent()
@@ -390,13 +391,16 @@ sub errorMessage {
   my ($win_ref, $msg, $nobug)=@_;
   if ($on_error) {
     &$on_error(@_);
-  } else {
+  } 
+  else {
     my $top;
     if (ref($win_ref) =~ /^Tk::/) {
       $top = $win_ref->toplevel;
-    } elsif (ref($win_ref) eq 'Mainwin_refdow') {
+    } 
+    elsif (ref($win_ref) eq 'Mainwin_refdow') {
       $top = $win_ref;
-    } elsif (exists($win_ref->{framegroup}) and
+    } 
+    elsif (exists($win_ref->{framegroup}) and
               ref($win_ref->{framegroup}) and
               exists($win_ref->{framegroup}{top}) and
               ref($win_ref->{framegroup}{top})) {
@@ -408,7 +412,8 @@ sub errorMessage {
       my ($highest) = reverse $top->stackorder();
       $top = $top->Widget($highest);
       _messageBox($top, 'Error', $msg, $nobug);
-    } else {
+    } 
+    else {
       print STDERR "$msg\n";
     }
   }

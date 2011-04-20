@@ -155,10 +155,12 @@ sub test_gotoTree {
 #  my ($tree, $expected_id, $perform_test, $message) = @_;
 #  if($perform_test){
 #    is($tree->root()->attr('id'), $expected_id, $message);
-#  } else {
+#  } 
+#  else {
 #    if($tree->root()->attr('id') eq $expected_id){
 #      return 1;
-#    } else {
+#    } 
+#    else {
 #      return 0;
 #    }
 #  }

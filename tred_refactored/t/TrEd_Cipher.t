@@ -140,7 +140,8 @@ sub test_Authentify {
     print("Denying connection to peer $peer!\n");
     $hub->close();
     undef $hub;
-  } elsif ($hub and TrEd::Cipher::Authentify($key, $hub, $control)!=1) {
+  } 
+  elsif ($hub and TrEd::Cipher::Authentify($key, $hub, $control)!=1) {
     $hub->close();
     undef $hub;
   }

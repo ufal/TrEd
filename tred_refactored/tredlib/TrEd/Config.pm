@@ -15,7 +15,7 @@ use Cwd;
 BEGIN {
   use vars      qw($VERSION @ISA @EXPORT @EXPORT_OK @config_file_search_list $quiet);
   use Exporter  ();
-  @ISA=qw(Exporter);
+  use base qw(Exporter);
   #  use Tk; # Tk::strictMotif
   $VERSION = "0.2";
   @EXPORT = qw(@config_file_search_list $set_user_config $override_options
@@ -413,13 +413,16 @@ sub _parse_cmdline_options {
         if (defined($confs_ref->{$name}) and length($confs_ref->{$name})) {
           if (!$operation) {
             $confs_ref->{$name} = $value . $wdelim . $confs_ref->{$name};
-          } elsif ($operation eq '+') {
+          } 
+          elsif ($operation eq '+') {
             $confs_ref->{$name} = $confs_ref->{$name} . $wdelim . $value;
-          } elsif ($operation eq '-') {
+          } 
+          elsif ($operation eq '-') {
             $confs_ref->{$name} = join($wdelim, grep { $_ ne $value } split(/[$delim]/, $confs_ref->{$name}));
           }
           next;
-        } else {
+        } 
+        else {
           next if ($operation and $operation eq '-');
         }
       }
@@ -460,7 +463,8 @@ sub _set_treeViewOpts {
   foreach my $key (keys %$confs_ref) {
     if ($key =~ m/^customcolor(.*)$/) {
       $treeViewOpts->{customColors}->{$1} = $confs_ref->{$key};
-    } elsif ($key =~ m/^user(.*)$/) {
+    } 
+    elsif ($key =~ m/^user(.*)$/) {
       $userConf->{$1} = $confs_ref->{$key};
     }
   }
@@ -473,7 +477,8 @@ sub _set_treeViewOpts {
       and ! -f $confs_ref->{backgroundimage}
       and  -f $libDir . "/" . $confs_ref->{backgroundimage}) {
     $treeViewOpts->{backgroundImage} = $libDir . "/" . $confs_ref->{backgroundimage};
-  } else {
+  } 
+  else {
     $treeViewOpts->{backgroundImage} = val_or_def($confs_ref, "backgroundimage", undef);
   }
   return;
@@ -497,13 +502,16 @@ sub _set_fonts {
     $font = $confs_ref->{'font'};
     # substitute -*-* at the end of $confs_ref->{font} with -$fontenc
     $font =~ s/-\*-\*$/-$fontenc/;
-  } else {
+  } 
+  else {
     if ($^O =~ /^MS/) {
       $font = 'family:Arial,size:10';
-    } elsif ($fontenc eq 'iso10646-1') {
+    } 
+    elsif ($fontenc eq 'iso10646-1') {
       $font = '{Arial Unicode Ms} 10';
       #$font = '-*-arial unicode ms-medium-r-normal-*-12-*-*-*-*-*-iso10646-1';
-    } else {
+    } 
+    else {
       $font = '-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-' . $fontenc;
     }
   }
@@ -565,13 +573,15 @@ sub _set_resource_path {
     # actually not possible for the $resourcePathSplit to be at the end of $path
     if ($path =~ /^\Q$resourcePathSplit\E/) {
       $path = $def_res_path . $path;
-    } elsif ($path =~ /\Q$resourcePathSplit\E$/) {
+    } 
+    elsif ($path =~ /\Q$resourcePathSplit\E$/) {
       # if there is a delimiter at the end of the string, append default resource path ($def_res_path)
       $path .= $def_res_path;
     }
     # use both default resource path and all the paths from config hash
     $r = $path;
-  } else {
+  } 
+  else {
     # there is no resource path in configuration hash, just use default resource path
     $r = $def_res_path;
   }
@@ -607,10 +617,12 @@ sub _set_print_options {
       if (not -f $psFontFile and -f "$libDir/".$psFontFile) {
         $psFontFile = "$libDir/" . $psFontFile;
       }
-    } else {
+    } 
+    else {
       if (!defined($Tk::VERSION) or $Tk::VERSION >= 804) {
         $psFontFile = "$libDir/fonts/n019003l.pfa";
-      } else {
+      } 
+      else {
         $psFontFile = "$libDir/fonts/ariam___.pfa";
       }
     }
@@ -621,7 +633,8 @@ sub _set_print_options {
       if (not -f $psFontAFMFile and -f "$libDir/".$psFontAFMFile) {
         $psFontAFMFile = "$libDir/" . $psFontAFMFile;
       }
-    } else {
+    } 
+    else {
       $psFontAFMFile = $psFontFile;
       # change extension of the psFontFile to .afm and test whether it exists
       $psFontAFMFile =~ s/\.[^.]+$/.afm/;
@@ -641,7 +654,8 @@ sub _set_print_options {
       if (not -d $ttFontPath and -d "$libDir/" . $ttFontPath) {
         $ttFontPath = "$libDir/" . $ttFontPath;
       }
-    } else {
+    } 
+    else {
       my @fontpath;
       # Read paths from registry on Windows
       if ($^O eq "MSWin32") {
@@ -653,7 +667,8 @@ sub _set_print_options {
         $ShellFolders->GetValues(\%shf);
         @fontpath = ($shf{Fonts}[2]);
         #		 qw(c:/windows/fonts/ c:/winnt/fonts/);
-      } else {
+      } 
+      else {
         # use fontconfig here?
         if (open(my $fc, '/etc/fonts/fonts.conf')) {
           my $line;
@@ -791,7 +806,8 @@ sub set_config {
   #TODO: $^O never equals Win32, it can be MSWin32, though
   if ($^O eq 'Win32') {
     $def_share_path =~ s/[\\\/](?:lib[\\\/]tred|tredlib)$//;
-  } else {
+  } 
+  else {
     if (!($def_share_path =~ s{/lib/tred$}{/share/tred})) {
       $def_share_path =~ s/\/(?:tredlib)$//;
     }
@@ -839,7 +855,8 @@ sub set_config {
     if ($Treex::PML::IO::gzip) {
       $Treex::PML::IO::zcat = $Treex::PML::IO::gzip;
       $Treex::PML::IO::zcat_opts = '-d';
-    } elsif (-x "$libDir/../zcat") {
+    } 
+    elsif (-x "$libDir/../zcat") {
       $Treex::PML::IO::zcat = "$libDir/../bin/zcat";
     }
   }

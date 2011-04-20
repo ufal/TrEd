@@ -15,7 +15,7 @@ BEGIN {
   use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %encodings $inputenc
               $outputenc $lefttoright $Ds $support_unicode $FORCE_REMIX $FORCE_NO_REMIX $needs_arabic_remix_re);
   use TrEd::MinMax;
-  @ISA=qw(Exporter);
+  use base qw(Exporter);
   $VERSION = "0.2";
 
   @EXPORT = qw(&encode &decode &filename &dirname);
@@ -37,7 +37,8 @@ BEGIN {
   if ($^O eq "MSWin32") {
     $outputenc="windows-1250" unless defined($outputenc);
     $Ds="\\"; # how filenames and directories are separated
-  } else {
+  } 
+  else {
     $Ds='/';
     $outputenc="iso-8859-2" unless defined($outputenc);
   }
@@ -86,9 +87,11 @@ sub encode {
         $str = remix(arabjoin($str));
       }
     }
-  } elsif ($]>=5.008) {
+  } 
+  elsif ($]>=5.008) {
     eval "use Encode (); \$str=Encode::encode(\$outputenc,\$str);";
-  } else {
+  } 
+  else {
     eval "tr/$encodings{$inputenc}/$encodings{$outputenc}/" unless ($inputenc eq $outputenc);
   }
 #  $lefttoright or ($str=~s{([^[:ascii:]]+)}{reverse $1}eg);
@@ -117,12 +120,15 @@ sub decode {
   }
   if ($support_unicode) {
     return $str;
-  } elsif ($]>=5.008) {
+  } 
+  elsif ($]>=5.008) {
     eval "use Encode (); \$str=Encode::decode(\$outputenc,\$str);";
     return $str;
-  } elsif ($inputenc eq $outputenc) {
+  } 
+  elsif ($inputenc eq $outputenc) {
     return $str;
-  } else {
+  } 
+  else {
     eval " tr/$encodings{$outputenc}/$encodings{$inputenc}/";
     return $str;
   }
