@@ -1589,7 +1589,7 @@ sub openFile {
     }
   }
   $grp->{treeNo}=0;
-  $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
+  $grp->{root}=$grp->{FSFile}->tree(0);
   $grp->{currentNode}=$grp->{root};
   applyFileSuffix($grp,$goto);
   unless ($opts{-justpreloaded}) {
@@ -1600,7 +1600,6 @@ sub openFile {
       $return = 0;
     }
   }
-  $grp->{root}=$grp->{FSFile}->tree(0);
   unless (!$grp->{FSFile} || defined($grp->{currentNode})) {
     $grp->{currentNode}=$grp->{root};
   }
@@ -1614,31 +1613,147 @@ sub _has_suffix {
 }
 
 sub applyFileSuffix {
-  my ($grp,$goto) = @_;
-  return unless ref($grp) and defined($goto) and $goto ne "";
-  # -- smells like PDT-specific code, at least the second case
-  # but we want it, dont we:)
+  my ($grp,$goto)= @_;
+  return unless $grp;
+  my $fsfile = $grp->{FSFile};
+  return unless $fsfile and defined($goto) and $goto ne q//;
 
-  my $fsfile=$grp->{FSFile};
   if ($goto=~/^##([0-9]+)/) {
-    $grp->{treeNo}=min2(max2(0,$1-1),$fsfile->lastTreeNo);
+    my $no = int($1 - 1);
+    $grp->{treeNo}=min(max(0,$no),$fsfile->lastTreeNo);
+    warn "RA $grp->{root}.";
+    $grp->{root} = $fsfile->tree($grp->{treeNo});
+    warn "RB $grp->{root}.";
+    return 0 if $grp->{treeNo} != $no;
   } elsif ($goto=~/^#([0-9]+)/) {
+    # this is PDT 1.0-specific code, sorry
+    my $no;
     for (my $i=0;$i<=$fsfile->lastTreeNo;$i++) {
-      $grp->{treeNo}=$i,last if ($fsfile->treeList->[$i]->{'form'} eq "#$1");
+      if ($fsfile->treeList->[$i]->{form} eq "#$1") {
+	$no=$i; last;
+      }
+    }
+    return 0 unless defined $no;
+    $grp->{treeNo}=$no;
+  } elsif ($goto=~/^#([^#]+)$/) {
+    my $id = $1;
+    if (Treex::PML::Schema::CDATA->check_string_format($id,'ID')) {
+      my $id_hash = $fsfile->appData('id-hash');
+      if (UNIVERSAL::isa($id_hash,'HASH') and exists($id_hash->{$id})) {
+	my $node = $id_hash->{$id};
+	# we would like to use Treex::PML::Index() here, but can't
+	my $list = $fsfile->treeList;
+	my $root = UNIVERSAL::can($node,'root') && $node->root;
+	my $n = defined($root) && first {
+	  $list->[$_]==$root;
+	} 0..$#$list;
+	if ($root and !defined($n)) {
+	  # hm, we have a node, but don't know to which tree
+	  # it belongs
+	  my $trees_type = $fsfile->metaData('pml_trees_type');
+	  my $root_type = $root->type;
+	  if ($trees_type and $root_type) {
+	    my $trees_type_is = $trees_type->get_decl_type;
+	    my %paths;
+	    my $is_sequence;
+	    my $found;
+	    my @elements;
+	    if ($trees_type_is == Treex::PML::Schema::PML_LIST_DECL()) {
+	      @elements = ['LM',$trees_type->get_content_decl];
+	    } elsif ($trees_type_is == Treex::PML::Schema::PML_SEQUENCE_DECL()) {
+	      @elements = map { [$_->get_name,$_->get_content_decl] } $trees_type->get_elements;
+	      $is_sequence=1;
+	    } else {
+	      return 0;
+	    }
+	    for my $el (@elements) {
+	      $paths{$el->[0]} = [$trees_type->get_schema->find_decl(
+		sub {
+		  $_[0] == $root_type
+		}, $el->[1],{})];
+	      $found = 1 if @{ $paths{$el->[0]} };
+	    }
+	    return 0 unless $found;
+	    TREE:
+	    for my $i (0..$#$list) {
+	      my $tree = $list->[$i];
+	      my $paths = $is_sequence ? $paths{$tree->{'#name'}} : $paths{LM};
+	      for my $p (@{$paths||[]}) {
+		for my $value ($tree->all($p)) {
+		  if ($value == $root) {
+		    $n = $i;
+		    last TREE;
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+	if (defined($n)) {
+	  $grp->{treeNo}=$n;
+	  $grp->{currentNode}=$node;
+	  return 1;
+	} else {
+	  return 0;
+	}
+      }
     }
   }
   # new: we're the dot in .[0-9]+ (TM)
-  my $root;
   if ($goto=~/\.([0-9]+)$/) {
-    $root=$fsfile->treeList->[$grp->{treeNo}];
-    my $i=$1;
-    while ($root and $i>0) {
-      $i--;
-      $root=$root->following();
+    my $node=getNodeByNo($grp,$1);
+    warn "N $node";
+    if ($node) {
+      $grp->{currentNode}=$node;
+      warn Dumper $grp;
+      return 1;
+    } else {
+      return 0;
     }
-    $grp->{currentNode}=$root if ($root);
+  } elsif ($goto=~/\.([^0-9#][^#]*)$/) {
+    my $id = $1;
+    if (Treex::PML::Schema::CDATA->check_string_format($id,'ID')) {
+      my $id_hash = $fsfile->appData('id-hash');
+      if (UNIVERSAL::isa($id_hash,'HASH') and exists($id_hash->{$id})) {
+	return 1 if ($grp->{currentNode}=$id_hash->{$id}); # assignment
+      } else {
+	return 0;
+      }
+    }
   }
+  return 1;
 }
+
+
+# sub OLD_applyFileSuffix {
+#   my ($grp,$goto) = @_;
+#   return unless ref($grp) and defined($goto) and $goto ne "";
+#   # -- smells like PDT-specific code, at least the second case
+#   # but we want it, dont we:)
+
+#   my $fsfile=$grp->{FSFile};
+#   if ($goto=~/^##([0-9]+)/) {
+#       warn "BEFORE $grp->{treeNo}";
+#     $grp->{treeNo}=min2(max2(0,$1-1),$fsfile->lastTreeNo);
+#       warn "AFTER  $grp->{treeNo}";
+#   } elsif ($goto=~/^#(.+)/) {
+#     for (my $i=0;$i<=$fsfile->lastTreeNo;$i++) {
+#       $grp->{treeNo}=$i,last if ($fsfile->treeList->[$i]->{id} eq $1);
+#     }
+#   }
+#   # new: we're the dot in .[0-9]+ (TM)
+#   my $root;
+#   if ($goto=~/\.([0-9]+)$/) {
+#     $root=$fsfile->treeList->[$grp->{treeNo}];
+#     my $i=$1;
+#     while ($root and $i>0) {
+#       $i--;
+#       $root=$root->following();
+#     }
+#     $grp->{currentNode}=$root if ($root);
+#     warn "RETURN $grp->{treeNo}";
+#   }
+# }
 
 sub checkLock {
   my ($f) = @_; # filename
