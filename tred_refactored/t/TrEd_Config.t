@@ -528,7 +528,8 @@ sub test__set_print_options {
   my $default_font; 
   if (!defined($Tk::VERSION) or $Tk::VERSION >= 804) {
     $default_font = "n019003l.pfa";
-  } else {
+  } 
+  else {
     $default_font = "ariam___.pfa";
   }
   
@@ -546,7 +547,8 @@ sub test__set_print_options {
   
   if (-f $AFM_font) {
     $expected_printOptions{'psFontAFMFile'} = $AFM_font;
-  } else {
+  } 
+  else {
     $expected_printOptions{'psFontAFMFile'} = "$TrEd::Config::libDir/$AFM_font";
   }
   
@@ -567,7 +569,8 @@ sub test__set_print_options {
     
     if (-f $AFM_font) {
       $expected_printOptions{'psFontAFMFile'} = $AFM_font;
-    } else {
+    } 
+    else {
       $expected_printOptions{'psFontAFMFile'} = "$TrEd::Config::libDir/$AFM_font";
     }
     # in case of death, we have to clean up files we've created
@@ -587,7 +590,8 @@ sub test__set_print_options {
   $AFM_font =~ s/\.pfa/\.afm/;
   if (-f $AFM_font) {
     $expected_printOptions{'psFontAFMFile'} = $AFM_font;
-  } else {
+  } 
+  else {
     $expected_printOptions{'psFontAFMFile'} = "$TrEd::Config::libDir/$AFM_font";
   }
   
@@ -614,7 +618,8 @@ sub test__set_print_options {
   
   if (-f $AFM_font) {
     $expected_printOptions{'psFontAFMFile'} = $AFM_font;
-  } else {
+  } 
+  else {
     $expected_printOptions{'psFontAFMFile'} = "$TrEd::Config::libDir/$AFM_font";
   }
   
@@ -636,7 +641,8 @@ sub test__set_print_options {
   
   if (-f $AFM_font) {
     $expected_printOptions{'psFontAFMFile'} = $AFM_font;
-  } else {
+  } 
+  else {
     $expected_printOptions{'psFontAFMFile'} = "$TrEd::Config::libDir/$AFM_font";
   }
   
@@ -654,7 +660,8 @@ sub test__set_print_options {
   
   if (-f $AFM_font) {
     $expected_printOptions{'psFontAFMFile'} = $AFM_font;
-  } else {
+  } 
+  else {
     $expected_printOptions{'psFontAFMFile'} = "$TrEd::Config::libDir/$AFM_font";
   }
   
@@ -672,7 +679,8 @@ sub test__set_print_options {
   
   if (-f $AFM_font) {
     $expected_printOptions{'psFontAFMFile'} = $AFM_font;
-  } else {
+  } 
+  else {
     $expected_printOptions{'psFontAFMFile'} = "$TrEd::Config::libDir/$AFM_font";
   }
   

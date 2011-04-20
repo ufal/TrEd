@@ -137,7 +137,8 @@ sub Authentify {
     $peer->print("$control AUTH_FAILED\n");
     $peer->flush();
     return 0;
-  } else {
+  } 
+  else {
     $peer->print("$control AUTH_OK\n");
     $peer->flush();
     return 1;

@@ -1,5 +1,5 @@
 package TrEd::Extensions;
-# pajas@ufal.ms.mff.cuni.cz          02 ��j 2008
+# pajas@ufal.ms.mff.cuni.cz          02 rij 2008
 
 use 5.008;
 use strict;
@@ -25,19 +25,19 @@ BEGIN {
   }
   require TrEd::Version;
 
-  our @ISA = qw(Exporter);
+  use base qw(Exporter);
   our %EXPORT_TAGS = ( 'all' => [ qw(
-				      getExtensionsDir
-				      initExtensions
-				      getExtensionList
-				      getExtensionMacroPaths
+				      get_extensions_dir
+				      init_extensions
+				      get_extension_list
+				      get_extension_macro_paths
 				      manageExtensions
-                                      getExtensionSampleDataPaths
-                                      getExtensionDocPaths
-				      getPreInstalledExtensionsDir
-				      getPreInstalledExtensionList
-                                      getExtensionTemplatePaths
-				      getExtensionSubPaths
+                      get_extension_sample_data_paths
+                      get_extension_doc_paths
+				      get_preinstalled_extensions_dir
+				      get_preinstalled_extension_list
+                      get_extension_template_paths
+				      get_extension_subpaths
 				   ) ] );
   our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
   our @EXPORT = qw(  );
@@ -46,341 +46,623 @@ BEGIN {
 
 # Preloaded methods go here.
 
-sub getExtensionsDir {
+#######################################################################################
+# Usage         : get_extensions_dir()
+# Purpose       : Return extensions directory from config
+# Returns       : Name of the extensions directory (as a string)
+# Parameters    : no 
+# Throws        : no exception
+# Comments      : Reads TrEd::Config::extensionsDir
+sub get_extensions_dir {
   return $TrEd::Config::extensionsDir;
 }
-sub getPreInstalledExtensionsDir {
+
+#######################################################################################
+# Usage         : get_preinstalled_extensions_dir()
+# Purpose       : Return configuration option -- directory where extensions are preinstalled
+# Returns       : Name of the directory where extensions are preinstalled (string)
+# Parameters    : no
+# Throws        : no exception
+# Comments      : Reads TrEd::Config::preinstalledExtensionsDir
+sub get_preinstalled_extensions_dir {
   return $TrEd::Config::preinstalledExtensionsDir;
 }
 
-sub getExtensionList {
-  my ($repository)=@_;
+#######################################################################################
+# Usage         : get_extension_list($repository)
+# Purpose       : Return list of extensions in repository/extensions directory
+# Returns       : Reference to array of extension names, empty array reference if repository does not 
+#                 contain list of extensions. Undef/empty array if extensions directory does not exist 
+#                 and no $repository is specified
+# Parameters    : scalar $repository -- path to extensions repository 
+# Throws        : no exception
+# Comments      : File extensions.lst is searched for in $repository (if it is set) or local extensions directory.
+#                 List of extensions listed in this file is returned.
+# See Also      : Treex::PML::IO::make_URI(), File::Spec::catfile(), Treex::PML::IO::open_uri(), 
+#                 Treex::PML::IO::close_uri()
+sub get_extension_list {
+  my ($repository) = @_;
   my $url;
   if ($repository) {
-    $url = Treex::PML::IO::make_URI($repository).'/extensions.lst';
-  } else {
-    $url =
-      File::Spec->catfile(getExtensionsDir(),'extensions.lst');
-    return unless -f $url;
+    $url = Treex::PML::IO::make_URI($repository) . '/extensions.lst';
+  } 
+  else {
+    $url = File::Spec->catfile(get_extensions_dir(), 'extensions.lst');
+    return if (!( -f $url));
   }
   my $fh = eval { Treex::PML::IO::open_uri($url) };
-  warn $@ if ($@);
-  return [] unless $fh;
-  my @extensions = grep { /^!?[[:alnum:]_-]+\s*$/ } <$fh>;
-  s/\s+$// for @extensions;
+  carp($@) if ($@);
+  return [] if (!$fh);
+  my $ext_filter = qr{
+    ^
+    !?
+    [[:alnum:]_-]+
+    \s*
+    $
+  }x;
+  my @extensions = grep { /$ext_filter/ } <$fh>;
+  for my $extension (@extensions) {
+    $extension =~ s/\s+$//x;
+  }
   Treex::PML::IO::close_uri($fh);
   return \@extensions;
 }
 
-sub initExtensions {
-  my ($list,$extension_dir)=@_;
-  if (@_==0) {
-    $list=getExtensionList();
-  } elsif (!ref($list) eq 'ARRAY') {
-    carp('Usage: initExtensions( [ extension_name(s)... ] )');
+#######################################################################################
+# Usage         : init_extensions([$ext_list, $extension_dir])
+# Purpose       : Add stylesheets, lib, macro and resources paths to TrEd paths
+#                 for each extension from extensions directory
+# Returns       : nothing
+# Parameters    : array_ref $list $ext_list -- reference to list of extension names
+#                 scalar $extension_dir     -- name of the directory where extensions are stored
+# Throws        : carp if the first argument is a reference, but not array reference
+# Comments      : If $ext_list is not supplied, get_extension_list() function is used to get the list 
+#                 of extensions. If $extension_dir is not supplied, get_extensions_dir() is used to find
+#                 the directory for extensions.
+# See Also      : Treex::PML::Backend::PML::configure(), get_extensions_dir(), get_extension_list()
+sub init_extensions {
+  my ($list, $extension_dir) = @_;
+  # check parameters
+  if (@_ == 0) {
+    $list = get_extension_list();
+  } elsif (ref($list) ne 'ARRAY') {
+    carp('Usage: init_extensions( [ extension_name(s)... ] )');
   }
-  $extension_dir||=getExtensionsDir();
+  $extension_dir ||= get_extensions_dir();
+  
   my (%m,%r,%i,%s);
-  @s{ grep defined, @TrEd::Utils::stylesheet_paths } = () if defined @TrEd::Utils::stylesheet_paths;
+  # stylesheet paths
+  if (defined(@TrEd::Utils::stylesheet_paths)) {
+    @s{ grep { defined($_) } @TrEd::Utils::stylesheet_paths } = ();
+  }
+  # resource paths
   @r{ Treex::PML::ResourcePaths() } = ();
-  @m{ grep defined, @TrEd::Macros::macro_include_paths } = () if defined @TrEd::Macros::macro_include_paths;
+  # macro include paths
+  if (defined(@TrEd::Macros::macro_include_paths)) {
+    @m{ grep { defined($_) } @TrEd::Macros::macro_include_paths } = ();
+  }
+  # perl include paths
   @i{ @INC } = ();
+  
+  # add each extension's resources, macros, stylesheets and libs to appropriate paths 
+  # used by TrEd
   for my $name (grep { !/^!/ } @$list) {
-    my $dir = File::Spec->catdir($extension_dir,$name,'resources');
-    if (-d $dir and !exists($r{$dir})) {
+    my $dir = File::Spec->catdir($extension_dir, $name, 'resources');
+    if (-d $dir && !exists($r{$dir})) {
       Treex::PML::AddResourcePath($dir);
       $r{$dir}=1;
     }
-    $dir = File::Spec->catdir($extension_dir,$name);
-    if (-d $dir and !exists($m{$dir})) {
+    $dir = File::Spec->catdir($extension_dir, $name);
+    if (-d $dir && !exists($m{$dir})) {
       push @TrEd::Macros::macro_include_paths, $dir;
       $m{$dir}=1;
     }
-    $dir = File::Spec->catdir($extension_dir,$name,'libs');
-    if (-d $dir and !exists($i{$dir})) {
-      push @INC, $dir;
+    $dir = File::Spec->catdir($extension_dir, $name, 'libs');
+    if (-d $dir && !exists($i{$dir})) {
+      push(@INC, $dir);
       $i{$dir}=1;
     }
-    $dir = File::Spec->catdir($extension_dir,$name,'stylesheets');
-    if (-d $dir and !exists($s{$dir})) {
-      push @TrEd::Utils::stylesheet_paths, $dir;
+    $dir = File::Spec->catdir($extension_dir, $name, 'stylesheets');
+    if (-d $dir && !exists($s{$dir})) {
+      push(@TrEd::Utils::stylesheet_paths, $dir);
       $s{$dir}=1;
     }
   }
+  # updates resource paths for Treex::PML
   Treex::PML::Backend::PML::configure();
+  return;
 }
 
-sub getPreInstalledExtensionList {
-  my ($except,$preinst_dir)=@_;
-  $except||=[];
-  $preinst_dir ||= getPreInstalledExtensionsDir();
-  my $pre_installed = ((-d $preinst_dir) && getExtensionList($preinst_dir)) || [];
+#######################################################################################
+# Usage         : get_preinstalled_extension_list([$except, $preinstalled_ext_dir])
+# Purpose       : Return list of extensions from pre-installed extensions directory, 
+#                 except those listed in $except
+# Returns       : Reference to array containing extensions from pre-installed extensions directory
+# Parameters    : array_ref $except             -- reference to list of extensions to ignore
+#                 scalar $preinstalled_ext_dir  -- name of the directory with preinstalled extensions 
+# Throws        : no exception
+# Comments      : If no parameters were supplied, $except is considered to be an empty list,
+#                 return value of get_preinstalled_extensions_dir() is used as $preinstalled_ext_dir 
+# See Also      : get_preinstalled_extensions_dir(), get_extension_list()
+sub get_preinstalled_extension_list {
+  my ($except, $preinst_dir) = @_;
+  $except ||= [];
+  $preinst_dir ||= get_preinstalled_extensions_dir();
+  my $pre_installed_dir_exts = ((-d $preinst_dir) && get_extension_list($preinst_dir)) || [];
+  # hash of extensions to return
   my %preinst;
-  @preinst{ grep !/^!/, @$pre_installed } = ();
+  # remove those extensions that are commented out
+  @preinst{ grep { !/^!/ } @$pre_installed_dir_exts } = ();
+  # delete extensions that should be ignored / not listed
   delete @preinst{ map { /^!?(\S+)/ ? $1 : $_ } @$except };
-  @$pre_installed = grep exists($preinst{$_}), @$pre_installed;
-  return $pre_installed;
+  
+  # filter only those extensions that exist in hash (i.e. those that are not commented out, 
+  # nor ignored)
+  @$pre_installed_dir_exts = grep { exists($preinst{$_}) } @$pre_installed_dir_exts;
+  return $pre_installed_dir_exts;
 }
 
-sub getExtensionSubPaths {
-  my ($list,$extension_dir,$relPath)=@_;
-  if (@_==0) {
-    $list=getExtensionList();
-  } elsif (!ref($list) eq 'ARRAY') {
-    carp('Usage: getExtensionSubPaths( [ extension_name(s)... ], extension_dir, rel_path )');
+#######################################################################################
+# Usage         : get_extension_subpaths($list, $extension_dir, $rel_path)
+# Purpose       : Take $list of extensions in $extension_dir directory and return list of 
+#                 subdirectories specified by $rel_path
+# Returns       : List of subdirectories of the extensions in $extension_dir specified by $rel_path
+# Parameters    : array_ref $list       -- reference to array of extensions
+#                 scalar $extension_dir -- name of the directory containing extensions
+# Throws        : carp if $list is a reference, but not a ref to array
+# Comments      : Ignores extensions that are commented out by ! at the beginning of line. 
+#                 If no $list is supplied, get_extension_list() return value is used. 
+#                 If $extension_dir is not supplied, get_extensions_dir() return value is used
+# See Also      : get_extensions_dir(), get_extension_list()
+sub get_extension_subpaths {
+  my ($list, $extension_dir, $rel_path) = @_;
+  if (@_ == 0) {
+    $list = get_extension_list();
+  } 
+  elsif (ref($list) ne 'ARRAY') {
+    carp('Usage: get_extension_subpaths( [ extension_name(s)... ], extension_dir, rel_path )');
   }
-  $extension_dir||=getExtensionsDir();
-  return map File::Spec->catfile($extension_dir,$_,$relPath),
-  grep !/^!/,
-  @$list;
+  $extension_dir ||= get_extensions_dir();
+  my @filtered_extensions_list = grep { !/^!/ } @$list;
+  return map { File::Spec->catfile($extension_dir, $_, $rel_path) } @filtered_extensions_list;
 }
 
-sub getExtensionSampleDataPaths {
-  my ($list,$extension_dir)=@_;
-  return grep -d $_, getExtensionSubPaths($list,$extension_dir,'sample');
+#######################################################################################
+# Usage         : get_extension_sample_data_paths($list, $extension_dir)
+# Purpose       : Find all the valid 'sample' subdirectories for all the extensions from 
+#                 $list in $extension_dir directory
+# Returns       : List of existing 'sample' subdirectories for specified extensions
+# Parameters    : array_ref $list       -- reference to array of extensions to work with
+#                 scalar $extension_dir -- name of the directory containing extensions
+# Throws        : no exception
+# See Also      : get_extension_subpaths()
+sub get_extension_sample_data_paths {
+  my ($list, $extension_dir) = @_;
+  return grep { -d $_ } get_extension_subpaths($list, $extension_dir, 'sample');
 }
 
-sub getExtensionDocPaths {
-  my ($list,$extension_dir)=@_;
-  return grep -d $_, getExtensionSubPaths($list,$extension_dir,'documentation');
+#######################################################################################
+# Usage         : get_extension_doc_paths($list, $extension_dir)
+# Purpose       : Find all the valid 'documentation' subdirectories for all the extensions from 
+#                 $list in $extension_dir directory
+# Returns       : List of existing 'documentation' subdirectories for specified extensions
+# Parameters    : array_ref $list       -- reference to array of extensions to work with
+#                 scalar $extension_dir -- name of the directory containing extensions
+# Throws        : no exception
+# See Also      : get_extension_subpaths()
+sub get_extension_doc_paths {
+  my ($list, $extension_dir) = @_;
+  return grep { -d $_ } get_extension_subpaths($list, $extension_dir, 'documentation');
 }
 
-sub getExtensionTemplatePaths {
-  my ($list,$extension_dir)=@_;
-  return grep -d $_, 
-    getExtensionSubPaths($list,$extension_dir,'templates');
+#######################################################################################
+# Usage         : get_extension_template_paths($list, $extension_dir)
+# Purpose       : Find all the valid 'templates' subdirectories for all the extensions from 
+#                 $list in $extension_dir directory
+# Returns       : List of existing 'templates' subdirectories for specified extensions
+# Parameters    : array_ref $list       -- reference to array of extensions to work with
+#                 scalar $extension_dir -- name of the directory containing extensions
+# Throws        : no exception
+# See Also      : get_extension_subpaths()
+sub get_extension_template_paths {
+  my ($list, $extension_dir) = @_;
+  return grep { -d $_ } get_extension_subpaths($list, $extension_dir, 'templates');
 }
 
-sub getExtensionMacroPaths {
-  my ($list,$extension_dir)=@_;
-  return
-    map { glob($_.'/*/contrib.mac'), ( -f $_.'/contrib.mac' ? $_.'/contrib.mac' : ()) }
-      getExtensionSubPaths($list,$extension_dir,'contrib');
+#######################################################################################
+# Usage         : _contrib_macro_paths($direcotry)
+# Purpose       : Find all directories and subdirectories of $directory that contains 
+#                 'contrib.mac' file
+# Returns       : List of paths to contrib.mac file in subdirectories of $directory
+# Parameters    : scalar $directory -- name of the directory where the search starts
+# Throws        : no exception
+# See Also      : glob()
+sub _contrib_macro_paths {
+  my ($direcotry) = @_;
+  return glob($direcotry . '/*/contrib.mac'), ( (-f $direcotry . '/contrib.mac') ? $direcotry . '/contrib.mac' : () );
 }
 
+#######################################################################################
+# Usage         : get_extension_macro_paths($list, $extension_dir)
+# Purpose       : Find all the paths with 'contrib.mac' file for all the extensions from 
+#                 $list in $extension_dir directory
+# Returns       : List of paths to 'contrib.mac' files for specified extensions
+# Parameters    : array_ref $list       -- reference to array of extensions to work with
+#                 scalar $extension_dir -- name of the directory containing extensions
+# Throws        : no exception
+# Comments      : 
+# See Also      : get_extension_subpaths()
+sub get_extension_macro_paths {
+  my ($list, $extension_dir) = @_;
+  my @contrib_subdirs = get_extension_subpaths($list, $extension_dir, 'contrib');
+  return  map { _contrib_macro_paths($_) } @contrib_subdirs;
+}
 
-sub getExtensionMetaData {
-  my ($name,$extensions_dir)=@_;
+#######################################################################################
+# Usage         : get_extension_meta_data($name, $extension_dir)
+# Purpose       : Load package.xml metafile for extension $name and create 
+#                 Treex::PML::Instance object from this metafile
+# Returns       : Root data structure returned by Treex::PML::Instance::get_root(),
+#                 undef if metafile is not a valid file
+# Parameters    : scalar or URI ref $name -- reference to URI object with extension name or the name itself
+#                 scalar $extension_dir   -- name of the directory containing extensions
+# Throws        : carp if Treex::PML::Instance::load() fails
+# Comments      : If $extensions_dir is not supplied, result of get_extensions_dir() is used.
+# See Also      : Treex::PML::Instance::load(),
+sub get_extension_meta_data {
+  my ($name, $extensions_dir)=@_;
   my $metafile;
   if ((blessed($name) and $name->isa('URI'))) {
-    $metafile = URI->new('package.xml')->abs($name.'/');
-  } else {
-    $metafile =
-      File::Spec->catfile($extensions_dir||getExtensionsDir(),$name,'package.xml');
-    return unless -f $metafile;
+    $metafile = URI->new('package.xml')->abs($name . '/');
+  } 
+  else {
+    $metafile = File::Spec->catfile($extensions_dir || get_extensions_dir(), $name, 'package.xml');
+    return if not -f $metafile;
   }
-  my $data =  eval { Treex::PML::Instance->load({
-    filename => $metafile,
-  })->get_root;
+  my $data =  eval { 
+    Treex::PML::Instance->load({ filename => $metafile, })->get_root();
   };
-  warn $@ if $@;
+  carp($@) if $@;
   return $data;
 }
 
-# compare two revision numbers
+#######################################################################################
+# Usage         : _cmp_revisions($my_revision, $other_revision)
+# Purpose       : Compare two revision numbers
+# Returns       : -1 if $my_revision is numerically less than $other_revision, 
+#                 0 if $my_revision is equal to $other_revision
+#                 1 if $my_revision is greater than $other_revision
+# Parameters    : scalar $my_revision     -- first revision string (e.g. 1.256)
+#                 scalar $other_revision  -- second revision string (e.g. 1.1024)
+# Throws        : no exception
+# Comments      : E.g. 1.1024 > 1.256, thus _cmp_revisions("1.1024", "1.256") should return 1
 sub _cmp_revisions {
   my ($my_revision,$revision)=@_;
-  my @my_revision = split(/\./,$my_revision);
-  my @revision = split(/\./,$revision);
-  my $cmp=0;
-  while ($cmp==0 and (@my_revision or @revision)) {
+  my @my_revision = split(/\./, $my_revision);
+  my @revision = split(/\./, $revision);
+  my $cmp = 0;
+  while ($cmp == 0 and (@my_revision or @revision)) {
     $cmp = (shift(@my_revision) <=> shift(@revision));
   }
   return $cmp;
 }
 
+#######################################################################################
+# Usage         : _required_by($name, $exists_ref, $required_by_ref)
+# Purpose       : Find all the dependendents for $name listed in $required_by_ref
+#                 hash; continue recusively for all dependendents which exist 
+#                 in $exists_ref hash 
+# Returns       : List of dependendents
+# Parameters    : scalar $name              -- name of entity, whose dependecies are searched for
+#                 hash_ref $exists_ref      -- reference to hash containing elements for which the recursion is allowed
+#                 hash_ref $required_by_ref -- reference to hash of dependendents for each $name
+# Throws        : no exception
+# Comments      : 
+# See Also      : _requires()
+#TODO: test behaviour
 sub _required_by {
-  my ($name, $exists, $required_by)=@_;
-  my %set;
-  my @test_deps=($name);
+  my ($name, $exists_ref, $required_by_ref)=@_;
+  my %dependents_of;
+  my @test_deps = ($name);
   while (@test_deps) {
     my $n = shift @test_deps;
-    if (! exists $set{$n}) {
-      push @test_deps,
-	grep exists($exists->{$n}), keys %{$required_by->{$n}};
-      $set{$n}=$n;
+    if (not exists $dependents_of{$n}) {
+      push @test_deps, grep { exists($exists_ref->{$n}) } keys %{$required_by_ref->{$n}};
+      $dependents_of{$n} = $n;
     }
   }
-  return values(%set);
+  return values(%dependents_of);
 }
 
+#######################################################################################
+# Usage         : _requires($name, $exists_ref, $requires_ref)
+# Purpose       : Find all the dependendencies for $name listed in $required_by_ref
+#                 hash; continue recusively for all dependencies which exist 
+#                 in $exists_ref hash
+# Returns       : List of dependencies
+# Parameters    : scalar $name            -- name of entity, whose dependecies are searched for
+#                 hash_ref $exists_ref    -- reference to hash containing elements for which the recursion is allowed
+#                 hash_ref $requires_ref  -- reference to hash of dependendencies for each $name
+# Throws        : no exception
+# Comments      : 
+# See Also      : _required_by()
+#TODO: test behaviour
 sub _requires {
-  my ($name,$exists,$requires)=@_;
-  my %req;
+  my ($name, $exists_ref, $requires_ref) = @_;
+  my %dependencies_of;
   my @deps = ($name);
   while (@deps) {
     my $n = shift @deps;
-    unless (exists $req{$n}) {
-      push @deps, grep exists($exists->{$_}), @{$requires->{$n}} if $requires->{$n};
-      $req{$n}=$n;
+    if (not exists $dependencies_of{$n}) {
+      if ($requires_ref->{$n}) {
+        push @deps, grep { exists($exists_ref->{$_}) } @{$requires_ref->{$n}};
+      }
+      $dependencies_of{$n} = $n;
     }
   }
-  return values %req;
+  return values(%dependencies_of);
 }
 
 {
+  #######################################################################################
+  # Usage         : _fmt_size($size)
+  # Purpose       : Convert (and round) information amount from bytes to MiB, KiB or GiB, 
+  #                 so that numerical part of the expression is an integer between 1 and 1023
+  # Returns       : Number with information unit
+  # Parameters    : scalar $size -- number of bytes
+  # Throws        : no exception
   sub _fmt_size {
     my ($size)=@_;
     my $unit;
-    for (qw(B KiB MiB)) {
-      $unit=$_;
-      if ($size<1024) {
-	last;
-      } else {
-	$size=$size/1024;
+    foreach my $order (qw{B KiB MiB GiB}) {
+      $unit = $order;
+      if ($size < 1024) {
+        last;
+      } 
+      else {
+        $size = $size / 1024;
       }
     }
-    return sprintf("%d %s",$size,$unit||'GiB');
+    return sprintf("%d %s", $size, $unit);
   }
 }
 
+#######################################################################################
+# Usage         : _inst_file($name)
+# Purpose       : Find perl package by name
+# Returns       : Path to perl package, if it is found in @INC array, undef otherwise
+# Parameters    : scalar $name -- name of the perl package, e.g. Data::Dumper
+# Throws        : no exception
+# Comments      : 
 sub _inst_file {
   my($name) = @_;
-  my($dir,@packpath);
+  my @packpath;
   @packpath = split /::/, $name;
   $packpath[-1] .= ".pm";
-  foreach $dir (@INC) {
-    my $pmfile = File::Spec->catfile($dir,@packpath);
+  foreach my $dir (@INC) {
+    my $pmfile = File::Spec->catfile($dir, @packpath);
     if (-f $pmfile){
       return $pmfile;
     }
   }
   return;
 }
+
+#######################################################################################
+# Usage         : _inst_version($module)
+# Purpose       : Find out the version number for installed $module
+# Returns       : Undef if module is not present in @INC, version string 
+#                 found by ExtUtils::MM::parse_version() otherwise
+# Parameters    : scalar $module -- name of perl module 
+# Throws        : no exception
+# Comments      : requires CPAN, ExtUtils::MM
+# See Also      : _inst_file(), 
 sub _inst_version {
   my($module) = @_;
   require CPAN;
   require ExtUtils::MM;
   my $parsefile = _inst_file($module) or return;
+  # disable warnings for a while
   local($^W) = 0;
-  my $have;
-  $have = MM->parse_version($parsefile) || "undef";
-  $have =~ s/^ | $//g;
-  $have = CPAN::Version->readable($have);
-  $have =~ s/\s*//g;
-  return $have;
+  my $module_version;
+  # Parse a $file and return what $VERSION is set to
+  $module_version = MM->parse_version($parsefile) || "undef";
+  # get rid of spaces on both sides of string
+  $module_version =~ s/^ | $//g;
+  # better version of version string, somehow standard
+  $module_version = CPAN::Version->readable($module_version);
+  # remove spaces
+  $module_version =~ s/\s*//g;
+  return $module_version;
 }
 
+#######################################################################################
+# Usage         : get_module_version($name)
+# Purpose       : Find which version of module $name is installed
+# Returns       : Version string of installed module
+# Parameters    : scalar $name -- perl module name, e.g. Data::Dumper
+# Throws        : no exception
+# Comments      : 
+# See Also      : _inst_version()
+# TODO: naco je dobry takyto wrapper?
 sub get_module_version {
-  my ($name)=@_;
+  my ($name) = @_;
   return _inst_version($name);
 }
+
+#######################################################################################
+# Usage         : compare_module_versions($version_1, $version_2)
+# Purpose       : Compare two version numbers 
+# Returns       : 1 if $version_1 is larger than $version_2, 
+#                 -1 if $version_1 is smaller than $version_2,
+#                 0 if versions are equal, 
+#                 undef if CPAN could not be loaded
+# Parameters    : scalar $version_1 -- first version string
+#                 scalar $version_2 -- second version string
+# Throws        : no exception
+# Comments      : requires CPAN
+# See Also      : CPAN::Version->vcmp(),
 sub compare_module_versions {
   my ($v1,$v2)=@_;
-  return undef unless eval { require CPAN; 1 };
+  return undef if not eval { require CPAN; 1 };
   return CPAN::Version->vcmp($v1,$v2);
 }
 
+#######################################################################################
+# Usage         : _short_name($pkg_name)
+# Purpose       : Construct short name for package $pkg_name
+# Returns       : Short name for $pkg_name
+# Parameters    : scalar or blessed URI ref $pkg_name -- name of the package
+# Throws        : no exception
+# Comments      : If $pkg name is blessed URI reference, everything from the beginning
+#                 of $pkg_name to last slash is removed and the rest is returned. 
+#                 Otherwise $pkg_name is returned without any modification
 sub _short_name {
   my ($pkg_name)=@_;
   my $short_name = (blessed($pkg_name) and $pkg_name->isa('URI')) ?
-    do { my $n=$pkg_name; $n=~s{.*/}{}; $n } : $pkg_name;
+    do { my $n = $pkg_name; $n =~ s{.*/}{}; return $n } : $pkg_name;
 }
 
+
+sub _repo_extensions_uri_list {
+  my ($opts_ref) = @_;
+  my @repo_extension_uri_list;
+  for my $repo (map { Treex::PML::IO::make_URI($_) } @{$opts_ref->{repositories}}) {
+    push @repo_extension_uri_list, 
+    map { [$repo, $_, URI->new($_)->abs($repo.'/')] } 
+    grep { $opts_ref->{only_upgrades} ? exists($opts_ref->{installed}{$_}) : 1 } # if we are only upgrading, then filter out all the extensions that are not installed
+    map { /^!(.*)/ ? $1 : $_ }  # remove ! from the extension name if it is at the beginning of the name
+    grep { length and defined } # take only those extensions that are defined and their name length is not 0
+    @{get_extension_list($repo)};
+  }
+  return @repo_extension_uri_list;
+}
+
+#######################################################################################
+# Usage         : _populate_extension_pane($tred, $d, $opts)
+# Purpose       : 
+# Returns       : 
+# Parameters    : ? $tred --
+#                 ? $d    --
+#                 ? $opts -- 
+# Throws        : no exception
+# Comments      : $opts->{progress}, 
+#$opts->{progressbar}, 
+#$opts-{repositories}, 
+#$opts->{install}, 
+#$opts->{installed}, 
+#$opts->{only_upgrades}
+# See Also      : 
 sub _populate_extension_pane {
-  my ($tred,$d,$opts)=@_;
+  my ($tred, $d, $opts_ref)=@_;
   my $list;
-  my (%enable,%required_by,%embeded,%requires,%data,%pre_installed);
-  my ($progress,$progressbar)=($opts->{progress},$opts->{progressbar});
-  if ($opts->{install}) {
-    my @list;
-    for my $repo (map { Treex::PML::IO::make_URI($_) } @{$opts->{repositories}}) {
-      push @list, map { [$repo,$_,URI->new($_)->abs($repo.'/')] } 
-	grep { $opts->{only_upgrades} ? exists($opts->{installed}{$_}) : 1 }
-	map { /^!(.*)/ ? $1 : $_ }
-	grep { length and defined }
-	@{getExtensionList($repo)};
-    }
+  my (%enable, %required_by, %embeded, %requires, %data, %pre_installed);
+  my ($progress,$progressbar) = ($opts_ref->{progress}, $opts_ref->{progressbar});
+  if ($opts_ref->{install}) {
+    # for each repository find all the extensions (if we are updating, only those that are already installed)
+    my @list_of_extensions = _repo_extensions_uri_list($opts_ref);
     if ($progressbar) {
       $progressbar->configure(
-	-to => scalar(@list),
-	-blocks => scalar(@list),
+        -to => scalar(@list_of_extensions),
+        -blocks => scalar(@list_of_extensions),
        );
     }
     my $i=0;
-    my %in_def_repo; @in_def_repo{map $_->[2], @list}=();
+    my %in_def_repo; 
+    @in_def_repo{ map { $_->[2] } @list_of_extensions} = ();
     my (%seen);
   PKG:
-    while ($i<@list) {
-      my ($repo,$short_name,$uri) = @{$list[$i]};
+    while ($i < @list_of_extensions) {
+      my ($repo, $short_name, $uri) = @{$list_of_extensions[$i]};
 
-      my $data = $data{$uri} ||= getExtensionMetaData($uri);
-      my $installed_ver = $opts->{installed}{$short_name};
-      $installed_ver||=0;
+      my $data = $data{$uri} ||= get_extension_meta_data($uri);
+      my $installed_ver = $opts_ref->{installed}{$short_name};
+      $installed_ver ||= 0;
       if (exists $in_def_repo{$uri}) {
-	$$progress++ if $progress;
-	$progressbar->update if $progressbar;
+        $$progress++ if $progress;
+        $progressbar->update() if $progressbar;
       }
+      # since 'and' has higher priority than 'or', I assume, there is a missing bracket around (..) or (..),
+      # but in this particular case it does not really matter, it works also without the brackets
       if ($data and
-#	    (!@req_tred or
-#	      !grep { $main::VERSION } @req_tred
-#	    ) and
-	    (!$installed_ver and $data->{version})
-	    or ($installed_ver and $data->{version} and _cmp_revisions($installed_ver,$data->{version})<0)) {
-	$i++
-      } else {
-	splice @list,$i,1;
-	next PKG;
+        
+	    (!$installed_ver && $data->{version})
+	    or ($installed_ver and $data->{version} and _cmp_revisions($installed_ver, $data->{version}) < 0) ) {
+        $i++
+      } 
+      else {
+        # remove the extensions from the list, if it is installed & up to date
+        splice @list_of_extensions, $i, 1;
+        next PKG;
       }
       $requires{$uri} = [];
+      # this can be a little tricky: if any of those three expressions is false, $require would be false/0
+      # however, if all of them are true, last one is used as the value for $require
       my $require = $data && ref($data->{require}) && $data->{require};
       if (!exists($seen{$uri}) and $require) {
-	$seen{$uri}=1;
-	for my $req ($require->values('extension')) {
-	  Encode::_utf8_off($_) for grep defined, $req->{name}, $req->{href};
-	  my $req_name = $req->{name};
-	  my $installed_req_ver = $opts->{installed}{$req_name};
-	  my ($min,$max) = ($req->{min_version}||'',$req->{max_version}||'');
-	  next if ($installed_req_ver
-		   and (!$min or _cmp_revisions($installed_req_ver,$min)>=0)
-		   and (!$max or _cmp_revisions($installed_req_ver,$max)<=0));
-	  my $repo = $data->{repository} && $data->{repository}{href};
-	  my $req_uri = ($repo && (!$req->{href} || (URI->new('.')->abs($req->{href}) eq $repo))) ?
-	      URI->new($req_name)->abs($uri) : URI->new($req->{href} || $req_name)->abs($uri);
-	  my $req_data = $data{$req_uri} ||= getExtensionMetaData($req_uri);
-	  if ($req_data) {
-	    my $req_version = $req_data->{version};
-	    unless ((!$min or _cmp_revisions($req_version,$min)>=0)
-		  and (!$max or _cmp_revisions($req_version,$max)<=0)) {
-	      my $res = $d->parent->QuestionQuery(
-		-title => 'Error',
-		-label => "Package $short_name from $repo\nrequires package $req_name "
-		  ." in version $min..$max, but only $req_version is available",
-		-buttons =>["Skip $short_name", 'Ignore versions', 'Cancel']
-	       );
-	      return if $res eq 'Cancel';
-	      if ($res=~/^Skip/) {
-		next PKG;
-	      }
-	    }
-	  } else {
-	    my $res = $d->parent->QuestionQuery(
-	      -title => 'Error',
-	      -label => "Package $short_name from $repo\nrequires package $req_name "
-		." which is not available",
-	      -buttons =>["Skip $short_name", 'Ignore dependencies', 'Cancel']
-	     );
-	    return if $res eq 'Cancel';
-	    if ($res=~/^Skip/) {
-	      next PKG;
-	    }
-	  }
-	  push @{$requires{$uri}}, $req_uri;
-	  unless (exists $seen{$req_uri} or exists $in_def_repo{$req_uri}) {
-	    push @list,[URI->new('.')->abs($req_uri), $req_name, $req_uri];
-	  }
-	}
+        $seen{$uri} = 1;
+        for my $req ($require->values('extension')) {
+          for my $req_value (grep { defined($_) } ($req->{name}, $req->{href})) {
+            Encode::_utf8_off($req_value);
+          }
+          my $req_name = $req->{name};
+          my $installed_req_ver = $opts_ref->{installed}{$req_name};
+          
+          my $min = $req->{min_version} || '';
+          my $max = $req->{max_version} || '';
+          
+          next if ($installed_req_ver
+        	   and (!$min or _cmp_revisions($installed_req_ver, $min) >= 0)
+        	   and (!$max or _cmp_revisions($installed_req_ver, $max) <= 0));
+          # careful, reusing name 'repo'!!
+          my $repo = $data->{repository} && $data->{repository}{href};
+          my $req_uri = ($repo && (!$req->{href} || (URI->new('.')->abs($req->{href}) eq $repo))) ?
+              URI->new($req_name)->abs($uri) : URI->new($req->{href} || $req_name)->abs($uri);
+          my $req_data = $data{$req_uri} ||= get_extension_meta_data($req_uri);
+          if ($req_data) {
+            my $req_version = $req_data->{version};
+            unless ((!$min or _cmp_revisions($req_version,$min)>=0)
+        	  and (!$max or _cmp_revisions($req_version,$max)<=0)) {
+              my $res = $d->parent->QuestionQuery(
+        	-title => 'Error',
+        	-label => "Package $short_name from $repo\nrequires package $req_name "
+        	  ." in version $min..$max, but only $req_version is available",
+        	-buttons =>["Skip $short_name", 'Ignore versions', 'Cancel']
+               );
+              return if $res eq 'Cancel';
+              if ($res=~/^Skip/) {
+        	next PKG;
+              }
+            }
+          } else {
+            my $res = $d->parent->QuestionQuery(
+              -title => 'Error',
+              -label => "Package $short_name from $repo\nrequires package $req_name "
+        	." which is not available",
+              -buttons =>["Skip $short_name", 'Ignore dependencies', 'Cancel']
+             );
+            return if $res eq 'Cancel';
+            if ($res=~/^Skip/) {
+              next PKG;
+            }
+          }
+          push @{$requires{$uri}}, $req_uri;
+          unless (exists $seen{$req_uri} or exists $in_def_repo{$req_uri}) {
+            push @list_of_extensions,[URI->new('.')->abs($req_uri), $req_name, $req_uri];
+          }
+        }
       }
       $required_by{$_}{$uri}=1 for @{$requires{$uri}};
     }
-    $list = [ map $_->[2], @list ];
-  } else {
-    $list = getExtensionList();
-    my $pre_installed = getPreInstalledExtensionList($list);
+    $list = [ map $_->[2], @list_of_extensions ];
+  } 
+  else {
+    $list = get_extension_list();
+    my $pre_installed = get_preinstalled_extension_list($list);
     if ($progressbar) {
       $progressbar->configure(
-	-to => scalar(@$list+@$pre_installed),
-	-blocks => scalar(@$list+@$pre_installed),
+        -to => scalar(@$list+@$pre_installed),
+        -blocks => scalar(@$list+@$pre_installed),
        );
     }
     @pre_installed{ @$pre_installed } = ();
@@ -389,28 +671,28 @@ sub _populate_extension_pane {
       if ($name=~s{^!}{}) {
 	  $enable{$name} = 0;
 	}
-      my $data = $data{$name} = getExtensionMetaData($name, exists($pre_installed{$name}) ? getPreInstalledExtensionsDir() : ());
+      my $data = $data{$name} = get_extension_meta_data($name, exists($pre_installed{$name}) ? get_preinstalled_extensions_dir() : ());
       $$progress++ if $progress;
       $progressbar->update if $progressbar;
       my $require = $data && ref($data->{require}) && $data->{require};
       if ($require) {
-	$requires{$name} = $require ? [map { $_->{name} } $require->values('extension')] : [];
+        $requires{$name} = $require ? [map { $_->{name} } $require->values('extension')] : [];
       }
       $required_by{$_}{$name}=1 for @{$requires{$name}};
     }
     push @$list, @$pre_installed;
   }
-  my $extension_dir=$opts->{extensions_dir} || getExtensionsDir();
+  my $extension_dir=$opts_ref->{extensions_dir} || get_extensions_dir();
   my $row=0;
-  my $text = $opts->{pane} || $d->add('Scrolled' => 'ROText',
-				      -scrollbars=>'oe',
-				      -takefocus=>0,
-				      -relief=>'flat',
-				      -wrap=>'word',
-				      -width=>70,
-				      -height=>20,
-				      -background => 'white',
-				     );
+  my $text = $opts_ref->{pane} || $d->add('Scrolled' => 'ROText',
+                                           -scrollbars=>'oe',
+                                           -takefocus=>0,
+                                           -relief=>'flat',
+                                           -wrap=>'word',
+                                           -width=>70,
+                                           -height=>20,
+                                           -background => 'white',
+                                          );
   $text->configure(-state=>'normal');
   $text->delete(qw(0.0 end));
   my $generic_icon;
@@ -511,13 +793,13 @@ sub _populate_extension_pane {
     my $bf = $text->Frame(-background=>'white');
     my $image;
     if ($data) {
-      $opts->{versions}{$name}=$data->{version};
+      $opts_ref->{versions}{$name}=$data->{version};
       if ($data->{icon}) {
 	my ($path,$unlink,$format);
 	if ((blessed($name) and $name->isa('URI'))) {
 	  ($path,$unlink) = eval { Treex::PML::IO::fetch_file(URI->new($data->{icon})->abs($name.'/')) };
 	} else {
-	  my $dir = exists($pre_installed{ $name }) ? getPreInstalledExtensionsDir() : $extension_dir;
+	  my $dir = exists($pre_installed{ $name }) ? get_preinstalled_extensions_dir() : $extension_dir;
 	  $path = File::Spec->rel2abs($data->{icon},
 				      File::Spec->catdir($dir,$name)
 				       );
@@ -579,12 +861,12 @@ sub _populate_extension_pane {
     $text->configure(-height=>$end);
 
     $embeded{$name}=[$bf,$image ? $image : ()];
-    $enable{$name}=1 if $opts->{only_upgrades};
+    $enable{$name}=1 if $opts_ref->{only_upgrades};
     if ((blessed($name) and $name->isa('URI'))) {
       if ($uninstallable{$name}) {
 	$bf->Label(-text=>$uninstallable{$name}, -anchor=>'nw', -justify=>'left')->pack(-fill=>'x');
       } else {
-	$bf->Checkbutton(-text=> exists($opts->{installed}{$short_name})
+	$bf->Checkbutton(-text=> exists($opts_ref->{installed}{$short_name})
 			   ? 'Upgrade' : 'Install',
 			 -compound=>'left',
 			 -selectcolor=>undef,
@@ -649,12 +931,12 @@ sub _populate_extension_pane {
 		       -selectimage => main::icon($tred,"checkbox_checked"),
 		       -image => main::icon($tred,"checkbox"),
 		       -command => [sub {
-				      my ($name,$opts,$required_by,$requires)=@_;
+				      my ($name,$opts_ref,$required_by,$requires)=@_;
 				      my (@enable,@disable);
 				      if ($enable{$name}) {
-					@enable=_requires($name,$opts->{versions},$requires);
+					@enable=_requires($name,$opts_ref->{versions},$requires);
 				      } else {
-					@disable=_required_by($name,$opts->{versions},$required_by);
+					@disable=_required_by($name,$opts_ref->{versions},$required_by);
 					if ((grep $enable{$_}, @disable)) {
 					  my $res = $d->QuestionQuery(
 					    -title => 'Disable related packages?',
@@ -670,20 +952,20 @@ sub _populate_extension_pane {
 					  }
 					}
 				      }
-				      ${$opts->{reload_macros}}=1 if ref $opts->{reload_macros};
+				      ${$opts_ref->{reload_macros}}=1 if ref $opts_ref->{reload_macros};
 				      $enable{$_}=0 for @disable;
 				      $enable{$_}=1 for @enable;
 				      setExtension(\@disable,0) if (@disable);
 				      setExtension(\@enable,1) if (@enable)
-				    },$name,$opts,\%required_by,\%requires],
+				    },$name,$opts_ref,\%required_by,\%requires],
 		       -variable=>\$enable{$name})->pack(-fill=>'both',-side=>'left',-padx => 5);
 	$bf->Button(-text=>'Uninstall',
 		    -compound=>'left',
 		    -height => 18,
 		    -image => main::icon($tred,'remove'),
 		    -command => [sub {
-				   my ($name,$required_by,$opts,$d,$embeded)=@_;
-				   my @remove=_required_by($name,$opts->{versions},$required_by);
+				   my ($name,$required_by,$opts_ref,$d,$embeded)=@_;
+				   my @remove=_required_by($name,$opts_ref->{versions},$required_by);
 				   my $quiet;
 				   if (@remove>1) {
 				     $quiet=1;
@@ -702,17 +984,17 @@ sub _populate_extension_pane {
 				   $text->configure(-state=>'normal');
 				   for my $n (@remove) {
 				     if (uninstallExtension($n,{tk=>$d, quiet=>$quiet})) {
-				       delete $opts->{versions}{$n};
+				       delete $opts_ref->{versions}{$n};
 				     $text->DeleteTextTaggedWith($n);
 				       #for (@{$embeded->{$n}}) {
 				       #  eval { $_->destroy };
 				       #}
 				       delete $embeded->{$n};
-				       ${$opts->{reload_macros}}=1 if ref( $opts->{reload_macros} );
+				       ${$opts_ref->{reload_macros}}=1 if ref( $opts_ref->{reload_macros} );
 				     }
 				   }
 				   #$text->Subwidget('scrolled')->configure(-state=>'disabled');
-				 },$name,\%required_by,$opts,$d], #,\%embeded
+				 },$name,\%required_by,$opts_ref,$d], #,\%embeded
 		   )->pack(-fill=>'both',
 			   -side=>'right',
 			   -padx => 5);
@@ -798,18 +1080,28 @@ sub _populate_extension_pane {
   $text->configure(-height=>20);
   $text->pack(-expand=>1,-fill=>'both');
   #$text->Subwidget('scrolled')->configure(-state=>'disabled');
-  unless ($opts->{pane}) {
+  unless ($opts_ref->{pane}) {
     $text->TextSearchLine(-parent => $d,
 			  -label=>'S~earch',
 			  -prev_img =>main::icon($tred,'16x16/up'),
 			  -next_img =>main::icon($tred,'16x16/down'),
 			 )->pack(qw(-fill x));
-    $opts->{pane}=$text;
+    $opts_ref->{pane}=$text;
   }
   $text->see('0.0');
   return \%enable;
 }
 
+#######################################################################################
+# Usage         : newNode($win_ref)
+# Purpose       : Create new node as a new child of current node
+# Returns       : Undef if $win_ref->{FSFile} or $win_ref->{currentNode} are not defined, 
+#                 reference to new Treex::PML::Node object otherwise
+# Parameters    : hash_ref $win_ref  -- see comment of gotoTree function 
+# Throws        : no exception
+# Comments      : Marks the modified file as notSaved(1), calls on_node_chage() callback
+# See Also      : Treex::PML::Node::new(), Treex::PML::Struct::set_member(), Treex::PML::Struct::paste_on()
+#TODO: na zaver
 sub manageExtensions {
   my ($tred,$opts)=@_;
   $opts||={};
@@ -902,6 +1194,15 @@ sub manageExtensions {
   return $d->Show();
 }
 
+#######################################################################################
+# Usage         : newNode($win_ref)
+# Purpose       : Create new node as a new child of current node
+# Returns       : Undef if $win_ref->{FSFile} or $win_ref->{currentNode} are not defined, 
+#                 reference to new Treex::PML::Node object otherwise
+# Parameters    : hash_ref $win_ref  -- see comment of gotoTree function 
+# Throws        : no exception
+# Comments      : Marks the modified file as notSaved(1), calls on_node_chage() callback
+# See Also      : Treex::PML::Node::new(), Treex::PML::Struct::set_member(), Treex::PML::Struct::paste_on()
 sub manageRepositories {
   my ($top, $repos)=@_;
   my $d = $top->DialogBox(
@@ -922,7 +1223,7 @@ sub manageRepositories {
 	-select=>1,
       );
       if ($url) {
-	if ((ref(eval{ getExtensionList($url) }) and !$@
+	if ((ref(eval{ get_extension_list($url) }) and !$@
 	     or
 	     ($d->QuestionQuery(-title=>'Repository error',
 				-label => 'No repository was found on a given URL!',
@@ -948,12 +1249,21 @@ sub manageRepositories {
   return $d->Show;
 }
 
+#######################################################################################
+# Usage         : newNode($win_ref)
+# Purpose       : Create new node as a new child of current node
+# Returns       : Undef if $win_ref->{FSFile} or $win_ref->{currentNode} are not defined, 
+#                 reference to new Treex::PML::Node object otherwise
+# Parameters    : hash_ref $win_ref  -- see comment of gotoTree function 
+# Throws        : no exception
+# Comments      : Marks the modified file as notSaved(1), calls on_node_chage() callback
+# See Also      : Treex::PML::Node::new(), Treex::PML::Struct::set_member(), Treex::PML::Struct::paste_on()
 sub installExtensions {
   my ($urls,$opts)=@_;
   croak(q{Usage: installExtensions(\@urls,\%opts)}) unless ref($urls) eq 'ARRAY';
   return unless @$urls;
   $opts||={};
-  my $extension_dir=$opts->{extensions_dir} || getExtensionsDir();
+  my $extension_dir=$opts->{extensions_dir} || get_extensions_dir();
   unless (-d $extension_dir) {
     mkdir $extension_dir ||
       die "Installation failed: cannot create extension directory $extension_dir: $!";
@@ -1060,10 +1370,19 @@ EOF
   close $fh;
 }
 
+#######################################################################################
+# Usage         : newNode($win_ref)
+# Purpose       : Create new node as a new child of current node
+# Returns       : Undef if $win_ref->{FSFile} or $win_ref->{currentNode} are not defined, 
+#                 reference to new Treex::PML::Node object otherwise
+# Parameters    : hash_ref $win_ref  -- see comment of gotoTree function 
+# Throws        : no exception
+# Comments      : Marks the modified file as notSaved(1), calls on_node_chage() callback
+# See Also      : Treex::PML::Node::new(), Treex::PML::Struct::set_member(), Treex::PML::Struct::paste_on()
 sub setExtension {
   my ($name,$enable,$extension_dir)=@_;
   my %names; @names{ (ref($name) eq 'ARRAY' ? @$name : $name) } = ();
-  $extension_dir||=getExtensionsDir();
+  $extension_dir||=get_extensions_dir();
   my $extension_list_file =
     File::Spec->catfile($extension_dir,'extensions.lst');
   if (-f $extension_list_file) {
@@ -1084,12 +1403,21 @@ sub setExtension {
   }
 }
 
+#######################################################################################
+# Usage         : newNode($win_ref)
+# Purpose       : Create new node as a new child of current node
+# Returns       : Undef if $win_ref->{FSFile} or $win_ref->{currentNode} are not defined, 
+#                 reference to new Treex::PML::Node object otherwise
+# Parameters    : hash_ref $win_ref  -- see comment of gotoTree function 
+# Throws        : no exception
+# Comments      : Marks the modified file as notSaved(1), calls on_node_chage() callback
+# See Also      : Treex::PML::Node::new(), Treex::PML::Struct::set_member(), Treex::PML::Struct::paste_on()
 sub uninstallExtension {
   my ($name,$opts) = @_;
   require File::Path;
   return unless defined $name and length $name;
   $opts||={};
-  my $extension_dir=$opts->{extensions_dir} || getExtensionsDir();
+  my $extension_dir=$opts->{extensions_dir} || get_extensions_dir();
   my $dir = File::Spec->catdir($extension_dir,$name);
   if (-d $dir) {
     return if ($opts->{tk} and !$opts->{quiet} and

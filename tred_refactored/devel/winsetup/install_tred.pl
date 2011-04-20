@@ -114,7 +114,7 @@ sub InstallExtensions {
 #  print $TrEd::Config::extensionsDir,"\n";
   Treex::PML::AddResourcePath(File::Spec->rel2abs('resources',$install_target));
 
-  my $list = TrEd::Extensions::getExtensionList() || [];
+  my $list = TrEd::Extensions::get_extension_list() || [];
   if ($progressbar) {
     $progressbar->configure(
       -to => scalar(@$list),
@@ -124,7 +124,7 @@ sub InstallExtensions {
   my %versions;
   for my $name (@$list) {
     $name=~s/^!//;
-    my $data = TrEd::Extensions::getExtensionMetaData($name);
+    my $data = TrEd::Extensions::get_extension_meta_data($name);
     $$progress++ if $progress;
     $progressbar->update if $progressbar;
     $versions{$name}=$data->{version} if $data;
