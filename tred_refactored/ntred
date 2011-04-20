@@ -892,7 +892,7 @@ EOF
 
   if ($macro_file || $include_macro) {
     #msg("Reading macros from $macro_file ...\n");
-    $TrEd::Macros::defaultMacroFile='/dev/null'; # don't read this one
+    $TrEd::Macros::default_macro_file='/dev/null'; # don't read this one
     #$TrEd::Config::macroDebug=1;
     TrEd::Macros::read_macros(rel2abs($macro_file),$libDir) if $macro_file; # read macros
     TrEd::Macros::read_macros(rel2abs($include_macro),$libDir) if $include_macro; # read macros

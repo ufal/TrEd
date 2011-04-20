@@ -175,10 +175,10 @@ unshift @INC,$libDir if -d $libDir;
 require TrEd::Utils;
 import TrEd::Utils qw(:all);
 # set HOME environment variable on Windows to user's AppData
-find_win_home();
+TrEd::Utils::find_win_home();
 # set output encoding to utf8 on stdout and stderr
-set_fh_encoding(\*STDERR,':utf8',"STDERR");
-set_fh_encoding(\*STDOUT,':utf8',"STDOUT");
+TrEd::Utils::set_fh_encoding(\*STDERR,':utf8',"STDERR");
+TrEd::Utils::set_fh_encoding(\*STDOUT,':utf8',"STDOUT");
 
 {
   my $ld=$libDir;
@@ -197,7 +197,7 @@ set_fh_encoding(\*STDOUT,':utf8',"STDOUT");
 if (defined $opt_c) {
   @TrEd::Config::config_file_search_list=($opt_c); # override any other possible config files
 } else {
-  set_default_config_file_search_list();
+  TrEd::Config::set_default_config_file_search_list();
 }
 
 my $initial_config;
@@ -206,7 +206,7 @@ my $initial_config;
 sub apply_initial_config { set_config($initial_config); undef $initial_config }
 $TrEd::Config::set_user_config=sub { $initial_config=shift };	# tred specific configuration
 # global $configFile
-$configFile=read_config(); # this may setup a new $libDir
+$configFile=TrEd::Config::read_config(); # this may setup a new $libDir
 
 unless (-d $libDir) {
   print <<'EOL';
@@ -2093,7 +2093,7 @@ sub updateHelpMenu {
   }
   $hm->delete(0,'end');
   $_->destroy for $hm->children;
-  my $preinst_dir = getPreInstalledExtensionsDir();
+  my $preinst_dir = get_preinstalled_extensions_dir();
   my ($extensions,$pre_installed) = @{
     $opts->{preparedExtensions} ||
     prepareExtensions($grp) ||
@@ -2101,8 +2101,8 @@ sub updateHelpMenu {
   };
   my %m;
   foreach my $m (
-    (map [ $_, getExtensionDocPaths([$_]) ], @$extensions),
-    (map [ $_, getExtensionDocPaths([$_],$preinst_dir) ], @$pre_installed)) {
+    (map [ $_, get_extension_doc_paths([$_]) ], @$extensions),
+    (map [ $_, get_extension_doc_paths([$_],$preinst_dir) ], @$pre_installed)) {
     $m{$m->[0]} = $m->[1] unless exists $m{$m->[0]};
   }
   for my $ext (sort keys %m) {
@@ -7810,9 +7810,9 @@ sub ShowDialog {
 sub newFileFromTemplate {
   my ($grp)=@_;
   my @templates;
-  my $extensions = getExtensionList();
+  my $extensions = get_extension_list();
   foreach my $ext (@$extensions) {
-    my ($dir) = getExtensionTemplatePaths([$ext]);
+    my ($dir) = get_extension_template_paths([$ext]);
     if (defined ($dir)) {
       push @templates, map [ $ext, $_ ], grep !/~$|\.lock$/, glob(File::Spec->catfile($dir,'*'));
     }
@@ -11548,7 +11548,7 @@ sub doEvalHook {
 }
 sub _evalHook {
   my ($with_undo,$win,$hook)=(shift,shift,shift);
-
+  
   return unless $hook; # and $win->{currentNode};
   my $grp = $win->{framegroup};
   # Save current position (as last action position)
@@ -12697,8 +12697,8 @@ sub valueLineClick {
 }
 
 sub prepareExtensions {
-  my $extensions = getExtensionList();
-  my $pre_installed =  getPreInstalledExtensionList($extensions);
+  my $extensions = get_extension_list();
+  my $pre_installed =  get_preinstalled_extension_list($extensions);
 
   my (%e,%d);
   @e{ split /,/,$enable_extensions }=();
@@ -12729,8 +12729,8 @@ sub prepareExtensions {
       warn("WARNING: extension $required not found!");
     }
   }
-  initExtensions($extensions);
-  initExtensions($pre_installed, getPreInstalledExtensionsDir());
+  init_extensions($extensions);
+  init_extensions($pre_installed, get_preinstalled_extensions_dir());
   return [$extensions,$pre_installed];
 }
 
@@ -12739,7 +12739,7 @@ sub loadMacros {
   $opts||={};
   read_macros($macroFile,$libDir); # read macros
 
-  my $preinst_dir = getPreInstalledExtensionsDir();
+  my $preinst_dir = get_preinstalled_extensions_dir();
 
   my ($extensions,$pre_installed);
   if (ref($opts->{preparedExtensions})) {
@@ -12748,28 +12748,28 @@ sub loadMacros {
     ($extensions,$pre_installed)=@{ prepareExtensions() };
   }
 
-  foreach my $path (getExtensionSampleDataPaths($extensions),
-		    getExtensionSampleDataPaths($pre_installed,$preinst_dir)) {
+  foreach my $path (get_extension_sample_data_paths($extensions),
+		    get_extension_sample_data_paths($pre_installed,$preinst_dir)) {
     foreach my $f (glob(File::Spec->catfile($path,'*.fl'))) {
       print "Reading $f\n" if $tredDebug;
       my $fl=Filelist->new(undef,$f);
       next unless $fl;
       print STDERR "Reading filelist ".$fl->filename."\n" if $tredDebug;
       eval {
-	$fl->load();
-	addNewFilelist(undef,$fl);
+        $fl->load();
+        addNewFilelist(undef,$fl);
       };
       if ($@) {
-	warn $@;
+        warn $@;
       } else {
-	$filelist_from_extension{$fl}=1;
+        $filelist_from_extension{$fl}=1;
       }
     }
   }
 
   print STDERR ("Reading extension macros:") unless $opt_q;
-  for my $ext_contrib (getExtensionMacroPaths($extensions),
-		       getExtensionMacroPaths($pre_installed,$preinst_dir)) {
+  for my $ext_contrib (get_extension_macro_paths($extensions),
+		       get_extension_macro_paths($pre_installed,$preinst_dir)) {
     
     if (-f $ext_contrib) {
       if ($tredDebug) {
