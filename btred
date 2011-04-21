@@ -1621,9 +1621,7 @@ sub applyFileSuffix {
   if ($goto=~/^##([0-9]+)/) {
     my $no = int($1 - 1);
     $grp->{treeNo}=min(max(0,$no),$fsfile->lastTreeNo);
-    warn "RA $grp->{root}.";
     $grp->{root} = $fsfile->tree($grp->{treeNo});
-    warn "RB $grp->{root}.";
     return 0 if $grp->{treeNo} != $no;
   } elsif ($goto=~/^#([0-9]+)/) {
     # this is PDT 1.0-specific code, sorry
@@ -1702,10 +1700,8 @@ sub applyFileSuffix {
   # new: we're the dot in .[0-9]+ (TM)
   if ($goto=~/\.([0-9]+)$/) {
     my $node=getNodeByNo($grp,$1);
-    warn "N $node";
     if ($node) {
       $grp->{currentNode}=$node;
-      warn Dumper $grp;
       return 1;
     } else {
       return 0;
