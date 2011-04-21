@@ -51,7 +51,6 @@ TRED_TARGET_DIR=
 SYSTEM=0
 USE_SVN=0
 LIBS_ONLY=0
-TRED_DIR=
 NO_LIBS=0
 args=()
 while [ $# -gt 0 ]; do
