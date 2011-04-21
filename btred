@@ -1600,7 +1600,7 @@ sub openFile {
       $return = 0;
     }
   }
-  unless (!$grp->{FSFile} || defined($grp->{currentNode})) {
+  if ($grp->{FSFile} and !defined($grp->{currentNode})) {
     $grp->{currentNode}=$grp->{root};
   }
 
