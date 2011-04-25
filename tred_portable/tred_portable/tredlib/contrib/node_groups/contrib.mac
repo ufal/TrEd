@@ -1,0 +1,11 @@
+# -*- cperl -*-
+
+#ifndef test_hull
+#define test_hull
+
+#include "node_groups.mak"
+
+#ifinclude "hull.mak"
+#ifinclude "PML_T_Edit_multi.mak"
+
+#endif
