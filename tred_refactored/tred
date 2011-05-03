@@ -12827,7 +12827,7 @@ sub manage_extensions {
   my ($grp,$do_reload) = @_;
   my $reload_macros;
   my $repos = [ split /\s+/, $extensionRepos ];
-  manageExtensions($grp, {
+  TrEd::Extensions::manage_extensions_2($grp, {
     repositories => $repos,
     reload_macros => \$reload_macros,
   });
