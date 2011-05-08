@@ -42,7 +42,7 @@ BEGIN {
 #				                             manage_extensions
   our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
   our @EXPORT = qw(  );
-  our $VERSION = '0.01';
+  our $VERSION = '0.02';
 }
 
 #TODO: cut this quite big package to 2 smaller ones?
@@ -692,14 +692,14 @@ sub _find_all_requirements {
     next if !((blessed($name) and $name->isa('URI')));
     
     # test tred requirements
-    my $requires_different_tred=_required_tred_version($data);
+    my $requires_different_tred = _required_tred_version($data);
     
     my @req_modules = $data && $data->{require} && $data->{require}->values('perl_module');
     # perl modules requirements
-    my $requires_modules=_required_perl_modules(\@req_modules);
+    my $requires_modules = _required_perl_modules(\@req_modules);
     
     # perl version requirements
-    my $requires_perl=_required_perl_version(\@req_modules);
+    my $requires_perl = _required_perl_version(\@req_modules);
     
     my $all_requirements = join("\n", grep { defined($_) and length($_) } ($requires_different_tred, $requires_perl, $requires_modules));
     if (length $all_requirements) {
@@ -710,7 +710,7 @@ sub _find_all_requirements {
 }
 
 #######################################################################################
-# Usage         : _dependencies_of_req_exts(..)
+# Usage         : _dependencies_of_req_exts($uri_list_ref, $uninstallable_ref)
 # Purpose       : Test whether all the dependecies of extensions from @$uri_list_ref are satisfied
 # Returns       : Undef/empty list 
 # Parameters    : array_ref $uri_list_ref     -- ref to list of extensions' URIs
@@ -837,6 +837,7 @@ sub _set_extension_icon {
 #######################################################################################
 # Usage         : _set_name_desc_copyright({
 #                   data_ref          => $data_ref,
+#                   name              => $name,
 #                   pre_installed_ref => \%pre_installed,
 #                   text              => $text,
 #                   opts_ref          => $opts_ref,
@@ -1194,6 +1195,8 @@ sub _any_enter_text {
 # See Also      : _any_enter_text(), _any_enter_image(), _any_leave_frame()
 sub _any_enter_frame {
   my ($frame, $text, $name, $image) = @_;
+  
+  
   $frame->configure(-background=>'lightblue');
   if ($image) {
     $image->configure(-background=>'lightblue');
@@ -1787,7 +1790,8 @@ sub manage_extensions_2 {
      );
 
   }
-  require Tk::DialogReturn;
+#  should be already loaded
+#  require Tk::DialogReturn;
   $manage_ext_dialog->BindEscape(undef, 'Close');
   $manage_ext_dialog->BindButtons();
   return $manage_ext_dialog->Show();
@@ -2152,7 +2156,8 @@ sub install_extensions {
 # Usage         : uninstall_extension($name, $opts_ref)
 # Purpose       : Uninstall extension from extension directory and update extension list
 # Returns       : 1 if successful, undef/empty list if cancelled
-# Parameters    : hash_ref $win_ref  -- see comment of gotoTree function 
+# Parameters    : scalar $name        -- name of the extension
+#                 sahs_ref $opts_ref  -- ref to hash of options 
 # Throws        : Croaks if extension list could not be opened for reading or writing
 # Comments      : 
 # See Also      : install_extensions()
@@ -2363,6 +2368,7 @@ sub get_preinstalled_extension_list {
 # Returns       : List of subdirectories of the extensions in $extension_dir specified by $rel_path
 # Parameters    : array_ref $list       -- reference to array of extensions
 #                 scalar $extension_dir -- name of the directory containing extensions
+#                 scalar $rel_path      -- subdirectory name
 # Throws        : carp if $list is a reference, but not a ref to array
 # Comments      : Ignores extensions that are commented out by ! at the beginning of line. 
 #                 If no $list is supplied, get_extension_list() return value is used. 
@@ -2569,49 +2575,2034 @@ __END__
 
 =head1 NAME
 
-TrEd::Extensions - Perl extension for blah blah blah
+
+TrEd::Extensions - GUI & code for managing Extensions and repositories
+
+
+=head1 VERSION
+
+This documentation refers to 
+TrEd::Extensions version 0.2.
+
 
 =head1 SYNOPSIS
 
-   use TrEd::Extensions;
-   blah blah blah
+  use TrEd::Extensions;
+  
+  my $ext_directory = TrEd::Extensions::get_extensions_dir();
+  
+  my @extension_list = qw{
+    extension_one
+    extension_two
+  };
+  my $ext_path = "/home/john/.tred.d/extensions";
+  
+  TrEd::Extensions::init_extensions(\@extension_list, $ext_path);
+  
+  my $repo_URI = "http://tred.com/extensions/";
+  my $ext_in_repo = TrEd::Extensions::get_extension_list($repo_URI); # returns ref to array
+  
+  
+  my @macro_paths = TrEd::Extensions::get_extension_macro_paths(\@extension_list, $ext_path);
+  my @sample_data_paths = TrEd::Extensions::get_extension_sample_data_paths(\@extension_list, $ext_path);
+  my @doc_paths = TrEd::Extensions::get_extension_doc_paths(\@extension_list, $ext_path);
+  my @template_paths = TrEd::Extensions::get_extension_template_paths(\@extension_list, $ext_path);
+  
+  my $preinstalled_ext_dir = TrEd::Extensions::get_preinstalled_extensions_dir();
+  my $preinstalled_extensions = TrEd::Extensions::get_preinstalled_extension_list(); # ref to array
+  
+  my $subpath = "macros";
+  my @subpaths = TrEd::Extensions::get_extension_subpaths(\@extension_list, $ext_path, $subpath);
+  
+  my $opts = {
+    repositories => $repos,
+    reload_macros => \$reload_macros,
+  }
+  TrEd::Extensions::manage_extensions_2($tred, $opts);
+  
+  
 
 =head1 DESCRIPTION
 
-Stub documentation for TrEd::Extensions, 
-created by template.el.
+Package for managing TrEd's extensions -- installation, removing, enabling and disabling. 
+Uses Tk to create GUI to perform these changes. 
 
-It looks like the author of the extension was negligent
-enough to leave the stub unedited.
+=head1 SUBROUTINES/METHODS
 
-Blah blah blah.
+=over 4 
 
-=head2 EXPORT
 
-None by default.
+=item * C<TrEd::Extensions::short_name($pkg_name)>
 
-=head1 SEE ALSO
+=over 6
 
-Mention other useful documentation such as the documentation of
-related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
-standards.
+=item Purpose
 
-If you have a mailing list set up for your module, mention it here.
+Construct short name for package $pkg_name
 
-If you have a web site set up for your module, mention it here.
+=item Parameters
 
-=head1 COPYRIGHT AND LICENSE
+  C<$pkg_name> -- scalar or blessed URI ref $pkg_name -- name of the package
 
-Copyright (C) 2008 by Petr Pajas
+=item Comments
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.2 or,
-at your option, any later version of Perl 5 you may have available.
+If $pkg name is blessed URI reference, everything from the beginning
+of $pkg_name to last slash is removed and the rest is returned. 
+Otherwise $pkg_name is returned without any modification
 
-=head1 BUGS
 
-None reported... yet.
+=item Returns
 
-=cut
+Short name for $pkg_name
+
+=back
+
+
+=item * C<TrEd::Extensions::_repo_extensions_uri_list($opts_ref)>
+
+=over 6
+
+=item Purpose
+
+Create list of triples: repository, extension name, extension URI
+
+=item Parameters
+
+  C<$opts_ref> -- hash_ref $opts_ref -- reference to hash with options
+
+=item Comments
+
+Options hash reference should contain list of repositories in 
+$opts_ref->{repositories}, information about installed extensions
+as a hash $opts_ref->{installed}{installed_ext_name}. 
+If we are updating extensions, $opts_ref->{only_upgrades} should be set.
+
+=item See Also
+
+L<Treex::PML::IO::make_URI()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/IO::make_URI.pm>,
+
+=item Returns
+
+List of array references, each array contains triple repo, extension 
+name, extension URI
+
+=back
+
+
+=item * C<TrEd::Extensions::_update_progressbar($opts_ref)>
+
+=over 6
+
+=item Purpose
+
+Update progress information and progressbar
+
+=item Parameters
+
+  C<$opts_ref> -- hash_ref $opts_ref -- reference to hash of options
+
+=item Comments
+
+Hash of options should contain at least $opts_ref->{progress} and
+$opts_ref->{progressbar}
+
+
+=item Returns
+
+Undef in scalar context, empty list in list context
+
+=back
+
+
+=item * C<TrEd::Extensions::cmp_revisions($my_revision, $other_revision)>
+
+=over 6
+
+=item Purpose
+
+Compare two revision numbers
+
+=item Parameters
+
+  C<$my_revision> -- scalar $my_revision     -- first revision string (e.g. 1.256)
+  C<$other_revision> -- scalar $other_revision  -- second revision string (e.g. 1.1024)
+
+=item Comments
+
+E.g. 1.1024 > 1.256, thus cmp_revisions("1.1024", "1.256") should return 1
+
+
+=item Returns
+
+-1 if $my_revision is numerically less than $other_revision, 
+0 if $my_revision is equal to $other_revision
+1 if $my_revision is greater than $other_revision
+
+=back
+
+
+=item * C<TrEd::Extensions::_version_ok($my_version, $required_extension)>
+
+=over 6
+
+=item Purpose
+
+Test whether the installed version of extension is between
+min and max required version (if specified)
+
+=item Parameters
+
+  C<$my_version> -- scalar $my_version            -- version of installed extension
+  C<$required_extension> -- hash_ref $required_extension  -- ref to hash which contains required version info
+
+=item Comments
+
+Required extension hash should contain at least min_version and 
+max_version values
+
+=item See Also
+
+L<cmp_revisions>,
+
+=item Returns
+
+True if the installed version is ok, false otherwise
+
+=back
+
+
+=item * C<TrEd::Extensions::_ext_not_installed_or_actual($meta_data_ref, $installed_ver)>
+
+=over 6
+
+=item Purpose
+
+Test whether the extension is not installed or is not up to date
+
+=item Parameters
+
+  C<$meta_data_ref> -- hash_ref $meta_data_ref -- reference to meta data about the extension
+  C<$installed_ver> -- scalar $installed_ver   -- version of installed extension (if any)
+
+
+=item See Also
+
+L<cmp_revisions>,
+
+=item Returns
+
+Extension's version from repository if it is not installed,
+True if the extension is installed, but not up to date.
+0 if the extension is not installed or up to date $meta_data_ref is not defined
+
+=back
+
+
+=item * C<TrEd::Extensions::_resolve_missing_dependency({req_data           => $req_data, 
+required_extension => $required_extension, 
+short_name         => $short_name, 
+repo               => $repo, 
+dialog_box         => $dialog_box })
+>
+
+=over 6
+
+=item Purpose
+
+Ask user what to do with unresolved dependencies
+
+=item Parameters
+
+  C<$req_data> -- hash_ref $req_data           -- reference to hash containing at least 'version' key
+  C<$required_extension> -- hash_ref $required_extension -- reference to hash of info about required extension
+  C<$short_name> -- scalar $short_name           -- short name of extension whose dependecies are searched for
+  C<$repo> -- scalar $repo                 -- URL of the repository which contains $short_name extension
+  C<$dialog_box> -- Tk::DialogBox $dialog_box    -- DialogBox object for creating GUI & interaction with the user
+
+=item Comments
+
+Needs Tk and uses its QuestionQuery function
+
+
+=item Returns
+
+User's choice: string 'Cancel', 'Ignore versions'/'Ignore dependencies'
+or 'Skip pkg_name'.
+Returns undef if correct version of extension is available in the repository.
+
+=back
+
+
+=item * C<TrEd::Extensions::_add_required_exts({extension_data_ref    => $extension_data_ref,
+extensions_list_ref   => $extensions_list_ref,
+uri_in_repository_ref => \%uri_in_repository,
+uri                   => $uri,
+short_name            => $short_name,
+dialog_box            => $dialog_box,
+opts_ref              => $opts_ref,
+})
+>
+
+=over 6
+
+=item Purpose
+
+Check requirements of each extension that is required by $uri extension
+and add all the requirements to $extensions_list_ref 
+(if they are not already there)
+
+=item Parameters
+
+  C<$extension_data_ref> -- hash_ref $extension_data_ref    -- hash reference to extension's meta data
+  C<$extensions_list_ref> -- array_ref $extensions_list_ref  -- reference to array containing list of extensions
+  C<\%uri_in_repository> -- hash_ref $uri_in_repository_ref -- ref to hash of URIs in repositories
+  C<$uri> -- scalar $uri                     -- URI of the extension whose requirements are searched for
+  C<$short_name> -- scalar $short_name              -- name of the extension whose requirements are searched for
+  C<$dialog_box> -- Tk::DialogBox $dialog_box       -- dialog box for creating GUI elements
+  C<$opts_ref> -- hash_ref $opts_ref              -- populate_extension_pane options
+
+=item Comments
+
+If any of the required extensions is missing, user is prompted with dialog 
+to choose whether TrEd should ignore the dependency, cancel the installation 
+or skip installation of the extension
+
+=item See Also
+
+L<_resolve_missing_dependency>,
+
+=item Returns
+
+String 'Cancel' if user chooses to cancel installation, 
+'Skip' if user chooses to skip extension $uri, undef otherwise
+
+=back
+
+
+=item * C<TrEd::Extensions::_fill_required_by($id)>
+
+=over 6
+
+=item Purpose
+
+Construct hash with information, which extensions depend on specified 
+extension from $requires hash
+
+=item Parameters
+
+  C<$id> -- scalar $id -- extension's identification (URI/name)
+
+=item Comments
+
+Uses $requires and $required_by package variables
+
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::_uri_list_with_required_exts({extension_data_ref  => $extension_data_ref,
+opts_ref            => $opts_ref,
+dialog_box          => $dialog_box,
+});
+>
+
+=over 6
+
+=item Purpose
+
+Create list of URIs of extensions from $extensions_list_ref with their dependencies
+
+=item Parameters
+
+  C<$extension_data_ref> -- hash_ref $extension_data_ref   -- ref to hash of meta data about extensions
+  C<$opts_ref> -- hash_ref $opts_ref             -- ref to hash of populate_extension_pane options
+  C<$dialog_box> -- Tk::DialogBox $dialog_box      -- dialg box to create GUI elements
+
+
+=item See Also
+
+L<_update_progressbar>,
+L<_ext_not_installed_or_actual>,
+L<_add_required_exts>,
+L<_fill_required_by>,
+
+=item Returns
+
+Reference to array of URIs or undef/empty list if cancelled by user
+
+=back
+
+
+=item * C<TrEd::Extensions::_uri_list_with_preinstalled_exts({pre_installed_ref   => $pre_installed_ref,
+enable_ref          => $enable_ref,
+opts_ref            => $opts_ref,
+extension_data_ref  => $extension_data_ref,
+});
+>
+
+=over 6
+
+=item Purpose
+
+Create list of URIs of preinstalled extensions and 
+extensions from $extensions_list_ref
+
+=item Parameters
+
+  C<$pre_installed_ref> -- hash_ref pre_installed_ref        -- ref to hash of pre-installed extensions
+  C<$enable_ref> -- hash_ref $enable_ref              -- ref to hash of enabled extensions
+  C<$opts_ref> -- hash_ref $opts_ref                -- ref to hash of populate_extension_pane options                 
+  C<$extension_data_ref> -- hash_ref $extension_data_ref      -- ref to hash of meta data about extensions                 
+
+=item Comments
+
+Also creates a hash of enabled extensions (those that are listed with exclamation 
+mark in the beginning are disabled). 
+
+=item See Also
+
+L<_update_progressbar>,
+L<_ext_not_installed_or_actual>,
+L<_add_required_exts>,
+L<_fill_required_by>,
+
+=item Returns
+
+Reference to array of URIs
+
+=back
+
+
+=item * C<TrEd::Extensions::_create_uri_list({pre_installed_ref     => \%pre_installed,
+extension_data_ref    => \%extension_data,
+enable_ref            => \%enable,
+opts_ref              => $opts_ref,
+dialog_box            => $dialog_box,
+});
+>
+
+=over 6
+
+=item Purpose
+
+Create list of URIs of extensions
+
+=item Parameters
+
+  C<\%pre_installed> -- hash_ref $pre_installed_ref   -- ref to empty hash of preinstalled extensions (filled by _uri_list_with_preinstalled_exts)
+  C<\%extension_data> -- hash_ref $extension_data_ref  -- ref to empty hash of extensions' data (filled by this function)
+  C<\%enable> -- hash_ref $enable_ref          -- ref to empty hash of enabled & disabled extensions (filled by this function)
+  C<$opts_ref> -- hash_ref $opts_ref            -- ref to hash of options
+  C<$dialog_box> -- Tk::DialogBox $dialog_box     -- dialg box to create GUI elements
+
+
+=item See Also
+
+L<_uri_list_with_preinstalled_exts>,
+L<_uri_list_with_required_exts>,
+
+=item Returns
+
+Reference to list of extensions' URIs
+
+=back
+
+
+=item * C<TrEd::Extensions::_required_tred_version($extension_data_ref)>
+
+=over 6
+
+=item Purpose
+
+Test whether TrEd's version corresponds with extension's requirements
+
+=item Parameters
+
+  C<$extension_data_ref> -- hash_ref $extension_data_ref -- ref to hash with meta data about the extension
+
+
+=item See Also
+
+L<TrEd::Version::CMP_TRED_VERSION_AND>,
+L<TrEd::Version::TRED_VERSION>,
+
+=item Returns
+
+Empty string if TrEd's version is ok, error message otherwise
+
+=back
+
+
+=item * C<TrEd::Extensions::_required_perl_modules($req_modules_ref)>
+
+=over 6
+
+=item Purpose
+
+Test whether all the perl module dependencies of extension are satisfied
+
+=item Parameters
+
+  C<$req_modules_ref> -- array_ref $req_modules_ref -- ref to list of required perl modules
+
+
+=item See Also
+
+L<compare_module_versions>,
+L<get_module_version>,
+
+=item Returns
+
+Empty string if all the dependencies are installed, error message otherwise
+
+=back
+
+
+=item * C<TrEd::Extensions::_required_perl_version($req_modules_ref)>
+
+=over 6
+
+=item Purpose
+
+Test whether the perl's version corresponds with extension's requirements
+
+=item Parameters
+
+  C<$req_modules_ref> -- array_ref $req_modules_ref -- ref to list of requirements
+
+
+
+=item Returns
+
+Empty string if Perl's version is ok, error message otherwise
+
+=back
+
+
+=item * C<TrEd::Extensions::_find_all_requirements($uri_list, $extension_data_ref)>
+
+=over 6
+
+=item Purpose
+
+Test all the requirements of extension from @$uri_list_ref
+
+=item Parameters
+
+  C<$uri_list> -- array_ref $uri_list_ref       -- ref to array of extensions' URIs
+  C<$extension_data_ref> -- hash_ref $extension_data_ref  -- ref to hash of extensions' meta data
+
+
+=item See Also
+
+L<_required_tred_version>,
+L<_required_perl_modules>,
+L<_required_perl_version>,
+
+=item Returns
+
+Reference to hash of extensions that can't be installed
+
+=back
+
+
+=item * C<TrEd::Extensions::_dependencies_of_req_exts($uri_list_ref, $uninstallable_ref)>
+
+=over 6
+
+=item Purpose
+
+Test whether all the dependecies of extensions from @$uri_list_ref are satisfied
+
+=item Parameters
+
+  C<$uri_list_ref> -- array_ref $uri_list_ref     -- ref to list of extensions' URIs
+  C<$uninstallable_ref> -- hash_ref $uninstallable_ref -- ref to hash of extensions that can't be installed (due to unsatisfied dependencies)
+
+=item Comments
+
+Modifies $uninstallable_ref hash according to the uninstallability of 
+required extensions
+
+
+=item Returns
+
+Undef/empty list 
+
+=back
+
+
+=item * C<TrEd::Extensions::_set_extension_icon({data              => $data,
+name              => $name,
+pre_installed_ref => $pre_installed_ref,
+text              => $text,
+generic_icon      => $generic_icon,
+opts_ref          => $opts_ref,
+});
+>
+
+=over 6
+
+=item Purpose
+
+Set extension's icon
+
+=item Parameters
+
+  C<$data> -- hash_ref $data              -- ref to hash with extension's meta data
+  C<$name> -- scalar/URI $name            -- name of the extension
+  C<$pre_installed_ref> -- hash_ref $pre_installed_ref -- ref to hash containing names of preinstalled extensions (& empty values)
+  C<$text> -- Tk::ROText $text            -- ref to ROText on which the Labels/icons are created
+  C<$generic_icon> -- Tk::Photo $generic_icon     -- ref to Tk::Photo with generic extension icon
+  C<$opts_ref> -- hash_ref $opts_ref          -- ref to options hash
+
+=item Comments
+
+If extension's meta $data->{icon} is set, it is used. 
+Generic icon is used otherwise.
+
+
+=item Returns
+
+Tk::Label object with icon set
+
+=back
+
+
+=item * C<TrEd::Extensions::_set_name_desc_copyright({data_ref          => $data_ref,
+name              => $name,
+pre_installed_ref => \%pre_installed,
+text              => $text,
+opts_ref          => $opts_ref,
+});
+>
+
+=over 6
+
+=item Purpose
+
+Set name, description and copyright information for extension
+
+=item Parameters
+
+  C<$data_ref> -- hash_ref $data_ref          -- ref to hash containing meta data of the extension
+  C<$name> -- scalar $name                -- name of the extension
+  C<\%pre_installed> -- hash_ref $pre_installed_ref -- ref to hash of preinstalled extensions
+  C<$text> -- Tk::ROText $text            -- ROText where the text is added
+  C<$opts_ref> -- hash_ref $opts_ref          -- ref to hash of options
+
+=item Comments
+
+If $data_ref is not set, $name is used as name, other fields are left blank
+
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::_fmt_size($size)>
+
+=over 6
+
+=item Purpose
+
+Convert (and round) information amount from bytes to MiB, KiB or GiB, 
+so that numerical part of the expression is an integer between 1 and 1023
+
+=item Parameters
+
+  C<$size> -- scalar $size -- number of bytes
+
+
+
+=item Returns
+
+Number with information unit
+
+=back
+
+
+=item * C<TrEd::Extensions::_set_ext_size($data_ref, $text, $name)>
+
+=over 6
+
+=item Purpose
+
+Insert size of extension $name to $text
+
+=item Parameters
+
+  C<$data_ref> -- hash_ref $data_ref  -- ref to hash containing meta data about the extension
+  C<$text> -- Tk::ROText $text    -- ROText where the info about extension's size is added
+  C<$name> -- scalar $name        -- extension's name
+
+=item Comments
+
+Only added if $data_ref->{install_size} or $data_ref->{package_size} is set
+
+=item See Also
+
+L<_fmt_size>,
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::_required_by($name, $exists_ref)>
+
+=over 6
+
+=item Purpose
+
+Find all the dependendents for $name listed in %required_by
+hash; continue recusively for all dependendents which exist 
+in $exists_ref hash 
+
+=item Parameters
+
+  C<$name> -- scalar $name          -- name of entity, whose dependecies are searched for
+  C<$exists_ref> -- hash_ref $exists_ref  -- reference to hash containing elements for which the recursion is allowed
+
+
+=item See Also
+
+L<_requires>,
+
+=item Returns
+
+List of dependendents
+
+=back
+
+
+=item * C<TrEd::Extensions::_requires($name, $exists_ref)>
+
+=over 6
+
+=item Purpose
+
+Find all the dependendencies for $name listed in %requires
+hash; continue recusively for all dependencies which exist 
+in $exists_ref hash
+
+=item Parameters
+
+  C<$name> -- scalar $name          -- name of entity, whose dependecies are searched for
+  C<$exists_ref> -- hash_ref $exists_ref  -- reference to hash containing elements for which the recursion is allowed
+
+
+=item See Also
+
+L<_required_by>,
+
+=item Returns
+
+List of dependencies
+
+=back
+
+
+=item * C<TrEd::Extensions::_upgrade_install_checkbutton(\%enable, $ext_name)>
+
+=over 6
+
+=item Purpose
+
+Mark extension and its requirements to be installed/upgraded
+
+=item Parameters
+
+  C<\%enable> -- hash_ref $enable_ref  -- ref to hash of extensions to install/upgrade
+  C<$ext_name> -- scalar $ext_name      -- name of extension
+
+=item Comments
+
+Upgrade/install checkbox callback -- called every time checkbox's state changes
+If extension is selected, adds reflexive dependency and enables all required extensions. 
+If it is unselected, removes reflexive dependency and disables required extensions, 
+if they are not required by another extension (which does not have to be installed -> why is that? :/).
+
+=item See Also
+
+L<_requires>,
+
+=item Returns
+
+Undef/Empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::_enable_checkbutton($name, $opts_ref, $enable_ref, $dialog_box)>
+
+=over 6
+
+=item Purpose
+
+Enable/disable extensions and their dependants
+
+=item Parameters
+
+  C<$name> -- scalar $name              -- name of extension which is being enabled/disabled
+  C<$opts_ref> -- hash_ref $opts_ref        -- ref to hash of options
+  C<$enable_ref> -- hash_ref $enable_ref      -- ref to hash of extensions to enable/disable
+  C<$dialog_box> -- Tk::DialogBox $dialog_box -- dialog box to create GUI elements
+
+=item Comments
+
+Enable checkbox callback -- called every time checkbox's state changes. 
+Updates also the extensions list file.
+
+=item See Also
+
+L<update_extensions_list>,
+L<_requires>,
+L<_required_by>,
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::_uninstall_button($name, $embedded_ref, $text, $dialog_box, $opts_ref)>
+
+=over 6
+
+=item Purpose
+
+Uninstall extension callback
+
+=item Parameters
+
+  C<$name> -- scalar $name              -- extension's name
+  C<$embedded_ref> -- hash_ref $embedded_ref    -- ref to hash of pairs ext_name => [Tk::Frame, Tk::Image]
+  C<$text> -- Tk::ROText $text          -- ROText from which the extension's info is removed
+  C<$dialog_box> -- Tk::DialogBox $dialog_box -- dialog box for creating GUI elements
+  C<$opts_ref> -- hash_ref $opts_ref        -- ref to hash of options
+
+=item Comments
+
+If the user allows it, also dependent extensions are removed. 
+Information about the extensions is removed also from $opts_ref->{versions}
+and $embedded_ref
+
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::_any_enter_text($text, $name, $frame, $image)>
+
+=over 6
+
+=item Purpose
+
+Change background to light blue and focus when entered on text area
+
+=item Parameters
+
+  C<$text> -- Tk::ROText $text  -- ROText, whose background is changed
+  C<$name> -- scalar $name      -- extension's name
+  C<$frame> -- Tk::Frame $frame  -- frame, whose background is changed
+  C<$image> -- Tk::Image $image  -- image, whose background is changed
+
+=item Comments
+
+Callback function
+
+=item See Also
+
+L<_any_enter_frame>,
+L<_any_enter_image>,
+L<_any_leave_text>,
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::_any_enter_frame($frame, $text, $name, $image)>
+
+=over 6
+
+=item Purpose
+
+Change background to light blue and focus when entered on frame area
+
+=item Parameters
+
+  C<$frame> -- Tk::Frame $frame  -- frame, whose background is changed
+  C<$text> -- Tk::ROText $text  -- ROText, whose background is changed
+  C<$name> -- scalar $name      -- extension's name
+  C<$image> -- Tk::Image $image  -- image, whose background is changed
+
+=item Comments
+
+Callback function
+
+=item See Also
+
+L<_any_enter_text>,
+L<_any_enter_image>,
+L<_any_leave_frame>,
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::_any_enter_image($image, $text, $name, $frame)>
+
+=over 6
+
+=item Purpose
+
+Change background to light blue when entered on image area
+
+=item Parameters
+
+  C<$image> -- Tk::Image $image  -- image, whose background is changed
+  C<$text> -- Tk::ROText $text  -- ROText, whose background is changed
+  C<$name> -- scalar $name      -- extension's name
+  C<$frame> -- Tk::Frame $frame  -- frame, whose background is changed
+
+=item Comments
+
+Callback function
+
+=item See Also
+
+L<_any_enter_frame>,
+L<_any_enter_text>,
+L<_any_leave_image>,
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::_any_leave_text($text, $name, $frame, $image)>
+
+=over 6
+
+=item Purpose
+
+Change background to white when leaving the text area
+
+=item Parameters
+
+  C<$text> -- Tk::ROText $text  -- ROText, whose background is changed
+  C<$name> -- scalar $name      -- extension's name
+  C<$frame> -- Tk::Frame $frame  -- frame, whose background is changed
+  C<$image> -- Tk::Image $image  -- image, whose background is changed
+
+=item Comments
+
+Callback function
+
+=item See Also
+
+L<_any_enter_text>,
+L<_any_leave_image>,
+L<_any_leave_frame>,
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::_any_leave_text($frame, $text, $name, $image)>
+
+=over 6
+
+=item Purpose
+
+Change background to white when leaving the frame area
+
+=item Parameters
+
+  C<$frame> -- Tk::Frame $frame  -- frame, whose background is changed
+  C<$text> -- Tk::ROText $text  -- ROText, whose background is changed
+  C<$name> -- scalar $name      -- extension's name
+  C<$image> -- Tk::Image $image  -- image, whose background is changed
+
+=item Comments
+
+Callback function
+
+=item See Also
+
+L<_any_enter_frame>,
+L<_any_leave_text>,
+L<_any_leave_image>,
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::_any_leave_image($image, $text, $name, $frame)>
+
+=over 6
+
+=item Purpose
+
+Change background to white when leaving the text area
+
+=item Parameters
+
+  C<$image> -- Tk::Image $image  -- image, whose background is changed
+  C<$text> -- Tk::ROText $text  -- ROText, whose background is changed
+  C<$name> -- scalar $name      -- extension's name
+  C<$frame> -- Tk::Frame $frame  -- frame, whose background is changed
+
+=item Comments
+
+Callback function
+
+=item See Also
+
+L<_any_enter_image>,
+L<_any_leave_frame>,
+L<_any_leave_text>,
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::_create_checkbutton({tred              => $tred,
+name              => $name,
+frame             => $frame,
+enable_ref        => $enable_ref,
+text              => $text,
+uninstallable_ref => $uninstallable_ref,
+embedded_ref      => \%embedded,
+pre_installed_ref => $pre_installed_ref,
+opts_ref          => $opts_ref,
+dialog_box        => $dialog_box,
+});
+>
+
+=over 6
+
+=item Purpose
+
+Create Enable/Upgrade/Install checkbutton and Uninstall button if appropriate
+
+=item Parameters
+
+  C<$tred> -- hash_ref $tred              -- ref to hash that contains TrEd window global data
+  C<$name> -- scalar/URI $name            -- name of the extension
+  C<$frame> -- Tk::Frame $frame            -- frame on which the buttons are created
+  C<$enable_ref> -- hash_ref $enable_ref        -- ref to hash with extensions that will be changed (enabled/disabled/(un)installed)
+  C<$text> -- Tk::ROText $text            -- ROText with extensions' information
+  C<$uninstallable_ref> -- hash_ref $uninstallable_ref -- ref to hash of uninstallable extensions
+  C<\%embedded> -- hash_ref $embedded_ref      -- ref to hash of pairs ext_name => [Tk::Frame, Tk::Image]
+  C<$pre_installed_ref> -- hash_ref $pre_installed_ref -- ref to hash of preinstalled extensions (keys are names of extensions, no values)
+  C<$opts_ref> -- hash_ref $opts_ref          -- ref to hash of options
+  C<$dialog_box> -- Tk::DialogBox $dialog_box   -- dialog box for creating GUI elements
+
+=item Comments
+
+If $name is a blessed URI reference, Upgrade/Install checkbuttons are created.
+Otherwise Enable and Uninstall buttons are created.
+
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::_add_pane_items({uri_list_ref        => $uri_list_ref,
+extension_data      => \%extension_data,
+text                => $text,
+tred                => $tred,
+pre_installed_ref   => \%pre_installed,
+opts_ref            => $opts_ref,
+enable_ref          => \%enable,
+uninstallable_ref   => $uninstallable_ref,
+dialog_box          => $dialog_box,
+});
+>
+
+=over 6
+
+=item Purpose
+
+For each extension from @$uri_list_ref add item on window panner
+
+=item Parameters
+
+  C<$uri_list_ref> -- array_ref $uri_list_ref      -- ref to list of extenions' URIs
+  C<\%extension_data> -- hash_ref $extension_data_ref -- ref to hash of pairs ext URI => ext meta data
+  C<$text> -- Tk::ROText $text             -- ROText with extensions' information
+  C<$tred> -- hash_ref $tred               -- ref to hash that contains TrEd window global data
+  C<\%pre_installed> -- hash_ref $pre_installed_ref  -- ref to hash of preinstalled extensions (keys are names of extensions, no values)
+  C<$opts_ref> -- hash_ref $opts_ref           -- ref to hash of options
+  C<\%enable> -- hash_ref $enable_ref         -- ref to hash with extensions that will be changed (enabled/disabled/(un)installed)
+  C<$uninstallable_ref> -- hash_ref $uninstallable_ref  -- ref to hash of uninstallable extensions
+  C<$dialog_box> -- Tk::DialogBox $dialog_box    -- dialog box for creating GUI elements
+
+=item Comments
+
+Also sets up callbacks for mouse over events and scrolling wheel
+
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::_populate_extension_pane($tred, $dialog_box, $opts_ref)>
+
+=over 6
+
+=item Purpose
+
+Create and populate extension window panner
+
+=item Parameters
+
+  C<$tred> -- hash_ref $tred            -- ref to hash that contains TrEd window global data
+  C<$dialog_box> -- Tk::DialogBox $dialog_box -- dialog box for creating GUI elements
+  C<$opts_ref> -- hash_ref $opts_ref        -- ref to hash of options
+
+=item Comments
+
+Creates list of extension, finds information about dependencies between them, 
+dependencies on other perl modules, perl version and TrEd version. Populates
+window panner with extensions and creates buttons to Install/Uninstall, 
+Enable/Disable them. 
+Returned hash's keys are URIs of extensions. Values are 0, 1, or undef, where
+1 means to enable/install extension, 0 to disable/uninstall extension.
+
+=item See Also
+
+L<_add_pane_items>,
+L<_create_uri_list>,
+
+=item Returns
+
+Reference to hash which contains information about extensions' changes
+
+=back
+
+
+=item * C<TrEd::Extensions::_install_ext_button($enable_ref, $manage_ext_dialog, $opts_ref, $INSTALL);>
+
+=over 6
+
+=item Purpose
+
+Create progressbar and installs extensions marked for installation in 
+%$enable_ref hash
+
+=item Parameters
+
+  C<$enable_ref> -- hash_ref $enable_ref             -- ref to hash of extensions to install
+  C<$manage_ext_dialog> -- Tk::DialogBox $manage_ext_dialog -- dialog box for creating GUI elements
+  C<$opts_ref> -- hash_ref $opts_ref               -- ref to hash of options
+  C<$INSTALL> -- scalar $INSTALL                  -- sign on Install button
+
+=item Comments
+
+Callback function for 'Install selected' button
+
+=item See Also
+
+L<_update_install_new_button>,
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::_update_install_new_button({manage_ext_dialog => $manage_ext_dialog,
+tred              => $tred,
+enable_ref        => $enable_ref,
+INSTALL           => $INSTALL,
+opts_ref          => $opts_ref,
+upgrades          => $upgrades
+});
+>
+
+=over 6
+
+=item Purpose
+
+Create dialog box with listed extensions which allows user to install new 
+or update existing extensions
+
+=item Parameters
+
+  C<$manage_ext_dialog> -- Tk::DialogBox $manage_ext_dialog -- dialog box for creating GUI elements
+  C<$tred> -- hash_ref $tred        -- ref to hash that contains TrEd window global data
+  C<$enable_ref> -- hash_ref $enable_ref  -- ref to hash of extensions to update/install
+  C<$INSTALL> -- scalar $INSTALL       -- sign on Install button
+  C<$opts_ref> -- hash_ref $opts_ref    -- ref to hash of options
+  C<$upgrades> -- scalar $upgrades      -- 0 when installing, 1 when updating extensions
+
+=item Comments
+
+Callback function for 'Get new extensions' and 'Check for updates' buttons
+
+=item See Also
+
+L<manage_repositories>,
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::manage_extensions_2($tred, $opts_ref)>
+
+=over 6
+
+=item Purpose
+
+Create dialog box with listed extensions which allows user to install, 
+update, remove, enable and disable extensions
+
+=item Parameters
+
+  C<$tred> -- hash_ref $tred      -- ref to hash that contains TrEd window global data
+  C<$opts_ref> -- hash_ref $opts_ref  -- ref to hash of options
+
+=item Comments
+
+opts_ref should contain 'install' key in case Install button should appear 
+on the widget. opts_ref->{repositories} should be a ref to a list of repositories
+with extensions.
+
+=item See Also
+
+L<manage_repositories>,
+L<install_extensions>,
+L<Tk::DialogBox::Show>,
+
+=item Returns
+
+Result of Tk::DialogBox::Show() function, i.e. name of the Button invoked,
+undef/empty list if no change was requested by the user
+
+=back
+
+
+=item * C<TrEd::Extensions::_repo_ok_or_forced($url, $manage_repos_dialog, $listbox)>
+
+=over 6
+
+=item Purpose
+
+Check whether the repository on $url is valid and if not, ask user
+what to do
+
+=item Parameters
+
+  C<$url> -- scalar $url                         -- url of the repository
+  C<$manage_repos_dialog> -- Tk::DialogBox $manage_repos_dialog  -- dialog box for creating GUI elements
+  C<$listbox> -- Tk::Listbox $listbox                -- listbox with listed repositories
+
+
+=item See Also
+
+L<_add_repo>,
+
+=item Returns
+
+True if repository is found and is not a duplicate of already existing one,
+or if the user chooses to add non-duplicit repository. False otherwise.
+
+=back
+
+
+=item * C<TrEd::Extensions::_add_repo($manage_repos_dialog, $manage_repos_listbox)>
+
+=over 6
+
+=item Purpose
+
+Prompt user to input repository URL, validate and add the extension repository
+
+=item Parameters
+
+  C<$manage_repos_dialog> -- Tk::DialogBox $manage_repos_dialog  -- dialog box for creating GUI elements
+  C<$manage_repos_listbox> -- Tk::Listbox $listbox                -- listbox with listed repositories
+
+=item Comments
+
+Callback for 'Add repository' button
+
+=item See Also
+
+L<_remove_repo>,
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::_remove_repo($manage_repos_dialog, $manage_repos_listbox)>
+
+=over 6
+
+=item Purpose
+
+Remove selected extension repositories
+
+=item Parameters
+
+  C<$manage_repos_dialog> -- Tk::DialogBox $manage_repos_dialog  -- dialog box for creating GUI elements
+  C<$manage_repos_listbox> -- Tk::Listbox $listbox                -- listbox with listed repositories
+
+=item Comments
+
+Callback for 'Remove' repository button
+
+=item See Also
+
+L<_add_repo>,
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::manage_repositories($top, $repos)>
+
+=over 6
+
+=item Purpose
+
+Add, remove and save extension repositories for TrEd
+
+=item Parameters
+
+  C<$top> -- Tk::DialogBox $top  -- dialog box for creating GUI elements
+  C<$repos> -- hash_ref $repos_ref -- ref to hash of repositories
+
+=item Comments
+
+Callback for 'Edit repositories' button
+
+
+=item Returns
+
+Return value of Tk::DialogBox::Show(), i.e. name of the Button invoked, 
+in this case one of 'Add', 'Remove', 'Save' and 'Cancel'
+
+=back
+
+
+=item * C<TrEd::Extensions::update_extensions_list($name, $enable[, $extension_dir])>
+
+=over 6
+
+=item Purpose
+
+Update local extensions list file
+
+=item Parameters
+
+  C<$name> -- scalar/array_ref $name -- name of extension(s) to enable/disable
+  C<$enable[> -- scalar $enable -- 1 if extension(s) should be enabled, 0 otherwise
+  C<$extension_dir> -- scalar $extension_dir -- local directory where the extensions are stored
+
+
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::_load_extension_file($extension_list_file)>
+
+=over 6
+
+=item Purpose
+
+Load extension file list if it exists. Otherwise use standard begin commentary.
+
+=item Parameters
+
+  C<$extension_list_file> -- scalar $extension_list_file -- path to extension list file
+
+=item Comments
+
+If $extension_list_file exists, it is read and its lines are returned 
+as a list. Otherwise, just a list of lines of beginning commentary is returned.
+
+
+=item Returns
+
+List of extensions read from $extension_list_file
+
+=back
+
+
+=item * C<TrEd::Extensions::_force_reinstall($opts_ref, $name, $dir)>
+
+=over 6
+
+=item Purpose
+
+Ask user whether to force extension's reinstallation/update
+
+=item Parameters
+
+  C<$opts_ref> -- hash_ref $opts_ref -- ref to hash of options
+  C<$name> -- scalar $name       -- name of the extension
+  C<$dir> -- scalar $dir        -- extensions' directory
+
+
+
+=item Returns
+
+If $opts_ref->{quiet} is 0, return value of QuestionQuery is returned. 
+Undef/empty list is returned otherwise.
+
+=back
+
+
+=item * C<TrEd::Extensions::_report_install_error($opts_ref, $error_message, $eval_error)>
+
+=over 6
+
+=item Purpose
+
+Display $error_message if using GUI, carp otherwise
+
+=item Parameters
+
+  C<$opts_ref> -- hash_ref $opts_ref    -- ref to hash of options
+  C<$error_message> -- scalar $error_message -- error message to display
+  C<$eval_error> -- scalar $eval_error    -- error from last eval
+
+=item Comments
+
+$opts_ref->{tk} has to be set to Tk::DialogBox to display error message in GUI
+
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Extensions::_install_extension_from_zip($dir, $url, $opts_ref)>
+
+=over 6
+
+=item Purpose
+
+Install extension from $url to directory $dir
+
+=item Parameters
+
+  C<$dir> -- hash_ref $opts_ref  -- ref to hash of options
+  C<$url> -- scalar $dir         -- extensions' directory
+  C<$opts_ref> -- scalar $url         -- URL of the extension
+
+=item Comments
+
+Tries to download extension as a zip file from $url, extracts archive 
+using Archive::Zip and fixes permissions of files if needed.
+
+=item See Also
+
+L<install_extensions>,
+L<Treex::PML::IO::fetch_file()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/IO::fetch_file.pm>,
+
+=item Returns
+
+Zero if some error occured, 1 if successful
+
+=back
+
+
+=item * C<TrEd::Extensions::install_extensions($urls_ref, $opts_ref)>
+
+=over 6
+
+=item Purpose
+
+Install extensions from list @$urls_ref
+
+=item Parameters
+
+  C<$urls_ref> -- array_ref $urls_ref -- ref to list of extensions to install (theirs URLs)
+  C<$opts_ref> -- hash_ref $opts_ref  -- ref to hash of options
+
+=item Comments
+
+Creates extension directory if it does not exist, loads extension list file,
+uninstalls old versions of extensions if updating (or if the installation is
+forced). Then the function downloads extensions & installs them and updates
+extension file list.
+
+=item See Also
+
+L<uninstall_extension>,
+
+=item Returns
+
+1 on success, undef/empty list if $urls_ref is a reference to empty array
+
+=back
+
+
+=item * C<TrEd::Extensions::uninstall_extension($name, $opts_ref)>
+
+=over 6
+
+=item Purpose
+
+Uninstall extension from extension directory and update extension list
+
+=item Parameters
+
+  C<$name> -- scalar $name        -- name of the extension
+  C<$opts_ref> -- sahs_ref $opts_ref  -- ref to hash of options 
+
+
+=item See Also
+
+L<install_extensions>,
+
+=item Returns
+
+1 if successful, undef/empty list if cancelled
+
+=back
+
+
+=item * C<TrEd::Extensions::get_extensions_dir()>
+
+=over 6
+
+=item Purpose
+
+Return extensions directory from config
+
+=item Parameters
+
+
+=item Comments
+
+Reads TrEd::Config::extensionsDir
+
+
+=item Returns
+
+Name of the extensions directory (as a string)
+
+=back
+
+
+=item * C<TrEd::Extensions::get_preinstalled_extensions_dir()>
+
+=over 6
+
+=item Purpose
+
+Return configuration option -- directory where extensions are preinstalled
+
+=item Parameters
+
+
+=item Comments
+
+Reads TrEd::Config::preinstalledExtensionsDir
+
+
+=item Returns
+
+Name of the directory where extensions are preinstalled (string)
+
+=back
+
+
+=item * C<TrEd::Extensions::get_extension_list($repository)>
+
+=over 6
+
+=item Purpose
+
+Return list of extensions in repository/extensions directory
+
+=item Parameters
+
+  C<$repository> -- scalar $repository -- path to extensions repository 
+
+=item Comments
+
+File extensions.lst is searched for in $repository (if it is set) or local extensions directory.
+List of extensions listed in this file is returned.
+
+=item See Also
+
+L<Treex::PML::IO::make_URI()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/IO::make_URI.pm>,
+L<File::Spec::catfile>,
+L<Treex::PML::IO::open_uri()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/IO::open_uri.pm>,
+Treex::PML::IO::close_uri()
+
+=item Returns
+
+Reference to array of extension names, empty array reference if repository does not 
+contain list of extensions. Undef/empty array if extensions directory does not exist 
+and no $repository is specified
+
+=back
+
+
+=item * C<TrEd::Extensions::init_extensions([$ext_list, $extension_dir])>
+
+=over 6
+
+=item Purpose
+
+Add stylesheets, lib, macro and resources paths to TrEd paths
+for each extension from extensions directory
+
+=item Parameters
+
+  C<$ext_list> -- array_ref $list $ext_list -- reference to list of extension names
+  C<$extension_dir> -- scalar $extension_dir     -- name of the directory where extensions are stored
+
+=item Comments
+
+If $ext_list is not supplied, get_extension_list() function is used to get the list 
+of extensions. If $extension_dir is not supplied, get_extensions_dir() is used to find
+the directory for extensions.
+
+=item See Also
+
+L<Treex::PML::Backend::PML::configure()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Backend::PML::configure.pm>,
+L<get_extensions_dir>,
+L<get_extension_list>,
+
+=item Returns
+
+nothing
+
+=back
+
+
+=item * C<TrEd::Extensions::get_preinstalled_extension_list([$except, $preinstalled_ext_dir])>
+
+=over 6
+
+=item Purpose
+
+Return list of extensions from pre-installed extensions directory, 
+except those listed in $except
+
+=item Parameters
+
+  C<$except> -- array_ref $except             -- reference to list of extensions to ignore
+  C<$preinstalled_ext_dir> -- scalar $preinstalled_ext_dir  -- name of the directory with preinstalled extensions 
+
+=item Comments
+
+If no parameters were supplied, $except is considered to be an empty list,
+return value of get_preinstalled_extensions_dir() is used as $preinstalled_ext_dir 
+
+=item See Also
+
+L<get_preinstalled_extensions_dir>,
+L<get_extension_list>,
+
+=item Returns
+
+Reference to array containing extensions from pre-installed extensions directory
+
+=back
+
+
+=item * C<TrEd::Extensions::get_extension_subpaths($list, $extension_dir, $rel_path)>
+
+=over 6
+
+=item Purpose
+
+Take $list of extensions in $extension_dir directory and return list of 
+subdirectories specified by $rel_path
+
+=item Parameters
+
+  C<$list> -- array_ref $list       -- reference to array of extensions
+  C<$extension_dir> -- scalar $extension_dir -- name of the directory containing extensions
+  C<$rel_path> -- scalar $rel_path      -- subdirectory name
+
+=item Comments
+
+Ignores extensions that are commented out by ! at the beginning of line. 
+If no $list is supplied, get_extension_list() return value is used. 
+If $extension_dir is not supplied, get_extensions_dir() return value is used
+
+=item See Also
+
+L<get_extensions_dir>,
+L<get_extension_list>,
+
+=item Returns
+
+List of subdirectories of the extensions in $extension_dir specified by $rel_path
+
+=back
+
+
+=item * C<TrEd::Extensions::get_extension_sample_data_paths($list, $extension_dir)>
+
+=over 6
+
+=item Purpose
+
+Find all the valid 'sample' subdirectories for all the extensions from 
+$list in $extension_dir directory
+
+=item Parameters
+
+  C<$list> -- array_ref $list       -- reference to array of extensions to work with
+  C<$extension_dir> -- scalar $extension_dir -- name of the directory containing extensions
+
+
+=item See Also
+
+L<get_extension_subpaths>,
+
+=item Returns
+
+List of existing 'sample' subdirectories for specified extensions
+
+=back
+
+
+=item * C<TrEd::Extensions::get_extension_doc_paths($list, $extension_dir)>
+
+=over 6
+
+=item Purpose
+
+Find all the valid 'documentation' subdirectories for all the extensions from 
+$list in $extension_dir directory
+
+=item Parameters
+
+  C<$list> -- array_ref $list       -- reference to array of extensions to work with
+  C<$extension_dir> -- scalar $extension_dir -- name of the directory containing extensions
+
+
+=item See Also
+
+L<get_extension_subpaths>,
+
+=item Returns
+
+List of existing 'documentation' subdirectories for specified extensions
+
+=back
+
+
+=item * C<TrEd::Extensions::get_extension_template_paths($list, $extension_dir)>
+
+=over 6
+
+=item Purpose
+
+Find all the valid 'templates' subdirectories for all the extensions from 
+$list in $extension_dir directory
+
+=item Parameters
+
+  C<$list> -- array_ref $list       -- reference to array of extensions to work with
+  C<$extension_dir> -- scalar $extension_dir -- name of the directory containing extensions
+
+
+=item See Also
+
+L<get_extension_subpaths>,
+
+=item Returns
+
+List of existing 'templates' subdirectories for specified extensions
+
+=back
+
+
+=item * C<TrEd::Extensions::_contrib_macro_paths($direcotry)>
+
+=over 6
+
+=item Purpose
+
+Find all directories and subdirectories of $directory that contains 
+'contrib.mac' file
+
+=item Parameters
+
+  C<$direcotry> -- scalar $directory -- name of the directory where the search starts
+
+
+=item See Also
+
+L<glob>,
+
+=item Returns
+
+List of paths to contrib.mac file in subdirectories of $directory
+
+=back
+
+
+=item * C<TrEd::Extensions::get_extension_macro_paths($list, $extension_dir)>
+
+=over 6
+
+=item Purpose
+
+Find all the paths with 'contrib.mac' file for all the extensions from 
+$list in $extension_dir directory
+
+=item Parameters
+
+  C<$list> -- array_ref $list       -- reference to array of extensions to work with
+  C<$extension_dir> -- scalar $extension_dir -- name of the directory containing extensions
+
+
+=item See Also
+
+L<get_extension_subpaths>,
+
+=item Returns
+
+List of paths to 'contrib.mac' files for specified extensions
+
+=back
+
+
+=item * C<TrEd::Extensions::get_extension_meta_data($name, $extension_dir)>
+
+=over 6
+
+=item Purpose
+
+Load package.xml metafile for extension $name and create 
+Treex::PML::Instance object from this metafile
+
+=item Parameters
+
+  C<$name> -- scalar or URI ref $name -- reference to URI object with extension name or the name itself
+  C<$extension_dir> -- scalar $extension_dir   -- name of the directory containing extensions
+
+=item Comments
+
+If $extensions_dir is not supplied, result of get_extensions_dir() is used.
+
+=item See Also
+
+L<Treex::PML::Instance::load(),|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Instance::load.pm>,
+
+=item Returns
+
+Root data structure returned by Treex::PML::Instance::get_root(),
+undef if metafile is not a valid file
+
+=back
+
+
+=item * C<TrEd::Extensions::_inst_file($name)>
+
+=over 6
+
+=item Purpose
+
+Find perl package by name
+
+=item Parameters
+
+  C<$name> -- scalar $name -- name of the perl package, e.g. Data::Dumper
+
+
+
+=item Returns
+
+Path to perl package, if it is found in @INC array, undef otherwise
+
+=back
+
+
+=item * C<TrEd::Extensions::_inst_version($module)>
+
+=over 6
+
+=item Purpose
+
+Find out the version number for installed $module
+
+=item Parameters
+
+  C<$module> -- scalar $module -- name of perl module 
+
+=item Comments
+
+requires CPAN, ExtUtils::MM
+
+=item See Also
+
+L<_inst_file>,
+
+=item Returns
+
+Undef if module is not present in @INC, version string 
+found by ExtUtils::MM::parse_version() otherwise
+
+=back
+
+
+=item * C<TrEd::Extensions::get_module_version($name)>
+
+=over 6
+
+=item Purpose
+
+Find which version of module $name is installed
+
+=item Parameters
+
+  C<$name> -- scalar $name -- perl module name, e.g. Data::Dumper
+
+
+=item See Also
+
+L<_inst_version>,
+
+=item Returns
+
+Version string of installed module
+
+=back
+
+
+=item * C<TrEd::Extensions::compare_module_versions($version_1, $version_2)>
+
+=over 6
+
+=item Purpose
+
+Compare two version numbers 
+
+=item Parameters
+
+  C<$version_1> -- scalar $version_1 -- first version string
+  C<$version_2> -- scalar $version_2 -- second version string
+
+=item Comments
+
+requires CPAN
+
+=item See Also
+
+L<CPAN::Version->vcmp>,
+
+=item Returns
+
+1 if $version_1 is larger than $version_2, 
+-1 if $version_1 is smaller than $version_2,
+0 if versions are equal, 
+undef if CPAN could not be loaded
+
+=back
+
+
+
+
+
+=back
+
+
+=head1 DIAGNOSTICS
+
+
+=head1 CONFIGURATION AND ENVIRONMENT
+
+
+=head1 DEPENDENCIES
+
+TrEd::Version,
+L<Treex::PML|http://search.cpan.org/~zaba/Treex-PML/>,
+Carp, File::Spec, File::Glob, Scalar::Util, URI, URI::file, Exporter, CPAN, ExtUtils::MM, Archive::Zip, File::Path 
+Tk::MainLoop, Tk::DialogReturn, Tk::BindButtons, Tk::ProgressBar, Tk::ErrorReport, Tk::QueryDialog, Tk::JPEG, Tk::PNG 
+
+
+=head1 INCOMPATIBILITIES
+
+...
+
+=head1 BUGS AND LIMITATIONS
+
+There are no known bugs in this module.
+Please report problems to 
+Zdenek Zabokrtsky <zabokrtsky@ufal.ms.mff.cuni.cz>
+
+Patches are welcome.
+
+
+=head1 AUTHOR
+
+Petr Pajas <pajas@matfyz.cz>
+
+Copyright (c) 
+2010 Petr Pajas <pajas@matfyz.cz>
+2011 Peter Fabian (documentation & tests). 
+All rights reserved.
+
+
+This software is distributed under GPL - The General Public Licence.
+Full text of the GPL can be found in the LICENSE file distributed with
+this program and also on-line at http://www.gnu.org/copyleft/gpl.html .
 
