@@ -11,7 +11,7 @@ use File::Spec;
 use URI::Escape;
 require Exporter;
 
-our @ISA = qw(Exporter);
+use base qw(Exporter);
 use vars qw(@stylesheet_paths $default_stylesheet_path);
 use constant {
   STYLESHEET_FROM_FILE  => "<From File>",
@@ -82,7 +82,7 @@ sub fetch_from_win32_reg_old {
     $reg->GetValues(\%data);
     return $data{"$subkey"}[2];
   }
-  return undef;
+  return;
 }
 
 ######################################################################################
@@ -117,7 +117,7 @@ sub fetch_from_win32_reg {
     # print "key was found.\n";
   } else {
     # print "key not found.\n";
-    return undef;
+    return;
   }
   # to be coherent with the old version, which returns decimal instead of hexadecimal value   
   return ($value_array_ref->[1] == REG_DWORD()) ? hex($value_array_ref->[0]) : $value_array_ref->[0];
@@ -140,8 +140,9 @@ sub find_win_home {
      $key,
        'AppData');
     if (defined($home)) {
-      $ENV{HOME}= $home;
-    } else {
+      $ENV{HOME} = $home;
+    }
+    else {
       croak("Couldn't fetch $key from Win32 registry: $^E\n");
     }
   }
@@ -194,6 +195,7 @@ sub save_stylesheet_file {
     print $f "\nhint:". $current_stylesheet->{"hint"};
   }
   close $f;
+  return;
 }
 
 ######################################################################################
@@ -214,7 +216,7 @@ sub read_stylesheet_file {
   my (undef,undef,$f) = File::Spec->splitpath($stylesheet_file);
   my $name = URI::Escape::uri_unescape($f);
   my $ss_ref = $gui_ref->{"stylesheets"} ||= {};
-  return if $opts_ref->{"no_overwrite"} and grep /^\Q$name\E$/i, keys %{$ss_ref};
+  return if $opts_ref->{"no_overwrite"} and grep { /^\Q$name\E$/i } keys %{$ss_ref};
   open my $filehandle, '<:encoding(utf8)', $stylesheet_file || do {
     carp("cannot read stylesheet file: $stylesheet_file: $!\n");
     return;
@@ -239,6 +241,7 @@ sub removeStylesheetFile {
     delete $gui->{stylesheets}->{$name};
     save_stylesheets($gui,$path);
   }
+  return;
 }
 
 ######################################################################################
@@ -287,6 +290,7 @@ sub save_stylesheets {
     }
     close $f;
   }
+  return;
 }
 
 ######################################################################################
@@ -303,9 +307,9 @@ sub save_stylesheets {
 sub read_stylesheets {
   my ($gui_ref, $file, $opts_ref)=@_;
   if (-f $file) {
-    read_stylesheets_old($gui_ref, $file, $opts_ref);
+    return read_stylesheets_old($gui_ref, $file, $opts_ref);
   } elsif (-d $file) {
-    read_stylesheets_new($gui_ref, $file, $opts_ref);
+    return read_stylesheets_new($gui_ref, $file, $opts_ref);
   }
 }
 
