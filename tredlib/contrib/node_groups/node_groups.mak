@@ -50,7 +50,7 @@ sub draw_group {
   my $color   = $opts->{color}   || ($opts->{colors}   ? $opts->{colors}[$group_no-1]   : $colors[$group_no-1]   );
   my $stipples = $opts->{stipples};
   my $stipple = $opts->{stipple} || ($stipples ? $stipples->[($group_no-1)%@$stipples] : stipple($c,$group_no-1));
-  my $xshift= defined $opts->{x_shift} ? $opts->{x_shift} : 2;
+  my $xshift= defined $opts->{x_shift} ? $opts->{x_shift} : 0;
   my $raise= defined $opts->{y_shift} ? $opts->{y_shift} : 20;
   my $group_width= defined $opts->{group_line_width} ? $opts->{group_line_width} : 30;
 
@@ -177,7 +177,8 @@ sub draw_group {
 		$from->[2],
 		$from->[1],
 		$from->[2]-$raise*$scale_factor,
-		(
+		$to_node != $from_node ? (
+        (
 		  ($from->[2]<$to->[2]) ? (
 		    $to->[1],
 		    $from->[2]-$raise*$scale_factor,
@@ -191,7 +192,7 @@ sub draw_group {
 
 		$to->[1],
 		$to->[2],
-	       );
+	    ):());
     $c->createLine(
       (map { $_-$xshift*$scale_factor*$group_no } @coords),
       -capstyle=>'round',
