@@ -15,8 +15,9 @@ use warnings;
 BEGIN {
   use Exporter;
   use Tk::rgb;
+  use Math::Trig;
   use base qw(Tk::Canvas Exporter);
-  use vars qw(%media %join %capstyle @EXPORT_OK);
+  use vars qw(%media %join %capstyle %stipple_def @EXPORT_OK);
   @EXPORT_OK=(qw(%media));
 
   eval "use Encode";
@@ -31,6 +32,20 @@ BEGIN {
 	   round => 'round',
 	   projecting => 'square',
 	  );
+  %stipple_def = (
+    dash1 => [1, 5, 120],
+    dash2 => [1, 5, 60],
+    dash3 => [1, 5, 30],
+    dash4 => [1, 5, 150],
+    dash5 => [1, 5, 90],
+    dash6 => [1, 5, 0],
+    dense1 => [1, 2, 120],
+    dense2 => [1, 2, 60],
+    dense3 => [1, 2, 150],
+    dense4 => [1, 2, 30],
+    dense5 => [1, 2, 90],
+    dense6 => [1, 2, 0],
+  );
   %media = (
 	  Letter => [612, 792],
 	  LetterSmall => [612, 792],
@@ -267,6 +282,139 @@ sub item_desc {
     $writer->endTag('desc');
   }
 }
+
+sub write_stipple_clip_pattern {
+  my ($writer, $w, $h, $lw, $dw, $angle,$name) = @_;
+  my ($mx1, $my1, $mx2, $my2) = (0,0,0,0);
+  if($angle == 0){
+    $mx1 = $my1 = $mx2 = 0;
+    $my2 = $lw + $dw;
+  }
+  elsif($angle == 90){
+    $mx1 = $my1 = $my2 = 0;
+    $mx2 = $lw + $dw;
+  }
+  elsif($angle < 90){
+    my $a = pi*$angle/180;
+    $mx1 = $my1 = 0;
+    $mx2 = ($lw + $dw)*sin($a);
+    $my2 = ($lw + $dw)*cos($a);
+  }
+  elsif($angle > 90){
+    my $a = pi*(180 - $angle)/180;
+    $mx1 = $my2 = 0;
+    $mx2 = ($lw + $dw)*sin($a);
+    $my1 = ($lw + $dw)*cos($a);
+  }
+  my $p = int(10000* $lw / ($lw + $dw))/100;
+  $writer->startTag(
+    'mask', 'id' => "mask_$name",
+    'x' => 0, 'y' => 0, 'width' => $w, 'height'=> $h,
+    'maskUnits' => "userSpaceOnUse"
+  );
+  $writer->startTag(
+    'linearGradient', 'id' => "gradient_$name",
+    'gradientUnits' => "userSpaceOnUse", 'spreadMethod' => "repeat",
+    'x1' => $mx1, 'y1' => $my1, 'x2' => $mx2, 'y2' => $my2,
+  );
+  $writer->emptyTag('stop', 'offset' =>   '0%', 'stop-color' => '#FFF', 'stop-opacity' => '0');
+  $writer->emptyTag('stop', 'offset' =>   '0%', 'stop-color' => '#FFF', 'stop-opacity' => '0.5');
+  $writer->emptyTag('stop', 'offset' =>  "$p%", 'stop-color' => '#FFF', 'stop-opacity' => '0.5');
+  $writer->emptyTag('stop', 'offset' =>  "$p%", 'stop-color' => '#FFF', 'stop-opacity' => '0');
+  $writer->emptyTag('stop', 'offset' => '100%', 'stop-color' => '#FFF', 'stop-opacity' => '0');
+  $writer->endTag('linearGradient');
+  $writer->emptyTag('rect', 'x' => '0', 'y' => '0', 'width' => "$w", 'height' => "$h", 'fill' => "url(#gradient_$name)");
+  $writer->endTag('mask');
+}
+
+sub write_stipple_clip_path {
+  my ($writer, $w, $h, $lw, $dw, $angle,$name) = @_;
+    my $path='';
+  my $format = ' M%.1f,%.1f L%.1f,%.1f L%.1f,%.1f L%.1f,%.1f Z';
+  if($angle == 0){
+    my($x1,$y1,$lh,$dh) = (0,0,$lw,$dw);
+    while($y1 < $h){
+      $path .= sprintf $format,
+        $x1,$y1,
+        $x1+$w,$y1,
+        $x1+$w,$y1+$lh,
+        $x1,$y1+$lh,
+#        $x1, $y1
+      ;
+      $y1+=$lh+$dh;
+    }
+  }
+  elsif($angle == 90){
+    my($x1,$y1,$lw,$dw) = (0,0,$lw,$dw);
+    while($x1 < $w){
+      $path .= sprintf $format,
+        $x1,$y1,
+        $x1,$y1+$h,
+        $x1+$lw,$y1+$h,
+        $x1+$lw,$y1,
+#        $x1, $y1
+      ;
+      $x1+=$lw+$dw;
+    }
+  }
+  elsif($angle < 90){
+    my $a = pi*$angle/180;
+    my($x1,$y1,$x2,$y2,$lh,$dh) = (0,0,$w,
+      int(-10*$w*tan($a))/10,
+      int(10*$lw/cos($a))/10,
+      int(10*$dw/cos($a))/10
+    );
+    while($y2 < $h){
+      $path .= sprintf $format,
+        $x1,$y1,
+        $x2,$y2,
+        $x2,$y2+$lh,
+        $x1,$y1+$lh,
+#        $x1, $y1
+      ;
+      $y1+=$lh+$dh;
+      $y2+=$lh+$dh;
+    }
+  }
+  elsif($angle > 90){
+    my $a = pi*(180-$angle)/180;
+    my($x1,$y1,$x2,$y2,$lh,$dh) = (
+      0,int(-10*$w*tan($a))/10,
+      $w,0,
+      int(10*$lw/cos($a))/10,
+      int(10*$dw/cos($a))/10
+    );
+    while($y1 < $h){
+      $path .= sprintf $format,
+        $x1,$y1,
+        $x2,$y2,
+        $x2,$y2+$lh,
+        $x1,$y1+$lh,
+ #       $x1, $y1
+      ;
+      $y1+=$lh+$dh;
+      $y2+=$lh+$dh;
+    }
+  }
+  $writer->startTag(
+    'clipPath',
+    'id' => 'mask_'.$name,
+#    'x' => 0,
+#    'y' => 0,
+#    'width' => $w,
+#    'height' => $h,
+#    'maskUnits'=> "userSpaceOnUse",
+  );
+  $path =~ s/^ //;
+  $writer->startTag(
+    'path',
+    'd' => $path,
+    'fill' =>'#FFF',
+    'opacity' => '0.5',
+  );
+  $writer->endTag('path');
+  $writer->endTag('clipPath');
+}
 sub draw_canvas {
   my ($self,$canvas,%opts)=@_;
 
@@ -460,12 +608,27 @@ SCRIPT
 #  my $w = $opts{-width} || $self->{Media}[2];
 #  my $h = $opts{-height} || $self->{Media}[3];
 #  my $i;
+  
+  #find group visualisation lines and stipple patterns used
+  my (%group_tags, %stipples);
+  foreach my $item ($canvas->find('withtag','group_line')) {
+    my @tags = $canvas->itemcget($item, '-tags');
+    map { $group_tags{$_} = 1 if $_ =~ "^group_no_"; } @tags;
+    my $stipple = $canvas->itemcget($item, '-stipple');
+    if($stipple and not $stipples{$stipple} and $stipple_def{$stipple}){
+        #prepare clipPath elements
+        write_stipple_clip_path($writer,$width,$height,@{$stipple_def{$stipple}}, $stipple);
+        $stipples{$stipple} = 1;
+    }
+  }
+
   foreach my $item ($canvas->find('all')) {
     my $type=$canvas->type($item);
     my $tags=$canvas->itemcget($item,'-tags');
     my @coords=$canvas->coords($item);
     my %item_opts;
     $item_opts{class} = join(' ',grep !/(?:SCALAR|ARRAY|HASH|CODE)\(0x/, @$tags);
+    $item_opts{class} =~ s/\//\./g;
     # $writer->comment( join(', ',@$tags) );
     my $state = $canvas->itemcget($item, '-state');
     next if $state eq 'hidden';
@@ -551,6 +714,7 @@ SCRIPT
     } elsif ($type eq 'line') {
       my $color=$canvas->itemcget($item,"-${state}fill");
       next unless defined $color; # transparent line = no line
+      next if grep {$_ =~ 'group_no_' } @{$canvas->itemcget($item,'-tags')}; #skip group visualisation lines;
       $color = color2svg($color, $opts{-grayscale});
       my $join=$canvas->itemcget($item,'-joinstyle');
       my $capstyle=$canvas->itemcget($item,'-capstyle');
@@ -756,6 +920,59 @@ SCRIPT
     }
     # TODO image, ...
   }
+
+  #render groups separately
+  foreach my $is_group_no (keys %group_tags){
+    my @group_lines = $canvas->find('withtag',$is_group_no);
+    my $item = $group_lines[0];
+
+    my %item_opts;
+    my $tags=$canvas->itemcget($item,'-tags');
+    $item_opts{class} = join(' ',grep !/(?:SCALAR|ARRAY|HASH|CODE)\(0x/, @$tags);
+    $item_opts{class} =~ s/\//\./g;
+    my $state = $canvas->itemcget($item, '-state');
+    next if $state eq 'hidden';
+    $state = $state eq 'disabled' ? $state : '';
+
+    my $color=$canvas->itemcget($item,"-${state}fill");
+    next unless defined $color; # transparent line = no line
+    $color = color2svg($color, $opts{-grayscale});
+    my $join=$canvas->itemcget($item,'-joinstyle');
+    my $capstyle=$canvas->itemcget($item,'-capstyle');
+    my $width=$canvas->itemcget($item,'-width');
+    my %attrs = (
+      'stroke-width' => $width,
+      'stroke-dasharray' => 'none',
+      'style'=>'stroke-linejoin:round;stroke-linecap:round',
+      'stroke'=>$color,
+    );
+    my $path='';
+    foreach my $item (@group_lines) {
+      my $smooth = $canvas->itemcget($item,"-smooth");
+      if($smooth){
+        print {*STDERR} "SMOOTH = $smooth\n";
+      }
+      my @p=$canvas->coords($item);
+      $path.=' M'.shift(@p).','.shift(@p);
+      while (@p) {
+        $path.=' L'.shift(@p).','.shift(@p);
+      }
+    }
+    my $stipple = $canvas->itemcget($item,"-stipple");
+    $writer->startTag(
+      'path',
+      'id' => 'i'.$item,
+      'd' => $path,
+      'fill' =>'none',
+      'clip-path' => "url(#mask_$stipple)",
+      'opacity' => '0.5',
+      %attrs,
+      %item_opts,
+    );
+    $self->item_desc($writer,$hint->{$item});
+    $writer->endTag('path');
+  }
+
   $writer->endTag('g');
   $writer->endTag('svg');
 }
