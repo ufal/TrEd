@@ -15,8 +15,9 @@ use warnings;
 BEGIN {
   use Exporter;
   use Tk::rgb;
+  use Math::Trig;
   use base qw(Tk::Canvas Exporter);
-  use vars qw(%media %join %capstyle @EXPORT_OK);
+  use vars qw(%media %join %capstyle %stipple_def @EXPORT_OK);
   @EXPORT_OK=(qw(%media));
 
   eval "use Encode";
@@ -31,6 +32,20 @@ BEGIN {
 	   round => 1,
 	   projecting => 2
 	  );
+  %stipple_def = (
+    dash1 => [1, 5, 120],
+    dash2 => [1, 5, 60],
+    dash3 => [1, 5, 30],
+    dash4 => [1, 5, 150],
+    dash5 => [1, 5, 90],
+    dash6 => [1, 5, 0],
+    dense1 => [1, 2, 120],
+    dense2 => [1, 2, 60],
+    dense3 => [1, 2, 150],
+    dense4 => [1, 2, 30],
+    dense5 => [1, 2, 90],
+    dense6 => [1, 2, 0],
+  );
   %media = (
 	  Letter => [612, 792],
 	  LetterSmall => [612, 792],
@@ -280,6 +295,72 @@ sub finish {
   }
 }
 
+sub set_pattern_clip {
+  my ($draw, $w, $h, $lw, $dw, $angle) = @_;
+  if($angle == 0){
+    my($x1,$y1,$lh,$dh) = (0,0,$lw,$dw);
+    while($y1 < $h){
+      $draw->poly(
+        $x1,$y1,
+        $x1+$w,$y1,
+        $x1+$w,$y1+$lh,
+        $x1,$y1+$lh,
+        $x1, $y1
+      );
+      $y1+=$lh+$dh;
+    }
+  }
+  elsif($angle == 90){
+    my($x1,$y1,$lw,$dw) = (0,0,$lw,$dw);
+    while($x1 < $w){
+      $draw->poly(
+        $x1,$y1,
+        $x1,$y1+$h,
+        $x1+$lw,$y1+$h,
+        $x1+$lw,$y1,
+        $x1, $y1
+      );
+      $x1+=$lw+$dw;
+    }
+  }
+  elsif($angle < 90){
+    my $a = pi*$angle/180;
+    my($x1,$y1,$x2,$y2,$lh,$dh) = (0,0,$w,
+      -$w*tan($a),$lw/cos($a),$dw/cos($a)
+    );
+    while($y2 < $h){
+      $draw->poly(
+        $x1,$y1,
+        $x2,$y2,
+        $x2,$y2+$lh,
+        $x1,$y1+$lh,
+        $x1, $y1
+      );
+      $y1+=$lh+$dh;
+      $y2+=$lh+$dh;
+    }
+  }
+  elsif($angle > 90){
+    my $a = pi*(180-$angle)/180;
+    my($x1,$y1,$x2,$y2,$lh,$dh) = (
+      0,-$w*tan($a),$w,0,$lw/cos($a),$dw/cos($a)
+    );
+    while($y1 < $h){
+      $draw->poly(
+        $x1,$y1,
+        $x2,$y2,
+        $x2,$y2+$lh,
+        $x1,$y1+$lh,
+        $x1, $y1
+      );
+      $y1+=$lh+$dh;
+      $y2+=$lh+$dh;
+    }
+  }
+  $draw->clip;
+  $draw->endpath;
+}
+
 sub draw_canvas {
   my ($P,$canvas,%opts)=@_;
   #!! old PDF::API:
@@ -314,6 +395,20 @@ sub draw_canvas {
   my $w = $opts{-width} || $P->{Media}[2];
   my $h = $opts{-height} || $P->{Media}[3];
   my $i;
+
+  #prepare for transparent group rendering
+  my $EGTransparent = $P->{PDF}->egstate();
+  my $EGNormal = $P->{PDF}->egstate();
+  $EGTransparent->transparency(0.50);
+  $EGNormal->transparency(0);
+
+  #find groups
+  my %group_tags;
+  foreach my $item ($canvas->find('withtag','group_line')) {
+    my @tags = $canvas->itemcget($item, '-tags');
+    map { $group_tags{$_} = 1 if $_ =~ "^group_no_"; } @tags;
+  }
+
   foreach my $item ($canvas->find('all')) {
     $draw->save;
     my $type=$canvas->type($item);
@@ -400,6 +495,7 @@ sub draw_canvas {
       } else {
 	$color = lc($color);
       }
+      next if grep {$_ =~ 'group_no_' } @{$canvas->itemcget($item,'-tags')}; #skip group lines, render later
       my $join=$canvas->itemcget($item,'-joinstyle');
       my $capstyle=$canvas->itemcget($item,'-capstyle');
       my $width=$canvas->itemcget($item,'-width');
@@ -591,6 +687,53 @@ sub draw_canvas {
   } continue {
     $draw->restore;
   }
+
+  # render groups separately
+  $draw->egstate($EGTransparent);
+  foreach my $is_group_no (keys %group_tags){
+    $draw->save;
+
+    my @group_lines = $canvas->find('withtag',$is_group_no);
+    my $stipple = $canvas->itemcget($group_lines[0],'-stipple');
+
+    set_pattern_clip($draw, $w, $h, @{$stipple_def{$stipple}});
+
+    my $state = $canvas->itemcget($group_lines[0], '-state');
+    next if $state eq 'hidden';
+    $state = $state eq 'disabled' ? $state : '';
+
+    my $color=$canvas->itemcget($group_lines[0],"-${state}fill");
+    next unless defined $color; # transparent line = no line
+    if ($opts{-grayscale}) {
+      $color = color2gray($color);
+    } else {
+	  $color = lc($color);
+    }
+
+    my $join=$canvas->itemcget($group_lines[0],'-joinstyle');
+    my $capstyle=$canvas->itemcget($group_lines[0],'-capstyle');
+    my $width=$canvas->itemcget($group_lines[0],'-width');
+    $draw->linewidth($width);
+    $draw->linejoin($join{$join});
+    $draw->linecap($capstyle{$capstyle});
+    $draw->strokecolor($color);
+    $draw->fillcolor($color);
+
+    foreach my $item (@group_lines) {
+        my @c=$canvas->coords($item);
+        my $even=0;
+        foreach (@c) {
+        $_=$h-$_ if $even;
+        $even=!$even;
+        }
+        $draw->move(@c[0,1]);
+        $draw->line(@c[2..$#c]);
+    }
+    $draw->stroke;
+    $draw->restore;
+  }
+  $draw->egstate($EGNormal);
+
 }
 
 sub _canvas_to_pdf_dash {
