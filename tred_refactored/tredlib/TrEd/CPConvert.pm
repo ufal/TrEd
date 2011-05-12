@@ -347,3 +347,5 @@ All rights reserved.
 This software is distributed under GPL - The General Public Licence.
 Full text of the GPL can be found in the LICENSE file distributed with
 this program and also on-line at http://www.gnu.org/copyleft/gpl.html .
+
+=cut
