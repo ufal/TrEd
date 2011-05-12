@@ -12,6 +12,8 @@ use Scalar::Util qw(blessed);
 use URI;
 use URI::file;
 
+use TrEd::MinMax qw(first);
+
 BEGIN {
   require Exporter;
   require Treex::PML;
@@ -102,7 +104,7 @@ sub _repo_extensions_uri_list {
   foreach my $repo (map { Treex::PML::IO::make_URI($_) } @{$opts_ref->{repositories}}) {
     push @repo_extension_uri_list, 
     # create a triple: repository, short name of extension, URI of the extension
-    map { [$repo, $_, URI->new($_)->abs($repo.'/')] } 
+    map { [$repo, $_, URI->new($_)->abs($repo . q{/})] } 
     # if we are only upgrading, then filter out all the extensions that are not installed
     grep { $opts_ref->{only_upgrades} ? exists($opts_ref->{installed}{$_}) : 1 } 
     # remove ! from the extension name if it is at the beginning of the name
@@ -129,7 +131,7 @@ sub _update_progressbar {
   my $progressbar = $opts_ref->{progressbar};
   
   if ($progress) {
-    $$progress++;
+    ${$progress}++;
   }
   
   if ($progressbar) {
@@ -150,8 +152,8 @@ sub _update_progressbar {
 # Comments      : E.g. 1.1024 > 1.256, thus cmp_revisions("1.1024", "1.256") should return 1
 sub cmp_revisions {
   my ($my_revision, $revision) = @_;
-  my @my_revision = split(/\./x, $my_revision);
-  my @revision = split(/\./x, $revision);
+  my @my_revision = split(/\./, $my_revision);
+  my @revision = split(/\./, $revision);
   my $cmp = 0;
   while ($cmp == 0 and (@my_revision or @revision)) {
     $cmp = (shift(@my_revision) <=> shift(@revision));
@@ -173,8 +175,8 @@ sub cmp_revisions {
 sub _version_ok {
   my ($my_version, $required_extension) = @_;
   
-  my $min_version = $required_extension->{min_version} || '';
-  my $max_version = $required_extension->{max_version} || '';
+  my $min_version = $required_extension->{min_version} || q{};
+  my $max_version = $required_extension->{max_version} || q{};
   
   return (!$min_version || cmp_revisions($my_version, $min_version) >= 0) 
           && (!$max_version || cmp_revisions($my_version, $max_version) <= 0);
@@ -238,8 +240,8 @@ sub _resolve_missing_dependency {
   my $dialog_box          = $args_ref->{dialog_box};
   
   my $req_name = $required_extension->{name};
-  my $min = $required_extension->{min_version} || '';
-  my $max = $required_extension->{max_version} || '';
+  my $min = $required_extension->{min_version} || q{};
+  my $max = $required_extension->{max_version} || q{};
   
   if ($req_data) {
     my $req_version = $req_data->{version};
@@ -327,7 +329,7 @@ sub _add_required_exts {
       
       # If we are here, required extension is not installed or it's not up-to-date
       my $repo = $meta_data_ref->{repository} && $meta_data_ref->{repository}{href};
-      my $req_uri = ($repo && (!$required_extension->{href} || (URI->new('.')->abs($required_extension->{href}) eq $repo))) ?
+      my $req_uri = ($repo && (!$required_extension->{href} || (URI->new(q{.})->abs($required_extension->{href}) eq $repo))) ?
           URI->new($req_name)->abs($uri) 
           : URI->new($required_extension->{href} || $req_name)->abs($uri);
       
@@ -343,14 +345,14 @@ sub _add_required_exts {
       });
       
       return 'Cancel' if (defined($res) && $res eq 'Cancel');
-      return 'Skip' if (defined($res) && $res =~ m/^Skip/x);
+      return 'Skip' if (defined($res) && $res =~ m/^Skip/);
       
       # add URI of the required extension to $requires{$URI} array
       push @{$requires{$uri}}, $req_uri;
       # Add dependent extension to $extensions_list_ref, if URI of the required extension is not already listed 
       # in the list
       if (!exists $seen{$req_uri} && !exists $uri_in_repository_ref->{$req_uri}) {
-        push @$extensions_list_ref, [URI->new('.')->abs($req_uri), $req_name, $req_uri];
+        push @$extensions_list_ref, [URI->new(q{.})->abs($req_uri), $req_name, $req_uri];
       }
     }
   }
@@ -490,16 +492,16 @@ sub _uri_list_with_preinstalled_exts {
   my $progressbar = $opts_ref->{progressbar};
   if ($progressbar) {
     $progressbar->configure(
-      -to => scalar(@$uri_list_ref + @$pre_installed_ext_list),
-      -blocks => scalar(@$uri_list_ref + @$pre_installed_ext_list),
+      -to => scalar(@{$uri_list_ref} + @{$pre_installed_ext_list}),
+      -blocks => scalar(@{$uri_list_ref} + @{$pre_installed_ext_list}),
      );
   }
   
-  $pre_installed_ref->{ @$pre_installed_ext_list } = ();
-  for my $name (@$uri_list_ref, @$pre_installed_ext_list) {
+  $pre_installed_ref->{ @{$pre_installed_ext_list} } = ();
+  for my $name (@{$uri_list_ref}, @{$pre_installed_ext_list}) {
     # mark extensions with ! as not enabled
     $enable_ref->{$name} = 1;
-    if ($name =~ s{^!}{}x) {
+    if ($name =~ s{^!}{}) {
       $enable_ref->{$name} = 0;
     }
     my $meta_data_ref = $extension_data_ref->{$name} = 
@@ -517,7 +519,7 @@ sub _uri_list_with_preinstalled_exts {
     
     _fill_required_by($name);
   }
-  push(@$uri_list_ref, @$pre_installed_ext_list);
+  push(@{$uri_list_ref}, @{$pre_installed_ext_list});
   return $uri_list_ref;
 }
 
@@ -579,18 +581,22 @@ sub _create_uri_list {
 sub _required_tred_version {
   my ($extension_data_ref) = @_;
   
-  my $requires_different_tred = '';
+  my $requires_different_tred = q{};
   my @req_tred = $extension_data_ref && $extension_data_ref->{require} && $extension_data_ref->{require}->values('tred');
   foreach my $requirements (@req_tred) {
     if ($requirements->{min_version}) {
       if (TrEd::Version::CMP_TRED_VERSION_AND($requirements->{min_version}) < 0) {
-        $requires_different_tred .= ' and ' if $requires_different_tred;
+        if ($requires_different_tred) {
+          $requires_different_tred .= ' and ';
+        }
         $requires_different_tred = 'at least ' . $requirements->{min_version};
       }
     }
     if ($requirements->{max_version}) {
       if (TrEd::Version::CMP_TRED_VERSION_AND($requirements->{max_version}) > 0) {
-        $requires_different_tred .= ' and ' if $requires_different_tred;
+        if ($requires_different_tred) {
+          $requires_different_tred .= ' and ';
+        }
         $requires_different_tred = 'at most ' . $requirements->{max_version};
       }
     }
@@ -612,10 +618,10 @@ sub _required_tred_version {
 sub _required_perl_modules {
   my ($req_modules_ref) = @_;
   
-  my $requires_modules = '';
-  foreach my $requirements (@$req_modules_ref) {
+  my $requires_modules = q{};
+  foreach my $requirements (@{$req_modules_ref}) {
     next if (!$requirements->{name} || (lc($requirements->{name}) eq 'perl'));
-    my $req = '';
+    my $req = q{};
     my $available_version = eval { get_module_version($requirements->{name}) };
     next if $@;
     if (defined $available_version) {
@@ -626,13 +632,15 @@ sub _required_perl_modules {
       }
       if ($requirements->{max_version}) {
         if (compare_module_versions($available_version, $requirements->{max_version}) > 0) {
-          $req .= ' and ' if $req;
+          if ($req) {
+            $req .= ' and ';
+          }
           $req = 'at most ' . $requirements->{max_version};
         }
       }
     }
     if (length $req or not(defined($available_version))) {
-      $requires_modules .= "\n\t".$requirements->{name}." ".$req." ".
+      $requires_modules .= "\n\t" . $requirements->{name} . ' ' . $req . ' ' .
       (defined($available_version)  ? "(installed version: $available_version)" 
                                     : '(not installed)');
     }
@@ -653,9 +661,9 @@ sub _required_perl_modules {
 sub _required_perl_version {
   my ($req_modules_ref) = @_;
 
-  my $requires_perl = '';
-  foreach my $requirements (grep { lc($_->{name}) eq 'perl' } @$req_modules_ref) {
-    my $req='';
+  my $requires_perl = q{};
+  foreach my $requirements (grep { lc($_->{name}) eq 'perl' } @{$req_modules_ref}) {
+    my $req = q{};
     if ($requirements->{min_version}) {
       if ($] < $requirements->{min_version}) {
         $req = 'at least ' . $requirements->{min_version};
@@ -663,7 +671,9 @@ sub _required_perl_version {
     }
     if ($requirements->{max_version}) {
       if ($] > $requirements->{max_version}) {
-        $req .= ' and ' if $req;
+        if ($req) {
+          $req .= ' and ';
+        }
         $req = 'at most ' . $requirements->{max_version};
       }
     }
@@ -687,7 +697,7 @@ sub _find_all_requirements {
   my ($uri_list_ref, $extension_data_ref) = @_;
   my %uninstallable;
   # for each extension
-  for my $name (@$uri_list_ref) {
+  for my $name (@{$uri_list_ref}) {
     my $data = $extension_data_ref->{$name};
     next if !((blessed($name) and $name->isa('URI')));
     
@@ -723,7 +733,7 @@ sub _dependencies_of_req_exts {
   my ($uri_list_ref, $uninstallable_ref) = @_;
   
   # for each extension from URI list
-  for my $name (@$uri_list_ref) {
+  for my $name (@{$uri_list_ref}) {
     # if there is a dependency (TrEd version, Perl or Perl module) 
     # missing for the extension $name, go to next one 
     next if $uninstallable_ref->{$name};
@@ -800,7 +810,7 @@ sub _set_extension_icon {
       $path = File::Spec->rel2abs($data_ref->{icon}, File::Spec->catdir($dir, $name));
     }
     { #DEBUG; 
-      $path ||= '';
+      $path ||= q{};
       # print STDERR "Extensions.pm: $name => $data->{icon}\n";
     }
     if (defined($path) and -f $path) {
@@ -865,8 +875,8 @@ sub _set_name_desc_copyright {
     $opts_ref->{versions}{$name} = $data_ref->{version};
     
     my $version = (defined($data_ref->{version}) && length($data_ref->{version}))  
-                ? ' ' . $data_ref->{version} 
-                : ''; 
+                ? q{ } . $data_ref->{version} 
+                : q{}; 
                 
     $text->insert('end', $data_ref->{title}, [qw(title)]);
     $text->insert('end', ' (' . short_name($name) . $version  . ')', [qw(name)]);
@@ -880,7 +890,7 @@ sub _set_name_desc_copyright {
     $text->insert('end', $desc, [qw(desc)], "\n");
     
     if (ref($data_ref->{copyright})) {
-      my $c_year = $data_ref->{copyright}{year} ? ' (c) ' . $data_ref->{copyright}{year} : '';
+      my $c_year = $data_ref->{copyright}{year} ? ' (c) ' . $data_ref->{copyright}{year} : q{};
       $text->insert('end', 'Copyright ' . $data_ref->{copyright}{'#content'} . $c_year, [qw(copyright)], "\n");
     }
   }
@@ -901,13 +911,14 @@ sub _set_name_desc_copyright {
 sub _fmt_size {
   my ($size)=@_;
   my $unit;
+  my $magnitude = 1024;
   foreach my $order (qw{B KiB MiB GiB}) {
     $unit = $order;
-    if ($size < 1024) {
+    if ($size < $magnitude) {
       last;
     } 
     else {
-      $size = $size / 1024;
+      $size = $size / $magnitude;
     }
   }
   return sprintf("%d %s", $size, $unit);
@@ -1073,18 +1084,19 @@ sub _enable_checkbutton {
   else {
     @dependent_extensions = _required_by($name, $opts_ref->{versions});
     # If any of the dependent packages is enabled, ask whether to disable all of them
-    if ((grep { $enable_ref->{$_} } @dependent_extensions)) {
+    #if ((grep { $enable_ref->{$_} } @dependent_extensions)) {
+     if (TrEd::MinMax::first { $enable_ref->{$_} } @dependent_extensions) { 
       my $res = $dialog_box->QuestionQuery(
                 -title => 'Disable related packages?',
                 -label => "The following packages require '$name':\n\n".
                           join ("\n",grep { $_ ne $name } sort grep { $enable_ref->{$_} } @dependent_extensions),
                 -buttons =>['Ignore dependencies', 'Disable all', 'Cancel']
               );
-      if ($res =~ m/^Ignore/x) {
+      if ($res =~ m/^Ignore/) {
         # Ignore deps -> disable only package that was unchecked
         @dependent_extensions = ($name);
       }
-      elsif ($res =~ m/^Cancel/x) {
+      elsif ($res =~ m/^Cancel/) {
         $enable_ref->{$name} = !$enable_ref->{$name};
         return;
       }
@@ -1134,10 +1146,10 @@ sub _uninstall_button {
                  join ("\n",grep { $_ ne $name } sort @dependent_extensions),
       -buttons =>['Ignore dependencies', 'Remove all', 'Cancel']
      );
-    if ($res =~ m/^Ignore/x) {
+    if ($res =~ m/^Ignore/) {
       @dependent_extensions = ($name);
     }
-    elsif ($res =~ m/^Cancel/x) {
+    elsif ($res =~ m/^Cancel/) {
       return;
     }
   }
@@ -1434,7 +1446,7 @@ sub _add_pane_items {
   my $row = 0;
   my %embedded;
   
-  foreach my $ext_name (@$uri_list_ref) {
+  foreach my $ext_name (@{$uri_list_ref}) {
     my $data_ref = $extension_data_ref->{$ext_name};
     my $start = $text->index('end');
     my $frame = $text->Frame(-background=>'white');
@@ -1462,7 +1474,7 @@ sub _add_pane_items {
     });
     
     my $end = $text->index('end');
-    $end =~ s/\..*//x;
+    $end =~ s/\..*//;
     $text->configure(-height => $end);
 
     $embedded{$ext_name} = [$frame, $image ? $image : ()];
@@ -1485,7 +1497,7 @@ sub _add_pane_items {
       dialog_box        => $dialog_box,
     });
     
-    $text->insert('end',' ',[$frame]);
+    $text->insert('end', q{ }, [$frame]);
     
     # Add information about extension's size
     _set_ext_size($data_ref, $text, $ext_name);
@@ -1621,7 +1633,7 @@ sub _populate_extension_pane {
 sub _install_ext_button {
   my ($enable_ref, $manage_ext_dialog, $opts_ref, $INSTALL) = @_;
   
-  my @selected = grep { $enable_ref->{$_} } keys %$enable_ref;
+  my @selected = grep { $enable_ref->{$_} } keys %{$enable_ref};
   my $progress;
   my $ret;
   if (@selected) {
@@ -1749,8 +1761,8 @@ sub manage_extensions_2 {
 				       'Close'
 				      ]
 			);
-
-  $manage_ext_dialog->maxsize(0.9 * $manage_ext_dialog->screenwidth(), 0.9 * $manage_ext_dialog->screenheight());
+  my $scale = 0.9;
+  $manage_ext_dialog->maxsize($scale * $manage_ext_dialog->screenwidth(), $scale * $manage_ext_dialog->screenheight());
   my $enable_ref = _populate_extension_pane($tred, $manage_ext_dialog, $opts_ref);
   if (not ref $enable_ref) {
     $manage_ext_dialog->destroy;
@@ -1773,13 +1785,11 @@ sub manage_extensions_2 {
     };
     
     # Download button
-#    $args_ref->{only_upgrades} = 0;
     $manage_ext_dialog->Subwidget('B_' . $DOWNLOAD_NEW)->configure(
         -command => [\&_update_install_new_button, $args_ref, 0]
       );
     
     # Upgrade button
-#    $args_ref->{only_upgrades} = 1;
     $manage_ext_dialog->Subwidget('B_' . $UPGRADE)->configure(
         -command => [\&_update_install_new_button, $args_ref, 1]
       );
@@ -1824,7 +1834,7 @@ sub _repo_ok_or_forced {
                                               -buttons  => ['Cancel', 'Add Anyway']
                                             ) =~ /Anyway/)
       )
-      && !grep { $_ eq $url } $listbox->get(0,'end')
+      && !TrEd::MinMax::first { $_ eq $url } $listbox->get(0,'end')
       );
 }
 
@@ -1842,7 +1852,7 @@ sub _add_repo {
   my $url = $manage_repos_dialog->StringQuery(
                                     -label    => 'Repository URL:',
                                     -title    => 'Add Repository',
-                                    -default  => ($manage_repos_listbox->get('anchor')||''),
+                                    -default  => ($manage_repos_listbox->get('anchor') || q{}),
                                     -select   => 1,
                                         );
   if ($url) {
@@ -1891,7 +1901,7 @@ sub manage_repositories {
                                     -background => 'white',
                                   )->pack(-fill=>'both',-expand => 1);
 		 
-  $manage_repos_listbox->insert(0, @$repos);
+  $manage_repos_listbox->insert(0, @{$repos});
   $manage_repos_dialog->Subwidget('B_Add')->configure(
     -command => [\&_add_repo, $manage_repos_dialog, $manage_repos_listbox]
    );
@@ -1900,7 +1910,7 @@ sub manage_repositories {
    );
   $manage_repos_dialog->Subwidget('B_Save')->configure(
     -command => sub {
-      @$repos = $manage_repos_listbox->get(0,'end');
+      @{$repos} = $manage_repos_listbox->get(0,'end');
       $manage_repos_dialog->{selected_button}='Save';
     }
    );
@@ -1921,7 +1931,7 @@ sub update_extensions_list {
   my ($name, $enable, $extension_dir) = @_;
   
   my %names; 
-  @names{ (ref($name) eq 'ARRAY' ? @$name : $name) } = ();
+  @names{ (ref($name) eq 'ARRAY' ? @{$name} : $name) } = ();
   
   $extension_dir ||= get_extensions_dir();
   my $extension_list_file = File::Spec->catfile($extension_dir, 'extensions.lst');
@@ -1929,19 +1939,21 @@ sub update_extensions_list {
     open(my $fh, '<', $extension_list_file) or
       croak("Configuring extension failed: cannot read extension list $extension_list_file: $!");
     my @list = <$fh>;
-    close($fh);
+    close($fh) or
+      croak("Configuring extension failed: cannot close extension list $extension_list_file: $!");
     
     open($fh, '>', $extension_list_file) or
       croak("Configuring extenson failed: cannot write extension list $extension_list_file: $!");
     foreach my $extension_name (@list) {
-      if ($extension_name =~ m/^!?(\S+)\s*$/x and exists($names{$1})) {
-        print $fh (($enable ? '' : '!') . $1 . "\n");
+      if ($extension_name =~ m/^!?(\S+)\s*$/ and exists($names{$1})) {
+        print $fh (($enable ? q{} : q{!}) . $1 . "\n");
       }
       else {
         print $fh ($extension_name);
       }
     }
-    close($fh);
+    close($fh) or
+      croak("Configuring extenson failed: cannot close extension list $extension_list_file: $!");
   }
   return;
 }
@@ -1959,11 +1971,12 @@ sub _load_extension_file {
   my ($extension_list_file) = @_;
   my @extension_file;
   if (-f $extension_list_file) {
-    open(my $fh, '<', $extension_list_file) ||
+    open(my $fh, '<', $extension_list_file) or
       croak("Installation failed: cannot read extension list $extension_list_file: $!");
     @extension_file = <$fh>;
     chomp(@extension_file);
-    close($fh);
+    close($fh) or
+      croak("Installation failed: cannot close extension list $extension_list_file: $!");
   }
   else {
     @extension_file = @extension_file_prologue;
@@ -2054,7 +2067,7 @@ sub _install_extension_from_zip {
   }
   
   # Extract zip archive, i.e. the extension
-  if ($zip->extractTree('', $dir . '/') == Archive::Zip::AZ_OK()) {
+  if ($zip->extractTree(q{}, $dir . '/') == Archive::Zip::AZ_OK()) {
     # try to restore executable bit
     if ($^O ne 'MSWin32') {
       for my $member ( $zip->members ) {
@@ -2098,7 +2111,7 @@ sub install_extensions {
   if (ref($urls_ref) ne 'ARRAY') {
     croak(q{Usage: install_extensions(\@urls, \%opts)});
   }
-  return if not @$urls_ref;
+  return if not @{$urls_ref};
   $opts_ref ||= {};
   
   # Create extension directory if it does not exist..
@@ -2113,9 +2126,9 @@ sub install_extensions {
   my @extension_file = _load_extension_file($extension_list_file);
   
   require Archive::Zip;
-  for my $url (@$urls_ref) {
+  for my $url (@{$urls_ref}) {
     my $name = $url; 
-    $name =~ s{.*/}{}gx;
+    $name =~ s{.*/}{}g;
     Encode::_utf8_off($name);
     my $dir = File::Spec->catdir($extension_dir, $name);
     if (-d $dir) {
@@ -2147,7 +2160,8 @@ sub install_extensions {
   foreach my $extension_name (@extension_file) {
     print $fh ($extension_name . "\n");
   }
-  close($fh);
+  close($fh) or
+    croak("Installation failed: cannot close to extension list $extension_list_file: $!");
   
   return 1;
 }
@@ -2183,19 +2197,21 @@ sub uninstall_extension {
   my $extension_list_file = File::Spec->catfile($extension_dir,'extensions.lst');
   if (-f $extension_list_file) {
     # first load all the extensions to @ext_list
-    open (my $fh, '<', $extension_list_file) ||
+    open (my $fh, '<', $extension_list_file) or
       croak("Uninstall failed: cannot read extension list $extension_list_file: $!");
     my @ext_list = <$fh>;
-    close $fh;
+    close $fh or
+      croak("Uninstall failed: cannot close extension list $extension_list_file: $!");
     
     # then write all the extension back, except $name extension
-    open($fh, '>', $extension_list_file) ||
+    open($fh, '>', $extension_list_file) or
       croak("Uninstall failed: cannot write extension list $extension_list_file: $!");
     foreach my $extension (@ext_list) {
       next if ($extension =~ m/^!?\Q$name\E\s*$/x);
       print $fh ($extension);
     }
-    close $fh;
+    close $fh or
+      croak("Uninstall failed: cannot close extension list $extension_list_file: $!");
   }
   return 1;
 }
@@ -2261,7 +2277,7 @@ sub get_extension_list {
   }x;
   my @extensions = grep { m/$ext_filter/ } <$fh>;
   for my $extension (@extensions) {
-    $extension =~ s/\s+$//x;
+    $extension =~ s/\s+$//;
   }
   Treex::PML::IO::close_uri($fh);
   return \@extensions;
@@ -2305,7 +2321,7 @@ sub init_extensions {
   
   # add each extension's resources, macros, stylesheets and libs to appropriate paths 
   # used by TrEd
-  for my $name (grep { !/^!/ } @$list) {
+  for my $name (grep { !/^!/ } @{$list}) {
     my $dir = File::Spec->catdir($extension_dir, $name, 'resources');
     if (-d $dir && !exists($r{$dir})) {
       Treex::PML::AddResourcePath($dir);
@@ -2351,13 +2367,13 @@ sub get_preinstalled_extension_list {
   # hash of extensions to return
   my %preinst;
   # remove those extensions that are commented out
-  @preinst{ grep { !/^!/ } @$pre_installed_dir_exts } = ();
+  @preinst{ grep { !/^!/ } @{$pre_installed_dir_exts} } = ();
   # delete extensions that should be ignored / not listed
-  delete @preinst{ map { /^!?(\S+)/ ? $1 : $_ } @$except };
+  delete @preinst{ map { /^!?(\S+)/ ? $1 : $_ } @{$except} };
   
   # filter only those extensions that exist in hash (i.e. those that are not commented out, 
   # nor ignored)
-  @$pre_installed_dir_exts = grep { exists($preinst{$_}) } @$pre_installed_dir_exts;
+  @{$pre_installed_dir_exts} = grep { exists($preinst{$_}) } @{$pre_installed_dir_exts};
   return $pre_installed_dir_exts;
 }
 
@@ -2383,7 +2399,7 @@ sub get_extension_subpaths {
     carp('Usage: get_extension_subpaths( [ extension_name(s)... ], extension_dir, rel_path )');
   }
   $extension_dir ||= get_extensions_dir();
-  my @filtered_extensions_list = grep { !/^!/ } @$list;
+  my @filtered_extensions_list = grep { !/^!/ } @{$list};
   return map { File::Spec->catfile($extension_dir, $_, $rel_path) } @filtered_extensions_list;
 }
 
@@ -4606,3 +4622,4 @@ This software is distributed under GPL - The General Public Licence.
 Full text of the GPL can be found in the LICENSE file distributed with
 this program and also on-line at http://www.gnu.org/copyleft/gpl.html .
 
+=cut
