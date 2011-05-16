@@ -30,16 +30,19 @@ use constant ABOUT =>
   "This software is distributed under GPL - The General Public Licence\n".
   "Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html";
 
+# from TrEd::Macros 
+#%menuBindings %keyBindings
+
 use vars qw($svn_version $version $opt_u $opt_h $opt_c $opt_y
-	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_p
+	    $init_macro_context $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_p
 	    $opt_n $opt_D $opt_v $opt_H $opt_I $opt_Z $opt_e
             $libDir $docDir $list_options $opt_auto_save
 	    $macroFile @filelists %filelist_from_extension
 	    @openfiles $treeViewOpts $opt_m
-            @backends @ISA @EXPORT @open_types @save_types $opt_l $opt_s
+            @backends @ISA @EXPORT @open_types @save_types $opt_filelist $opt_s
             $opt_S
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
-            $valueLine $appName $ioBackends %menuBindings %keyBindings
+            $valueLine $appName $ioBackends 
             $NewFileNo $stderr $stdout
 	    $userlogin
 	    %save_types %backend_map $debug @normal_win_opts @focused_win_opts
@@ -66,8 +69,8 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
   'quiet|q' => \$opt_q,
   'macro-file|m=s' => \$opt_m,
   'config-file|c=s' => \$opt_c,
-  'filelist|l=s' => \$opt_l,
-  'context|t=s' => \$opt_t,
+  'filelist|l=s' => \$opt_filelist,
+  'context|t=s' => \$init_macro_context,
   'file-encoding|n=s' => \$opt_n,
   'split-window|p=i' => \$opt_p,
   'version|v' => \$opt_v,
@@ -294,7 +297,7 @@ if ($command) {
         if ($command eq 'open') {
           #TODO: require in map? what is the purpose of this construct?
           @args = map {
-            my ($filename,$suffix)=parseFileSuffix($_);
+            my ($filename,$suffix) = TrEd::Utils::parse_file_suffix($_);
             require Treex::PML::IO;
             Treex::PML::IO::make_abs_URI($filename)->as_string.$suffix
           } @args;
@@ -331,7 +334,7 @@ if (defined $opt_m) {
 $Treex::PML::Instance::Reader::STRICT=0;
 
 ###from TrEd::Utils
-init_stylesheet_paths([split($Treex::PML::resourcePathSplit, $opt_S, -1)]);
+TrEd::Utils::init_stylesheet_paths([split($Treex::PML::resourcePathSplit, $opt_S, -1)]);
 
 # well, setter would be nicer..
 $Treex::PML::resourcePath=
@@ -441,7 +444,7 @@ eval { require TrEd::Help; };
 #load back-ends
 @backends=(
   'FS',
-  ImportBackends(
+  Treex::PML::ImportBackends(
     split(/,/,$opt_B),
     split(/,/,$ioBackends),
     qw{NTRED
@@ -769,13 +772,13 @@ print STDERR "Creating filelists...\n" if $tredDebug;
 {
   my $default= new Filelist('Default');
   $default->add(0,map {
-    my ($filename,$suffix)=parseFileSuffix($_);
+    my ($filename,$suffix)=TrEd::Utils::parse_file_suffix($_);
     Treex::PML::IO::make_abs_URI($filename)->as_string.$suffix
     } @ARGV) if @ARGV;
-  addNewFilelist(undef,$default);
+  add_new_filelist(undef,$default);
 }
 
-createCmdLineFilelists();
+create_cmdline_filelists($opt_filelist);
 createBookmarksFilelist();
 loadStdFilelists();
 
@@ -816,43 +819,56 @@ exit_tred();
 #
 ############################################################
 
-sub createCmdLineFilelists {
+
+sub create_cmdline_filelists {
+  my ($filelist_str) = @_;
   # create Default filelists
-  return unless ($opt_l);
+  return if not ($filelist_str);
   my @fl_files;
   my $fh;
-  foreach my $l (split /\s*,\s*/,$opt_l) {
-    print STDERR "Reading -l filelist $l...\n" if $tredDebug;
-    if ($l eq '-') {
-      $fh=\*STDIN;
-    } else {
-      open($fh,'<',$l) or do {
-	print STDERR "Warning: Cannot open filelist $l: ".conv_from_locale($!)."\n";
-	next;
+  foreach my $filelist (split /\s*,\s*/, $filelist_str) {
+    print STDERR "Reading -l filelist $filelist...\n" if $tredDebug;
+    if ($filelist eq '-') {
+      $fh = \*STDIN;
+    }
+    else {
+      open($fh, '<', $filelist) or do {
+        print STDERR "Warning: Cannot open filelist $filelist: " . conv_from_locale($!)."\n";
+        next;
       };
     }
-    my @f=<$fh>;
-    shift @f if ($l=~/\.fl$/i and $f[0]!~m{[/.]} and ! -f absolutize($f[0]));
-    s/\s+$// for @f;
-    if ($l=~/\.fl$/i) {
-      # make relative filenames absolute relative to the .fl file
-      @f=map { _filelistFullFileName($l,$_) } @f;
-    } else {
-      @f=absolutize(@f);
+    my @files = <$fh>;
+    if ($filelist =~ /\.fl$/i && $files[0] !~ m{[/.]} && ! -f TrEd::Basics::absolutize($files[0])) {
+      shift @files;
     }
-    push @fl_files,\@f;
-
-    close($fh) unless $fh==\*STDIN; # we don't close STDIN to avoid problems 
+    foreach my $file (@files) {
+      $file =~ s/\s+$//;
+    }
+    
+    if ($filelist =~ /\.fl$/i) {
+      # make relative filenames absolute relative to the .fl file
+      @files = map { _filelistFullFileName($filelist, $_) } @files;
+    }
+    else {
+      @files = TrEd::Basics::absolutize(@files);
+    }
+    push @fl_files,\@files;
+    
+    if ($fh != \*STDIN) { 
+      close($fh) or 
+        carp("Warning: Cannot close filelist $filelist:"); 
+    }
+    # we don't close STDIN to avoid problems 
     # with open2 due to unresolved bug in perl: 
     # http://rt.perl.org/rt3/Public/Bug/Display.html?id=37033
     # If this turns out to be a problem, using eval('close($fh)') should work as well.
   }
   # define filelists CmdLine-1, CmdLine-2, etc.
-  my $fl_no=1;
-  foreach my $files (grep {@$_} @fl_files) {
-    my $fl = new Filelist('CmdLine-'.$fl_no);
+  my $fl_no = 1;
+  foreach my $files (grep { @{$_} } @fl_files) {
+    my $fl = new Filelist('CmdLine-' . $fl_no);
     $fl->add_arrayref(0, $files);
-    addNewFilelist(undef,$fl);
+    add_new_filelist(undef, $fl);
     $fl_no++;
   }
   print STDERR "Done...\n" if $tredDebug;
@@ -863,7 +879,7 @@ sub createBookmarksFilelist {
   unless (bookmarkFilelist()) {
     print "Bookmarks: ".$ENV{HOME}.'/.tred_bookmarks'."\n" if $tredDebug;
     my $bookmarks= new Filelist('Bookmarks',$ENV{HOME}.'/.tred_bookmarks');
-    addNewFilelist(undef,$bookmarks);
+    add_new_filelist(undef,$bookmarks);
   }
 }
 
@@ -955,7 +971,7 @@ sub conv_from_locale {
   my ($str)=@_;
   if ($locale_charset and $TrEd::Convert::support_unicode) {
     require Encode;
-    return Encode::decode($locale_charset,$str);
+    return Encode::decode($locale_charset, $str);
   } else {
     return $str;
   }
@@ -1122,7 +1138,7 @@ sub bookmarkFilelist {
 # Parameters    : hash_ref \%confs
 # Throws        : no exceptions
 # Comments      : Requires Filelist module
-# See Also      : Filelist, addNewFilelist(), $autoSave 
+# See Also      : Filelist, add_new_filelist(), $autoSave 
 # TODO: tests
 sub set_config {
   my $confs=shift;
@@ -1140,7 +1156,7 @@ sub set_config {
     eval {
       print STDERR "Reading filelist ".$fl->filename."\n" if $tredDebug;
       $fl->load();
-      addNewFilelist(undef,$fl);
+      add_new_filelist(undef,$fl);
     };
     warn $@ if $@;
   }
@@ -1151,12 +1167,12 @@ sub set_config {
 
 #######################################################################################
 # Usage         : ApplyGlobalConfig($configs)
-# Purpose       : Load recently opened files and set autoSave according to value from config  
-# Returns       : nothing
-# Parameters    : hash_ref \%confs
+# Purpose       : 
+# Returns       : 
+# Parameters    : 
 # Throws        : no exceptions
-# Comments      : Requires Filelist module
-# See Also      : Filelist, addNewFilelist(), $autoSave 
+# Comments      : 
+# See Also      :  
 # TODO: tests
 sub ApplyGlobalConfig {
   my ($grp)=@_;
@@ -1315,12 +1331,24 @@ sub filelistFullFileName {
   return unless ref $filelist;
   _filelistFullFileName($filelist,$filelist->file_at($fn));
 }
+
+
+#######################################################################################
+# Usage         : _filelistFullFileName($file_list, $file_name)
+# Purpose       : Resolve path to file $file_name relatively to location of $file_list
+# Returns       : Scalar -- resolved path of file
+# Parameters    : string $file_name -- name of the file 
+#                 string $file_list -- name of the file list
+#                 [string $subkey]  -- optional -- subkey name
+# Throws        : no exceptions
+# Comments      : Requires Win32::Registry; Now obsolete, just for testing purposes, see newer version: fetch_from_win32_reg
+# See Also      : fetch_from_win32_reg
 sub _filelistFullFileName {
-  my ($filelist,$filename)=@_;
-  return unless ref $filelist;
+  my ($filelist, $filename) = @_;
+  return if not ref $filelist;
   my $suffix;
-  ($filename,$suffix)=parseFileSuffix($filename);
-  return Treex::PML::ResolvePath($filelist->filename(),$filename).$suffix;
+  ($filename, $suffix) = TrEd::Utils::parse_file_suffix($filename);
+  return Treex::PML::ResolvePath($filelist->filename(), $filename) . $suffix;
 }
 
 sub nextOrPrevFile {
@@ -1334,12 +1362,12 @@ sub nextOrPrevFile {
   if ($real and $win->{FSFile}) {
     my $prev_filename= $win->{FSFile}->filename;
     my $f = $filename = filelistFullFileName($win,$pos);
-    ($prev_filename) = parseFileSuffix($prev_filename);
-    ($f) = parseFileSuffix($f);
+    ($prev_filename) = TrEd::Utils::parse_file_suffix($prev_filename);
+    ($f) = TrEd::Utils::parse_file_suffix($f);
     while (Treex::PML::IO::is_same_filename($f, $prev_filename)) {
       $pos+=$delta;
       $f=$filename=filelistFullFileName($win,$pos);
-      ($f) = parseFileSuffix($f);
+      ($f) = TrEd::Utils::parse_file_suffix($f);
     }
   } else {
     $filename=filelistFullFileName($win,$pos);
@@ -2139,9 +2167,9 @@ sub newFileFromCurrent {
   updateTitle($grp);
   $win->{redrawn}=0; # if redraw is called during the hook, we will know it
   get_nodes_win($win);
-  if ($opt_t ne EMPTY and
-	$win->{macroContext} ne $opt_t) {
-    switchContext($win,$opt_t,1);
+  if ($init_macro_context ne EMPTY and
+	$win->{macroContext} ne $init_macro_context) {
+    switchContext($win,$init_macro_context,1);
   } else {
     doEvalHook($win,"guess_context_hook","file_opened_hook");
   }
@@ -2192,7 +2220,7 @@ sub reloadFile {
     my $f=$fsfile->filename();
     my @patterns=$fsfile->patterns();
     my $hint=$fsfile->hint();
-    ($f)=parseFileSuffix($f);
+    ($f)=TrEd::Utils::parse_file_suffix($f);
     if ($fsfile->lastTreeNo >= 0) {
       my $no=$win->{treeNo}+1;
       my $nodeidx=0;
@@ -2306,7 +2334,7 @@ sub openFile {
   my $no_err = $grp->{noOpenFileError};
   my $fsfile = $win->{FSFile};
 
-  my ($f,$goto) = parseFileSuffix($fname);
+  my ($f,$goto) = TrEd::Utils::parse_file_suffix($fname);
   print "Goto suffix is $goto\n" if defined($goto) and $tredDebug;
 
   $opts{-keep} ||= $grp->{keepfiles};
@@ -2521,8 +2549,8 @@ sub openFile {
       doEvalHook($win,"file_opened_hook");
     }
   } else {
-    if ($opt_t ne EMPTY and $win->{macroContext} ne $opt_t) {
-      switchContext($win,$opt_t,1)
+    if ($init_macro_context ne EMPTY and $win->{macroContext} ne $init_macro_context) {
+      switchContext($win,$init_macro_context,1)
     } else {
       doEvalHook($win,"guess_context_hook","file_opened_hook") if ($fsfile and !$opts{-nohook});
     }
@@ -3319,8 +3347,8 @@ sub update_context_list {
     if ($sel ne $grp->{selectedContext}) {
       if ($tredmacro_ok) {
 	$grp->{selectedContext} = 'TredMacro';
-      } elsif ($opt_t and exists($new{$opt_t})) {
-	$grp->{selectedContext} = $opt_t;
+      } elsif ($init_macro_context and exists($new{$init_macro_context})) {
+	$grp->{selectedContext} = $init_macro_context;
       }
       switchContext($grp->{focusedWindow},$grp->{selectedContext},1);
     }
@@ -3332,19 +3360,19 @@ sub update_macro_menus {
   update_context_list($grp);
   if ($grp->{MacroMenu}) {
     my $menu = $grp->{MacroMenu}->menu;
-    foreach my $context (sort(keys(%keyBindings))) {
+    foreach my $context (sort(keys(%TrEd::Macros::keyBindings))) {
       $menu->Cascade( -label => $context,
 		      -menuitems=>
-			cascadeMenus(map { $keyBindings{$context}->{$_}=~/(?:$context\-\>)?(.*)/;
+			cascadeMenus(map { $TrEd::Macros::keyBindings{$context}->{$_}=~/(?:$context\-\>)?(.*)/;
 					   [Button => $1,
 					    -command=> [sub {
 							  doEvalMacro($_[0]->{focusedWindow},
 								      $_[1]);
 						   },$grp,
-							$keyBindings{$context}->{$_}],
+							$TrEd::Macros::keyBindings{$context}->{$_}],
 					    -accelerator=> "($_)"
 					   ]
-					 } sort(keys(%{$keyBindings{$context}}))));
+					 } sort(keys(%{$TrEd::Macros::keyBindings{$context}}))));
     }
   }
   my $tools_menu = $grp->{ToolsMenu}; #->menu;
@@ -3354,13 +3382,13 @@ sub update_macro_menus {
     $_->destroy for $menu->children;
     my $current;
     $grp->{MacroMenuItems}={}; # cache menus
-    foreach my $context ("TredMacro",grep { $_ ne "TredMacro" } sort(keys(%menuBindings))) {
-      my %macro_to_key = reverse %{ $keyBindings{$context}||{} };
+    foreach my $context ("TredMacro",grep { $_ ne "TredMacro" } sort(keys(%TrEd::Macros::menuBindings))) {
+      my %macro_to_key = reverse %{ $TrEd::Macros::keyBindings{$context}||{} };
       my $cascade = $menu->Cascade( -label => $context,
 		 -menuitems=>
 		   $grp->{MacroMenuItems}{$context}=cascadeMenus(map {
 		     my $label = $_;
-		     my $v = $menuBindings{$context}->{$label};
+		     my $v = $TrEd::Macros::menuBindings{$context}->{$label};
 		     my $key = defined($v->[1]) ? $v->[1] : $macro_to_key{$v->[0]};
 		     $label=~s/^_+//;
 		     [Button=> $label,
@@ -3372,7 +3400,7 @@ sub update_macro_menus {
 				  $v->[0]],
 		      $key ? (-accelerator=> "(".$key.")") : ()]}
                                   grep { $context ne 'TredMacro' or !/^_*\*/ } # skip "Star Tools" bindings
-				  map $_->[1], _u_sort(map [$_,$_], keys(%{$menuBindings{$context}}))));
+				  map $_->[1], _u_sort(map [$_,$_], keys(%{$TrEd::Macros::menuBindings{$context}}))));
       $current = $cascade if $context eq $grp->{focusedWindow}{macroContext}
     }
     # $tools_menu->entryconfigure('Current Context*',-menu => $current->menu);
@@ -3392,8 +3420,8 @@ sub update_macro_menus {
     }
     # print STDERR "clearing toolmenu from $first to $last\n" if defined($first) and $tredDebug;
     $tools_menu->delete($first,$last) if (defined $first);
-    my $TredMacroMenu = $menuBindings{TredMacro};
-    my %macro_to_key = reverse %{ $keyBindings{TredMacro}||{} };
+    my $TredMacroMenu = $TrEd::Macros::menuBindings{TredMacro};
+    my %macro_to_key = reverse %{ $TrEd::Macros::keyBindings{TredMacro}||{} };
     $first ||= 'end';
     foreach my $item (map $_->[1], _u_sort(map [$_,$_], grep /^_*\*/, keys %$TredMacroMenu)) {
       my $v = $TredMacroMenu->{$item};
@@ -3427,7 +3455,7 @@ sub updateCurrentContextMenu {
     # my $menu = $M->menu;
     $menu->delete(0,'end');
     $_->destroy for $menu->children;
-    if ($menuBindings{$context}) {
+    if ($TrEd::Macros::menuBindings{$context}) {
 #      $M->configure(-state=>'normal');
       $menu->AddItems(@{$grp->{MacroMenuItems}{$context}});
     } else {
@@ -3653,7 +3681,7 @@ sub looseFilePositionInFilelist {
   my $pos = $filelist->position($fsfile);
   return $pos if $pos >= 0;
 
-  ($fname)=parseFileSuffix($fname);
+  ($fname)=TrEd::Utils::parse_file_suffix($fname);
   my $files=$filelist->files_ref;
   my $basedir=$filelist->dirname();
   my $relfname=$fname;
@@ -3661,7 +3689,7 @@ sub looseFilePositionInFilelist {
     $relfname=substr($fname,length($basedir));
   }
   for (my $i=0; $i < $filelist->file_count; $i++) {
-    my ($fn) = parseFileSuffix($files->[$i]->[0]);
+    my ($fn) = TrEd::Utils::parse_file_suffix($files->[$i]->[0]);
     return $i if ($fname eq $fn or $relfname eq $fn);
   }
   return -1;
@@ -3863,8 +3891,50 @@ sub createNewFilelist {
   }
 }
 
+sub _user_resolve_filelist_conflict {
+  my ($top, $file_name_loaded, $file_name_new) = @_;
+  if (Treex::PML::IO::is_same_file($file_name_new, $file_name_loaded)) {
+    return userQuery($top,
+        	      "Filelist '" . $file_name_loaded . "' already loaded.\n",
+        	      -bitmap=> 'question',
+        	      -title => "Reload filelist?",
+        	      -buttons => ['Reload','Cancel'])
+  }
+  else {
+    return userQuery($top,
+        	      "Filelist named '" . $file_name_loaded . 
+        		"' is already loaded from\n" . $file_name_new . "\n",
+        	      -bitmap=> 'question',
+        	      -title => "Filelist conflict",
+        	      -buttons => ['Replace','Change name','Cancel']);
+  }
+}
+
+sub _solve_filelist_conflict {
+  my ($top, $filelist) = @_;
+  LOOP:
+  for my $dummy (1) {
+    # ($l) = grep { $_->name eq $fl->name } @filelists;
+    $l = TrEd::MinMax::first { $_->name() eq $filelist->name() } @filelists; 
+    last if not $l;
+    if ($top) {
+      my $answer = _user_resolve_filelist_conflict($top, $filelist->filename(), $l->filename());
+      return $l if $answer eq 'Cancel';
+      if ($answer eq 'Change name') {
+        my $new_name = QueryString($top, "Filelist name", "Name: ", $filelist->name);
+        return $l unless defined($new_name);
+        $filelist->rename($new_name);
+        redo LOOP;
+      }
+    }
+    elsif ($tredDebug) {
+      print STDERR 'Filelist ' , $filelist->name() , " already exists, replacing!\n";
+    }
+  }
+}
+
 #######################################################################################
-# Usage         : addNewFilelist(..)
+# Usage         : add_new_filelist(..)
 # Purpose       : ...  
 # Returns       : ..
 # Parameters    : ..
@@ -3873,43 +3943,17 @@ sub createNewFilelist {
 # See Also      : .. 
 # TODO: tests
 # TODO: to je iny filelist ako je ten tredlib/Filelist.pm?
-sub addNewFilelist {
-  my ($grp,$fl,$top)=@_;
+sub add_new_filelist {
+  my ($grp, $fl, $top) = @_;
   return if not defined($fl) or $fl eq EMPTY;
+  
   my $l;
-  my $old_name = eval { $fl->name };
+  my $old_name = eval { $fl->name() };
   if ($@) {
     confess($@)
   }
-  LOOP:
-  for my $dummy (1) {
-    ($l) = grep { $_->name eq $fl->name } @filelists;
-    last unless $l;
-    if ($top) {
-      my $answer = 
-	Treex::PML::IO::is_same_file($l->filename,$fl->filename)
-	  ? userQuery($top,
-		      "Filelist '".$fl->name."' already loaded.\n",
-		      -bitmap=> 'question',
-		      -title => "Reload filelist?",
-		      -buttons => ['Reload','Cancel'])
-	  : userQuery($top,
-		      "Filelist named '".$fl->name.
-			"' is already loaded from\n".$l->filename."\n",
-		      -bitmap=> 'question',
-		      -title => "Filelist confilct",
-		      -buttons => ['Replace','Change name','Cancel']);
-      return $l if $answer eq 'Cancel';
-      if ($answer eq 'Change name') {
-	my $name = QueryString($top,"Filelist name", "Name: ",$fl->name);
-	return $l unless defined($name);
-	$fl->rename($name);
-	redo LOOP;
-      }
-    } elsif ($tredDebug) {
-      print STDERR "Filelist ",$fl->name," already exists, replacing!\n";
-    }
-  }
+  
+  
   if ($old_name ne $fl->name) {
     print STDERR "Saving filelist ".$fl->name." to: ",$fl->filename,"\n" unless $opt_q;
     $fl->save; # filelist renamed
@@ -3925,7 +3969,7 @@ sub addNewFilelist {
       undef $fl;
       return $l;
   }
-  if (not defined($fl->name) or $fl->name eq EMPTY) {
+  if (not defined($fl->name()) or $fl->name() eq EMPTY) {
     undef $fl;
     return;
   }
@@ -4089,7 +4133,7 @@ sub loadFilelist {
   return unless $fl;
   print STDERR "Loading filelist: $file\n";
   $fl->load();
-  addNewFilelist($grp,$fl,$top);
+  add_new_filelist($grp,$fl,$top);
   return $fl->name();
 }
 
@@ -4453,15 +4497,15 @@ sub generateSortedMacroTable {
   # 2=include-TredMacro,
   # 4=include-Default (not yet implemented)
 
-  my $Keys = { %{$keyBindings{$context} ||={} } };
-  my $Menus = { %{$menuBindings{$context} ||= {}} };
+  my $Keys = { %{$TrEd::Macros::keyBindings{$context} ||={} } };
+  my $Menus = { %{$TrEd::Macros::menuBindings{$context} ||= {}} };
   if (($flags & 2) and ($context ne 'TredMacro')) {
-    my $tmKeys = $keyBindings{TredMacro};
+    my $tmKeys = $TrEd::Macros::keyBindings{TredMacro};
     my ($k,$v);
-    while (($k,$v)=each %{ $menuBindings{TredMacro} }) {
+    while (($k,$v)=each %{ $TrEd::Macros::menuBindings{TredMacro} }) {
       $Menus->{$k.' (TredMacro)'}=$v unless ($v->[1] and exists $Keys->{$v->[1]});
     }
-    while (($k,$v)=each %{ $keyBindings{TredMacro} }) {
+    while (($k,$v)=each %{ $TrEd::Macros::keyBindings{TredMacro} }) {
       $Keys->{$k}||=$v;
     }
   }
@@ -5875,6 +5919,7 @@ sub prepareFonts {
     $guiFont = prepareFont($grp,$guiFont,'C_gui');
     eval { $mw->optionAdd("*font",$guiFont); };
   }
+  #TODO: z TrEd::Config $treeViewOpts, $font, $vLineFont 
   $treeViewOpts->{font} = $font = prepareFont($grp,$font,'C_normal');
   $vLineFont = prepareFont($grp,$vLineFont,'C_vline');
   for my $name (qw(small small_bold heading fixed default bold italic)) {
@@ -5954,25 +5999,41 @@ sub About {
 	       -title=> 'About');
 }
 
-sub newTrEdWindow {
-  my ($grp)=@_;
+#######################################################################################
+# Usage         : new_TrEd_Window(\%tred);
+# Purpose       : 
+# Returns       : nothing
+# Parameters    : hash_ref $tred -- tred hash reference
+# Throws        : no exception
+# Comments      : 
+# See Also      : 
+sub new_TrEd_Window {
+  my ($grp) = @_;
 
-  my $win= TrEd::Window->new(newTreeView($grp),framegroup=>$grp);
-  $win->{macroContext}= $opt_t && exists($keyBindings{$opt_t}) 
-    ? $opt_t : 'TredMacro';
+  my $win= TrEd::Window->new(newTreeView($grp), framegroup => $grp);
+  $win->{macroContext} = $init_macro_context && exists($TrEd::Macros::keyBindings{$init_macro_context}) 
+    ? $init_macro_context : 'TredMacro';
   $win->{stylesheet} = STYLESHEET_FROM_FILE();
   my $windows = $grp->{treeWindows};
   my $focused_win = $grp->{focusedWindow};
   if ($focused_win) {
-    @$windows = map { ( $_ == $focused_win) ? ($_,$win) : $_ } @$windows;
+    @{$windows} = map { ( $_ == $focused_win) ? ($_,$win) : $_ } @{$windows};
   } else {
-    push @$windows, $win;
+    push @{$windows}, $win;
   }
   $grp->{rmsplitButton}->configure(-state => @$windows>1 ? 'normal' : 'disabled')
     if $grp->{rmsplitButton};
   return $win;
 }
 
+#######################################################################################
+# Usage         : new_TrEd_Window(\%tred);
+# Purpose       : 
+# Returns       : nothing
+# Parameters    : hash_ref $tred -- tred hash reference
+# Throws        : no exception
+# Comments      : 
+# See Also      : 
 sub newTreeView {
   my ($grp)=@_;
 
@@ -6105,7 +6166,7 @@ sub focusCanvas {
 sub splitWindow {
   my ($grp,$dir,$opts)=@_;
   $opts ||= {};
-  my $twin     = newTrEdWindow($grp);
+  my $twin     = new_TrEd_Window($grp);
   my $canvas=$twin->canvas();
   $canvas->configure($opts->{no_focus} ? @normal_win_opts : @focused_win_opts);
   my $win = $grp->{focusedWindow};
@@ -6451,8 +6512,18 @@ sub _load_menus {
   return $code->($grp);
 }
 
+sub _tk_dialog_alternative {
+  my ($old) = @_;
+  my $d = &$old;
+  if ($d) {
+    for my $widget ( grep { $_->isa('Tk::Button') } $d->Subwidget ) {
+      $widget->configure(-padx=>7, -pady=>2, -width=>0);
+    }
+  }
+  return $d;
+};
+
 sub startMain {
-  my $firstFile=shift;
   my $node;
   my $parent;
   my %tred; # gathers TrEd window global data, also referred to as $grp, the 'frame group'
@@ -6472,36 +6543,21 @@ sub startMain {
 
   if ($^O eq 'MSWin32') {
     # a workaround for focus being lost after popup menu usage on Win32
-
-    require Tk::Menu;
-    $top->bind('Tk::Menu', '<<MenuSelect>>', sub { if ($Tk::popup) { $Tk::popup->Unpost; } });
+    
+    # this is already in apply_workarounds function
+    # require Tk::Menu;
+    # $top->bind('Tk::Menu', '<<MenuSelect>>', sub { if ($Tk::popup) { $Tk::popup->Unpost; } });
 
     # a workaround for dialog buttons showing only partial labels in Windows
     require Tk::DialogBox;
     {
       my $old=\&Tk::Widget::DialogBox;
-      *Tk::Widget::DialogBox = sub {
-	my $d = &$old;
-	if ($d) {
-	  for my $w ( grep $_->isa('Tk::Button'), $d->Subwidget ) {
-	    $w->configure(-padx=>7, -pady=>2, -width=>0);
-	  }
-	}
-	return $d;
-      };
+      *Tk::Widget::DialogBox = \&_tk_dialog_alternative($old); 
     }
     require Tk::Dialog;
     {
       my $old=\&Tk::Widget::Dialog;
-      *Tk::Widget::Dialog = sub {
-	my $d = &$old;
-	if ($d) {
-	  for my $w ( grep $_->isa('Tk::Button'), $d->Subwidget ) {
-	    $w->configure(-padx=>7, -pady=>2, -width=>0);
-	  }
-	}
-	return $d;
-      };
+      *Tk::Widget::Dialog = \&_tk_dialog_alternative($old);
     }
 
   }
@@ -6513,22 +6569,22 @@ sub startMain {
 #  undef $@;
   for (qw(ROText Text TextUndo Entry LabEntry HistEntry SimpleHistEntry
 	  Listbox HList CodeText)) {
-    $top->optionAdd("\*$_.background","white");
-    $top->optionAdd("\*$_.foreground","black");
-    $top->optionAdd("\*$_.disabledBackground","lightgray");
-    $top->optionAdd("\*$_.disabledForeground","gray20");
+    $top->optionAdd("\*$_.background", 'white');
+    $top->optionAdd("\*$_.foreground", 'black');
+    $top->optionAdd("\*$_.disabledBackground", 'lightgray');
+    $top->optionAdd("\*$_.disabledForeground", 'gray20');
   }
-  unless ($enableTearOff) {
+  if (not $enableTearOff) {
     for (qw(Menu)) {
       $top->optionAdd("\*$_.tearOff",0);
     }
   }
 
   if ($^O ne 'MSWin32') {
-    $top->optionAdd("\*Scrollbar.width","10");
-    $top->optionAdd("\*Scrollbar.elementBorderWidth","1");
-    $top->optionAdd("\*Scrollbar.borderWidth","1");
-    $top->optionAdd("\*Scrollbar.troughColor","gray80");
+    $top->optionAdd('\*Scrollbar.width', '10');
+    $top->optionAdd('\*Scrollbar.elementBorderWidth', '1');
+    $top->optionAdd('\*Scrollbar.borderWidth', '1');
+    $top->optionAdd('\*Scrollbar.troughColor', 'gray80');
   }
   {
     # make sure button flashes are visible
@@ -6537,59 +6593,66 @@ sub startMain {
     my $H='[a-z0-9]{2}';
     my $level = 7;
     if (($bg eq $abg) and $abg=~/^\#($H)($H)($H)$/ogi) {
-      my ($r,$g,$b) = map hex, $1,$2,$3;
+      my ($r,$g,$b) = map { hex } $1,$2,$3;
       if (!first {$_>=255-$level} ($r,$g,$b)) {
-	# lighten
-	$_+=$level for $r,$g,$b;
-      } else {
-	# darken
-	$_-=$level for $r,$g,$b;
+        # lighten
+        for ($r,$g,$b) {
+          $_ += $level;
+        }
+      } 
+      else {
+        # darken
+        $_-=$level for $r,$g,$b;
       }
-      $abg = '#'.join '', map { sprintf('%02x',min(abs($_),255)) } $r,$g,$b;
-      $top->optionAdd('*Button.activeBackground',$abg);
+      $abg = '#' . join q{}, map { sprintf('%02x', min(abs($_),255)) } $r,$g,$b;
+      $top->optionAdd('*Button.activeBackground', $abg);
     }
   }
 
   if ($TrEd::Convert::support_unicode) {
     $top->useinputmethods(1);
   }
-  my $preparedExtensions = prepareExtensions(\%tred);
-  loadStyleSheets(\%tred);
+  my $preparedExtensions = prepareExtensions();
+  TrEd::Utils::loadStyleSheets(\%tred);
 
-  $tred{autoSaveCallback}=$top->repeat($autoSave*60000,
-					       [\&autoSaveAll,\%tred]) if $autoSave>0;
+  use Readonly;
+  Readonly my $milisec_per_min => 60000;
+  
+  if ($autoSave > 0) {
+    $tred{autoSaveCallback}=$top->repeat($autoSave * $milisec_per_min, [\&autoSaveAll, \%tred]) ;
+  }
 
   $tred{folderImage}= icon(\%tred,'folder');
   $tred{fileImage}  = icon(\%tred,'document');
   $tred{lastActionBookmark}= $lastAction;
-  $tred{selectedContext}=  $opt_t || 'TredMacro';
+  $tred{selectedContext}=  $init_macro_context || 'TredMacro';
   $tred{buildTGTSfromCSTS}=$opt_R;
 
-  if (not $opt_G and defined($geometry) and length($geometry)) {
-    if ($geometry=~/^(.*)x(.*)\+([0-9]+)\+([0-9]+)/) {
-        $geometry
-	 = "$1x$2+".min($3,$top->vrootwidth-$1).
-	    "+".min($4,$top->vrootheight-$2);
+  if (not $opt_G and defined($TrEd::Config::geometry) and length($TrEd::Config::geometry)) {
+    if ($TrEd::Config::geometry =~ /^(.*)x(.*)\+([0-9]+)\+([0-9]+)/) {
+        $TrEd::Config::geometry
+	 = "$1x$2+" . TrEd::MinMax::min($3, $top->vrootwidth() - $1).
+	    "+" . TrEd::MinMax::min($4, $top->vrootheight() - $2);
     }
-    $top->geometry($geometry);
+    $top->geometry($TrEd::Config::geometry);
   }
   if ($opt_W) {
 
-    $geometry = "600x400";
+    $TrEd::Config::geometry = "600x400";
     $top->sizefrom('program');
-    $top->geometry($geometry);
+    $top->geometry($TrEd::Config::geometry);
   }
   prepareFonts(\%tred);
   $tred{treeWindows}=[];
-  $tred{focusedWindow}=newTrEdWindow(\%tred);
+  $tred{focusedWindow}=new_TrEd_Window(\%tred);
   my $canvas = $tred{focusedWindow}->canvas();
   $canvas->configure(@focused_win_opts);
 
   print STDERR "Main window created.\n" if $tredDebug;
 
-  if (-f $appIcon) {
+  if (-f $TrEd::Config::appIcon) {
     print STDERR "adding icon-image.\n" if $tredDebug;
-    $top->iconimage($top->Pixmap(-file=> "$appIcon"));
+    $top->iconimage($top->Pixmap(-file=> "$TrEd::Config::appIcon"));
     print STDERR "done.\n" if $tredDebug;
   }
 
@@ -6598,8 +6661,7 @@ sub startMain {
 
   print STDERR "Asking wm for exit-hook.\n" if $tredDebug;
 
-  $top->
-    protocol('WM_DELETE_WINDOW'=> [\&quit,\%tred]);
+  $top->protocol('WM_DELETE_WINDOW'=> [\&quit,\%tred]);
 
 
   print STDERR "Exit hook created.\n" if $tredDebug;
@@ -6675,19 +6737,21 @@ sub startMain {
     }
   }
 
-  $tred{templateMatchMethod}=$defaultTemplateMatchMethod;
-  $tred{macroListOrder}=$defaultMacroListOrder;
+  $tred{templateMatchMethod}=$TrEd::Config::defaultTemplateMatchMethod;
+  $tred{macroListOrder}=$TrEd::Config::defaultMacroListOrder;
 
-  $tred{selectedContext} =  'TredMacro' unless exists($keyBindings{ $tred{selectedContext} });
+  $tred{selectedContext} =  'TredMacro' unless exists($TrEd::Macros::keyBindings{ $tred{selectedContext} });
 
-  $tred{ContextsMenu}=$tred{MenubarFrame}->Optionmenu(-options => [],
- 	       -textvariable=> \$tred{selectedContext},
-               -font => 'C_small',
- 	       -command=> [sub { my ($grp,$context) = @_;
- 				 switchContext($grp->{focusedWindow}, $context);
- 			       },\%tred],
- 	       -relief=> 'groove', #$menubarRelief,
- 	       -borderwidth=> 2)->pack(qw/-side right -padx 5/);
+  $tred{ContextsMenu} = $tred{MenubarFrame}->Optionmenu(
+                            -options      => [],
+                            -textvariable => \$tred{selectedContext},
+                            -font         => 'C_small',
+                            -command      => [sub { my ($grp,$context) = @_;
+                                                    switchContext($grp->{focusedWindow}, $context);
+                                                  },\%tred
+                                              ],
+                            -relief       => 'groove', #$menubarRelief,
+                            -borderwidth  => 2)->pack(qw/-side right -padx 5/);
 
   $tred{ContextsMenu}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
   $tred{ContextsMenuLabel}=$tred{MenubarFrame}->Label(-text=>'Mode:',
@@ -6883,6 +6947,7 @@ sub startMain {
   $tred{Balloon}->attach($tred{nextFileButton},
 			  -balloonmsg=> "visit the next file in the file-list");
   addBindTags($tred{nextFileButton},'my');
+
   # bind action control
   for my $bind ([nextFileButton => \&nextRealFile],
 		[prevFileButton => \&prevRealFile]) {
@@ -7192,6 +7257,7 @@ sub startMain {
     print STDERR "Stopped by init_hook\n";
     exit_tred();
   }
+  # STYLESHEET_FROM_FILE is from TrEd::Utils
   my $stylesheet=$opt_s || STYLESHEET_FROM_FILE();
   $tred{selectedStylesheet}=$stylesheet;
   applyWindowStylesheet($tred{focusedWindow},$stylesheet);
@@ -7242,21 +7308,22 @@ sub startMain {
   }
   if ($opt_p) {
     my $dir=$opt_p>0 ? 'vert' : 'horiz';
-    my @fl = $opt_l=~/,/g;
+    my @fl = $opt_filelist=~/,/g;
     my $fl=@fl+1;
     if ($fl>1) {
-      $fl=min($opt_p,$fl);
+      $fl=TrEd::MinMax::min($opt_p,$fl);
       my $i;
       for (my $i=0;$i<$fl;$i++) {
-	focusCanvas($tred{treeWindows}->[$i]->canvas,\%tred);
-	selectFilelist($tred{treeWindows}->[$i],"CmdLine-".($i+1));
-	gotoFile($tred{treeWindows}->[$i],0);
+        focusCanvas($tred{treeWindows}->[$i]->canvas,\%tred);
+        selectFilelist($tred{treeWindows}->[$i],"CmdLine-".($i+1));
+        gotoFile($tred{treeWindows}->[$i],0);
       }
-    } else {
+    }
+    else {
       for (my $i=1;$i<$opt_p;$i++) {
-	focusCanvas($tred{treeWindows}->[$i]->canvas,\%tred);
-	$tred{treeWindows}->[$i]->{currentFilelist} = $tred{treeWindows}->[0]->{currentFilelist};
-	gotoFile($tred{treeWindows}->[$i],$i);
+        focusCanvas($tred{treeWindows}->[$i]->canvas,\%tred);
+        $tred{treeWindows}->[$i]->{currentFilelist} = $tred{treeWindows}->[0]->{currentFilelist};
+        gotoFile($tred{treeWindows}->[$i],$i);
       }
     }
     focusCanvas($tred{treeWindows}->[0]->canvas,\%tred);
@@ -7657,17 +7724,17 @@ sub updateRuntimeConfig {
   }
   if ($grp->{top}) {
     eval {
-      $geometry=$grp->{top}->geometry();
-      print "geometry is $geometry\n" if $tredDebug;
+      $TrEd::Config::geometry=$grp->{top}->geometry();
+      print "geometry is $TrEd::Config::geometry\n" if $tredDebug;
       if ($^O eq "MSWin32" and $grp->{top}->state() eq 'zoomed') {
-	$geometry=~s/\+[-0-9]+\+[-0-9]+/+-3+-3/;
+	$TrEd::Config::geometry=~s/\+[-0-9]+\+[-0-9]+/+-3+-3/;
       }
     };
   }
   do {
     my $s;
     push @$conf,
-      "Geometry\t=\t".$geometry."\n",
+      "Geometry\t=\t".$TrEd::Config::geometry."\n",
       "ShowSidePanel\t=\t".$showSidePanel."\n",
       "CanvasHeight\t=\t".$defCHeight."\n",
       "CanvasWidth\t=\t".$defCWidth."\n",
@@ -8225,7 +8292,7 @@ sub renameFileInFilelist {
   # my %fixed;
   for my $i (defined ($position) ? $position : 0..($filelist->file_count()-1)) {
     my $fn = $filelist->file_at($i);
-    my ($f, $suffix) = parseFileSuffix($fn);
+    my ($f, $suffix) = TrEd::Utils::parse_file_suffix($fn);
     if (Treex::PML::IO::is_same_file(_filelistFullFileName($filelist,$f),$old_file)) {
       my $pattern_no = $filelist->file_pattern_index($i);
       my $pattern = $pattern_list->[$pattern_no];
@@ -10679,9 +10746,9 @@ sub findTemplated {
   my $win = $grp->{focusedWindow};
   return undef unless ($win->{currentNode});
 
-  my @save = ($opt_t,$win->{noRedraw},$grp->{noUpdateTitle},$grp->{noUpdatePostponed},
+  my @save = ($init_macro_context,$win->{noRedraw},$grp->{noUpdateTitle},$grp->{noUpdatePostponed},
 	      $grp->{noRecent},$grp->{noUpdateStylesheetMenu},$grp->{noUpdateMacrolistView},$grp->{noSaveFileStateUpdate});
-  ($opt_t,
+  ($init_macro_context,
    $win->{noRedraw},
    $grp->{noUpdateTitle},
    $grp->{noUpdatePostponed},
@@ -10724,7 +10791,7 @@ sub findTemplated {
     $result = $callback->($grp,$cont);
   }
   _closeSearchGrabWindow($grp);
-  ($opt_t,
+  ($init_macro_context,
    $win->{noRedraw},
    $grp->{noUpdateTitle},
    $grp->{noUpdatePostponed},
@@ -11701,14 +11768,14 @@ sub examineBindingsDialog {
 sub findMacroDescription {
   my ($grp_or_win,$macro)=@_;
   if (!ref($macro) and $macro =~ /^(.*)->/) {
-    my $b = $menuBindings{$1};
+    my $b = $TrEd::Macros::menuBindings{$1};
     my ($desc) = grep { ref($b->{$_}) and $b->{$_}[0] eq $macro } keys %$b;
     return "$desc ($macro)" if $desc ne EMPTY;
     return "macro $macro";
   } else {
     my ($grp,$win)=grp_win($grp_or_win);
     for my $context (uniq($win->{macroContext},"TredMacro")) {
-      my $Menus = $menuBindings{$context};
+      my $Menus = $TrEd::Macros::menuBindings{$context};
       my %macro_to_menu = map { $Menus->{$_}->[0] => $_ } keys %{ $Menus };
       my $desc = $macro_to_menu{$macro};
       return $desc." (inline code)" if defined $desc;
@@ -11828,8 +11895,8 @@ sub resolveKey {
   }
   foreach my $context (uniq($win->{macroContext},"TredMacro")) {
     foreach my $key (@_) {
-      if (exists ($keyBindings{$context}->{$key})) {
-	return($keyBindings{$context}->{$key},$key)
+      if (exists ($TrEd::Macros::keyBindings{$context}->{$key})) {
+	return($TrEd::Macros::keyBindings{$context}->{$key},$key)
       }
     }
   }
@@ -12696,6 +12763,8 @@ sub valueLineClick {
   Tk->break;
 }
 
+#TODO poslat do TrEd::Extensions, s tym, ze z btredu bude treba doplnit prevzatie arguemntov
+# a vypis extensions do nejakeho suboru, odtialto potom odfiltrovat init_extensions
 sub prepareExtensions {
   my $extensions = get_extension_list();
   my $pre_installed =  get_preinstalled_extension_list($extensions);
@@ -12708,22 +12777,22 @@ sub prepareExtensions {
 #     warn("Using -m implies all extensions disabled...\n") unless $opt_q;
 #  }
 
-  @$extensions =
+  @{$extensions} =
     map { /^!(.*)/ ?
 	    (exists($e{'*'}) && !exists($d{$1}) || exists($e{$1}) ? $1 : $_)
 	      : $opt_m ?
 		(exists($e{'*'}) && !exists($d{$_}) || exists($e{$_}) ? $_ : '!'.$_)
 		  : (exists($d{'*'}) && !exists($e{$_}) || exists($d{$_}) ? '!'.$_ : $_)
-		} @$extensions;
+		} @{$extensions};
 
-  @$pre_installed =
+  @{$pre_installed} =
       map { /^!(.*)/ ?
 	      (exists($e{'*'}) && !exists($d{$1}) || exists($e{$1}) ? $1 : $_)
 		: $opt_m ?
 		  (exists($e{'*'}) && !exists($d{$_}) || exists($e{$_}) ? $_ : '!'.$_)
 		    : (exists($d{'*'}) && !exists($e{$_})|| exists($d{$_}) ? '!'.$_ : $_)
-		  } @$pre_installed;
-  my %have; @have{@$extensions,@$pre_installed}=();
+		  } @{$pre_installed};
+  my %have; @have{@{$extensions},@{$pre_installed}}=();
   for my $required (keys %e) {
     if ($required ne '*' and !exists($have{$required})) {
       warn("WARNING: extension $required not found!");
@@ -12737,7 +12806,7 @@ sub prepareExtensions {
 sub loadMacros {
   my ($grp,$opts)=@_;
   $opts||={};
-  read_macros($macroFile,$libDir); # read macros
+  read_macros($macroFile,$libDir); # read macro tred.mac (and tred.def)
 
   my $preinst_dir = get_preinstalled_extensions_dir();
 
@@ -12757,7 +12826,7 @@ sub loadMacros {
       print STDERR "Reading filelist ".$fl->filename."\n" if $tredDebug;
       eval {
         $fl->load();
-        addNewFilelist(undef,$fl);
+        add_new_filelist(undef,$fl);
       };
       if ($@) {
         warn $@;
@@ -12801,8 +12870,8 @@ sub reloadMacros {
   delete $grp->{minorModes};
   delete $grp->{minorPreHooks};
   delete $grp->{minorPostHooks};
-  %keyBindings=();
-  %menuBindings=();
+  %TrEd::Macros::keyBindings=();
+  %TrEd::Macros::menuBindings=();
   TrEd::TreeView->clear_code_caches;
   cleanup_tredmacro($grp);
   for my $name (keys %{$grp->{UserToolbarHash}}) {
@@ -12882,7 +12951,7 @@ sub loadStdFilelists {
 	print STDERR "Reading filelist ".$fl->filename."\n" if $tredDebug;
 	eval {
 	  $fl->load();
-	  addNewFilelist(undef,$fl);
+	  add_new_filelist(undef,$fl);
 	};
 	if ($@) {
 	  warn $@;

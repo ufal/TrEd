@@ -31,11 +31,17 @@ BEGIN {
      'iso-8859-6' => '¬»×ØÙÚאבגדהוזחטיךכלםמןנסע'
     );
 
-  $lefttoright = 1 unless defined($lefttoright);
-  $inputenc = "UTF-8" unless defined($inputenc);
+  if (not defined($lefttoright)) {
+    $lefttoright = 1;
+  }
+  if (not defined($inputenc)) {
+    $inputenc = "UTF-8";
+  }
 
   if ($^O eq "MSWin32") {
-    $outputenc="windows-1250" unless defined($outputenc);
+    if (not defined($outputenc)) {
+      $outputenc="windows-1250";
+    }
     $Ds="\\"; # how filenames and directories are separated
   } 
   else {
@@ -71,11 +77,11 @@ no integer;
 # See Also      : Encode::encode(), tr(), TrEd::ConvertArab::arabjoin(), TrEd::ArabicRemix::remix()
 #TODO: tests
 sub encode {
-  my $str = join('', @_);
+  my $str = join(q{}, @_);
   if ($support_unicode) { # we've got support for UNICODE in perl5.8/Tk8004
     if (($FORCE_REMIX or $^O ne 'MSWin32')
 	  and
-	!$FORCE_NO_REMIX
+	not $FORCE_NO_REMIX
 	#  and
 	# ( $inputenc =~ /^utf-?8$/i or
         #   $inputenc eq 'iso-8859-6' or
@@ -113,7 +119,7 @@ sub encode {
 #                 or tr for Perl < 5.8
 # See Also      : Encode::decode(), tr(), 
 sub decode {
-  my $str = join '', @_;
+  my $str = join q{}, @_;
 #  $lefttoright or ($str=~s{([^[:ascii:]]+)}{reverse $1}eg);
   if(!$lefttoright) {
     $str =~ s{([^[:ascii:]]+)}{reverse $1}eg;
@@ -153,8 +159,8 @@ sub dirname {
   # both slash and backslash may be uzed
   # (i'd sure use File::Spec::Functions had it support
   # for this also in 5.005 perl distro).
-  return (index($a, $Ds) + index($a, '/') >= 0) ?
-          substr($a, 0, TrEd::MinMax::max(rindex($a, $Ds), rindex($a, '/')) + 1) : ".$Ds";
+  return (index($a, $Ds) + index($a, q{/}) >= 0) ?
+          substr($a, 0, TrEd::MinMax::max(rindex($a, $Ds), rindex($a, q{/})) + 1) : ".$Ds";
 }
 
 #######################################################################################
@@ -170,8 +176,8 @@ sub filename {
   my $a = shift;
   # this is for the sh*tty winz where
   # both slash and backslash may be uzed
-  return (index($a, $Ds) + index($a, '/') >= 0) ?
-          substr($a, TrEd::MinMax::max(rindex($a, $Ds), rindex($a, '/')) + 1) : $a;
+  return (index($a, $Ds) + index($a, q{/}) >= 0) ?
+          substr($a, TrEd::MinMax::max(rindex($a, $Ds), rindex($a, q{/})) + 1) : $a;
 }
 
 1;

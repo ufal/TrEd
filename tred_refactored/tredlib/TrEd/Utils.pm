@@ -9,6 +9,7 @@ use Carp;
 use List::Util qw(first min max);
 use File::Spec;
 use URI::Escape;
+use Treex::PML::Schema::CDATA;
 require Exporter;
 
 use base qw(Exporter);
@@ -45,7 +46,7 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
   updateStylesheetMenu
   getStylesheetMenuList
   applyFileSuffix
-  parseFileSuffix
+  parse_file_suffix
   getNodeByNo
   applyWindowStylesheet
   set_fh_encoding
@@ -555,16 +556,46 @@ sub split_patterns {
   return ($hint,$context,\@result);
 }
 
-sub parseFileSuffix {
-  my ($filename)=@_;
-  if ($filename=~s/(##?[0-9A-Z]+(?:-?\.[0-9]+)?)$// ) {
-    return ($filename,$1);
-  } elsif ($filename=~/^(.*)(##[0-9]+\.)([^0-9#][^#]*)$/ and Treex::PML::Schema::CDATA->check_string_format($3,'ID')) {
-    return ($1,$2.$3);
-  } elsif ($filename=~/^(.*)#([^#]+)$/ and Treex::PML::Schema::CDATA->check_string_format($2,'ID')) {
-    return ($1,'#'.$2);
-  } else {
-    return ($filename,undef);
+#######################################################################################
+# Usage         : parse_file_suffix($filename)
+# Purpose       : Split file name into file name itself and its suffix  
+# Returns       : List which contains file name and its suffix, if there is no suffix, 
+#                 second list element is undef
+# Parameters    : scalar $filename -- name of the file
+# Throws        : no exceptions
+# Comments      : File suffix is of the following forms:
+#                 a) 1 or 2 #-signs, upper-case characters or numbers, and optionally followed by 
+#                     optional dash, full stop and at least one number
+#                 b) 2 #-signs, at least one number, full stop, followed by 
+#                     one non-numeric not-# character and any number of not-# chars
+#                 c) 1 #-sign followed by any number of not-# characters
+# See Also      : 
+sub parse_file_suffix {
+  my ($filename) = @_;
+  # 
+  if ($filename =~ s/(##?[0-9A-Z]+(?:-?\.[0-9]+)?)$// ) {
+    return ($filename, $1);
+  }
+  elsif ($filename =~ m{^ 
+                        (.*)               # file name with any characters followed by
+                        (\#\#[0-9]+\.)       # 2x#, at least one number and full stop
+                        ([^0-9\#][^\#]*)     # followed by one non-numeric not-# character and any number of not-# chars
+                        $
+                        }x and 
+         Treex::PML::Schema::CDATA->check_string_format($3, 'ID')) {
+    return ($1, $2 . $3);
+  }
+  elsif ($filename =~ m{^
+                        (.*)        # file name with any characters followed by
+                        \#          # one hash followed by
+                        ([^\#]+)     # any number of not-# characters
+                        $    
+                        }x and 
+          Treex::PML::Schema::CDATA->check_string_format($2, 'ID')) {
+    return ($1, '#' . $2);
+  }
+  else {
+    return ($filename, undef);
   }
 }
 

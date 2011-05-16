@@ -31,7 +31,7 @@ BEGIN {
     updateStylesheetMenu
     getStylesheetMenuList
     applyFileSuffix
-    parseFileSuffix
+    parse_file_suffix
     getNodeByNo
     applyWindowStylesheet
     set_fh_encoding
@@ -715,6 +715,33 @@ sub test_save_stylesheet_file {
   rmdir $dir_name;
 }
 
+sub test_parse_file_suffix {
+  my $file_name;
+  my $suffix;
+  # (##?[0-9A-Z]+(?:-?\.[0-9]+)?)$
+  # ^(.*) (##[0-9]+\.) ([^0-9#][^#]*)$
+  # ^(.*) # ([^#]+)$
+  my %expected_parse = (
+    'filename.tgz##ABC123-.123' => ['filename.tgz', '##ABC123-.123'],
+    'filename.tgz##ABC123.123' => ['filename.tgz', '##ABC123.123'],
+    'filename.tgz#ABC123.123' => ['filename.tgz', '#ABC123.123'],
+    'filename.tgz#ABC123' => ['filename.tgz', '#ABC123'],
+    
+    'filename.tgz##123.a12' => ['filename.tgz', '##123.a12'],
+    
+    'filename.tgz#,./' => ['filename.tgz#,./', undef],
+    
+    'filename.tgz,./' => ['filename.tgz,./', undef],
+  );
+  
+  foreach my $filename (keys(%expected_parse)){
+    my ($got_filename, $got_suffix) = TrEd::Utils::parse_file_suffix($filename);
+    is($got_filename, $expected_parse{$filename}->[0], 
+      "parse_file_suffix(): filename $filename parsed correctly");
+    is($got_suffix, $expected_parse{$filename}->[1], 
+      "parse_file_suffix(): suffix $filename parsed correctly");
+  }
+}
 
 
 ####################################################
@@ -733,3 +760,4 @@ test_init_stylesheets_path();
 test_1_save_stylesheets();
 test_2_save_stylesheets();
 test_save_stylesheet_file();
+test_parse_file_suffix();

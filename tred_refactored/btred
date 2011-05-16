@@ -1558,7 +1558,7 @@ sub openFile {
 	  trxml => 'tree XML format',
 	  any => 'any non-specific format (csts?), using CstsToFs');
 
-  ($f,$goto) = parseFileSuffix($f);
+  ($f,$goto) = parse_file_suffix($f);
   my $return = 1;
   unless ($grp->{FSFile} and $grp->{FSFile}->filename eq $f) {
     closeFile($grp);
@@ -2161,6 +2161,8 @@ sub determineNodeType {
   return $node->type;
 }
 
+#TODO poslat do TrEd::Extensions, s tym, ze z btredu bude treba doplnit prevzatie arguemntov
+# a vypis extensions do nejakeho suboru, odtialto potom odfiltrovat init_extensions
 sub prepareExtensions {
   my ($opts)=@_;
   $opts||={};

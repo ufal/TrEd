@@ -608,7 +608,7 @@ as a two element list.
 
 =cut
 
-sub ParseNodeAddress { &main::parseFileSuffix }
+sub ParseNodeAddress { &main::parse_file_suffix }
 
 =back
 
@@ -3488,7 +3488,7 @@ Creates a new TrED filelist from a given C<Filelist> object.
 sub AddNewFileList {
   my ($fl)=@_;
   croak("Not a file-list object") unless UNIVERSAL::DOES::does($fl,'Filelist');
-  main::addNewFilelist($grp->{framegroup},$fl);
+  main::add_new_filelist($grp->{framegroup},$fl);
 }
 #endif
 
@@ -3554,7 +3554,7 @@ sub AbsolutizeFileName {
   my ($filename,$relfile) = @_;
   return unless defined $filename;
   my $suffix;
-  ($filename,$suffix)=TrEd::Utils::parseFileSuffix($filename);
+  ($filename,$suffix)=TrEd::Utils::parse_file_suffix($filename);
   return Treex::PML::ResolvePath($relfile,$filename).$suffix;
 }
 
