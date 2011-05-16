@@ -13,6 +13,7 @@ use Tk::Menu;
 sub apply_workarounds {
   my ($mw)=@_;
   if ($^O eq 'MSWin32') {
+    # a workaround for focus being lost after popup menu usage on Win32
     $mw->bind('Tk::Menu', '<<MenuSelect>>', sub { if ($Tk::popup) { $Tk::popup->Unpost; } });
   }
   return $mw;
