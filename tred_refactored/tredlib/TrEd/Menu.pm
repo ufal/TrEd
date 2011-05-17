@@ -5,6 +5,8 @@ use strict;
 use warnings;
 our $VERSION = '0.02';
 
+use Data::Dumper;
+
 use Readonly;
 
 # structure imported from menu.inc into menudata
@@ -144,14 +146,16 @@ sub _create_menu_item {
   # 		 },$self,$lookup_hash,$key]
   #  );
   
+  # Here we can not use $MENUITEM_OPTIONS and $MENUITEM_SUBITEMS, because
+  # options hash creates more array elements
   my $menu_item = [];
   $menu_item->[$MENUITEM_TYPE] = $type;
   $menu_item->[$MENUITEM_LABEL] = $label;
-  $menu_item->[$MENUITEM_OPTIONS] = ($opts_ref  ? (%{$opts_ref}) # , @debug
-                              :               ()
-                                );
-  $menu_item->[$MENUITEM_SUBITEMS]  = ($subitems ?  (-menuitems => $self->build_menu($subitems, $path)) 
-                                :               ()
+  push @{$menu_item}, ($opts_ref  ? (%{$opts_ref}) # , @debug
+                                  : ()
+                       );
+  push @{$menu_item}, ($subitems ?  (-menuitems => $self->build_menu($subitems, $path)) 
+                                :   ()
                                 );
   return $menu_item;
 }
@@ -177,6 +181,9 @@ sub build_menu {
   for my $key (@{$menuitems_ref}) {
     my $path = [@{$parent_path}, $key];
     push @{$lookup_hash->{$key} ||= []}, $path;
+    
+    my $item = $data->{$key};
+    my ($type, $label, $opts, $subitems) = @{$item};
     push @ret, $self->_create_menu_item($data->{$key}, $path);
   }
   return \@ret;
