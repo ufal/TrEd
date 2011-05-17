@@ -77,7 +77,7 @@ no integer;
 # See Also      : Encode::encode(), tr(), TrEd::ConvertArab::arabjoin(), TrEd::ArabicRemix::remix()
 #TODO: tests
 sub encode {
-  my $str = join(q{}, @_);
+  my $str = join(q{}, map { defined $_ ? $_ : q{} } @_);
   if ($support_unicode) { # we've got support for UNICODE in perl5.8/Tk8004
     if (($FORCE_REMIX or $^O ne 'MSWin32')
 	  and
