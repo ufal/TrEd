@@ -181,9 +181,6 @@ sub build_menu {
   for my $key (@{$menuitems_ref}) {
     my $path = [@{$parent_path}, $key];
     push @{$lookup_hash->{$key} ||= []}, $path;
-    
-    my $item = $data->{$key};
-    my ($type, $label, $opts, $subitems) = @{$item};
     push @ret, $self->_create_menu_item($data->{$key}, $path);
   }
   return \@ret;
