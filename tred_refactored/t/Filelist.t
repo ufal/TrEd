@@ -10,7 +10,10 @@ use utf8;
 
 use Test::More 'no_plan';
 use Test::Exception;
-#use Data::Dumper;
+use Data::Dumper;
+
+use Treex::PML::Document;
+use List::Util;
 
 BEGIN {
   our $module_name = 'Filelist';
@@ -246,17 +249,230 @@ sub test_current {
   
 }
 
+sub test_file_at {
+  my ($file_list, $files_in_list_ref) = @_;
+  
+  my @list_of_files = map { $_->[0] } @{$files_in_list_ref};
+  my $index = 0;
+  foreach my $filename (@list_of_files) {
+    is($file_list->file_at($index), $filename, 
+      "Filelist->file_at(): return filename correctly");
+    $index++;
+  }
+  
+  # test negative and too big index 
+  is($file_list->file_at(-1), $list_of_files[-1], 
+      "Filelist->file_at(): handle negative index");
+  
+  is($file_list->file_at(scalar(@list_of_files)), undef, 
+      "Filelist->file_at(): index bigger than number of files");
+  
+}
+
+sub test_position {
+  my ($file_list, $files_in_list_ref) = @_;
+  
+  
+  my @list_of_files = map { $_->[0] } @{$files_in_list_ref};
+  my $index = 0;
+  foreach my $filename (@list_of_files) {
+    # test with filenames
+    is($file_list->position($filename), $index, 
+      "Filelist->file_at(): return index of filename correctly");
+    
+    # test with Treex::PML::Documents  
+    my $document = Treex::PML::Document->create({ name => $filename });
+    is($file_list->position($document), $index, 
+      "Filelist->file_at(): return index of Treex::PML::Document correctly");
+    
+    $index++;
+  }
+  
+  # position of file that does not exist
+  is($file_list->position('file_is_not_in_filelist'), -1, 
+      "Filelist->file_at(): return value for file that is not in the filelist");
+}
+
+sub test_file_pattern_index {
+  my ($file_list, $files_in_list_ref) = @_;
+  
+  my @list_of_indices = map { $_->[1] } @{$files_in_list_ref};
+  my $index = 0;
+  foreach my $index_of_filenames_pattern (@list_of_indices) {
+    # test with filenames
+    is($file_list->file_pattern_index($index), $index_of_filenames_pattern, 
+      "Filelist->file_pattern_index(): return index of pattern for ${index}-th file correctly");
+    $index++;
+  }
+  
+  # test too big or negative file index 
+  is($file_list->file_pattern_index(scalar(@list_of_indices)), -1, 
+      "Filelist->file_pattern_index(): index of file too big");
+  
+  is($file_list->file_pattern_index(-1), -1, 
+      "Filelist->file_pattern_index(): negative index of file");
+  
+}
+
+sub test_file_pattern {
+  my ($file_list, $files_in_list_ref, $patterns_in_list_ref) = @_;
+  
+  my @list_of_indices = map { $_->[1] } @{$files_in_list_ref};
+  my $index = 0;
+  foreach my $index_of_filenames_pattern (@list_of_indices) {
+    # test with filenames
+    is($file_list->file_pattern($index), $patterns_in_list_ref->[$index_of_filenames_pattern], 
+      "Filelist->file_pattern(): return pattern for ${index}-th file correctly");
+    $index++;
+  }
+  
+  # test too big or negative file index 
+  is($file_list->file_pattern(scalar(@list_of_indices)), undef, 
+      "Filelist->file_pattern(): index of file too big");
+  
+  is($file_list->file_pattern(-1), undef, 
+      "Filelist->file_pattern(): negative index of file");
+  
+}
+
+sub test_add {
+  my ($file_list, $files_in_list_ref, $patterns_in_list_ref, $new_patterns_ref) = @_;
+  
+  my %old_patterns;
+  @old_patterns{ @{$patterns_in_list_ref} } = ();
+  
+  my @non_duplicate_new_patterns = grep { not exists $old_patterns{$_} } @{$new_patterns_ref};
+  
+  is($file_list->add(0, @{$new_patterns_ref}), 1,
+    "Filelist->add_arrayref(): correct return value");
+  
+  # test that patterns were added
+  my @got_list      = $file_list->list();
+  my @expected_list = (@non_duplicate_new_patterns, @{$patterns_in_list_ref});
+  is_deeply(\@got_list, \@expected_list, 
+    "Filelist->add(): new non-duplicate patterns added");
+  
+  # and also that filenames were added
+  my @list_of_files = map { $_->[0] } @{$files_in_list_ref};
+  my @got_list_of_files = $file_list->files();
+  my @expected_list_of_files = (@non_duplicate_new_patterns, @list_of_files);
+  is_deeply(\@got_list_of_files, \@expected_list_of_files, 
+    "Filelist->add(): new files added");
+    
+  return @non_duplicate_new_patterns;  
+}
+
+
+sub test_add_arrayref {
+  my ($file_list, $files_in_list_ref, $patterns_in_list_ref, $new_patterns_ref) = @_;
+  
+  my %old_patterns;
+  @old_patterns{ @{$patterns_in_list_ref} } = ();
+  
+  my @non_duplicate_new_patterns = grep { not exists $old_patterns{$_} } @{$new_patterns_ref};
+  
+  is($file_list->add_arrayref(0, $new_patterns_ref), 1,
+    "Filelist->add_arrayref(): correct return value");
+  
+  # test that patterns were added
+  my @got_list      = $file_list->list();
+  my @expected_list = (@non_duplicate_new_patterns, @{$patterns_in_list_ref});
+  is_deeply(\@got_list, \@expected_list, 
+    "Filelist->add_arrayref(): new non-duplicate patterns added");
+  
+  # and also that filenames were added
+  my @list_of_files = map { $_->[0] } @{$files_in_list_ref};
+  my @got_list_of_files = $file_list->files();
+  my @expected_list_of_files = (@non_duplicate_new_patterns, @list_of_files);
+  is_deeply(\@got_list_of_files, \@expected_list_of_files, 
+    "Filelist->add_arrayref(): new files added");
+    
+  return @non_duplicate_new_patterns;  
+}
+
+sub unique {
+  my %seen;                        
+  return grep {!$seen{$_}++} @_;   
+}
+
+sub test_remove {
+  my ($file_list, $files_in_list_ref, $patterns_in_list_ref, $rm_patterns_ref) = @_;
+  
+  $file_list->remove(@{$rm_patterns_ref});
+  
+  # test that patterns were removed
+  my @got_list      = $file_list->list();
+  my @expected_list = @{$patterns_in_list_ref};
+  is_deeply(\@got_list, \@expected_list, 
+    "Filelist->remove(): patterns removed successfully");
+  
+  # and also that filenames were removed
+  my @got_list_of_files = $file_list->files();
+  my @expected_list_of_files = map { $_->[0] } @{$files_in_list_ref};;
+  is_deeply(\@got_list_of_files, \@expected_list_of_files, 
+    "Filelist->remove(): files removed successfully");
+  
+  
+}
+
+# this test won't work if it would be run before remove test, which gets rid of
+# duplicate pattern entries
+sub test_find_pattern {
+  my ($file_list, $patterns_in_list_ref) = @_;
+  
+  my $i = 0;
+  foreach my $pattern (@{$patterns_in_list_ref}) {
+    is($file_list->find_pattern($pattern), $i, 
+      "Filelist->find_pattern(): correct index for pattern $pattern");
+    $i++;
+  }
+}
+
+sub test_clear {
+  my ($file_list) = @_;
+  
+  $file_list->clear();
+  
+  is_deeply($file_list->list_ref(), [], 
+    "Filelist->clear(): empty list of patterns");
+    
+  my @files = $file_list->files();
+  is_deeply(\@files, [], 
+    "Filelist->clear(): empty list of files");
+  
+}
+
+sub test_save {
+  my ($file_list, $files_in_list_ref, $patterns_in_list_ref, $new_patterns_ref) = @_;
+  
+  my $new_fl_name = 'new_filelist.fl';
+  
+  $file_list->filename($new_fl_name);
+  
+  is($file_list->save(), 1, 
+    "Filelist->save(): correct return value");
+  
+  $file_list = Filelist->new('new_filelist', $new_fl_name);
+  $file_list->load();
+  
+  my @expected_list = (@{$new_patterns_ref}, @{$patterns_in_list_ref});
+  
+  is_deeply($file_list->list_ref(), \@expected_list, 
+    "Filelist->save(): saved all the patterns");
+    
+  unlink($new_fl_name);
+}
+
 sub test_filelist {
   my ($args_ref) = @_;
   
-  
-  my $file_list             = $args_ref->{file_list};
   my $filelist_name         = $args_ref->{filelist_name};
   my $filelist_filename     = $args_ref->{filelist_filename};
   my $patterns_in_list_ref  = $args_ref->{patterns_in_list};
   my $files_in_list_ref     = $args_ref->{files_in_list};
+  my $new_patterns_ref      = $args_ref->{new_patterns};
   
-  
+  my $file_list = Filelist->new($filelist_name, $filelist_filename);
   
   test_load_empty();
   
@@ -311,6 +527,29 @@ sub test_filelist {
   
   test_current($file_list);
   
+  test_file_at($file_list, $files_in_list_ref);
+  
+  test_position($file_list, $files_in_list_ref);
+  
+  test_file_pattern_index($file_list, $files_in_list_ref);
+  
+  test_file_pattern($file_list, $files_in_list_ref, $patterns_in_list_ref);
+  
+  my @added_patterns = test_add($file_list, $files_in_list_ref, $patterns_in_list_ref, $new_patterns_ref);
+  
+  # 'remove' function also uniques patterns, so we need to uniq our patterns, too
+  @{$patterns_in_list_ref} = unique(@{$patterns_in_list_ref});
+  
+  test_remove($file_list, $files_in_list_ref, $patterns_in_list_ref, \@added_patterns);
+  
+  test_find_pattern($file_list, $patterns_in_list_ref);
+  
+  @added_patterns = test_add_arrayref($file_list, $files_in_list_ref, $patterns_in_list_ref, $new_patterns_ref);
+  
+  test_save($file_list, $files_in_list_ref, $patterns_in_list_ref, \@added_patterns);
+  
+  # last test
+  test_clear($file_list);
 }
 
 #################
@@ -331,6 +570,7 @@ my @patterns_in_list_1 = qw{
   sample0.a.gz
 };
 
+
 my @patterns_in_list_2 = qw{
   ../test_files/sample0.?.gz
   ../test_files/sample0.a.gz
@@ -350,26 +590,29 @@ my $files_in_list_2 = [
   ['../test_files/sample0.x.gz', 0],
 ];
 
-# Create new filelist
-my $file_list_1 = Filelist->new($filelist_name_1, $filelist_filename_1);
-my $file_list_2 = Filelist->new($filelist_name_2, $filelist_filename_2);
+my @new_patterns = qw{
+    new_pattern_1.gz
+    new_pattern_2.gz
+    sample0.a.gz
+    ../test_files/sample0.a.gz
+  };
 
 note('Testing Filelist 1');
 
 test_filelist({
-                file_list           => $file_list_1, 
                 filelist_name       => $filelist_name_1,
                 filelist_filename   => $filelist_filename_1, 
                 patterns_in_list    => \@patterns_in_list_1,
                 files_in_list       => $files_in_list_1,
+                new_patterns        => \@new_patterns,
               });
 
 note('Testing Filelist 2');              
 test_filelist({
-                file_list           => $file_list_2, 
                 filelist_name       => $filelist_name_2,
                 filelist_filename   => $filelist_filename_2, 
                 patterns_in_list    => \@patterns_in_list_2,
                 files_in_list       => $files_in_list_2,
+                new_patterns        => \@new_patterns,
               });
 
