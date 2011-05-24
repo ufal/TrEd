@@ -104,6 +104,7 @@ help () {
             - C libraries to ~/TrEd/dependencies/lib/
             - Perl modules to ~/TrEd/dependencies/lib/perl5/
             - wrapper start_* scripts to ~/TrEd/
+            Recommended for Mac OS X.
 
       ./install_tred.bash --tred-prefix ~
             - same as ./install_tred.bash --tred-dir ~/tred
@@ -111,14 +112,14 @@ help () {
       ./install_tred.bash --tred-dir /opt/tred --prefix /usr
           This installs:
             - TrEd into /opt/tred/
-            - C libraries to /usr/lib/
+            - C libraries to /usr/lib/        (dangerous for Mac OS X)
             - Perl modules to /usr/lib/perl5/
             - wrapper start_* scripts to /usr/bin/
 
       ./install_tred.bash --tred-dir /opt/tred --system
           This installs:
             - TrEd into /opt/tred/
-            - C libraries to /usr/lib/
+            - C libraries to /usr/lib/         (dangerous for Mac OS X)
             - Perl modules to $Config{installsitelib}
             - wrapper start_* scripts to /usr/bin/
 
