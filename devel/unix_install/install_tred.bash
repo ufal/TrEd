@@ -207,6 +207,15 @@ EOF
     exit 3;
 fi
 
+if [ x`uname -s` == xDarwin ] && ( [ "x$PREFIX" == x/usr ] || [ "x$SYSTEM" = x1 ] ); then
+    echo The installation script is going to rewrite system libraries.  >&2 
+    echo -n 'Are you sure to proceed? (y/n) ' >&2
+    until [ x$answer == xy ] || [ x$answer = xn ] ; do
+        read answer
+    done
+    if [ x$answer == xn ] ; then exit 3 ; fi
+fi
+
 TRED_BUILD_DIR="$1"
 remove_build_dir=0
 
