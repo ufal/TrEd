@@ -1612,6 +1612,33 @@ sub callback {
   }
 }
 
+sub convert_dash {
+    my ($self, $dash, $width) = @_;
+
+    if ($dash=~/\d\s*,/) {
+        return [split ',', $dash];
+    } elsif ($dash!~/\d/) {
+        my $w = $width || $self->get_lineWidth || 1;
+        my @out = ();
+        for (split '',$dash) {
+            if ($_ eq '.') {
+                push @out, $w,2*$w;
+            } elsif ($_ eq ',') {
+                push @out, 2*$w,2*$w;
+            } elsif ($_ eq '-') {
+                push @out, 3*$w,2*$w;
+            } elsif ($_ eq '_') {
+                push @out, 4*$w,2*$w;
+            } elsif ($_ eq ' ' and @out) {
+                $out[-1]+=$w;
+            }
+        }
+        return \@out;
+    } else {
+        return '';
+    }
+}
+
 sub redraw {
   my ($self,$fsfile,$currentNode,$nodes,$valtext,$stipple,$grp)=@_;
   #  local $SIG{__DIE__} = sub { Carp::confess(@_) };
@@ -1808,29 +1835,7 @@ sub redraw {
     my @hints=split '&',$line_style->{'-hint'};
     my @dash;
     for my $d (split '&',$line_style->{'-dash'}) {
-      if ($d=~/\d\s*,/) {
-	push @dash, [split ',',$d];
-      } elsif ($d!~/\d/) {
-	my $w = $width[1+$#dash] || $self->get_lineWidth || 1;
-	# manually transform the dash (we do this because itemcget -dash returns garbage and we need a correct value for printing
-	my @d;
-	for (split '',$d) {
-	  if ($_ eq '.') {
-	    push @d, $w,2*$w;
-	  } elsif ($_ eq ',') {
-	    push @d, 2*$w,2*$w;
-	  } elsif ($_ eq '-') {
-	    push @d, 3*$w,2*$w;
-	  } elsif ($_ eq '_') {
-	    push @d, 4*$w,2*$w;
-	  } elsif ($_ eq ' ' and @d) {
-	    $d[-1]+=$w;
-	  }
-	}
-	push @dash,\@d;
-      } else {
-	push @dash,'';
-      }
+      push @dash, $self->convert_dash($d, $width[1+$#dash]);
     }
 
     my @smooth=split '&',$line_style->{'-smooth'};
@@ -1944,6 +1949,7 @@ sub redraw {
 				     ) } (0..int(@obj_coords/2-1)))
 				     : (map(int(($i=($i+1)%2) ? $_+$x : $_+$y), @obj_coords))),
 				-tags => $tag,
+                -dash => exists $obj_spec{dash} ? $self->convert_dash(delete $obj_spec{dash}, $obj_spec{width}) : undef,
 				map(('-'.$_=>$obj_spec{$_}),keys %obj_spec)
 			       );
 	      }
