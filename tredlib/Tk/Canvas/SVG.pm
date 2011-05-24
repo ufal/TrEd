@@ -145,6 +145,8 @@ sub __debug {
 
 sub color2svg {
   my ($color,$grayscale)=@_;
+  return unless defined $color;
+
   if ($grayscale) {
     $color = color2gray($color)
   } elsif ($color=~/^#([0-9a-fA-F]{2})[0-9a-fA-F]{2}([0-9a-fA-F]{2})[0-9a-fA-F]{2}([0-9a-fA-F]{2})[0-9a-fA-F]{2}$/) {
