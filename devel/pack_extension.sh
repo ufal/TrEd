@@ -1,5 +1,7 @@
 #!/bin/bash
 
+PATH=$PATH:/net/work/projects/pml/toolkit/bin:/home/pajas/bin
+
 package_dir=$1
 target_dir=$2
 tooldir=`dirname $(readlink -fen $0)`
