@@ -177,6 +177,16 @@ sub shuffle (@) {
   } @_;
 }
 
+#TODO: documentation & tests
+# sorts first by number of initial underscores, then alphabetically;
+# the values are pased as array refs [ key, data ... ]
+sub underscore_sort {
+  return
+    map { $_->[2] }
+    sort { ($b->[0]<=>$a->[0]) || ($a->[1] cmp $b->[1]) }
+    map { $_->[0] =~ /^(_*)(.*)$/s && [ length($1), $2, $_ ] } @_;
+}
+
 1;
 
 __END__

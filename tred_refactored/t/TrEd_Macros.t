@@ -4,7 +4,7 @@
 use strict;
 use FindBin;
 use lib "$FindBin::Bin/../tredlib";
-use Test::More 'no_plan';
+use Test::More;
 use Test::Exception;
 use Data::Dumper;
 use List::Util qw( first );
@@ -1089,3 +1089,5 @@ test_running_macros();
   test_running_macros();
 
 }
+
+done_testing();

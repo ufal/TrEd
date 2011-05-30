@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../tredlib";
-use Test::More 'no_plan';
+use Test::More;
 use IO qw(File Handle);
 use utf8;
 use Encode;
@@ -761,3 +761,5 @@ test_1_save_stylesheets();
 test_2_save_stylesheets();
 test_save_stylesheet_file();
 test_parse_file_suffix();
+
+done_testing();

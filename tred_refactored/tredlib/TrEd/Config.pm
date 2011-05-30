@@ -101,6 +101,11 @@ BEGIN {
   %defaultPrintConfig
   %c_fonts
   $sidePanelWrap
+  @open_types
+  %save_types
+  $userlogin
+  $noCheckLocks
+  $config_file
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
   @config_file_search_list=();
@@ -109,8 +114,12 @@ BEGIN {
       require File::Which;
       \&File::Which::which
   } || sub {};
+  
 }
 use vars (@EXPORT);
+
+($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown');
+($userlogin =~ /\S/) || warn "Could not determine user\'s login name\n";
 
 # same as @TrEd::TreeView::Options, which we do not see yet
 my @treeViewOpts = qw(
@@ -183,6 +192,52 @@ $treeViewOpts={
 
 $printOptions={};
 
+#TODO: from tred
+@open_types=
+  (["Supported",  [qw/.fs .pls .pml .t .a .fs.gz .pls.gz .pml.gz .t.gz .a.gz/]],
+   ["FS files",           [qw/.fs .FS .Fs .fs.gz .FS.gz/]],
+   ["CSTS files",           [qw/.cst .csts .cst.gz .csts.gz/]],
+   ["Perl Storable files",  [qw/.pls .pls.gz/]],
+   ["PDT-PML files",  [qw/.t .a .t.gz .a.gz .m .m.gz .pml .pml.gz .xml .xml.gz/]],
+   ["XML files",           [qw/.xml .xml.gz .pml .pml.gz/]],
+   ["TectoMT files",           [qw/.tmt .tmt.gz/]],
+   ["All files",        '*']
+  );
+
+%save_types=(
+	     fs =>
+	     [["FS files",           [qw/.fs .FS .Fs/]],
+	      ["gzipped FS files",   [qw/.fs.gz .FS.gz .FS.GZ/]],
+	      ["All files",        ['*']]
+	     ],
+	     pml =>
+	     [["PML files",           [qw/.t .a .pml .xml/]],
+	      ["gzipped PML files",   [qw/.t.gz .a.gz .pml.gz .xml.gz/]],
+	      ["All files",        ['*']]
+	     ],
+	     csts =>
+	     [["CSTS files",           [qw/.cst .csts/]],
+	      ["gzipped CSTS files",   [qw/.cst.gz .csts.gz/]],
+	      ["All files",        ['*']]
+	     ],
+	     trxml =>
+	     [["TrXML files",          [qw/.trx .trxml .xml/]],
+	      ["gzipped TrXML files",   [qw/.trx.gz .trxml.gz .xml.gz/]],
+	      ["All files",        ['*']]
+	     ],
+	     teixml =>
+	     [["TEIXML files",          [qw/.tei .xml/]],
+	      ["gzipped TEIXML files",   [qw/.tei.gz .xml.gz/]],
+	      ["All files",        ['*']]
+	     ],
+	     storable =>
+	     [["Perl Storable files",          [qw/.pls .pls.gz/]],
+	      ["All files",        ['*']]
+	     ],
+	     all => [["All files", ['*']],
+		     ["Recognized", [qw/.fs .csts .pls .t .a .pls.gz .fs.gz .t.gz .a.gz .csts.gz .pml .pml.gz .xml .xml.gz .tmt .tmt.gz/]],
+		    ]
+	    );
 
 
 ######################################################################################
@@ -316,7 +371,7 @@ sub read_config {
   my %confs;
   my ($key, $f);
   my $config_found = 0;
-  my $config_file;
+#  my $config_file;
 
   foreach $f (@_, @config_file_search_list) {
     my $fh;

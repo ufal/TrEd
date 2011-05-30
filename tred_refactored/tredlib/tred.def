@@ -2149,7 +2149,7 @@ sub RedrawStatusLine {
     main::setCurrent($grp,$this);
     main::centerTo($grp,$this);
   }
-  main::update_status_info($grp);
+  TrEd::StatusLine::update_status_info($grp);
 }
 
 
@@ -2561,9 +2561,9 @@ sub OverrideBuiltinBinding {
   if (defined $spec) {
     croak("OverrideBuiltinBinding: invalid binding for context $context, key <$key> , must be [code, description]!")
       unless ref($spec) eq 'ARRAY' and (ref($spec->[0]) eq 'CODE' or ref($spec->[0]) eq 'ARRAY' and grep { ref eq 'CODE' } @{$spec->[0]}[0,1]);
-    return main::change_default_binding($grp->{framegroup}, $context, $key, $spec )
+    return TrEd::Bindings::change_default_binding($grp->{framegroup}, $context, $key, $spec )
   } else {
-    return main::get_default_binding($grp->{framegroup}, $context, $key)
+    return TrEd::Bindings::get_default_binding($grp->{framegroup}, $context, $key)
   }
 }
 
@@ -3788,7 +3788,7 @@ sub NextFile {
   if ($FileNotSaved ne '?' and $FileNotSaved) {
     SetFileSaveStatus(1);
   }
-  if ($result=main::nextFile($grp)) {
+  if ($result=TrEd::ManageFilelist::nextFile($grp)) {
     $root=$grp->{root};
     $this=$grp->{currentNode} || $root;
     $FileNotSaved=GetFileSaveStatus();
@@ -3823,7 +3823,7 @@ sub PrevFile {
   if ($FileNotSaved ne '?' and $FileNotSaved) {
     SetFileSaveStatus(1);
   }
-  if ($result=main::prevFile($grp)) {
+  if ($result=TrEd::ManageFilelist::prevFile($grp)) {
     $root=$grp->{root};
     $this=$grp->{currentNode} || $root;
     $FileNotSaved=GetFileSaveStatus();
@@ -4602,21 +4602,21 @@ sub DeclareMinorMode {
   croak "The 1st argument to DeclareMinorMode must be a context name!" unless (defined($name) and length($name) and !ref($name));
   croak "The 2nd argument to DeclareMinorMode must be a hash reference!" unless ref($opts) eq 'HASH';
 #  croak "Too soon to call  DeclareMinorMode" unless ref($grp) and ref($grp->{framegroup});
-  main::declareMinorMode($grp,$name,$opts);
+  TrEd::MinorModes::declare_minor_mode($grp, $name, $opts);
 #endif
 }
 
 sub EnableMinorMode {
 #ifdef TRED
-  my ($name,$win)=@_;
-  main::enableMinorMode($win||$grp,$name);
+  my ($name, $win)=@_;
+  TrEd::MinorModes::enable_minor_mode($win || $grp, $name);
 #endif
 }
 
 sub DisableMinorMode {
 #ifdef TRED
   my ($name,$win)=@_;
-  main::disableMinorMode($win||$grp,$name);
+  TrEd::MinorModes::disable_minor_mode($win || $grp,$name);
 #endif
 }
 

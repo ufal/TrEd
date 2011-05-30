@@ -8,7 +8,7 @@ use lib "$FindBin::Bin/../tredlib";
 
 use utf8;
 
-use Test::More 'no_plan';
+use Test::More;
 use Test::Exception;
 use Data::Dumper;
 
@@ -37,11 +37,10 @@ sub test_name {
 }
 
 sub test_rename {
-  my ($file_list) = @_;
+  my ($file_list, $filelist_new_name) = @_;
   # check that rename works
-  my $filelist_new_name_1 = 'New First filelist';
-  $file_list->rename($filelist_new_name_1);
-  is($file_list->name(), $filelist_new_name_1, 
+  $file_list->rename($filelist_new_name);
+  is($file_list->name(), $filelist_new_name,
     "Filelist->rename(): rename filelist correctly");
 }
 
@@ -173,7 +172,8 @@ sub test_file_count {
 
 sub test_load {
   my ($filelist) = @_;
-  $filelist->load();
+  is($filelist->load(), 1, 
+    "Filelist->load(): correct return value");
 }
 
 sub test_files {
@@ -471,14 +471,16 @@ sub test_filelist {
   my $patterns_in_list_ref  = $args_ref->{patterns_in_list};
   my $files_in_list_ref     = $args_ref->{files_in_list};
   my $new_patterns_ref      = $args_ref->{new_patterns};
+  my $filelist_name_in      = $args_ref->{filelist_name_in};
   
   my $file_list = Filelist->new($filelist_name, $filelist_filename);
   
   test_load_empty();
   
   test_name($file_list, $filelist_name);
-
-  test_rename($file_list);
+  
+  my $filelist_new_name = 'New First filelist';
+  test_rename($file_list, $filelist_new_name);
   
   test_filename_get($file_list, $filelist_filename);
   
@@ -504,8 +506,10 @@ sub test_filelist {
   
   test_list_ref($file_list, []);
   
-  ### here is the 
+  ### here the load happens
   test_load($file_list);
+  
+  test_name($file_list, $filelist_new_name);
   
   # corect count of patterns
   test_count($file_list, scalar(@{$patterns_in_list_ref}));
@@ -550,6 +554,12 @@ sub test_filelist {
   
   # last test
   test_clear($file_list);
+  
+  # test loading filelist's name if no name is defined
+  $file_list = Filelist->new(undef, $filelist_filename);
+  $file_list->load();
+  test_name($file_list, $filelist_name_in);
+  
 }
 
 #################
@@ -557,9 +567,11 @@ sub test_filelist {
 #################
 
 my $filelist_name_1 = 'First filelist';
+my $filelist_name_in_1 = 'PDT 2.0 a-layer sample';
 my $filelist_filename_1 = 't/test_filelists/sample_1.fl';
 
 my $filelist_name_2 = 'Second filelist';
+my $filelist_name_in_2 = 'PDT 2.0 a-layer glob sample';
 my $filelist_filename_2 = 't/test_filelists/sample_2.fl';
 
 my @patterns_in_list_1 = qw{
@@ -601,6 +613,7 @@ note('Testing Filelist 1');
 
 test_filelist({
                 filelist_name       => $filelist_name_1,
+                filelist_name_in    => $filelist_name_in_1,
                 filelist_filename   => $filelist_filename_1, 
                 patterns_in_list    => \@patterns_in_list_1,
                 files_in_list       => $files_in_list_1,
@@ -610,9 +623,11 @@ test_filelist({
 note('Testing Filelist 2');              
 test_filelist({
                 filelist_name       => $filelist_name_2,
+                filelist_name_in    => $filelist_name_in_2,
                 filelist_filename   => $filelist_filename_2, 
                 patterns_in_list    => \@patterns_in_list_2,
                 files_in_list       => $files_in_list_2,
                 new_patterns        => \@new_patterns,
               });
 
+done_testing();

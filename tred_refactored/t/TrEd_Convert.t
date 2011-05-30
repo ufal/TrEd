@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../tredlib";
-use Test::More 'no_plan';
+use Test::More;
 
 use Encode ();
 # TrEd::Convert uses information about Tk version to determine 
@@ -209,3 +209,5 @@ test_decode_support_unicode();
 
 test_encode_dont_support_unicode();
 test_encode_support_unicode();
+
+done_testing();

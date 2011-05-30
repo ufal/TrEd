@@ -7,7 +7,7 @@ use FindBin;
 use lib "$FindBin::Bin/../tredlib";
 #use lib "$FindBin::Bin/../tredlib/libs/tk"; # for Tk::ErrorReport
 
-use Test::More 'no_plan';
+use Test::More;
 use Test::Exception;
 use Data::Dumper;
 use Treex::PML qw{ImportBackends};
@@ -1478,3 +1478,5 @@ test_getSecondaryFilesRecursively($fsfile, $fsfile_2);
 test_getPrimaryFiles($fsfile, $fsfile_2);
 
 test_getPrimaryFilesRecursively($fsfile_2, $fsfile_3);
+
+done_testing();

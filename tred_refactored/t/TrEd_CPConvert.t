@@ -7,7 +7,7 @@ use FindBin;
 use lib "$FindBin::Bin/../tredlib";
 
 
-use Test::More 'no_plan';
+use Test::More;
 use Test::Exception;
 use Encode qw(from_to);
 #use Data::Dumper;
@@ -103,3 +103,5 @@ test_encode($converter, $encoding_1, $encoding_3);
 $converter = TrEd::CPConvert->new($encoding_2, $encoding_2);
 test_decode_utf8($converter);
 test_encode_utf8($converter);
+
+done_testing();
