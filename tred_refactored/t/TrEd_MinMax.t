@@ -8,7 +8,7 @@ use lib "$FindBin::Bin/../tredlib";
 use File::Spec;
 use Cwd;
 
-use Test::More 'no_plan';
+use Test::More;
 
 BEGIN {
   my $module_name = 'TrEd::MinMax';
@@ -86,3 +86,5 @@ my @array_2 = shuffle(@array_1);
 my @array_2_sorted = sort {$a <=> $b} @array_1;
 
 is_deeply(\@array_2_sorted, \@array_1, "shuffle(): All the elements are present in the result");
+
+done_testing();

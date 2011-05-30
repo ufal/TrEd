@@ -7,7 +7,7 @@ use FindBin;
 use lib "$FindBin::Bin/../tredlib";
 #use lib "$FindBin::Bin/../tredlib/libs/tk"; # for Tk::ErrorReport
 
-use Test::More 'no_plan';
+use Test::More;
 use Test::Exception;
 
 use utf8;
@@ -34,3 +34,5 @@ my $expected_hw = reverse("!\x{FEE2}\x{FEDF}\x{FE8E}\x{FECC}\x{FEDF}\x{FE8E}\x{F
 
 is(TrEd::ConvertArab::arabjoin($hello_world), $expected_hw, 
   "arabjoin(): convert sample text correctly");
+  
+done_testing();

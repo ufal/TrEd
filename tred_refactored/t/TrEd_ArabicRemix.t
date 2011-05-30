@@ -8,7 +8,7 @@ use lib "$FindBin::Bin/../tredlib";
 
 use utf8;
 
-use Test::More 'no_plan';
+use Test::More;
 use Test::Exception;
 #use Data::Dumper;
 
@@ -72,3 +72,5 @@ sub test_remixdir {
 test_direction();
 test_remix();
 test_remixdir();
+
+done_testing();

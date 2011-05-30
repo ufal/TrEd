@@ -14,7 +14,7 @@ use TrEd::Basics qw(uniq);
 #use Data::Dumper;
 use Tk qw{};
 
-use Test::More 'no_plan';
+use Test::More;
 
 BEGIN {
   my $module_name = 'TrEd::Config';
@@ -826,3 +826,5 @@ test__set_fonts();
 test__set_resource_path();
 test__set_print_options();
 test__set_extensions();
+
+done_testing();

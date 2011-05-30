@@ -724,7 +724,7 @@ return sub {
     'Button',
     'List Of Macros ...',
     {
-      '-command' => [\&macrolistDialog,$grp],
+      '-command' => [\&TrEd::Dialog::MacroList::create_dialog, $grp],
       '-underline' => 0
      },
     undef
@@ -1078,7 +1078,7 @@ return sub {
     'Sort Attributes in Dialogs',
     {
       '-command' => [sub {
-		       update_attribute_view($_[0]);
+		       TrEd::SidePanel::update_attribute_view($_[0]);
 		     },$grp],
       '-underline' => 1,
       '-variable' => \$sortAttrs
@@ -1090,7 +1090,7 @@ return sub {
     'Sort Attribute Values in Dialogs',
     {
       '-command' => [sub {
-		       update_attribute_view($_[0]);
+		       TrEd::SidePanel::update_attribute_view($_[0]);
 		     },$grp],
       '-underline' => 1,
       '-variable' => \$sortAttrValues
@@ -1111,7 +1111,7 @@ return sub {
     'Button',
     'Edit Config File ...',
     {
-      '-command' => [\&editConfig,$grp],
+      '-command' => [\&TrEd::Dialog::EditConfig::show_dialog, $grp],
       '-underline' => 5
      },
     undef
@@ -1120,7 +1120,7 @@ return sub {
     'Button',
     'Edit Stylesheet ...',
     {
-      '-command' => [\&editStylesheetDialog,$grp],
+      '-command' => [\&TrEd::Dialog::EditStylesheet::show_dialog, $grp],
       '-underline' => 0
      },
     undef

@@ -104,6 +104,7 @@ sub filename {
 # Throws        : no exceptions
 sub _filelist_path_without_dir_sep {
   my ($file_path, $dir_separator) = @_;
+  return if not defined $file_path;
   return (index($file_path, $dir_separator) >= 0 || index($file_path, q{/}) >= 0);
 }
 
@@ -125,9 +126,15 @@ sub dirname {
   else {
     $dir_separator = q{/};
   }
-  my $f = $self->filename();
-  my $last_separator_pos = TrEd::MinMax::max2(rindex($f, $dir_separator), rindex($f, q{/})) + 1;
-  return (_filelist_path_without_dir_sep($f, $dir_separator)) ? substr($f, 0, $last_separator_pos) : ".$dir_separator";
+  my $filename = $self->filename();
+  my $last_separator_pos 
+    = defined $filename ? TrEd::MinMax::max2(rindex($filename, $dir_separator), rindex($filename, q{/})) + 1
+    :                     0
+    ;
+    
+  return 
+    (_filelist_path_without_dir_sep($filename, $dir_separator)) ? substr($filename, 0, $last_separator_pos) 
+                                                                : ".$dir_separator";
 }
 
 #######################################################################################
@@ -199,7 +206,8 @@ sub _lazy_load {
 
   undef $self->{load};
   
-  $self->{name} = decode('UTF-8',scalar(<$fh>));
+  my $fl_name = decode('UTF-8',scalar(<$fh>));
+  $self->{name} ||= $fl_name;
   
   @{ $self->list_ref() } = <$fh>;
   close $fh
@@ -259,7 +267,8 @@ sub load {
   return if not ref $self;
   if ($self->_filename_not_empty()) {
     $self->{load} = $self->filename();
-    undef $self->{name};
+    # don't rename filelist if it was given a name
+    # undef $self->{name};
     $self->_load_name();
     return 1;
   }
@@ -489,7 +498,11 @@ sub position {
   }
   my @files = $self->files();
   # if argument is a Treex::PML::Document, find out its filename
-  my $fname = ref $fsfile  ? $fsfile->filename() : $fsfile;
+  my $fname = ref $fsfile     ? $fsfile->filename() 
+            : defined $fsfile ? $fsfile
+            :                   q{}
+            ;
+                              
   my $basedir = $self->dirname();
   my $relfname = $fname;
   
@@ -668,7 +681,8 @@ __END__
 =head1 NAME
 
 
-Filelist - Class handling file lists manipulations -- creating, loading from file, saving to file, adding and removing patterns. 
+Filelist - Class handling file lists manipulations -- creating, loading from file, saving to file, 
+adding and removing patterns. 
 
 
 =head1 VERSION

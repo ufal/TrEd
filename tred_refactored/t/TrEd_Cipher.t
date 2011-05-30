@@ -6,7 +6,7 @@ use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../tredlib";
 
-use Test::More 'no_plan';
+use Test::More;
 use Test::Exception;
 use Data::Dumper;
 
@@ -181,3 +181,5 @@ test_hex_to_block($hex, $block);
 test_block_xor();
 test_block_md5();
 test_save_block($block, $hex);
+
+done_testing();

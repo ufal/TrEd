@@ -32,8 +32,9 @@ use vars qw($all_trees $all_nodes $no_all_trees $no_all_nodes
 	    $keep_empty_servers $ntred_config_file
 	    $disable_extensions $enable_extensions $request_list_extensions
 	    $version $print_version $listedfiles $regexp_files $list_options
-            $olddist $count_files $logdir $userlogin $no_secondary $include_macro
+            $olddist $count_files $logdir $no_secondary $include_macro
 	   );
+# $userlogin
 
 $version='$Revision: 4372 $ ';
 
@@ -158,8 +159,7 @@ if ($print_version) {
   exit;
 }
 
-($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown');
-($userlogin =~ /\S/) || warn "Couldn\'t deterbmine user\'s login name\n";
+# userlogin was here
 
 $client_key_file ||= "$ENV{HOME}/.ntred_session_key";
 $hubport ||= 1500;

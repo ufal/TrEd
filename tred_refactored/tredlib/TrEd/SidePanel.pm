@@ -9,14 +9,19 @@ use Carp;
 use Tk::Adjuster;
 use Scalar::Util qw(blessed);
 
-our $VERSION = '0.01';
+use TrEd::Config;
+use TrEd::SidePanel::Widget;
+
+our $VERSION = '0.02';
 
 sub new {
-  my ($class,$parent,$opts) = @_;
+  my ($class, $parent, $opts) = @_;
   $opts||={};
-  croak("Usage: ".__PACKAGE__."->new(\$parent_widget)") unless (ref($parent) and (blessed($parent) and $parent->isa('Tk::Widget')));
+  if (not (ref($parent) and (blessed($parent) and $parent->isa('Tk::Widget')))) {
+    croak("Usage: ".__PACKAGE__."->new(\$parent_widget)");
+  }
   return bless {
-    %$opts,
+    %{$opts},
     frame => $parent->Frame(),
     widget_names => [],
     widgets => {},
@@ -97,209 +102,342 @@ sub equalize_sizes {
   }
 }
 
-package TrEd::SidePanel::Widget;
-use Scalar::Util qw(weaken);
-sub new {
-  my ($class,$tk_widget,$opts) = @_;
-  my $panel = $opts->{panel};
-  my $panel_frame = $panel->frame;
-  my $label = delete $opts->{-label};
-  my $self = bless {
-    %$opts,
-    widget => $tk_widget,
-    shown => 0,
-  }, $class;
-  my $button = $panel_frame->Button(
-    -text=>$label,
-    -anchor=>'w',
-    -relief=>'flat',
-    -foreground=>'#555',
-    -borderwidth => 0,
-    -pady => 0,
-    -padx => 0,
-    -command => [$self,'toggle']
-  )->pack(-fill => 'x',-side=>'top');
-  weaken($self->{button}=$button);
-  weaken($self->{adjuster}=$panel_frame->Adjuster(-side=>'top', -widget=> $tk_widget));
-  weaken($self->{panel});
-  return $self;
+
+
+sub update_attribute_view {
+  my ($grp,$win) = main::grp_win($_[0]);
+  my $view = $grp->{sidePanel} && $grp->{sidePanel}->widget('attrsView');
+  return unless $view and $view->is_shown;
+  my $attrsView=$view->data;
+  return unless ref $attrsView;
+  my $current = $win->{currentNode};
+  $attrsView->set_option('no_sort'=>!$TrEd::Config::sortAttrs);
+  $attrsView->set_option('no_value_sort'=>!$TrEd::Config::sortAttrValues);
+  $attrsView->set_data({
+    type => ref($current) && $current->type,
+    object => $current,
+  });
 }
 
-sub height {
-  my ($self)=@_;
-  return 0 unless $self->{shown};
-  my $h =  $self->widget->height;
-  if ($self->adjuster_packed) {
-    $h+=$self->adjuster->reqheight+18;
+# attrView, UI
+sub toggle_attribute_view_hide_empty {
+  my ($self, $grp)=@_;
+  my $view = $self && $self->widget('attrsView');
+  return unless $view and $view->is_shown();
+  my $attrsView=$view->data();
+  return unless ref $attrsView;
+  $attrsView->{userdata}{hide_empty}=!$attrsView->{userdata}{hide_empty};
+  update_attribute_view($grp->{focusedWindow});
+}
+
+sub init_node_attributes {
+  my ($self, $grp) = @_;
+  my $colf = $grp->{sidePanelFrame}->Frame(
+    -relief => 'sunken',
+    -borderwidth => 1,
+   );
+  my $cb = $colf->Checkbutton(
+    -text => 'Hide empty values',
+    -font => 'C_small',
+    -underline => 2,
+    -relief => 'flat',
+    -anchor=>'nw',
+    -justify => 'left',
+-command => sub {
+  if ($grp->{attrsViewPacked} and $grp->{sidePanelPacked}) {
+    update_attribute_view($grp->{focusedWindow});
   }
-  return $h;
+})->pack(-side=>'top',-fill=>'x');
+  $grp->{top}->bind('my',"<Alt-d>", [sub{
+				   my ($w,$grp)=@_;
+				   if (defined(evalMacro($w,$grp,'ALT+'))) {
+				     Tk->break;
+				   } else {
+				     $self->toggle_attribute_view_hide_empty($grp);
+				     Tk->break;
+				   }
+				 },$grp]);
+  my $attrsView = $colf->TrEdNodeEditDlg({
+    object=>undef,
+    dialog => $colf,
+    no_show=>1,
+    no_sort=>!$TrEd::Config::sortAttrs,
+    no_value_sort=>!$TrEd::Config::sortAttrValues,
+    search_field => 0,
+    hide_empty => 1,
+    knit_support => 1,
+    side_panel_wrap => $TrEd::Config::sidePanelWrap,
+    TrEdNodeEdit=>{
+-takefocus=>0,
+-font => 'C_small',
+-borderwidth => 1,
+-selectborderwidth=>1,
+-scrollbars=>'soe',
+-itemstyle => {
+  -pady=>1,
+  -padx=>1,
+},
+-colors => {
+  bg => '#efefef',
+  constant => 'white',
+},
+    },
+    enable_callback => sub{ 0 },
+    attribute_sort_callback => [ sub {
+			     my ($grp,$array)=@_;
+			     return main::doEvalHook($grp->{focusedWindow},'sort_attrs_hook',$array,'',$grp->{focusedWindow}{currentNode});
+			   }, $grp ],
+    no_focus => 1,
+  });
+  $cb->configure(-variable => \$attrsView->Subwidget('scrolled')->{userdata}{hide_empty});
+  $grp->{sidePanel}->add('attrsView', $colf, { -label => 'Node Attributes',
+					 -data => $attrsView->Subwidget('scrolled'),
+					 -show_command => sub {
+					   update_attribute_view($grp->{focusedWindow});
+					  }
+				       });
+  $grp->{sidePanel}->widget('attrsView')->show;
 }
 
-sub is_shown {
-  my ($self)=@_;
-  return $self->{shown};
-}
-
-sub toggle {
-  my ($self)=@_;
-  if ($self->is_shown) {
-    $self->hide;
-  } else {
-    $self->show;
-  }
-}
-
-sub find_previous_widget {
-  my ($self,$shown)=@_;
-  my @w = $self->panel->widgets;
-  if ($shown) {
-    @w = grep { $_->is_shown or $_==$self } @w;
-  }
-  my $prev;
-  for my $w (@w) {
-    if ($w == $self) {
-      return $prev;
+sub init_browse_filesystem {
+  my ($self, $grp) = @_;
+  my $show_hidden=0;
+  my $colf = $grp->{sidePanelFrame}->Frame(
+    -relief => 'sunken',
+    -borderwidth => 1,
+   );
+  my $fsel= $colf->MyFileSelect(-selectmode=> 'extended',
+			  -takefocus => 1,
+			  -font => 'C_small',
+			  -filetypes=> \@TrEd::Config::open_types)
+    ->pack(qw/-expand yes -fill both -side top/);
+   $fsel->Subwidget('filelist')->configure(-background => 'white', -takefocus=>0);
+  my $open_callback = [sub {
+		   shift if @_>2;
+		   my ($grp,$fsel)=@_;
+		   return if $fsel->ChDir();
+		   my ($file) = $fsel->getSelectedFiles(); # from Tk::MyFileSelect
+		   if (defined($file) and length($file)) {
+		     main::openStandaloneFile($grp,$file);
+		   }
+		 },$grp,$fsel];
+  $fsel->Subwidget('filelist')->bind('<Double-1>',$open_callback);
+  my $menu = $fsel->Menu(
+    -tearoff => 0,
+    -menuitems => [
+['Button' => '~Open',
+ -command => $open_callback,
+],
+['Button' => '~Add To Filelist',
+ -command => [sub {
+   my ($grp,$fsel)=@_;
+   my @files = grep { defined && length} $fsel->getSelectedFiles;
+   main::insertToFilelist($grp->{focusedWindow}, undef,undef, @files) if @files;
+ },$grp,$fsel]
+],
+['Checkbutton' => '~Show hidden files',
+ -variable => \$show_hidden,
+ -command => [sub {
+   my ($grp,$fsel)=@_;
+   $fsel->configure(-showhidden=>$show_hidden);
+   $fsel->ReadDir($fsel->getCWD);
+ },$grp,$fsel]
+],
+['Cascade' => '~Filter',
+ -tearoff => 0,
+ -menuitems => [
+   map {
+     [ Button => $_->[0],
+       -command => [
+	 sub {
+	   my ($fsel,$filter)=@_;
+	   $fsel->SetFilter('',$filter);
+	 },$fsel,(ref($_->[1]) ? join(' ',@{$_->[1]}) : $_->[1])
+	],
+      ]
+   } @TrEd::Config::open_types
+ ]
+],
+    ]
+  );
+  $fsel->Subwidget('filelist')->bind('<3>', sub { my ($w)=@_; $menu->Post($w->pointerxy); Tk->break; });
+  $grp->{sidePanel}->add('fileSystemView', $colf, {
+    -label => 'Browse File System',
+    -data => $fsel,
+    -show_command => sub {
     }
-    $prev = $w;
-  }
-  return;
+  });
 }
 
-sub find_next_widget {
-  my ($self,$shown)=@_;
-  my @w = $self->panel->widgets;
-  if ($shown) {
-    @w = grep { $_==$self or $_->is_shown } @w;
-  }
-  my $prev;
-  for my $w (@w) {
-    if ($prev and $prev == $self) {
-      return $w;
-    }
-    $prev = $w;
-  }
-  return;
+
+
+sub init_filelist_view {
+  my ($self, $grp) = @_;
+  my $colf = $grp->{sidePanelFrame}->Frame(
+      -relief => 'sunken',
+      -borderwidth => 1,
+     );
+    my $t= $colf->Scrolled(qw/HList
+			      -relief flat
+			      -borderwidth 1
+                              -selectborderwidth 1
+			      -selectmode extended
+			      -takefocus 0
+			      -scrollbars soe/,
+			      -separator=> "\t"
+			     )
+      ->pack(qw/-expand yes -fill both -side top/);
+    my $hl = $t->Subwidget('scrolled');
+    $hl->{balloonmsg} = '';
+    $grp->{Balloon}->attach($hl,-msg => \$hl->{balloonmsg},
+			    -initwait => 200,
+			    -postcommand => sub {
+			      my $w=shift;
+			      my $y=$w->XEvent->y;
+			      my $path = $w->nearest($y);
+			      if (defined($path) and length($path)
+				    and $w->infoExists($path)) {
+				my @bbox = $w->infoBbox($path);
+				if ($bbox[1]<$y and $y<$bbox[3]) {
+				  $hl->{balloonmsg}=$w->infoData($path);
+				  return 1;
+				} else {
+				  $hl->{balloonmsg}='';
+				  return;
+				}
+			      }
+			    }
+			   );
+    $hl->{default_style_imagetext}=$hl->ItemStyle(
+      'imagetext',
+      -padx=>1,
+      -pady=>1,
+      -foreground => 'black',
+      -font => 'C_small',
+     );
+    $hl->{focused_style_imagetext}=$hl->ItemStyle(
+      'imagetext',
+      -padx=>1,
+      -pady=>1,
+      -foreground => 'blue',
+      -selectforeground => 'blue',
+      -font => 'C_small',
+     );
+    main::disable_scrollbar_focus($t);
+    $t->BindMouseWheelVert();
+    $grp->{sidePanel}->add('filelistView', $colf, {
+      -label => 'Current File List',
+      -data => $t,
+      -show_command => sub {
+	TrEd::Filelist::View::update($grp,$grp->{focusedWindow}{currentFilelist},1);
+      }
+     });
+    my $open_callback = sub {
+      my ($w,$grp)=@_;
+      my $win = $grp->{focusedWindow};
+      my $anchor=$w->info('anchor');
+      my $nextentry=$w->info('next',$anchor);
+      my $data=$w->info('data',$anchor);
+      unless ($nextentry and $w->info('parent',$nextentry) eq $anchor) {
+	# file -> go to
+	$win->{currentFilelist}->set_current($data);
+	my $pos = $win->{currentFilelist}->position;
+	if ($pos>=0) {
+	  main::gotoFile($win,$pos);
+	}
+      }
+    };
+    $t->bind('<Double-1>'=> [$open_callback, $grp]);
+    my $menu = $t->Menu(
+      -tearoff => 0,
+      -menuitems => [
+	['Button' => '~Open selected',
+	 -command => [$open_callback,$t,$grp],
+	],
+	['Button' => '~Remove from filelist',
+	 -command => [sub {
+			my ($t,$grp)=@_;
+			my $anchor=$t->info('anchor');
+			my $fl =$grp->{focusedWindow}{currentFilelist};
+			main::removeFromFilelist($grp,
+					   $fl,
+					   main::getFilelistLinePosition($fl, $anchor), $t->info('selection'));
+			main::updateBookmarks($grp) if (ref($fl) and $fl->name eq 'Bookmarks');
+		      },$t,$grp],
+	],
+      ]);
+    $grp->{Balloon}->attach($menu,-msg => '');
+    $t->bind('<3>', sub { my ($w)=@_;
+			  $menu->Post($w->pointerxy);
+			  Tk->break;
+			});
+    #$grp->{sidePanel}->widget('filelistView')->show;
 }
 
-sub hide {
-  my ($self)=@_;
-  return unless $self->is_shown;
-  my $h=0;
+sub init_macro_list {
+  my ($self, $grp) = @_;
+  my $colf = $grp->{sidePanelFrame}->Frame(
+    -relief => 'sunken',
+    -borderwidth => 1,
+   );
+  my $hl = TrEd::List::Macros::create_list($grp,$colf,\$grp->{focusedWindow}{macroContext},
+		     { -padx=>1,
+		       -pady=>1,
+		       -foreground => 'black',
+		       -font => 'C_small',
+		     }
+		    )
+    ->pack(qw/-expand yes -fill both -side top/);
+  $hl->configure(-takefocus=>0);
+  $grp->{macroListViewOrder}=$grp->{macroListOrder};
+  my $menu = $hl->Menu(
+    -tearoff => 0,
+    -menuitems => [
+['Button' => 'Run selected macro',
+ -command => [sub {
+		my ($grp,$t)=@_;
+		my $anchor = $t->info('anchor');
+		return unless $anchor;
+		my $macro=$t->info(data => $anchor);
+		main::doEvalMacro($grp->{focusedWindow},$macro) if defined $macro;
+	      },$grp,$hl],
+],
+['Checkbutton' => '~Swap Key/Name',
+ -variable => \$grp->{macroListViewSwap},
+ -command => [\&TrEd::List::Macros::update_view,$grp],
+],
+['Checkbutton' => 'See ~Perl names',
+ -variable => \$grp->{macroListViewCalls},
+ -command => [\&TrEd::List::Macros::update_view,$grp],
+],
+['Checkbutton' => 'Include ~Anonymous Macros',
+ -variable => \$grp->{macroListViewAnonymous},
+ -command => [\&TrEd::List::Macros::update_view,$grp],
+],
+['Cascade' => '~Sort By',
+ -tearoff => 0,
+ -menuitems => [
+   map {
+   [ Radiobutton => $_->[0],
+     -variable => \$grp->{macroListViewOrder},
+     -value => $_->[1],
+     -command => [\&TrEd::List::Macros::update_view,$grp],
+   ]} (['~Key','K'],['~Name','M'],['~Perl name','P'])
+  ]
+],
+    ]
+  );
+  $hl->bind('<3>', sub { my ($w)=@_; $menu->Post($w->pointerxy); Tk->break; });
 
-  my $adj = $self->adjuster;
-  if ($self->adjuster_packed and $adj->viewable) {
-    $h=$self->widget->reqheight+$adj->reqheight;
-  }
-  $self->button->configure(-foreground=>'#555');
-  $self->unpack_adjuster;
-  $self->widget->packForget;
-  $self->{shown}=0;
-#  if ($h) {
-    $self->panel->frame->afterIdle(sub {
-				     my $next = $self->find_next_widget(1);
-				     my $prev=$self->find_previous_widget(1);
-#				     my $nearest = $prev || $next;
-#				     if ($h and $nearest) {
-#				       $nearest->adjuster->delta_height($h) if $nearest->adjuster_packed;
-#				     }
-				     if (!$next and $prev) {
-				       $prev->unpack_adjuster;
-				       $prev->widget->packConfigure(-expand=>1);
-				     }
-				     $self->panel->equalize_sizes();
-				   });
-#  }
-  return 1;
-}
-
-sub show {
-  my ($self)=@_;
-  return if $self->is_shown;
-  $self->button->configure(-foreground=>'black');
-  my $w = $self->widget;
-  $w->pack(-after=>$self->button, -fill=>'both', -expand => 1,-side=>'top');
-  my $next = $self->find_next_widget(1);
-  my $h=0;
-  $self->{shown}=1;
-  if ($next) {
-    $self->pack_adjuster;
-    $h+=$self->adjuster->reqheight+18;
-  } else {
-    my $prev=$self->find_previous_widget(1);
-    if ($prev) {
-      $prev->pack_adjuster;
-      $h+=$prev->adjuster->reqheight+18;
-    }
-  }
-  $w->afterIdle([$self->panel,'equalize_sizes']);
-#     sub {
-# 		  my $nearest = $self->find_previous_widget(1) || $self->find_next_widget(1);
-# 		  if ($nearest) {
-# 		    my $h = ($nearest->widget->height+$nearest->button->height+$nearest->adjuster->height+18)/2;
-# 		    my $reqh = $self->button->height + $w->reqheight + $h;
-# 		    $h=$reqh unless $reqh>$h;
-# 		    if ($nearest->adjuster_packed) {
-# 		      $nearest->adjuster->delta_height(-$h);
-# 		    } elsif ($self->adjuster_packed) {
-# 		      $self->adjuster->delta_height(-$h);
-# 		    }
-# 		  }
-# 		});
-  my $command = $self->{-show_command};
-  if (ref($command) eq 'CODE') {
-    $command->();
-  } elsif (ref($command) eq 'ARRAY') {
-    my ($cmd,@args)=@$command;
-    $cmd->(@args);
-  }
-  return 1;
+  $grp->{sidePanel}->add('macroListView', $colf, {
+    -label => 'List of Macros',
+    -data => $hl,
+    -show_command => [\&TrEd::List::Macros::update_view,$grp],
+  });
 }
 
-sub pack_adjuster {
-  my ($self)=@_;
-  return unless $self->is_shown or $self->adjuster_packed;
-  $self->adjuster->pack(-after => $self->widget,-side=>'top',-expand => 0,-fill => 'x');
-}
-sub unpack_adjuster {
-  my ($self)=@_;
-  return unless $self->is_shown and $self->adjuster_packed;
-  $self->adjuster->packForget;
-}
-sub adjuster_packed {
-  my ($self)=@_;
-  #  return   $self->{adjuster_packed};
-  return $self->adjuster->{master} ? 1 : 0;
-}
-sub data {
-  my ($self)=@_;
-  return $self->{-data};
-}
-
-sub widget {
-  my ($self)=@_;
-  return $self->{widget};
-}
-
-sub button {
-  my ($self)=@_;
-  return $self->{button};
-}
-
-sub panel {
-  my ($self)=@_;
-  return $self->{panel};
-}
-
-sub name {
-  my ($self)=@_;
-  return $self->{name};
-}
-
-sub adjuster {
-  my ($self)=@_;
-  return $self->{adjuster};
-}
 1;
+
 __END__
 # Below is stub documentation for your module. You'd better edit it!
 

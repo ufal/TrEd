@@ -372,7 +372,7 @@ Encode, TrEd::ArabicRemix, TrEd::ConvertArab, TrEd::MinMax
 
 =head1 INCOMPATIBILITIES
 
-Names of encode and decode functions collide with Encode functions. 
+Names of encode and decode functions collide with Encode module functions. 
 
 =head1 BUGS AND LIMITATIONS
 
