@@ -1619,6 +1619,7 @@ sub convert_dash {
         return [split ',', $dash];
     } elsif ($dash!~/\d/) {
         my $w = $width || $self->get_lineWidth || 1;
+        # manually transform the dash (we do this because itemcget -dash returns garbage and we need a correct value for printing
         my @out = ();
         for (split '',$dash) {
             if ($_ eq '.') {
