@@ -11,6 +11,7 @@ use Scalar::Util qw(blessed);
 
 use TrEd::Config;
 use TrEd::SidePanel::Widget;
+use TrEd::Bookmarks;
 
 our $VERSION = '0.02';
 
@@ -232,7 +233,7 @@ sub init_browse_filesystem {
  -command => [sub {
    my ($grp,$fsel)=@_;
    my @files = grep { defined && length} $fsel->getSelectedFiles;
-   main::insertToFilelist($grp->{focusedWindow}, undef,undef, @files) if @files;
+   TrEd::ManageFilelists::insertToFilelist($grp->{focusedWindow}, undef,undef, @files) if @files;
  },$grp,$fsel]
 ],
 ['Checkbutton' => '~Show hidden files',
@@ -338,7 +339,11 @@ sub init_filelist_view {
       my $anchor=$w->info('anchor');
       my $nextentry=$w->info('next',$anchor);
       my $data=$w->info('data',$anchor);
-      unless ($nextentry and $w->info('parent',$nextentry) eq $anchor) {
+      my $nextentry_parent;
+      if (defined $nextentry) {
+        $nextentry_parent = $w->info('parent',$nextentry);
+      }
+      unless ($nextentry && $nextentry_parent && $nextentry_parent eq $anchor) {
 	# file -> go to
 	$win->{currentFilelist}->set_current($data);
 	my $pos = $win->{currentFilelist}->position;
@@ -359,10 +364,10 @@ sub init_filelist_view {
 			my ($t,$grp)=@_;
 			my $anchor=$t->info('anchor');
 			my $fl =$grp->{focusedWindow}{currentFilelist};
-			main::removeFromFilelist($grp,
+			TrEd::ManageFilelists::removeFromFilelist($grp,
 					   $fl,
-					   main::getFilelistLinePosition($fl, $anchor), $t->info('selection'));
-			main::updateBookmarks($grp) if (ref($fl) and $fl->name eq 'Bookmarks');
+					   TrEd::Dialog::Filelist::getFilelistLinePosition($fl, $anchor), $t->info('selection'));
+			TrEd::Bookmarks::updateBookmarks($grp) if (ref($fl) and $fl->name eq 'Bookmarks');
 		      },$t,$grp],
 	],
       ]);

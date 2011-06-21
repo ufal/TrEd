@@ -1,7 +1,7 @@
 package TrEd::Macros;
 
 use strict;
-use warnings;
+#use warnings;
 use Carp;
 
 #use Data::Dumper;

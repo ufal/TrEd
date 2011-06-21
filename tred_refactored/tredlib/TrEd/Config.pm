@@ -193,7 +193,7 @@ $treeViewOpts={
 $printOptions={};
 
 #TODO: from tred
-@open_types=
+@open_types = 
   (["Supported",  [qw/.fs .pls .pml .t .a .fs.gz .pls.gz .pml.gz .t.gz .a.gz/]],
    ["FS files",           [qw/.fs .FS .Fs .fs.gz .FS.gz/]],
    ["CSTS files",           [qw/.cst .csts .cst.gz .csts.gz/]],
@@ -342,7 +342,7 @@ sub parse_config_line {
   }x;
   
   # if line starts with ; or # or contains only spaces, don't do anything
-  unless ($line =~ /^\s*[;#]/ or $line =~ /^\s*$/) {
+  if (!($line =~ /^\s*[;#]/ or $line =~ /^\s*$/)) {
     chomp($line);
     if ($line =~ $parse_config_re) {
       # if there is no "::" in key, lowercase it 
@@ -370,8 +370,9 @@ sub parse_config_line {
 sub read_config {
   my %confs;
   my ($key, $f);
+  # reading new config -> (re)init
   my $config_found = 0;
-#  my $config_file;
+  $config_file = undef;
 
   foreach $f (@_, @config_file_search_list) {
     my $fh;

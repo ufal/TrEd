@@ -9,6 +9,7 @@ package TrEd::Convert;
 use strict;
 use warnings;
 
+use TrEd::Basics qw{$EMPTY_STR};
 
 BEGIN {
   use Exporter  ();
@@ -145,7 +146,8 @@ sub decode {
 #######################################################################################
 # Usage         : dirname($path)
 # Purpose       : Find out the name of the directory of $path
-# Returns       : Part of the string from the first character to the last forward/backward slash
+# Returns       : Part of the string from the first character to the last forward/backward slash.
+#                 Empty string if $path is not defined.
 # Parameters    : scalar $path -- path whose dirname we are looking for
 # Throws        : 
 # Comments      : If $path does not contain any slash (fw or bw), dot and directory separator is returned, i. e. 
@@ -159,6 +161,7 @@ sub dirname {
   # both slash and backslash may be uzed
   # (i'd sure use File::Spec::Functions had it support
   # for this also in 5.005 perl distro).
+  return $EMPTY_STR if (!defined $a);
   return (index($a, $Ds) + index($a, q{/}) >= 0) ?
           substr($a, 0, TrEd::MinMax::max(rindex($a, $Ds), rindex($a, q{/})) + 1) : ".$Ds";
 }
@@ -166,7 +169,8 @@ sub dirname {
 #######################################################################################
 # Usage         : filename($path)
 # Purpose       : Extract filename from $path
-# Returns       : Part of the string after the last slash
+# Returns       : Part of the string after the last slash.
+#                 Empty string if $path is not defined.
 # Parameters    : scalar $path -- path with file name
 # Throws        : 
 # Comments      : E.g. returns 'filename' from '/home/john/docs/filename'
@@ -176,6 +180,7 @@ sub filename {
   my $a = shift;
   # this is for the sh*tty winz where
   # both slash and backslash may be uzed
+  return $EMPTY_STR if (!defined $a);
   return (index($a, $Ds) + index($a, q{/}) >= 0) ?
           substr($a, TrEd::MinMax::max(rindex($a, $Ds), rindex($a, q{/})) + 1) : $a;
 }
@@ -317,8 +322,8 @@ L<substr>,
 
 =item Returns
 
-Part of the string from the first character to the last forward/backward slash
-
+Part of the string from the first character to the last forward/backward slash.
+Empty string if $path is not defined.
 
 =back
 
@@ -349,8 +354,8 @@ L<substr>,
 
 =item Returns
 
-Part of the string after the last slash
-
+Part of the string after the last slash.
+Empty string if $path is not defined.
 
 =back
 

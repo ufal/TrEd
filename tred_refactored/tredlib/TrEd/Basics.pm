@@ -1,9 +1,12 @@
 package TrEd::Basics;
 
+use strict;
+use warnings;
+
 BEGIN {
   use Treex::PML;
   require TrEd::MinMax;
-  import TrEd::MinMax;
+#  import TrEd::MinMax;
   import TrEd::MinMax qw(first);
   use UNIVERSAL::DOES;
 
@@ -21,6 +24,7 @@ BEGIN {
     $on_node_change
     $on_current_change
     $on_error
+    $EMPTY_STR
     &gotoTree
     &nextTree
     &prevTree
@@ -45,9 +49,10 @@ BEGIN {
   );
   use Treex::PML::Schema;
 }
-use Data::Dumper;
-use strict;
-use warnings;
+
+use Readonly;
+
+Readonly our $EMPTY_STR => q{};
 
 # different namespace only to load local rather than system files
 # (rel2abs is not supported in all instalations)

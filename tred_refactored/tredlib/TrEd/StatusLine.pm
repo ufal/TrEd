@@ -6,10 +6,7 @@ use warnings;
 use TrEd::SidePanel;
 use TrEd::Config;
 use TrEd::Convert qw{encode};
-
-use Readonly;
-
-Readonly my $EMPTY_STR => q{};
+use TrEd::Basics qw{$EMPTY_STR};
 
 # status, UI
 sub update_status_info {

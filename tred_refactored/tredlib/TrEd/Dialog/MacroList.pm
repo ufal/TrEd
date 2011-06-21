@@ -7,9 +7,6 @@ use warnings;
 use TrEd::Macros;
 use TrEd::Basics;
 
-use Readonly;
-
-Readonly my $EMPTY_STR => q{};
 
 use TrEd::List::Macros;
 use TrEd::HTML::Simple;

@@ -37,13 +37,13 @@ use vars qw($svn_version $version $opt_u $opt_h $opt_c $opt_y
 	    $init_macro_context $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_split_window
 	    $opt_n $opt_D $opt_v $opt_H $opt_I $opt_Z $opt_e
             $libDir $docDir $list_options $opt_auto_save
-	    $macroFile @filelists %filelist_from_extension
-	    @openfiles $treeViewOpts $opt_m
-            @backends @ISA @EXPORT @open_types @save_types $opt_filelist $opt_s
+	    $macroFile  
+	     $treeViewOpts $opt_m
+             @ISA @EXPORT @open_types @save_types $opt_filelist $opt_s
             $opt_S
-            $insideEval %pckey_shift_translates @recentFiles $tredDebug
-            $valueLine $appName $ioBackends 
-            $NewFileNo $stderr $stdout
+            $insideEval %pckey_shift_translates $tredDebug
+            $valueLine $appName  
+             $stderr $stdout
 	    
 	    %save_types %backend_map $debug @normal_win_opts @focused_win_opts
 	    $locale_charset
@@ -58,12 +58,21 @@ use vars qw($svn_version $version $opt_u $opt_h $opt_c $opt_y
 # $userlogin
 # $noCheckLocks
 # %vertical_key_arrow_map
+# @recentFiles
+# @filelists
+# %filelist_from_extension
+# @openfiles
+# $ioBackends
+# @backends
+# $NewFileNo
 
 use Exporter;
 @ISA   = qw(Exporter);
 @EXPORT= qw($insideEval
             $libDir $stderr $stdout
-            @openfiles @filelists &min &max);
+              &min &max);
+# @openfiles
+# @filelists
 
 use Getopt::Long;
 use Pod::Usage;
@@ -264,22 +273,9 @@ import TrEd::MinMax qw(first);
 ############################################################
 }
 
-#### new additions ###
-use TrEd::List::Macros;
-use TrEd::HTML::Simple;
-use TrEd::Dialog::MacroList;
-use TrEd::Filelist::View;
-use TrEd::FileLock;
-use TrEd::Dialog::EditStylesheet;
-use TrEd::Dialog::EditConfig;
-use TrEd::Dialog::Text;
-use TrEd::Bindings;
-use TrEd::ManageFilelist;
-use TrEd::ValueLine;
-use TrEd::MinorModes;
-use TrEd::StatusLine;
 
-### eof new additions ###
+#TODO: pdt20 and pmltq extensions use this variable :/
+*openfiles = \@TrEd::File::openfiles;
 
 if ($opt_v) {
   print <<"EOF";
@@ -384,18 +380,6 @@ if ($docDir ne EMPTY) {
   $docDir = 'http://ufal.mff.cuni.cz/~pajas/tred';
 }
 
-use constant {
-  UNDO_ACTIVE_NODE => 1,
-  UNDO_ACTIVE_ROOT => 2,
-  UNDO_DATA_AND_TREE_ORDER => 3,
-  UNDO_TREE_ORDER => 4,
-  UNDO_DISPLAYED_TREES => 5,
-  UNDO_CURRENT_TREE_AND_TREE_ORDER => 6,
-  UNDO_ACTIVE_ROOT_AND_TREE_ORDER => 7,
-  UNDO_DATA => 8,
-  UNDO_CURRENT_TREE => 9,
-};
-
 
 # make Alt_L and Alt_R work correctly on Darwin
 if ($^O eq 'darwin') {
@@ -461,21 +445,37 @@ $TrEd::Basics::on_current_change= \&onCurrentChange;
 
 eval { require TrEd::Help; };
 
-#load back-ends
-@backends=(
-  'FS',
-  Treex::PML::ImportBackends(
-    split(/,/,$opt_B),
-    split(/,/,$ioBackends),
-    qw{NTRED
-       Storable
-       PML
-       CSTS
-       TrXML
-       TEIXML
-       PMLTransform
-      })
- );
+#### new additions ###
+# maybe use similar approach as Padre here, require/use everything *.pm in tredlib/TrEd?
+use TrEd::List::Macros;
+use TrEd::HTML::Simple;
+use TrEd::Dialog::MacroList;
+use TrEd::Filelist::View;
+use TrEd::FileLock;
+use TrEd::Dialog::EditStylesheet;
+use TrEd::Dialog::EditConfig;
+use TrEd::Dialog::Text;
+use TrEd::Bindings;
+use TrEd::Filelist::Navigation;
+use TrEd::ValueLine;
+use TrEd::MinorModes;
+use TrEd::StatusLine;
+use TrEd::Undo;
+use TrEd::View::Sentence;
+use TrEd::RecentFiles;
+use TrEd::ManageFilelists;
+use TrEd::Bookmarks;
+use TrEd::Dialog::Filelist;
+use TrEd::Dialog::File::Open;
+
+# we need to have command line options already prepared 
+require TrEd::File;
+import TrEd::File;
+
+### eof new additions ###
+
+# @backends
+
 
 require Filelist;
 
@@ -570,20 +570,8 @@ eval {
   $locale_charset = I18N::Langinfo::langinfo(I18N::Langinfo::CODESET());
 };
 
-print STDERR "Creating filelists...\n" if $tredDebug;
+TrEd::ManageFilelists::create_filelists();
 
-{
-  my $default= new Filelist('Default');
-  $default->add(0,map {
-    my ($filename,$suffix)=TrEd::Utils::parse_file_suffix($_);
-    Treex::PML::IO::make_abs_URI($filename)->as_string.$suffix
-    } @ARGV) if @ARGV;
-  add_new_filelist(undef,$default);
-}
-
-create_cmdline_filelists($opt_filelist);
-createBookmarksFilelist();
-loadStdFilelists();
 
 $insideEval=0;
 
@@ -622,35 +610,11 @@ exit_tred();
 #
 ############################################################
 
-# tags: filelist, params
-sub create_cmdline_filelists {
-  my ($filelist_str) = @_;
-  return if not ($filelist_str);
-  
-  print STDERR "Reading -l filelists...\n" if $tredDebug;
-  
-  my $fl_no = 1;
-  foreach my $filelist (split /\s*,\s*/, $filelist_str) {
-    my $filelist_name = 'CmdLine-' . $fl_no;
-    my $fl = new Filelist($filelist_name, $filelist);
-    $fl->load();
-    add_new_filelist(undef, $fl);
-    $fl_no++;
-  }
-  print STDERR "Done...\n" if $tredDebug;
-}
+# sub create_filelists 
+# sub create_cmdline_filelists
 
-# tags: filelist, params, bookmarks
-sub createBookmarksFilelist {
-  # create Bookmarks filelist
-  if (not bookmarkFilelist()) {
-    if ($tredDebug) {
-      print 'Bookmarks: ' . $ENV{HOME} . '/.tred_bookmarks' . "\n";
-    }
-    my $bookmarks = new Filelist('Bookmarks',$ENV{HOME} . '/.tred_bookmarks');
-    add_new_filelist(undef, $bookmarks);
-  }
-}
+
+#sub createBookmarksFilelist
 
 # tags: treeView
 sub gotoFirstDisplayedNode {
@@ -753,32 +717,11 @@ sub __debug {
   print STDERR @_,"\n" if $tredDebug;
 }
 
-# file, current?, top
+#TODO: wrapper for extensions
 sub get_open_filename {
-  my $w = shift;
-  my %opts=@_;
-  my $ret;
-  if ($openFilenameCommand) {
-    my $c = $openFilenameCommand;
-    my $types = ref($opts{-filetypes}) ?
-      join " ",map { "*".$_ } map { @{$_->[1]} } @{$opts{-filetypes}} : "*";
-    my $title = $opts{-title} || 'Open';
-    my $initialdir = $opts{-initialdir} || '.';
-    $c=~s/\%t/"$title"/g;
-    $c=~s/\%m/"$types"/g;
-    $c=~s/\%d/"$initialdir"/g;
-    $ret = `$c`;
-    s/\s+$// for $ret;
-  } else {
-    require Encode;
-    $ret = $w->getOpenFile(%opts);
-    if (Encode::is_utf8($ret)) {
-      warn("Tk dialog returned a UTF-8 string as a filename, forcing bytes using iso-8859-1!\n");
-      $ret=Encode::encode('iso-8859-1',$ret);
-    }
-  }
-  return $ret;
+    return TrEd::Dialog::File::Open::get_open_filename(@_);
 }
+
 
 # file, current?, top
 # used also in extensions, probably should go to some other place..
@@ -862,9 +805,7 @@ sub get_grp_histories {
   }
 }
 
-sub bookmarkFilelist {
-  return findFilelist('Bookmarks')
-}
+#sub bookmarkFilelist
 
 #######################################################################################
 # Usage         : set_config($configs)
@@ -873,29 +814,15 @@ sub bookmarkFilelist {
 # Parameters    : hash_ref \%confs
 # Throws        : no exceptions
 # Comments      : Requires Filelist module
-# See Also      : Filelist, add_new_filelist(), $autoSave 
+# See Also      : Filelist, TrEd::ManageFilelists::add_new_filelist(), $autoSave 
 # TODO: tests
 sub set_config {
   my $confs=shift;
-  foreach (0..9) {
-    $recentFiles[$_]=$confs->{"recentfile$_"};
-  }
-  @recentFiles=grep {$_} @recentFiles;
+  
+  TrEd::RecentFiles::init_recent_files($confs);
 
-#TODO: vyber do extra funkcie, tuto to nema co robit
-  require Filelist; #TODO consider renaming
-  my $fl;
-  foreach (sort { substr($a,8)<=>substr($b,8) } grep /^filelist[0-9]+/, keys %$confs) {
-    print "Reading $_\n"  if $tredDebug;
-    $fl=Filelist->new(undef,$confs->{$_});
-    next unless $fl;
-    eval {
-      print STDERR "Reading filelist ".$fl->filename."\n" if $tredDebug;
-      $fl->load();
-      add_new_filelist(undef,$fl);
-    };
-    warn $@ if $@;
-  }
+  TrEd::ManageFilelists::load_filelists_from_conf($confs);
+
   #TODO: what does autosave do? What does it saves automatically?
   $autoSave = $opt_auto_save if defined $opt_auto_save;
   print STDERR "Applying configuration.\n" if $tredDebug;
@@ -1008,7 +935,7 @@ sub gotoFile {
   return 0 if ($fn>=$win->{currentFilelist}->file_count() or $fn<0);
   my $last_no = $win->{currentFileNo};
   $win->{currentFileNo} = $fn;
-  my ($fs,$status) = openFile($win,TrEd::ManageFilelist::filelistFullFileName($win,$fn),
+  my ($fs,$status) = TrEd::File::open_file($win,TrEd::Filelist::Navigation::filelistFullFileName($win,$fn),
 			      -norecent => $no_recent, -noredraw => $no_redraw,
 			      -keep_related=>1
 			     );
@@ -1021,23 +948,24 @@ sub gotoFile {
 sub update_filelist_views {
   my ($grp_or_win,$fl,$reload)=@_;
   my ($grp,$win) = grp_win($grp_or_win);
-  if ($grp->{Filelist} and ($grp->{filelistCurrentFilelist} == $fl)) {
-    TrEd::Filelist::View::update_a_filelist_view($grp,$grp->{Filelist},$fl,$win->{currentFileNo},$reload);
+  my $filelist_widget = TrEd::Dialog::Filelist::filelist_widget();
+  if ($filelist_widget and (TrEd::ManageFilelists::get_current_filelist() == $fl)) {
+    TrEd::Filelist::View::update_a_filelist_view($grp,$filelist_widget,$fl,$win->{currentFileNo},$reload);
   }
   #TODO: nie na sipkovu notaciu?
   TrEd::Filelist::View::update($grp,$fl,$reload);
 }
 
-
+#TODO: where should I put these..? tieWindows? Filelist::Navigation?
 # filelist, file current
 sub tieNextFile {
   my ($grp,$win) = grp_win(shift);
   if ($grp->{tieWindows}) {
     foreach my $w (@{$grp->{treeWindows}}) {
-      TrEd::ManageFilelist::nextFile($w) if ($w->{FSFile});
+      TrEd::Filelist::Navigation::nextFile($w) if ($w->{FSFile});
     }
   } else {
-    TrEd::ManageFilelist::nextFile($win) if ($win->{FSFile});
+    TrEd::Filelist::Navigation::nextFile($win) if ($win->{FSFile});
   }
 }
 # filelist, file current
@@ -1045,10 +973,10 @@ sub tiePrevFile {
   my ($grp,$win) = grp_win(shift);
   if ($grp->{tieWindows}) {
     foreach my $w (@{$grp->{treeWindows}}) {
-      TrEd::ManageFilelist::prevFile($w) if ($w->{FSFile});
+      TrEd::Filelist::Navigation::prevFile($w) if ($w->{FSFile});
     }
   } else {
-    TrEd::ManageFilelist::prevFile($win) if ($win->{FSFile});
+    TrEd::Filelist::Navigation::prevFile($win) if ($win->{FSFile});
   }
 }
 
@@ -1057,29 +985,43 @@ sub tieGotoFile {
   my ($grp,$win) = grp_win(shift);
   if ($grp->{tieWindows}) {
     foreach my $w (@{$grp->{treeWindows}}) {
-      TrEd::ManageFilelist::gotoFile($w,@_) if ($w->{FSFile});
+      gotoFile($w,@_) if ($w->{FSFile});
     }
   } else {
-    TrEd::ManageFilelist::gotoFile($win,@_) if ($win->{FSFile});
+    gotoFile($win,@_) if ($win->{FSFile});
   }
 }
 
 
 # file current
-sub setWindowFile {
-  my ($win,$fsfile)=@_;
-  $win->{FSFile}=$fsfile;
-  if ($fsfile) {
-    $win->{treeNo}=$fsfile->currentTreeNo||0;
-    $win->{currentNode}=$fsfile->currentNode;
-  } else {
-    $win->{treeNo}=undef;
-    $win->{currentNode}=undef;
-  }
-  if (isFocused($win)) {
-    updateSessionStatus($win->{framegroup});
-  }
+#######################################################################################
+# Usage         : set_window_file($win, $fsfile)
+# Purpose       : Set tree number, current node and FSFile for Window $win to values 
+#                 obtained from $fsfile
+# Returns       : Undef/empty list
+# Parameters    : TrEd::Window ref $win -- ref to TrEd::Window object which is to be altered
+#                 Treex::PML::Document ref $fsfile -- ref to Document which is set as current for the Window
+# Throws        : No exception
+# Comments      : If $fsfile is not defined, all the beforementioned values are set to undef.
+#                 If Windows is focused, session status is updated.
+# See Also      : is_focused(), fsfileDisplayingWindows()
+sub set_window_file {
+    my ( $win, $fsfile ) = @_;
+    $win->{FSFile} = $fsfile;
+    if (defined $fsfile) {
+        $win->{treeNo} = $fsfile->currentTreeNo() || 0;
+        $win->{currentNode} = $fsfile->currentNode();
+    }
+    else {
+        $win->{treeNo}      = undef;
+        $win->{currentNode} = undef;
+    }
+    if ( is_focused($win) ) {
+        update_session_status( $win->{framegroup} );
+    }
+    return;
 }
+
 
 sub resumeFile {
   my ($win,$fsfile,$keep)=@_;
@@ -1093,20 +1035,40 @@ sub resumeFile {
   __debug("Using last stylesheet: ",$fsfile->appData('last-stylesheet'));
   switchStylesheet($win,$fsfile->appData('last-stylesheet'));
 
-  setWindowFile($win,$fsfile);
+  set_window_file($win,$fsfile);
   saveFileStateUpdate($win);
 }
 
+
+#######################################################################################
+# Usage         : fsfileDisplayingWindows($grp, $fsfile)
+# Purpose       : Find all the windows which display $fsfile
+# Returns       : A list of windows (TrEd::Window objects) that display $fsfile
+# Parameters    : hash_ref $grp                -- reference to hash containing TrEd options
+#                 Treex::PML::Document $fsfile -- reference to file 
+# Throws        : No exception
+# Comments      : 
+# See Also      :
+#TODO: mozno funkcia do TrEd::Window -- TrEd::Window::displays($fsfile)? 
 sub fsfileDisplayingWindows {
-  my ($grp,$fsfile)=@_;
+  my ($grp, $fsfile)=@_;
   return 
     grep {
       $_->{FSFile} eq $fsfile 
     } @{$grp->{treeWindows}};
 }
 
-sub isFocused {
-  my ($win)=@_;
+#######################################################################################
+# Usage         : isFocused($win)
+# Purpose       : Find out whether $win Window is currently focused
+# Returns       : 1 if the Window $win is focused, 0 otherwise
+# Parameters    : TrEd::Window ref $win -- ref to TrEd::Window object which is tested for focus
+# Throws        : No exception
+# Comments      : 
+# See Also      : 
+#TODO: nepresunut do TrEd::Window?
+sub is_focused {
+  my ($win) = @_;
   return $win eq $win->{framegroup}->{focusedWindow} ? 1 : 0;
 }
 
@@ -1145,8 +1107,7 @@ sub closeFileInWindow {
   my ($grp_or_win)=@_;
   my ($grp,$win)=grp_win($grp_or_win);
   my $keep;
-  if (fsfileDisplayingWindows($grp,
-			      $win->{FSFile})<2) {
+  if (fsfileDisplayingWindows($grp,$win->{FSFile})<2) {
     $keep=askSaveFile($win,1,1);
     return if $keep == -1;
   }
@@ -1179,104 +1140,8 @@ sub findToplevelFileFor {
   }
 }
 
-# file, UI, fsfile
-sub closeFile {
-  my ($win,%opts)=@_;
+# sub closeFile
 
-  my $fsfile;
-  if ($opts{-fsfile}) {
-    $fsfile = $opts{-fsfile};
-  } else {
-    $fsfile = $win->{FSFile};
-  }
-  if ($fsfile) {
-    __debug("Closing ",$fsfile->filename,"; keep postponed: $opts{-keep_postponed}\n");
-    doEvalHook($win,"file_close_hook",$fsfile,\%opts);
-    $fsfile->currentTreeNo($win->{treeNo});
-    $fsfile->currentNode($win->{currentNode});
-  } else {
-    return;
-  }
-  my $fn=$fsfile->filename;
-  if (!$opts{-keep_postponed}) {
-    if (filePartOfADisplayedFile($win->{framegroup},$fsfile)) {
-      warn "closeFile: Keeping postponed ".$fsfile->filename." - part of a displayed file\n";
-      $opts{-keep_postponed}=1;
-    } else {
-      my @part_of = findToplevelFileFor($win->{framegroup},$fsfile);
-      if ($part_of[0]!=$fsfile) {
-	return unless askSaveFile($win,0,1,$fsfile)==0;
-	for (@part_of) {
-	  closeFile($win,%opts,-fsfile=>$_,-keep_postponed=>0)||return
-	}
-      }
-    }
-  }
-  my @wins;
-  my ($last_context, $last_stylesheet)=($win->{macroContext}, $win->{stylesheet});
-  if ($opts{-all_windows} and $fsfile) {
-    @wins=fsfileDisplayingWindows($win->{framegroup},$fsfile);
-  } elsif (!$opts{-fsfile}) {
-    @wins=($win);
-  }
-
-  foreach my $w (@wins) {
-    $w->{Nodes}=undef;
-    #  undef $NodeClipboard;
-    $w->{root}=undef;
-    $w->{stylesheet}=STYLESHEET_FROM_FILE();
-    setWindowFile($w,undef);
-    delete $w->{currentNode} if (exists $w->{currentNode});
-    $w->{treeView}->clear_pinfo();
-    if (isFocused($w)) {
-      TrEd::ValueLine::set_value($w->{framegroup},EMPTY);
-    }
-    unless ($opts{-no_update}) {
-      get_nodes_win($w);
-      redraw_win($w);
-    }
-  }
-
-  unless ($opts{-no_update}) {
-    updateTitle($win->{framegroup});
-    updatePostponed($win->{framegroup});
-  }
-
-  if ($opts{-keep_postponed} and $fsfile) {
-    print STDERR "Postponing ".$fsfile->filename()."\n"  if $tredDebug;
-    $fsfile->changeAppData('last-context',$last_context);
-    $fsfile->changeAppData('last-stylesheet',$last_stylesheet);
-  } else {
-    if ($fsfile and not fsfileDisplayingWindows($win->{framegroup},$fsfile)) {
-      my $f = $fsfile->filename();
-      print STDERR "Removing $f from list of open files\n"  if $tredDebug;
-      @openfiles=grep { $_ ne $fsfile } @openfiles;
-      addToRecent($win->{framegroup},$f) unless $opts{-norecent} or $fsfile->appData('norecent');
-      my $autosave = autosave_filename($f);
-      unlink $autosave if defined $autosave;
-      TrEd::FileLock::remove_lock($fsfile,$f);
-
-      # remove dependency
-      for my $req_fs (getSecondaryFiles($fsfile)) {
-	if (ref($req_fs->appData('fs-part-of'))) {
-	  @{$req_fs->appData('fs-part-of')} = grep { $_ != $fsfile } @{$req_fs->appData('fs-part-of')};
-	}
-	unless (fsfileDisplayingWindows($win->{framegroup},$req_fs)) {
-	  print STDERR "Attempting to close dependent ".$req_fs->filename."\n" if $tredDebug;
-	  my $answer = askSaveFile($win,1,1,$req_fs);
-	  return if $answer == -1;
-	  if ($answer == 1) {
-	    print STDERR "Keeping dependent ".$req_fs->filename."\n" if $tredDebug;
-	  } else {
-	    closeFile($win,  %opts, -fsfile => $req_fs,-keep_postponed => 0) || return;
-	  }
-	}
-      }
-      undef $fsfile;
-    }
-  }
-  return 1;
-}
 
 # UI, Error
 sub plainErrorMessage {
@@ -1335,30 +1200,8 @@ sub userQuery {
   return $d->Show;
 }
 
-# recent files
-sub addToRecent {
-  my ($grp,$f)=@_;
-  return if $grp->{noRecent};
-  if (defined($f)) {
-    ($f)=absolutize($f);
-    @recentFiles=grep { $_ ne $f } @recentFiles;
-    unshift @recentFiles,$f;
-  }
-  @recentFiles=@recentFiles[0..min($#recentFiles,9)];
+#sub TrEd::RecentFiles::add_file {
 
-  if ($grp->{RecentFileMenu}) {
-    my $menu= $grp->{RecentFileMenu};
-    $menu->delete(0,'end');
-    $_->destroy for $menu->children;
-    my $i=0;
-    foreach my $rf (@recentFiles) {
-      $grp->{RecentFileMenu}->command(-label => "$i.  $rf",
-				      -underline=> 0,
-				      -command=> [\&openStandaloneFile,$grp,$rf]);
-      $i++;
-    }
-  }
-}
 
 # node
 sub getNodeNo {
@@ -1378,75 +1221,68 @@ sub getNodeNo {
 }
 
 # bookmarks
-sub bookmarkThis {
-  my ($grp)=@_;
-  my $f=undef;
-  my $win=$grp->{focusedWindow};
-  if (ref($win->{FSFile})) {
-    $f=$win->{FSFile}->filename()."##".($win->{treeNo}+1);
-    my $nodeno=getNodeNo($win,$win->{currentNode});
-    if (defined($nodeno)) {
-      $f.=".$nodeno";
+#sub bookmarkThis
+
+#sub addBookmark 
+#sub lastActionBookmark 
+
+#######################################################################################
+# Usage         : set_window_file($win, $fsfile)
+# Purpose       : Set tree number, current node and FSFile for Window $win to values 
+#                 obtained from $fsfile
+# Returns       : Undef/empty list
+# Parameters    : TrEd::Window ref $win -- ref to TrEd::Window object which is to be altered
+#                 Treex::PML::Document ref $fsfile -- ref to Document which is set as current for the Window
+# Throws        : No exception
+# Comments      : If $fsfile is not defined, all the beforementioned values are set to undef.
+#                 If Windows is focused, session status is updated.
+# See Also      : is_focused(), fsfileDisplayingWindows()
+sub update_session_status {
+    my ($grp) = @_;
+    my $win = $grp->{focusedWindow};
+    update_context_list($grp);
+    $grp->{keepcurrentfile}
+        = (defined $win->{FSFile} && $win->{FSFile}->appData('noautoclose'))
+        ? 1
+        : 0;
+}
+
+
+
+# sub updateBookmarks
+
+#TODO: docs:
+#######################################################################################
+# Usage         : postpone_update($grp, $menu)
+# Purpose       : Fill postponed menu with opened files
+# Returns       : Undef/empty list
+# Parameters    : hash_ref $grp  -- reference to hash containing TrEd options
+#                 Tk::Menu $menu -- reference to posponed menu 
+# Throws        : No exception
+# Comments      : This function is a part of USR2 signal handler
+# See Also      : main::handleUSR2Signal()
+sub postponed_update_menu {
+    my ( $grp, $menu ) = @_;
+    my $i = 0;
+    my @openfiles = TrEd::File::get_openfiles();
+    foreach my $opened_file (@openfiles) {
+        $menu->command(
+            -label     => "$i.  " . $opened_file->filename(),
+            -underline => 0,
+            -command   =>
+                [ \&TrEd::File::openStandaloneFile, $grp, $opened_file->filename(), -keep => 1 ]
+        );
+        $i++;
     }
-  }
-  return $f;
-}
-
-# bookmarks
-sub addBookmark {
-  my ($grp,$to_filelist)=@_;
-  my $bl=defined($to_filelist) ? findFilelist($to_filelist) : bookmarkFilelist();
-  return unless ref($bl);
-  my $f=bookmarkThis($grp);
-  if (defined($f)) {
-    insertToFilelist($grp,$bl,$bl->count,$f);
-    updateBookmarks($grp);
-  }
-}
-
-# bookmarks
-sub lastActionBookmark {
-  my ($grp,$bmk)=@_;
-  my $f=defined($bmk) ? $bmk : bookmarkThis($grp);
-  if (defined($f)) {
-    print STDERR "Bookmarking last action at: $f\n" if $tredDebug;
-    $grp->{lastActionBookmark}=$f;
-    # updateBookmarks($grp);
-  }
-}
-
-sub updateSessionStatus {
-  my ($grp)=@_;
-  my $win = $grp->{focusedWindow};
-  update_context_list($grp);
-  $grp->{keepcurrentfile}=($win->{FSFile} && $win->{FSFile}->appData('noautoclose')) ? 1 : 0;
-}
-
-#  $group{BookmarksFileMenu}= MenubarItem($menubar,qw/-label Bookmarks -underline 0/);
-#  updateBookmarks(\%group);
-
-# bookmarks
-sub updateBookmarks {
-  my ($grp)=@_;
-  return if $grp->{noUpdatePostponed};
-  if ($grp->{BookmarksFileMenu}) {
-    print STDERR "Updating bookmark menu\n"  if $tredDebug;
-    my $menu= $grp->{BookmarksFileMenu}->menu;
-    $menu->delete(0,'end');
-    $_->destroy for $menu->children;
-    my $i=0;
-    my $bl=bookmarkFilelist();
-    return unless ref ($bl);
-    foreach my $b (bookmarkFilelist->files()) {
-      print STDERR "$b\n" if $tredDebug;
-      $grp->{BookmarksFileMenu}->command(-label => "$i.  ".$b,
-				      -underline=> 0,
-				      -command=> [ \&openStandaloneFile,$grp,$b ]);
-      $i++;
+    if (!@openfiles) {
+        $menu->command(
+            -label => 'none',
+            -state => 'disabled'
+        );
     }
-    updateTitle($grp); # e.g. after adding/removing a bookmark to/from a filelist
-  }
+    return;
 }
+
 
 sub updatePostponed {
   my ($grp)=@_;
@@ -1456,27 +1292,16 @@ sub updatePostponed {
     my $menu = $grp->{PostponedFileMenu};
     $menu->delete(0,'end');
     $_->destroy for $menu->children;
-    # $menu->command(-label=> 'Open files',
-    # 				       -state=> 'disabled',
-    # 				       -background=> '#444444'
-    # 				      );
-    my $i=0;
-    foreach my $of (@openfiles) {
-      $menu->command(-label => "$i.  ".$of->filename(),
-				      -underline=> 0,
-				      -command=> [\&openStandaloneFile,$grp,
-						  $of->filename(),-keep => 1]);
-      $i++;
-    }
-    $menu->command(-label=> 'none',
-		   -state=> 'disabled'
-		  ) unless (@openfiles);
+    
+    #TODO: extract to TrEd::File & callback...
+    main::postponed_update_menu($grp, $menu);
+    
     {
       my $menu = $grp->{FileListMenu};
       if ($menu) {
 	$menu->delete(0,'end');
 	$_->destroy for $menu->children;
-	createFilelistsMenu($grp, $menu, [\&selectFilelist, $grp]);
+	TrEd::ManageFilelists::createFilelistsMenu($grp, $menu, [\&TrEd::ManageFilelists::selectFilelist, $grp]);
       }
     }
     {
@@ -1484,47 +1309,15 @@ sub updatePostponed {
       if ($menu) {
 	$menu->delete(0,'end');
 	$_->destroy for $menu->children;
-	createFilelistsMenu($grp, $menu, [\&addBookmark, $grp], 1);
+	TrEd::ManageFilelists::createFilelistsMenu($grp, $menu, [\&TrEd::Bookmarks::addBookmark, $grp], 1);
       }
     }
   }
 }
 
 
-# for each filelist add an entry to a given menu
-# using -command => [ @command, $filelist_name ]
-# as menu callback
-# filelist menu, UI
-sub createFilelistsMenu {
-  my ($grp,$menu,$command,$bookmark_to)=@_;
-  my $i='A';
-  foreach my $fl (sort {lc($a->name()) cmp lc($b->name())} 
-		  grep { !($bookmark_to and (($filelist_from_extension{$_}||0)==1)) }
-		  @filelists) {
-    $menu->command(-label => "$i.  ".$fl->name(),
-		   -underline=> 0,
-		   -command=> [@$command,$fl->name()]);
-    $i++;
-  }
-  if ($bookmark_to) {
-    $menu->separator();
-    $menu->command(-label => ($bookmark_to ? 'New File List...' : 'Create New File List ...'),
-		   -command=> [\&_makeNewFilelist,$grp,\&addBookmark]);
-  }
-}
-
-# filelist menu, UI
-sub _makeNewFilelist {
-  my ($grp,$action)=@_;
-  my $grp = shift;
-  my $fl = createNewFilelist($grp);
-  if (defined $fl) {
-    my $sub = shift;
-    my $name = $fl->name;
-    $action->($grp,$name) if $action;
-    saveStdFilelist($fl);
-  }
-}
+#sub createFilelistsMenu 
+#sub _makeNewFilelist 
 
 sub updateScaleFactor {
   my ($grp)=@_;
@@ -1533,44 +1326,82 @@ sub updateScaleFactor {
   $grp->{canvasScale}=($grp->{focusedWindow}->treeView->get_scale||0);
 }
 
-# UI
-sub updateTitle {
-  my ($grp)=@_;
-  return unless ref($grp);
-  return if $grp->{noUpdateTitle};
-  my $win = $grp->{focusedWindow};
-  if (ref($win->{FSFile})) {
-    my $filelist_info=EMPTY;
-    if (defined($win->{currentFileNo}) and $win->{currentFilelist}) {
-      my $current = $win->{currentFileNo}+1;
-      my $all = $win->{currentFilelist}->file_count();
-      $filelist_info=$win->{currentFilelist}->name()."($current/$all): ";
-      $grp->{prevFileButton}->configure(-state => ($current <= 1) ?
-					  'disabled' : 'normal');
-      $grp->{nextFileButton}->configure(-state => ($current >= $all) ?
-					  'disabled' : 'normal');
-    } else {
-      for my $b (qw(nextFileButton prevFileButton)) {
-	$grp->{$b}->configure(-state => 'disabled');
-      }
+# enable/disable buttons depending on the position in the filelist
+sub _update_buttons {
+    my ($grp, $win) = @_;
+    if ( ref( $win->{FSFile} ) ) {
+        if ( defined( $win->{currentFileNo} ) and $win->{currentFilelist} ) {
+            my $current_file_num = $win->{currentFileNo} + 1;
+            my $no_of_files      = $win->{currentFilelist}->file_count();
+
+            $grp->{prevFileButton}->configure(
+                -state => ( $current_file_num <= 1 ) ? 'disabled' : 'normal' );
+            $grp->{nextFileButton}->configure(
+                -state => ( $current_file_num >= $no_of_files ) ? 'disabled' 
+                                                                : 'normal' );
+        }
+        else {
+            for my $button (qw(nextFileButton prevFileButton)) {
+                $grp->{$button}->configure( -state => 'disabled' );
+            }
+        }
+        for my $button (
+            qw(printButton reloadButton findButton
+            findNextButton findPrevButton sentButton)
+            )
+        {
+            $grp->{$button}->configure( -state => 'normal' );
+        }
     }
-    for my $b (qw(printButton reloadButton findButton
-                  findNextButton findPrevButton sentButton)) {
-      $grp->{$b}->configure(-state => 'normal');
+    else {
+        for my $button (
+            qw(nextFileButton prevFileButton
+            printButton reloadButton findButton
+            findNextButton findPrevButton sentButton)
+            )
+        {
+            if (defined $grp->{$button}) {
+                $grp->{$button}->configure( -state => 'disabled' );
+            }
+        }
     }
-    $grp->{top}->title("$appName    ".
-		       $filelist_info.
-		       $win->{FSFile}->filename()
-		      );
-  } else {
-    for my $b (qw(nextFileButton prevFileButton
-                  printButton reloadButton findButton
-                  findNextButton findPrevButton sentButton)) {
-      $grp->{$b}->configure(-state => 'disabled') if $grp->{$b};
-    }
-    $grp->{top}->title("$appName");
-  }
 }
+
+
+#######################################################################################
+# Usage         : update_title_and_buttons($grp)
+# Purpose       : Update the title of the program and (de)activate buttons/icons according
+#                 to the position in the filelist
+# Returns       : Undef/empty list
+# Parameters    : hash_ref $grp  -- reference to hash containing TrEd options
+# Throws        : No exception
+# Comments      : 
+# See Also      : _update_buttons()
+sub update_title_and_buttons {
+    my ($grp) = @_;
+    return if ( !ref($grp) );
+    return if $grp->{noUpdateTitle};
+    my $win = $grp->{focusedWindow};
+    _update_buttons($grp, $win);
+    if ( ref( $win->{FSFile} ) ) {
+        #TODO: vyhutaj pouzitie TrEd::Basics::EMPTY_STR
+        my $filelist_info = EMPTY;
+        if ( defined $win->{currentFileNo} && $win->{currentFilelist} ) {
+            my $current = $win->{currentFileNo} + 1;
+            my $all     = $win->{currentFilelist}->file_count();
+            $filelist_info = $win->{currentFilelist}->name() 
+                            . "($current/$all): ";
+        }
+        $grp->{top}->title(
+            "$appName    " . $filelist_info . $win->{FSFile}->filename() );
+    }
+    else {
+        
+        $grp->{top}->title("$appName");
+    }
+    return;
+}
+
 
 # UI, menu
 sub updateHelpMenu {
@@ -1616,437 +1447,22 @@ sub updateHelpMenu {
   }
 }
 
-# file, current
-sub newFileFromCurrent {
-  my ($grp,$keep)=@_;
-  $keep||=$grp->{keepopen};
-  my $win=$grp->{focusedWindow};
-  return unless $win->{FSFile};
-  $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
-  my $cur=$win->{FSFile};
-  my $new=$cur->clone(0);
+# sub newFileFromCurrent
 
-  $new->changeURL('unnamed'.sprintf('%03d',$NewFileNo++));
-  $cur=undef;
-  my $answer = askSaveFile($win,1,1);
-  return 0 if $answer == -1;
-  $keep=$keep || $answer;
-  closeFile($win,-no_update => 1,-keep_postponed => $keep);
-#  $new->new_tree(0);
-  setWindowFile($win,$new);
-  push @openfiles, $win->{FSFile};
-  updatePostponed($grp);
+#sub openStandaloneFile
 
-  updateTitle($grp);
-  $win->{redrawn}=0; # if redraw is called during the hook, we will know it
-  get_nodes_win($win);
-  if ($init_macro_context ne EMPTY and
-	$win->{macroContext} ne $init_macro_context) {
-    switchContext($win,$init_macro_context,1);
-  } else {
-    doEvalHook($win,"guess_context_hook","file_opened_hook");
-  }
-  doEvalHook($win,"file_opened_hook");
-  redraw_win($win) unless $win->{redrawn};
-  centerTo($win,$win->{currentNode});
-  $win->toplevel->Unbusy() unless $insideEval;
-
-#  addToRecent($grp,$new->filename);
-  return 1;
-}
+# sub reloadFile
 
 
-# openStandaloneFile should be called whenever a file is opened via
-# a non-filelist operation (that is other than nextFile, or gotoFile)
-# file
-sub openStandaloneFile {
-  my ($grp_or_win,$file) = @_;
-  my ($grp,$win)=grp_win($grp_or_win);
-  if ($grp->{appenddefault}) {
-    my $ret = openFile(@_);
-    if ($ret) {
-      my $fl=selectFilelistNoUpdate($grp,'Default',1);
-      my $pos=insertToFilelist($win,
-			       $win->{currentFilelist},
-			       $win->{currentFileNo},
-			       $file);
-      $win->{currentFileNo} = $pos if $pos >= 0;
-      update_filelist_views($grp,$win->{currentFilelist},0);
-    }
-    updateTitle($grp);
-    return $ret;
-  } else {
-    my $ret = openFile(@_);
-    undef $win->{currentFilelist};
-    $win->{currentFileNo} = -1;
-    updateTitle($grp);
-    return $ret;
-  }
-}
+# sub _new_status 
 
-# UI callback?
-sub reloadFile {
-  my ($grp_or_win) = @_;
-  my ($grp,$win)=grp_win($grp_or_win);
-  my $fsfile = $win->{FSFile};
-  if (ref($fsfile) and $fsfile->filename()) {
-    my $f=$fsfile->filename();
-    my @patterns=$fsfile->patterns();
-    my $hint=$fsfile->hint();
-    ($f)=TrEd::Utils::parse_file_suffix($f);
-    if ($fsfile->lastTreeNo >= 0) {
-      my $no=$win->{treeNo}+1;
-      my $nodeidx=0;
-      do {			# $node is undefined after this block
-	my $node=$win->{currentNode};
-	while ($node) { $nodeidx++; $node=$node->previous() };
-      };
-      $nodeidx-- if $nodeidx>=0;
-      $f = "$f##$no.$nodeidx";
-    }
-    return if askSaveFile($win,0,1) == -1;
-    my $ctxt = $grp->{selectedContext};
-    closeFile($win,-all_windows => 1);
-    openFile($win, $f, -noredraw => 1, -nohook=>1);
-    if ($ctxt ne $grp->{selectedContext}) {
-      switchContext($win,$ctxt,1);
-    }
-    $fsfile = $win->{FSFile};
-    if ($fsfile) {
-      if ($reloadKeepsPatterns) {
-	$fsfile->changePatterns(@patterns);
-	$fsfile->changeHint($hint);
-      }
-      doEvalHook($win,"file_reloaded_hook");
-    }
-    get_nodes_win($win);
-    redraw_win($win);
-    centerTo($win,$win->{currentNode});
-  }
-}
+# sub loadFile
 
-# status
-sub _new_status {
-  my %status = (
-    ok => undef,
-    cancel => undef,
-    warnings => [],
-    error => undef,
-    filename => undef,
-    backends => undef,
-    report => undef,
-    @_
-  );
-  return \%status;
-}
 
-# file
-sub loadFile {
-  my ($grp,$file,$backends)=@_;
-  $grp = cast_to_grp($grp);
-  my @warnings;
-  my $bck = ref($backends) ? $backends : \@backends;
-  my $status = _new_status(ok => 0, filename => $file, backends => $bck, warnings => \@warnings);
-  _clear_err();
-  local $SIG{__WARN__} = sub { my $msg = shift; chomp $msg; print STDERR $msg."\n"; push @warnings,$msg; };
-  my $fsfile = Treex::PML::Factory->createDocumentFromFile(
-    $file,
-    {
-      encoding => $TrEd::Convert::inputenc,
-      backends => $bck,
-      recover => 1,
-    });
-  my $error = $Treex::PML::FSError;
-  $status->{error} = $error==1 ? 'No suitable backend!' : _last_err();
-  $status->{report} = "Loading file '$file':\n\n";
+# sub merge_status
 
-  if (ref($fsfile) and $fsfile->lastTreeNo>=0 and $error==0) {
-    $status->{ok} = @warnings ? -1 : 1;
-  } else {
-    if (ref($fsfile) and $error==0) {
-      push @warnings, "NO TREES FOUND in this file.";
-      $status->{ok} = -1;
-    } else {
-      $status->{ok} = 0;
-      $status->{report} .= "ERRORS:\n\n".$status->{error}."\n";
-    }
-  }
-  if (@warnings) {
-    $status->{report} .= join "\n", "WARNINGS:\n",@warnings;
-  }
 
-  $grp->{lastOpenError}=$status->{report};
-
-  if (wantarray) {
-    return ($fsfile, $status);  
-  } else {
-    return $fsfile;
-  }
-}
-
-# status
-sub merge_status {
-  my ($status1, $status2) = @_;
-  if ($status1->{ok}==1) {
-    $status1->{ok} = $status2->{ok};
-  } elsif ($status2->{ok} != 1) {
-    $status1->{ok} = max2($status2->{ok}, $status1->{ok});
-  }
-  push @{$status1->{warnings}}, @{$status2->{warnings}};
-  $status1->{error} .= "\n".$status2->{error} if $status2->{error} ne EMPTY;
-  $status1->{report} .= "\n".$status2->{report} if $status2->{report} ne EMPTY;
-}
-
-# ends at 2540
-# file
-sub openFile {
-  my ($grp_or_win,$fname,%opts)= @_;
-  my ($grp,$win)=grp_win($grp_or_win);
-  unless ($opts{-nohook}) {
-    if (doEvalHook($win,"open_file_hook",$fname,{%opts}) eq 'stop') {
-      # not sure what status should we return
-      return wantarray ? ($win->{FSFile},_new_status(ok => 1)) : $win->{FSFile};
-    }
-  }
-
-  my $no_err = $grp->{noOpenFileError};
-  my $fsfile = $win->{FSFile};
-
-  my ($f,$goto) = TrEd::Utils::parse_file_suffix($fname);
-  print "Goto suffix is $goto\n" if defined($goto) and $tredDebug;
-
-  $opts{-keep} ||= $grp->{keepfiles};
-  if (!$opts{-keep} and $opts{-keep_related}) {
-    if ($tredDebug and $fsfile) {
-      print STDERR "got -keep_related flag for open $f:\n";
-      print STDERR map { $_->filename."\n" } getSecondaryFiles($fsfile), @{$fsfile->appData('fs-part-of')};
-    }
-    $opts{-keep}=1 if
-      $fsfile and
-	first { $_->filename eq $f } (getSecondaryFiles($fsfile), @{$fsfile->appData('fs-part-of')});
-    print STDERR "keep: $opts{-keep}\n" if $tredDebug;
-  }
-
-  $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
-
-  # File already open in current window? Simple!
-  if ($fsfile and Treex::PML::IO::is_same_filename($fsfile->filename(),$f)) {
-    unless ($opts{-preload}) {
-      updateTitle($grp);
-      applyFileSuffix($win,$goto);
-      unhideCurrentNode($win);
-      get_nodes_win($win, $opts{-noredraw});
-      unless ($opts{-nohook}) {
-	doEvalHook($win,"guess_context_hook","file_resumed_hook");
-	doEvalHook($win,"file_resumed_hook");
-      }
-      unless ($opts{-noredraw}) {
-	redraw_win($win);
-	centerTo($win,$win->{currentNode});
-      }
-      addToRecent($grp,$f) unless ($opts{-norecent} or $fsfile->appData('norecent'));
-    }
-    $win->toplevel->Unbusy() unless $insideEval;
-    return wantarray ? ($fsfile,_new_status(ok => 1)) : $fsfile;
-  }
-
-  # the current file would get open again as a secondary file to $f
-  if ($fsfile and
-      first {
-	Treex::PML::IO::is_same_filename($_->filename(),$f) } getPrimaryFilesRecursively($fsfile)) {
-    $opts{-keep} = 1;
-  }
-
-  # Shell we close current file?
-  unless ($opts{-preload} or $opts{-keep}) {
-    if (fsfileDisplayingWindows($grp,$fsfile)<2) {
-      my $answer = askSaveFile($win,1,1);
-      if ($answer == -1) {
-	$win->toplevel->Unbusy() unless $insideEval;
-	return wantarray ? (undef,_new_status(cancel => 1)) : undef;
-      }
-      $opts{-keep} = $answer;
-    }
-  }
-  closeFile($win,-no_update =>1 ,
-	    -keep_postponed => ($opts{-keep}||($fsfile&&$fsfile->appData('noautoclose'))))
-    unless $opts{-preload};
-
-  # Search open files for requested file, resume if available
-  unless ($opts{-justheader}) {
-    foreach my $of ($fsfile,@openfiles) {
-      if (ref($of) and Treex::PML::IO::is_same_filename($of->filename,$f)) {
-	print "Opening postponed file\n" if $tredDebug;
-	unless ($opts{-preload}) {
-	  resumeFile($win,$of,$opts{-keep});
-	  updateTitle($grp);
-	  applyFileSuffix($win,$goto);
-	  unhideCurrentNode($win);
-	  get_nodes_win($win, $opts{-noredraw});
-	  unless ($opts{-nohook}) {
-	    doEvalHook($win,"guess_context_hook","file_resumed_hook");
-	    doEvalHook($win,"file_resumed_hook");
-	  }
-	  unless ($opts{-noredraw}) {
-	    redraw_win($win);
-	    centerTo($win,$win->{currentNode});
-	  }
-	  addToRecent($grp,$f) unless ($opts{-norecent} or $fsfile and $fsfile->appData('norecent'));
-	}
-	$win->toplevel->Unbusy() unless $insideEval;
-	return wantarray ? ($of,_new_status(ok=>1)) : $of
-      }
-    }
-  }
-
-  # We're going to open a file: check locks
-  my $lockinfo;
-  unless ($opts{-justheader}) {
-    $lockinfo = TrEd::FileLock::lock_file($win,$f,\%opts);
-    if ($lockinfo eq 'Cancel') {
-      return wantarray ? (undef, _new_status(cancel=>1)) : undef;
-    }
-  }
-
-  # Check autosave file
-  my $recover='No';
-  my $autosave=autosave_filename($f);
-  if (not $no_err and defined($autosave) and -r $autosave) {
-    $recover=
-      userQuery($win,
-		"File seems to have an auto-saved recovery file from a previous session.\n".
-		"Shell I try to use the recovery file?",
-		-bitmap=> 'question',
-		-title => "Recover file?",
-		-buttons => ['Yes', 'No', 'No, delete recovery file']);
-  }
-
-  my $backends = doEvalHook($win,'get_backends_hook',@backends);
-  # Autosave file requested
-  my $status = { ok => 0 };
-
-  if ($recover eq 'Yes') {
-    # Open recovery file
-
-    ($fsfile,$status) = loadFile($grp,$autosave,$backends);
-    initAppData($fsfile) if ref($fsfile);
-    if ($status->{ok}) {
-      # Success
-      $fsfile->changeFilename($f);
-      $fsfile->notSaved(2);
-      TrEd::FileLock::set_fs_lock_info($fsfile, $lockinfo) if $lockFiles;
-      if ($status->{ok}<0) {
-	errorMessage($win,$status->{report},'warn');
-      }
-    } else {
-      # Recovery failed
-      my $trees=$fsfile ? $fsfile->lastTreeNo+1 : 0;
-      my $answer =
-	$win->toplevel->ErrorReport(
-	  -title => "Error: recovery failed",
-	  -message => "Recovery file is corrupted ($trees trees read)!"."\nPossible problem was:",
-	  -body => $status->{report},
-	  -buttons => ['Open the original file', 'Ignore', 'Cancel'],
-       );
-      if ($answer eq 'Open the original file') {
-	closeFile($win,-no_update => 1) unless $opts{-preload};
-
-	($fsfile,$status) = loadFile($grp,$f,$backends);
-	initAppData($fsfile) if ref($fsfile);
-	TrEd::FileLock::set_fs_lock_info($fsfile, $lockinfo) if $lockFiles;
-      } elsif ($answer eq 'Ignore') {
-	redraw_win($win) unless ($opts{-preload} or $opts{-noredraw});
-	$win->toplevel->Unbusy() unless $insideEval;
-	return wantarray ? (undef, _new_status(cancel=>1)) : undef;
-      }	else {
-	closeFile($win,-no_update => 1) unless
-	  $opts{-preload} or $fsfile->lastTreeNo>=0;
-	$no_err=1;
-      }
-    }
-  } else {
-    if ($recover eq 'No, delete recovery file') {
-      unlink $autosave;
-    }
-    # Open requeseted file
-
-    ($fsfile,$status) = loadFile($grp,$f,$backends);
-    initAppData($fsfile) if ref($fsfile);
-    TrEd::FileLock::set_fs_lock_info($fsfile, $lockinfo) if $lockFiles;
-  }
-
-  if ($status->{ok}) {
-    $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : EMPTY).$fsfile->backend);
-    unless ($no_secondary) {
-      $status = openSecondaryFiles($win,$fsfile,$status)
-	or undef $fsfile;
-    }
-  }
-  # don't make this an else for the above if: something might have changed in
-  # the above block
-  if ($status->{ok}==0) {
-    unless ($no_err) {
-      my $trees=$fsfile ? $fsfile->lastTreeNo+1 : 0;
-      $win->toplevel->ErrorReport(
-	-title => "Error: open failed",
-	-message => "File '$f' is unreadable, empty, corrupted, or does not exist ($trees trees read)!"."\nPossible problem was:",
-	-body => $status->{report},
-       );
-    }
-    closeFile($win,-no_update => 1) unless $opts{-preload};
-    TrEd::FileLock::remove_lock(undef, $f) if $lockinfo and $lockinfo !~ /^locked/;
-  } elsif ($status->{ok}<1) {
-    errorMessage($win,$status->{report},'warn');
-  }
-  setWindowFile($win,$fsfile) unless $opts{-preload};
-  if ($fsfile) {
-    if ($opts{-justheader}) {
-      $f=sprintf('%03d',$NewFileNo++)."_new_".filename($f);
-      $fsfile->changeFilename($f);
-      $fsfile->changeTrees();
-#      $fsfile->new_tree(0);
-      $fsfile->notSaved(1);
-    }
-    push @openfiles, $fsfile;
-  }
-  updatePostponed($grp);
-  # add file to filelist
-  updateTitle($grp) unless $opts{-preload};
-
-  my $save_current;
-  unless ($opts{-preload}) {
-    applyFileSuffix($win,$goto);
-    $save_current = $win->{currentNode};
-    unhideCurrentNode($win);
-    get_nodes_win($win, 1); # for the hook below
-  }
-  my $r = $win->{redrawn}; # if redraw is called during the hook, we will know it
-  if ($opts{-preload}) {
-    if ($fsfile and !$opts{-nohook}) {
-      doEvalHook($win,"guess_context_hook","file_opened_hook");
-      doEvalHook($win,"file_opened_hook");
-    }
-  } else {
-    if ($init_macro_context ne EMPTY and $win->{macroContext} ne $init_macro_context) {
-      switchContext($win,$init_macro_context,1)
-    } else {
-      doEvalHook($win,"guess_context_hook","file_opened_hook") if ($fsfile and !$opts{-nohook});
-    }
-    doEvalHook($win,"file_opened_hook") if ($fsfile and !$opts{-nohook});
-    unless ($opts{-noredraw}) {
-      unless ($win->{redrawn}>$r) {
-	$win->{currentNode} = $save_current if $save_current;
-	get_nodes_win($win); # the hook may have changed something
-	redraw_win($win);
-      }
-      centerTo($win,$win->{currentNode});
-    }
-  }
-  $win->toplevel->Unbusy() unless $insideEval;
-
-  addToRecent($grp,$f) unless ($opts{-norecent} or $fsfile && $fsfile->appData('norecent'));
-  return wantarray ? ($fsfile,$status) : $fsfile;
-}
+# sub openFile
 
 # wrapper for extensions that use this function
 # we can't change them until refactored tred is functional
@@ -2055,47 +1471,26 @@ sub lockOpenFile {
   return TrEd::FileLock::lock_open_file($win, $fsfile);
 }
 
-# file
-sub openSecondaryFiles {
-  my ($win, $fsfile, $status)=@_;
-  # if backend requested another FS-file, load it
-  # and store it in appData('ref') hash table
-  #
-  # mark this secondary FS-file as part of the original file
-  # so that they can be closed together
-  $status ||= _new_status(ok=>1);
-  return $status if $fsfile->appData('fs-require-loaded');
-  $fsfile->changeAppData('fs-require-loaded',1);
-  my $requires = $fsfile->metaData('fs-require');
-  if ($requires) {
-    for my $req (@$requires) {
-      next if ref($fsfile->appData('ref')->{$req->[0]});
-      my $req_filename = absolutize_path($fsfile->filename,$req->[1]);
-      print STDERR "Pre-loading dependent $req_filename ($req->[1]) as appData('ref')->{$req->[0]}\n" if $tredDebug;
-      my ($req_fs,$status2) = openFile($win,$req_filename,-preload => 1, -norecent=>1);
-      merge_status($status,$status2);
-      if (!$status2->{ok}) {
-	closeFile($win, -fsfile => $req_fs, -no_update => 1);
-	return $status2;
-      } else {
-	push @{ $req_fs->appData('fs-part-of') }, $fsfile; # is this a good idea?
-	__debug("Setting appData('ref')->{$req->[0]} to $req_fs");
-	$fsfile->appData('ref')->{$req->[0]}=$req_fs;
-      }
+# sub openSecondaryFiles
+
+
+#######################################################################################
+# Usage         : unhide_current_node($win)
+# Purpose       : Show current node if it is hidden
+# Returns       : Undef/empty list
+# Parameters    : TrEd::Window ref $win -- reference to TrEd::Window object
+# Throws        : No exception
+# Comments      : Sets showHidden value to 1 for the Window's TrEd::TreeView object
+sub unhide_current_node {
+    my ($win) = @_;
+    if ( $win->{currentNode} ) {
+        if ( !isShown( $win, $win->{currentNode} ) ) {
+            $win->treeView()->set_showHidden(1);
+        }
     }
-  }
-  return $status;
+    return;
 }
 
-# node
-sub unhideCurrentNode {
-  my ($win)=@_;
-  if ($win->{currentNode}) {
-    unless (isShown($win,$win->{currentNode})) {
-      $win->treeView->set_showHidden(1);
-    }
-  }
-}
 
 # autosave, file
 sub autosave_filename {
@@ -2105,11 +1500,11 @@ sub autosave_filename {
   return $f;
 }
 
-# autosave
+# autosave, file? to TrEd::File?
 sub autoSaveAll {
   my ($grp)=@_;
   my $top=$grp->{top};
-  my @files=grep { ($_->notSaved == 1) and !$_->appData('noautosave') } @openfiles;
+  my @files=grep { ($_->notSaved == 1) and !$_->appData('noautosave') } TrEd::File::get_openfiles();
   return unless @files;
   $top->title("Autosaving...");
   $top->update;
@@ -2140,136 +1535,11 @@ sub autoSaveAll {
     }
     $fsfile->notSaved(2);
   }
-  updateTitle($grp);
+  update_title_and_buttons($grp);
   $top->Unbusy() unless $insideEval;
 }
 
-# file
-sub saveFile {
-  my ($win,$f)=@_;
-  $win=cast_to_win($win);
-  my $fsfile;
-  if (UNIVERSAL::DOES::does($f,'Treex::PML::Document')) {
-    $fsfile = $f;
-    $f=$f->filename;
-  } else {
-    $fsfile = $win->{FSFile};
-  }
-  return unless $fsfile;
-  unless (defined($f)) {
-    $f=$fsfile->filename;
-    if ($f =~ /^unnamed\d+$/) {
-      my $ret =  saveFileAs($win);
-      if ($ret) {
-	# now we may add the file to the current filelist?
-	$win->{currentFileNo} = max2(0,$win->{currentFileNo});
-	my $pos=insertToFilelist($win,
-				 $win->{currentFilelist},
-				 $win->{currentFileNo},
-				 $fsfile->filename);
-	$win->{currentFileNo} = $pos if $pos >= 0;
-	update_filelist_views($win,$win->{currentFilelist},0);
-      }
-      return $ret;
-    }
-  }
-
-  my $lock = TrEd::FileLock::check_lock($fsfile,$f);
-  if ($lock =~ /^locked|^stolen|^opened/) {
-    if (userQuery($win,
-		  "File $f was $lock!",
-		  -bitmap=> 'question',
-		  -title => "Saving locked file?",
-		  -buttons => ['Steal lock and save','Cancel']) eq 'Cancel') {
-      $win->toplevel->Unbusy() unless $insideEval;
-      return -1;
-    }
-  } elsif ($lock =~ /^originally locked by us/) {
-    if (userQuery($win,
-		  "File $f has been $lock, so saving it now seems quite safe.",
-		  -bitmap=> 'question',
-		  -title => "Saving changed file?",
-		  -buttons => ['Save','Cancel']) eq 'Cancel') {
-      $win->toplevel->Unbusy() unless $insideEval;
-      return -1;
-    }
-  } elsif ($lock =~ /^changed/) {
-    if (userQuery($win,
-		  "File $f has been $lock! Saving it now would overwrite those changes made by the other program.",
-		  -bitmap=> 'question',
-		  -title => "Saving changed file?",
-		  -buttons => ['Save anyway','Cancel']) eq 'Cancel') {
-      $win->toplevel->Unbusy() unless $insideEval;
-      return -1;
-    }
-  }
-
-  $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
-
-  my $refs_to_save={};
-  if (!askSaveReferences($win,$fsfile,$refs_to_save,$f) or
-      doEvalHook($win,"file_save_hook",$f) eq 'stop') {
-    updateTitle($win->{framegroup});
-    $win->toplevel->Unbusy() unless $insideEval;
-    return;
-  }
-  eval {
-    Treex::PML::IO::rename_uri($f,$f."~") unless $f=~/^ntred:/
-  };
-  print STDERR $@;
-  $fsfile->changeAppData('refs_save',$refs_to_save);
-  my $result;
-  my $stop;
-  my @warnings;
-  my $err;
-  {
-    local $SIG{__WARN__} = sub { my $msg = shift; chomp $msg; push @warnings,$msg; };
-    eval { 
-      $result = $fsfile->writeFile($f);
-    };
-    $err = $@;
-    # called from within the eval so all errors and warnings
-    # are shown as warnings on the output
-    $stop = doEvalHook($win,"after_save_hook",$f,$result);
-  }
-  $fsfile->changeAppData('refs_save',undef);
-  if (!$result or $stop eq "stop_fatal") {
-    $win->toplevel->Unbusy() unless $insideEval;
-    $fsfile->notSaved(1);
-    saveFileStateUpdate($win) if $fsfile == $win->{FSFile};
-    errorMessage($win,"Error while saving file to '$f'!\nI'll try to recover the original from backup.\n"._last_err($err."\n".(@warnings ? join("\n",'WARNINGS:',@warnings) : ''))."\n"."Check file and directory permissions.\nSee also the console error output.");
-    undef $!;
-    eval {
-      Treex::PML::IO::rename_uri($f."~",$f) unless $f=~/^ntred:/; # if (-f $f);
-    };
-    if (_last_err()) {
-      my $err = "Error while renaming backup file $f~ back to $f.\n";
-      errorMessage($win,$err,1);
-    }
-    return -1;
-  } elsif (@warnings) {
-    errorMessage($win,"Saving file to '$f':\n\n".
-		   join("\n",@warnings),'warn');
-  } else {
-    Treex::PML::IO::unlink_uri($f."~") if $no_backups;
-  }
-  TrEd::FileLock::set_fs_lock_info($fsfile, TrEd::FileLock::set_lock($f)) if $lockFiles;
-  my $autosave=autosave_filename($f);
-  unlink $autosave if defined($autosave);
-  $win->toplevel->Unbusy() unless $insideEval;
-  my $ret = 1;
-  if ($stop eq "stop") {
-    # SILENT STOP
-    # file is considered saved
-    $ret = -1;
-  } elsif ($stop eq "stop_nonfatal") {
-    $fsfile->notSaved(1);
-    $ret = -1;
-  }
-  addToRecent($win->{framegroup},$f);
-  saveFileStateUpdate($win) if $fsfile == $win->{FSFile};
-  return $ret;
-}
+# sub saveFile
 
 # node
 sub isShown { # test if node is shown (always 1 if $showHidden)
@@ -2423,24 +1693,41 @@ sub initSidePanel {
 
 
 # context list, menu, UI
+#######################################################################################
+# Usage         : set_window_file($win, $fsfile)
+# Purpose       : Set tree number, current node and FSFile for Window $win to values 
+#                 obtained from $fsfile
+# Returns       : Undef/empty list
+# Parameters    : TrEd::Window ref $win -- ref to TrEd::Window object which is to be altered
+#                 Treex::PML::Document ref $fsfile -- ref to Document which is set as current for the Window
+# Throws        : No exception
+# Comments      : If $fsfile is not defined, all the beforementioned values are set to undef.
+#                 If Windows is focused, session status is updated.
+# See Also      : is_focused(), fsfileDisplayingWindows()
 sub update_context_list {
-  my ($grp)=@_;
-  if ($grp->{ContextsMenu}) {
-    my $sel = $grp->{selectedContext};
-    my %new = map { $_ => 1} getApplicableContexts($grp->{focusedWindow});
-    my $tredmacro_ok = delete $new{TredMacro};
-    $grp->{ContextsMenu}->configure(-options => [
-      ($tredmacro_ok ? 'TredMacro' : ()),
-      sort keys %new]);
-    if ($sel ne $grp->{selectedContext}) {
-      if ($tredmacro_ok) {
-	$grp->{selectedContext} = 'TredMacro';
-      } elsif ($init_macro_context and exists($new{$init_macro_context})) {
-	$grp->{selectedContext} = $init_macro_context;
-      }
-      switchContext($grp->{focusedWindow},$grp->{selectedContext},1);
+    #TODO: nezabudni sa vratit este k update_session_status...
+    my ($grp) = @_;
+    if ( $grp->{ContextsMenu} ) {
+        my $sel = $grp->{selectedContext};
+        my %new = map { $_ => 1 } 
+                  getApplicableContexts( $grp->{focusedWindow} );
+        my $tredmacro_ok = delete $new{TredMacro};
+        $grp->{ContextsMenu}->configure( -options =>
+                [ ( $tredmacro_ok ? 'TredMacro' : () ), sort keys %new ] );
+                
+        if ( $sel ne $grp->{selectedContext} ) {
+            if ($tredmacro_ok) {
+                $grp->{selectedContext} = 'TredMacro';
+            }
+            elsif ( $init_macro_context
+                && exists( $new{$init_macro_context} ) )
+            {
+                $grp->{selectedContext} = $init_macro_context;
+            }
+            switchContext( $grp->{focusedWindow}, $grp->{selectedContext},
+                1 );
+        }
     }
-  }
 }
 
 # macro, menu, UI
@@ -2579,24 +1866,42 @@ sub update_value_line {
 }
 
 ### Get Nodes
-# node
+#######################################################################################
+# Usage         : get_nodes_win($win, $no_redraw)
+# Purpose       : Load the root, nodes and current node of tree number $win->{treeNo}
+#                 from current file in the Window $win into $win-{root}, $win->{Nodes}
+#                 and $win->{currentNode} hash values
+# Returns       : Undef/empty list
+# Parameters    : TrEd::Window ref $win -- reference to TrEd::Window whose nodes are searched for
+#                 scalar $no_redraw     -- indicator that forbids redrawing during the function
+# Throws        : No exception
+# Comments      : Updates TrEd::ValueLine if $no_redraw is not set.
+# See Also      : 
 sub get_nodes_win {
-  my ($win,$noredraw)=@_;
-  if ($win->{FSFile}) {
-    $TrEd::TreeView::on_get_nodes = [\&onGetNodes,$win];
-    $win->{treeNo}=0 if ($win->{treeNo}<0 and $win->{FSFile}->lastTreeNo>=0);
-    $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
-    ($win->{Nodes},$win->{currentNode})= $win->treeView->nodes($win->{FSFile},
-								 $win->{treeNo},
-								 $win->{currentNode});
-  } else {
-    print "no nodes to get\n" if $tredDebug;
-    $win->{root}=undef;
-    $win->{Nodes}=[];
-    $win->{currentNode}=undef;
-  }
-  TrEd::ValueLine::update($win->{framegroup}) if (isFocused($win) and !$noredraw);
+    my ( $win, $no_redraw ) = @_;
+    if ( $win->{FSFile} ) {
+        # set hook 
+        $TrEd::TreeView::on_get_nodes = [ \&onGetNodes, $win ];
+        if ( $win->{treeNo} < 0 and $win->{FSFile}->lastTreeNo >= 0 ) {
+            $win->{treeNo} = 0;
+        }
+        $win->{root} = $win->{FSFile}->treeList->[ $win->{treeNo} ];
+        ( $win->{Nodes}, $win->{currentNode} )
+            = $win->treeView->nodes( $win->{FSFile}, $win->{treeNo},
+            $win->{currentNode} );
+    }
+    else {
+        print "no nodes to get\n" if $tredDebug;
+        $win->{root}        = undef;
+        $win->{Nodes}       = [];
+        $win->{currentNode} = undef;
+    }
+    if ( is_focused($win) and !$no_redraw ) {
+        TrEd::ValueLine::update( $win->{framegroup} );
+    }
+    return;
 }
+
 
 # node, fsfile
 sub get_nodes_fsfile {
@@ -2643,883 +1948,47 @@ sub get_nodes_all {
 # Filelists
 ############################################################
 
-sub selectFilelistNoUpdate {
-  my ($grp_or_win,$list_name,$noResetPosition)=@_;
-  my ($grp,$win)=grp_win($grp_or_win);
-  my $fl= isFocused($win) ? switchFilelist($grp,$list_name) : findFilelist($list_name);
-  print "Selecting filelist '$list_name' (found: $fl)\n" if $tredDebug;
-  return unless defined($fl);
-  unless ($fl == $win->{currentFilelist}) {
-    # save file position in the current file-list
-    # before switching
-    $win->{currentFilelist}->set_current(TrEd::ManageFilelist::filelistFullFileName($win,$win->{currentFileNo}))
-      if ref($win->{currentFilelist});
-    $win->{currentFilelist}=$fl;
-  }
-  $win->{currentFileNo}=max2(0,$fl->position()) unless $noResetPosition;
-  return $fl;
-}
-
+#sub selectFilelistNoUpdate
+#sub selectFilelist 
+#TODO: wrappers for ntred.mak?
 sub selectFilelist {
-  my ($grp_or_win,$list_name,$opts)=@_;
-  my ($grp,$win)=grp_win($grp_or_win);
-  my $fl = selectFilelistNoUpdate($win,$list_name);
-  if ($fl and !$opts->{no_open}) {
-    if ($win->{currentFileNo}>=$fl->file_count()) {
-      closeFile($win);
-    } else {
-      # we use nextFile instead of gotoFile so that
-      # the user can 'Skip broken files'
-      $win->{currentFileNo}--;
-      TrEd::ManageFilelist::nextFile($win);
-    }
-    updateTitle($grp);
-    #TODO: neprepisat na sipkovu notaciu?
-    TrEd::Filelist::View::update($grp,$fl,1);
-  }
-  return $fl;
+  TrEd::ManageFilelists::selectFilelist(@_);
 }
-
-# Find named filelist. Return undef if no such filelist exists
+ 
 sub findFilelist {
-  my ($name)=@_;
-  for (@filelists) {
-    return $_ if ($_->name eq $name);
-  }
-  return undef;
+  TrEd::ManageFilelists::findFilelist(@_);
 }
-
-sub looseFilePositionInFilelist {
-  my ($filelist,$fsfile) = @_;
-  return undef unless ref($filelist);
-  my $fname = ref($fsfile) ? $fsfile->filename() : $fsfile;
-  my $pos = $filelist->position($fsfile);
-  return $pos if $pos >= 0;
-
-  ($fname)=TrEd::Utils::parse_file_suffix($fname);
-  my $files=$filelist->files_ref;
-  my $basedir=$filelist->dirname();
-  my $relfname=$fname;
-  if (index($fname,$basedir)==0) {
-    $relfname=substr($fname,length($basedir));
-  }
-  for (my $i=0; $i < $filelist->file_count; $i++) {
-    my ($fn) = TrEd::Utils::parse_file_suffix($files->[$i]->[0]);
-    return $i if ($fname eq $fn or $relfname eq $fn);
-  }
-  return -1;
-}
-
-
-
-# this is only a local switch inside the file list dialog window,
-# but returns filelist of a given name as a by-product
-sub switchFilelist {
-  my ($grp,$list_name)=@_;
-  print "Switching filelist to '$list_name'\n" if $tredDebug;
-  return undef unless ref($grp);
-  my $fl=undef;
-  if (ref($list_name)) {
-    $fl=$list_name;
-    $list_name=$fl->name();
-  }
-  return $grp->{filelistCurrentFilelist} 
-    if (ref($grp->{filelistCurrentFilelist}) and 
-	$list_name eq $grp->{filelistCurrentFilelist}->name);
-  $fl=findFilelist($list_name) unless ($fl);
-  return undef unless $fl;
-  if ($grp->{Filelist}) {
-    $grp->{filelistCurrentFilelist}=$fl;
-    TrEd::Filelist::View::update_a_filelist_view($grp,$grp->{Filelist},$fl,0,1);
-    if (defined($fl->current)) {
-      TrEd::Filelist::View::update_a_filelist_view($grp,$grp->{Filelist},$fl, max2(0,$fl->position),0);
-    }
-    $grp->{Filelist}->update();
-  }
-  return $fl;
-}
-
-
-sub createFilelistBrowseEntry {
-  my ($grp,$w,$filelistref)=@_;
-  my $ll= $w->BrowseEntry
-    (
-     -label=> 'File lists:',
-     -variable=> $filelistref,
-     -browsecmd=>
-     [
-      sub {
-	my ($grp,$list,$l)=@_;
-	switchFilelist($grp,$$list);
-      },$grp,$filelistref
-     ],
-     -listcmd=>
-     [ sub {
-	 my $l=shift;
-	 $l->delete(0,'end');
-	 foreach (sort {lc($a->name()) cmp lc($b->name())} @filelists) {
-	   $l->insert(0,$_->name);
-	 }
-       }]
-    );
-  $ll->Subwidget('entry')->bind
-    ('<Return>',
-     [ sub {
-	 my ($w, $grp, $fl)=@_;
-	 my $text=$w->get;
-	 if (findFilelist($text)) {
-	   switchFilelist($grp,$text);
-	 } else {
-	   return unless $text ne EMPTY;
-	   my $d=$w->toplevel->
-	     Dialog(-text=> "File-list named $text does not exist.\n".
-		    "Do you want to create new filelist or rename current?",
-		    -bitmap=> 'question',
-		    -title=> 'Create/Rename?',
-		    -buttons=> ['Create', 'Rename', 'Cancel']);
-	   $d->BindReturn($d,1);
-	   $d->BindButtons;
-	   my $answer=$d->Show();
-	   if ($answer eq 'Create') {
-	     addFilelist(Filelist->new($text));
-	     switchFilelist($grp,$text);
-	     updatePostponed($grp);
-	   } elsif ($answer eq 'Rename') {
-	     my $oldn=$grp->{filelistCurrentFilelist}->name();
-	     $grp->{filelistCurrentFilelist}->rename($text);
-	     updateBookmarks($grp)
-	       if ($oldn eq 'Bookmarks');
-	     $$fl=$text;
-	     updatePostponed($grp);
-	   } else {
-	     $$fl=$grp->{filelistCurrentFilelist}->name
-	       if ($grp->{filelistCurrentFilelist});
-	   }
-	 }
-       },$grp,$filelistref ]);
-  $ll->Subwidget('entry')->Subwidget('entry')->configure(qw/-background white -foreground black/);
-  $ll->Subwidget('slistbox')->configure(qw/-background white -foreground black/);
-  return $ll;
-}
-
 sub addFilelist {
-  my ($fl)=@_;
-  push @filelists, $fl;
-  print "adding filelist ".$fl->name()."\n";
-  return $fl;
+  TrEd::ManageFilelists::addFilelist(@_);
 }
 
-sub getFilelistLinePosition {
-  my ($fl,$line)=@_;
-  return undef unless ref($fl);
-  my ($p,$f)=split /\t/,$line;
-  return Index($fl->list_ref,$p);
-}
+#sub looseFilePositionInFilelist
 
-sub insertToFilelist {
-  my ($grp_or_win,$filelist,$position)=(shift,shift,shift);
-  my ($grp,$win)=grp_win($grp_or_win);
-  $filelist=$win->{currentFilelist} unless defined($filelist);
-  $position=$win->{currentFileNo} unless defined($position);
-  return -1 unless ref($filelist) and UNIVERSAL::can($filelist,'add');
+#sub switchFilelist
+#sub createFilelistBrowseEntry 
 
+#sub getFilelistLinePosition
 
-  print "Insert: ",@_," ",$_[0]," is at position ",$filelist->position($_[0]),"\n"  if $tredDebug;
-  return -1 if (@_==1 and $filelist->position($_[0])>=0);
-  # this is the case when we add a file which is actually already there
+#sub insertToFilelist 
+#sub removeFromFilelist
+#sub createNewFilelist 
 
-  my @list=map absolutize($_),@_;
-  my $tmp;
-  my $toplevel= $grp->{Filelist} ? $grp->{Filelist}->toplevel : $grp->{top};
-  @list= map {
-    if (-d $_) {
-      $grp->{'hist-fileListPattern'}=[] unless $grp->{'hist-fileListPattern'};
-      $tmp=Query($toplevel,"Selection Pattern","Insert pattern for directory $_","*.*",1,$grp->{'hist-fileListPattern'});
-      $_= defined($tmp) ? File::Spec->catfile($_,$tmp) : undef;
-    }
-    $_;
-  } @list;
-  $position = min($position+1, $filelist->count)-1;
-  print "Inserting @list to position ",$position+1,"\n" if $tredDebug;
-  $filelist->add($position+1,@list);
+#sub _user_resolve_filelist_conflict 
+#sub _solve_filelist_conflict 
+#sub add_new_filelist 
+#sub deleteFilelist 
+#sub filelistEntryPath 
+#sub feedHListWithFilelist 
 
-  update_filelist_views($grp,$filelist,1);
-  if ($grp->{Filelist} and $grp->{filelistCurrentFilelist} == $filelist) {
-    $position = max2(0,$filelist->position($list[0]));
-    TrEd::Filelist::View::update_a_filelist_view($grp,$grp->{Filelist},$filelist,$position,0);
-    # select all files resulting from an added patterns
-    for (my $i=0 ; $i<$filelist->file_count ; $i++) {
-      if (defined(Index(\@list,$filelist->file_pattern($i)))) {
-	my $file = filelistEntryPath($filelist,$i);
-	if ($grp->{Filelist}->info('exists',$file)) {
-	  $grp->{Filelist}->selectionSet($file);
-	}
-      }
-    }
-  }
-  return $position+1;
-}
-
-sub removeFromFilelist {
-  my ($grp_or_win,$filelist,$position)=(shift,shift,shift);
-  unless (@_) {
-    print STDERR "removeFromFilelist: no file given\n";
-    return;
-  }
-
-  my ($grp,$win)=grp_win($grp_or_win);
-  $filelist=$win->{currentFilelist} if not defined($filelist);
-  $position=$win->{currentFileNo} if not defined($position);
-  return unless ref($filelist) and UNIVERSAL::can($filelist,'remove');
-  
-  $filelist->remove(@_);
-  if ($filelist eq $win->{currentFilelist}) {
-    $win->{currentFileNo}= min($win->{currentFileNo},
-			       $filelist->file_count-1);
-  }
-
-  update_filelist_views($grp,$filelist,1);
-  if ($grp->{Filelist} and $grp->{filelistCurrentFilelist} == $filelist) {
-    $position=min2($position,$filelist->file_count-1);
-    TrEd::Filelist::View::update_a_filelist_view($grp,$grp->{Filelist},$filelist,$position,0);
-  }
-}
-
-sub createNewFilelist {
-  my ($grp,$top)=@_;
-  my $name = QueryString($top || $grp,"File-list name", "Name: ") || return;
-  if ($top) {
-    $top->deiconify; $top->focus; $top->raise;
-  }
-  if (findFilelist($name)) {
-    userQuery($top || grp_win($grp),
-	      "File-list named '$name' already exists.\n",
-	      -title => "File-list already exists",
-	      -buttons => ["OK"]);
-    return;
-  } else {
-    my $fl = Filelist->new($name);
-    addFilelist($fl);
-    switchFilelist($grp,$fl->name);
-    updatePostponed($grp);
-    return $fl;
-  }
-}
-
-sub _user_resolve_filelist_conflict {
-  my ($top, $file_name_loaded, $file_name_new) = @_;
-  if (Treex::PML::IO::is_same_file($file_name_new, $file_name_loaded)) {
-    return userQuery($top,
-        	      "Filelist '" . $file_name_loaded . "' already loaded.\n",
-        	      -bitmap=> 'question',
-        	      -title => "Reload filelist?",
-        	      -buttons => ['Reload','Cancel'])
-  }
-  else {
-    return userQuery($top,
-        	      "Filelist named '" . $file_name_loaded . 
-        		"' is already loaded from\n" . $file_name_new . "\n",
-        	      -bitmap=> 'question',
-        	      -title => "Filelist conflict",
-        	      -buttons => ['Replace','Change name','Cancel']);
-  }
-}
-
-sub _solve_filelist_conflict {
-  my ($top, $filelist) = @_;
-  
-  my $old_name = eval { $filelist->name() };
-  if ($@) {
-    confess($@)
-  }
-  
-  my $l;
-  LOOP:
-  for my $dummy (1) {
-    # ($l) = grep { $_->name eq $fl->name } @filelists;
-    $l = TrEd::MinMax::first { $_->name() eq $filelist->name() } @filelists; 
-    last if not $l;
-    if ($top) {
-      my $answer = _user_resolve_filelist_conflict($top, $filelist->filename(), $l->filename());
-      return $l if $answer eq 'Cancel';
-      if ($answer eq 'Change name') {
-        my $new_name = QueryString($top, "Filelist name", "Name: ", $filelist->name);
-        return $l if not defined($new_name);
-        $filelist->rename($new_name);
-        redo LOOP;
-      }
-    }
-    elsif ($tredDebug) {
-      print STDERR 'Filelist ' , $filelist->name() , " already exists, replacing!\n";
-    }
-  }
-  
-  if ($old_name ne $filelist->name()) {
-    if (not $opt_q) {
-      print STDERR 'Saving filelist ' . $filelist->name(). ' to: ' , $filelist->filename() , "\n";
-    }
-    $filelist->save(); # filelist renamed
-  }
-  return;
-}
-
-#######################################################################################
-# Usage         : add_new_filelist(..)
-# Purpose       : ...  
-# Returns       : ..
-# Parameters    : ..
-# Throws        : ..
-# Comments      : ..
-# See Also      : .. 
-# TODO: tests
-# TODO: to je iny filelist ako je ten tredlib/Filelist.pm?
-sub add_new_filelist {
-  my ($grp, $fl, $top) = @_;
-  return if not defined($fl) or $fl eq EMPTY;
-  
-  my $l = _solve_filelist_conflict($top, $fl);
-  # osetri return $l 
-  if(defined($l)) {
-    return $l;
-  }
-  
-  if ($l) {
-      @{ $l->list_ref } = $fl->list();
-      $l->filename($fl->filename()); # set filename
-      $l->expand();
-      if ($grp) {
-        $grp->{filelistCurrentFilelist} = undef;
-        switchFilelist($grp, $l);
-      }
-      undef $fl;
-      return $l;
-  }
-  if (not defined($fl->name()) or $fl->name() eq EMPTY) {
-    undef $fl;
-    return;
-  }
-  push @filelists, $fl;
-  if ($grp) {
-    switchFilelist($grp,$fl);
-    updatePostponed($grp);
-  }
-  return $fl;
-}
-
-
-sub deleteFilelist {
-  my ($grp,@lists)=@_;
-  @lists = grep {
-    (ref($_) ? (($filelist_from_extension{$_}||0)!=1) : do { carp("deleteFilelist: $_ is not a filelist object!"); 0 })
-    and $_->name !~ /^(Default|Bookmarks)$/
-  } @lists;
-  my %to_delete; @to_delete{ @lists } = ();
-  return unless @lists;
-  print "Removing filelists ".join(",",map $_->name(), @lists)."\n" if $tredDebug;
-  @filelists=grep(!exists($to_delete{$_}), @filelists);
-  for my $list (@lists) {
-    if (($filelist_from_extension{$list}||0)==2) {
-      my $fn = $list->filename;
-      if ($fn) {
-	print "Deleting filelist file $fn\n" if $tredDebug;
-	unlink $fn;
-      }
-    }
-  }
-  if (exists($to_delete{$grp->{filelistCurrentFilelist}})) {
-    $grp->{filelistCurrentFilelist}=undef;
-    switchFilelist($grp,'Default');
-  }
-  undef @lists;
-  updatePostponed($grp);
-}
-
-sub filelistEntryPath {
-  my ($fl,$index)= @_;
-  return undef unless ref($fl);
-
-  my $f= $fl->file_at($index);
-  my $p= $fl->file_pattern($index);
-  return $f eq $p ? $f : "$p\t$f";
-}
-
-sub feedHListWithFilelist {
-  my ($grp,$hl,$fl)=@_;
-  return unless ref($hl) and ref($fl);
-  if ($hl->can('Subwidget') and $hl->Subwidget('scrolled')) {
-    $hl=$hl->Subwidget('scrolled');
-  }
-  $hl->delete('all');
-  my $pat;
-  my $f;
-  for(my $i=0;$i<$fl->file_count;$i++) {
-    $pat=$fl->file_pattern($i);
-    $f=$fl->file_at($i);
-    next unless defined($pat) and defined($f);
-    if ($pat eq $f) {
-      $hl->add($f,
-	       -itemtype=> 'imagetext',
-	       -image=> $grp->{fileImage},
-	       -data=> $f,
-	       -text=> $f,
-	       -style => $hl->{default_style_imagetext},
-	      );
-      next;
-    }
-    unless ( $hl->info('exists', $pat) ) {
-      $hl->add("$pat",
-	       -itemtype=> 'imagetext',
-	       -image=> $grp->{folderImage},
-	       -data=> $pat,
-	       -text=> $pat,
-	       -style => $hl->{default_style_imagetext},
-	      );
-    }
-    $hl->add("$pat\t$f",
-	     -itemtype=> 'imagetext',
-	     -image=> $grp->{fileImage},
-	     -data=> $f,
-	     -text=> $f,
-	     -style => $hl->{default_style_imagetext},
-	    );
-  }
-}
-
-
-sub selectFilelistDialog {
-  my ($grp)=@_;
-  use Devel::Peek;
-  for (@filelists) {
-    #Dump($_->name);
-  }
-  my @lists =
-    sort { $a->[2] cmp $b->[2] } (map { [$_,$_->name,lc($_->name)] } @filelists);
-  return unless @lists;
-  my $i = 'A';
-  my $selection = [$i.'.  '.$lists[0]->[1]];
-  listQuery($grp->{top},'Select File Lists','browse',
-	    [map { ($i++).".  ".$_->[1] } @lists],$selection,
-	   ) || return;
-  return unless (@$selection);
-  my $sel = $selection->[0];
-  $sel=~s{^\w+.  }{};
-  selectFilelist($grp,$sel);
-}
-
-sub bookmarkToFilelistDialog {
-  my ($grp)=@_;
-  my @lists = sort { $a->[2] cmp $b->[2] } grep {($filelist_from_extension{$_->[0]}||0)!=1} map [$_,$_->name,lc($_->name)], @filelists;
-  return unless @lists;
-  my $i = 'A';
-  my $selection = [$i.'.  '.$lists[0]->[1]];
-  listQuery($grp->{top},'Add Bookmark To File Lists','browse',
-	    [map {($i++).'.  '.$_->[1]} @lists],$selection,
-	   ) || return;
-  return unless (@$selection);
-  my $sel = $selection->[0];
-  $sel=~s{^\w+.  }{};
-  addBookmark($grp,$sel);
-}
-
-sub removeFilelistsDialog {
-  my ($grp)=@_;
-
-  my @lists = sort { $a->[1] cmp $b->[1] }  grep { $_->[1] ne 'Default' and $_->[1] ne 'Bookmarks' and 
-		    ($filelist_from_extension{$_->[0]}||0)!=1} map [$_,$_->name,lc($_->name)], @filelists;
-  return unless @lists;
-  my $i = 'A';
-  my $selection = [$i.'.  '.$lists[0]->[1]];
-  my $indexes = listQuery($grp->{top},'Remove File Lists','extended',
-		  [map {($i++).'.  '.$_->[1]} @lists],$selection,
-		  {
-		    -label => 'Select one or more file lists',
-		  }) || return;
-  return unless (@$selection and
-		 userQuery($grp->{top},
-			  "Realy remove ".scalar(@$selection)." file list(s)?\n",
-			  -bitmap=> 'question',
-			  -title => "Remove file lists?",
-			  -buttons => ['Remove','Cancel']) eq 'Remove');
-  deleteFilelist($grp,map $_->[0], @lists[@$indexes]);
-}
-
-sub loadFilelist {
-  my ($grp,$top)=@_;
-  $top||=$grp->{top};
-  my $file= get_open_filename($top,-filetypes=>
-				[["Filelists",           ['.fl']],
-				 ["All files",           ['*','*.*']]
-				],
-			      -title=> "Load filelist ...");
-  $top->deiconify;
-  $top->focus;
-  $top->raise;
-  return unless (defined $file and $file ne EMPTY);
-  my $fl=Filelist->new(undef,$file);
-  return unless $fl;
-  print STDERR "Loading filelist: $file\n";
-  $fl->load();
-  add_new_filelist($grp,$fl,$top);
-  return $fl->name();
-}
-
-sub filelistDialog {
-
-  use Tk::LabFrame;
-  my ($grp,$modal)=@_;
-  my $win = $grp->{focusedWindow};
-  if (defined($grp->{Filelist})) {
-    if ($modal) {
-      ShowDialog($grp->{Filelist}->toplevel);
-    } else {
-      $grp->{Filelist}->toplevel->deiconify;
-      $grp->{Filelist}->toplevel->focus;
-      $grp->{Filelist}->toplevel->raise;
-    }
-    return;
-  }
-  return if ($grp->{Filelist});
-
-  $grp->{top}->Busy(-recurse=>1);
-  my $filelist;
-  if (!ref($win->{currentFilelist})) {
-    if ($win->{FSFile}) {
-      errorMessage($win,"Cannot manage file-lists while visiting a file not belonging to any file-list! ".
-		   "Please, switch to a file-list (e.g. using Session->Default) and try again.",1);
-      $grp->{top}->Unbusy();
-      return;
-    } else {
-      selectFilelist($grp,'Default');
-    }
-  }
-  $grp->{filelistCurrentFilelist}=$win->{currentFilelist};
-  $filelist=$grp->{filelistCurrentFilelist}->name;
-  my $d= $grp->{top}->Toplevel(-title=> "Filelist");
-  $d->withdraw;
-  $grp->{filelistDialog}=$d;
-
-  my $botframe=$d->Frame()->pack(qw/-fill both -side bottom/);
-  my $topframe=$d->Frame()->pack(qw/-fill both -side top -expand 1/);
-
-  my $labframe=$topframe->LabFrame(-label=> 'Files to add',
-				-labelside=> 'acrosstop'
-			       )->pack(qw/-expand no -fill both -side left/);
-  $labframe->Subwidget('label')->configure(-underline => 0);
-  my $fsel= $labframe->MyFileSelect(
-    -selectmode=> 'extended',
-    -takefocus => 1,
-    -textentry => 1,
-   )->pack(qw/-expand yes -fill both -side left -padx 5 -pady 5/);
-  $fsel->Subwidget('filelist')->configure(-background => 'white', -setgrid => 1);
-  my $show_hidden=0;
-  my $menu = $fsel->Menu(
-    -tearoff => 0,
-    -menuitems => [
-      ['Checkbutton' => '~Show hidden files',
-       -variable => \$show_hidden,
-       -command => [sub {
-		      my ($grp,$fsel)=@_;
-		      $fsel->configure(-showhidden=>$show_hidden);
-		      $fsel->ReadDir($fsel->getCWD);
-		    },$grp,$fsel]
-      ],
-      ['Cascade' => '~Filter',
-       -tearoff => 0,
-       -menuitems => [
-	 map {
-	     [ Button => $_->[0],
-	       -command => [
-		 sub {
-		   my ($fsel,$filter)=@_;
-		   $fsel->SetFilter('',$filter);
-		 },$fsel,(ref($_->[1]) ? join(' ',@{$_->[1]}) : $_->[1])
-		],
-	      ]
-	   } @open_types
-	  ]
-      ],
-     ]
-   );
-  $fsel->Subwidget('filelist')->bind('<3>', sub { my ($w)=@_; $menu->Post($w->pointerxy); Tk->break; });
-  
-  $d->bind("<Alt-f>",[$fsel->Subwidget('filelist')->Subwidget('scrolled'),'focus']);
-
-  my $leftframe=$topframe->Frame();
-  my $midframe=$topframe->Frame();
-  my $rightframe=$topframe->Frame();
-
-  my $ll= createFilelistBrowseEntry($grp,$rightframe,\$filelist);
-  $ll->pack(qw/-expand no -fill x -side top/);
-
-  # Bloody hell, how do I underline BrowseEntry labels?
-  foreach (grep { ref($_) and $_->isa('Tk::Label') } get_widget_descendants($ll)) {
-    $_->configure( -underline => 1 );
-  }
-  $d->bind("<Alt-i>",[$ll->Subwidget('entry'),'focus']);
-  $grp->{Balloon}->attach($ll,-balloonmsg=>
-			  "Select a file-list to display.\nTo rename the selected file-list, type in a new name and press Enter.");
-
-  my $t= $rightframe->Scrolled(qw/HList -relief sunken
-				  -selectmode extended
-				  -font C_small
-				  -scrollbars oe/,
-			       -separator=> "\t"
-			      )
-    ->pack(qw/-expand yes -fill both -side top/);
-  disable_scrollbar_focus($t);
-  $t->BindMouseWheelVert();
-  $grp->{Filelist}=$t;
-  feedHListWithFilelist($grp,$t,$grp->{focusedWindow}->{currentFilelist});
-
-  my @pad = qw(-padleft 7 -padright 7 -padmiddle 5 );
-  my @b_pack = qw(-padx 0.1c -pady 0.2c -side right);
-  $midframe->ImgButton(-text=> 'Add',
-		       -image => icon($grp,"1rightarrow"),
-		       @pad,
-		       -underline=> 0,
-		       -balloon => $grp->{Balloon},
-		       -balloonmsg=> "Add files selected on the left\nto the file-list on the right.",
-		       -command=>[
-				  sub {
-				    my ($grp,$t,$l)=@_;
-				    my $anchor = $t->info('anchor');
-				    my $pos =
-				      defined($anchor) ?
-				      getFilelistLinePosition($grp->{filelistCurrentFilelist},
-							      $anchor) : 0;
-				    insertToFilelist($grp,
-						     $grp->{filelistCurrentFilelist},
-						     $pos,
-						     $l->getSelectedFiles
-						    );
-				    updateBookmarks($grp)
-				      if (ref($grp->{filelistCurrentFilelist}) and
-					  $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
-				  },$grp,$t,$fsel])->pack(qw/-fill x -expand yes -pady 0.2c -side top/);
-
-  $midframe->ImgButton(-text=> 'Remove',
-		       -image => icon($grp,"1leftarrow"),
-		       @pad,
-		       -underline=> 0,
-		       -balloon => $grp->{Balloon},
-		       -balloonmsg=> "Remove selected files on the right from the file-list.",
-		       -underline=> 4,
-		       -command=>[
-			       sub { 
-				 my ($grp,$t)=@_;
-				 removeFromFilelist($grp,
-						    $grp->{filelistCurrentFilelist},
-						    getFilelistLinePosition($grp->{filelistCurrentFilelist},
-									    $t->info('anchor')),
-						    $t->info('selection'));
-				 updateBookmarks($grp)
-				   if (ref($grp->{filelistCurrentFilelist}) and
-				       $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
-			       },$grp,$t])->pack(qw/-fill x -expand yes -pady 0.2c -side top/);
-
-  unless ($modal) {
-    $midframe->ImgButton(-text=> 'Show in TrEd',
-			 -image => icon($grp,"button_ok"),
-		      -balloon => $grp->{Balloon},
-		      -balloonmsg=> "Open the file-list on the selected position.",
-		      @pad,
-		      -underline=> 0,
-		      -command=> [ sub {
-				     my ($grp)=@_;
-				     $grp->{filelistCurrentFilelist}->
-				       set_current($grp->{Filelist}->
-						   info('data',$grp->{Filelist}->info('anchor')));
-				     selectFilelist($grp,$grp->{filelistCurrentFilelist});
-				   },$grp ])->pack(qw/-fill x -expand yes -pady 0.2c -side top/);
-    $t->bind('<Return>'=> [
-			    sub {
-			      my ($w,$grp)=@_;
-			      my $anchor=$grp->{Filelist}->info('anchor');
-			      my $nextentry=$grp->{Filelist}->info('next',$anchor);
-			      unless ($nextentry and
-					$grp->{Filelist}->info('parent',$nextentry) eq $anchor) {
-				$grp->{filelistCurrentFilelist}->
-				  set_current($grp->{Filelist}->
-					      info('data',$grp->{Filelist}->info('anchor')));
-				selectFilelist($grp,$grp->{filelistCurrentFilelist});
-			      }
-			    },$grp]);
-    $t->bind('<Double-1>'=> [
-			      sub {
-				my ($w,$grp)=@_;
-				my $anchor=$grp->{Filelist}->info('anchor');
-				my $nextentry=$grp->{Filelist}->info('next',$anchor);
-				my $data=$grp->{Filelist}->info('data',$anchor);
-				if ($nextentry and
-					$grp->{Filelist}->info('parent',$nextentry) eq $anchor) {
-				  # pattern -> edit
-				  my $position=
-				    $grp->{filelistCurrentFilelist}->find_pattern($data);
-				  $grp->{'hist-fileListPattern'}=[] unless $grp->{'hist-fileListPattern'};
-				  $data=Query($grp->{Filelist}->toplevel,"Selection Pattern",
-					"Edit directory pattern for $data",$data,1,$grp->{'hist-fileListPattern'});
-				  if (defined($data)) {
-				    print "Removing ",$grp->{Filelist}->info('data',$anchor),"\n" if $tredDebug;
-				    $grp->{filelistCurrentFilelist}->remove($grp->{Filelist}->info('data',$anchor));
-				    print "Adding $data\n" if $tredDebug;
-				    $grp->{filelistCurrentFilelist}->add($position,$data);
-				    feedHListWithFilelist($grp,$grp->{Filelist},$grp->{filelistCurrentFilelist});
-				  }
-				} else {
-				  # file -> go to
-				  $grp->{filelistCurrentFilelist}->set_current($data);
-				  selectFilelist($grp,$grp->{filelistCurrentFilelist});
-				}
-			      },$grp ]);
-  }
-  $d->bind('<Destroy>'=> [sub { shift;
-				 my $grp=shift;
-				 $grp->{Filelist}=undef;
-				 $grp->{filelistCurrentFilelist}=undef;
-			       },$grp ]);
-  $d->bind($d,'<Escape>'=>
-	   [sub { shift;
-		  $modal ?
-		    shift->{selected_button}= "Cancel" :
-		      shift->destroy();
-		},$d ]);
-
-  $botframe->ImgButton(-text => 'Close',
-	     -image => icon($grp,"button_cancel"),
-	     -balloon => $grp->{Balloon},
-	     -balloonmsg => "Close this window.",
-	     -underline=> 0,
-	     @pad,
-	     -command=> [sub {
-			   $modal ?
-			     shift->{selected_button}= "Cancel" :
-			       shift->destroy();
-			 },$d ])
-    ->pack(@b_pack);
-
-  $botframe->ImgButton(-text=> 'Delete',
-		-image=> icon($grp,"editdelete"),
-		-balloon => $grp->{Balloon},
-		-balloonmsg=> "Delete current file-list.",
-		@pad,
-		-underline=> 0,
-		-command=> [sub {
-			      my ($grp,$d,$filelistref)=@_;
-			      my $fl = $grp->{filelistCurrentFilelist};
-			      if ($fl and
-				    $fl->name ne 'Default'
-				      and userQuery($d,
-						    "Realy delete filelist '".$fl->name."'?\n",
-						    -bitmap=> 'question',
-						    -title => "Delete filelist?",
-						    -buttons => ['Delete','Cancel']) eq 'Delete'
-				     ) {
-				deleteFilelist($grp,$grp->{filelistCurrentFilelist});
-				$fl = $grp->{filelistCurrentFilelist};
-				$$filelistref=($fl && $fl->name || '');
-			      }
-			    },$grp,$d,\$filelist ])
-    ->pack(@b_pack);
-
-  $botframe->ImgButton(-text=> 'Save',
-		-image=> icon($grp,"filesave"),
-		-balloon => $grp->{Balloon},
-		-balloonmsg=> "Save current file-list to a file.",
-		@pad,
-		-underline=> 0,
-		-command=> [sub {
-			    my ($grp,$d)=@_;
-			    my $file=$grp->{filelistCurrentFilelist}->filename;
-			    unless (defined ($file)  and $file ne EMPTY) {
-			      my $initdir=dirname($file);
-			      $initdir=cwd if ($initdir eq './');
-			      $initdir=~s!${TrEd::Convert::Ds}$!!m;
-			      $file= get_save_filename($d,-filetypes=> 
-								 [["Filelists",           ['.fl']],
-								  ["All files",           ['*','*.*']]
-								 ],
-								 -title=> "Save filelist as ...",
-								 -initialdir=> $initdir,
-								 -initialfile=> filename($file));
-			      $d->deiconify;
-			      $d->focus;
-			      $d->raise;
-			      $file.=".fl" unless $file=~/\.fl$/;
-			      return unless (defined $file and $file ne EMPTY);
-			      $grp->{filelistCurrentFilelist}->filename($file);
-			    }
-			    $grp->{filelistCurrentFilelist}->save;
-			  },$grp,$d ])
-    ->pack(@b_pack);
-
-  $botframe->ImgButton(-text=> 'New',
-		-image=> icon($grp,"filenew"),
-		-balloon => $grp->{Balloon},
-		-balloonmsg=> "Create a new (empty) file-list.",
-		-underline=> 0,
-		@pad,
-		-command=> [sub {
-			   my ($grp,$d,$filelistref)=@_;
-			   my $fl = createNewFilelist($grp,$d);
-			   $$filelistref=$fl->name if defined $fl;
-			 },$grp,$d,\$filelist ])
-    ->pack(@b_pack);
-
-  $botframe->ImgButton(-text=> 'Load',
-		-image => icon($grp,"fileopen"),
-		-balloon => $grp->{Balloon},
-		-balloonmsg=> "Load a file-list from a file.",
-		@pad,
-		-underline=> 0,
-		-command=> [sub { $filelist=loadFilelist(@_) },$grp,$d ])
-    ->pack(@b_pack);
-
-  $botframe->Button(-text=> 'Help',
-		-underline=> 0,
-		-command=> [sub {
-			      help_topic(shift,'filelists');
-			      Tk->break;
-			    },$d])->pack(qw(-padx 0.1c -pady 0.2c -side left));
-
-  $leftframe->pack(qw/-padx 5 -side left -fill y/);
-  $midframe->pack(qw/-padx 5 -side left/);
-  $rightframe->pack(qw/-padx 5 -side left -expand yes -fill both/);
-  $topframe->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
-
-
-  if ($grp->{focusedWindow}->{currentFileNo}) {
-    my $path=filelistEntryPath($grp->{filelistCurrentFilelist},$grp->{focusedWindow}->{currentFileNo});
-    $t->selectionClear();
-    if ($path ne EMPTY) {
-      eval {
-	$t->anchorSet($path);
-	$t->selectionSet($path);
-	$t->see($path);
-      };
-    }
-  }
-  $t->focus;
-  $d->BindButtons;
-  $grp->{top}->Unbusy();
-  if ($modal) {
-    ShowDialog($d);
-    $d->destroy();
-    return $filelist;
-  } else {
-    $d->Popup;
-    return $filelist;
-  }
-
-}
+#sub selectFilelistDialog 
+#sub bookmarkToFilelistDialog 
+#sub removeFilelistsDialog 
+#sub loadFilelist 
+#sub filelistDialog
 
 ####
 ### End of subs related to file list
 ####
-
-
-
-
-
 
 
 # dialog, tree
@@ -3545,7 +2014,7 @@ sub copyTreesDialog {
 	     -justify=> 'right')->pack(-side=> 'left');
   my @items;
   my $i=1;
-  foreach my $of (@openfiles) {
+  foreach my $of (TrEd::File::get_openfiles()) {
     push @items,$i++.". ".$of->filename();
   }
   my $om = $ff->Optionmenu(
@@ -3570,7 +2039,7 @@ sub copyTreesDialog {
 	      -command =>
 	      [sub {
 		  my ($grp,$range)=@_;
-		  $$range=sentViewGetSelection($grp,$grp->{sentDialogSelection});
+		  $$range=TrEd::View::Sentences::get_selection($grp);
 	       },$grp,\$range])->pack(qw/-padx 10 -side left/);
   $sf->Button(-image=> icon($grp,'contents'),
 	      -command=> [sub {
@@ -3579,8 +2048,8 @@ sub copyTreesDialog {
 			    foreach (TrEd::Print::parse_print_list($source,$$range)) {
 			      $list->[$_-1]=1;
 			    }
-			    $$range=sentViewGetSelection($grp,
-							 viewSentencesDialog($grp,$d,$source,
+			    $$range=TrEd::View::Sentences::get_selection($grp,
+                        TrEd::View::Sentences::show_sentences_dialog($grp,$d,$source,
 									     $list
 									    ));
 			  },$grp,$d,\$range,$source])->pack(qw/-padx 10 -side left/);
@@ -3593,7 +2062,8 @@ sub copyTreesDialog {
   undef $d;
   if ($result=~ /OK/) {
     $destination=~/^(\d+)/;
-    my $fs=$openfiles[$1-1];
+    my @open_files = TrEd::File::get_openfiles();
+    my $fs=$open_files[$1-1];
     return unless ref($fs);
     my @list=TrEd::Print::parse_print_list($source,$range);
     my $tree;
@@ -4206,7 +2676,7 @@ sub printDialog {
 	      -command =>
 	      [sub {
 		 my ($grp,$w)=@_;
-		 my $rng = sentViewGetSelection($grp,$grp->{sentDialogSelection});
+		 my $rng = TrEd::View::Sentences::get_selection($grp);
 		 $w->{printRange}->delete(0,'end');
 		 $w->{printRange}->insert(0,$rng);
 	       },$grp,\%w])->pack(qw/-padx 10 -side left/);
@@ -4219,8 +2689,8 @@ sub printDialog {
 					   $w->{printRange})) {
 			      $list->[$_-1]=1;
 			    }
-			    my $rng = sentViewGetSelection($grp,
-							   viewSentencesDialog($grp,$d,
+			    my $rng = TrEd::View::Sentences::get_selection($grp,
+							   TrEd::View::Sentences::show_sentences_dialog($grp,$d,
 									       $win->{FSFile},
 									       $list));
 			    $w->{printRange}->delete(0,'end');
@@ -4435,10 +2905,10 @@ sub switchStylesheet {
       save_stylesheet_file($grp,$default_stylesheet_path,$stylesheet);
     }
     applyWindowStylesheet($win,$stylesheet);
-    $grp->{selectedStylesheet} = $stylesheet if isFocused($win);
+    $grp->{selectedStylesheet} = $stylesheet if is_focused($win);
   } elsif ($stylesheet eq DELETE_STYLESHEET()) {
     if ($prevstylesheet eq STYLESHEET_FROM_FILE()) {
-      $grp->{selectedStylesheet} = $prevstylesheet if isFocused($win);
+      $grp->{selectedStylesheet} = $prevstylesheet if is_focused($win);
       return 0;
     }
     $stylesheet=$prevstylesheet;
@@ -4450,7 +2920,7 @@ sub switchStylesheet {
     if ($answer eq 'Yes') {
       deleteStylesheet($grp,$stylesheet);
     } else {
-      $grp->{selectedStylesheet} = $stylesheet if isFocused($win);
+      $grp->{selectedStylesheet} = $stylesheet if is_focused($win);
       return 0;
     }
   } else {
@@ -4475,13 +2945,13 @@ sub switchContext {
   my $ret = doEvalHook($win,"allow_switch_context_hook",$prevcontext,$context);
   if ($ret eq 'stop') {
     $win->{macroContext}=$prevcontext;
-    $grp->{selectedContext}=$prevcontext     if (isFocused($win));
+    $grp->{selectedContext}=$prevcontext     if (is_focused($win));
     return 0;
   }
   $win->{macroContext}=$prevcontext;
   return 0 if (doEvalHook($win,"pre_switch_context_hook",$prevcontext,$context,$win) eq 'stop');
   $win->{macroContext}=$context;
-  if (isFocused($win)) {
+  if (is_focused($win)) {
     $grp->{selectedContext}=$context;
     updateStylesheetMenu($grp);
     TrEd::List::Macros::update_view($win);
@@ -4697,7 +3167,7 @@ sub saveFileStateUpdate {
   my ($win)=@_;
   my $grp = $win->{framegroup};
   return if $grp->{noSaveFileStateUpdate};
-  return unless isFocused($win);
+  return unless is_focused($win);
   return unless $win->{framegroup}->{saveButton};
   $win->{framegroup}->{saveButton}->
     configure(-state => (($win->{FSFile} and $win->{FSFile}->notSaved) ? 'normal' : 'disabled'));
@@ -4896,11 +3366,11 @@ sub focusCanvas {
     TrEd::StatusLine::update_status_info($grp->{focusedWindow});
     TrEd::ValueLine::update_current($newfocus,$newfocus->{currentNode});
     TrEd::MinorModes::update_minor_modes($newfocus);
-    updateTitle($grp);
+    update_title_and_buttons($grp);
     updateScaleFactor($grp);
-    resetUndoStatus($newfocus);
+    TrEd::Undo::reset_undo_status($newfocus);
     resetTreePosStatus($grp);
-    updateSessionStatus($grp);
+    update_session_status($grp);
     TrEd::List::Macros::update_view($grp);
     updateCurrentContextMenu($grp);
     updateStylesheetMenu($grp);
@@ -5291,7 +3761,7 @@ sub create_split_windows {
     my $i;
     for (my $i=0;$i<$fl;$i++) {
       focusCanvas($tred_ref->{treeWindows}->[$i]->canvas,$tred_ref);
-      selectFilelist($tred_ref->{treeWindows}->[$i],"CmdLine-".($i+1));
+      TrEd::ManageFilelists::selectFilelist($tred_ref->{treeWindows}->[$i],"CmdLine-".($i+1));
       gotoFile($tred_ref->{treeWindows}->[$i],0);
     }
   }
@@ -5304,6 +3774,21 @@ sub create_split_windows {
   }
   focusCanvas($tred_ref->{treeWindows}->[0]->canvas,$tred_ref);
   $tred_ref->{tieWindows}=1;
+}
+
+sub populate_recent_files_menu {
+  my ($grp_ref, $recent_files_ref) = @_;
+  my $recentFileMenu = $grp_ref->{RecentFileMenu};
+  
+  my $i = 0;
+  foreach my $recent_file (@{$recent_files_ref}) {
+    $recentFileMenu->command(
+          -label      => "$i.  $recent_file",
+          -underline  => 0,
+          -command    => [\&openStandaloneFile, $grp_ref, $recent_file]
+    );
+    $i++;
+  }
 }
 
 sub startMain {
@@ -5407,7 +3892,7 @@ sub startMain {
 
   $tred{folderImage}= icon(\%tred,'folder');
   $tred{fileImage}  = icon(\%tred,'document');
-  $tred{lastActionBookmark}= $lastAction;
+  TrEd::Bookmarks::set_last_action($lastAction);
   $tred{selectedContext}=  $init_macro_context || 'TredMacro';
   $tred{buildTGTSfromCSTS}=$opt_R;
 
@@ -5510,14 +3995,10 @@ sub startMain {
     while (($k,$v) = each %map) {
       $tred{$k}=$main_menu->lookup_menu_item($v);
     }
-    my $recentFileMenu = $tred{RecentFileMenu};
-    my $i=0;
-    foreach (@recentFiles) {
-      $recentFileMenu->command(-label => "$i.  $_",
-			       -underline=> 0,
-			       -command=> [\&openStandaloneFile,\%tred,$_]);
-      $i++;
-    }
+    
+    my @recent_files = TrEd::RecentFiles::recent_files();
+    populate_recent_files_menu(\%tred, \@recent_files);
+    
   }
 
   $tred{templateMatchMethod}=$TrEd::Config::defaultTemplateMatchMethod;
@@ -5545,7 +4026,7 @@ sub startMain {
 
   addBindTags($tred{Toolbar},'my');
 
-  updateBookmarks(\%tred);
+  TrEd::Bookmarks::updateBookmarks(\%tred);
 
   $tred{vLineFrame}=$top->Frame();
   $tred{valueLine}=
@@ -5680,7 +4161,7 @@ sub startMain {
 			  icon(\%tred,"fileopen"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=>
-			  [\&fileDialog,\%tred])
+			  [\&TrEd::Dialog::File::Open::show_dialog,\%tred])
       ->pack(-side=>'left');
   $tred{Balloon}->attach($tred{openButton},
 		 -balloonmsg=> "open file");
@@ -5732,8 +4213,8 @@ sub startMain {
   addBindTags($tred{nextFileButton},'my');
 
   # bind action control
-  for my $bind ([nextFileButton => \&TrEd::ManageFilelist::nextRealFile],
-		[prevFileButton => \&TrEd::ManageFilelist::prevRealFile]) {
+  for my $bind ([nextFileButton => \&TrEd::Filelist::Navigation::nextRealFile],
+		[prevFileButton => \&TrEd::Filelist::Navigation::prevRealFile]) {
     my $button = $tred{$bind->[0]};
     my $cmd = $bind->[1];
     $button->bindtags([$button, ref($button), $button->toplevel, 'all']);
@@ -5768,7 +4249,7 @@ sub startMain {
 			  -image=> icon(\%tred,"undo"),
 			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&undo,\%tred])->pack(-side=>'left');
+			  -command=> [\&TrEd::Undo::undo,\%tred])->pack(-side=>'left');
   $tred{Balloon}->attach($tred{undoButton},
 			  -balloonmsg=> "undo current file");
   addBindTags($tred{undoButton},'my');
@@ -5946,7 +4427,7 @@ sub startMain {
 			-relief=> $buttonsRelief,
 			-image=> icon(\%tred,"contents"),
 			-borderwidth=> $buttonBorderWidth,
-			-command=> [\&viewSentences,\%tred])
+			-command=> [\&TrEd::View::Sentence::show_sentences, \%tred])
       ->pack(qw/-side top -fill x/);
   $tred{Balloon}->attach($tred{sentButton},
 			  -balloonmsg=> "View all trees as a list of 'sentences'...\nThis dialog also allows export to HTML.");
@@ -6082,12 +4563,13 @@ sub startMain {
     }
   };
 
-  if (findFilelist('Default')->count == 0 and findFilelist('CmdLine-1')) {
+  if (TrEd::ManageFilelists::findFilelist('Default')->count == 0 
+            && TrEd::ManageFilelists::findFilelist('CmdLine-1')) {
     print STDERR "Selecting CmdLine-1 filelist." if $tredDebug;
-    selectFilelist(\%tred,'CmdLine-1');
+    TrEd::ManageFilelists::selectFilelist(\%tred,'CmdLine-1');
   } else {
     print STDERR "Selecting Default filelist." if $tredDebug;
-    selectFilelist(\%tred,'Default');
+    TrEd::ManageFilelists::selectFilelist(\%tred,'Default');
   }
   if ($opt_split_window) {
     create_split_windows($opt_split_window, $opt_filelist, \%tred);
@@ -6250,31 +4732,21 @@ sub startMain {
 # an incomming command (tred -C)
 #
 sub handleUSR2Signal {
-  my ($grp)=@_;
-  my $cmd_file = File::Spec->catfile($tred_d,'cmd_'.$$);
+  my ($grp) = @_;
+  my $cmd_file = File::Spec->catfile($tred_d, 'cmd_' . $$);
   if (-f $cmd_file) {
-    if (((stat($cmd_file))[2] &022)==0) {
+    if (((stat($cmd_file))[2] &022) == 0) {
       open my $fh, '<', $cmd_file || return;
       my $cmd = <$fh>;
       unlink $cmd_file || warn("WARN: Failed to unlink $cmd_file\n");
-      my @cmd=split("\0",$cmd);
+      my @cmd = split("\0",$cmd);
       if (($cmd[0]||'') eq 'open' and @cmd==2) {
-	openStandaloneFile($grp,$cmd[1]);
-	return;
+	   TrEd::File::openStandaloneFile($grp,$cmd[1]);
+	   return;
       } elsif (($cmd[0]||'') eq 'reload' and @cmd==2) {
-	my ($fsfile) = grep { Treex::PML::IO::is_same_filename($_->filename, $cmd[1]) } @openfiles;
-	if ($fsfile) {
-	  if ($grp->{focusedWindow}->{FSFile} != $fsfile) {
-	    my ($win)=fsfileDisplayingWindows($grp,$fsfile);
-	    if ($win) {
-	      focusCanvas($win->canvas(),$grp);
-	    } else {
-	      openStandaloneFile($grp,$fsfile->filename,-keep=>1);
-	    }
-	  }
-	  reloadFile($grp);
-	}
-	return;
+          #TODO: toto extraktovat do TrEd::File?
+	   TrEd::File::reload_on_usr2($grp, $cmd[1]);
+	   return;
       } else {
 	warn("WARN: Ignoring unknown command from $cmd_file\n");
       }
@@ -6437,7 +4909,8 @@ sub makeCurrentNodeRoot {
     return if $res eq 'Cancel';
     $discard=1 if $res=~/Discard/;
   }
-  save_undo($win,prepare_undo($win,'Make Current Node the Root',UNDO_ACTIVE_ROOT_AND_TREE_ORDER));
+  print STDERR "undo_type_id = |" . TrEd::Undo::undo_type_id('UNDO_ACTIVE_ROOT_AND_TREE_ORDER') . "|\n";
+  TrEd::Undo::save_undo($win, TrEd::Undo::prepare_undo($win, 'Make Current Node the Root', TrEd::Undo::undo_type_id('UNDO_ACTIVE_ROOT_AND_TREE_ORDER')));
   makeRoot($win, $node, $discard );
 }
 
@@ -6492,8 +4965,8 @@ sub updateRuntimeConfig {
 
   push @$conf, "\n",$comment."\n";
   #  $geometry=~s/^[0-9]+x[0-9]+//;
-  if ($grp->{lastActionBookmark}) {
-    my $s = $grp->{lastActionBookmark};
+  if (TrEd::Bookmarks::get_last_action()) {
+    my $s = TrEd::Bookmarks::get_last_action();
     $s=~s/\\/\\\\/g;
     push @$conf,"LastAction\t=\t".$s."\n";
   }
@@ -6508,6 +4981,7 @@ sub updateRuntimeConfig {
   }
   do {
     my $s;
+    my @recentFiles = TrEd::RecentFiles::recent_files();
     push @$conf,
       "Geometry\t=\t".$TrEd::Config::geometry."\n",
       "ShowSidePanel\t=\t".$showSidePanel."\n",
@@ -6519,23 +4993,8 @@ sub updateRuntimeConfig {
 	  "RecentFile$_\t=\t$s\n"
 	} 0..$#recentFiles;
 
-    my $i=0;
-    foreach (@filelists) {
-      next if $filelist_from_extension{$_}==1;
-      my $fn = ref($_) && $_->filename;
-      my $name = ref($_) && $_->name;
-      next if ($name eq 'Default' or $name =~ /^CmdLine-\d+$/);
-      unless (defined($fn) and length($fn)) {
-	saveStdFilelist($_);
-      } else {
-	$_->save;
-	if (!$filelist_from_extension{$_}) { # note: this equals 2 for "StdFilelist" loaded from ~/.tred.d
-	  $s=$_->filename();
-	  $s=~s/\\/\\\\/g;
-	  push @$conf,"filelist".$i++."\t\t=\t".$s."\n";
-	}
-      }
-    }
+    TrEd::ManageFilelists::update_filelists($s, $conf);
+    
   };
   chomp $conf->[-1];
 }
@@ -6680,23 +5139,8 @@ sub newFileFromTemplate {
   return;
 }
 
-# file, dialog
-sub fileDialog {
-  my ($grp,$header_only)= @_;
-  my $file;
-  my $win = $grp->{focusedWindow};
-  my $dir;
-  if ($win->{FSFile}) {
-    $dir = dirname($win->{FSFile}->filename);
-  }
-  $file= get_open_filename($grp->{top},-filetypes=> \@open_types,
-			   (-d $dir ? ( -initialdir => $dir ) : ())
-			  );
-  if (defined $file and $file ne EMPTY) {
-    return openStandaloneFile($grp,$file,-justheader => $header_only);
-  }
-  return 0;
-}
+#sub fileDialog
+
 
 # dialog
 sub urlDialog {
@@ -6961,7 +5405,7 @@ sub doSaveFileAs {
     }
     $fsfile->changeFileFormat(($filename=~/\.gz$/ ? "gz-compressed " : EMPTY).
 				     $fsfile->backend);
-    updateTitle($win->{framegroup});
+    update_title_and_buttons($win->{framegroup});
     updatePostponed($win->{framegroup});
     if (saveFile($win,$filename)==1) {
       TrEd::FileLock::remove_lock($fsfile,$old_file,1) if ($lock_change);
@@ -7053,7 +5497,7 @@ EOF
       TrEd::FileLock::set_fs_lock_info($fsfile, TrEd::FileLock::set_lock($old_file)) if $lock_change;
       $fsfile->changeBackend($old_backend);
       $fsfile->changeFileFormat($old_format);
-      updateTitle($win->{framegroup});
+      update_title_and_buttons($win->{framegroup});
       return 0;
     }
   }
@@ -7119,9 +5563,9 @@ sub askSaveFiles {
     }
   }
 
-  for my $fsfile (grep { !$asked{$_} and ref($_) and $_->notSaved } @openfiles) {
+  for my $fsfile (grep { !$asked{$_} and ref($_) and $_->notSaved } TrEd::File::get_openfiles()) {
     resumeFile($grp->{focusedWindow},$fsfile);
-    updateTitle($grp);
+    update_title_and_buttons($grp);
     get_nodes_win($grp->{focusedWindow});
     redraw_win($grp->{focusedWindow});
     centerTo($grp->{focusedWindow},$grp->{focusedWindow}->{currentNode});
@@ -7131,71 +5575,10 @@ sub askSaveFiles {
   closeAllFiles($grp);
 }
 
-# file
-sub closeAllFiles {
-  my ($grp)= @_;
-
-  @{$grp->{treeWindows}} = grep { $_ ne $grp->{focusedWindow} } @{$grp->{treeWindows}};
-  unshift @{$grp->{treeWindows}},$grp->{focusedWindow};
-  my $win;
-  foreach $win (@{ $grp->{treeWindows} }) {
-    if ($win->{FSFile}) {
-      closeFile($win,-no_update => 1,-all_windows => 1);
-    }
-  }
-  while (@openfiles) {
-   my $fsfile = $openfiles[0];
-
-   # to avoid infinite loop, first try closing all files this one is
-   # part of
-   if ($fsfile and ref($fsfile->appData('fs-part-of'))) {
-     foreach (@{$fsfile->appData('fs-part-of')}) {
-       __debug("Closing all parts of ".$fsfile->filename);
-       closeFile($grp->{focusedWindow},-fsfile => $_,
-		 -no_update => 1, -all_windows => 1);
-     }
-   }
-   __debug("Now closing file ".$fsfile->filename);
-   closeFile($grp->{focusedWindow},
-	     -fsfile => $fsfile,
-	     -no_update => 1,
-	     -all_windows => 1);
-   if (grep {$_==$fsfile} @openfiles) {
-     # still there?
-     __debug("File still open, pushing it to the end: $fsfile: ".$fsfile->filename);
-     shift @openfiles;
-     push @openfiles, $fsfile;
-     __debug("Open files: @openfiles");
-   }
-  }
-}
+# sub closeAllFiles
 
 
-# ask user whether the current file should be saved (and save it if yes)
-# if $keepbutton parameter is 1, allow user to keep the file
-# return 0 if file saved, 1 if file should be kept and undef if no
-# file
-sub askSaveFile {
-  my ($win,$keepbutton,$cancelbutton,$fsfile)=@_;
-  $fsfile ||= $win->{FSFile};
-  return 0 unless
-    ref($fsfile) and
-      $fsfile->notSaved;
-  my $answer=userQuery($win,
-			$fsfile->filename().
-			"\n\nFile may be changed!\nDo you want to save it?",
-			-bitmap=> 'question',
-			-title => "Should I save the file?",
-			-buttons => ['Yes', 'No', $keepbutton ? 'Keep' : (),
-				     $cancelbutton ? 'Cancel' : ()]);
-  if ($answer eq 'Yes') {
-    return saveFile($win,$fsfile) == -1 ? -1 : 0;
-  } elsif ($answer eq 'Keep') {
-    return 1;
-  } elsif ($answer eq 'Cancel') {
-    return -1;
-  }
-}
+# sub askSaveFile
 
 # config
 sub saveConfig {
@@ -7259,9 +5642,9 @@ sub saveConfig {
 # config
 sub reconfigure {
   my ($grp)=@_;
-  addToRecent($grp);
+  TrEd::RecentFiles::add_file($grp);
   prepareFonts($grp);
-  updateTitle($grp);
+  update_title_and_buttons($grp);
   $grp->{top}->optionAdd("*font",$guiFont) if $guiFont;
   $grp->{valueLine}->configure(-font=> $vLineFont);
   $grp->{statusLine}->configure(-font=> $vLineFont) if $grp->{statusLine};
@@ -7651,373 +6034,15 @@ sub selectValuesDialog {
 }
 
 # sentence view
-sub reloadSentenceView {
-  my ($grp,$t,$selref)=@_;
-  return unless $t;
-  my $d=$grp->{sentDialog};
-  $t->delete('0.0','end'); #something smells here!! 
-  $grp->{sentDialog}=$d;
-  my $filename=$grp->{focusedWindow}->{FSFile}->filename();
-  for (my $i=0; $i<=$grp->{focusedWindow}->{FSFile}->lastTreeNo();$i++) {
-    $t->window('create', 'end', -window =>
-	       $t->Checkbutton(-selectcolor => undef,
-			       -indicatoron => 0,
-			       -height => 25,
-			       -width => 25,
-			       -background=>'white',
-			       -relief => 'flat',
-			       -borderwidth => 0,
-			       -padx => 5,
-			       -pady => 5,
-			       -selectimage => icon($grp,"checkbox_checked"),
-			       -image => icon($grp,"checkbox"),
-			       -variable => \$selref->[$i]
-			      ));
-    $t->window('create', 'end', -window =>
-	       $t->Button(-height => 19,
-			  -width => 19,
-			  -background=>'white',
-			  -relief => 'flat',
-			  # -borderwidth => 0,
-			  -padx => 0,
-			  -pady => 0,
-			  -image => icon($grp,'1rightarrow'),
-			  -command => [\&openFile, $grp, "$filename##".($i+1)]
-			 ));
-
-    my $v = TrEd::ValueLine::get_value_line($grp->{focusedWindow},
-			   $grp->{focusedWindow}->{FSFile},$i,1,1,'sent_list');
-    my %tags;
-    if (ref($v)) {
-      @tags{ map { @$_[1..$#$_] } @$v }=();
-      foreach my $tag (keys(%tags)) {
-	if ($tag=~/^\s*-/) {
-	  eval {
-	    $t->tagConfigure(
-	      $tag => (map { (/^\s*(-[[:alnum:]]+)\s*=>\s*(.*\S)\s*$/) }
-			 split(/,/,$tag)));
-	  };
-	  print $@ if $@;
-	}
-      }
-    } else {
-      $v = [ map [$_], split /(\n)/, $v ];
-    }
-    my $collapse=0;
-    $t->insert('end',"(".($i+1).") ",['treeno',"start-tree-".($i+1)],
-	       map {
-		  my $l = $v->[$_];
-		  my $t = $l->[0];
-		  my @t = @$l[1..$#$l];
-		  if (!$collapse and $_<$#$v and $t=~s/(\n\s*)$//) {
-		    $collapse=1;
-		    ($t,\@t,"...",["#collapse_bar#","#collapse_bar_$i#"],$1,["#collapse_$i#"])
-		  } else {
-		    push @t, "#collapse_$i#" if $collapse;
-		    ($t, \@t)
-		  }
-		} 0..$#$v);
-    if ($collapse) {
-      $t->tagBind("#collapse_bar_$i#",'<Any-Enter>', => [sub { $_[0]->tagConfigure("#collapse_bar_$_[1]#", -background => 'cyan') },$i]);
-      $t->tagBind("#collapse_bar_$i#",'<Any-Leave>', => [sub { $_[0]->tagConfigure("#collapse_bar_$_[1]#", -background => undef) },$i]);
-      $t->tagConfigure("#collapse_$i#", -elide => 0);
-      $t->tagBind("#collapse_bar_$i#",'<1>', => [sub {
-		    my ($w,$i)=@_; 
-		    $w->tagConfigure("#collapse_$i#",
-				     -elide => $w->tagCget("#collapse_$i#",'-elide') ? 0 : 1) },$i]);
-    }
-    $t->insert('end',"\n",['newline',"end-tree-".($i+1), "#collapse_$i#"
-			  ]);
-  }
-  $t->tagAdd('all','0.0','end');
-  $t->tagConfigure('all',-lmargin2 => 50);
-}
-# sentence view
-sub sentViewSelectAll {
-  my ($grp,$selref)=@_;
-  return unless ref($selref) eq 'ARRAY';
-  foreach (@{$selref}) {
-    $_=1;
-  }
-}
-# sentence view
-sub sentViewSelectNone {
-  my ($grp,$selref)=@_;
-  return unless ref($selref) eq 'ARRAY';
-  foreach (@{$selref}) {
-    $_=0;
-  }
-}
-# sentence view
-sub sentViewGetSelection {
- my ($grp,$selref)=@_;
- $selref||=$grp->{sentDialogSelection};
- my $rng=EMPTY;
- 
- if (ref($selref) eq 'ARRAY') {
-   for (my $i=0;$i<=$#{$selref};$i++) {
-     $rng.=($i+1)."," if $selref->[$i];
-   }
-   $rng=~s/,$//;
- }
- return $rng;
-}
-# sentence view
-sub sentViewToggleCollapse {
- my ($grp,$t,$val)=@_;
- if (!defined $val) {
-   $val = $grp->{expandSentView};
- }
- $t->tagConfigure('#collapse_bar#',
-		  -elide => $val ? 0 : 1);
- my $i=0;
- undef $@;
- do {{
-   eval {
-     $t->tagCget("#collapse_$i#",'-elide'); # dies if the tag does not exist
-     $t->tagConfigure("#collapse_$i#", -elide => $val ? 1 : 0);
-   };
-   $i++
- }} while (!$@);
-}
-# sentence view
-sub viewSentences {
-  my ($grp)=@_;
-  return unless $grp and ref($grp->{focusedWindow}->{FSFile});
-  if ($grp->{sentDialog}) {
-    my $d=$grp->{sentDialog};
-    $d->deiconify;
-    $d->focus;
-    $d->raise;
-    return;
-  }
-  $grp->{sentDialogSelection}=[];
-  my $d=$grp->{sentDialog}=
-    $grp->{top}->Toplevel(-title=> "List of sentences for ".
-			  $grp->{focusedWindow}->{FSFile}->filename(),
-			  -width=> "10c");
-  $d->withdraw;
-  $d->bind('<Return>'=> [\&Tk::Widget::_DialogReturn,1]);
-  $d->bind('<Escape>'=> [sub { $_[1]->destroy(); },$d]);
-  $d->bind('<Destroy>'=> [sub { $_[1]->{sentDialog}=undef; },$grp ]);
-  populateSentencesDialog($grp,$grp->{sentDialog},
-			  $grp->{focusedWindow}->{FSFile},
-			  $grp->{sentDialogSelection},
-			  1
-			 );
-  $d->Popup;
-}
-# sentence view
-sub viewSentencesDialog {
-  my ($grp,$top,$fsfile,$selref)=@_;
-  return unless $grp and ref($grp->{focusedWindow}->{FSFile});
-  my $d=
-    $top->DialogBox(-title=> "List of sentences for ".
-		    $fsfile->filename(),
-		    -width=> "10c");
-  $d->BindReturn($d,1);
-  $d->BindEscape();
-  $selref||=[];
-  populateSentencesDialog($grp,$d,$fsfile,$selref,0);
-  ShowDialog($d,$top);
-  $d->destroy;
-  undef $d;
-  return $selref;
-}
-
-# sentence view
-sub dumpSentView {
-  my ($grp, $fsfile, $t, $create_images, $selref)=@_;
-
-  my $win = $grp->{focusedWindow};
-  return if ($create_images and warnWin32PrintConvert($t) eq 'Cancel');
-
-  sentViewToggleCollapse($grp,$t,1);
-
-  my $file=$fsfile->filename;
-  $file=~s/\.(?:csts|sgml|sgm|cst|trxml|trx|tei|xml|fs|pls)(?:\.gz)?$/.html/i;
-
-  my $initdir=dirname($file);
-  $initdir=cwd if ($initdir eq './');
-  $initdir=~s!${TrEd::Convert::Ds}$!!m;
-
-  my @selref = split /,/,sentViewGetSelection($grp,$selref);
-  unless (@selref) {
-    errorMessage($t->toplevel,"No sentences selected. Select requested sentences and try again. To select a sentence, click the round button in front of it.",1);
-    return;
-  }
-
-  my $errors;
-
-  (my $html,$file) = TrEd::HTML::Simple::open($t,$file,"Save Sentences As HTML ...",$initdir);
-  my $ttfont = $grp->{ttfonts} ? $grp->{ttfonts}->{$printOptions->{ttFont}} : undef;
-  my $dpi = int($grp->{top}->fpixels('1i'));
-
-  if (defined($html)) {
-    my @dump=$t->dump('0.0','end'); # to avoid a bug ??
-    @dump = map $t->dump("start-tree-$_.first","end-tree-$_.last"), @selref;
-    # @dump=$t->dump('0.0','end');
-    my $img;
-
-    # there seems to be a bug in Dump which prevents dumping tagoff
-    # for the last open element on a line
-
-    while (@dump) {
-      my ($K,$V,$I) = splice @dump, 0, 3;
-      if ($K eq 'tagon') {
-	if ($V eq 'treeno') {
-	  $img=1;
-	  print $html "<div class=\"TREE\">";
-	  print $html "<p>";
-	} else {
-	  print $html "<u>" if $t->tagCget($V,'-underline');
-	  print $html "<font color=\"".$t->tagCget($V,'-foreground')."\">"
-	    if $t->tagCget($V,'-foreground');
-	  print $html "<span class=\"$1\">" if $V =~ /^tag\s*=>\s*(.*)$/;
-	}
-	if ($V eq 'newline') {
-	  print $html "</p>\n";
-	  print $html "</div>\n";
-	  print $html "<hr />\n" if $create_images;
-	}
-      } elsif ($K eq 'tagoff') {
-	print $html "</span>" if $V =~  /^tag\s*=>\s*.*$/ ;
-	print $html "</font>" if $t->tagCget($V,'-foreground');
-	print $html "</u>" if $t->tagCget($V,'-underline');
-	$img=0 if $img;
-      } elsif ($K eq 'text') {
-	if ($img and $create_images) {
-	  # create image filename
-	  my $img_file = $file;
-	  my $no = $V; $no =~ s/[()]|\s*//g;
-	  $img_file =~ s/\.[^.]*$/_${no}.png/;
-	  print $html "<img src=\"".filename($img_file)."\"/><br />\n";
-	  # create image
-	  my $canvas=$grp->{top}->Canvas();
-	  my $stylesheet = $win->{stylesheet};
-	  my $ss = undef;
-	  if ($stylesheet ne STYLESHEET_FROM_FILE()) {
-	    $ss=$win->{framegroup}->{stylesheets}->{$stylesheet};
-	  }
-	  eval {
-	    TrEd::Print::Print({
-	      -context => $win,
-	      -toplevel => $grp->{top},
-	      -fsfile => $fsfile,
-	      -canvas => $canvas,
-
-	      -filename => $img_file,
-	      -to => 'convert',
-	      -convert => $imageMagickConvert,
-	      -imageMagickResolution => $dpi,
-	      -range => $no,
-
-	      ($ttfont ? (
-		-format => 'PDF',
-		-ttFont => $ttfont,
-	       ) : (
-		 -format => 'EPS',
-		 -psFontFile => $printOptions->{psFontFile},
-		 -psFontAFMFile => $printOptions->{psFontAFMFile},
-	       )),
-
-	      -styleSheetObject=>$ss,
-	      -hidden => $win->{treeView}->get_showHidden(),
-	      -fontSize => $printOptions->{psFontSize},
-	      -treeViewOpts => $treeViewOpts,
-
-	      -onGetRootStyle => \&onGetRootStyle,
-	      -onGetNodeStyle => \&onGetNodeStyle,
-	      -onGetNodes => \&printGetNodesCallback,
-	      -onRedrawDone => \&onRedrawDone,
-	    });
-	  };
-	  $errors .= $@ if $@;
-
-	  $canvas->destroy();
-	  $img=0;
-	}
-	$V=~s{&}{&amp;}g;
-	$V=~s{<}{&lt;}g;
-	$V=~s{\t}{     }g;
-	$V=~s{\n}{<br/>}g;
-	$V=~s{ ( +)}{' '.('&nbsp;'x length($1))}eg;
-	print $html $V;
-      } else {
-#	print $html "<other key=\"$K\" value=\"$V\"/>";
-      }
-    }
-    TrEd::HTML::Simple::close($html);
-    get_nodes_win($win); # printGetNodesCallback may have fiddled with $win
-  }
-  errorMessage($win,$errors) if defined $errors;
-  return $file;
-}
-# sentence view
-sub populateSentencesDialog {
-  my ($grp,$d,$fsfile,$selref,$close_button)=@_;
-  return unless $grp and $fsfile;
-
-  use Tk::ROText;
-#c -background white
-# -spacing3 6 
-  my $t= $d->
-    Scrolled(qw/ROText -relief sunken -borderwidth 2 -setgrid true
-		     -wrap word
-		     -height 20
-		     -scrollbars oe/,
-	     -font=>$font
-	    );
-
-  _deleteMenu($t->Subwidget('scrolled')->menu,'File');
-  disable_scrollbar_focus($t);
-  $t->pack(qw/-expand yes -fill both/);
-  $t->TextSearchLine(-parent => $d,
-		     -label=>'S~earch',
-		     -prev_img =>icon($grp,'16x16/up'),
-		     -next_img =>icon($grp,'16x16/down'),
-		    )->pack(qw(-fill x));
-
-  $t->BindMouseWheelVert();
-  $grp->{sentDialogText}=$t;
-  my $bottom=$d->Frame()->pack(qw/-expand 0 -fill x/);
-
-  if ($close_button) {
-    $bottom->Button(-text=> "Close",
-		    -underline => 0,
-		    -command=> [sub { $_[0]->destroy; },$d])
-      ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
-  }
-
-  $bottom->Button(-text=> "Reload",
-		  -underline => 0,
-		  -command=> [\&reloadSentenceView,$grp,$t,$selref])
-    ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
-  $bottom->Button(-text=> "Select All",
-		  -underline => 7,
-		  -command=>[ \&sentViewSelectAll,$grp,$selref])
-    ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
-  $bottom->Button(-text=> "Clear selection",
-		  -underline => 1,
-		  -command=>[ \&sentViewSelectNone,$grp,$selref])
-    ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
-  $bottom->Button(-text=> "Save As HTML",
-		  -underline => 0,
-		  -command=>[ sub { open_url_in_browser(&dumpSentView) },$grp,$fsfile,$t,0,$selref])
-    ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
-  $bottom->Button(-text=> "Save As HTML with Images",
-		  -underline => 18,
-		  -command=>[ sub { open_url_in_browser(&dumpSentView) },$grp,$fsfile,$t,1,$selref])
-    ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
-
-  $bottom->Checkbutton(-text=> "Shrink/Expand",
-		  -underline => 0,
-		  -variable => \$grp->{expandSentView},
-		  -command=>[ \&sentViewToggleCollapse,$grp,$t])
-    ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
-  $d->BindButtons;
-  reloadSentenceView($grp,$t,$selref);
-}
+#sub reloadSentenceView 
+#sub sentViewSelectAll 
+#sub sentViewSelectNone
+#sub sentViewGetSelection
+#sub sentViewToggleCollapse 
+#sub viewSentences
+#sub viewSentencesDialog
+#sub dumpSentView
+#sub populateSentencesDialog
 
 # list attr
 sub editListAttr {
@@ -8275,8 +6300,8 @@ sub editAttrsDialog_schema {
     set_command => sub {
       my ($callback)=@_;
       $win->{FSFile}->notSaved(1) if $win->{FSFile};
-      save_undo($win,prepare_undo($win,$dlg_title,UNDO_DATA,$node));
-      lastActionBookmark($win->{framegroup});
+      TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,$dlg_title,TrEd::Undo::undo_type_id('UNDO_DATA'), $node));
+      TrEd::Bookmarks::lastActionBookmark($win->{framegroup});
       &$callback();
       if (length $attr_path) {
 	doEvalHook($win,"after_edit_attr_hook",$node,$attr_path,1);
@@ -8415,8 +6440,8 @@ sub editAttrsDialog {
 
   if ($result=~ /OK/) {
     $win->{FSFile}->notSaved(1);
-    save_undo($win,prepare_undo($win,'Edit Node',UNDO_DATA,$node));
-    lastActionBookmark($win->{framegroup});
+    TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'Edit Node',TrEd::Undo::undo_type_id('UNDO_DATA'),$node));
+    TrEd::Bookmarks::lastActionBookmark($win->{framegroup});
     foreach $a (@atord) {
       $node->set_member($a,decode($e{$a}->get));
     }
@@ -8707,13 +6732,14 @@ sub findNodeDialog {
 			  ]
 			)->pack(qw/-side left/);
   $om->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
+  my @filelists = TrEd::ManageFilelists::get_filelists();
   $om->options(['[Current file only]', map { $_->name } @filelists]);
   $oe->configure(
     -command=> [ sub {
 		   my ($grp)=@_;
-		   my $name=filelistDialog($grp,1);
+		   my $name=TrEd::Dialog::Filelist::create_dialog($grp,1);
 		   $om->options(['[Current file only]',sort map { $_->name } @filelists]);
-		   $grp->{searchFilelist}=$name if (ref(findFilelist($name)));
+		   $grp->{searchFilelist}=$name if (ref(TrEd::ManageFilelists::findFilelist($name)));
 		 },$grp,$om]);
   $oe->pack(qw/-side left/);
   $ot->pack(qw/-side left/);
@@ -8762,7 +6788,7 @@ sub findNodeDialog {
 	if (ref($fl) and $fl->file_count>0 ) {
 	  local $insideEval=1;                 # no redraw
 	  $fl->set_current($fl->file_at(0));
-	  selectFilelist($grp,$fl);
+	  TrEd::ManageFilelists::selectFilelist($grp,$fl);
 	}
       } else {
 	$grp->{searchFilelist}=undef;
@@ -8923,7 +6949,7 @@ sub findTemplated {
 
   get_nodes_win($win);
   redraw_win($win);
-  updateTitle($grp);
+  update_title_and_buttons($grp);
   updatePostponed($grp);
   updateStylesheetMenu($grp);
   TrEd::List::Macros::update_view($grp);
@@ -8991,11 +7017,11 @@ sub nextNodeInSearchFilelist {
 
   # this realises filelist search
   local $insideEval=1;
-  my $result = TrEd::ManageFilelist::nextOrPrevFile($grp,1,1,$traverse eq 'all' ? 1 : 0);
+  my $result = TrEd::Filelist::Navigation::nextOrPrevFile($grp,1,1,$traverse eq 'all' ? 1 : 0);
   _quick_update($grp);
   # wait for Escape
   while (!$grp->{stopSearch} and $result and !$win->{currentNode}) {
-    $result = TrEd::ManageFilelist::nextOrPrevFile($grp,1,1,$traverse eq 'all' ? 1 : 0);
+    $result = TrEd::Filelist::Navigation::nextOrPrevFile($grp,1,1,$traverse eq 'all' ? 1 : 0);
     # wait for Escape
     _quick_update($grp);
   }
@@ -9085,13 +7111,13 @@ sub prevNodeInSearchFilelist {
   local $insideEval=1;
   my $no_redraw = $win->{noRedraw};
   $win->{noRedraw}=1;
-  my $result = TrEd::ManageFilelist::nextOrPrevFile($grp,-1,1,$traverse eq 'all' ? 1 : 0);
+  my $result = TrEd::Filelist::Navigation::nextOrPrevFile($grp,-1,1,$traverse eq 'all' ? 1 : 0);
 
   # wait for Escape
   _quick_update($grp);
   while ($result and !$grp->{stopSearch}
 	 and !$win->{FSFile} || $win->{FSFile}->lastTreeNo<0) {
-    $result = TrEd::ManageFilelist::nextOrPrevFile($grp,-1,1,$traverse eq 'all' ? 1 : 0);
+    $result = TrEd::Filelist::Navigation::nextOrPrevFile($grp,-1,1,$traverse eq 'all' ? 1 : 0);
     # wait for Escape
     _quick_update($grp);
   }
@@ -9270,8 +7296,8 @@ sub doEditAttr {
     if (defined($newvalue)) {
       $win->toplevel->Busy(-recurse=> 1);
       $win->{FSFile}->notSaved(1);
-      save_undo($win,prepare_undo($win,"Edit Attribute '$attr'",UNDO_DATA,$node));
-      lastActionBookmark($grp);
+      TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,"Edit Attribute '$attr'",TrEd::Undo::undo_type_id('UNDO_DATA'),$node));
+      TrEd::Bookmarks::lastActionBookmark($grp);
       $node->set_member($attr,$newvalue);
       doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
       get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
@@ -9289,8 +7315,8 @@ sub doEditAttr {
     if (defined $newvalue) {
       $grp->{top}->Busy(-recurse=> 1);
       $win->{FSFile}->notSaved(1);
-      save_undo($win,prepare_undo($win,"Edit Attribute '$attr'",UNDO_DATA,$node));
-      lastActionBookmark($grp);
+      TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,"Edit Attribute '$attr'",TrEd::Undo::undo_type_id('UNDO_DATA'),$node));
+      TrEd::Bookmarks::lastActionBookmark($grp);
       $node->set_member($attr,$newvalue);
       doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
       get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
@@ -9329,8 +7355,8 @@ sub doEditAttr {
   if ($result=~ /OK/) {
     get_grp_history($grp,$e, "attr-$attr");
     $win->{FSFile}->notSaved(1);
-    save_undo($win,prepare_undo($win,"Edit Attribute '$attr'",UNDO_DATA,$node));
-    lastActionBookmark($grp);
+    TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,"Edit Attribute '$attr'",TrEd::Undo::undo_type_id('UNDO_DATA'),$node));
+    TrEd::Bookmarks::lastActionBookmark($grp);
     $node->set_member($attr,decode($newvalue));
     doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
     get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
@@ -9363,64 +7389,86 @@ sub nodeBoxOptions {
 					 $win->{currentNode},$edge);
 }
 
+#######################################################################################
+# Usage         : redraw_win($win)
+# Purpose       : Redraw Window $win
+# Returns       : Undef/empty list
+# Parameters    : TrEd::Window ref $win -- reference to TrEd::Window object
+# Throws        : No exception
+# Comments      : Runs these hooks:
+#                   $TrEd::TreeView::on_get_root_style
+#                   $TrEd::TreeView::on_get_node_style
+#                   $TrEd::TreeView::on_redraw_done 
+# See Also      : TrEd::TreeView::redraw()
+#TODO:          Also look at the undo stuff after redraw
 sub redraw_win {
-  my ($win)=@_;
-  return if ($win->{noRedraw} or $insideEval);
-  print STDERR "redraw $win\n" if $tredDebug;
-  #------------------------------------------------------------
-  #{
-  #use Benchmark;
-  #my $t0= new Benchmark;
-  #for (my $i=0;$i<=50;$i++) {
-  #------------------------------------------------------------
-  $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
-  $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
-  $TrEd::TreeView::on_redraw_done= [\&onRedrawDone,$win];
-  my $vl;
-#  $vl=$win->treeView->value_line($win->{FSFile},$win->{treeNo},1,0,$win);
-#  $vl=$win->treeView->value_line($win->{FSFile},$win->{treeNo},1,1,$win);
-  if ($win->{FSFile} and $win->treeView->get_drawSentenceInfo) {
-    $vl=TrEd::ValueLine::get_value_line($win,$win->{FSFile},$win->{treeNo},1,0,'html');
-  }
-  $win->{redrawn}++; # may be used to check that this function was called (e.g. during a hook)
-                     # do not forget to reset the value first
-  $win->treeView->
-    redraw($win->{FSFile},
-	   $win->{currentNode},
-	   $win->{Nodes},
-	   # CHANGE THIS (this is just for printing) :
-	   (defined($vl) ? $vl : EMPTY),
-	   ($stippleInactiveWindows ?
-	      (($win == $win->{framegroup}->{focusedWindow}) ? 'hidden' : 'normal')
-		: undef),
-	   $win
-	  );
-  if ($win->{FSFile}) {
-    setCurrent($win,$win->{currentNode});
-    ensureCurrentIsDisplayed($win);
-  }
-  $TrEd::TreeView::on_get_root_style= undef; #forget the reference on $win
-  $TrEd::TreeView::on_get_node_style= undef;
-  $TrEd::TreeView::on_redraw_done= undef;
+    my ($win) = @_;
+    return if ( $win->{noRedraw} or $insideEval );
+    print STDERR "redraw $win\n" if $tredDebug;
 
-  if ($win == $win->{framegroup}->{focusedWindow}) {
-    saveFileStateUpdate($win);
-    resetUndoStatus($win);
-    resetTreePosStatus($win->{framegroup});
-    TrEd::StatusLine::update_status_info($win);
-    updateNodeMenu($win);
-  }
+    #------------------------------------------------------------
+    #{
+    #use Benchmark;
+    #my $t0= new Benchmark;
+    #for (my $i=0;$i<=50;$i++) {
+    #------------------------------------------------------------
+    $TrEd::TreeView::on_get_root_style = [ \&onGetRootStyle, $win ];
+    $TrEd::TreeView::on_get_node_style = [ \&onGetNodeStyle, $win ];
+    $TrEd::TreeView::on_redraw_done    = [ \&onRedrawDone,   $win ];
+    my $vl;
 
-  #------------------------------------------------------------
-  #}
-  #my $t1= new Benchmark;
-  #my $td= timediff($t1, $t0);
-  #print "redraw: the code took:",timestr($td),"\n";
-  #}
-  #------------------------------------------------------------
 
-  return;
+    if ( $win->{FSFile} and $win->treeView()->get_drawSentenceInfo() ) {
+        $vl = TrEd::ValueLine::get_value_line( $win, $win->{FSFile},
+            $win->{treeNo}, 1, 0, 'html' );
+    }
+    
+    # may be used to check that this function was called (e.g. during a hook),
+    # do not forget to reset the value first
+    $win->{redrawn}++;
+          
+    $win->treeView->redraw(
+        $win->{FSFile},
+        $win->{currentNode},
+        $win->{Nodes},
+
+        # CHANGE THIS (this is just for printing) :
+        ( defined($vl) ? $vl : EMPTY ),
+        (   $stippleInactiveWindows
+            ? ( ( $win == $win->{framegroup}->{focusedWindow} )
+                ? 'hidden'
+                : 'normal' )
+            : undef
+        ),
+        $win
+    );
+    if ( $win->{FSFile} ) {
+        setCurrent( $win, $win->{currentNode} );
+        ensureCurrentIsDisplayed($win);
+    }
+    $TrEd::TreeView::on_get_root_style = undef;  #forget the reference on $win
+    $TrEd::TreeView::on_get_node_style = undef;
+    $TrEd::TreeView::on_redraw_done    = undef;
+
+    if ( $win == $win->{framegroup}->{focusedWindow} ) {
+        saveFileStateUpdate($win);
+        TrEd::Undo::reset_undo_status($win);
+        resetTreePosStatus( $win->{framegroup} );
+        TrEd::StatusLine::update_status_info($win);
+        updateNodeMenu($win);
+    }
+
+    #------------------------------------------------------------
+    #}
+    #my $t1= new Benchmark;
+    #my $td= timediff($t1, $t0);
+    #print "redraw: the code took:",timestr($td),"\n";
+    #}
+    #------------------------------------------------------------
+
+    return;
 }
+
 
 sub redraw_fsfile {
   my ($grp,$fsfile)=@_;
@@ -9698,34 +7746,51 @@ sub currentUp {
   }
 }
 
-sub centerToXY {
-  my ($win, $x, $y)= @_;
-  my $c = $win->treeView->canvas;
-  $c->xviewCenter(coord => $x);
-  $c->yviewCenter(coord => $y);
-#   my ($ax,$bx)=$win->treeView->canvas->xview;
-#   my ($ay,$by)=$win->treeView->canvas->yview;
-
-#   my $shiftx=($bx-$ax)/2;
-#   my $shifty=($by-$ay)/2;
-#   eval {
-#     $win->treeView->canvas->xview(moveto=> min2(max2(0,$x/$win->treeView->{canvasWidth}-$shiftx),1))
-#       if ($win->treeView->{canvasWidth}-$shiftx);
-#     $win->treeView->canvas->yview(moveto=> min2(max2(0,$y/$win->treeView->{canvasHeight}-$shifty),1))
-#       if ($y/$win->treeView->{canvasHeight}-$shifty);
-#   }
+#######################################################################################
+# Usage         : center_to_coords($win, $x, $y)
+# Purpose       : Adjust scroll region to display point with coordinates $x, $y 
+#                 in the center of the Window
+# Returns       : Undef/empty list if $node is not defined or if $win->{noRedraw} is set.
+#                 1 on success.
+# Parameters    : TrEd::Window ref $win      -- reference to TrEd::Window object
+#                 Treex::PML::node ref $node -- reference to Node which is supposed to be in the centre of the Window
+# Throws        : No exception
+# Comments      :  
+# See Also      : centerTo()
+sub center_to_coords {
+    my ( $win, $x, $y ) = @_;
+    return if ( !defined $win );
+    my $canvas = $win->treeView()->canvas();
+    $canvas->xviewCenter( coord => $x );
+    $canvas->yviewCenter( coord => $y );
+    return 1;
 }
 
+#######################################################################################
+# Usage         : centerTo($win, $node)
+# Purpose       : Adjust scroll region to display node $node in the center of the Window
+# Returns       : Undef/empty list if $node is not defined or if $win->{noRedraw} is set.
+#                 1 on success.
+# Parameters    : TrEd::Window ref $win      -- reference to TrEd::Window object
+#                 Treex::PML::node ref $node -- reference to Node which is supposed to be in the centre of the Window
+# Throws        : No exception
+# Comments      :  
+# See Also      : center_to_coords()
+# Footnote      : Can not be renamed now, used in ElixirFM, suggested new name: center_to_node()
 sub centerTo {
-  my ($win, $node)= @_;
-  return unless $node;
-  return if $win->{noRedraw};
-  my $tv=$win->treeView;
-  $tv->reset_scroll_region;
-  centerToXY($win,
-	     $tv->get_node_pinfo($node,"XPOS"),
-	     $tv->get_node_pinfo($node,"YPOS"));
+    my ( $win, $node ) = @_;
+    return if (!defined $node || !defined $win);
+    return if $win->{noRedraw};
+    my $tree_view = $win->treeView();
+    $tree_view->reset_scroll_region();
+    center_to_coords(
+        $win,
+        $tree_view->get_node_pinfo( $node, "XPOS" ),
+        $tree_view->get_node_pinfo( $node, "YPOS" )
+    );
+    return 1;
 }
+
 
 sub doEvalHookWithUndo {
   _evalHook(1,@_);
@@ -9739,7 +7804,7 @@ sub _evalHook {
   return unless $hook; # and $win->{currentNode};
   my $grp = $win->{framegroup};
   # Save current position (as last action position)
-  my $bookmark= $with_undo ? bookmarkThis($grp) : undef;
+  my $bookmark= $with_undo ? TrEd::Bookmarks::bookmarkThis($grp) : undef;
 
 
   local $insideEval=1;
@@ -9771,7 +7836,6 @@ sub _evalHook {
       }
     }
   }
-  my $undo=prepare_undo($win,"Hook $context"."->".$hook,UNDO_DISPLAYED_TREES) if ($with_undo and $win and $win->{FSFile});
   my $result=do_eval_hook($win,$context,$hook,@_);
   warn "$@\n" if $@;
   if (ref($minor_modes)) {
@@ -9791,8 +7855,9 @@ sub _evalHook {
     if ($win->{FSFile}) {
       if ($file_changed ne '?' and $file_changed) {
 	if ($with_undo) {
-	  save_undo($win,$undo);
-	  lastActionBookmark($win->{framegroup},$bookmark);
+	  my $undo=TrEd::Undo::prepare_undo($win,"Hook $context"."->".$hook,TrEd::Undo::undo_type_id('UNDO_DISPLAYED_TREES')) if ($with_undo and $win and $win->{FSFile});
+	  TrEd::Undo::save_undo($win,$undo);
+	  TrEd::Bookmarks::lastActionBookmark($win->{framegroup},$bookmark);
 	}
 	$win->{FSFile}->notSaved(1);
       }
@@ -9908,7 +7973,7 @@ sub findMacroDescription {
 sub doEvalMacro {
   my ($win,$macro)=(shift,shift);
   return unless $macro;# and $win->{currentNode};
-  my $bookmark=bookmarkThis($win->{framegroup});
+  my $bookmark=TrEd::Bookmarks::bookmarkThis($win->{framegroup});
   $win->toplevel->Busy(-recurse=> 1);
   $insideEval=1;
 
@@ -9920,7 +7985,7 @@ sub doEvalMacro {
     forceFileSaved => 0,
     Redraw => 'file');
 
-  my $undo=prepare_undo($win,findMacroDescription($win,$macro,UNDO_DISPLAYED_TREES));
+  
   my $result=do_eval_macro($win,$macro);
   my $current_win=get_macro_variable("grp");
   if ($win != $current_win and (blessed($current_win) and $current_win->isa('TrEd::Window')) ) {
@@ -9933,12 +7998,13 @@ sub doEvalMacro {
     if (get_macro_variable("forceFileSaved")) {
       print STDERR "Macro forcedly claims file saved.\n";
       $win->{FSFile}->notSaved($file_not_saved ? 1 : 0);
-      lastActionBookmark($win->{framegroup},$bookmark) if $file_not_saved;
+      TrEd::Bookmarks::lastActionBookmark($win->{framegroup},$bookmark) if $file_not_saved;
     } else {
       if ($file_not_saved) {
-	save_undo($win,$undo);
-	$win->{FSFile}->notSaved(1);
-	lastActionBookmark($win->{framegroup},$bookmark);
+        my $undo=TrEd::Undo::prepare_undo($win,findMacroDescription($win,$macro,TrEd::Undo::undo_type_id('UNDO_DISPLAYED_TREES')));
+        TrEd::Undo::save_undo($win,$undo);
+        $win->{FSFile}->notSaved(1);
+        TrEd::Bookmarks::lastActionBookmark($win->{framegroup},$bookmark);
       } else {
 	print STDERR "Macro claims file untouched.\n" if $macroDebug;
       }
@@ -9993,7 +8059,7 @@ sub doEvalMacro {
    );
 
   centerTo($win,$win->{currentNode});
-  updateTitle($win->{framegroup});
+  update_title_and_buttons($win->{framegroup});
 
   $win->toplevel->Unbusy;
   return $result;
@@ -10325,14 +8391,14 @@ sub node_release {
 	    $top=$top->parent;
 	  }
 	  if ($parent and $node->parent!=$top) {
-	    save_undo($win,prepare_undo($win, "Cat/Paste node with mouse"),UNDO_DISPLAYED_TREES);
+	    TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win, "Cut/Paste node with mouse"),TrEd::Undo::undo_type_id('UNDO_DISPLAYED_TREES'));
 	    my $oldparent=$node->parent;
 	    $node->cut()->paste_on(
 			 $parent,
 			 $win->{FSFile}->FS);
 	    $win->{FSFile}->notSaved(1);
 	    doEvalHook($win,"node_moved_hook",$node,$oldparent);
-	    lastActionBookmark($grp);
+	    TrEd::Bookmarks::lastActionBookmark($grp);
 	    get_nodes_fsfile($grp,$win->{FSFile});
 	    redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
 	    centerTo($win,$win->{currentNode});
@@ -10379,247 +8445,26 @@ sub node_release_modif {
     }
   } else { redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo}); }
 }
-# undo
+
+#sub prepare_undo 
+#TODO: only for extensions/macros -- temporary solution
 sub prepare_undo {
-  my ($win,$message,$what,$data)=@_;
-  return unless $maxUndo;
-  my $fsfile=$win->{FSFile};
-  return undef unless $fsfile;
-  $what||=UNDO_DISPLAYED_TREES;
-  my $snapshot;
-  if ($what == UNDO_ACTIVE_NODE) {
-    $data=$win->{currentNode};
-  } elsif ($what == UNDO_ACTIVE_ROOT) {
-    $data=$win->{currentNode};
-    return unless ref $data;
-    $data = $data->root;
-  } elsif ($what == UNDO_CURRENT_TREE) {
-    return if !ref($win->{root});
-    $data=$win->{root};
-  } elsif ($what == UNDO_TREE_ORDER) {
-    $snapshot = [@{$fsfile->treeList}];
-  } elsif ($what == UNDO_DISPLAYED_TREES) {
-    my $n = $win->{Nodes} || [];
-    my %n; @n{@$n}=();
-    # the following should be a bit faster than uniq map $_->root, @$n
-    $data = [uniq map { my $p=$_->parent; $p && exists($n{$p}) ? () : ($p ? $p->root : $_) }  @$n ];
-  } elsif ($what == UNDO_DATA_AND_TREE_ORDER) {
-    if (ref($data)) {
-      $snapshot = [make_data_snapshot($data),
-		   [@{$fsfile->treeList}]
-		  ];
-    } else {
-      $what=UNDO_TREE_ORDER;
-      $snapshot = [@{$fsfile->treeList}];
-    }
-  } elsif ($what == UNDO_CURRENT_TREE_AND_TREE_ORDER) {
-    return if !ref($win->{root});
-    $snapshot = [make_data_snapshot($win->{root}),
-		 [@{$fsfile->treeList}]
-		];
-  } elsif ($what == UNDO_ACTIVE_ROOT_AND_TREE_ORDER) {
-    my $n = $win->{currentNode};
-    return unless ref $n;
-    $snapshot = [make_data_snapshot($n->root),
-		 [@{$fsfile->treeList}]
-		];
-  } elsif ($what == UNDO_DATA) {
-    # $data = $data;
-  } else {
-    ErrorMessage($win, "Unknown undo type: $what\n");
-    return;
-  }
-  if (!defined $snapshot) {
-    return unless ref $data;
-    $snapshot = [make_data_snapshot( $data ),$data];
-  }
-  return [$fsfile,['Snapshot',$win->{treeNo},$snapshot,$win->{currentNode},$message,$what]];
+  return TrEd::Undo::prepare_undo(@_);
 }
-# redo
-sub prepare_redo {
-  my ($win,$undo)=@_;
-  my $type = $undo->[0];
-  my $message = $undo->[4];
-  return prepare_undo($win,$message) unless $type eq 'Snapshot';
-  my $what = $undo->[5];
-  my $snapshot=$undo->[2];
-  $what||=UNDO_DISPLAYED_TREES;
-  if ($what == UNDO_ACTIVE_NODE or
-      $what == UNDO_ACTIVE_ROOT or
-      $what == UNDO_DATA or
-      $what == UNDO_CURRENT_TREE or
-      $what == UNDO_DISPLAYED_TREES
-     ) {
-    return prepare_undo($win,$message,UNDO_DATA,$snapshot->[1]);
-  } elsif ($what == UNDO_TREE_ORDER) {
-    return prepare_undo($win,$message,UNDO_TREE_ORDER);
-  } elsif ($what == UNDO_CURRENT_TREE_AND_TREE_ORDER or
-	   $what == UNDO_ACTIVE_ROOT_AND_TREE_ORDER or
-	   $what == UNDO_DATA_AND_TREE_ORDER) {
-    return prepare_undo($win,$message,UNDO_DATA_AND_TREE_ORDER,$snapshot->[1]);
-  } else {
-    ErrorMessage($win, "Unknown undo type: $what\n");
-    return prepare_undo($win,$message);
-  }
-}
-
-# undo
+#sub prepare_redo
+#sub save_undo
 sub save_undo {
-  my ($win,$undo)=@_;
-  return unless $maxUndo;
-  return unless ref $undo;
-  my $fsfile=$undo->[0];
-  $undo=$undo->[1];
-  return unless ref $fsfile and ref $undo;
-  print "Saving undo: $undo->[4] for file ".$fsfile->filename()."\n" if $tredDebug;
-
-  if ($fsfile != $win->{FSFile}) {
-    warn("Undo: window displays a different file than undo was prepared for.\n");
-  }
-  initAppData($fsfile);
-
-  my $stack=$fsfile->appData('undostack');
-  splice @$stack, $fsfile->appData('undo')+1; # remove redo
-  push @$stack,$undo;
-  if ($maxUndo>0 and @$stack>$maxUndo) {
-    splice @$stack, 0, (@$stack-$maxUndo);
-    print STDERR "Undo-stack: overflow, removing ",(@$stack-$maxUndo)," items\n" if $tredDebug;
-  }
-  $fsfile->changeAppData('undo',$#$stack);
-  resetUndoStatus($win);
-  print STDERR "Undo-stack: $#$stack items\n" if $tredDebug;
+  return TrEd::Undo::save_undo(@_);
 }
-# redo
+#sub re_do
 sub re_do {
-  my ($grp_or_win)=@_;
-  my $win = cast_to_win($grp_or_win);
-  return unless $maxUndo;
-  my $fsfile=$win->{FSFile};
-  return unless $fsfile;
-  my $stack=$fsfile->appData('undostack');
-  return unless (@$stack>$fsfile->appData('undo')+2);
-  print STDERR "Redo: ",$fsfile->appData('undo')+2,"/$#$stack\n" if $tredDebug;
-  $fsfile->changeAppData('undo',$fsfile->appData('undo')+2);
-  undo($win,1);
+  return TrEd::Undo::re_do(@_);
 }
-# undo
+#sub undo
 sub undo {
-  my ($grp_or_win,$redo)=@_;
-  my $win = cast_to_win($grp_or_win);
-  return unless $maxUndo;
-  my $fsfile=$win->{FSFile};
-  return unless $fsfile;
-  my $stack=$fsfile->appData('undostack');
-  my $stackpos=$fsfile->appData('undo');
-  return unless (ref($stack) and (@$stack>0) and ($stackpos>=0) and ($stackpos <= $#$stack));
-  my $undo=$stack->[$stackpos];
-  if ($undo) {
-    my $new_undo;
-    my $type = $undo->[0];
-    $new_undo=prepare_redo($win,$undo)
-      if (!$redo and $#$stack == $stackpos);
-    my $treeNo=$undo->[1];
-    my $snapshot=$undo->[2];
-    if ($type eq 'Snapshot') {
-      my $what=$undo->[5];
-      if ($what == UNDO_ACTIVE_NODE or
-	  $what == UNDO_ACTIVE_ROOT or
-	  $what == UNDO_DISPLAYED_TREES or
-	  $what == UNDO_DATA
-	 ) {
-	restore_data_from_snapshot($snapshot->[0]);
-	# nothing to do
-      } elsif ($what == UNDO_CURRENT_TREE) {
-	my $prev = $fsfile->treeList->[$treeNo];
-	$prev->destroy if ref($prev);
-	$fsfile->treeList->[$treeNo] = restore_data_from_snapshot($snapshot->[0]);
-      } elsif ($what == UNDO_TREE_ORDER) {
-	@{$fsfile->treeList}=@$snapshot;
-      } elsif ($what == UNDO_CURRENT_TREE_AND_TREE_ORDER) {
-	#	my $prev = $fsfile->treeList->[$treeNo];
-	#	$prev->destroy if ref($prev);
-	#	$prev=
-	restore_data_from_snapshot($snapshot->[0]);
-	my %r; @r{ @{$snapshot->[1]} }=();
-	for (@{$fsfile->treeList}) {
-	  $_->destroy if eval { ref ($_) and !$_->parent and !exists($r{$_}) };
-	}
-	@{$fsfile->treeList}=@{$snapshot->[1]};
-	# $fsfile->treeList->[$treeNo]=$prev;
-      } elsif ($what == UNDO_ACTIVE_ROOT_AND_TREE_ORDER or
-	       $what == UNDO_DATA_AND_TREE_ORDER) {
-	restore_data_from_snapshot($snapshot->[0]);
-	my %r; @r{ @{$snapshot->[1]} }=();
-	for (@{$fsfile->treeList}) {
-	  $_->destroy if eval { ref ($_) and !$_->parent and !exists($r{$_}) };
-	}
-	@{$fsfile->treeList}=@{$snapshot->[1]};
-      } else {
-	ErrorMessage($win, "Unknown undo type: $what\n");
-      }
-    } elsif ($type eq 'FS') {
-      my $prev = $fsfile->treeList->[$treeNo];
-      $prev->destroy if ref($prev);
-      $fsfile->treeList->[$treeNo]=$fsfile->FS->parseFSTree($snapshot);
-    } elsif ($type eq 'Storable') {
-      my $prev = $fsfile->treeList->[$treeNo];
-      $prev->destroy if ref($prev);
-      $fsfile->treeList->[$treeNo]=Storable::thaw($snapshot);
-    }
-    if ($#$stack == $stackpos) {
-      if ($redo) {
-	pop @$stack;
-      } else {
-	push @$stack, $new_undo->[1];
-      }
-    }
-    print STDERR "Undo: ",$stackpos."/$#$stack\n" if $tredDebug;
-    $fsfile->changeAppData('undo',$fsfile->appData('undo')-1);
-    resetUndoStatus($win);
-    $fsfile->notSaved(1);
-    $win->{treeNo}=$treeNo;
-    get_nodes_fsfile_tree($win->{framegroup},$fsfile,$treeNo);
-    $win->{currentNode}=ref($undo->[3]) ? $undo->[3] : $win->{Nodes}[$undo->[3]];
-    ensureCurrentIsDisplayed($win);
-    redraw_fsfile_tree($win->{framegroup},$fsfile,$treeNo);
-    centerTo($win,$win->{currentNode});
-  } else {
-    errorMessage($win,"Corrupted undo stack!");
-  }
-}
-# undo
-sub resetUndoStatus {
-  my ($win)=@_;
-  my $fsfile=$win->{FSFile};
-  my $grp = $win->{framegroup};
-  my ($undostatus,$redostatus,$undomessage,$redomessage);
-
-  if ($maxUndo!=0 and ref($fsfile)) {
-    my $stack=$fsfile->appData('undostack');
-    my $stackpos=$fsfile->appData('undo');
-    print STDERR "UNDO_STACK: $stackpos/",$#$stack+1,"\n" if $tredDebug;
-    $undostatus=(ref($stack) && (@$stack>0));
-    $redostatus=($undostatus && (@$stack>$stackpos+2));
-    $undostatus &&= (($stackpos>=0) && ($stackpos <= $#$stack));
-    $undomessage = ": ".$stack->[$stackpos]->[4] if ($undostatus);
-    $redomessage = ": ".$stack->[$stackpos+1]->[4] if ($redostatus);
-  } else {
-    $undostatus=0;
-    $redostatus=0;
-  }
-  if ($grp->{undoButton}) {
-    $grp->{undoButton}->
-      configure(-state => ($undostatus ? 'normal' : 'disabled'));
-    $grp->{Balloon}->attach($grp->{undoButton},
-			    -balloonmsg=> "Undo".$undomessage);
-  }
-  if ($grp->{redoButton}) {
-    $grp->{redoButton}->
-      configure(-state => ($redostatus ? 'normal' : 'disabled'));
-    $grp->{Balloon}->attach($grp->{redoButton},
-			    -balloonmsg=> "Redo".$redomessage);
-  }
-}
+  return TrEd::Undo::undo(@_);
+};
+#sub resetUndoStatus {
 
 sub resetTreePosStatus {
   my ($grp)=@_;
@@ -10764,19 +8609,7 @@ sub loadMacros {
   foreach my $path (get_extension_sample_data_paths($extensions),
 		    get_extension_sample_data_paths($pre_installed,$preinst_dir)) {
     foreach my $f (glob(File::Spec->catfile($path,'*.fl'))) {
-      print "Reading $f\n" if $tredDebug;
-      my $fl=Filelist->new(undef,$f);
-      next unless $fl;
-      print STDERR "Reading filelist ".$fl->filename."\n" if $tredDebug;
-      eval {
-        $fl->load();
-        add_new_filelist(undef,$fl);
-      };
-      if ($@) {
-        warn $@;
-      } else {
-        $filelist_from_extension{$fl}=1;
-      }
+      TrEd::ManageFilelists::create_ext_filelist($f);
     }
   }
 
@@ -10866,56 +8699,6 @@ sub manage_extensions {
     
     # reload macros
     reloadMacros($grp,{preparedExtensions => $preparedExtensions});
-  }
-}
-# filelist
-sub loadStdFilelists {
-  my $dir = File::Spec->catdir($tred_d,'filelists');
-  return unless -d $dir;
-  my %name = map { $_->name => $_ } @filelists;
-  for my $f (glob(File::Spec->catfile($dir,'*'))) {
-    my $name = filename($f);
-    $name =~ s/\.fl$//i; # strip .fl suffix if any
-    my $uname = Encode::decode('UTF-8',URI::Escape::uri_unescape($name));
-    if (URI::Escape::uri_escape_utf8($uname) ne $name) {
-      my $nf = File::Spec->catfile($dir,URI::Escape::uri_escape_utf8($uname));
-      if (rename $f, $nf) {  # rename unescaped version if exists
-	$f = $nf;
-	print STDERR "renaming\n $f\n  to\n $nf\n" if $tredDebug;
-      } else {
-	warn "Failed to rename $f to $nf\n";
-      }
-    }
-    $name = $uname;
-    if (exists $name{$name}) {
-      warn("Ignoring filelist $f, filelist named $name already loaded from ",$name{$name}->filename,"\n");
-    } else {
-      my $fl=Filelist->new($name,$f);
-      if ($fl) {
-	print STDERR "Reading filelist ".$fl->filename."\n" if $tredDebug;
-	eval {
-	  $fl->load();
-	  add_new_filelist(undef,$fl);
-	};
-	if ($@) {
-	  warn $@;
-	} else {
-	  $filelist_from_extension{$fl}=2;
-	}
-      }
-    }
-  }
-}
-# filelist
-sub saveStdFilelist {
-  my ($fl)=@_;
-  my $dir = File::Spec->catdir($tred_d,'filelists');
-  mkdir $dir unless -d $dir;
-  my $name = $fl->name;
-  $name = URI::Escape::uri_escape_utf8($name);
-  if (defined $name and length $name) {
-    $fl->filename(File::Spec->catdir($dir,$name));
-    $fl->save;
   }
 }
 

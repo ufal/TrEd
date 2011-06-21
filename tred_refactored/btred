@@ -1551,6 +1551,7 @@ sub resumeFile {
   $grp->{currentNode}=$grp->{root};
 }
 
+#TODO: aj v trede je
 sub openFile {
   my ($grp,$f,%opts) = @_;
   if (doEvalHook($grp,"open_file_hook",$f,{%opts}) eq 'stop') {
@@ -1618,6 +1619,7 @@ sub _has_suffix {
   return $_[0]=~/##?[0-9A-Z]+(?:\.\d+)?$/
 }
 
+# tato fcia je aj v TrEd::Utils, nejaky diff...
 sub applyFileSuffix {
   my ($grp,$goto)= @_;
   return unless $grp;
@@ -1878,6 +1880,7 @@ sub secondaryDocumentsTo ($$) {
   return grep { ref($_) } map { $grp->{secondary}->{$_} } secondaryFiles($fsfile);
 }
 
+#TODO: aj v trede..
 sub closeFile {
   my ($grp)=@_;
   doEvalHook($grp,"file_close_hook") if $grp->{FSFile};

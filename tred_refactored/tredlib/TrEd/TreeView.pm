@@ -406,16 +406,29 @@ sub store_obj_pinfo {
 #   $self->{iinfo}->{$obj}=$value;
 # }
 
+#######################################################################################
+# Usage         : $tree_view->get_node_pinfo($node, $key)
+# Purpose       : Read the information $key associated with node $node
+# Returns       : Undef/empty list if not called on a TreeView reference. Value of
+#                 the $key if it exists.
+# Parameters    : Treex::PML::Node ref $node -- reference to Node object
+#                 scalar $key                -- property/piece of information name
+# Throws        : No exception
+# Comments      : If $key contains capital letters 'X' or 'Y', the information is 
+#                 treated as coordinates and it is scaled according to current
+#                 scale_factor
+# See Also      : store_node_pinfo(), scale_factor()
 sub get_node_pinfo {
-  my ($self,$node,$key) = @_;
-  return undef unless ref($self);
-  my $val;
-  $val = $self->{node_info}{$node}{$key};
-  if ($key=~/[XY]/) {
-    return $self->scale_factor * $val;
-  } else {
-    return $val;
-  }
+    my ( $self, $node, $key ) = @_;
+    return if (!ref($self));
+    my $val;
+    $val = $self->{node_info}{$node}{$key};
+    if ( $key =~ /[XY]/ ) {
+        return $self->scale_factor() * $val;
+    }
+    else {
+        return $val;
+    }
 }
 
 sub get_obj_pinfo {
@@ -585,21 +598,43 @@ sub value_line {
   }
 }
 
+#######################################################################################
+# Usage         : $tree_view->nodes($fsfile, $tree_no, $prev_current)
+# Purpose       : 
+# Returns       : A list that contains two values -- reference to array 
+#                 of nodes in tree number $tree_no from document $fsfile 
+#                 and current node in this tree.
+# Parameters    : Treex::PML::Document $fsfile -- reference to document file
+#                 scalar $tree_no              -- tree number
+#                 scalar $prev_current         -- suggested current node in the wanted tree
+# Throws        : No exception
+# Comments      : If the $prev_current node is a node of the tree found in $fsfile, 
+#                 the current node is set to $prev_node. Otherwise, the tree's root
+#                 is returned as the current node.
+#                 Runs $TrEd::TreeView::on_get_nodes hook if it is specified.
+# See Also      : Treex::PML::Document::nodes()
 sub nodes {
-  my ($self,$fsfile,$tree_no,$prevcurrent)=@_;
-  my $right_to_left = $self->rightToLeft($fsfile);
-  $right_to_left = $self->{reverseNodeOrder} unless defined $right_to_left;
-  my $l = callback($on_get_nodes,$self,$fsfile,$tree_no,$prevcurrent);
-  if (ref($l) eq 'ARRAY' and @$l==2) {
-    return @$l;
-  } else {
-    my ($nodes,$current)=$fsfile->nodes($tree_no,$prevcurrent,$self->get_showHidden());
-    if ($right_to_left) {
-      return ([reverse @$nodes],$current);
+    my ( $self, $fsfile, $tree_no, $prevcurrent ) = @_;
+    my $right_to_left = $self->rightToLeft($fsfile);
+    if (!defined $right_to_left) {
+        $right_to_left = $self->{reverseNodeOrder};
     }
-    return ($nodes,$current);
-  }
+    # run hook
+    my $l = callback( $on_get_nodes, $self, $fsfile, $tree_no, $prevcurrent );
+    if ( ref($l) eq 'ARRAY' and @{$l} == 2 ) {
+        return @{$l};
+    }
+    else {
+        my ( $nodes, $current )
+            = $fsfile->nodes( $tree_no, $prevcurrent,
+            $self->get_showHidden() );
+        if ($right_to_left) {
+            return ( [ reverse @{$nodes} ], $current );
+        }
+        return ( $nodes, $current );
+    }
 }
+
 
 sub getFontHeight {
   my ($self)=@_;
@@ -2454,13 +2489,24 @@ sub raise_order {
   }
 }
 
-
+#######################################################################################
+# Usage         : $tree_view->reset_scroll_region()
+# Purpose       : Reset scroll region of the TrEd::TreeView object
+# Returns       : Undef/empty list
+# Parameters    : no
+# Throws        : No exception
+# Comments      : Sets -scrollregion option, xviewMoveto and yviewMoveto options for 
+#                 Tk::Canvas 
+# See Also      : Tk::Canvas
 sub reset_scroll_region {
-  my ($self)=@_;
-  my $canvas = $self->canvas;
-  $canvas->configure(-scrollregion =>[0,0, $self->{canvasWidth}||0, $self->{canvasHeight}||0]);
-  $canvas->xviewMoveto(0);
-  $canvas->yviewMoveto(0);
+    my ($self) = @_;
+    my $canvas = $self->canvas();
+    #these are standard Tk::Canvas functions
+    $canvas->configure( -scrollregion =>
+            [ 0, 0, $self->{canvasWidth} || 0, $self->{canvasHeight} || 0 ] );
+    $canvas->xviewMoveto(0);
+    $canvas->yviewMoveto(0);
+    return;
 }
 
 

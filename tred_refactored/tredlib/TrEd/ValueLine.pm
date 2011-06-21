@@ -6,10 +6,7 @@ use strict;
 use warnings;
 
 use TrEd::Convert qw{encode};
-use TrEd::Basics qw{setCurrent};
-use Readonly;
-
-Readonly my $EMPTY_STR => q{};
+use TrEd::Basics qw{setCurrent $EMPTY_STR};
 
 #TODO: nejak to prerobit, aby sa to volalo na value line objekt...?
 
@@ -139,6 +136,7 @@ sub click {
 }
 
 # sub get_value_line
+#TODO: named args?
 sub get_value_line {
   my ($win,$fsfile,$no,$no_numbers,$tags,$type)=@_;
   my $vl;

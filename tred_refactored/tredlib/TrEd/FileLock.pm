@@ -20,11 +20,9 @@ BEGIN {
 }
 
 use TrEd::Config;
+use TrEd::Basics qw{$EMPTY_STR};
 use Treex::PML;
 use Carp;
-use Readonly;
-
-Readonly my $EMPTY_STR => q{};
 
 # funkcie vytiahnute z main namespace-u
 

@@ -7,14 +7,13 @@ use TrEd::Config;
 # potom prerobit na TrEd::Stylesheets asi
 use TrEd::Utils;
 use TrEd::MinMax qw{first};
-
+use TrEd::Basics qw{$EMPTY_STR};
 use TrEd::ValueLine;
 
 use Data::Dumper;
 
 use Readonly;
 
-Readonly my $EMPTY_STR => q{};
 Readonly my $HELP => <<'EOF';
 H<Stylesheet quick help>
 

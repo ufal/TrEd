@@ -309,7 +309,8 @@ sub current {
 sub set_current {
   my ($self, $filename) = @_;
   return if not ref $self;
-  return $self->{current} = $filename;
+  $self->{current} = $filename;
+  return $filename;
 }
 
 
