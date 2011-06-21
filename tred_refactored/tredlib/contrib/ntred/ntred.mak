@@ -170,5 +170,6 @@ sub ntred_query_box_make_filelist {
   $fl->clear();
   $fl->add(0,split /\n/,$r->get("0.0","end"));
   &main::updatePostponed($grp->{framegroup});
+  #TODO: pozriet sa na toto, asi bude treba use TrEd::ManageFilelists a potom presmerovat
   &main::selectFilelist($grp->{framegroup},$name);
 }

@@ -3,6 +3,8 @@ package TrEd::Filelist::View;
 use strict;
 use warnings;
 
+#TODO: nedat toto k dialog a tam to potom rozsekat na tie okienka?
+
 # filelist, UI, sidepanel
 sub update {
   my ($grp,$fl,$reload)=@_;
@@ -24,7 +26,7 @@ sub update_a_filelist_view {
   }
   if ($reload) {
     $fl->expand();
-    main::feedHListWithFilelist($grp,$fv,$fl);
+    TrEd::Dialog::Filelist::feedHListWithFilelist($grp,$fv,$fl);
   }
 #  if (defined($fl->current)) {
 #    $pos=max2(0,$fl->position);
@@ -35,7 +37,7 @@ sub update_a_filelist_view {
     $fv->itemConfigure($fv->{last_focused}, 0, -style => $fv->{default_style_imagetext});
     $fv->{last_focused}=undef;
   }
-  my $path=main::filelistEntryPath($fl,$pos);
+  my $path=TrEd::ManageFilelists::filelistEntryPath($fl,$pos);
   if (defined($path) and length($path) and $fv->info('exists',$path)) {
     if ($fv->{focused_style_imagetext}) {
       $fv->itemConfigure($path, 0, -style => $fv->{focused_style_imagetext});
@@ -46,5 +48,7 @@ sub update_a_filelist_view {
     $fv->selectionSet($path);
   }
 }
+
+
 
 1;

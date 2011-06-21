@@ -4,13 +4,11 @@ package TrEd::HTML::Simple;
 use strict;
 use warnings;
 
-use Readonly;
 
 use TrEd::Utils;
 use TrEd::Basics;
 use TrEd::Convert;
 
-Readonly my $EMPTY_STR => q{};
 
 
 sub open {
@@ -22,6 +20,10 @@ sub open {
 			   -title=> $title,
 			   -d $initdir ? (-initialdir=> $initdir) : (),
 			   $^O eq 'MSWin32' ? () : (-initialfile=> TrEd::Convert::filename($file)));
+  # Add .html ending if it does not have one
+  if ($file !~ m/\.htm(:?l)?$/i) {
+    $file .= '.html';
+  }
   if (defined($file) and $file ne $EMPTY_STR) {
     open my $html, ">$file" ||
       TrEd::Basics::errorMessage($top,"Cannot write to \"$file\"!"."\n(".main::conv_from_locale($!)."\nCheck file and directory permissions.\n".
@@ -50,3 +52,5 @@ sub close {
   print $html "\n</html>\n";
   close($html);
 }
+
+1;

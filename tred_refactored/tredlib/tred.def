@@ -243,7 +243,7 @@ Only those secondary files that are already open are returned.
 sub GetSecondaryFiles {
   my ($fsfile)=@_;
   $fsfile||=CurrentFile();
-  return exists(&main::getSecondaryFiles) ? main::getSecondaryFiles($fsfile) : ()
+  return exists(&TrEd::Basics::getSecondaryFiles) ? TrEd::Basics::getSecondaryFiles($fsfile) : ()
 }
 
 
@@ -2072,7 +2072,7 @@ sub Redraw {
   main::get_nodes_win($win);
   main::redraw_win($win);
   main::centerTo($win,$this) if (!$ignoreThis and $this);
-  main::updateTitle($win->{framegroup});
+  main::update_title_and_buttons($win->{framegroup});
   $main::insideEval=$ie;
 }
 
@@ -2093,7 +2093,7 @@ sub Redraw_FSFile {
   main::get_nodes_fsfile($framegroup,$fsfile);
   main::redraw_fsfile($framegroup,$fsfile);
   main::centerTo($grp,$this) if ($this);
-  main::updateTitle($framegroup);
+  main::update_title_and_buttons($framegroup);
   $main::insideEval=$ie;
 }
 
@@ -2114,7 +2114,7 @@ sub Redraw_FSFile_Tree {
   main::get_nodes_fsfile_tree($framegroup,$fsfile,$grp->{treeNo});
   main::redraw_fsfile_tree($framegroup,$fsfile,$grp->{treeNo});
   main::centerTo($grp,$this) if ($this);
-  main::updateTitle($framegroup);
+  main::update_title_and_buttons($framegroup);
   $main::insideEval=$ie;
 }
 
@@ -2132,7 +2132,7 @@ sub Redraw_All {
   main::get_nodes_all($grp->{framegroup});
   main::redraw_all($grp->{framegroup});
   main::centerTo($grp,$this) if ($this);
-  main::updateTitle($win->{framegroup});
+  main::update_title_and_buttons($win->{framegroup});
   $main::insideEval=$ie;
 }
 
@@ -2852,7 +2852,7 @@ sub SetCurrentStylesheet {
   my ($stylesheet_name)=@_;
   if (StylesheetExists($stylesheet_name) or $stylesheet_name eq STYLESHEET_FROM_FILE()) {
     $grp->{framegroup}{selectedStylesheet} = $stylesheet_name if $grp->{framegroup} and
-      main::isFocused($grp);
+      main::is_focused($grp);
     return main::switchStylesheet($grp,$stylesheet_name);
   }
   return -1;
@@ -3245,7 +3245,7 @@ that may contain various flags internally used by TrEd.
 sub Open {
   my ($filename,$opts)=@_;
   $opts||={};
-  my $ret = main::openFile($grp,$filename,%$opts);
+  my $ret = TrEd::File::open_file($grp,$filename,%$opts);
   if (exists($grp->{framegroup})) { # why?
     $root=$grp->{root};
     $this=$grp->{currentNode};
@@ -3418,7 +3418,7 @@ postponed files).
 
 sub GetOpenFiles {
 #ifdef TRED
-  return @main::openfiles;
+  return TrEd::File::get_openfiles();
 #else
   return grep defined, ($grp->{fsfile}, values %{$grp->{preloaded}});
 #endif
@@ -3432,7 +3432,7 @@ Return a list of currently registered I/O backends.
 =cut
 
 sub Backends {
-  return @main::backends;
+  return TrEd::File::get_backends();
 }
 
 =item C<AddBackend($classname,$before_backend)>
@@ -3444,25 +3444,10 @@ backend. Otherwise the backend is added as a last backend.
 
 =cut
 
-sub AddBackend {
+sub AddBackend {  
   my $class = shift;
   my $before = shift;
-  if (defined $before) {
-    my $found;
-    @main::backends = map {
-      if (!$found and ($_ eq $before)
-	    or ($_.'Backend' eq $before)) {
-	$found=1;
-	($class,$_)
-      } else { ($_) }
-    } @main::backends;
-    if (!$found) {
-      carp("TrEdMacro::AddBackend('$class','$before'): backend '$before' not found, appending");
-      push @main::backends,$class;
-    }
-  } else {
-    push @main::backends,$class;
-  }
+  TrEd::File::add_backend($class, $before);
 }
 
 =item C<RemoveBackend($classname)>
@@ -3473,7 +3458,7 @@ Remove (unregister) a given backend.
 
 sub RemoveBackend {
   my $class = shift;
-  @main::backends = grep { $_ ne $class } @main::backends;
+  TrEd::File::remove_backend($class);
 }
 
 
@@ -3488,7 +3473,7 @@ Creates a new TrED filelist from a given C<Filelist> object.
 sub AddNewFileList {
   my ($fl)=@_;
   croak("Not a file-list object") unless UNIVERSAL::DOES::does($fl,'Filelist');
-  main::add_new_filelist($grp->{framegroup},$fl);
+  TrEd::ManageFilelists::add_new_filelist($grp->{framegroup},$fl);
 }
 #endif
 
@@ -3505,7 +3490,7 @@ sub RemoveFileList {
   my ($fl)=@_;
   $fl = GetFileList($fl) unless ref($fl);
   croak("No such file-list") unless UNIVERSAL::DOES::does($fl,'Filelist');
-  main::deleteFilelist($grp->{framegroup},$fl);
+  TrEd::ManageFilelists::deleteFilelist($grp->{framegroup},$fl);
 }
 #endif
 
@@ -3536,7 +3521,8 @@ and returns the corresponding C<Filelist> object. Returns undef if not found.
 sub GetFileList {
   my ($name) = @_;
   return unless defined $name;
-  return first { $_->name eq $name } @::filelists;
+  my @filelists = TrEd::ManageFilelists::get_filelists();
+  return first { $_->name eq $name } @filelists;
 }
 #endif
 
@@ -3570,7 +3556,7 @@ name for the current window.
 sub SetCurrentFileList {
   my $name=shift;
   croak("Usage: SelectFilelist(name)") if !defined($name) or ref($name) or !length($name);
-  main::selectFilelist($grp,$name,@_);
+  TrEd::ManageFilelists::selectFilelist($grp,$name,@_);
 }
 
 
@@ -3586,7 +3572,7 @@ sub SetCurrentFileListInWindow {
   my $win = shift;
   croak("Usage: SelectFilelistInWindow(name,win)") if !defined($name) or ref($name) or !length($name);
   return unless ref $win;
-  main::selectFilelist($win,$name,@_);
+  TrEd::ManageFilelists::selectFilelist($win,$name,@_);
 }
 
 #endif
@@ -3600,7 +3586,7 @@ filelists.
 
 #ifdef TRED
 sub TrEdFileLists {
-  return @::filelists;
+  return TrEd::ManageFilelists::get_filelists();
 }
 #endif
 
@@ -3788,7 +3774,7 @@ sub NextFile {
   if ($FileNotSaved ne '?' and $FileNotSaved) {
     SetFileSaveStatus(1);
   }
-  if ($result=TrEd::ManageFilelist::nextFile($grp)) {
+  if ($result=TrEd::Filelist::Navigation::nextFile($grp)) {
     $root=$grp->{root};
     $this=$grp->{currentNode} || $root;
     $FileNotSaved=GetFileSaveStatus();
@@ -3823,7 +3809,7 @@ sub PrevFile {
   if ($FileNotSaved ne '?' and $FileNotSaved) {
     SetFileSaveStatus(1);
   }
-  if ($result=TrEd::ManageFilelist::prevFile($grp)) {
+  if ($result=TrEd::Filelist::Navigation::prevFile($grp)) {
     $root=$grp->{root};
     $this=$grp->{currentNode} || $root;
     $FileNotSaved=GetFileSaveStatus();

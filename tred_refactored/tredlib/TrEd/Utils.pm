@@ -12,14 +12,14 @@ use URI::Escape;
 use Treex::PML::Schema::CDATA;
 require Exporter;
 
+use TrEd::Basics qw{$EMPTY_STR};
+
 use base qw(Exporter);
 use vars qw(@stylesheet_paths $default_stylesheet_path);
 use constant {
   STYLESHEET_FROM_FILE  => "<From File>",
   NEW_STYLESHEET        => "<New From Current>",
   DELETE_STYLESHEET     => "<Delete Current>",
-  
-  EMPTY                 => q{},
 };
 
 # Items to export into callers namespace by default. Note: do not export
@@ -58,7 +58,7 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(  );
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 #######################################################################################
 # Usage         : fetch_from_win32_reg_old('HKEY_LOCAL_MACHINE', q(SOFTWARE\Classes\.html)[, $subkey])
@@ -502,18 +502,19 @@ sub applyWindowStylesheet {
 ######################################################################################
 # Usage         : split_patterns($text)
 # Purpose       : Parse stylesheet text and divide it into hints, context and other patterns 
-# Returns       : List of 3 items: two strings (hints and context) and a referrence to array (containing other patterns)
+# Returns       : List of 3 items: two strings (hints and context) 
+#                 and a referrence to array (containing other patterns)
 # Parameters    : string $text -- contents of the stylesheet
 # Throws        : no exceptions 
-# Comments      : EMTPY is our constant for empty string
+# Comments      : 
 # See Also      : read_stylesheet_file(), EMPTY
 #TODO: is the format of stylesheet formally defined somewhere?
 sub split_patterns {
-  my ($text)=@_;
+  my ($text) = @_;
   my @lines = split(/(\n)/, $text);
   my @result;
-  my $pattern = EMPTY;
-  my $hint = EMPTY;
+  my $pattern = $EMPTY_STR;
+  my $hint = $EMPTY_STR;
   my $context;
   while (@lines) {
     my $line = shift(@lines);
@@ -524,7 +525,7 @@ sub split_patterns {
         chomp($pattern);
         if ($pattern =~ s/^hint:\s*//) {
           # 'hint' processing
-          if ($hint ne EMPTY){
+          if ($hint ne $EMPTY_STR){
             $hint .= "\n" ;
           }
           $hint .= $pattern;
@@ -547,7 +548,7 @@ sub split_patterns {
   if ($pattern =~ /\S/) {
     chomp $pattern;
     if ($pattern =~ s/^hint:\s*//) {
-      $hint .= "\n" if $hint ne EMPTY;
+      $hint .= "\n" if $hint ne $EMPTY_STR;
       $hint .= $pattern;
     } else {
       push(@result, $pattern);
@@ -563,7 +564,7 @@ sub split_patterns {
 #                 second list element is undef
 # Parameters    : scalar $filename -- name of the file
 # Throws        : no exceptions
-# Comments      : File suffix is of the following forms:
+# Comments      : File suffix can be of the following forms:
 #                 a) 1 or 2 #-signs, upper-case characters or numbers, and optionally followed by 
 #                     optional dash, full stop and at least one number
 #                 b) 2 #-signs, at least one number, full stop, followed by 
@@ -599,112 +600,180 @@ sub parse_file_suffix {
   }
 }
 
-sub applyFileSuffix {
-  my ($win,$goto)= @_;
-  return unless $win;
-  my $fsfile = $win->{FSFile};
-  return unless $fsfile and defined($goto) and $goto ne EMPTY;
+#TODO: document & test this unclear function
+sub _find_tree_no {
+    my ($fsfile, $root, $list) = @_;
+    my $n = undef;
+    # hm, we have a node, but don't know to which tree
+    # it belongs
+    my $trees_type = $fsfile->metaData('pml_trees_type');
+    my $root_type  = $root->type();
+    #TODO: empty? or defined???
+    if ( $trees_type and $root_type ) {
+        my $trees_type_is = $trees_type->get_decl_type();
+        my %paths;
+        my $is_sequence;
+        my $found;
+        my @elements;
+        if ( $trees_type_is == Treex::PML::Schema::PML_LIST_DECL() ) {
+            @elements = [ 'LM', $trees_type->get_content_decl() ];
+        }
+        elsif ( $trees_type_is == Treex::PML::Schema::PML_SEQUENCE_DECL() ) {
+            # Treex::PML::Schema::Element::get_name(), 
+            #           ::Schema::Decl::get_content_decl()
+            @elements = map { [ $_->get_name(), $_->get_content_decl() ] }
+                        $trees_type->get_elements();
+            $is_sequence = 1;
+        }
+        else {
+            return -1;
+        }
+        
+        for my $el (@elements) {
+            $paths{ $el->[0] } = [
+                $trees_type->get_schema->find_decl(
+                    sub {
+                        $_[0] == $root_type;
+                    },
+                    $el->[1],
+                    {}
+                )
+            ];
+            if (@{ $paths{ $el->[0] } }) {
+                $found = 1;
+            }
+        }
+        return -1 if !$found;
+    TREE:
+        for my $i ( 0 .. $#$list ) {
+            my $tree = $list->[$i];
+            my $paths
+                = $is_sequence
+                ? $paths{ $tree->{'#name'} }
+                : $paths{LM};
+            for my $p ( @{ $paths || [] } ) {
+                for my $value ( $tree->all($p) ) {
+                    if ( $value == $root ) {
+                        $n = $i;
+                        last TREE;
+                    }
+                }
+            }
+        }
+    }
+    return $n;
+}
 
-  if ($goto=~/^##([0-9]+)/) {
-    my $no = int($1 - 1);
-    $win->{treeNo}=min(max(0,$no),$fsfile->lastTreeNo);
-    return 0 if $win->{treeNo} != $no;
-  } elsif ($goto=~/^#([0-9]+)/) {
-    # this is PDT 1.0-specific code, sorry
-    my $no;
-    for (my $i=0;$i<=$fsfile->lastTreeNo;$i++) {
-      if ($fsfile->treeList->[$i]->{form} eq "#$1") {
-	$no=$i; last;
-      }
+#TODO: could be renamed to use _, but it is used in Vallex extension
+#######################################################################################
+# Usage         : applyFileSuffix($win, $goto)
+# Purpose       : Set current tree and node positions to positions described by 
+#                 $goto suffix in file displayed in $win window 
+# Returns       : 1 if the new position was found and set, 0 otherwise
+# Parameters    : TrEd::Window $win -- reference to TrEd::Window object 
+#                 string $goto      -- suffix of the file (or a position in the file)
+# Throws        : no exceptions
+# Comments      : Possible suffix formats:
+#                   ##123.2 -- tree number 123 (if counting from 1) and its second node
+#                   #123.3 -- tree whose $root->{form} equals to #123 and its third node
+#                           (only hint found in Treex/PML/Backend/CSTS/Csts2fs.pm)
+#                   #a123 -- finds node with id #a123 and the tree it belongs to
+#                 The node's id can also be placed after the '.', e.g. ##123.#a123, in 
+#                 which case the sub searches for node with id #a123 inside tree no 123
+#
+#                 Sets $win->{treeNo} and $win->{currentNode} if appropriate.
+# See Also      : parse_file_suffix()
+sub applyFileSuffix {
+    my ( $win, $goto ) = @_;
+    return if ( !defined $win );
+    my $fsfile = $win->{FSFile};
+    return if !( defined $fsfile && defined $goto && $goto ne $EMPTY_STR );
+
+    if ( $goto =~ m/^##([0-9]+)/ ) {
+        # handle cases like '##123'
+        my $no = int( $1 - 1 );
+        $win->{treeNo} = min( max( 0, $no ), $fsfile->lastTreeNo() );
+        return 0 if $win->{treeNo} != $no;
     }
-    return 0 unless defined $no;
-    $win->{treeNo}=$no;
-  } elsif ($goto=~/^#([^#]+)$/) {
-    my $id = $1;
-    if (Treex::PML::Schema::CDATA->check_string_format($id,'ID')) {
-      my $id_hash = $fsfile->appData('id-hash');
-      if (UNIVERSAL::isa($id_hash,'HASH') and exists($id_hash->{$id})) {
-	my $node = $id_hash->{$id};
-	# we would like to use Treex::PML::Index() here, but can't
-	my $list = $fsfile->treeList;
-	my $root = UNIVERSAL::can($node,'root') && $node->root;
-	my $n = defined($root) && first {
-	  $list->[$_]==$root;
-	} 0..$#$list;
-	if ($root and !defined($n)) {
-	  # hm, we have a node, but don't know to which tree
-	  # it belongs
-	  my $trees_type = $fsfile->metaData('pml_trees_type');
-	  my $root_type = $root->type;
-	  if ($trees_type and $root_type) {
-	    my $trees_type_is = $trees_type->get_decl_type;
-	    my %paths;
-	    my $is_sequence;
-	    my $found;
-	    my @elements;
-	    if ($trees_type_is == Treex::PML::Schema::PML_LIST_DECL()) {
-	      @elements = ['LM',$trees_type->get_content_decl];
-	    } elsif ($trees_type_is == Treex::PML::Schema::PML_SEQUENCE_DECL()) {
-	      @elements = map { [$_->get_name,$_->get_content_decl] } $trees_type->get_elements;
-	      $is_sequence=1;
-	    } else {
-	      return 0;
-	    }
-	    for my $el (@elements) {
-	      $paths{$el->[0]} = [$trees_type->get_schema->find_decl(
-		sub {
-		  $_[0] == $root_type
-		}, $el->[1],{})];
-	      $found = 1 if @{ $paths{$el->[0]} };
-	    }
-	    return 0 unless $found;
-	    TREE:
-	    for my $i (0..$#$list) {
-	      my $tree = $list->[$i];
-	      my $paths = $is_sequence ? $paths{$tree->{'#name'}} : $paths{LM};
-	      for my $p (@{$paths||[]}) {
-		for my $value ($tree->all($p)) {
-		  if ($value == $root) {
-		    $n = $i;
-		    last TREE;
-		  }
-		}
-	      }
-	    }
-	  }
-	}
-	if (defined($n)) {
-	  $win->{treeNo}=$n;
-	  $win->{currentNode}=$node;
-	  return 1;
-	} else {
-	  return 0;
-	}
-      }
+    elsif ( $goto =~ /^#([0-9]+)/ ) {
+        # handle cases like '#123'
+        # this is PDT 1.0-specific code, sorry
+        my $no;
+        for ( my $i = 0; $i <= $fsfile->lastTreeNo(); $i++ ) {
+            if ( $fsfile->treeList()->[$i]->{form} eq "#$1" ) {
+                $no = $i;
+                last;
+            }
+        }
+        return 0 if (!defined $no);
+        $win->{treeNo} = $no;
     }
-  }
-  # new: we're the dot in .[0-9]+ (TM)
-  if ($goto=~/\.([0-9]+)$/) {
-    my $root=getNodeByNo($win,$1);
-    if ($root) {
-      $win->{currentNode}=$root;
-      return 1;
-    } else {
-      return 0;
+    elsif ( $goto =~ /^#([^#]+)$/ ) {
+        # handle cases like '#a123'
+        my $id = $1;
+        if ( Treex::PML::Schema::CDATA->check_string_format( $id, 'ID' ) ) {
+            my $id_hash = $fsfile->appData('id-hash');
+            if ( UNIVERSAL::isa( $id_hash, 'HASH' )
+                && exists $id_hash->{$id} )
+            {
+                my $node = $id_hash->{$id};
+
+                # we would like to use Treex::PML::Index() here, but can't
+                # and why we can not?
+                my $list = $fsfile->treeList();
+                my $root = UNIVERSAL::can( $node, 'root' ) && $node->root();
+                my $n    = defined($root) && first {
+                    $list->[$_] == $root;
+                } 0 .. $#$list;
+                
+                if ( defined $root and !defined($n) ) {
+                    $n = _find_tree_no($fsfile, $root, $list);
+                    # exit from _find_tree_no() function
+                    if (!defined $n || $n == -1) {
+                        return 0;
+                    }
+                }
+                if ( defined($n) ) {
+                    $win->{treeNo}      = $n;
+                    $win->{currentNode} = $node;
+                    return 1;
+                }
+                else {
+                    return 0;
+                }
+            }
+        }
     }
-  } elsif ($goto=~/\.([^0-9#][^#]*)$/) {
-    my $id = $1;
-    if (Treex::PML::Schema::CDATA->check_string_format($id,'ID')) {
-      my $id_hash = $fsfile->appData('id-hash');
-      if (UNIVERSAL::isa($id_hash,'HASH') and exists($id_hash->{$id})) {
-	return 1 if ($win->{currentNode}=$id_hash->{$id}); # assignment
-      } else {
-	return 0;
-      }
+
+    # new: we're the dot in .[0-9]+ (TM)
+    if ( $goto =~ /\.([0-9]+)$/ ) {
+        my $root = getNodeByNo( $win, $1 );
+        if ($root) {
+            $win->{currentNode} = $root;
+            return 1;
+        }
+        else {
+            return 0;
+        }
     }
-  }
-  return 1;
-  # hey, caller, you should redraw after this!
+    elsif ( $goto =~ /\.([^0-9#][^#]*)$/ ) {
+        my $id = $1;
+        if ( Treex::PML::Schema::CDATA->check_string_format( $id, 'ID' ) ) {
+            my $id_hash = $fsfile->appData('id-hash');
+            if ( UNIVERSAL::isa( $id_hash, 'HASH' )
+                 && exists( $id_hash->{$id} ) )
+            {
+                return 1
+                    if ( $win->{currentNode} = $id_hash->{$id} ); # assignment
+            }
+            else {
+                return 0;
+            }
+        }
+    }
+    return 1;
+
+    # hey, caller, you should redraw after this!
 }
 
 sub getNodeByNo {

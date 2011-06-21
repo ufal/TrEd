@@ -6,10 +6,7 @@ use warnings;
 use Tk;
 use TrEd::Macros;
 use TrEd::MinMax;
-
-use Readonly;
-
-Readonly my $EMPTY_STR => q{};
+use TrEd::Basics qw{$EMPTY_STR};
 
 # macro, menu, UI
 sub create_list {

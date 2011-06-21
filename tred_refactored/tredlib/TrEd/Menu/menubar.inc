@@ -84,7 +84,7 @@ return sub {
     'Button',
     'Add Bookmark',
     {
-      '-command' => [ \&addBookmark,$grp ],
+      '-command' => [ \&TrEd::Bookmarks::addBookmark,$grp ],
       '-underline' => 0,
      },
     undef
@@ -93,7 +93,7 @@ return sub {
     'Button',
     'Add Bookmark To List ...',
     {
-      '-command' => [\&bookmarkToFilelistDialog, $grp],
+      '-command' => [\&TrEd::ManageFilelists::bookmarkToFilelistDialog, $grp],
       '-underline' => 16
      },
     undef
@@ -110,8 +110,8 @@ return sub {
     'Button',
     'Place of Last Action',
     {
-      '-command' => [ \&openStandaloneFile,$grp,$grp->{lastActionBookmark} ],
-      '-state' => ($grp->{lastActionBookmark} ? 'normal' : 'disabled'),
+      '-command' => [ \&openStandaloneFile,$grp,TrEd::Bookmarks::get_last_action() ],
+      '-state' => (TrEd::Bookmarks::get_last_action() ? 'normal' : 'disabled'),
       '-underline' => 0
      },
     undef
@@ -137,7 +137,7 @@ return sub {
 			my ($grp)=@_;
 			if (ref($grp->{focusedWindow}->{currentFilelist})) {
 			  my $lr = $grp->{focusedWindow}->{currentFilelist}->list_ref;
-			  removeFromFilelist($grp,
+			  TrEd::ManageFilelists::removeFromFilelist($grp,
 					     undef,
 					     undef,
 					     $lr->[$grp->{focusedWindow}->{currentFileNo}]) if $lr;
@@ -191,7 +191,7 @@ return sub {
     'Button',
     'Manage File Lists ...',
     {
-      '-command' => [\&filelistDialog, $grp],
+      '-command' => [\&TrEd::Dialog::Filelist::create_dialog, $grp],
       '-underline' => 0
      },
     undef
@@ -213,7 +213,7 @@ return sub {
     'Button',
     'New File List ...',
     {
-      '-command' => [\&_makeNewFilelist,$grp,\&selectFilelist],
+      '-command' => [\&TrEd::ManageFilelists::makeNewFilelist,$grp,\&TrEd::ManageFilelists::selectFilelist],
       '-underline' => 2
      },
     undef
@@ -222,7 +222,7 @@ return sub {
     'Button',
     'Load File List ...',
     {
-      '-command' => [\&loadFilelist,$grp],
+      '-command' => [\&TrEd::ManageFilelists::loadFilelist,$grp],
       '-underline' => 0,
      },
     undef
@@ -249,7 +249,7 @@ return sub {
     'Button',
     'Remove File Lists ...',
     {
-      '-command' => [\&removeFilelistsDialog,$grp],
+      '-command' => [\&TrEd::ManageFilelists::removeFilelistsDialog,$grp],
       '-underline' => 0
      },
     undef
@@ -258,7 +258,7 @@ return sub {
     'Button',
     'Select File List ...',
     {
-      '-command' => [\&selectFilelistDialog, $grp],
+      '-command' => [\&TrEd::ManageFilelists::selectFilelistDialog, $grp],
       '-underline' => 0,
      },
     undef
@@ -287,7 +287,7 @@ return sub {
     'Button',
     'Based on an Existing File ...',
     {
-      '-command' => [ \&fileDialog, $grp,1],
+      '-command' => [ \&TrEd::Dialog::File::Open::show_dialog, $grp,1],
       '-underline' => 5
      },
     undef
@@ -314,7 +314,7 @@ return sub {
     'Button',
     'Open ...',
     {
-      '-command' => [\&fileDialog, $grp],
+      '-command' => [\&TrEd::Dialog::File::Open::show_dialog, $grp],
       '-underline' => 0
      },
     undef
@@ -876,7 +876,7 @@ return sub {
       '-command' => [sub {
 		       my ($grp)=@_;
 		       my $win=$grp->{focusedWindow};
-		       save_undo($win,prepare_undo($win,"New Node",UNDO_ACTIVE_NODE));
+		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,"New Node",TrEd::Undo::undo_type_id('UNDO_ACTIVE_NODE')));
 		       my $new = newNode($win);
 		       determineNodeType($win,$new);
 		     },$grp],
@@ -927,7 +927,7 @@ return sub {
       '-command' => [sub {
 		       my ($grp)=@_;
 		       my $win=$grp->{focusedWindow};
-		       save_undo($win,prepare_undo($win,'Remove Active Node',,UNDO_ACTIVE_ROOT));
+		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'Remove Active Node',,TrEd::Undo::undo_type_id('UNDO_ACTIVE_ROOT')));
 		       pruneNode($win,$win->{currentNode});
 		     },$grp],
       '-underline' => 0
@@ -1053,7 +1053,7 @@ return sub {
     'Preserve Stylesheet on File Reload',
     {
       '-underline' => 0,
-      '-variable' => \$reloadKeepsPatterns
+      '-variable' => \$TrEd::Config::reloadKeepsPatterns
      },
     undef
    ],
@@ -1253,7 +1253,7 @@ return sub {
       '-command' => [sub {
 		       my ($grp)=@_;
 		       my $win = $grp->{focusedWindow};
-		       save_undo($win,prepare_undo($win,'Insert New Tree After',UNDO_TREE_ORDER));
+		       TrEd::Undo::save_undo($win, TrEd::Undo::prepare_undo($win, 'Insert New Tree After', TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')));
 		       newTreeAfter($win);
 		       determineNodeType($win,$win->{root});
 		     },$grp],
@@ -1268,7 +1268,7 @@ return sub {
       '-command' => [sub {
 		       my ($grp)=@_;
 		       my $win = $grp->{focusedWindow};
-		       save_undo($win,prepare_undo($win,'Insert New Tree',UNDO_TREE_ORDER));
+		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'Insert New Tree', TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')));
 		       newTree($win);
 		       determineNodeType($win,$win->{root});
 		     },$grp],
@@ -1283,7 +1283,7 @@ return sub {
       '-command' => [sub {
 		       my ($grp)=@_;
 		       my $win = $grp->{focusedWindow};
-		       save_undo($win,prepare_undo($win,'Move Tree Backward',UNDO_TREE_ORDER));
+		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'Move Tree Backward', TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')));
 		       moveTree($win,-1);
 		     },$grp]
      },
@@ -1296,7 +1296,7 @@ return sub {
       '-command' => [sub {
 		       my ($grp)=@_;
 		       my $win = $grp->{focusedWindow};
-		       save_undo($win,prepare_undo($win,'Move Tree Foreward',UNDO_TREE_ORDER));
+		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'Move Tree Foreward', TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')));
 		       moveTree($win,1);
 		     },$grp]
      },
@@ -1327,11 +1327,11 @@ return sub {
     'Remove Whole Current Tree',
     {
       '-command' => [sub {
-		       my ($grp)=@_;
+		       my ($grp) = @_;
 		       my $win = $grp->{focusedWindow};
-		       save_undo($win,prepare_undo($win,'Remove Tree',UNDO_CURRENT_TREE_AND_TREE_ORDER));
+		       TrEd::Undo::save_undo($win, TrEd::Undo::prepare_undo($win, 'Remove Tree', TrEd::Undo::undo_type_id('UNDO_CURRENT_TREE_AND_TREE_ORDER')));
 		       pruneTree($win);
-		     },$grp],
+		     }, $grp],
       '-underline' => 8
      },
     undef
@@ -1403,7 +1403,7 @@ return sub {
     'Button',
     'List of Sentences ...',
     {
-      '-command' => [\&viewSentences,$grp],
+      '-command' => [\&TrEd::View::Sentence::show_sentences, $grp],
       '-underline' => 0
      },
     undef
