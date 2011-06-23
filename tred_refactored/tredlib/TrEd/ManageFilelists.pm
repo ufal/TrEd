@@ -9,7 +9,9 @@ use File::Spec;
 
 use TrEd::MinMax; # max2
 use TrEd::Basics;
-use TrEd::Config;
+use TrEd::Config qw{$tredDebug};
+use TrEd::File;
+
 use Treex::PML qw{&Index};
 use Treex::PML::IO;
 use Filelist;
@@ -57,7 +59,7 @@ sub selectFilelistNoUpdate {
   # dump_filelists("selectFilelistNoUpdate", \@filelists);
   my ($grp,$win) = main::grp_win($grp_or_win);
   my $fl = main::is_focused($win) ? switchFilelist($grp,$list_name) : findFilelist($list_name);
-  print "Selecting filelist '$list_name' (found: $fl)\n" if $main::tredDebug;
+  print "Selecting filelist '$list_name' (found: $fl)\n" if $tredDebug;
   return if (!defined($fl));
   # little fiddling with condition
   if (!exists $win->{currentFilelist} || $fl != $win->{currentFilelist}) {
@@ -78,7 +80,7 @@ sub selectFilelist {
   my $fl = selectFilelistNoUpdate($win, $list_name);
   if ($fl and !$opts->{no_open}) {
     if ($win->{currentFileNo} >= $fl->file_count()) {
-      main::closeFile($win);
+      TrEd::File::closeFile($win);
     } else {
       # we use nextFile instead of gotoFile so that
       # the user can 'Skip broken files'
@@ -131,7 +133,7 @@ sub looseFilePositionInFilelist {
 sub switchFilelist {
   my ($grp, $list_name) = @_;
   # dump_filelists("switchFilelist", \@filelists);
-  print "Switching filelist to '$list_name'\n" if $main::tredDebug;
+  print "Switching filelist to '$list_name'\n" if $tredDebug;
   return undef unless ref($grp);
   my $fl = undef;
   if (ref($list_name)) {
@@ -207,7 +209,7 @@ sub insertToFilelist {
   $position = $win->{currentFileNo} unless defined($position);
   return -1 unless ref($filelist) && UNIVERSAL::can($filelist, 'add');
 
-  print "Insert: ",@_," ",$_[0]," is at position ",$filelist->position($_[0]),"\n"  if $main::tredDebug;
+  print "Insert: ",@_," ",$_[0]," is at position ",$filelist->position($_[0]),"\n"  if $tredDebug;
   return -1 if (@_==1 and $filelist->position($_[0])>=0);
   # this is the case when we add a file which is actually already there
 
@@ -225,7 +227,7 @@ sub insertToFilelist {
     $_;
   } @list;
   $position = TrEd::MinMax::min($position+1, $filelist->count()) - 1;
-  print "Inserting @list to position ", $position + 1, "\n" if $main::tredDebug;
+  print "Inserting @list to position ", $position + 1, "\n" if $tredDebug;
   $filelist->add($position + 1, @list);
 
   main::update_filelist_views($grp, $filelist, 1);
@@ -338,7 +340,7 @@ sub _solve_filelist_conflict {
         redo LOOP;
       }
     }
-    elsif ($main::tredDebug) {
+    elsif ($tredDebug) {
       print STDERR 'Filelist ' , $filelist->name() , " already exists, replacing!\n";
     }
   }
@@ -408,13 +410,13 @@ sub deleteFilelist {
   my %to_delete; 
   @to_delete{ @lists } = ();
   return unless @lists;
-  print "Removing filelists ".join(",",map $_->name(), @lists)."\n" if $main::tredDebug;
+  print "Removing filelists ".join(",",map $_->name(), @lists)."\n" if $tredDebug;
   @filelists = grep { !exists($to_delete{$_}) } @filelists;
   for my $list (@lists) {
     if (($filelist_from_extension{$list} || 0) == 2) {
       my $fn = $list->filename();
       if ($fn) {
-        print "Deleting filelist file $fn\n" if $main::tredDebug;
+        print "Deleting filelist file $fn\n" if $tredDebug;
         unlink $fn;
       }
     }
@@ -539,7 +541,7 @@ sub loadStdFilelists {
       my $nf = File::Spec->catfile($dir,URI::Escape::uri_escape_utf8($uname));
       if (rename $f, $nf) {  # rename unescaped version if exists
 	$f = $nf;
-	print STDERR "renaming\n $f\n  to\n $nf\n" if $main::tredDebug;
+	print STDERR "renaming\n $f\n  to\n $nf\n" if $tredDebug;
       } else {
 	warn "Failed to rename $f to $nf\n";
       }
@@ -550,7 +552,7 @@ sub loadStdFilelists {
     } else {
       my $fl=Filelist->new($name,$f);
       if ($fl) {
-	print STDERR "Reading filelist ".$fl->filename."\n" if $main::tredDebug;
+	print STDERR "Reading filelist ".$fl->filename."\n" if $tredDebug;
 	eval {
 	  $fl->load();
 	  add_new_filelist(undef,$fl);
@@ -646,7 +648,7 @@ if (!$filelist_from_extension{$_}) { # note: this equals 2 for "StdFilelist" loa
 sub create_ext_filelist {
   my ($f) = @_;
   # dump_filelists("create_ext_filelist", \@filelists);
-  print "Reading $f\n" if $main::tredDebug;
+  print "Reading $f\n" if $tredDebug;
   my $fl=Filelist->new(undef,$f);
   next unless $fl;
   print STDERR "Reading filelist ".$fl->filename."\n" if $tredDebug;
@@ -684,7 +686,7 @@ sub bookmarkToFilelistDialog {
 # zo zaciatku tredu
 sub create_filelists {
   my ($cmdline_filelists) = @_;
-  print STDERR "Creating filelists...\n" if $main::tredDebug;
+  print STDERR "Creating filelists...\n" if $tredDebug;
   
   {
     my $default_filelist = new Filelist('Default');
@@ -705,7 +707,7 @@ sub create_cmdline_filelists {
   my ($filelist_str) = @_;
   return if not ($filelist_str);
   
-  print STDERR "Reading -l filelists...\n" if $main::tredDebug;
+  print STDERR "Reading -l filelists...\n" if $tredDebug;
   
   my $fl_no = 1;
   foreach my $filelist (split /\s*,\s*/, $filelist_str) {
@@ -715,7 +717,7 @@ sub create_cmdline_filelists {
     TrEd::ManageFilelists::add_new_filelist(undef, $fl);
     $fl_no++;
   }
-  print STDERR "Done...\n" if $main::tredDebug;
+  print STDERR "Done...\n" if $tredDebug;
 }
 
 # extrahovane z main::set_config
@@ -723,7 +725,7 @@ sub load_filelists_from_conf {
   my ($confs) = @_;
   my $fl;
   foreach (sort { substr($a,8)<=>substr($b,8) } grep /^filelist[0-9]+/, keys %{$confs}) {
-    print "Reading $_\n"  if $main::tredDebug;
+    print "Reading $_\n"  if $tredDebug;
     $fl = Filelist->new(undef,$confs->{$_});
     next unless $fl;
     eval {

@@ -6,8 +6,7 @@ use warnings;
 BEGIN {
   use Treex::PML;
   require TrEd::MinMax;
-#  import TrEd::MinMax;
-  import TrEd::MinMax qw(first);
+  import TrEd::MinMax qw(first min max);
   use UNIVERSAL::DOES;
 
   use Exporter  ();

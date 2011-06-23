@@ -1,6 +1,7 @@
 package TrEd::Bookmarks;
 
 use TrEd::ManageFilelists;
+use TrEd::Config qw{$tredDebug};
 
 use strict;
 use warnings;
@@ -21,7 +22,7 @@ sub set_last_action {
 sub createBookmarksFilelist {
   # create Bookmarks filelist
   if (!bookmarkFilelist()) {
-    if ($main::tredDebug) {
+    if ($tredDebug) {
       print 'Bookmarks: ' . $ENV{HOME} . '/.tred_bookmarks' . "\n";
     }
     my $bookmarks = new Filelist('Bookmarks',$ENV{HOME} . '/.tred_bookmarks');
@@ -67,7 +68,7 @@ sub lastActionBookmark {
   # f? what is f?
   my $f = defined($bookmark) ? $bookmark : bookmarkThis($grp);
   if (defined($f)) {
-    print STDERR "Bookmarking last action at: $f\n" if $main::tredDebug;
+    print STDERR "Bookmarking last action at: $f\n" if $tredDebug;
     $last_action_bookmark = $f;
     # updateBookmarks($grp);
   }
@@ -78,7 +79,7 @@ sub updateBookmarks {
   my ($grp)=@_;
   return if $grp->{noUpdatePostponed};
   if ($grp->{BookmarksFileMenu}) {
-    print STDERR "Updating bookmark menu\n"  if $main::tredDebug;
+    print STDERR "Updating bookmark menu\n"  if $tredDebug;
     my $menu= $grp->{BookmarksFileMenu};
     $menu->delete(0, 'end');
     
@@ -91,10 +92,10 @@ sub updateBookmarks {
     return unless ref ($bl);
     
     foreach my $b ($bl->files()) {
-      print STDERR "$b\n" if $main::tredDebug;
+      print STDERR "$b\n" if $tredDebug;
       $menu->command(-label => "$i.  ".$b,
 				      -underline=> 0,
-				      -command=> [ \&main::openStandaloneFile,$grp,$b ]);
+				      -command=> [ \&TrEd::File::openStandaloneFile,$grp,$b ]);
       $i++;
     }
     main::update_title_and_buttons($grp); # e.g. after adding/removing a bookmark to/from a filelist

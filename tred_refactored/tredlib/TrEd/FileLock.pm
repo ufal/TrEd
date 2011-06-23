@@ -19,7 +19,7 @@ BEGIN {
                );
 }
 
-use TrEd::Config;
+use TrEd::Config qw{$noLockProto $userlogin $tredDebug $lockFiles};
 use TrEd::Basics qw{$EMPTY_STR};
 use Treex::PML;
 use Carp;
@@ -53,7 +53,7 @@ sub set_lock {
   return if ($protocol eq 'ntred' or $protocol =~ /$TrEd::Config::noLockProto/);
   
   my $lock_file = eval { Treex::PML::IO::open_backend($filename . '.lock', 'w') };
-  if ($@ or not ref($lock_file)) {
+  if ($@ || !ref $lock_file) {
     carp('Error creating lock-file: ' . main::_last_err() . "\n");
     return;
   };

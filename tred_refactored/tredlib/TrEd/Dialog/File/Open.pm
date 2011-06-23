@@ -6,6 +6,7 @@ use warnings;
 use TrEd::Config;
 use TrEd::Basics qw{$EMPTY_STR};
 use TrEd::Convert qw{dirname};
+use TrEd::File;
 
 use Carp;
 
@@ -79,7 +80,7 @@ sub get_open_filename {
 #                 ? $header_only -- variable passed to openStandaloneFile function
 # Throws        : no exception
 # Comments      : 
-# See Also      : main::openStandaloneFile(), get_open_filename()
+# See Also      : TrEd::File::openStandaloneFile(), get_open_filename()
 sub show_dialog {
     my ($grp, $header_only) = @_;
     my $file;
@@ -91,10 +92,10 @@ sub show_dialog {
     $file = get_open_filename(
         $grp->{top},
         -filetypes => \@TrEd::Config::open_types,
-        ( -d $dir ? ( -initialdir => $dir ) : () )
+        ( (defined $dir && -d $dir) ? ( -initialdir => $dir ) : () )
     );
     if ( defined $file && $file ne $EMPTY_STR ) {
-        return main::openStandaloneFile( $grp, $file,
+        return TrEd::File::openStandaloneFile( $grp, $file,
             -justheader => $header_only );
     }
     return 0;

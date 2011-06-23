@@ -3,6 +3,7 @@ package TrEd::Utils;
 
 use 5.008;
 use strict;
+use warnings;
 
 use Carp;
 #use Data::Dumper;
@@ -13,6 +14,7 @@ use Treex::PML::Schema::CDATA;
 require Exporter;
 
 use TrEd::Basics qw{$EMPTY_STR};
+use TrEd::Menu::Stylesheet;
 
 use base qw(Exporter);
 use vars qw(@stylesheet_paths $default_stylesheet_path);
@@ -43,8 +45,6 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
   save_stylesheet_file
   getStylesheetPatterns
   setStylesheetPatterns
-  updateStylesheetMenu
-  getStylesheetMenuList
   applyFileSuffix
   parse_file_suffix
   getNodeByNo
@@ -451,7 +451,7 @@ sub setStylesheetPatterns {
       $grp->{stylesheets}->{$stylesheet}->{patterns}=[@$patterns];
       $grp->{stylesheets}->{$stylesheet}->{hint}=$hint;
       $grp->{stylesheets}->{$stylesheet}->{context}=$context;
-      updateStylesheetMenu($grp);
+      $grp->{StylesheetMenu}->update($grp);
     } else {
       return 0;
     }
@@ -459,29 +459,6 @@ sub setStylesheetPatterns {
   return 1;
 }
 
-sub updateStylesheetMenu {
-  my ($grp)=@_;
-  return if $grp->{noUpdateStylesheetMenu};
-  if (ref($grp->{StylesheetMenu})) {
-    $grp->{StylesheetMenu}->configure(-options => getStylesheetMenuList($grp));
-  }
-}
-
-sub getStylesheetMenuList {
-  my ($grp,$all)=@_;
-  my $context=$grp->{focusedWindow}->{macroContext};
-  undef $context if $context eq 'TredMacro';
-  my $match;
-  [STYLESHEET_FROM_FILE(),NEW_STYLESHEET(),DELETE_STYLESHEET(),
-   grep { 
-     if ($all or !defined($context)) { 1 } else {
-       $match = $grp->{stylesheets}{$_}{context};
-       chomp $match;
-       $match = '.*' unless $match =~ /\S/;
-       $context =~ /^${match}$/x ? 1 : 0;
-     }
-   } sort keys %{$grp->{stylesheets}}];
-}
 
 sub applyWindowStylesheet {
   my ($win,$stylesheet)=@_;
@@ -511,7 +488,7 @@ sub applyWindowStylesheet {
 #TODO: is the format of stylesheet formally defined somewhere?
 sub split_patterns {
   my ($text) = @_;
-  my @lines = split(/(\n)/, $text);
+  my @lines = defined $text ? split(/(\n)/, $text) : ();
   my @result;
   my $pattern = $EMPTY_STR;
   my $hint = $EMPTY_STR;
@@ -574,6 +551,7 @@ sub split_patterns {
 sub parse_file_suffix {
   my ($filename) = @_;
   # 
+  return if (!defined $filename);
   if ($filename =~ s/(##?[0-9A-Z]+(?:-?\.[0-9]+)?)$// ) {
     return ($filename, $1);
   }

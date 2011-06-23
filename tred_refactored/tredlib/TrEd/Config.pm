@@ -103,6 +103,7 @@ BEGIN {
   $sidePanelWrap
   @open_types
   %save_types
+  %backend_map
   $userlogin
   $noCheckLocks
   $config_file
@@ -238,6 +239,16 @@ $printOptions={};
 		     ["Recognized", [qw/.fs .csts .pls .t .a .pls.gz .fs.gz .t.gz .a.gz .csts.gz .pml .pml.gz .xml .xml.gz .tmt .tmt.gz/]],
 		    ]
 	    );
+
+%backend_map=(
+	      fs => 'FS',
+	      csts => 'CSTS',
+	      pml => 'PML',
+	      trxml => 'TrXML',
+	      teixml => 'TEIXML',
+	      ntred => 'NTRED',
+	      storable => 'Storable'
+	 );
 
 
 ######################################################################################

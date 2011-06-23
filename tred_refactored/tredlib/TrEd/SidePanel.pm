@@ -12,6 +12,7 @@ use Scalar::Util qw(blessed);
 use TrEd::Config;
 use TrEd::SidePanel::Widget;
 use TrEd::Bookmarks;
+use TrEd::File;
 
 our $VERSION = '0.02';
 
@@ -190,6 +191,10 @@ sub init_node_attributes {
 			   }, $grp ],
     no_focus => 1,
   });
+  
+  $attrsView->Subwidget('xscrollbar')->configure(qw(-borderwidth 1 -width 10));
+  $attrsView->Subwidget('yscrollbar')->configure(qw(-background green));
+  
   $cb->configure(-variable => \$attrsView->Subwidget('scrolled')->{userdata}{hide_empty});
   $grp->{sidePanel}->add('attrsView', $colf, { -label => 'Node Attributes',
 					 -data => $attrsView->Subwidget('scrolled'),
@@ -219,7 +224,7 @@ sub init_browse_filesystem {
 		   return if $fsel->ChDir();
 		   my ($file) = $fsel->getSelectedFiles(); # from Tk::MyFileSelect
 		   if (defined($file) and length($file)) {
-		     main::openStandaloneFile($grp,$file);
+		     TrEd::File::openStandaloneFile($grp,$file);
 		   }
 		 },$grp,$fsel];
   $fsel->Subwidget('filelist')->bind('<Double-1>',$open_callback);

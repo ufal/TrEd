@@ -28,8 +28,6 @@ BEGIN {
     save_stylesheet_file
     getStylesheetPatterns
     setStylesheetPatterns
-    updateStylesheetMenu
-    getStylesheetMenuList
     applyFileSuffix
     parse_file_suffix
     getNodeByNo
