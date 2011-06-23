@@ -1353,6 +1353,7 @@ sub lastFileNo {
   return $#files;
 }
 
+#TODO: aj v trede..
 sub currentFileNo {
   return $fileNo;
 }
@@ -1418,6 +1419,7 @@ sub _new_status {
   return \%status;
 }
 
+#TODO: aj v trede
 sub loadFile {
   my ($file,$backends)=@_;
   my @warnings;
@@ -1493,6 +1495,7 @@ sub associateSecondary {
   $fsfile->appData('ref')->{$as}=$secondary;
 }
 
+#TODO: aj v trede
 sub openSecondaryFiles {
   my ($grp,$fsfile,$errlog)=@_;
   my $return = 1;
@@ -1535,7 +1538,7 @@ sub openSecondaryFiles {
   }
   return $return;
 }
-
+#TODO: aj v trede je
 sub resumeFile {
   my ($grp,$fsfile)=@_;
   my $f = $fsfile->filename;
@@ -1783,6 +1786,7 @@ sub save_transform_filename {
   return $out;
 }
 
+#TODO: aj v trede
 sub saveFile {
   my ($grp,$fsfile)=@_;
   return if $nosave;

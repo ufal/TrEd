@@ -39,13 +39,13 @@ use vars qw($svn_version $version $opt_u $opt_h $opt_c $opt_y
             $libDir $docDir $list_options $opt_auto_save
 	    $macroFile  
 	     $treeViewOpts $opt_m
-             @ISA @EXPORT @open_types @save_types $opt_filelist $opt_s
+             @ISA @EXPORT $opt_filelist $opt_s
             $opt_S
             $insideEval %pckey_shift_translates $tredDebug
-            $valueLine $appName  
+             $appName  
              $stderr $stdout
 	    
-	    %save_types %backend_map $debug @normal_win_opts @focused_win_opts
+	     %backend_map $debug @normal_win_opts @focused_win_opts
 	    $locale_charset
 	    $no_secondary
 	    %HELP  
@@ -54,7 +54,7 @@ use vars qw($svn_version $version $opt_u $opt_h $opt_c $opt_y
 	    $enable_extensions $disable_extensions
             $command $configFile
            );
-           
+
 # $userlogin
 # $noCheckLocks
 # %vertical_key_arrow_map
@@ -65,7 +65,10 @@ use vars qw($svn_version $version $opt_u $opt_h $opt_c $opt_y
 # $ioBackends
 # @backends
 # $NewFileNo
-
+# %save_types
+# @open_types 
+# @save_types -- this is probably forgotten since it is never used
+# $valueLine -- this is probably forgotten since it is never used
 use Exporter;
 @ISA   = qw(Exporter);
 @EXPORT= qw($insideEval
@@ -446,6 +449,7 @@ $TrEd::Basics::on_current_change= \&onCurrentChange;
 eval { require TrEd::Help; };
 
 #### new additions ###
+use Readonly;
 # maybe use similar approach as Padre here, require/use everything *.pm in tredlib/TrEd?
 use TrEd::List::Macros;
 use TrEd::HTML::Simple;
@@ -467,6 +471,8 @@ use TrEd::ManageFilelists;
 use TrEd::Bookmarks;
 use TrEd::Dialog::Filelist;
 use TrEd::Dialog::File::Open;
+use TrEd::Menu::Stylesheet;
+use TrEd::Menu::Context;
 
 # we need to have command line options already prepared 
 require TrEd::File;
@@ -504,19 +510,6 @@ warn $@ if $@;
 
 $stdout=\*STDOUT;
 $stderr=\*STDERR;
-
-%backend_map=(
-	      fs => 'FS',
-	      csts => 'CSTS',
-	      pml => 'PML',
-	      trxml => 'TrXML',
-	      teixml => 'TEIXML',
-	      ntred => 'NTRED',
-	      storable => 'Storable'
-	 );
-
-
-
 
 
 ApplyGlobalConfig();
@@ -869,7 +862,7 @@ sub ApplyGlobalConfig {
   }
 
   TrEd::ValueLine::update($grp);
-  TrEd::StatusLine::update_status_info($grp->{focusedWindow});
+  $grp->{statusLine}->update_status($grp->{focusedWindow});
   print STDERR $@ if $@;
   update_treeviews($grp);
   $grp->{top}->afterCancel($grp->{autoSaveCallback});
@@ -1023,22 +1016,6 @@ sub set_window_file {
 }
 
 
-sub resumeFile {
-  my ($win,$fsfile,$keep)=@_;
-  $keep||=$win->{framegroup}->{keepopen};
-  return unless ref($win) and ref($fsfile);
-  print "Resuming file ".$fsfile->filename."\n"  if $tredDebug;
-
-  closeFile($win,-keep_postponed => $keep);
-  __debug("Using last context: ",$fsfile->appData('last-context'));
-  switchContext($win,$fsfile->appData('last-context'));
-  __debug("Using last stylesheet: ",$fsfile->appData('last-stylesheet'));
-  switchStylesheet($win,$fsfile->appData('last-stylesheet'));
-
-  set_window_file($win,$fsfile);
-  saveFileStateUpdate($win);
-}
-
 
 #######################################################################################
 # Usage         : fsfileDisplayingWindows($grp, $fsfile)
@@ -1103,15 +1080,16 @@ sub _last_err {
 # sub checkLock
 
 # file, UI
+#TODO: mozno do TrEd::File
 sub closeFileInWindow {
   my ($grp_or_win)=@_;
   my ($grp,$win)=grp_win($grp_or_win);
   my $keep;
   if (fsfileDisplayingWindows($grp,$win->{FSFile})<2) {
-    $keep=askSaveFile($win,1,1);
+    $keep=TrEd::File::askSaveFile($win,1,1);
     return if $keep == -1;
   }
-  closeFile($win, -keep_postponed => $keep);
+  TrEd::File::closeFile($win, -keep_postponed => $keep);
 }
 
 # file, UI, fsfile
@@ -1321,7 +1299,7 @@ sub updatePostponed {
 
 sub updateScaleFactor {
   my ($grp)=@_;
-  my $factor = $grp->{focusedWindow}->treeView->scale_factor();
+  my $factor = $grp->{focusedWindow}->treeView()->scale_factor();
   $grp->{canvasScaleLabel}->configure(-text=>'Scale: '.int(100*$factor).'%');
   $grp->{canvasScale}=($grp->{focusedWindow}->treeView->get_scale||0);
 }
@@ -1452,7 +1430,10 @@ sub updateHelpMenu {
 #sub openStandaloneFile
 
 # sub reloadFile
-
+# wrapper for PADT extension
+sub reloadFile {
+    return TrEd::File::reloadFile(@_);
+}
 
 # sub _new_status 
 
@@ -1648,7 +1629,7 @@ sub toggleSidePanel {
     initSidePanel($grp);
   }
   if ($showSidePanel) {
-    unless ($grp->{sidePanelPacked}) {
+    if (!$grp->{sidePanelPacked}) {
       $grp->{bodyPane}->add($grp->{sidePanelFrame},-before=>$grp->{windowFrame},-width=>$grp->{bodyPane}->width/6);
       $grp->{sidePanelPacked}=1;
     }
@@ -1693,34 +1674,38 @@ sub initSidePanel {
 
 
 # context list, menu, UI
+# context menu
 #######################################################################################
-# Usage         : set_window_file($win, $fsfile)
-# Purpose       : Set tree number, current node and FSFile for Window $win to values 
-#                 obtained from $fsfile
+# Usage         : update_context_list($grp)
+# Purpose       : Update list of contexts in context menu, set $grp->{selectedContext}
+#                 according to allowed contexts and switch context
 # Returns       : Undef/empty list
-# Parameters    : TrEd::Window ref $win -- ref to TrEd::Window object which is to be altered
-#                 Treex::PML::Document ref $fsfile -- ref to Document which is set as current for the Window
+# Parameters    : hash_ref $grp -- reference to hash containing TrEd options
 # Throws        : No exception
-# Comments      : If $fsfile is not defined, all the beforementioned values are set to undef.
-#                 If Windows is focused, session status is updated.
-# See Also      : is_focused(), fsfileDisplayingWindows()
+# Comments      : 
+# See Also      : 
 sub update_context_list {
-    #TODO: nezabudni sa vratit este k update_session_status...
     my ($grp) = @_;
-    if ( $grp->{ContextsMenu} ) {
-        my $sel = $grp->{selectedContext};
+    if ( defined $grp->{ContextsMenu} ) {
+        my $selected_context = $grp->{selectedContext};
         my %new = map { $_ => 1 } 
-                  getApplicableContexts( $grp->{focusedWindow} );
+                  get_allowed_contexts( $grp->{focusedWindow} );
         my $tredmacro_ok = delete $new{TredMacro};
-        $grp->{ContextsMenu}->configure( -options =>
-                [ ( $tredmacro_ok ? 'TredMacro' : () ), sort keys %new ] );
-                
-        if ( $sel ne $grp->{selectedContext} ) {
+        my @allowed_contexts = [ ( $tredmacro_ok ? 'TredMacro' : () ), 
+                            sort keys %new 
+                          ];
+        $grp->{ContextsMenu}->set_options(@allowed_contexts);
+        
+        # if the selected context has changed, select TredMacro, 
+        # if it's allowed; otherwise try to use macro context 
+        # specified as a command line parameter
+        #TODO: kind of feature envy, isn't it?
+        if ( $selected_context ne $grp->{selectedContext} ) {
             if ($tredmacro_ok) {
                 $grp->{selectedContext} = 'TredMacro';
             }
             elsif ( $init_macro_context
-                && exists( $new{$init_macro_context} ) )
+                    && exists($new{$init_macro_context}) ) 
             {
                 $grp->{selectedContext} = $init_macro_context;
             }
@@ -1728,6 +1713,7 @@ sub update_context_list {
                 1 );
         }
     }
+    return;
 }
 
 # macro, menu, UI
@@ -2901,7 +2887,7 @@ sub switchStylesheet {
       $grp->{stylesheets}->{$stylesheet}->{hint}=$hint;
       $grp->{stylesheets}->{$stylesheet}->{context}=$context;
       $grp->{stylesheets}->{$stylesheet}->{patterns}=$patterns;
-      updateStylesheetMenu($grp);
+      $grp->{StylesheetMenu}->update($grp);
       save_stylesheet_file($grp,$default_stylesheet_path,$stylesheet);
     }
     applyWindowStylesheet($win,$stylesheet);
@@ -2937,32 +2923,54 @@ sub switchStylesheet {
 }
 
 # context switch
+#######################################################################################
+# Usage         : update_context_list($grp)
+# Purpose       : Update list of contexts in context menu, set $grp->{selectedContext}
+#                 according to allowed contexts and switch context
+# Returns       : Undef/empty list
+# Parameters    : hash_ref $grp -- reference to hash containing TrEd options
+# Throws        : No exception
+# Comments      : 
+# See Also      : is_focused(), fsfileDisplayingWindows()
 sub switchContext {
-  my ($win,$context,$noredraw)=@_;
-  my $grp = cast_to_grp($win);
-  my $prevcontext=$win->{macroContext};
-  $win->{macroContext}=$context;
-  my $ret = doEvalHook($win,"allow_switch_context_hook",$prevcontext,$context);
-  if ($ret eq 'stop') {
-    $win->{macroContext}=$prevcontext;
-    $grp->{selectedContext}=$prevcontext     if (is_focused($win));
-    return 0;
-  }
-  $win->{macroContext}=$prevcontext;
-  return 0 if (doEvalHook($win,"pre_switch_context_hook",$prevcontext,$context,$win) eq 'stop');
-  $win->{macroContext}=$context;
-  if (is_focused($win)) {
-    $grp->{selectedContext}=$context;
-    updateStylesheetMenu($grp);
-    TrEd::List::Macros::update_view($win);
-    updateCurrentContextMenu($grp);
-  }
-  my ($l1,$l2)=($win->{got_nodes}, $win->{redrawn});
-  doEvalHook($win,"switch_context_hook",$prevcontext,$context);
-  unless ($noredraw) {
-    get_nodes_win($win) unless $l1 < $win->{got_nodes};
-    redraw_win($win) unless $l2 < $win->{redrawn};		# something should be done with display attrs vs windows maybe
-  }
+    my ( $win, $context, $noredraw ) = @_;
+    my $grp         = cast_to_grp($win);
+    my $prev_context = $win->{macroContext};
+    $win->{macroContext} = $context;
+    my $ret = doEvalHook( $win, "allow_switch_context_hook", $prev_context,
+        $context );
+    
+    # if context switch is not allowed
+    if ( $ret eq 'stop' ) {
+        $win->{macroContext} = $prev_context;
+        if ( is_focused($win) ) {
+            $grp->{selectedContext} = $prev_context;
+        }
+        return 0;
+    }
+    
+    $win->{macroContext} = $prev_context;
+    # should we stop because of pre_switch_stylesheet_hook?
+    return 0 if (doEvalHook( $win, "pre_switch_context_hook", 
+                             $prev_context, $context, $win 
+                            ) eq 'stop');
+
+    $win->{macroContext} = $context;
+    if ( is_focused($win) ) {
+        $grp->{selectedContext} = $context;
+        $grp->{StylesheetMenu}->update($grp);
+        TrEd::List::Macros::update_view($win);
+        updateCurrentContextMenu($grp);
+    }
+    my ( $l1, $l2 ) = ( $win->{got_nodes}, $win->{redrawn} );
+    doEvalHook( $win, "switch_context_hook", $prev_context, $context );
+    unless ($noredraw) {
+        get_nodes_win($win) unless $l1 < $win->{got_nodes};
+        if ($l2 >= $win->{redrawn}) {
+            # something should be done with display attrs vs windows maybe
+            redraw_win($win); 
+        }
+    }
 }
 
 # hook
@@ -3083,7 +3091,8 @@ sub onCurrentChange {
       }
     };
     doEvalHook($win,"current_node_change_hook",$node,$prev) unless $insideEval;
-    TrEd::StatusLine::update_status_info($win);
+    #TODO: okay, this is a little bit awkward
+    $win->{framegroup}->{statusLine}->update_status($win);
   }
 }
 
@@ -3363,7 +3372,7 @@ sub focusCanvas {
     $treeViewOpts->{showHidden}=$newfocus->{treeView}->get_showHidden();
     $treeViewOpts->{highlightAttributes}=$newfocus->{treeView}->get_highlightAttributes;
     TrEd::ValueLine::update($grp);
-    TrEd::StatusLine::update_status_info($grp->{focusedWindow});
+    $grp->{statusLine}->update_status($grp->{focusedWindow});
     TrEd::ValueLine::update_current($newfocus,$newfocus->{currentNode});
     TrEd::MinorModes::update_minor_modes($newfocus);
     update_title_and_buttons($grp);
@@ -3373,7 +3382,7 @@ sub focusCanvas {
     update_session_status($grp);
     TrEd::List::Macros::update_view($grp);
     updateCurrentContextMenu($grp);
-    updateStylesheetMenu($grp);
+    $grp->{StylesheetMenu}->update($grp);
     updateNodeMenu($grp);
     my $fl = $newfocus->{currentFilelist};
     #TODO: nie na sipkovu notaciu?
@@ -3419,7 +3428,7 @@ sub removeWindow {
     doEvalHook($win,"pre_switch_context_hook",$win->{macroContext},'<NONE>',$win);
     @$windows=grep {$_ ne $win} @$windows;
     $grp->{rmsplitButton}->configure(-state => 'disabled') if $grp->{rmsplitButton} and @$windows<=1;
-    closeFile($win,-no_update => 1, -keep_postponed => 1);
+    TrEd::File::closeFile($win,-no_update => 1, -keep_postponed => 1);
     my $brother=$win->canvas_destroy();
     if ($win == $grp->{focusedWindow}) {
       delete $grp->{focusedWindow};
@@ -3785,7 +3794,7 @@ sub populate_recent_files_menu {
     $recentFileMenu->command(
           -label      => "$i.  $recent_file",
           -underline  => 0,
-          -command    => [\&openStandaloneFile, $grp_ref, $recent_file]
+          -command    => [\&TrEd::File::openStandaloneFile, $grp_ref, $recent_file]
     );
     $i++;
   }
@@ -3854,6 +3863,12 @@ sub startMain {
     $top->optionAdd('\*Scrollbar.borderWidth', '1');
     $top->optionAdd('\*Scrollbar.troughColor', 'gray80');
   }
+  #TODO: tie scrollbars sa nejak zresetuju, prid na to, preco a ako!
+#  my $bg = $top->optionGet('width','*Scrollbar');
+#  my $abg = $top->optionGet('borderWidth','*Scrollbar');
+#  print "width: $bg\nborder: $abg\n";
+  
+  
   {
     # make sure button flashes are visible
     my $bg = $top->optionGet('Button.background','Background');
@@ -3883,7 +3898,7 @@ sub startMain {
   my $preparedExtensions = prepareExtensions();
   TrEd::Utils::loadStyleSheets(\%tred);
 
-  use Readonly;
+  
   Readonly my $milisec_per_min => 60000;
   
   if ($autoSave > 0) {
@@ -4006,22 +4021,12 @@ sub startMain {
 
   $tred{selectedContext} =  'TredMacro' unless exists($TrEd::Macros::keyBindings{ $tred{selectedContext} });
 
-  $tred{ContextsMenu} = $tred{MenubarFrame}->Optionmenu(
-                            -options      => [],
-                            -textvariable => \$tred{selectedContext},
-                            -font         => 'C_small',
-                            -command      => [sub { my ($grp,$context) = @_;
-                                                    switchContext($grp->{focusedWindow}, $context);
-                                                  },\%tred
-                                              ],
-                            -relief       => 'groove', #$menubarRelief,
-                            -borderwidth  => 2)->pack(qw/-side right -padx 5/);
-
-  $tred{ContextsMenu}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
+  
+  $tred{ContextsMenu} = TrEd::Menu::Context->new($tred{MenubarFrame}, \%tred);  
   $tred{ContextsMenuLabel}=$tred{MenubarFrame}->Label(-text=>'Mode:',
 							-font => 'C_small',
 							-underline=>1)->pack(qw/-side right/);
-  $tred{Balloon}->attach($tred{ContextsMenu}, -balloonmsg=> "Annotation Mode");
+  $tred{Balloon}->attach($tred{ContextsMenu}->get_menu(), -balloonmsg=> "Annotation Mode");
 
 
   addBindTags($tred{Toolbar},'my');
@@ -4029,53 +4034,14 @@ sub startMain {
   TrEd::Bookmarks::updateBookmarks(\%tred);
 
   $tred{vLineFrame}=$top->Frame();
-  $tred{valueLine}=
-    $tred{vLineFrame}->
-      Scrolled(qw/ROText
-		  -takefocus 0
-		  -state disabled
-                  -relief sunken
-		  -borderwidth 1
-		  -scrollbars ose/,
-		  -font => $vLineFont,
-		  -height => $valueLineHeight,
-	      );
-  _deleteMenu($tred{valueLine}->Subwidget('scrolled')->menu,'File');
+  $tred{valueLine}=TrEd::ValueLine->new($tred{vLineFrame});
+  $tred{vLineSeparator}=$top->Adjuster();
+  
+    
   my $bf = $tred{bottomFrame}=$top->Frame;
   if ($displayStatusLine) {
-#c		  -background white
-    my $sl= $tred{statusLine}=
-      $bf->
-	ROText(qw(-takefocus 0
-		  -state disabled
-		  -borderwidth 1
-		  -height 1
-		  -width 10
-		 ),
-	       -relief => 'sunken',
-	       -font => $vLineFont);
-    _deleteMenu($sl->menu,'File');
-    $sl->bind('<1>',
-			    [sub {
-				my ($w,$grp)=@_;
-				my $Ev=$w->XEvent;
-				my $win=$grp->{focusedWindow};
-				doEvalHook($win,"status_line_click_hook",
-					   $w->tagNames($w->index($Ev->xy)));
-				Tk->break;
-			      },\%tred]
-			   );
-    $sl->bind('<Double-1>',
-			    [sub {
-				my ($w,$grp)=@_;
-				my $Ev=$w->XEvent;
-				my $win=$grp->{focusedWindow};
-				doEvalHook($win,"status_line_doubleclick_hook",
-					   $w->tagNames($w->index($Ev->xy)));
-				Tk->break;
-			      },\%tred]
-			   );
-    $sl->pack(qw/-side left -fill x -expand yes/);
+    my $sl= $tred{statusLine}=TrEd::StatusLine->new($bf, \%tred);
+
   }
   {
     $tred{minorModesMenu} = $bf->Menubutton(-image=>icon(\%tred,'puzzle'),-direction=>'above')->pack(-side => 'left',-expand => 'no');
@@ -4109,23 +4075,7 @@ sub startMain {
     $slider->bindtags([$slider,ref($slider),$slider->toplevel,'all']);
     $slider->bind($slider,'<3>', sub{ $slider->set(0); Tk->break; } );
   }
-  $tred{valueLine}->tagConfigure('current',
-				  -background => $valueLineFocusBackground,
-				  -foreground => $valueLineFocusForeground,
-				 );
-  for my $modif (q{}, qw(Shift Control Alt Meta)) {
-    my $m = $modif ? $modif . '-' : '';
-    for my $but ((map 'Double-'.$_, 1..3), 1..3) {
-      $tred{valueLine}->bind(qq{<${m}${but}>},[\&TrEd::ValueLine::click, \%tred, $modif,$but]);
-    }
-  }
-
-  $tred{vLineSeparator}=$top->Adjuster();
-  eval { # supported only on some platforms/version of Tk
-    $tred{valueLine}->configure(-foreground => $valueLineForeground,
-                                 -background => $valueLineBackground);
-  };
-  $tred{valueLine}->BindMouseWheelHoriz();
+  
 
   print STDERR "Creating buttons.\n" if $tredDebug;
 
@@ -4172,7 +4122,7 @@ sub startMain {
 			  -image=> icon(\%tred,"filesave"),
 			  -state => 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&saveFile,\%tred])->pack(-side=>'left');
+			  -command=> [\&TrEd::File::saveFile,\%tred])->pack(-side=>'left');
 
   $tred{Balloon}->attach($tred{saveButton},
 			  -balloonmsg=> "save current file");
@@ -4183,7 +4133,7 @@ sub startMain {
 			  -relief=> $buttonsRelief,
 			  -image=> icon(\%tred,"reload"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&reloadFile,\%tred])->pack(-side=>'left');
+			  -command=> [\&TrEd::File::reloadFile,\%tred])->pack(-side=>'left');
 
   $tred{Balloon}->attach($tred{reloadButton},
 			  -balloonmsg=> "reload current file");
@@ -4385,15 +4335,15 @@ sub startMain {
 
 
 
-  $tred{StylesheetMenu}=$tred{Toolbar}->
-    Optionmenu(-options => [],
-	       -font => 'C_small',
-	       -textvariable=> \$tred{selectedStylesheet},
-	       -command=> [sub { my ($grp,$stylesheet) = @_;
-				 switchStylesheet($grp, $stylesheet);
-			       },\%tred],
-	       -relief=> 'groove', #$menubarRelief,
-	       -borderwidth=> 2)->pack(qw/-side right -padx 3/);
+  $tred{StylesheetMenu} = TrEd::Menu::Stylesheet->new(\%tred);
+  $tred{StylesheetMenuLabel}=$tred{Toolbar}->Label(qw/-text Style:
+							-font C_small
+							-underline 2/)->pack(qw/-side right/);
+  
+  $tred{Balloon}->attach($tred{StylesheetMenu}->get_menu(),
+			  -balloonmsg=> "stylesheet (tree appearance)");
+  
+  
   $tred{attrButton}=
     $tred{Toolbar}->Button(-takefocus=>0, -text=> "Edit Stylesheet",
 			  -relief=> $buttonsRelief,
@@ -4402,13 +4352,10 @@ sub startMain {
 			  -command=> [sub { TrEd::Dialog::EditStylesheet::show_dialog(@_) },\%tred])->pack(-side=>'right');
   $tred{Balloon}->attach($tred{attrButton},
 			  -balloonmsg=> "customize display patterns\nof the selected stylesheet\n(e.g. change tree appearance, labels etc.)");
-  $tred{StylesheetMenu}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
-  $tred{StylesheetMenuLabel}=$tred{Toolbar}->Label(qw/-text Style:
-							-font C_small
-							-underline 2/)->pack(qw/-side right/);
-  $tred{Balloon}->attach($tred{StylesheetMenu},
-			  -balloonmsg=> "stylesheet (tree appearance)");
-
+  
+  
+  
+  
 
   print STDERR "Packing widgets.\n" if $tredDebug;
 
@@ -4433,6 +4380,7 @@ sub startMain {
 			  -balloonmsg=> "View all trees as a list of 'sentences'...\nThis dialog also allows export to HTML.");
 
   $vlsubframe->pack(qw/-fill x -side right -padx 1 -anchor n/);
+  #TODO: parent etc
   $tred{valueLine}->pack(qw/-side left -fill both -expand yes/);
   $tred{vLineFrame}->pack(qw/-fill x -expand no/);
 
@@ -4511,7 +4459,7 @@ sub startMain {
 
   update_macro_menus(\%tred);
   TrEd::MinorModes::update_minor_modes(\%tred);
-  updateStylesheetMenu(\%tred);
+  $tred{StylesheetMenu}->update(\%tred);
   updatePostponed(\%tred);
   updateHelpMenu(\%tred, {preparedExtensions=>$preparedExtensions});
 
@@ -4556,7 +4504,7 @@ sub startMain {
       die "Caught SIGINT, stopping current evaluation.\nSee the error output for details...\n";
     } else {
       print STDERR "Caught SIGINT, closing all files without saving\n";
-      closeAllFiles(\%tred);
+      TrEd::File::closeAllFiles(\%tred);
       print STDERR "Good bye!\n";
       $top->destroy;
       exit_tred(1);
@@ -4642,8 +4590,8 @@ sub startMain {
 		Tk->break;
 	      } else {
 		my ($w,$grp)=@_;
-		my $but = $grp->{ContextsMenu};
-		my $menu = $but->menu;
+		my $but = $grp->{ContextsMenu}->get_menu();
+		my $menu = $but->menu();
 		my $ctxt = $grp->{selectedContext};
 		Tk->break if $ctxt eq EMPTY;
 		my $idx = eval { $menu->index($ctxt) } ;
@@ -4663,7 +4611,7 @@ sub startMain {
 		Tk->break;
 	      } else {
 		my ($w,$grp)=@_;
-		my $but = $grp->{StylesheetMenu};
+		my $but = $grp->{StylesheetMenu}->get_menu();
 		my $menu = $but->menu;
 		my $stylesheet = $grp->{selectedStylesheet};
 		Tk->break if $stylesheet eq EMPTY;
@@ -4875,6 +4823,7 @@ sub removeUserToolbar {
   return $tb;
 }
 
+# sounds like a fn from TrEd::Basics..?!
 sub makeCurrentNodeRoot {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow};
@@ -4918,7 +4867,7 @@ sub quit {
   my ($grp,$win)=grp_win(shift);
   # run user's exit_hook
   doEvalHook($win,"exit_hook");
-  return if askSaveFiles($grp,1) == -1;
+  return if TrEd::File::askSaveFiles($grp,1) == -1;
   saveRuntimeConfig($grp);
   $grp->{top}->destroy;
   $grp->{top}=undef;
@@ -5003,7 +4952,7 @@ sub _do_goto_tree {
   my $win=shift;
   my $no=$win->{treeNo};
   $win->{treeNo}=-1;  # this is to force getNodes & redraw
-  gotoTree($win,$no);
+  TrEd::Basics::gotoTree($win,$no);
   $win->{framegroup}->{IdleTask}=undef;
 }
 
@@ -5134,7 +5083,7 @@ sub newFileFromTemplate {
     [$choices->[0]],
    );
   if (ref($ret) and @$ret) {
-    return openStandaloneFile($grp,$templates[$ret->[0]][1],-justheader => 1);
+    return TrEd::File::openStandaloneFile($grp,$templates[$ret->[0]][1],-justheader => 1);
   }
   return;
 }
@@ -5197,314 +5146,18 @@ sub urlDialog {
 			 undef,$opts);
   if (defined $file and $file ne EMPTY) {
     $grp->{lastURL} = $file;
-    return openStandaloneFile($grp,$file,-justheader => $header_only);
+    return TrEd::File::openStandaloneFile($grp,$file,-justheader => $header_only);
   }
   return 0;
 }
 
-# dialog
-sub askSaveReferences {
-  # write embedded DOM documents
-  my ($win,$fsfile,$result,$filename)=@_;
-  $filename = $fsfile->filename unless defined $filename;
-  my (@refs);
-  my $schema = fileSchema($fsfile) || return 1;
-  my $references = [ $schema->get_named_references ];
-  return 1 unless @$references;
-  my $name2id = $fsfile->metaData('refnames');
-  my $id2href = $fsfile->metaData('references');
-  foreach my $reference (@$references) {
-    my $name = $reference->{name};
-    my $refid = $name2id->{$name};
-    if ($refid) {
-      my $href = $id2href->{$refid};
-      my $r;
-      if ($href and $reference->{readas} =~ /^(dom|pml)$/ and 
-	  ref($fsfile->appData('ref')) and $r=$fsfile->appData('ref')->{$refid}) {
-	push @refs, [$href." [$refid, $name]",
-		     $r,$refid,$name];
-      }
-    }
-  }
-  my $i=0;
-  while ($i<@refs) {
-    my $r = $refs[$i][1];
-    if (UNIVERSAL::DOES::does($r,'Treex::PML::Instance')) {
-      my $schema = $r->get_schema;
-      my $references = [ $schema->get_named_references ];
-      next unless @$references;
-      my $name2id = $r->get_refname_hash();
-      my $id2href = $r->get_references_hash();
-      foreach my $reference (@$references) {
-	my $name = $reference->{name};
-	my $refid = $name2id->{$name};
-	if ($refid) {
-	  my $href = $id2href->{$refid};
-	  if ($href and $reference->{readas} =~ /^(dom|pml)$/) {
-	    my $r2 = $r->get_ref($refid);
-	    $refid=$refs[$i][2].'/'.$refid;
-	    $name=$refs[$i][3].'/'.$name;
-	    push @refs, [$href." [$refid, $name]",
-		     $r2,$refid,$name] if $r2;
-	  }
-	}
-      }
-    }
-  } continue { $i++ }
-  @refs=map $_->[0],@refs;
-  # CURSOR
-  return 1 unless @refs;
-  my $initdir = dirname($filename);
-  my $selection = [];
-  my $return =
-    listQuery(
-      $win->toplevel,'Select resources to save','multiple',
-      \@refs,$selection,
-      label => {
-	-text => <<'EOF'
-This document contains data obtained from external resources.
-Please select which of them should be updated:
-EOF
-       },
-      list => {
-	-exportselection => 0,
-      },
-      buttons => [{
-	-text => 'Change filename...',
-	-underline => 7,
-	-command => [sub {
-		       my ($l)=@_;
-		       my ($file,$rest) = split / \[/,$l->get('active'),2;
-		       my $initdir2 = dirname($file);
-		       $initdir2 = File::Spec->catfile($initdir,$initdir2)
-			 unless File::Spec->file_name_is_absolute($initdir2);
-		       $file = get_save_filename(
-			 $l->toplevel,
-			 -filetypes=> $save_types{all},
-			 -title=> "Save As ...",
-			 -d $initdir2 ? (-initialdir=> $initdir2) : (),
-			 $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
-		       if ($file ne EMPTY) {
-			 my $index = $l->index('active');
 
-			 my %selected = map {$_=>1} grep { $l->selectionIncludes($_) } (0 .. $l->size-1);
-			 $l->insert($index,$file." [".$rest);
-			 $l->delete('active');
-			 $l->activate($index);
-			 foreach (0 .. $l->size-1) {
-			   if ($selected{$_}) {
-			     $l->selectionSet($_);
-			   } else {
-			     $l->selectionClear($_);
-			   }
-			 }
-		       }
-		       Tk->break;
-		     }]
-       }]
-     );
-  if ($return) {
-    %$result = map { /^(.*) \[([^,]+),/ ? ($2 => $1) : () } @$selection;
-  }
-  return $return;
-}
-
-# dialog
-sub saveFileAs {
-  my ($win,$fsfile)= @_;
-  my $initdir;
-  $fsfile ||= $win->{FSFile};
-  return unless $fsfile;
-  my $file=$fsfile->filename;
-
-  $initdir=dirname($file);
-  $initdir=cwd if ($initdir eq './');
-  $initdir=~s!${TrEd::Convert::Ds}$!!m;
-
-  my $cur = $fsfile->backend || '';
-  $cur=~s/Backend$//;
-  $cur=qq{ ($cur)} if $cur;
-  my $response=userQuery($win, "\nPlease,\nchoose one of the following output formats.\n\n".
-			 "\nWARNING:\nsome formats may be incompatible with the current file.\n",
-			 -title => "Save As ...",
-			 -buttons => ["Use current".$cur,"FS","CSTS","TrXML","TEIXML","Storable","Cancel"]);
-  return if ($response eq "Cancel");
-
-  if ($response eq 'FS') {
-    $file=~s/\.(?:csts|sgml|sgm|cst|trxml|trx|tei|xml)/.fs/i;
-    $file=~s/\.(amt|am|m|a)/$1.fs/;
-  } elsif ($response eq 'CSTS') {
-    $file=~s/\.(?:fs|tei|trxml|trx|xml)/.csts/i;
-  } elsif ($response eq 'TrXML') {
-    $file=~s/\.(?:csts|sgml|sgm|cst|fs|tei)/.trxml/i;
-  } elsif ($response eq 'TEIXML') {
-    $file=~s/\.(?:csts|sgml|sgm|cst|fs|trxml|trx)/.xml/i;
-  } elsif ($response eq 'Storable') {
-    $file=~s/\.(?:csts|sgml|sgm|cst|fs|trxml|trx|tei|xml)/.pls/i;
-  } 
-
-  my $filetypes;
-  if ($response =~ /^Use current/) {
-    my ($backend) = grep { $backend_map{$_} eq $fsfile->backend} keys %backend_map;
-    if ($backend) {
-      $filetypes = $save_types{$backend};
-    } else {
-      $filetypes = $save_types{'all'};
-    }
-  } else {
-    $filetypes = $save_types{lc($response)};
-  }
-
-  $file= get_save_filename($win->toplevel,-filetypes=> $filetypes,
-				     -title=> "Save As ...",
-				     -d $initdir ? (-initialdir=> $initdir) : (),
-     				     $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
-  return doSaveFileAs($win,$fsfile,$file,
-		    ($response !~ /^Use current/) ? $backend_map{lc($response)} : $fsfile->backend,
-		    'ask','ask'
-		   );
-}
-
-# fsfile, dialog+
-sub doSaveFileAs {
-  my ($win, $fsfile, $filename, $backend, $update_refs, $update_filelist)=@_;
-  my ($old_file,$old_backend,$old_format) = 
-    ($fsfile->filename,$fsfile->backend,$fsfile->fileFormat);
-
-  my $lock_change=0;
-  if ($filename ne EMPTY) {
-    if ($filename ne $fsfile->filename) {
-      if ($lockFiles) {
-	my $lock = TrEd::FileLock::check_lock(undef,$filename);
-	if ($lock eq 'my') {
-	  if (userQuery($win,
-			"An existing lock on the file $filename indicates that it is probably used by another file-object within this process!",
-			-bitmap=> 'question',
-			-title => "Saving to a locked file?",
-			-buttons => ['Steal lock and save','Cancel']) eq 'Cancel') {
-	    return -1;
-	  }
-	} elsif ($lock ne 'none') {
-	  if (userQuery($win,
-			"File $filename was $lock!",
-			-bitmap=> 'question',
-			-title => "Saving to a locked file?",
-			-buttons => ['Steal lock and save','Cancel']) eq 'Cancel') {
-	    return -1;
-	  }
-	}
-	$lock_change=1;
-	$fsfile->changeFilename($filename);
-	TrEd::FileLock::set_fs_lock_info($fsfile, TrEd::FileLock::set_lock($filename));
-      } else {
-	$fsfile->changeFilename($filename);
-      }
-    }
-    if (defined $backend) {
-      $fsfile->changeBackend($backend);
-    }
-    $fsfile->changeFileFormat(($filename=~/\.gz$/ ? "gz-compressed " : EMPTY).
-				     $fsfile->backend);
-    update_title_and_buttons($win->{framegroup});
-    updatePostponed($win->{framegroup});
-    if (saveFile($win,$filename)==1) {
-      TrEd::FileLock::remove_lock($fsfile,$old_file,1) if ($lock_change);
-
-      if ($filename ne $old_file and 
-	  ref($fsfile->appData('fs-part-of'))) {
-	my @fs = @{$fsfile->appData('fs-part-of')};
-	if ($update_refs eq 'all') {
-	  # all
-	  $update_refs = \@fs;
-	} elsif (UNIVERSAL::isa($update_refs,'ARRAY')) {
-	  # pre-selected FSFiles
-	} elsif ($update_refs eq 'ask') {
-	  $update_refs = [];
-	  if (@fs) {
-	    my $filenames = [map { $_->filename } @fs];
-	    my $selection=[@$filenames];
-	    listQuery(
-	      $win->toplevel,
-	      'Rename file also in...','multiple',
-	      $filenames,$selection,
-	      label => {
-		-text => <<'EOF'
-You have renamed the current file, but it is referred to by the file(s) below.
-Please select files that should update their references to the current file:
-EOF
-	      },
-	      list => {
-		-exportselection => 0,
-	      }
-	     );
-	    if (@$selection) {
-	      my %selected = map { $_ => 1 } grep { $_ ne EMPTY } @$selection;
-	      $update_refs = [grep { $selected{$_->filename} } @fs];
-	    }
-	  }
-	}
-	my @failed;
-	foreach my $reff (@$update_refs) {
-	  my $req = $reff->metaData('fs-require');
-	  my $references = $reff->metaData('references');
-	  my $match;
-	  if (ref($req)) {
-	    for (@$req) {
-	      if ($_->[1] eq $old_file) {
-		if (ref($references)) {
-		  $references->{$_->[0]}=$filename;
-		  $_->[1] = $filename;
-		  $reff->notSaved(1);
-		}
-		$match = 1;
-	      }
-	    }
-	  }
-	  unless ($match) {
-	    push @failed,$reff;
-	  }
-	}
-	errorMessage($win,
-		     "Could not find reference to the current file in the following files:\n\n".
-		       join("\n",map { $_->filename } @fs),1) if @failed;
-      }
-
-      my $filelist = $win->{currentFilelist};
-      if ($filelist and $filename ne $old_file) {
-	if (!defined $update_filelist or $update_filelist eq 'ask') {
-	  my $response = 
-	    userQuery($win,
-		      "Do you want to update the current file list (".$filelist->name.")?\n\n".
-			"This will find all occurences in the file list of:\n${old_file}\n".
-			  "and update them to point to:\n${filename}",
-		      -bitmap=> 'question',
-		      -title => 'Update file list?',
-		      -buttons => ['Yes (all references)','Only current position','No']);
-	  if ($response ne 'No') {
-	    renameFileInFilelist($filelist, $old_file, $filename, 
-				 $response =~ /^Only/ ? currentFileNo($win) : undef);
-	  }
-	} elsif ($update_filelist=~/^all$|^current$/) {
-	  renameFileInFilelist($filelist, $old_file, $filename, 
-			       ($update_filelist eq 'current') ? 
-				currentFileNo($win) : undef);
-	}
-      }
-      return 1;
-    } else {
-      TrEd::FileLock::remove_lock($fsfile,$filename,1) if ($lock_change);
-      $fsfile->changeFilename($old_file);
-      TrEd::FileLock::set_fs_lock_info($fsfile, TrEd::FileLock::set_lock($old_file)) if $lock_change;
-      $fsfile->changeBackend($old_backend);
-      $fsfile->changeFileFormat($old_format);
-      update_title_and_buttons($win->{framegroup});
-      return 0;
-    }
-  }
-  return 0;
-}
+# sub askSaveReferences
+# sub saveFileAs
+# sub doSaveFileAs 
 
 # filelist
+#TODO: to filelist?
 sub renameFileInFilelist {
   my ($filelist, $old_file, $filename, $position)=@_;
   # TRY UPDATING THE CURRENT FILELIST:
@@ -5517,7 +5170,7 @@ sub renameFileInFilelist {
   for my $i (defined ($position) ? $position : 0..($filelist->file_count()-1)) {
     my $fn = $filelist->file_at($i);
     my ($f, $suffix) = TrEd::Utils::parse_file_suffix($fn);
-    if (Treex::PML::IO::is_same_file(TrEd::ManageFilelists::_filelistFullFileName($filelist,$f),$old_file)) {
+    if (Treex::PML::IO::is_same_file(TrEd::Filelist::Navigation::_filelistFullFileName($filelist,$f),$old_file)) {
       my $pattern_no = $filelist->file_pattern_index($i);
       my $pattern = $pattern_list->[$pattern_no];
       my $new_filename =  (Treex::PML::_is_absolute($f) ?
@@ -5546,34 +5199,7 @@ sub renameFileInFilelist {
   }
 }
 
-# dialog, file
-sub askSaveFiles {
-  my ($grp,$cancelbutton)= @_;
 
-  @{$grp->{treeWindows}} = grep { $_ ne $grp->{focusedWindow} } @{$grp->{treeWindows}};
-  unshift @{$grp->{treeWindows}},$grp->{focusedWindow};
-  my $win;
-  my %asked;
-  foreach $win (@{ $grp->{treeWindows} }) {
-    if ($win->{FSFile}) {
-      $asked{$win->{FSFile}}=1;
-      focusCanvas($win->canvas(),$win->{framegroup});
-      return -1 if askSaveFile($win,0,$cancelbutton) == -1;
-      closeFile($win,-no_update => 1,-all_windows => 1);
-    }
-  }
-
-  for my $fsfile (grep { !$asked{$_} and ref($_) and $_->notSaved } TrEd::File::get_openfiles()) {
-    resumeFile($grp->{focusedWindow},$fsfile);
-    update_title_and_buttons($grp);
-    get_nodes_win($grp->{focusedWindow});
-    redraw_win($grp->{focusedWindow});
-    centerTo($grp->{focusedWindow},$grp->{focusedWindow}->{currentNode});
-    $grp->{top}->update();
-    return -1 if askSaveFile($grp->{focusedWindow},0,$cancelbutton) == -1;
-  }
-  closeAllFiles($grp);
-}
 
 # sub closeAllFiles
 
@@ -5647,7 +5273,9 @@ sub reconfigure {
   update_title_and_buttons($grp);
   $grp->{top}->optionAdd("*font",$guiFont) if $guiFont;
   $grp->{valueLine}->configure(-font=> $vLineFont);
-  $grp->{statusLine}->configure(-font=> $vLineFont) if $grp->{statusLine};
+  if (defined $grp->{statusLine}) {
+    $grp->{statusLine}->configure(-font=> $vLineFont);
+  }
   foreach (@{$grp->{treeWindows}}) {
     $_->treeView->apply_options($treeViewOpts);
   }
@@ -5870,20 +5498,37 @@ sub autoSelectContext {
     switchContext($win,'TredMacro');
   }
 }
+
 # context
-sub getApplicableContexts {
-  my ($win)=@_;
-  my $prevcontext = $win->{macroContext};
-  my @ret = grep { (doEvalHook($win,"allow_switch_context_hook",$prevcontext,$win->{macroContext}=$_)||'') ne 'stop' } get_contexts();
-  $win->{macroContext}=$prevcontext;
-  return @ret;
+#######################################################################################
+# Usage         : get_allowed_contexts($win)
+# Purpose       : Get allowed contexts for Window $win
+# Returns       : List of allowed context names
+# Parameters    : TrEd::Window ref $win -- ref to examined TrEd::Window object
+# Throws        : No exception
+# Comments      : Runs allow_switch_context_hook.
+# See Also      : selectContext(), autoSelectContext()
+sub get_allowed_contexts {
+    my ($win) = @_;
+    my $prevcontext = $win->{macroContext};
+    my @ret = grep {
+        (   doEvalHook(
+                $win,         "allow_switch_context_hook",
+                $prevcontext, $win->{macroContext} = $_
+                )
+                || ''
+            ) ne 'stop'
+    } TrEd::Macros::get_contexts();
+    $win->{macroContext} = $prevcontext;
+    return @ret;
 }
+
 # context
 sub selectContext {
   my ($grp)=@_;
   my $win = $grp->{focusedWindow};
   my $selection = [$win->{macroContext}];
-  listQuery($grp->{top},'Select Mode','browse',[getApplicableContexts($win)],
+  listQuery($grp->{top},'Select Mode','browse',[get_allowed_contexts($win)],
 	    $selection) || return;
   if (@$selection) {
     switchContext($grp->{focusedWindow},$selection->[0]);
@@ -5897,7 +5542,7 @@ sub selectStylesheet {
   my $win = cast_to_grp($grp_or_win);
   my $selection = [$grp->{selectedStylesheet}];
   listQuery($grp->{top},'Select Mode','browse',
-	    getStylesheetMenuList($grp),
+	    $grp->{StylesheetMenu}->get_menu_list($grp),
 	    $selection) || return;
   if (@$selection) {
     $grp->{selectedStylesheet} = $selection->[0];
@@ -5917,7 +5562,7 @@ sub stylesheetUsingWindows {
 sub deleteStylesheet {
   my ($grp,$stylesheet)=@_;
   removeStylesheetFile($grp,$default_stylesheet_path,$stylesheet);
-  updateStylesheetMenu($grp);
+  $grp->{StylesheetMenu}->update($grp);
   foreach my $win (stylesheetUsingWindows($grp,$stylesheet)) {
     if ($grp->{focusedWindow} == $win) {
       $grp->{selectedStylesheet} = STYLESHEET_FROM_FILE();
@@ -6892,17 +6537,26 @@ sub findTemplated {
   my $win = $grp->{focusedWindow};
   return undef unless ($win->{currentNode});
 
-  my @save = ($init_macro_context,$win->{noRedraw},$grp->{noUpdateTitle},$grp->{noUpdatePostponed},
-	      $grp->{noRecent},$grp->{noUpdateStylesheetMenu},$grp->{noUpdateMacrolistView},$grp->{noSaveFileStateUpdate});
+  my %save = (
+    init_macro_context      => $init_macro_context,
+    no_redraw               => $win->{noRedraw},
+    no_update_title         => $grp->{noUpdateTitle},
+    no_update_postponed     => $grp->{noUpdatePostponed},
+    no_recent               => $grp->{noRecent},
+    no_upd_stylesheet_menu  => $grp->{StylesheetMenu}->no_update(),
+    no_upd_macrolist_view   => $grp->{noUpdateMacrolistView},
+    no_save_filestate_upd   => $grp->{noSaveFileStateUpdate}
+   );
   ($init_macro_context,
    $win->{noRedraw},
    $grp->{noUpdateTitle},
    $grp->{noUpdatePostponed},
    $grp->{noRecent},
-   $grp->{noUpdateStylesheetMenu},
    $grp->{noUpdateMacrolistView},
    $grp->{noSaveFileStateUpdate}
-  )=($win->{macroContext},1,1,1,1,1,1,1);
+  )=($win->{macroContext},1,1,1,1,1,1);
+  $grp->{StylesheetMenu}->set_dont_update(1);
+  
   _createSearchGrabWindow($grp);
   my $result;
   if (!$no_secondary and !$grp->{searchAlwaysSecondary} and $grp->{searchFilelist}) {
@@ -6924,7 +6578,7 @@ sub findTemplated {
       TrEd::FileLock::lock_open_file($win,$fsfile);
       # if the initial file and the current file
       # are different, open the secondary files now
-      my $status = openSecondaryFiles($win,$fsfile,undef);
+      my $status = TrEd::File::openSecondaryFiles($win,$fsfile,undef);
       unless ($status->{ok}) {
 	$win->toplevel->ErrorReport(
 	  -title => "Error: open failed",
@@ -6937,21 +6591,21 @@ sub findTemplated {
     $result = $callback->($grp,$cont);
   }
   _closeSearchGrabWindow($grp);
-  ($init_macro_context,
-   $win->{noRedraw},
-   $grp->{noUpdateTitle},
-   $grp->{noUpdatePostponed},
-   $grp->{noRecent},
-   $grp->{noUpdateStylesheetMenu},
-   $grp->{noUpdateMacrolistView},
-   $grp->{noSaveFileStateUpdate},
-  )=@save;
+  $init_macro_context           = $save{init_macro_context};
+  $win->{noRedraw}              = $save{no_redraw};
+  $grp->{noUpdateTitle}         = $save{no_update_title};
+  $grp->{noUpdatePostponed}     = $save{no_update_postponed};
+  $grp->{noRecent}              = $save{no_recent};
+  $grp->{StylesheetMenu}->set_dont_update($save{no_upd_stylesheet_menu});
+  $grp->{noUpdateMacrolistView} = $save{no_upd_macrolist_view};
+  $grp->{noSaveFileStateUpdate} = $save{no_save_filestate_upd};
+
 
   get_nodes_win($win);
   redraw_win($win);
   update_title_and_buttons($grp);
   updatePostponed($grp);
-  updateStylesheetMenu($grp);
+  $grp->{StylesheetMenu}->update($grp);
   TrEd::List::Macros::update_view($grp);
   saveFileStateUpdate($win);
   unless ($result) {
@@ -7454,7 +7108,7 @@ sub redraw_win {
         saveFileStateUpdate($win);
         TrEd::Undo::reset_undo_status($win);
         resetTreePosStatus( $win->{framegroup} );
-        TrEd::StatusLine::update_status_info($win);
+        $win->{framegroup}->{statusLine}->update_status($win);
         updateNodeMenu($win);
     }
 
@@ -8150,9 +7804,10 @@ sub evalMacro {
 
   my ($macro,$key)=resolveEvent($w,$grp,$prefix);
   if (defined $macro) {
-    $grp->{statusLineText}="$key" if $tredDebug;
-    $grp->{statusLineText}.=", $macro" if $tredDebug;
-    TrEd::StatusLine::update_status_info($win) if $tredDebug;
+      if ($tredDebug) {
+        $grp->{statusLine}->set_text("$key, $macro");
+        $grp->{statusLine}->update_status($win)
+      }
 #    use Benchmark;
 #    my $t0= new Benchmark;
 #    # ... your code here ...
@@ -8165,8 +7820,10 @@ sub evalMacro {
 
     return 1;
   } else {
-    $grp->{statusLineText}=$key if $tredDebug; #"$prefix$K" if $tredDebug;
-    TrEd::StatusLine::update_status_info($win) if $tredDebug;
+    if ($tredDebug) {
+        $grp->{statusLine}->set_text($key);
+        $grp->{statusLine}->update_status($win);
+    }
   }
   return undef;
 }
@@ -8694,7 +8351,7 @@ sub manage_extensions {
     my $preparedExtensions = prepareExtensions($grp);
 
     loadStyleSheets($grp);
-    updateStylesheetMenu($grp);
+    $grp->{StylesheetMenu}->update($grp);
     updateHelpMenu($grp,{preparedExtensions => $preparedExtensions});
     
     # reload macros
