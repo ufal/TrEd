@@ -7,9 +7,111 @@ use warnings;
 
 use TrEd::Convert qw{encode};
 use TrEd::Basics qw{setCurrent $EMPTY_STR};
+use TrEd::Config qw{$valueLineReverseLines 
+                    $valueLineWrap 
+                    $vLineFont 
+                    $valueLineAlign 
+                    $valueLineHeight
+                    $valueLineFocusBackground
+                    $valueLineFocusForeground
+                };
+
+use Carp;
+use Tk::Widget;
+
+use base qw{Tk::Widget};
 
 #TODO: nejak to prerobit, aby sa to volalo na value line objekt...?
 
+
+#new {
+#    my ($class, $val_line_frame, $grp) = @_;
+#    if (!ref $val_line_frame) {
+#        croak("Value line constructor needs reference to value line frame and TrEd hash");
+#    }
+
+#    my $value_line = $val_line_frame->
+#      Scrolled(qw/ROText
+#		  -takefocus 0
+#		  -state disabled
+#                  -relief sunken
+#		  -borderwidth 1
+#		  -scrollbars ose/,
+#		  -font => $TrEd::Config::vLineFont,
+#		  -height => $TrEd::Config::valueLineHeight,
+#	      );
+#	      
+#  _deleteMenu($value_line->Subwidget('scrolled')->menu(),'File');
+#
+#    
+#    $value_line->tagConfigure('current',
+#				  -background => $TrEd::Config::valueLineFocusBackground,
+#				  -foreground => $TrEd::Config::valueLineFocusForeground,
+#				 );
+#  for my $modif (q{}, qw(Shift Control Alt Meta)) {
+#    my $m = $modif ? $modif . '-' : '';
+#    for my $but ((map 'Double-'.$_, 1..3), 1..3) {
+#      $value_line->bind(qq{<${m}${but}>},[\&click, $grp, $modif,$but]);
+#    }
+#  }
+#  
+#  eval { # supported only on some platforms/version of Tk
+#    $value_line->configure(-foreground => $TrEd::Config::valueLineForeground,
+#                                 -background => $TrEd::Config::valueLineBackground);
+#  };
+#  $value_line->BindMouseWheelHoriz();
+  
+  
+#  my $obj = {
+#        value_line => $value_line,
+#    };
+#  return bless $obj, $class;
+#}
+
+sub new {
+    my ($class, $val_line_frame, $grp) = @_;
+    my $value_line;
+    
+    if (!ref $val_line_frame) {
+        croak("Value line constructor needs reference to value line frame and TrEd hash");
+    }
+#TODO: value line, podobne ako tie menu, by mohli byt potomkovia Tk::Widget...
+    $value_line = $val_line_frame->
+      Scrolled(qw/ROText
+		  -takefocus 0
+		  -state disabled
+                  -relief sunken
+		  -borderwidth 1
+		  -scrollbars ose/,
+		  -font => $TrEd::Config::vLineFont,
+		  -height => $TrEd::Config::valueLineHeight,
+	      );
+    
+    main::_deleteMenu($value_line->Subwidget('scrolled')->menu(),'File');
+    
+    $value_line->tagConfigure('current',
+				  -background => $TrEd::Config::valueLineFocusBackground,
+				  -foreground => $TrEd::Config::valueLineFocusForeground,
+				 );
+    
+  for my $modif (q{}, qw(Shift Control Alt Meta)) {
+    my $m = $modif ? $modif . '-' : '';
+    for my $but ((map 'Double-'.$_, 1..3), 1..3) {
+      $value_line->bind(qq{<${m}${but}>},[\&click, $grp, $modif,$but]);
+    }
+  }
+  
+  eval { # supported only on some platforms/version of Tk
+    $value_line->configure(-foreground => $TrEd::Config::valueLineForeground,
+                                 -background => $TrEd::Config::valueLineBackground);
+  };
+  $value_line->BindMouseWheelHoriz();
+    
+    my $obj = {
+        value_line => $value_line,
+    };
+    return bless $obj, $class;
+}
 
 # value line, UI
 # sub set_value_line
@@ -23,7 +125,7 @@ sub set_value {
     Tk::catch {
       $vl->configure(qw(-wrap none));
     };
-    $v=reverseWrapLines($grp->{valueLine},$TrEd::Config::vLineFont,$v,
+    $v=main::reverseWrapLines($grp->{valueLine},$TrEd::Config::vLineFont,$v,
 			$grp->{valueLine}->width()-15);
   } else {
     Tk::catch {

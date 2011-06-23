@@ -4,12 +4,15 @@ use strict;
 use warnings;
 
 use TrEd::Basics qw{$EMPTY_STR};
+use TrEd::Config qw{$tredDebug};
 use TrEd::ManageFilelists;
 use TrEd::Filelist::View;
+
 use Treex::PML;
 
 my $filelist_widget;
 
+#TODO: maybe its own class for the widget?
 sub filelist_widget {
     return $filelist_widget;
 }
@@ -85,10 +88,10 @@ sub _double_click {
         );
         if ( defined($data) ) {
             print "Removing ", $filelist_widget->info( 'data', $anchor ), "\n"
-                if $main::tredDebug;
+                if $tredDebug;
             $current_filelist->remove(
                 $filelist_widget->info( 'data', $anchor ) );
-            print "Adding $data\n" if $main::tredDebug;
+            print "Adding $data\n" if $tredDebug;
             $current_filelist->add( $position, $data );
             feedHListWithFilelist( $grp, $filelist_widget,
                 $current_filelist );

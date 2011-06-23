@@ -2149,7 +2149,7 @@ sub RedrawStatusLine {
     main::setCurrent($grp,$this);
     main::centerTo($grp,$this);
   }
-  TrEd::StatusLine::update_status_info($grp);
+  $grp->{statusLine}->update_status($grp);
 }
 
 
@@ -3261,7 +3261,7 @@ Open secondary files for a given L<Treex::PML::Document|http://search.cpan.org/~
 
 sub OpenSecondaryFiles {
   my ($fsfile)=@_;
-  my $status = main::openSecondaryFiles($grp,$fsfile);
+  my $status = TrEd::File::openSecondaryFiles($grp,$fsfile);
   unless ($status->{ok}) {
     die($status->{error});
   }
@@ -3275,7 +3275,7 @@ Close and reload current fsfile.
 =cut
 
 sub ReloadCurrentFile {
-  my $ret = main::reloadFile($grp);
+  my $ret = TrEd::File::reloadFile($grp);
   if (exists($grp->{framegroup})) { # why?
     $root=$grp->{root};
     $this=$grp->{currentNode};
@@ -3292,7 +3292,7 @@ Resume a previously open fsfile a given window in TrEd.
 sub ResumeFile {
   my ($fsfile)=@_;
   local $main::insideEval = 0;
-  my $ret = main::resumeFile($grp,$fsfile,1);
+  my $ret = TrEd::File::resumeFile($grp,$fsfile,1);
   main::doEvalHook($grp,"file_resumed_hook");
   return $ret;
 }
@@ -3308,7 +3308,7 @@ sub CloseFile {
   my $file = $_[0]||CurrentFile();
   croak("Not a Treex::PML::Document object!\n") 
     if defined($file) and !UNIVERSAL::DOES::does($file,'Treex::PML::Document');
-  main::closeFile($grp,$file);
+  TrEd::File::closeFile($grp,$file);
   $Redraw='all';
 }
 
@@ -3324,7 +3324,7 @@ save it.
 sub CloseFileInWindow {
   shift unless ref($_[0]);
   my $win = shift() || $grp;
-  my $ret = GUI() && main::closeFileInWindow($win);
+  my $ret = GUI() && TrEd::File::closeFileInWindow($win);
   $Redraw='all';
 }
 
@@ -3335,7 +3335,7 @@ Save the current L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/
 =cut
 
 sub Save {
-  my $ret = (main::saveFile($grp) == 1);
+  my $ret = (TrEd::File::saveFile($grp) == 1);
   $FileNotSaved=GetFileSaveStatus();
   $forceFileSaved=!$FileNotSaved;
   return $ret;
@@ -3394,7 +3394,7 @@ sub SaveAs {
   my $update_refs = $opts->{update_refs} || 'ask';
   my $update_filelist = $opts->{update_filelist} || 'ask';
 
-  my $ret = (main::doSaveFileAs($grp,
+  my $ret = (TrEd::File::doSaveFileAs($grp,
 				$fsfile,
 				$filename,
 				$backend,

@@ -4,13 +4,14 @@ use strict;
 use warnings;
 
 use TrEd::ManageFilelists;
-use TrEd::Basics qw{$EMPTY_STR getSecondaryFiles errorMessage};
-use TrEd::Config qw{$ioBackends $lockFiles $reloadKeepsPatterns};
+use TrEd::Basics qw{$EMPTY_STR getSecondaryFiles errorMessage absolutize_path};
+use TrEd::Config qw{$ioBackends $lockFiles $reloadKeepsPatterns %save_types %backend_map $tredDebug};
 use TrEd::MinMax qw{max2 first};
 use TrEd::Utils qw{applyFileSuffix};
 use Treex::PML;
 
 use Carp;
+use Cwd;
 
 # if extensions has not been dependent on this variable, we could have changed 'our' to 'my'
 our @openfiles = ();
@@ -246,14 +247,14 @@ sub _related_files {
 sub _fix_keep_option {
     my ($fsfile, $file_name, $opts_ref) = @_;
     if ( !$opts_ref->{-keep} and $opts_ref->{-keep_related} ) {
-        if ( $main::tredDebug and $fsfile ) {
+        if ( $tredDebug and $fsfile ) {
             print STDERR "got -keep_related flag for open $file_name:\n";
             print STDERR map { $_->filename() . "\n" } _related_files($fsfile);
         }
         if ($fsfile 
             && first { $_->filename() eq $file_name } _related_files($fsfile)) {
                 $opts_ref->{-keep} = 1;
-                print STDERR "keep: $opts_ref->{-keep}\n" if $main::tredDebug;
+                print STDERR "keep: $opts_ref->{-keep}\n" if $tredDebug;
         }
     }
 }
@@ -269,7 +270,7 @@ sub _is_among_primary_files {
             }
             TrEd::Basics::getPrimaryFilesRecursively($fsfile)
 }
-
+# zislo by sa premenovat, lebo to aj otvara subor, nie len checkuje recovery
 sub _check_for_recovery {
     my ($file_name, $grp, $win, $fsfile, $lockinfo, $opts_ref) = @_;
     
@@ -373,7 +374,7 @@ sub _check_for_recovery {
     if ( $status->{ok} ) {
         $fsfile->changeFileFormat(
             ( $file_name =~ /\.gz$/ ? "gz-compressed " : $EMPTY_STR ) . $fsfile->backend );
-        unless ($main::no_secondary) {
+        if (!$main::no_secondary) {
             $status = openSecondaryFiles( $win, $fsfile, $status )
                 or undef $fsfile;
         }
@@ -399,7 +400,8 @@ sub _check_for_recovery {
     elsif ( $status->{ok} < 1 ) {
         errorMessage( $win, $status->{report}, 'warn' );
     }
-    return $status;
+    
+    return ($fsfile, $status);
 }
 
 sub _should_save_to_recent_files {
@@ -427,14 +429,17 @@ sub _should_save_to_recent_files {
 #                   -noredraw     -- 1/0 -- forbid redrawing after open
 #                   -norecent     -- 1/0 -- don't add opened file into recent files list
 #                   -justheader   -- 
-#                 Hooks run: 
+#                 Hooks run: open_file_hook, possibly also guess_context_hook, file_opened_hook
+#                 (only in this function, other functions called from this function can trigger 
+#                  other hooks)
 # See Also      : 
 sub open_file {
     my ( $grp_or_win, $raw_file_name, %opts ) = @_;
-    my ( $grp, $win ) = grp_win($grp_or_win);
+    my ( $grp, $win ) = main::grp_win($grp_or_win);
     if (!$opts{-nohook}) {
-        if ( main::doEvalHook( $win, "open_file_hook", $raw_file_name, {%opts} ) eq 'stop' )
-        {
+        my $open_file_hook_res = main::doEvalHook( $win, "open_file_hook", 
+                                                   $raw_file_name, {%opts} ); 
+        if ( defined $open_file_hook_res && $open_file_hook_res eq 'stop' ) {
             # not sure what status we should return
             return
                 wantarray
@@ -446,7 +451,7 @@ sub open_file {
     my $fsfile = $win->{FSFile};
 
     my ( $file_name, $suffix ) = TrEd::Utils::parse_file_suffix($raw_file_name);
-    print "Goto suffix is $suffix\n" if defined($suffix) && $main::tredDebug;
+    print "Goto suffix is $suffix\n" if defined($suffix) && $tredDebug;
 
     $opts{-keep} ||= $grp->{keepfiles};
     _fix_keep_option($fsfile, $file_name, \%opts);
@@ -514,9 +519,9 @@ sub open_file {
             if ( ref($opened_file)
                 && Treex::PML::IO::is_same_filename( $opened_file->filename(), $file_name ) )
             {
-                print "Opening postponed file\n" if $main::tredDebug;
+                print "Opening postponed file\n" if $tredDebug;
                 if ( !$opts{-preload} ) {
-                    main::resumeFile( $win, $opened_file, $opts{-keep} );
+                    resumeFile( $win, $opened_file, $opts{-keep} );
                     main::update_title_and_buttons($grp);
                     TrEd::Utils::applyFileSuffix( $win, $suffix );
                     main::unhide_current_node($win);
@@ -552,10 +557,11 @@ sub open_file {
     }
 
     # Check autosave file
-    my $status = _check_for_recovery();
+    my $status;
+    ($fsfile, $status) = _check_for_recovery($file_name, $grp, $win, $fsfile, $lockinfo, \%opts);
     
     if (!$opts{-preload}) {
-        set_window_file( $win, $fsfile ) ;
+        main::set_window_file( $win, $fsfile ) ;
     }
     
     if ($fsfile) {
@@ -593,8 +599,9 @@ sub open_file {
         }
     }
     else {
-        if (   $main::init_macro_context ne $EMPTY_STR
-            && $win->{macroContext} ne $main::init_macro_context )
+        if ( defined $main::init_macro_context   
+             && $main::init_macro_context ne $EMPTY_STR
+             && $win->{macroContext} ne $main::init_macro_context )
         {
             main::switchContext( $win, $main::init_macro_context, 1 );
         }
@@ -686,9 +693,11 @@ sub closeFile {
         $fsfile = $win->{FSFile};
     }
     if ($fsfile) {
-        __debug( "Closing ", $fsfile->filename,
-            "; keep postponed: $opts{-keep_postponed}\n" );
-        doEvalHook( $win, "file_close_hook", $fsfile, \%opts );
+        main::__debug( "Closing ", $fsfile->filename,
+            "; keep postponed: " 
+            . defined $opts{-keep_postponed} ? $opts{-keep_postponed} : 'no' 
+            . "\n" );
+        main::doEvalHook( $win, "file_close_hook", $fsfile, \%opts );
         $fsfile->currentTreeNo( $win->{treeNo} );
         $fsfile->currentNode( $win->{currentNode} );
     }
@@ -697,14 +706,14 @@ sub closeFile {
     }
     my $fn = $fsfile->filename;
     if ( !$opts{-keep_postponed} ) {
-        if ( filePartOfADisplayedFile( $win->{framegroup}, $fsfile ) ) {
+        if ( main::filePartOfADisplayedFile( $win->{framegroup}, $fsfile ) ) {
             warn "closeFile: Keeping postponed "
                 . $fsfile->filename
                 . " - part of a displayed file\n";
             $opts{-keep_postponed} = 1;
         }
         else {
-            my @part_of = findToplevelFileFor( $win->{framegroup}, $fsfile );
+            my @part_of = main::findToplevelFileFor( $win->{framegroup}, $fsfile );
             if ( $part_of[0] != $fsfile ) {
                 return unless askSaveFile( $win, 0, 1, $fsfile ) == 0;
                 for (@part_of) {
@@ -732,27 +741,27 @@ sub closeFile {
 
         #  undef $NodeClipboard;
         $w->{root}       = undef;
-        $w->{stylesheet} = STYLESHEET_FROM_FILE();
-        set_window_file( $w, undef );
+        $w->{stylesheet} = TrEd::Utils::STYLESHEET_FROM_FILE();
+        main::set_window_file( $w, undef );
         delete $w->{currentNode} if ( exists $w->{currentNode} );
         $w->{treeView}->clear_pinfo();
-        if ( is_focused($w) ) {
+        if ( main::is_focused($w) ) {
             TrEd::ValueLine::set_value( $w->{framegroup}, $EMPTY_STR );
         }
         unless ( $opts{-no_update} ) {
-            get_nodes_win($w);
-            redraw_win($w);
+            main::get_nodes_win($w);
+            main::redraw_win($w);
         }
     }
 
     unless ( $opts{-no_update} ) {
-        update_title_and_buttons( $win->{framegroup} );
-        updatePostponed( $win->{framegroup} );
+        main::update_title_and_buttons( $win->{framegroup} );
+        main::updatePostponed( $win->{framegroup} );
     }
 
     if ( $opts{-keep_postponed} and $fsfile ) {
         print STDERR "Postponing " . $fsfile->filename() . "\n"
-            if $main::tredDebug;
+            if $tredDebug;
         $fsfile->changeAppData( 'last-context',    $last_context );
         $fsfile->changeAppData( 'last-stylesheet', $last_stylesheet );
     }
@@ -762,17 +771,17 @@ sub closeFile {
         {
             my $f = $fsfile->filename();
             print STDERR "Removing $f from list of open files\n"
-                if $main::tredDebug;
+                if $tredDebug;
             @openfiles = grep { $_ ne $fsfile } @openfiles;
             TrEd::RecentFiles::add_file( $win->{framegroup}, $f )
                 unless $opts{-norecent}
                     or $fsfile->appData('norecent');
-            my $autosave = autosave_filename($f);
+            my $autosave = main::autosave_filename($f);
             unlink $autosave if defined $autosave;
             TrEd::FileLock::remove_lock( $fsfile, $f );
 
             # remove dependency
-            for my $req_fs ( getSecondaryFiles($fsfile) ) {
+            for my $req_fs ( TrEd::Basics::getSecondaryFiles($fsfile) ) {
                 if ( ref( $req_fs->appData('fs-part-of') ) ) {
                     @{ $req_fs->appData('fs-part-of') }
                         = grep { $_ != $fsfile }
@@ -783,13 +792,13 @@ sub closeFile {
                 {
                     print STDERR "Attempting to close dependent "
                         . $req_fs->filename . "\n"
-                        if $main::tredDebug;
+                        if $tredDebug;
                     my $answer = askSaveFile( $win, 1, 1, $req_fs );
                     return if $answer == -1;
                     if ( $answer == 1 ) {
                         print STDERR "Keeping dependent "
                             . $req_fs->filename . "\n"
-                            if $main::tredDebug;
+                            if $tredDebug;
                     }
                     else {
                         closeFile(
@@ -817,7 +826,7 @@ sub closeFile {
 # See Also      : main::handleUSR2Signal()
 sub reloadFile {
     my ($grp_or_win) = @_;
-    my ( $grp, $win ) = grp_win($grp_or_win);
+    my ( $grp, $win ) = main::grp_win($grp_or_win);
     my $fsfile = $win->{FSFile};
     if ( ref($fsfile) and $fsfile->filename() ) {
         my $f        = $fsfile->filename();
@@ -839,7 +848,7 @@ sub reloadFile {
         closeFile( $win, -all_windows => 1 );
         open_file( $win, $f, -noredraw => 1, -nohook => 1 );
         if ( $ctxt ne $grp->{selectedContext} ) {
-            switchContext( $win, $ctxt, 1 );
+            main::switchContext( $win, $ctxt, 1 );
         }
         $fsfile = $win->{FSFile};
         if ($fsfile) {
@@ -847,11 +856,11 @@ sub reloadFile {
                 $fsfile->changePatterns(@patterns);
                 $fsfile->changeHint($hint);
             }
-            doEvalHook( $win, "file_reloaded_hook" );
+            main::doEvalHook( $win, "file_reloaded_hook" );
         }
-        get_nodes_win($win);
-        redraw_win($win);
-        centerTo( $win, $win->{currentNode} );
+        main::get_nodes_win($win);
+        main::redraw_win($win);
+        main::centerTo( $win, $win->{currentNode} );
     }
 }
 
@@ -866,7 +875,7 @@ sub reloadFile {
 # See Also      : main::handleUSR2Signal()
 sub loadFile {
     my ( $grp, $file, $backends ) = @_;
-    $grp = cast_to_grp($grp);
+    $grp = main::cast_to_grp($grp);
     my @warnings;
     my $bck = ref($backends) ? $backends : \@backends;
     my $status = _new_status(
@@ -875,7 +884,7 @@ sub loadFile {
         backends => $bck,
         warnings => \@warnings
     );
-    _clear_err();
+    main::_clear_err();
     local $SIG{__WARN__} = sub {
         my $msg = shift;
         chomp $msg;
@@ -890,7 +899,7 @@ sub loadFile {
         }
     );
     my $error = $Treex::PML::FSError;
-    $status->{error} = $error == 1 ? 'No suitable backend!' : _last_err();
+    $status->{error} = $error == 1 ? 'No suitable backend!' : main::_last_err();
     $status->{report} = "Loading file '$file':\n\n";
 
     if ( ref($fsfile) and $fsfile->lastTreeNo >= 0 and $error == 0 ) {
@@ -941,14 +950,14 @@ sub openSecondaryFiles {
     return $status if $fsfile->appData('fs-require-loaded');
     $fsfile->changeAppData( 'fs-require-loaded', 1 );
     my $requires = $fsfile->metaData('fs-require');
-    if ($requires) {
+    if (defined $requires) {
         for my $req (@$requires) {
             next if ref( $fsfile->appData('ref')->{ $req->[0] } );
             my $req_filename
-                = absolutize_path( $fsfile->filename, $req->[1] );
+                = TrEd::Basics::absolutize_path( $fsfile->filename, $req->[1] );
             print STDERR
                 "Pre-loading dependent $req_filename ($req->[1]) as appData('ref')->{$req->[0]}\n"
-                if $main::tredDebug;
+                if $tredDebug;
             my ( $req_fs, $status2 ) = open_file(
                 $win, $req_filename,
                 -preload  => 1,
@@ -962,7 +971,7 @@ sub openSecondaryFiles {
             else {
                 push @{ $req_fs->appData('fs-part-of') },
                     $fsfile;    # is this a good idea?
-                __debug("Setting appData('ref')->{$req->[0]} to $req_fs");
+                main::__debug("Setting appData('ref')->{$req->[0]} to $req_fs");
                 $fsfile->appData('ref')->{ $req->[0] } = $req_fs;
             }
         }
@@ -998,7 +1007,7 @@ sub closeAllFiles {
         # part of
         if ( $fsfile and ref( $fsfile->appData('fs-part-of') ) ) {
             foreach ( @{ $fsfile->appData('fs-part-of') } ) {
-                __debug( "Closing all parts of " . $fsfile->filename );
+                main::__debug( "Closing all parts of " . $fsfile->filename );
                 closeFile(
                     $grp->{focusedWindow},
                     -fsfile      => $_,
@@ -1007,7 +1016,7 @@ sub closeAllFiles {
                 );
             }
         }
-        __debug( "Now closing file " . $fsfile->filename );
+        main::__debug( "Now closing file " . $fsfile->filename );
         closeFile(
             $grp->{focusedWindow},
             -fsfile      => $fsfile,
@@ -1017,11 +1026,11 @@ sub closeAllFiles {
         if ( grep { $_ == $fsfile } @openfiles ) {
 
             # still there?
-            __debug( "File still open, pushing it to the end: $fsfile: "
+            main::__debug( "File still open, pushing it to the end: $fsfile: "
                     . $fsfile->filename );
             shift @openfiles;
             push @openfiles, $fsfile;
-            __debug("Open files: @openfiles");
+            main::__debug("Open files: @openfiles");
         }
     }
 }
@@ -1045,7 +1054,7 @@ sub askSaveFile {
     return 0
         unless ref($fsfile)
             and $fsfile->notSaved;
-    my $answer = userQuery(
+    my $answer = main::userQuery(
         $win,
         $fsfile->filename()
             . "\n\nFile may be changed!\nDo you want to save it?",
@@ -1078,7 +1087,7 @@ sub askSaveFile {
 # See Also      : main::handleUSR2Signal()
 sub saveFile {
     my ( $win, $f ) = @_;
-    $win = cast_to_win($win);
+    $win = main::cast_to_win($win);
     my $fsfile;
     if ( UNIVERSAL::DOES::does( $f, 'Treex::PML::Document' ) ) {
         $fsfile = $f;
@@ -1095,13 +1104,13 @@ sub saveFile {
             if ($ret) {
 
                 # now we may add the file to the current filelist?
-                $win->{currentFileNo} = max2( 0, $win->{currentFileNo} );
+                $win->{currentFileNo} = TrEd::MinMax::max2( 0, $win->{currentFileNo} );
                 my $pos
                     = TrEd::ManageFilelists::insertToFilelist( $win,
                     $win->{currentFilelist},
                     $win->{currentFileNo}, $fsfile->filename );
                 $win->{currentFileNo} = $pos if $pos >= 0;
-                update_filelist_views( $win, $win->{currentFilelist}, 0 );
+                main::update_filelist_views( $win, $win->{currentFilelist}, 0 );
             }
             return $ret;
         }
@@ -1137,7 +1146,7 @@ sub saveFile {
         }
     }
     elsif ( $lock =~ /^changed/ ) {
-        if (userQuery(
+        if (main::userQuery(
                 $win,
                 "File $f has been $lock! Saving it now would overwrite those changes made by the other program.",
                 -bitmap  => 'question',
@@ -1154,10 +1163,12 @@ sub saveFile {
     $win->toplevel->Busy( -recurse => 1 ) unless $main::insideEval;
 
     my $refs_to_save = {};
+    my $file_save_hook_res = main::doEvalHook( $win, "file_save_hook", $f )
+                             || $EMPTY_STR; 
     if (  !askSaveReferences( $win, $fsfile, $refs_to_save, $f )
-        or doEvalHook( $win, "file_save_hook", $f ) eq 'stop' )
+        or $file_save_hook_res eq 'stop' )
     {
-        update_title_and_buttons( $win->{framegroup} );
+        main::update_title_and_buttons( $win->{framegroup} );
         $win->toplevel->Unbusy() unless $main::insideEval;
         return;
     }
@@ -1176,14 +1187,15 @@ sub saveFile {
 
         # called from within the eval so all errors and warnings
         # are shown as warnings on the output
-        $stop = doEvalHook( $win, "after_save_hook", $f, $result );
+        $stop = main::doEvalHook( $win, "after_save_hook", $f, $result ) 
+                || $EMPTY_STR;
     }
     $fsfile->changeAppData( 'refs_save', undef );
     if ( !$result or $stop eq "stop_fatal" ) {
         $win->toplevel->Unbusy() unless $main::insideEval;
         $fsfile->notSaved(1);
-        saveFileStateUpdate($win) if $fsfile == $win->{FSFile};
-        errorMessage(
+        main::saveFileStateUpdate($win) if $fsfile == $win->{FSFile};
+        TrEd::Basics::errorMessage(
             $win,
             "Error while saving file to '$f'!\nI'll try to recover the original from backup.\n"
                 . _last_err(
@@ -1199,14 +1211,14 @@ sub saveFile {
             Treex::PML::IO::rename_uri( $f . "~", $f )
                 unless $f =~ /^ntred:/;    # if (-f $f);
         };
-        if ( _last_err() ) {
+        if ( main::_last_err() ) {
             my $err = "Error while renaming backup file $f~ back to $f.\n";
-            errorMessage( $win, $err, 1 );
+            TrEd::Basics::errorMessage( $win, $err, 1 );
         }
         return -1;
     }
     elsif (@warnings) {
-        errorMessage( $win,
+        TrEd::Basics::errorMessage( $win,
             "Saving file to '$f':\n\n" . join( "\n", @warnings ), 'warn' );
     }
     else {
@@ -1214,7 +1226,7 @@ sub saveFile {
     }
     TrEd::FileLock::set_fs_lock_info( $fsfile, TrEd::FileLock::set_lock($f) )
         if $TrEd::Config::lockFiles;
-    my $autosave = autosave_filename($f);
+    my $autosave = main::autosave_filename($f);
     unlink $autosave if defined($autosave);
     $win->toplevel->Unbusy() unless $main::insideEval;
     my $ret = 1;
@@ -1229,7 +1241,7 @@ sub saveFile {
         $ret = -1;
     }
     TrEd::RecentFiles::add_file( $win->{framegroup}, $f );
-    saveFileStateUpdate($win) if $fsfile == $win->{FSFile};
+    main::saveFileStateUpdate($win) if $fsfile == $win->{FSFile};
     return $ret;
 }
 
@@ -1259,30 +1271,407 @@ sub newFileFromCurrent {
     closeFile( $win, -no_update => 1, -keep_postponed => $keep );
 
     #  $new->new_tree(0);
-    set_window_file( $win, $new );
+    main::set_window_file( $win, $new );
     push @openfiles, $win->{FSFile};
-    updatePostponed($grp);
+    main::updatePostponed($grp);
 
-    update_title_and_buttons($grp);
+    main::update_title_and_buttons($grp);
     $win->{redrawn}
         = 0;    # if redraw is called during the hook, we will know it
-    get_nodes_win($win);
+    main::get_nodes_win($win);
     if (    $main::init_macro_context ne $EMPTY_STR
         and $win->{macroContext} ne $main::init_macro_context )
     {
-        switchContext( $win, $main::init_macro_context, 1 );
+        main::switchContext( $win, $main::init_macro_context, 1 );
     }
     else {
-        doEvalHook( $win, "guess_context_hook", "file_opened_hook" );
+        main::doEvalHook( $win, "guess_context_hook", "file_opened_hook" );
     }
-    doEvalHook( $win, "file_opened_hook" );
-    redraw_win($win) unless $win->{redrawn};
-    centerTo( $win, $win->{currentNode} );
+    main::doEvalHook( $win, "file_opened_hook" );
+    main::redraw_win($win) unless $win->{redrawn};
+    main::centerTo( $win, $win->{currentNode} );
     $win->toplevel->Unbusy() unless $main::insideEval;
 
     #  TrEd::RecentFiles::add_file($grp,$new->filename);
     return 1;
 }
+
+
+# dialog
+#######################################################################################
+# Usage         : reload_on_usr2($grp, $file_name)
+# Purpose       : Reload file or open it if it is not open
+# Returns       : Undef/empty list
+# Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
+#                 string $file_name -- name of the file to reload 
+# Throws        : No exception
+# Comments      : This function is a part of USR2 signal handler
+# See Also      : main::handleUSR2Signal()
+sub saveFileAs {
+  my ($win,$fsfile)= @_;
+  my $initdir;
+  $fsfile ||= $win->{FSFile};
+  return unless $fsfile;
+  my $file=$fsfile->filename;
+
+  $initdir=TrEd::Convert::dirname($file);
+  $initdir=cwd if ($initdir eq './');
+  $initdir=~s!${TrEd::Convert::Ds}$!!m;
+
+  my $cur = $fsfile->backend || '';
+  $cur=~s/Backend$//;
+  $cur=qq{ ($cur)} if $cur;
+  my $response=main::userQuery($win, "\nPlease,\nchoose one of the following output formats.\n\n".
+			 "\nWARNING:\nsome formats may be incompatible with the current file.\n",
+			 -title => "Save As ...",
+			 -buttons => ["Use current".$cur,"FS","CSTS","TrXML","TEIXML","Storable","Cancel"]);
+  return if ($response eq "Cancel");
+
+#urob tabulku podla pbp?
+  if ($response eq 'FS') {
+    $file=~s/\.(?:csts|sgml|sgm|cst|trxml|trx|tei|xml)/.fs/i;
+    $file=~s/\.(amt|am|m|a)/$1.fs/;
+  } elsif ($response eq 'CSTS') {
+    $file=~s/\.(?:fs|tei|trxml|trx|xml)/.csts/i;
+  } elsif ($response eq 'TrXML') {
+    $file=~s/\.(?:csts|sgml|sgm|cst|fs|tei)/.trxml/i;
+  } elsif ($response eq 'TEIXML') {
+    $file=~s/\.(?:csts|sgml|sgm|cst|fs|trxml|trx)/.xml/i;
+  } elsif ($response eq 'Storable') {
+    $file=~s/\.(?:csts|sgml|sgm|cst|fs|trxml|trx|tei|xml)/.pls/i;
+  } 
+
+  my $filetypes;
+  if ($response =~ /^Use current/) {
+    my ($backend) = grep { $backend_map{$_} eq $fsfile->backend} keys %backend_map;
+    if ($backend) {
+      $filetypes = $save_types{$backend};
+    } else {
+      $filetypes = $save_types{'all'};
+    }
+  } else {
+    $filetypes = $save_types{lc($response)};
+  }
+
+  $file= main::get_save_filename($win->toplevel,-filetypes=> $filetypes,
+				     -title=> "Save As ...",
+				     -d $initdir ? (-initialdir=> $initdir) : (),
+     				     $^O eq 'MSWin32' ? () : (-initialfile=> TrEd::Convert::filename($file)));
+  return doSaveFileAs($win,$fsfile,$file,
+		    ($response !~ /^Use current/) ? $backend_map{lc($response)} : $fsfile->backend,
+		    'ask','ask'
+		   );
+}
+
+# fsfile, dialog+
+#######################################################################################
+# Usage         : reload_on_usr2($grp, $file_name)
+# Purpose       : Reload file or open it if it is not open
+# Returns       : Undef/empty list
+# Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
+#                 string $file_name -- name of the file to reload 
+# Throws        : No exception
+# Comments      : This function is a part of USR2 signal handler
+# See Also      : main::handleUSR2Signal()
+sub doSaveFileAs {
+  my ($win, $fsfile, $filename, $backend, $update_refs, $update_filelist)=@_;
+  my ($old_file,$old_backend,$old_format) = 
+    ($fsfile->filename,$fsfile->backend,$fsfile->fileFormat);
+
+  my $lock_change=0;
+  if ($filename ne $EMPTY_STR) {
+    if ($filename ne $fsfile->filename) {
+      if ($lockFiles) {
+	my $lock = TrEd::FileLock::check_lock(undef,$filename);
+	if ($lock eq 'my') {
+	  if (main::userQuery($win,
+			"An existing lock on the file $filename indicates that it is probably used by another file-object within this process!",
+			-bitmap=> 'question',
+			-title => "Saving to a locked file?",
+			-buttons => ['Steal lock and save','Cancel']) eq 'Cancel') {
+	    return -1;
+	  }
+	} elsif ($lock ne 'none') {
+	  if (main::userQuery($win,
+			"File $filename was $lock!",
+			-bitmap=> 'question',
+			-title => "Saving to a locked file?",
+			-buttons => ['Steal lock and save','Cancel']) eq 'Cancel') {
+	    return -1;
+	  }
+	}
+	$lock_change=1;
+	$fsfile->changeFilename($filename);
+	#TODO: here we may be locking a file that does not yet exist
+	TrEd::FileLock::set_fs_lock_info($fsfile, TrEd::FileLock::set_lock($filename));
+      } else {
+	$fsfile->changeFilename($filename);
+      }
+    }
+    if (defined $backend) {
+      $fsfile->changeBackend($backend);
+    }
+    $fsfile->changeFileFormat(($filename=~/\.gz$/ ? "gz-compressed " : $EMPTY_STR).
+				     $fsfile->backend);
+    main::update_title_and_buttons($win->{framegroup});
+    main::updatePostponed($win->{framegroup});
+    if (TrEd::File::saveFile($win,$filename)==1) {
+      TrEd::FileLock::remove_lock($fsfile,$old_file,1) if ($lock_change);
+
+      if ($filename ne $old_file and 
+	  ref($fsfile->appData('fs-part-of'))) {
+	my @fs = @{$fsfile->appData('fs-part-of')};
+	if ($update_refs eq 'all') {
+	  # all
+	  $update_refs = \@fs;
+	} elsif (UNIVERSAL::isa($update_refs,'ARRAY')) {
+	  # pre-selected FSFiles
+	} elsif ($update_refs eq 'ask') {
+	  $update_refs = [];
+	  if (@fs) {
+	    my $filenames = [map { $_->filename } @fs];
+	    my $selection=[@$filenames];
+	    main::listQuery(
+	      $win->toplevel,
+	      'Rename file also in...','multiple',
+	      $filenames,$selection,
+	      label => {
+		-text => <<'EOF'
+You have renamed the current file, but it is referred to by the file(s) below.
+Please select files that should update their references to the current file:
+EOF
+	      },
+	      list => {
+		-exportselection => 0,
+	      }
+	     );
+	    if (@$selection) {
+	      my %selected = map { $_ => 1 } grep { $_ ne $EMPTY_STR } @$selection;
+	      $update_refs = [grep { $selected{$_->filename} } @fs];
+	    }
+	  }
+	}
+	my @failed;
+	foreach my $reff (@$update_refs) {
+	  my $req = $reff->metaData('fs-require');
+	  my $references = $reff->metaData('references');
+	  my $match;
+	  if (ref($req)) {
+	    for (@$req) {
+	      if ($_->[1] eq $old_file) {
+		if (ref($references)) {
+		  $references->{$_->[0]}=$filename;
+		  $_->[1] = $filename;
+		  $reff->notSaved(1);
+		}
+		$match = 1;
+	      }
+	    }
+	  }
+	  unless ($match) {
+	    push @failed,$reff;
+	  }
+	}
+	TrEd::Basics::errorMessage($win,
+		     "Could not find reference to the current file in the following files:\n\n".
+		       join("\n",map { $_->filename } @fs),1) if @failed;
+      }
+
+      my $filelist = $win->{currentFilelist};
+      if ($filelist and $filename ne $old_file) {
+	if (!defined $update_filelist or $update_filelist eq 'ask') {
+	  my $response = 
+	    main::userQuery($win,
+		      "Do you want to update the current file list (".$filelist->name.")?\n\n".
+			"This will find all occurences in the file list of:\n${old_file}\n".
+			  "and update them to point to:\n${filename}",
+		      -bitmap=> 'question',
+		      -title => 'Update file list?',
+		      -buttons => ['Yes (all references)','Only current position','No']);
+	  if ($response ne 'No') {
+	    main::renameFileInFilelist($filelist, $old_file, $filename, 
+				 $response =~ /^Only/ ? main::currentFileNo($win) : undef);
+	  }
+	} elsif ($update_filelist=~/^all$|^current$/) {
+	  main::renameFileInFilelist($filelist, $old_file, $filename, 
+			       ($update_filelist eq 'current') ? 
+				main::currentFileNo($win) : undef);
+	}
+      }
+      return 1;
+    } else {
+      TrEd::FileLock::remove_lock($fsfile,$filename,1) if ($lock_change);
+      $fsfile->changeFilename($old_file);
+      TrEd::FileLock::set_fs_lock_info($fsfile, TrEd::FileLock::set_lock($old_file)) if $lock_change;
+      $fsfile->changeBackend($old_backend);
+      $fsfile->changeFileFormat($old_format);
+      main::update_title_and_buttons($win->{framegroup});
+      return 0;
+    }
+  }
+  return 0;
+}
+
+#######################################################################################
+# Usage         : reload_on_usr2($grp, $file_name)
+# Purpose       : Reload file or open it if it is not open
+# Returns       : Undef/empty list
+# Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
+#                 string $file_name -- name of the file to reload 
+# Throws        : No exception
+# Comments      : This function is a part of USR2 signal handler
+# See Also      : main::handleUSR2Signal()
+sub askSaveReferences {
+  # write embedded DOM documents
+  my ($win,$fsfile,$result,$filename)=@_;
+  $filename = $fsfile->filename unless defined $filename;
+  my (@refs);
+  my $schema = TrEd::Basics::fileSchema($fsfile) || return 1;
+  my $references = [ $schema->get_named_references ];
+  return 1 unless @$references;
+  my $name2id = $fsfile->metaData('refnames');
+  my $id2href = $fsfile->metaData('references');
+  foreach my $reference (@$references) {
+    my $name = $reference->{name};
+    my $refid = $name2id->{$name};
+    if ($refid) {
+      my $href = $id2href->{$refid};
+      my $r;
+      if ($href and $reference->{readas} =~ /^(dom|pml)$/ and 
+	  ref($fsfile->appData('ref')) and $r=$fsfile->appData('ref')->{$refid}) {
+	push @refs, [$href." [$refid, $name]",
+		     $r,$refid,$name];
+      }
+    }
+  }
+  my $i=0;
+  while ($i<@refs) {
+    my $r = $refs[$i][1];
+    if (UNIVERSAL::DOES::does($r,'Treex::PML::Instance')) {
+      my $schema = $r->get_schema;
+      my $references = [ $schema->get_named_references ];
+      next unless @$references;
+      my $name2id = $r->get_refname_hash();
+      my $id2href = $r->get_references_hash();
+      foreach my $reference (@$references) {
+	my $name = $reference->{name};
+	my $refid = $name2id->{$name};
+	if ($refid) {
+	  my $href = $id2href->{$refid};
+	  if ($href and $reference->{readas} =~ /^(dom|pml)$/) {
+	    my $r2 = $r->get_ref($refid);
+	    $refid=$refs[$i][2].'/'.$refid;
+	    $name=$refs[$i][3].'/'.$name;
+	    push @refs, [$href." [$refid, $name]",
+		     $r2,$refid,$name] if $r2;
+	  }
+	}
+      }
+    }
+  } continue { $i++ }
+  @refs=map $_->[0],@refs;
+  # CURSOR
+  return 1 unless @refs;
+  my $initdir = dirname($filename);
+  my $selection = [];
+  my $return =
+    main::listQuery(
+      $win->toplevel,'Select resources to save','multiple',
+      \@refs,$selection,
+      label => {
+	-text => <<'EOF'
+This document contains data obtained from external resources.
+Please select which of them should be updated:
+EOF
+       },
+      list => {
+	-exportselection => 0,
+      },
+      buttons => [{
+	-text => 'Change filename...',
+	-underline => 7,
+	-command => [sub {
+		       my ($l)=@_;
+		       my ($file,$rest) = split / \[/,$l->get('active'),2;
+		       my $initdir2 = TrEd::Convert::dirname($file);
+		       $initdir2 = File::Spec->catfile($initdir,$initdir2)
+			 unless File::Spec->file_name_is_absolute($initdir2);
+		       $file = main::get_save_filename(
+			 $l->toplevel,
+			 -filetypes=> $save_types{all},
+			 -title=> "Save As ...",
+			 -d $initdir2 ? (-initialdir=> $initdir2) : (),
+			 $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
+		       if ($file ne $EMPTY_STR) {
+			 my $index = $l->index('active');
+
+			 my %selected = map {$_=>1} grep { $l->selectionIncludes($_) } (0 .. $l->size-1);
+			 $l->insert($index,$file." [".$rest);
+			 $l->delete('active');
+			 $l->activate($index);
+			 foreach (0 .. $l->size-1) {
+			   if ($selected{$_}) {
+			     $l->selectionSet($_);
+			   } else {
+			     $l->selectionClear($_);
+			   }
+			 }
+		       }
+		       Tk->break;
+		     }]
+       }]
+     );
+  if ($return) {
+    %$result = map { /^(.*) \[([^,]+),/ ? ($2 => $1) : () } @$selection;
+  }
+  return $return;
+}
+
+# dialog, file
+sub askSaveFiles {
+  my ($grp,$cancelbutton)= @_;
+
+  @{$grp->{treeWindows}} = grep { $_ ne $grp->{focusedWindow} } @{$grp->{treeWindows}};
+  unshift @{$grp->{treeWindows}},$grp->{focusedWindow};
+  my $win;
+  my %asked;
+  foreach $win (@{ $grp->{treeWindows} }) {
+    if ($win->{FSFile}) {
+      $asked{$win->{FSFile}}=1;
+      main::focusCanvas($win->canvas(),$win->{framegroup});
+      return -1 if askSaveFile($win,0,$cancelbutton) == -1;
+      closeFile($win,-no_update => 1,-all_windows => 1);
+    }
+  }
+
+  for my $fsfile (grep { !$asked{$_} and ref($_) and $_->notSaved } @openfiles) {
+    resumeFile($grp->{focusedWindow},$fsfile);
+    main::update_title_and_buttons($grp);
+    main::get_nodes_win($grp->{focusedWindow});
+    main::redraw_win($grp->{focusedWindow});
+    main::centerTo($grp->{focusedWindow},$grp->{focusedWindow}->{currentNode});
+    $grp->{top}->update();
+    return -1 if askSaveFile($grp->{focusedWindow},0,$cancelbutton) == -1;
+  }
+  closeAllFiles($grp);
+}
+
+sub resumeFile {
+  my ($win,$fsfile,$keep)=@_;
+  $keep||=$win->{framegroup}->{keepopen};
+  return unless ref($win) and ref($fsfile);
+  print "Resuming file ".$fsfile->filename()."\n"  if $tredDebug;
+
+  closeFile($win,-keep_postponed => $keep);
+  main::__debug("Using last context: ",$fsfile->appData('last-context'));
+  main::switchContext($win,$fsfile->appData('last-context'));
+  main::__debug("Using last stylesheet: ",$fsfile->appData('last-stylesheet'));
+  main::switchStylesheet($win,$fsfile->appData('last-stylesheet'));
+
+  main::set_window_file($win,$fsfile);
+  main::saveFileStateUpdate($win);
+}
+
 
 1;
 
@@ -1291,18 +1680,18 @@ __END__
 =head1 NAME
 
 
-TrEd::Dialog::File::Open -- simple open file dialog
+TrEd::File -- file handling routines -- opening, saving, (re)loading files in TrEd
 
 
 =head1 VERSION
 
 This documentation refers to 
-TrEd::Dialog::File::Open version 0.1.
+TrEd::File version 0.1.
 
 
 =head1 SYNOPSIS
 
-  use TrEd::Dialog::File::Open;
+  use TrEd::File;
   
     
 =head1 DESCRIPTION

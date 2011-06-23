@@ -110,7 +110,7 @@ return sub {
     'Button',
     'Place of Last Action',
     {
-      '-command' => [ \&openStandaloneFile,$grp,TrEd::Bookmarks::get_last_action() ],
+      '-command' => [ \&TrEd::File::openStandaloneFile,$grp,TrEd::Bookmarks::get_last_action() ],
       '-state' => (TrEd::Bookmarks::get_last_action() ? 'normal' : 'disabled'),
       '-underline' => 0
      },
@@ -122,8 +122,8 @@ return sub {
     {
       '-command' => [ sub {
 			my ($grp)=@_;
-			return if askSaveFile($grp->{focusedWindow},0,1) == -1;
-			closeFile($grp->{focusedWindow},-all_windows => 1);
+			return if TrEd::File::askSaveFile($grp->{focusedWindow},0,1) == -1;
+			TrEd::File::closeFile($grp->{focusedWindow},-all_windows => 1);
 		      }, $grp],
       '-underline' => 0
      },
@@ -142,8 +142,8 @@ return sub {
 					     undef,
 					     $lr->[$grp->{focusedWindow}->{currentFileNo}]) if $lr;
 			}
-			return if askSaveFile($grp->{focusedWindow},0,1) == -1;
-			closeFile($grp->{focusedWindow},-all_windows => 1);
+			return if TrEd::File::askSaveFile($grp->{focusedWindow},0,1) == -1;
+			TrEd::File::closeFile($grp->{focusedWindow},-all_windows => 1);
 		      }, $grp],
       '-underline' => 12
      },
@@ -153,7 +153,7 @@ return sub {
     'Button',
     'Close in Window',
     {
-      '-command' => [ \&closeFileInWindow, $grp],
+      '-command' => [ \&main::closeFileInWindow, $grp],
       '-underline' => 9
      },
     undef
@@ -296,7 +296,7 @@ return sub {
     'Button',
     'Based on Current File ...',
     {
-      '-command' => [\&newFileFromCurrent, $grp, 1],
+      '-command' => [\&TrEd::File::newFileFromCurrent, $grp, 1],
       '-underline' => 5
      },
     undef
@@ -332,7 +332,7 @@ return sub {
     'Button',
     'Reload',
     {
-      '-command' => [\&reloadFile,$grp],
+      '-command' => [\&TrEd::File::reloadFile,$grp],
       '-underline' => 1
      },
     undef
@@ -368,7 +368,7 @@ return sub {
     'Button',
     'Save',
     {
-      '-command' => [ sub { saveFile($_[0]->{focusedWindow}); },$grp],
+      '-command' => [ sub { TrEd::File::saveFile($_[0]->{focusedWindow}); },$grp],
       '-underline' => 0
      },
     undef
@@ -377,7 +377,7 @@ return sub {
     'Button',
     'Save As ...',
     {
-      '-command' => [ sub { saveFileAs($_[0]->{focusedWindow}); }, $grp],
+      '-command' => [ sub { TrEd::File::saveFileAs($_[0]->{focusedWindow}); }, $grp],
       '-underline' => 5
      },
     undef
@@ -1192,7 +1192,7 @@ return sub {
       '-command' => [sub {
 		       my ($grp)=@_;
 		       loadStyleSheets($grp);
-		       updateStylesheetMenu($grp);
+		       $grp->{StylesheetMenu}->update($grp);
 		       foreach my $win (@{$grp->{treeWindows}}) {
 			 applyWindowStylesheet($win,$win->{stylesheet});
 		       }

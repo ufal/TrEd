@@ -314,7 +314,7 @@ sub show_dialog {
   my $win = $grp->{focusedWindow};
   my $hook_result = main::doEvalHook($win,"customize_attrs_hook");
   # return if (defined $hook_result and $hook_result eq 'stop');
-  return if ($hook_result eq 'stop');
+  return if (defined $hook_result && $hook_result eq 'stop');
 
   return if not ($win->treeView()->patterns() or $win->{FSFile});
 
@@ -474,7 +474,7 @@ sub show_dialog {
   }
 
   {
-    my $patterns=TrEd::Utils::getStylesheetPatterns($win);
+    my $patterns=TrEd::Utils::getStylesheetPatterns($win) || $EMPTY_STR;
     chomp $patterns;
     $e->insert('0.0',$patterns."\n");
   }
@@ -521,7 +521,7 @@ sub show_dialog {
   }
   if ($result=~ /OK/) {
     TrEd::Utils::setStylesheetPatterns($win,$e->get('0.0','end'));
-    TrEd::Utils::updateStylesheetMenu($grp);
+    $grp->{StylesheetMenu}->update($grp);
     if ($win->{stylesheet} eq TrEd::Utils::STYLESHEET_FROM_FILE()) {
       $win->{FSFile}->notSaved(1);
     } else {

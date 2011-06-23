@@ -12,7 +12,7 @@ use vars qw($AUTOLOAD);
 sub new {
   my $self = shift;
   my $class = ref($self) || $self;
-  my $new = { treeView => shift, @_ };
+  my $new = { treeView => shift, redrawn => 0, @_ };
   bless $new, $class;
   return $new;
 }

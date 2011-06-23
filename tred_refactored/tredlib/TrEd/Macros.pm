@@ -95,8 +95,8 @@ sub is_defined {
 # Comments      : 
 # See Also      : %menuBindings, %keyBindings
 sub get_contexts {
-  return #TrEd::Basics::
-    uniq sort {$a cmp $b} (keys(%menuBindings), keys(%keyBindings))
+  return TrEd::Basics::uniq sort {$a cmp $b} 
+                            (keys(%menuBindings), keys(%keyBindings));
 }
 
 #######################################################################################

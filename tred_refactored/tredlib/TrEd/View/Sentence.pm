@@ -10,8 +10,8 @@ use TrEd::ValueLine;
 use TrEd::Basics;
 use TrEd::HTML::Simple;
 use TrEd::Convert qw{dirname};
-use TrEd::Utils; # for STYLESHEET_FROM_FILE :/
-
+use TrEd::Utils qw{STYLESHEET_FROM_FILE}; # for STYLESHEET_FROM_FILE
+use TrEd::File;
 
 my $selected_sentences;
 my $expand_view;
@@ -49,7 +49,7 @@ sub reload_view {
 			  -padx => 0,
 			  -pady => 0,
 			  -image => main::icon($grp,'1rightarrow'),
-			  -command => [\&main::openFile, $grp, "$filename##".($i+1)]
+			  -command => [\&TrEd::File::open_file, $grp, "$filename##".($i+1)]
 			 ));
 
     my $v = TrEd::ValueLine::get_value_line($grp->{focusedWindow},
