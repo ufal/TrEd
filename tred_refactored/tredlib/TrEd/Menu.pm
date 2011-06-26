@@ -146,7 +146,7 @@ sub _create_menu_item {
   # 		 },$self,$lookup_hash,$key]
   #  );
   
-  # Here we can not use $MENUITEM_OPTIONS and $MENUITEM_SUBITEMS, because
+  # Here we can not use $MENUITEM_OPTIONS and $MENUITEM_SUBITEMS indices, because
   # options hash creates more array elements
   my $menu_item = [];
   $menu_item->[$MENUITEM_TYPE] = $type;

@@ -296,7 +296,8 @@ sub preview_stylesheet {
   my ($hint,$context,$patterns) = TrEd::Utils::getStylesheetPatterns($win);
   
   TrEd::Utils::setStylesheetPatterns($win,$e->get('0.0','end'));
-  TrEd::ValueLine::update($grp);
+  $grp->{valueLine}->update($grp);
+  #TrEd::ValueLine::update($grp);
   if ($win->{stylesheet} eq TrEd::Utils::STYLESHEET_FROM_FILE()) {
     main::get_nodes_fsfile($grp,$win->{FSFile});
     main::redraw_fsfile($grp,$win->{FSFile});
@@ -409,8 +410,8 @@ sub show_dialog {
     @atord = @$attrs;
   } else {
     if ($win->{FSFile}) {
-      if (TrEd::Basics::fileSchema($win->{FSFile})) {
-	@atord = TrEd::Basics::fileSchema($win->{FSFile})->attributes();
+      if (TrEd::Basics::file_schema($win->{FSFile})) {
+	@atord = TrEd::Basics::file_schema($win->{FSFile})->attributes();
       } else {
 	@atord = $win->{FSFile}->FS->attributes;
       }
@@ -528,7 +529,8 @@ sub show_dialog {
       TrEd::Utils::save_stylesheet_file($grp, $TrEd::Utils::default_stylesheet_path, $win->{stylesheet});
     }
     main::get_nodes_fsfile($grp,$win->{FSFile});
-    TrEd::ValueLine::update($grp);
+    $grp->{valueLine}->update($grp);
+    #TrEd::ValueLine::update($grp);
     if ($win->{stylesheet} eq TrEd::Utils::STYLESHEET_FROM_FILE()) {
       main::redraw_fsfile($grp,$win->{FSFile});
     } else {

@@ -52,7 +52,7 @@ sub reload_view {
 			  -command => [\&TrEd::File::open_file, $grp, "$filename##".($i+1)]
 			 ));
 
-    my $v = TrEd::ValueLine::get_value_line($grp->{focusedWindow},
+    my $v = $grp->{valueLine}->get_value_line($grp->{focusedWindow},
 			   $grp->{focusedWindow}->{FSFile},$i,1,1,'sent_list');
     my %tags;
     if (ref($v)) {
@@ -240,7 +240,7 @@ sub dump_view {
 
   my @selref = split /,/, get_selection($grp, $selref);
   unless (@selref) {
-    TrEd::Basics::errorMessage($t->toplevel,"No sentences selected. Select requested sentences and try again. To select a sentence, click the round button in front of it.",1);
+    TrEd::Basics::error_message($t->toplevel,"No sentences selected. Select requested sentences and try again. To select a sentence, click the round button in front of it.",1);
     return;
   }
 
@@ -349,7 +349,7 @@ sub dump_view {
     TrEd::HTML::Simple::close($html);
     main::get_nodes_win($win); # printGetNodesCallback may have fiddled with $win
   }
-  TrEd::Basics::errorMessage($win,$errors) if defined $errors;
+  TrEd::Basics::error_message($win,$errors) if defined $errors;
   return $file;
 }
 

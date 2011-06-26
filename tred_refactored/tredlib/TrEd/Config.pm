@@ -107,6 +107,7 @@ BEGIN {
   $userlogin
   $noCheckLocks
   $config_file
+  %vertical_key_arrow_map
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
   @config_file_search_list=();
@@ -249,6 +250,14 @@ $printOptions={};
 	      ntred => 'NTRED',
 	      storable => 'Storable'
 	 );
+
+# rotation of keyboard bindings for verticalTree mode
+%vertical_key_arrow_map = (
+    Left  => 'Up',
+    Right => 'Down',
+    Up    => 'Left',
+    Down  => 'Right',
+);
 
 
 ######################################################################################

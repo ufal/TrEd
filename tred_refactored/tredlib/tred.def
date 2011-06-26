@@ -125,7 +125,7 @@ The number of the first tree for this function is 1.
 sub GotoTree {
 #  $FileNotSaved=0 if ($FileNotSaved eq '?');
   my $to=shift()-1;
-  my $result=main::gotoTree($grp,$to);
+  my $result=TrEd::Basics::go_to_tree($grp,$to);
   $_NoSuchTree= ($to != $result);
   $root=$grp->{root};
   $this=$root;
@@ -188,7 +188,7 @@ Display the next tree in the current file.
 
 sub NextTree {
 #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
-  my $result=main::nextTree($grp);
+  my $result=TrEd::Basics::next_tree($grp);
   $root=$grp->{root};
   $this=$root;
   $_NoSuchTree=!$result; # for compatibility with Graph2Tred
@@ -203,7 +203,7 @@ Display the previous tree in the current file.
 
 sub PrevTree { 
 #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
-  my $result=main::prevTree($grp);
+  my $result=TrEd::Basics::prev_tree($grp);
   $root=$grp->{root};
   $this=$root;
   $_NoSuchTree=!$result; # for compatibility with Graph2Tred
@@ -243,7 +243,7 @@ Only those secondary files that are already open are returned.
 sub GetSecondaryFiles {
   my ($fsfile)=@_;
   $fsfile||=CurrentFile();
-  return exists(&TrEd::Basics::getSecondaryFiles) ? TrEd::Basics::getSecondaryFiles($fsfile) : ()
+  return exists(&TrEd::Basics::get_secondary_files) ? TrEd::Basics::get_secondary_files($fsfile) : ()
 }
 
 
@@ -803,7 +803,7 @@ object is returned.
 =cut
 
 sub NewTree {
-  main::newTree($grp);
+  TrEd::Basics::new_tree($grp);
   $root=$grp->{root};
   $this=$root;
   return $root;
@@ -818,7 +818,7 @@ object is returned.
 =cut
 
 sub NewTreeAfter {
-  main::newTreeAfter($grp);
+  TrEd::Basics::new_tree_after($grp);
   $root=$grp->{root};
   $this=$root;
   return $root;
@@ -2019,7 +2019,7 @@ Set active node for a given window.
 
 sub SetCurrentNodeInOtherWindow {
   my ($win,$node)=@_;
-  TrEd::Basics::setCurrent($win,$node);
+  TrEd::Basics::set_current($win,$node);
 }
 *SetCurrentNodeInOtherWin = \&SetCurrentNodeInOtherWindow; # compatibility alias
 
@@ -2068,7 +2068,7 @@ sub Redraw {
   my $ignoreThis = shift;
   my $ie=$main::insideEval;
   $main::insideEval=0;
-  main::setCurrent($win,$this) if (!$ignoreThis and $this);
+  TrEd::Basics::set_current($win,$this) if (!$ignoreThis and $this);
   main::get_nodes_win($win);
   main::redraw_win($win);
   main::centerTo($win,$this) if (!$ignoreThis and $this);
@@ -2087,7 +2087,7 @@ sub Redraw_FSFile {
   _croak("Cannot call Redraw without a GUI\n") unless GUI();
   my $ie=$main::insideEval;
   $main::insideEval=0;
-  main::setCurrent($grp,$this) if ($this);
+  TrEd::Basics::set_current($grp,$this) if ($this);
   my $fsfile = CurrentFile();
   my $framegroup = $grp->{framegroup};
   main::get_nodes_fsfile($framegroup,$fsfile);
@@ -2110,7 +2110,7 @@ sub Redraw_FSFile_Tree {
   $main::insideEval=0;
   my $fsfile = CurrentFile();
   my $framegroup = $grp->{framegroup};
-  main::setCurrent($grp,$this) if ($this);
+  TrEd::Basics::set_current($grp,$this) if ($this);
   main::get_nodes_fsfile_tree($framegroup,$fsfile,$grp->{treeNo});
   main::redraw_fsfile_tree($framegroup,$fsfile,$grp->{treeNo});
   main::centerTo($grp,$this) if ($this);
@@ -2128,7 +2128,7 @@ sub Redraw_All {
   _croak "Cannot call Redraw without a GUI" unless GUI();
   my $ie=$main::insideEval;
   $main::insideEval=0;
-  main::setCurrent($grp,$this) if ($this);
+  TrEd::Basics::set_current($grp,$this) if ($this);
   main::get_nodes_all($grp->{framegroup});
   main::redraw_all($grp->{framegroup});
   main::centerTo($grp,$this) if ($this);
@@ -2146,7 +2146,7 @@ sub RedrawStatusLine {
   _croak "Cannot call Redraw without a GUI" unless GUI();
   local $main::insideEval=0;
   if ($this) {
-    main::setCurrent($grp,$this);
+    TrEd::Basics::set_current($grp,$this);
     main::centerTo($grp,$this);
   }
   $grp->{statusLine}->update_status($grp);
@@ -2281,7 +2281,7 @@ text window.  In BTrEd print the error message on standard error output.
 =cut
 
 sub ErrorMessage {
-  TrEd::Basics::errorMessage($grp,join("",@_),1);
+  TrEd::Basics::error_message($grp,join("",@_),1);
 }
 
 =item C<InfoMessage(message)>
@@ -2559,11 +2559,12 @@ sub OverrideBuiltinBinding {
   $key=~s/Ctrl-/Control-/g;
 
   if (defined $spec) {
-    croak("OverrideBuiltinBinding: invalid binding for context $context, key <$key> , must be [code, description]!")
-      unless ref($spec) eq 'ARRAY' and (ref($spec->[0]) eq 'CODE' or ref($spec->[0]) eq 'ARRAY' and grep { ref eq 'CODE' } @{$spec->[0]}[0,1]);
-    return TrEd::Bindings::change_default_binding($grp->{framegroup}, $context, $key, $spec )
+      if(!TrEd::Binding::Default::binding_valid($spec)) {
+        croak("OverrideBuiltinBinding: invalid binding for context $context, key <$key> , must be [code, description]!")
+      }
+    return $grp->{framegroup}->{default_binding}->change_binding( $context, $key, $spec );
   } else {
-    return TrEd::Bindings::get_default_binding($grp->{framegroup}, $context, $key)
+    return $grp->{framegroup}->{default_binding}->get_binding($context, $key); 
   }
 }
 
@@ -4520,30 +4521,45 @@ sub noop { 1 }
 #ifdef TRED
 sub NewUserToolbar {
   my ($name,$opts)=@_;
-  return main::newUserToolbar($grp->{framegroup},$name,$opts);
+  my $user_toolbar = TrEd::Toolbar::User::Manager::create_new_user_toolbar($grp->{framegroup},$name,$opts);
+  return $user_toolbar->getUserToolbar() if defined $user_toolbar;
+  return;
 }
+
 sub GetUserToolbar {
   my ($name)=@_;
-  return main::getUserToolbar($grp->{framegroup},$name);
+  my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
+  return $user_toolbar->getUserToolbar() if defined $user_toolbar;
+  return;
+  
 }
+
 sub RemoveUserToolbar {
   my ($name)=@_;
-  return main::removeUserToolbar($grp->{framegroup},$name);
+  return TrEd::Toolbar::User::Manager::destroy_user_toolbar($grp->{framegroup},$name);
 }
+
 sub DestroyUserToolbar {
   my ($name)=@_;
-  my $tb =  RemoveUserToolbar($name);
+  my $tb =  TrEd::Toolbar::User::Manager::destroy_user_toolbar($grp->{framegroup},$name);
   $tb->destroy if $tb;
   return;
 }
+
 sub HideUserToolbar {
   my ($name)=@_;
-  return main::hideUserToolbar($grp->{framegroup},$name)
+  my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
+  return $user_toolbar->hideUserToolbar() if defined $user_toolbar;
+  return;
 }
+
 sub ShowUserToolbar {
   my ($name)=@_;
-  return main::showUserToolbar($grp->{framegroup},$name)
+  my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
+  return $user_toolbar->showUserToolbar() if defined $user_toolbar;
+  return;
 }
+
 sub EnableUserToolbar {
   my ($name)=@_;
   my $tb =  GetUserToolbar($name);
@@ -4555,6 +4571,7 @@ sub EnableUserToolbar {
   }
   return 0;
 }
+
 sub DisableUserToolbar {
   my ($name)=@_;
   my $tb =  GetUserToolbar($name);
@@ -4569,7 +4586,8 @@ sub DisableUserToolbar {
 
 sub UserToolbarVisible {
   my ($name)=@_;
-  return main::userToolbarVisible($grp->{framegroup},$name)
+  my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
+  return $user_toolbar->userToolbarVisible();
 }
 sub AttachTooltip {
   my ($widget, $message)=@_;

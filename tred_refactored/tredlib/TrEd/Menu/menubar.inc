@@ -877,7 +877,7 @@ return sub {
 		       my ($grp)=@_;
 		       my $win=$grp->{focusedWindow};
 		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,"New Node",TrEd::Undo::undo_type_id('UNDO_ACTIVE_NODE')));
-		       my $new = newNode($win);
+		       my $new = TrEd::Basics::new_node($win);
 		       determineNodeType($win,$new);
 		     },$grp],
       '-underline' => 2
@@ -928,7 +928,7 @@ return sub {
 		       my ($grp)=@_;
 		       my $win=$grp->{focusedWindow};
 		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'Remove Active Node',,TrEd::Undo::undo_type_id('UNDO_ACTIVE_ROOT')));
-		       pruneNode($win,$win->{currentNode});
+		       TrEd::Basics::prune_node($win,$win->{currentNode});
 		     },$grp],
       '-underline' => 0
      },
@@ -1254,7 +1254,7 @@ return sub {
 		       my ($grp)=@_;
 		       my $win = $grp->{focusedWindow};
 		       TrEd::Undo::save_undo($win, TrEd::Undo::prepare_undo($win, 'Insert New Tree After', TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')));
-		       newTreeAfter($win);
+		       TrEd::Basics::new_tree_after($win);
 		       determineNodeType($win,$win->{root});
 		     },$grp],
       '-underline' => 16
@@ -1269,7 +1269,7 @@ return sub {
 		       my ($grp)=@_;
 		       my $win = $grp->{focusedWindow};
 		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'Insert New Tree', TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')));
-		       newTree($win);
+		       TrEd::Basics::new_tree($win);
 		       determineNodeType($win,$win->{root});
 		     },$grp],
       '-underline' => 0
@@ -1284,7 +1284,7 @@ return sub {
 		       my ($grp)=@_;
 		       my $win = $grp->{focusedWindow};
 		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'Move Tree Backward', TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')));
-		       moveTree($win,-1);
+		       TrEd::Basics::move_tree($win,-1);
 		     },$grp]
      },
     undef
@@ -1297,7 +1297,7 @@ return sub {
 		       my ($grp)=@_;
 		       my $win = $grp->{focusedWindow};
 		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'Move Tree Foreward', TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')));
-		       moveTree($win,1);
+		       TrEd::Basics::move_tree($win,1);
 		     },$grp]
      },
     undef
@@ -1330,7 +1330,7 @@ return sub {
 		       my ($grp) = @_;
 		       my $win = $grp->{focusedWindow};
 		       TrEd::Undo::save_undo($win, TrEd::Undo::prepare_undo($win, 'Remove Tree', TrEd::Undo::undo_type_id('UNDO_CURRENT_TREE_AND_TREE_ORDER')));
-		       pruneTree($win);
+		       TrEd::Basics::prune_tree($win);
 		     }, $grp],
       '-underline' => 8
      },
