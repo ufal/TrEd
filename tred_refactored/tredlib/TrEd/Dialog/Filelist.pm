@@ -197,7 +197,7 @@ sub create_dialog {
     my $filelist;
     if ( !ref( $win->{currentFilelist} ) ) {
         if ( $win->{FSFile} ) {
-            TrEd::Basics::errorMessage(
+            TrEd::Basics::error_message(
                 $win,
                 "Cannot manage file-lists while visiting a file not belonging to any file-list! "
                     . "Please, switch to a file-list (e.g. using Session->Default) and try again.",

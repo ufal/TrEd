@@ -879,7 +879,7 @@ sub initialize_macros {
         no strict;
         $result = $safeCompartment->reval($macros);
       }
-      TrEd::Basics::errorMessage($win_ref,$@) if $@;
+      TrEd::Basics::error_message($win_ref,$@) if $@;
     } 
     else {
       no strict;
@@ -892,7 +892,7 @@ sub initialize_macros {
       };
     }
     print STDERR "Returned with: $result\n\n" if $macroDebug;
-    TrEd::Basics::errorMessage($win_ref, $@) if $@;
+    TrEd::Basics::error_message($win_ref, $@) if $@;
   }
   no strict 'refs';
   set_macro_variable('grp', $win_ref);
@@ -1061,7 +1061,7 @@ sub do_eval_macro {
       $result = eval($macro);
     }
   }
-  TrEd::Basics::errorMessage($win,$@) if ($@);
+  TrEd::Basics::error_message($win,$@) if ($@);
   print STDERR 'Had run: ',$macro,"\n" if $macroDebug;
   print STDERR "Returned with: $result\n" if $macroDebug;
   return $result;

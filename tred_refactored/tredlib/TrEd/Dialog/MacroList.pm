@@ -26,7 +26,7 @@ sub create_dialog {
     return;
   }
   unless (scalar(TrEd::Macros::get_contexts())) {
-    TrEd::Basics::errorMessage($grp->{focusedWindow},"No named macros in current context ($context)",1);
+    TrEd::Basics::error_message($grp->{focusedWindow},"No named macros in current context ($context)",1);
     return;
   }
   my $d= $grp->{top}->Toplevel(-title=> "List of available macros");

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use TrEd::ManageFilelists;
-use TrEd::Basics qw{$EMPTY_STR getSecondaryFiles errorMessage absolutize_path};
+use TrEd::Basics qw{$EMPTY_STR get_secondary_files absolutize_path};
 use TrEd::Config qw{$ioBackends $lockFiles $reloadKeepsPatterns %save_types %backend_map $tredDebug};
 use TrEd::MinMax qw{max2 first};
 use TrEd::Utils qw{applyFileSuffix};
@@ -239,7 +239,7 @@ sub reload_on_usr2 {
 #TODO: docs, see also $document->relatedSuperDocuments()
 sub _related_files {
     my ($fsfile) = @_;
-    return TrEd::Basics::getSecondaryFiles($fsfile), 
+    return TrEd::Basics::get_secondary_files($fsfile), 
             @{ $fsfile->appData('fs-part-of') };
 }
 
@@ -268,7 +268,7 @@ sub _is_among_primary_files {
     return TrEd::MinMax::first {
             Treex::PML::IO::is_same_filename( $_->filename(), $file_name );
             }
-            TrEd::Basics::getPrimaryFilesRecursively($fsfile)
+            TrEd::Basics::get_primary_files_recursively($fsfile)
 }
 # zislo by sa premenovat, lebo to aj otvara subor, nie len checkuje recovery
 sub _check_for_recovery {
@@ -313,7 +313,7 @@ sub _check_for_recovery {
                 TrEd::FileLock::set_fs_lock_info( $fsfile, $lockinfo );
             }
             if ( $status->{ok} < 0 ) {
-                TrEd::Basics::errorMessage( $win, $status->{report}, 'warn' );
+                TrEd::Basics::error_message( $win, $status->{report}, 'warn' );
             }
         }
         else {
@@ -398,7 +398,7 @@ sub _check_for_recovery {
             if $lockinfo and $lockinfo !~ /^locked/;
     }
     elsif ( $status->{ok} < 1 ) {
-        errorMessage( $win, $status->{report}, 'warn' );
+        error_message( $win, $status->{report}, 'warn' );
     }
     
     return ($fsfile, $status);
@@ -746,7 +746,11 @@ sub closeFile {
         delete $w->{currentNode} if ( exists $w->{currentNode} );
         $w->{treeView}->clear_pinfo();
         if ( main::is_focused($w) ) {
-            TrEd::ValueLine::set_value( $w->{framegroup}, $EMPTY_STR );
+            # povodny vyznam
+#            my $rtl = $w->{framegroup}->{focusedWindow}->treeView()->rightToLeft($w->{framegroup}->{focusedWindow}->{FSFile});
+            my $rtl = $w->treeView()->rightToLeft($w->{FSFile});
+            $w->{framegroup}->{valueLine}->set_value($rtl, $EMPTY_STR);
+#            TrEd::ValueLine::set_value( $w->{framegroup}, $EMPTY_STR );
         }
         unless ( $opts{-no_update} ) {
             main::get_nodes_win($w);
@@ -781,7 +785,7 @@ sub closeFile {
             TrEd::FileLock::remove_lock( $fsfile, $f );
 
             # remove dependency
-            for my $req_fs ( TrEd::Basics::getSecondaryFiles($fsfile) ) {
+            for my $req_fs ( TrEd::Basics::get_secondary_files($fsfile) ) {
                 if ( ref( $req_fs->appData('fs-part-of') ) ) {
                     @{ $req_fs->appData('fs-part-of') }
                         = grep { $_ != $fsfile }
@@ -1195,7 +1199,7 @@ sub saveFile {
         $win->toplevel->Unbusy() unless $main::insideEval;
         $fsfile->notSaved(1);
         main::saveFileStateUpdate($win) if $fsfile == $win->{FSFile};
-        TrEd::Basics::errorMessage(
+        TrEd::Basics::error_message(
             $win,
             "Error while saving file to '$f'!\nI'll try to recover the original from backup.\n"
                 . _last_err(
@@ -1213,12 +1217,12 @@ sub saveFile {
         };
         if ( main::_last_err() ) {
             my $err = "Error while renaming backup file $f~ back to $f.\n";
-            TrEd::Basics::errorMessage( $win, $err, 1 );
+            TrEd::Basics::error_message( $win, $err, 1 );
         }
         return -1;
     }
     elsif (@warnings) {
-        TrEd::Basics::errorMessage( $win,
+        TrEd::Basics::error_message( $win,
             "Saving file to '$f':\n\n" . join( "\n", @warnings ), 'warn' );
     }
     else {
@@ -1472,7 +1476,7 @@ EOF
 	    push @failed,$reff;
 	  }
 	}
-	TrEd::Basics::errorMessage($win,
+	TrEd::Basics::error_message($win,
 		     "Could not find reference to the current file in the following files:\n\n".
 		       join("\n",map { $_->filename } @fs),1) if @failed;
       }
@@ -1526,7 +1530,7 @@ sub askSaveReferences {
   my ($win,$fsfile,$result,$filename)=@_;
   $filename = $fsfile->filename unless defined $filename;
   my (@refs);
-  my $schema = TrEd::Basics::fileSchema($fsfile) || return 1;
+  my $schema = TrEd::Basics::file_schema($fsfile) || return 1;
   my $references = [ $schema->get_named_references ];
   return 1 unless @$references;
   my $name2id = $fsfile->metaData('refnames');

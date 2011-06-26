@@ -1503,7 +1503,7 @@ sub openSecondaryFiles {
     my $requires = $fsfile->metaData('fs-require');
     if ($requires) {
       for my $req (@$requires) {
-	my $req_filename = absolutize_path($fsfile->filename,$req->[1]);
+	my $req_filename = TrEd::Basics::absolutize_path($fsfile->filename,$req->[1]);
 	_msg("Pre-loading dependent $req_filename as appData('ref')->{$req->[0]}\n") if $tredDebug;
 	unless ($grp->{'secondary'}->{$req_filename}) {
 	  if (exists($grp->{preloaded}) and $grp->{preloaded}->{$req_filename}) {
@@ -1873,7 +1873,7 @@ sub secondaryFiles {
   my ($fsfile)=@_;
   my $requires = $fsfile->metaData('fs-require');
   if ($requires) {
-    return map { absolutize_path($fsfile->filename,$_->[1]) } @$requires;
+    return map { TrEd::Basics::absolutize_path($fsfile->filename,$_->[1]) } @$requires;
   } else {
     return ();
   }
@@ -1906,7 +1906,7 @@ sub closeSecondaryFilesOf {
   if ($fsfile and (!exists($grp->{preloaded}) or $grp->{preloaded}->{$fsfile->filename} != $fsfile)) {
     my $requires = $fsfile->metaData('fs-require');
     for my $req (@$requires) {
-      my $req_filename = absolutize_path($fsfile->filename,$req->[1]);
+      my $req_filename = TrEd::Basics::absolutize_path($fsfile->filename,$req->[1]);
       my $secondary = $grp->{'secondary'}->{$req_filename};
       if ($secondary) {
 	closeSecondaryFilesOf($grp,$secondary);
@@ -2002,7 +2002,7 @@ sub doEvalMacro {
       $group->{FSFile}->notSaved($group->{FSFile}->notSaved or
 				 get_macro_variable('FileNotSaved'));
     }
-    setCurrent($group,get_macro_variable('this')) if (get_macro_variable('this'));
+    set_current($group,get_macro_variable('this')) if (get_macro_variable('this'));
   }
   set_macro_variable(
     this => undef,
@@ -2113,7 +2113,7 @@ sub init_safe_mode {
   $compartment->reval("package TredMacro;");
   $compartment->deny_only(qw()); # everything allowed for the first initialization
   $compartment->share(qw(&do_eval_macro &do_eval_hook &min &max &min2 &max2 @INC 
-                         &nextTree &prevTree &gotoTree 
+                         &next_tree &prev_tree &go_to_tree 
 			 &lastFileNo &currentFileNo $stderr $stdout
 			 &switchContext
 			));

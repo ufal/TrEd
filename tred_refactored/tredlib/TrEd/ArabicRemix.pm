@@ -278,10 +278,11 @@ Reversed string
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
+No special needs.
 
 =head1 DEPENDENCIES
 
-
+No dependencies.
 
 =head1 INCOMPATIBILITIES
 
