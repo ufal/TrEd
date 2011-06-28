@@ -292,7 +292,8 @@ sub _run_binding {
 #                 two elements: 
 #                   1. a) code reference
 #                      b) array reference (as used for Tk callbacks). 
-#                         In this case, new Tk::Callback is created.
+#                         In this case, new Tk::Callback is created automatically for 
+#                         the user.
 #                   2. string description of performed action 
 #                 To change default binding, string '*' can be used as context name
 # See Also      : get_binding(), default_binding()
@@ -300,7 +301,7 @@ sub _run_binding {
 sub change_binding {
     my ( $self, $context, $key, $new_binding ) = @_;
     
-    if (0) {#!binding_valid($new_binding)) {
+    if (!binding_valid($new_binding)) {
         croak "Invalid binding for context $context, key <$key> , must be [code, description]!";
     }
     
@@ -318,15 +319,15 @@ sub change_binding {
                );
     }
     my $prev_binding = [ @{$binding}[ 0, 1 ] ];
-    if ( ref($new_binding) eq 'ARRAY' ) {
-        if ( ref( $new_binding->[0] ) eq 'ARRAY' ) {
-            $binding->[0] = Tk::Callback->new( $new_binding->[0] );
-        }
-        else {
-            $binding->[0] = $new_binding->[0];
-        }
-        $binding->[1] = $new_binding->[1];
+
+    if ( ref( $new_binding->[0] ) eq 'ARRAY' ) {
+        $binding->[0] = Tk::Callback->new( $new_binding->[0] );
     }
+    else {
+        $binding->[0] = $new_binding->[0];
+    }
+    $binding->[1] = $new_binding->[1];
+
     return $prev_binding;
 }
 
@@ -429,14 +430,20 @@ sub get_context_bindings {
 sub binding_valid {
     my ($binding_ref) = @_;
     return if (! defined $binding_ref);
-    if (ref $binding_ref eq 'ARRAY' 
-        && (ref $binding_ref->[0] eq 'CODE' 
-            || ref($binding_ref->[0]) eq 'ARRAY' 
-                && scalar grep { ref eq 'CODE' } @{$binding_ref->[0]}[0,1]
-            )
-       )
-    { 
-        return 1;
+    if (ref $binding_ref eq 'ARRAY') {
+        if (ref $binding_ref->[0] eq 'CODE') {
+            return 1;
+        }
+        elsif (ref $binding_ref->[0] eq 'ARRAY' 
+                && scalar grep { ref eq 'CODE' } @{$binding_ref->[0]}[0,1]) {
+            return 1;        
+        }
+        elsif (ref $binding_ref->[0] eq 'Tk::Callback'){
+            return 1;
+        }
+        else {
+            return;
+        }
     }
     else {
         return;
@@ -468,8 +475,9 @@ TrEd::Binding::Default version 0.1.
 The key bindings in TrEd's GUI use the bindings system provided by Tk library. 
 To manage the bindings, this module has been created. 
 The bindings configuration is stored in two hashes. The first one stores default bindings 
-and it is used for special context called "*". Besides the default beindings, 
-there also exist context specific bindings which are stored separately in the second hash. 
+and it is used for special context called "*", which means these bindings applies to all contexts. 
+Besides the default beindings, there also exist context specific bindings which are stored 
+separately in the second hash. 
 
 The hashes used to store the bindings have following structure:
 
@@ -486,6 +494,9 @@ since the binding is created by calling the bind subroutine on one of these Tk o
 
 The hash used to store context specific information has one more level which divides
 the bindings in specific contexts.
+
+Bindtag 'my' is used for all the bindings in this file. For further information about 
+binding tags, see Tk::callback documentation.
 
 =head1 SUBROUTINES/METHODS
 
