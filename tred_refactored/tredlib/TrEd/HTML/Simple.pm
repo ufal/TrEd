@@ -6,9 +6,9 @@ use warnings;
 
 
 use TrEd::Utils;
-use TrEd::Basics;
+use TrEd::Basics qw{$EMPTY_STR};
 use TrEd::Convert;
-
+use TrEd::Error::Message;
 
 
 sub open {
@@ -26,7 +26,7 @@ sub open {
   }
   if (defined($file) and $file ne $EMPTY_STR) {
     open my $html, ">$file" ||
-      TrEd::Basics::error_message($top,"Cannot write to \"$file\"!"."\n(".main::conv_from_locale($!)."\nCheck file and directory permissions.\n".
+      TrEd::Error::Message::error_message($top,"Cannot write to \"$file\"!"."\n(".main::conv_from_locale($!)."\nCheck file and directory permissions.\n".
 		     "\nSentences could not be saved!",1);
     my $encoding=$TrEd::Convert::outputenc;
     if ($TrEd::Convert::support_unicode) {

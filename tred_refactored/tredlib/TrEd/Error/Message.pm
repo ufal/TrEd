@@ -114,10 +114,10 @@ TrEd::Error::Message version 0.1.
   my $nobug = "nobug";
   
   # console output
-  TrEd::Basics::error_message({}, $msg, $nobug);
+  TrEd::Error::Message::error_message({}, $msg, $nobug);
   
   # GUI output
-  TrEd::Basics::error_message($win_ref, $msg, $nobug);
+  TrEd::Error::Message::error_message($win_ref, $msg, $nobug);
   
 
 =head1 DESCRIPTION
@@ -163,7 +163,7 @@ Nothing
 =back
 
 
-=item * C<TrEd::Basics::error_message($win_ref, $msg, $nobug)>
+=item * C<TrEd::Error::Message::error_message($win_ref, $msg, $nobug)>
 
 =over 6
 

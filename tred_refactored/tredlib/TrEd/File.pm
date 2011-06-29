@@ -9,6 +9,7 @@ use TrEd::Config qw{$ioBackends $lockFiles $reloadKeepsPatterns %save_types %bac
 use TrEd::MinMax qw{max2 first};
 use TrEd::Utils qw{applyFileSuffix};
 use Treex::PML;
+use TrEd::Error::Message;
 
 use Carp;
 use Cwd;
@@ -313,7 +314,7 @@ sub _check_for_recovery {
                 TrEd::FileLock::set_fs_lock_info( $fsfile, $lockinfo );
             }
             if ( $status->{ok} < 0 ) {
-                TrEd::Basics::error_message( $win, $status->{report}, 'warn' );
+                TrEd::Error::Message::error_message( $win, $status->{report}, 'warn' );
             }
         }
         else {
@@ -1199,7 +1200,7 @@ sub saveFile {
         $win->toplevel->Unbusy() unless $main::insideEval;
         $fsfile->notSaved(1);
         main::saveFileStateUpdate($win) if $fsfile == $win->{FSFile};
-        TrEd::Basics::error_message(
+        TrEd::Error::Message::error_message(
             $win,
             "Error while saving file to '$f'!\nI'll try to recover the original from backup.\n"
                 . _last_err(
@@ -1217,12 +1218,12 @@ sub saveFile {
         };
         if ( main::_last_err() ) {
             my $err = "Error while renaming backup file $f~ back to $f.\n";
-            TrEd::Basics::error_message( $win, $err, 1 );
+            TrEd::Error::Message::error_message( $win, $err, 1 );
         }
         return -1;
     }
     elsif (@warnings) {
-        TrEd::Basics::error_message( $win,
+        TrEd::Error::Message::error_message( $win,
             "Saving file to '$f':\n\n" . join( "\n", @warnings ), 'warn' );
     }
     else {
@@ -1476,7 +1477,7 @@ EOF
 	    push @failed,$reff;
 	  }
 	}
-	TrEd::Basics::error_message($win,
+	TrEd::Error::Message::error_message($win,
 		     "Could not find reference to the current file in the following files:\n\n".
 		       join("\n",map { $_->filename } @fs),1) if @failed;
       }
