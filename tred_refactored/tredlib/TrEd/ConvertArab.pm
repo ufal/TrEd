@@ -424,15 +424,20 @@ UTF-8 octet stream in a visual order
 
 =head1 DIAGNOSTICS
 
+This module does not output any diagnostic messages.
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
+This module does not require special configuration or enviroment settings.
 
 =head1 DEPENDENCIES
 
+Perl standard modules:
+Encode
 
 =head1 INCOMPATIBILITIES
 
+No known compatibility problems.
 
 =head1 BUGS AND LIMITATIONS
 

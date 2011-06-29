@@ -278,7 +278,7 @@ Reversed string
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
-No special needs.
+This module does not require special configuration or enviroment settings.
 
 =head1 DEPENDENCIES
 

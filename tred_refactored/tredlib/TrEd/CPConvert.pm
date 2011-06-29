@@ -1,39 +1,40 @@
 # -*- cperl -*-
 
 package TrEd::CPConvert;
+
 # used in vallex and pdt15_obsolete
 
 #######################################################################################
 # Usage         : encoding_to()
 # Purpose       : Return the destination/desired encoding (for encode function)
-# Returns       : The destination/desired encoding, i.e. the encoding 
+# Returns       : The destination/desired encoding, i.e. the encoding
 #                 that is the first argument of the constructor
 # Parameters    : no
 # Throws        : no exception
 # See Also      : decoding_to()
 sub encoding_to {
-  my ($self)=@_;
-  return $self->[2];
+    my ($self) = @_;
+    return $self->[2];
 }
 
 #######################################################################################
 # Usage         : decoding_to()
 # Purpose       : Return the source encoding (for encode function)
-# Returns       : The source encoding, i.e. the encoding 
+# Returns       : The source encoding, i.e. the encoding
 #                 that is the second argument of the constructor
 # Parameters    : no
 # Throws        : no exception
 # See Also      : encoding_to()
 sub decoding_to {
-  my ($self)=@_;
-  return $self->[3];
+    my ($self) = @_;
+    return $self->[3];
 }
 
 BEGIN {
-  use vars qw($VERSION);
-  $VERSION = "0.2";
-  if ($]>=5.008) {
-    eval <<'EOF';
+    use vars qw($VERSION);
+    $VERSION = "0.2";
+    if ( $] >= 5.008 ) {
+        eval <<'EOF';
     use Encode ();
     
     #######################################################################################
@@ -88,8 +89,9 @@ BEGIN {
       return $string;
     }
 EOF
-  } else {
-    eval <<'EOF';
+    }
+    else {
+        eval <<'EOF';
     use Text::Iconv;
     
     #######################################################################################
@@ -136,7 +138,7 @@ EOF
       return $res;
     }
 EOF
-  }
+    }
 }
 
 1;
@@ -178,7 +180,8 @@ TrEd::CPConvert version 0.2.
   
 =head1 DESCRIPTION
 
-Basic functions for converting between two encodings
+Basic functions for converting between two encodings. Uses either Tk::Iconv or Encode
+Perl modules, depending on the Perl version (Encode for Perl 5.8 and newer).
 
 =head1 SUBROUTINES/METHODS
 
@@ -314,16 +317,19 @@ String in decoding_to() encoding
 
 =head1 DIAGNOSTICS
 
+This module does not output any diagnostic messages.
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
+This module does not require special configuration or enviroment settings.
 
 =head1 DEPENDENCIES
 
-Encode for Perl >=5.8, Text::Iconv for older Perl (<= 5.6) 
+Encode for Perl >=5.8, Text::Iconv for older Perl.
 
 =head1 INCOMPATIBILITIES
 
+No known compatibility problems.
 
 =head1 BUGS AND LIMITATIONS
 

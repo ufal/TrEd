@@ -583,23 +583,26 @@ test_get_binding(\%tred);
 my $new_binding_name = 'new_binding_name';
 my $context = 'other_context';
 
-
+# change binding for Tab key
 test_change_binding(\%tred, $new_binding_name, $context);
 
-
+# test getting the default hash
 test_get_default_bindings(\%tred, $new_binding_name);
 
+# test getting the context-specific hash
 test_get_context_bindings(\%tred, $new_binding_name, $context);
 
 $tred{top}->update();
 
-note("Testing own callbacks");
+# run bindings by generating Tk event
+note("Test running own callbacks");
 test_run_binding(\%tred, $context);
 
 
+# test also Tk::Callback callbacks
+note("Test running Tk::Callback callbacks");
 test_change_binding_tk__(\%tred, $new_binding_name, $context);
 
-note("Testing Tk::Callback callbacks");
 test_run_binding_tk_callback(\%tred, $context);
 
 done_testing();

@@ -12,6 +12,7 @@ use TrEd::HTML::Simple;
 use TrEd::Convert qw{dirname};
 use TrEd::Utils qw{STYLESHEET_FROM_FILE}; # for STYLESHEET_FROM_FILE
 use TrEd::File;
+use TrEd::Error::Message;
 
 my $selected_sentences;
 my $expand_view;
@@ -240,7 +241,7 @@ sub dump_view {
 
   my @selref = split /,/, get_selection($grp, $selref);
   unless (@selref) {
-    TrEd::Basics::error_message($t->toplevel,"No sentences selected. Select requested sentences and try again. To select a sentence, click the round button in front of it.",1);
+    TrEd::Error::Message::error_message($t->toplevel,"No sentences selected. Select requested sentences and try again. To select a sentence, click the round button in front of it.",1);
     return;
   }
 
@@ -349,7 +350,7 @@ sub dump_view {
     TrEd::HTML::Simple::close($html);
     main::get_nodes_win($win); # printGetNodesCallback may have fiddled with $win
   }
-  TrEd::Basics::error_message($win,$errors) if defined $errors;
+  TrEd::Error::Message::error_message($win,$errors) if defined $errors;
   return $file;
 }
 

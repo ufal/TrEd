@@ -13,6 +13,7 @@ BEGIN {
   use File::Glob qw(:glob);
   use TrEd::Config;
   use TrEd::Basics;
+  use TrEd::Error::Message;
   import TrEd::Config qw($default_macro_file $default_macro_encoding $macroDebug $hookDebug);
   use TrEd::Convert;
   use Encode ();
@@ -879,7 +880,7 @@ sub initialize_macros {
         no strict;
         $result = $safeCompartment->reval($macros);
       }
-      TrEd::Basics::error_message($win_ref,$@) if $@;
+      TrEd::Error::Message::error_message($win_ref,$@) if $@;
     } 
     else {
       no strict;
@@ -892,7 +893,7 @@ sub initialize_macros {
       };
     }
     print STDERR "Returned with: $result\n\n" if $macroDebug;
-    TrEd::Basics::error_message($win_ref, $@) if $@;
+    TrEd::Error::Message::error_message($win_ref, $@) if $@;
   }
   no strict 'refs';
   set_macro_variable('grp', $win_ref);
@@ -1061,7 +1062,7 @@ sub do_eval_macro {
       $result = eval($macro);
     }
   }
-  TrEd::Basics::error_message($win,$@) if ($@);
+  TrEd::Error::Message::error_message($win,$@) if ($@);
   print STDERR 'Had run: ',$macro,"\n" if $macroDebug;
   print STDERR "Returned with: $result\n" if $macroDebug;
   return $result;

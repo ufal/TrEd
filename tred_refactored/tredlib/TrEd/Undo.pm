@@ -6,8 +6,8 @@ use warnings;
 use Carp;
 
 use TrEd::Config qw{$tredDebug $maxUndo};
-use TrEd::Basics qw{uniq};
-use TrEd::Basics qw{$EMPTY_STR};
+use TrEd::Basics qw{uniq $EMPTY_STR};
+use TrEd::Error::Message;
 use Data::Snapshot;
 
 use Readonly;
@@ -254,7 +254,7 @@ sub undo {
     main::redraw_fsfile_tree($win->{framegroup},$fsfile,$treeNo);
     main::centerTo($win,$win->{currentNode});
   } else {
-    TrEd::Basics::error_message($win,"Corrupted undo stack!");
+    TrEd::Error::Message::error_message($win,"Corrupted undo stack!");
   }
 }
 #TODO: that is nasty -- using error_message and ErrorMessage at the same time

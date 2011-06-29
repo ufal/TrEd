@@ -64,7 +64,7 @@ return sub {
     'Properties',
     {
       -underline => 6,
-      -command => [ \&editFilePropertiesDialog, $grp ],
+      -command => [ \&TrEd::Dialog::FileProperties::create_dialog, $grp ],
      }
   ],
   'MENUBAR:FILE:BOOKMARKS' => [
@@ -798,10 +798,10 @@ return sub {
     'Find ...',
     {
       '-command' => [sub {
-		       my ($grp,$template)=@_;
-		       findNodeDialog($grp,$template)
+		       my ($grp)=@_;
+		       TrEd::Dialog::FindNode::findNodeDialog($grp)
 			 if ($grp->{focusedWindow}->{currentNode});
-		     },$grp,\%searchTemplate],
+		     },$grp],
       '-underline' => 0
      },
     undef

@@ -7,6 +7,7 @@ use TrEd::Basics qw{$EMPTY_STR};
 use TrEd::Config qw{$tredDebug};
 use TrEd::ManageFilelists;
 use TrEd::Filelist::View;
+use TrEd::Error::Message;
 
 use Treex::PML;
 
@@ -197,7 +198,7 @@ sub create_dialog {
     my $filelist;
     if ( !ref( $win->{currentFilelist} ) ) {
         if ( $win->{FSFile} ) {
-            TrEd::Basics::error_message(
+            TrEd::Error::Message::error_message(
                 $win,
                 "Cannot manage file-lists while visiting a file not belonging to any file-list! "
                     . "Please, switch to a file-list (e.g. using Session->Default) and try again.",

@@ -76,17 +76,12 @@ no integer;
 #                 we use functions for arabic text, unless $FORCE_NO_REMIX is not set to true. 
 #                 On Perl version greater than or equal to 5.8, Encode::encode() is used. Otherwise, tr/// is used.
 # See Also      : Encode::encode(), tr(), TrEd::ConvertArab::arabjoin(), TrEd::ArabicRemix::remix()
-#TODO: tests
 sub encode {
   my $str = join(q{}, map { defined $_ ? $_ : q{} } @_);
   if ($support_unicode) { # we've got support for UNICODE in perl5.8/Tk8004
-    if (($FORCE_REMIX or $^O ne 'MSWin32')
-	  and
-	not $FORCE_NO_REMIX
-	#  and
-	# ( $inputenc =~ /^utf-?8$/i or
-        #   $inputenc eq 'iso-8859-6' or
-        #   $inputenc eq 'windows-1256' )
+    if (($FORCE_REMIX || $^O ne 'MSWin32')
+	  &&
+	! $FORCE_NO_REMIX
 	 ) {
       if ($str =~ $needs_arabic_remix_re) {
         #TODO: fully qualified names? These two functions with FQN wouldn't exist if $support_unicode wasn't true, so
@@ -99,9 +94,10 @@ sub encode {
     eval "use Encode (); \$str=Encode::encode(\$outputenc,\$str);";
   } 
   else {
-    eval "tr/$encodings{$inputenc}/$encodings{$outputenc}/" unless ($inputenc eq $outputenc);
+      if ($inputenc ne $outputenc) {
+        eval "tr/$encodings{$inputenc}/$encodings{$outputenc}/";
+      }
   }
-#  $lefttoright or ($str=~s{([^[:ascii:]]+)}{reverse $1}eg);
   if (!$lefttoright) {
     $str =~ s{([^[:ascii:]]+)}{reverse $1}eg
   }
@@ -153,8 +149,6 @@ sub decode {
 # Comments      : If $path does not contain any slash (fw or bw), dot and directory separator is returned, i. e. 
 #                 "./" on Unices, ".\" on Win32
 # See Also      : index(), rindex(), substr()
-#TODO: stil needed? or can we use File::Spec instead?
-# do we still support Perl 5.5?
 sub dirname {
   my $a = shift;
   # this is for the sh*tty winz where
@@ -175,7 +169,6 @@ sub dirname {
 # Throws        : 
 # Comments      : E.g. returns 'filename' from '/home/john/docs/filename'
 # See Also      : index(), rindex(), substr()
-#TODO: still needed? Same as with dirname, maybe we could use File::Spec...
 sub filename {
   my $a = shift;
   # this is for the sh*tty winz where
@@ -367,9 +360,12 @@ Empty string if $path is not defined.
 
 =head1 DIAGNOSTICS
 
+If the pre-compiation of $needs_arabic_remix regular expression fails,
+compilation of this module fails with error message describing the error. 
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
+This module does not require special configuration or enviroment settings.
 
 =head1 DEPENDENCIES
 

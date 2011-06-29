@@ -2281,7 +2281,7 @@ text window.  In BTrEd print the error message on standard error output.
 =cut
 
 sub ErrorMessage {
-  TrEd::Basics::error_message($grp,join("",@_),1);
+  TrEd::Error::Message::error_message($grp,join("",@_),1);
 }
 
 =item C<InfoMessage(message)>
