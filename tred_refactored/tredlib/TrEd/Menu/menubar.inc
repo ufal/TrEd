@@ -715,7 +715,7 @@ return sub {
     'Button',
     'Examine Key Bindings ...',
     {
-      '-command' => [\&examineBindingsDialog,$grp],
+      '-command' => [\&TrEd::Dialog::ExamineBindings::create_dialog, $grp],
       '-underline' => 0
      },
     undef

@@ -373,7 +373,8 @@ sub read_stylesheets_old {
     if (/^stylesheet:\s*(.*)/) {
       $stylesheet = $1;
     } elsif (s/^(hint|context)://) {
-      if ($gui_ref->{"stylesheets"}->{$stylesheet}->{$1} ne qw()) {
+        my $hint_context = $gui_ref->{"stylesheets"}->{$stylesheet}->{$1};
+      if (defined $hint_context && $hint_context ne $EMPTY_STR) {
         $gui_ref->{"stylesheets"}->{$stylesheet}->{$1}.="\n".$_;
       } else {
         $gui_ref->{"stylesheets"}->{$stylesheet}->{$1}.=$_;
@@ -383,7 +384,9 @@ sub read_stylesheets_old {
       push @{$gui_ref->{stylesheets}->{$stylesheet}->{patterns}},$_;
     }
     foreach my $stylesheet_item qw(hint context) {
-      chomp $gui_ref->{"stylesheets"}{$stylesheet}{$stylesheet_item};
+        if (exists $gui_ref->{"stylesheets"}{$stylesheet}{$stylesheet_item}) {
+            chomp $gui_ref->{"stylesheets"}{$stylesheet}{$stylesheet_item};
+        }
     }
   }
   close $f;

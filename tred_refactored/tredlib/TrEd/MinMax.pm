@@ -16,7 +16,7 @@ our @EXPORT = qw(min max min2 max2);
 our @EXPORT_OK=qw(min max min2 max2 minstr maxstr sum reduce first shuffle);
 
 
-##TODO: nejak zmysluplnejsie opisat, co robi tato funkcia
+
 #######################################################################################
 # Usage         : reduce(\&sub, @list)
 # Purpose       : Template function that calls sub on pair of values. 

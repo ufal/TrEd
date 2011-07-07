@@ -42,6 +42,7 @@ can_ok($module_name, @subs);
 
 Readonly my $NO_PREV_BINDING => [ undef, undef ];
 
+# these are expected results for default bindings 
 my %expected_binding_for = (
     'Tab'     => [
         q{},
@@ -167,7 +168,7 @@ sub test_get_binding {
         "get_binding: return empty array for non-existing key");
 }
 
-
+# this is a callback function called by Tk callbacks
 sub tk_callback {
     my ($tred_ref, $ret_value) = @_;
     
@@ -181,7 +182,7 @@ sub tk_callback {
 }
 
 
-
+# testing the change of Tk callbacks 
 sub test_change_binding_tk {
     my ($tred_ref, $new_binding_name, $context, $key_code, $prev_binding, $new_binding, $callback_return_value) = @_;
     
@@ -222,7 +223,7 @@ sub test_change_binding_tk {
         "change_binding & get_binding: $key_code binding with correct name");
 }
 
-
+# testing the change of code reference callback
 sub test_change_binding_code_ref {
     my ($tred_ref, $new_binding_name, $context, $key_code, $prev_binding, $new_binding, $callback_return_value) = @_;
     
@@ -270,20 +271,16 @@ sub test_change_binding {
 
     my $callback_return_value = 'binding callback';
      
-    
+    # this is the new callback/binding
     my $new_binding = [
         sub {
             my ($mw, $tred_ref) = @_;
             my $context__ = $_[1]->{focusedWindow}->{macroContext} || q{}; 
             
-            #print "&& __callback called in context $context__\n";
-            #print "increment counter from " .$_[1]->{callback_called}->{$context__}. " to ";
-            
             $_[1]->{callback_called}->{$context__}++;
             
-            #print $_[1]->{callback_called}->{$context__}. "\n";
             my $modif_cb_return_value = $context__ . q{::} . $callback_return_value;
-            #print "returning $modif_cb_return_value\n";
+            
             return $modif_cb_return_value;
         },
         $new_binding_name,
@@ -314,6 +311,7 @@ sub test_change_binding {
 }
 
 sub test_binding_valid {
+    # these bindings should be valid according to binding_valid function
     my @valid_bindings = (
         [
             sub {},
@@ -342,7 +340,7 @@ sub test_binding_valid {
         is(TrEd::Binding::Default::binding_valid($binding), 1, 
             "binding_valid: valid binding -- " . $binding->[1]);
     }
-    
+    # these bindings should be INvalid according to binding_valid function
     my @invalid_bindings = (
         [
             'name',
@@ -406,6 +404,7 @@ sub test_get_context_bindings {
         "get_context_bindings: correct/changed name for binding <Tab>");
 }
 
+# helping debug function
 sub _print_status {
     my ($tred_ref) = @_;
     print "status:\n";
@@ -426,6 +425,7 @@ sub test_run_context_binding {
     #print "before generating event:\n";
     #_print_status($tred_ref);
     
+    # imitate pressing Tab key
     $tred_ref->{top}->eventGenerate('<KeyPress>', -keysym => 'Tab');
     $tred_ref->{top}->idletasks();
     $tred_ref->{top}->update();
@@ -444,34 +444,41 @@ sub test_run_context_binding {
 sub test_run_binding { 
     my ($tred_ref, $context) = @_;
     
+    # default context => expect default context call count + 1
     my $expected_call_count 
         = $tred_ref->{callback_called}->{$TrEd::Binding::Default::DEFAULT_CONTEXT} + 1;
     test_run_context_binding($tred_ref, 
                              $TrEd::Binding::Default::DEFAULT_CONTEXT,
                              $expected_call_count, 
                              "default context callback called correctly");
-
+    
+    # specified context => expect specified context call count + 1
     my $call_count = exists $tred_ref->{callback_called}->{$context}
                      ? $tred_ref->{callback_called}->{$context}
                      : 0;
-                     
+    
     $expected_call_count = $call_count + 1;
     test_run_context_binding($tred_ref, 
                              $context, 
                              $expected_call_count, 
                              "other context callback called correctly");
-
+                             
+    # new context => expect call count == 1 (new hash element is created)
     test_run_context_binding($tred_ref, 
                              'non-existing-context', 
                              1, 
                              "callback on non-existing context");
-                      
+                             
+    # undefined context => expect undefined call count
     test_run_context_binding($tred_ref, 
                              undef, 
                              undef, 
                              "callback on undefined context");
 }
 
+# this is basically the same as test_run_binding, but is called after changing 
+# callback to Tk::Callback and this function also runs slightly different tests
+# with different descriptions
 sub test_run_binding_tk_callback { 
     my ($tred_ref, $context) = @_;
     
@@ -495,6 +502,7 @@ sub test_run_binding_tk_callback {
                              "callback on undefined context");
 }
 
+# test changing binding to Tk::Callback
 sub test_change_binding_tk__ {
     my ($tred_ref, $new_binding_name, $context) = @_;
     my $key_code = 'Tab';
@@ -538,29 +546,26 @@ sub test_change_binding_tk__ {
                          $TrEd::Binding::Default::DEFAULT_CONTEXT . "::" . $callback_return_value);
 }
 
-# start testing
+### start testing
 
 my %tred;
 
-
+# MainWindow to test Tk bindings
 my $top = Tk::MainWindow->new();
 
 
 $tred{top} = $top;
 
-
 $tred{Toolbar} = $top->Frame();
 $tred{Toolbar}->pack(-fill=> 'x', -padx=> '1', -pady=> 1);
-
 
 dies_ok(sub { TrEd::Binding::Default->new() }, "TrEd::Binding::Default->new: missing parameter for constructor");
 
 $tred{default_binding} = TrEd::Binding::Default->new(\%tred);
 
-
+# set bindtags
 $top->bindtags(['my',$top,ref($top),$top,$top->toplevel,'all']);
 $tred{Toolbar}->bindtags(['my',$tred{Toolbar},ref($tred{Toolbar}),$tred{Toolbar},$tred{Toolbar}->toplevel,'all']);
-
 
 
 # set default context
@@ -578,7 +583,6 @@ is($tred{default_binding}->setup_default_bindings(), undef,
 
 # test the setup of default bindings
 test_get_binding(\%tred);
-
 
 my $new_binding_name = 'new_binding_name';
 my $context = 'other_context';

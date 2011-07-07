@@ -508,12 +508,17 @@ sub _read_default_macro_file {
 # well, obviously, default macro would not be loaded... which is not good, I guess...
 sub read_macros {
   my ($file, $libDir, $keep, $encoding, @contexts) = @_;
+#  print "read_macros: 
+#    file: $file;
+#    libdir: $libDir;
+#    keep: $keep;
+#    enc: $encoding;\n";
   $macrosEvaluated = 0;
   if(!defined($encoding) || $encoding eq ""){
     $encoding = $TrEd::Config::default_macro_encoding;
   }
   if(!@contexts){
-    @contexts = ("TredMacro");
+    @contexts = ('TredMacro');
   }
   if (!$keep) {
     _read_default_macro_file($encoding, @contexts);
@@ -529,6 +534,9 @@ sub read_macros {
       croak("ERROR: Cannot open macros: $file ($!)!\n");
   set_encoding($macro_filehandle, $encoding);
   preprocess($macro_filehandle, $file, \@macros, \@contexts);
+#  print "===================================================================\n";
+#  print join("\n", @macros) . "\n";
+#  print "===================================================================\n";
   close($macro_filehandle) or
     croak("ERROR: Cannot close macros: $file ($!)!\n");;
   if (!$keep && $macroDebug){
@@ -563,7 +571,6 @@ sub read_macros {
 #
 #                   insert <method> [as] [menu] <menu>[/submenu[/...]]
 # See Also      : read_macros(), 
-#TODO: hmm, what if extensions would be subclasses of ~tred.def...?
 sub preprocess {
   my ($file_handle, $file_name, $macros_ref, $contexts_ref) = @_;
   # Again, turn off UTF-8 flag for string $file_name, it is used as a comment in macro string
@@ -733,7 +740,8 @@ sub preprocess {
           Encode::_utf8_off($f);
         
           if ($f =~ m%^/%) {
-            read_macros($f, $libDir, 1, $enc, @{$contexts_ref});
+              read_macros($f, $libDir, 1, $enc, @{$contexts_ref});
+            
             push @{$macros_ref},"\n\n=pod\n\n=cut\n\n#line $line \"$file_name\"\n";
           } 
           else {
@@ -1171,6 +1179,28 @@ sub do_eval_hook {
   }
   return $result;
 }
+
+## addition: untested, not documented yet
+# macro
+sub findMacroDescription {
+  my ($grp_or_win,$macro)=@_;
+  if (!ref($macro) and $macro =~ /^(.*)->/) {
+    my $b = $menuBindings{$1};
+    my ($desc) = grep { ref($b->{$_}) and $b->{$_}[0] eq $macro } keys %$b;
+    return "$desc ($macro)" if $desc ne $EMPTY_STR;
+    return "macro $macro";
+  } else {
+    my ($grp,$win)=main::grp_win($grp_or_win);
+    for my $context (TrEd::Basics::uniq($win->{macroContext},"TredMacro")) {
+      my $Menus = $menuBindings{$context};
+      my %macro_to_menu = map { $Menus->{$_}->[0] => $_ } keys %{ $Menus };
+      my $desc = $macro_to_menu{$macro};
+      return $desc." (inline code)" if defined $desc;
+    }
+    return "this macro has no description (inline code)";
+  }
+}
+
 
 1;
 

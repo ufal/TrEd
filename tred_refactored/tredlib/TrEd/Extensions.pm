@@ -14,6 +14,7 @@ use URI;
 use URI::file;
 
 use TrEd::MinMax qw(first);
+use TrEd::Basics qw{$EMPTY_STR};
 
 BEGIN {
     require Exporter;
@@ -49,12 +50,13 @@ BEGIN {
 
     # manage_extensions
     our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
-    our @EXPORT    = qw(  );
     our $VERSION   = '0.02';
 }
 
-#TODO: cut this quite big package to 2 smaller ones?
-## ManageExtensions and Dialog::Extensions..?
+# used for storing command line options
+our $enable_extensions = $EMPTY_STR;
+our $disable_extensions = $EMPTY_STR;
+
 
 my @extension_file_prologue = split /\n\s*/, <<'EOF';
 # DO NOT MODIFY THIS FILE
@@ -94,6 +96,7 @@ sub short_name {
 #######################################################################################
 # Usage         : _repo_extensions_uri_list($opts_ref)
 # Purpose       : Create list of triples: repository, extension name, extension URI
+#                 for repositories listed in $opts_ref->{repositories}
 # Returns       : List of array references, each array contains triple repo, extension
 #                 name, extension URI
 # Parameters    : hash_ref $opts_ref -- reference to hash with options
@@ -218,7 +221,7 @@ sub _ext_not_installed_or_actual {
             # not installed and exists in repository
             (
             ( !$installed_ver && $meta_data_ref->{version} )
-                or
+                ||
                 # installed, but version in repository is newer
                 (
                     $installed_ver
@@ -232,7 +235,7 @@ sub _ext_not_installed_or_actual {
     }
 }
 
-#TODO: upravit pod_generator, aby vedel pracovat s named args...?
+
 #######################################################################################
 # Usage         : _resolve_missing_dependency({
 #                   req_data           => $req_data,
@@ -250,7 +253,7 @@ sub _ext_not_installed_or_actual {
 #                 scalar $repo                 -- URL of the repository which contains $short_name extension
 #                 Tk::DialogBox $dialog_box    -- DialogBox object for creating GUI & interaction with the user
 # Throws        : no exception
-# Comments      : Needs Tk and uses its QuestionQuery function
+# Comments      : Needs Tk and uses its QuestionQueryAuto function
 sub _resolve_missing_dependency {
     my ($args_ref) = @_;
 
@@ -259,34 +262,35 @@ sub _resolve_missing_dependency {
     my $short_name         = $args_ref->{short_name};
     my $repo               = $args_ref->{repo};
     my $dialog_box         = $args_ref->{dialog_box};
-
+    
+    
     my $req_name = $required_extension->{name};
     my $min      = $required_extension->{min_version} || q{};
     my $max      = $required_extension->{max_version} || q{};
 
     if ($req_data) {
         my $req_version = $req_data->{version};
-
+                                            #vvv-- beware of the second argument, it is not a number!
         if ( !_version_ok( $req_version, $required_extension ) ) {
-            return $dialog_box->parent->QuestionQuery(
+            return $dialog_box->parent->QuestionQueryAuto({
                 -title => 'Error',
                 -label =>
                     "Package $short_name from $repo\nrequires package $req_name "
                     . " in version $min..$max, but only $req_version is available",
                 -buttons =>
-                    [ "Skip $short_name", 'Ignore versions', 'Cancel' ]
-            );
+                    [ "Skip $short_name", 'Ignore versions', 'Cancel' ],
+            });
         }
     }
     else {    # no req_data
-        return $dialog_box->parent->QuestionQuery(
+        return $dialog_box->parent->QuestionQueryAuto({
             -title => 'Error',
             -label =>
                 "Package $short_name from $repo\nrequires package $req_name "
                 . " which is not available",
             -buttons =>
-                [ "Skip $short_name", 'Ignore dependencies', 'Cancel' ]
-        );
+                [ "Skip $short_name", 'Ignore dependencies', 'Cancel' ],
+        });
     }
     return;
 }
@@ -303,11 +307,11 @@ sub _resolve_missing_dependency {
 #                 })
 # Purpose       : Check requirements of each extension that is required by $uri extension
 #                 and add all the requirements to $extensions_list_ref
-#                 (if they are not already there)
+#                 (if they are not already in the list, installed or up-to date)
 # Returns       : String 'Cancel' if user chooses to cancel installation,
 #                 'Skip' if user chooses to skip extension $uri, undef otherwise
 # Parameters    : hash_ref $extension_data_ref    -- hash reference to extension's meta data
-#                 array_ref $extensions_list_ref  -- reference to array containing list of extensions
+#                 array_ref $extensions_list_ref  -- reference to array containing list of information about extensions
 #                 hash_ref $uri_in_repository_ref -- ref to hash of URIs in repositories
 #                 scalar $uri                     -- URI of the extension whose requirements are searched for
 #                 scalar $short_name              -- name of the extension whose requirements are searched for
@@ -316,7 +320,10 @@ sub _resolve_missing_dependency {
 # Throws        : no exception
 # Comments      : If any of the required extensions is missing, user is prompted with dialog
 #                 to choose whether TrEd should ignore the dependency, cancel the installation
-#                 or skip installation of the extension
+#                 or skip installation of the extension.
+#                 $extensions_list_ref and $uri_in_repository_ref can be modified as a side effect
+#                 during finding new dependencies. This function can also modify %requires and
+#                 required_by hash.
 # See Also      : _resolve_missing_dependency(),
 sub _add_required_exts {
     my ($arg_ref) = @_;
@@ -342,7 +349,7 @@ sub _add_required_exts {
     # are true, last one is used as the value for $require
     my $require
         = $meta_data_ref
-        && ref( $meta_data_ref->{require} )
+        && ref $meta_data_ref->{require}
         && $meta_data_ref->{require};
     if ( !exists( $seen{$uri} ) && $require ) {
         $seen{$uri} = 1;
@@ -357,7 +364,7 @@ sub _add_required_exts {
 
             next
                 if ( $installed_req_ver
-                and _version_ok( $installed_req_ver, $required_extension ) );
+                && _version_ok( $installed_req_ver, $required_extension ) );
 
             # If we are here, required extension is not installed 
             # or it's not up-to-date
@@ -395,14 +402,16 @@ sub _add_required_exts {
 
             # add URI of the required extension to $requires{$URI} array
             push @{ $requires{$uri} }, $req_uri;
-
+            # and fill also %required_by hash
+            _fill_required_by($uri);
+            
             # Add dependent extension to $extensions_list_ref, 
             # if URI of the required extension is not already listed
             # in the list
             if (   !exists $seen{$req_uri}
                 && !exists $uri_in_repository_ref->{$req_uri} )
             {
-                push @$extensions_list_ref,
+                push @{$extensions_list_ref},
                     [ URI->new(q{.})->abs($req_uri), $req_name, $req_uri ];
             }
         }
@@ -432,26 +441,29 @@ sub _fill_required_by {
 #                   opts_ref            => $opts_ref,
 #                   dialog_box          => $dialog_box,
 #                 });
-# Purpose       : Create list of URIs of extensions from $extensions_list_ref with their dependencies
+# Purpose       : Create list of URIs of extensions that are not installed or up-to date
+#                 from repository specified in opts_ref hash
 # Returns       : Reference to array of URIs or undef/empty list if cancelled by user
 # Parameters    : hash_ref $extension_data_ref   -- ref to hash of meta data about extensions
 #                 hash_ref $opts_ref             -- ref to hash of populate_extension_pane options
 #                 Tk::DialogBox $dialog_box      -- dialg box to create GUI elements
 # Throws        : no exception
-# Comments      :
+# Comments      : opts_ref hash should contain an element with name 'repositories', whose
+#                 value is a reference to array of extension repositories (as their URIs) and
+#                 an element with key 'installed', whose value is a hash reference
+#                 with names of isntalled extensions as keys and their installed versions as
+#                 corresponding values.
 # See Also      : _update_progressbar(), _ext_not_installed_or_actual(), _add_required_exts(), _fill_required_by()
 sub _uri_list_with_required_exts {
     my ($arg_ref) = @_;
 
     my $extension_data_ref = $arg_ref->{extension_data_ref};
     my $opts_ref           = $arg_ref->{opts_ref};
-
-    #  my $requires_ref        = $arg_ref->{requires_ref};
-    #  my $required_by_ref     = $arg_ref->{required_by_ref};
-    my $dialog_box = $arg_ref->{dialog_box};
+    my $dialog_box         = $arg_ref->{dialog_box};
+    my $short_circuit      = $arg_ref->{short_cicruit};
 
     # for each repository find all the available extensions
-    # (if we are updating, only those that are installed already)
+    # (if we are updating, only those that are already installed)
     my @list_of_extensions = _repo_extensions_uri_list($opts_ref);
 
     my $progressbar = $opts_ref->{progressbar};
@@ -491,7 +503,8 @@ PKG:
         }
         else {
 
-        # remove the extensions from the list, if it is installed & up to date
+            # remove the extensions from the list, 
+            # if it is installed & up to date
             splice @list_of_extensions, $i, 1;
 
             # and go from the beginning to process another extension
@@ -507,27 +520,27 @@ PKG:
                 short_name            => $short_name,
                 dialog_box            => $dialog_box,
                 opts_ref              => $opts_ref,
+                short_circuit         => $short_circuit,
             }
         );
 
+        # handle user-chosen resolutions of missing packages
         return   if ( defined($res) && $res eq 'Cancel' );
         next PKG if ( defined($res) && $res eq 'Skip' );
 
-        _fill_required_by($uri);
     }
     my $list_of_uris = [ map { $_->[2] } @list_of_extensions ];
     return $list_of_uris;
 }
 
 #######################################################################################
-# Usage         : _uri_list_with_preinstalled_exts({
+# Usage         : _list_of_installed_extensions({
 #                   pre_installed_ref   => $pre_installed_ref,
 #                   enable_ref          => $enable_ref,
 #                   opts_ref            => $opts_ref,
 #                   extension_data_ref  => $extension_data_ref,
 #                 });
-# Purpose       : Create list of URIs of preinstalled extensions and
-#                 extensions from $extensions_list_ref
+# Purpose       : Create list of URIs of preinstalled and installed extensions
 # Returns       : Reference to array of URIs
 # Parameters    : hash_ref pre_installed_ref        -- ref to hash of pre-installed extensions
 #                 hash_ref $enable_ref              -- ref to hash of enabled extensions
@@ -535,9 +548,11 @@ PKG:
 #                 hash_ref $extension_data_ref      -- ref to hash of meta data about extensions
 # Throws        : no exception
 # Comments      : Also creates a hash of enabled extensions (those that are listed with exclamation
-#                 mark in the beginning are disabled).
+#                 mark in the beginning are disabled). As a side effect, requires and required_by hashes
+#                 are updated with new information about the extensions.
+#                 Only 'progressbar' option is used from $opts_ref hash in this function.
 # See Also      : _update_progressbar(), _ext_not_installed_or_actual(), _add_required_exts(), _fill_required_by()
-sub _uri_list_with_preinstalled_exts {
+sub _list_of_installed_extensions {
     my ($args_ref) = @_;
 
     my $pre_installed_ref  = $args_ref->{pre_installed_ref};
@@ -545,21 +560,21 @@ sub _uri_list_with_preinstalled_exts {
     my $opts_ref           = $args_ref->{opts_ref};
     my $extension_data_ref = $args_ref->{extension_data_ref};
 
-    my $uri_list_ref = get_extension_list();
+    my $ext_list_ref = get_extension_list();
     my $pre_installed_ext_list
-        = get_preinstalled_extension_list($uri_list_ref);
+        = get_preinstalled_extension_list($ext_list_ref);
 
     my $progressbar = $opts_ref->{progressbar};
     if ($progressbar) {
         $progressbar->configure(
-            -to => scalar( @{$uri_list_ref} + @{$pre_installed_ext_list} ),
+            -to => scalar( @{$ext_list_ref} + @{$pre_installed_ext_list} ),
             -blocks =>
-                scalar( @{$uri_list_ref} + @{$pre_installed_ext_list} ),
+                scalar( @{$ext_list_ref} + @{$pre_installed_ext_list} ),
         );
     }
-
-    $pre_installed_ref->{ @{$pre_installed_ext_list} } = ();
-    for my $name ( @{$uri_list_ref}, @{$pre_installed_ext_list} ) {
+    
+    %{$pre_installed_ref} = map { $_ => 1; } @{$pre_installed_ext_list};
+    for my $name ( @{$ext_list_ref}, @{$pre_installed_ext_list} ) {
 
         # mark extensions with ! as not enabled
         $enable_ref->{$name} = 1;
@@ -578,7 +593,7 @@ sub _uri_list_with_preinstalled_exts {
 
         my $require
             = $meta_data_ref
-            && ref( $meta_data_ref->{require} )
+            && ref $meta_data_ref->{require} 
             && $meta_data_ref->{require};
         if ($require) {
             $requires{$name}
@@ -589,29 +604,36 @@ sub _uri_list_with_preinstalled_exts {
 
         _fill_required_by($name);
     }
-    push( @{$uri_list_ref}, @{$pre_installed_ext_list} );
-    return $uri_list_ref;
+    push( @{$ext_list_ref}, @{$pre_installed_ext_list} );
+    return $ext_list_ref;
+#    my @list = map { $extension_data_ref->{$_}{repository}{href} . $_ } keys %{$enable_ref};
+#    return \@list;
 }
 
 #######################################################################################
-# Usage         : _create_uri_list({
+# Usage         : _create_ext_list({
 #                   pre_installed_ref     => \%pre_installed,
 #                   extension_data_ref    => \%extension_data,
 #                   enable_ref            => \%enable,
 #                   opts_ref              => $opts_ref,
 #                   dialog_box            => $dialog_box,
 #                 });
-# Purpose       : Create list of URIs of extensions
-# Returns       : Reference to list of extensions' URIs
-# Parameters    : hash_ref $pre_installed_ref   -- ref to empty hash of preinstalled extensions (filled by _uri_list_with_preinstalled_exts)
+# Purpose       : Create list of extensions
+# Returns       : Reference to list of extensions/their URIs
+# Parameters    : hash_ref $pre_installed_ref   -- ref to empty hash of preinstalled extensions (filled by _list_of_installed_extensions)
 #                 hash_ref $extension_data_ref  -- ref to empty hash of extensions' data (filled by this function)
 #                 hash_ref $enable_ref          -- ref to empty hash of enabled & disabled extensions (filled by this function)
 #                 hash_ref $opts_ref            -- ref to hash of options
 #                 Tk::DialogBox $dialog_box     -- dialg box to create GUI elements
 # Throws        : no exception
-# Comments      :
-# See Also      : _uri_list_with_preinstalled_exts(), _uri_list_with_required_exts()
-sub _create_uri_list {
+# Comments      : If $opts_ref->{install} is set to true, list of URIs of extensions that are not
+#                 installed or are not up-to date is returned. Otherwise, list of installed
+#                 and preinstalled extensions' names is returned.
+#                 extension_data_ref is filled accordingly, i.e. if list of URIs is returned,
+#                 the keys of %{$extension_data_ref} hash are URIs, otherwise the keys are names
+#                 of extensions.
+# See Also      : _list_of_installed_extensions(), _uri_list_with_required_exts()
+sub _create_ext_list {
     my ($args_ref) = @_;
 
     my $pre_installed_ref  = $args_ref->{pre_installed_ref};
@@ -619,19 +641,21 @@ sub _create_uri_list {
     my $enable_ref         = $args_ref->{enable_ref};
     my $opts_ref           = $args_ref->{opts_ref};
     my $dialog_box         = $args_ref->{dialog_box};
+    my $short_circuit      = $args_ref->{short_circuit};
 
-    my $uri_list_ref;
+    my $ext_list_ref;
 
     if ( $opts_ref->{install} ) {
-        $uri_list_ref = _uri_list_with_required_exts(
+        $ext_list_ref = _uri_list_with_required_exts(
             {   extension_data_ref => $extension_data_ref,
                 opts_ref           => $opts_ref,
                 dialog_box         => $dialog_box,
+                short_circuit      => $short_circuit,
             }
         );
     }
     else {
-        $uri_list_ref = _uri_list_with_preinstalled_exts(
+        $ext_list_ref = _list_of_installed_extensions(
             {   pre_installed_ref  => $pre_installed_ref,
                 enable_ref         => $enable_ref,
                 opts_ref           => $opts_ref,
@@ -640,7 +664,7 @@ sub _create_uri_list {
         );
 
     }
-    return $uri_list_ref;
+    return $ext_list_ref;
 }
 
 #######################################################################################
@@ -737,11 +761,11 @@ sub _required_perl_modules {
                 }
             }
         }
-        if ( length $req or not( defined($available_version) ) ) {
+        if ( length $req || !defined $available_version ) {
             $requires_modules
                 .= "\n\t" 
-                . $requirements->{name} . ' ' 
-                . $req . ' '
+                . $requirements->{name} . q{ } 
+                . $req . q{ }
                 . (
                 defined($available_version)
                 ? "(installed version: $available_version)"
@@ -765,11 +789,11 @@ sub _required_perl_modules {
 sub _required_perl_version {
     my ($req_modules_ref) = @_;
 
-    my $requires_perl = q{};
+    my $requires_perl = $EMPTY_STR;
     foreach my $requirements ( grep { lc( $_->{name} ) eq 'perl' }
         @{$req_modules_ref} )
     {
-        my $req = q{};
+        my $req = $EMPTY_STR;
         if ( $requirements->{min_version} ) {
             if ( $] < $requirements->{min_version} ) {
                 $req = 'at least ' . $requirements->{min_version};
@@ -791,22 +815,22 @@ sub _required_perl_version {
 }
 
 #######################################################################################
-# Usage         : _find_all_requirements($uri_list, $extension_data_ref)
-# Purpose       : Test all the requirements of extension from @$uri_list_ref
+# Usage         : _find_uninstallable_exts($ext_list_ref, $extension_data_ref)
+# Purpose       : Test all the requirements of extension from @$ext_list_ref
 # Returns       : Reference to hash of extensions that can't be installed
-# Parameters    : array_ref $uri_list_ref       -- ref to array of extensions' URIs
+# Parameters    : array_ref $ext_list_ref       -- ref to array of extensions' URIs/names
 #                 hash_ref $extension_data_ref  -- ref to hash of extensions' meta data
 # Throws        : no exception
 # Comments      :
 # See Also      : _required_tred_version(), _required_perl_modules(), _required_perl_version()
-sub _find_all_requirements {
-    my ( $uri_list_ref, $extension_data_ref ) = @_;
+sub _find_uninstallable_exts {
+    my ( $ext_list_ref, $extension_data_ref ) = @_;
     my %uninstallable;
 
     # for each extension
-    for my $name ( @{$uri_list_ref} ) {
+    for my $name ( @{$ext_list_ref} ) {
         my $data = $extension_data_ref->{$name};
-        next if !( ( blessed($name) and $name->isa('URI') ) );
+        next if !( ( blessed($name) && $name->isa('URI') ) );
 
         # test tred requirements
         my $requires_different_tred = _required_tred_version($data);
@@ -837,21 +861,21 @@ sub _find_all_requirements {
 }
 
 #######################################################################################
-# Usage         : _dependencies_of_req_exts($uri_list_ref, $uninstallable_ref)
-# Purpose       : Test whether all the dependecies of extensions from @$uri_list_ref are satisfied
+# Usage         : _dependencies_of_req_exts($ext_list_ref, $uninstallable_ref)
+# Purpose       : Test whether all the dependecies of extensions from @$ext_list_ref are satisfied
 # Returns       : Undef/empty list
-# Parameters    : array_ref $uri_list_ref     -- ref to list of extensions' URIs
+# Parameters    : array_ref $ext_list_ref     -- ref to list of extensions' names
 #                 hash_ref $uninstallable_ref -- ref to hash of extensions that can't be installed (due to unsatisfied dependencies)
 # Throws        : no exception
 # Comments      : Modifies $uninstallable_ref hash according to the uninstallability of
 #                 required extensions
 # See Also      :
 sub _dependencies_of_req_exts {
-    my ( $uri_list_ref, $uninstallable_ref ) = @_;
+    my ( $ext_list_ref, $uninstallable_ref ) = @_;
 
     # for each extension from URI list
-    for my $name ( @{$uri_list_ref} ) {
-
+    for my $name ( @{$ext_list_ref} ) {
+        
         # if there is a dependency (TrEd version, Perl or Perl module)
         # missing for the extension $name, go to next one
         next if $uninstallable_ref->{$name};
@@ -866,8 +890,9 @@ sub _dependencies_of_req_exts {
             my $required_ext = shift @queue;
             if ( $uninstallable_ref->{$required_ext} ) {
 
-# required extension requires different TrEd version, Perl version or some Perl modules,
-# -> mark dependent extension as uninstallable
+                # required extension requires different TrEd version, 
+                # Perl version or some Perl modules,
+                # -> mark dependent extension as uninstallable
                 if ( $uninstallable_ref->{$name} ) {
                     $uninstallable_ref->{$name} .= "\n";
                 }
@@ -875,8 +900,9 @@ sub _dependencies_of_req_exts {
                     . short_name($required_ext);
             }
 
-# put requirements of required extension into queue to process them later
-# (BFS - like, since we use push (to the end of array) & shift(from the beginning))
+            # put requirements of required extension into queue 
+            # to process them later (BFS - like, since we use push 
+            # (to the end of array) & shift(from the beginning))
             my @more
                 = grep { !exists( $seen{$_} ) } @{ $requires{$required_ext} };
             @seen{@more} = ();
@@ -898,12 +924,12 @@ sub _dependencies_of_req_exts {
 # Purpose       : Set extension's icon
 # Returns       : Tk::Label object with icon set
 # Parameters    : hash_ref $data              -- ref to hash with extension's meta data
-#                 scalar/URI $name            -- name of the extension
+#                 scalar/URI $name            -- name or URI of the extension
 #                 hash_ref $pre_installed_ref -- ref to hash containing names of preinstalled extensions (& empty values)
 #                 Tk::ROText $text            -- ref to ROText on which the Labels/icons are created
 #                 Tk::Photo $generic_icon     -- ref to Tk::Photo with generic extension icon
 #                 hash_ref $opts_ref          -- ref to options hash
-# Throws        : no exception
+# Throws        : carp if the icon could not be loaded
 # Comments      : If extension's meta $data->{icon} is set, it is used.
 #                 Generic icon is used otherwise.
 # See Also      :
@@ -927,7 +953,7 @@ sub _set_extension_icon {
         if ( ( blessed($name) and $name->isa('URI') ) ) {
             ( $path, $unlink ) = eval {
                 Treex::PML::IO::fetch_file(
-                    URI->new( $data_ref->{icon} )->abs( $name . '/' ) );
+                    URI->new( $data_ref->{icon} )->abs( $name . q{/} ) );
             };
         }
         else {
@@ -956,7 +982,7 @@ sub _set_extension_icon {
                 $image
                     = $text->Label( -image => $img, -background => 'white' );
             };
-            carp($@) if ( $@ || !defined($result) );
+            carp($@) if ( $@ || !defined $result );
 
             # cleaning up after from Treex::PML::IO::fetch_file()
             if ($unlink) {
@@ -973,7 +999,7 @@ sub _set_extension_icon {
                 -background => 'white'
             );
         };
-        carp($@) if ( $@ || !defined($res) );
+        carp($@) if ( $@ || !defined $res );
     }
     return $image;
 }
@@ -1058,6 +1084,7 @@ sub _set_name_desc_copyright {
 sub _fmt_size {
     my ($size) = @_;
     my $unit;
+    # magnitude multiplier
     my $magnitude = 1024;
     foreach my $order (qw{B KiB MiB GiB}) {
         $unit = $order;
@@ -1116,7 +1143,6 @@ sub _set_ext_size {
 # Throws        : no exception
 # Comments      :
 # See Also      : _requires()
-#TODO: test behaviour
 sub _required_by {
     my ( $name, $exists_ref ) = @_;
     my %dependents_of;
@@ -1144,7 +1170,6 @@ sub _required_by {
 # Throws        : no exception
 # Comments      :
 # See Also      : _required_by()
-#TODO: test behaviour
 sub _requires {
     my ( $name, $exists_ref ) = @_;
     my %dependencies_of;
@@ -1253,7 +1278,7 @@ sub _enable_checkbutton {
 #if ((grep { $enable_ref->{$_} } @dependent_extensions)) {
         if ( TrEd::MinMax::first { $enable_ref->{$_} } @dependent_extensions )
         {
-            my $res = $dialog_box->QuestionQuery(
+            my $res = $dialog_box->QuestionQueryAuto({
                 -title => 'Disable related packages?',
                 -label => "The following packages require '$name':\n\n"
                     . join( "\n",
@@ -1261,7 +1286,7 @@ sub _enable_checkbutton {
                         sort grep { $enable_ref->{$_} }
                         @dependent_extensions ),
                 -buttons => [ 'Ignore dependencies', 'Disable all', 'Cancel' ]
-            );
+            });
             if ( $res =~ m/^Ignore/ ) {
 
                 # Ignore deps -> disable only package that was unchecked
@@ -1311,13 +1336,13 @@ sub _uninstall_button {
     my $quiet;
     if ( @dependent_extensions > 1 ) {
         $quiet = 1;
-        my $res = $dialog_box->QuestionQuery(
+        my $res = $dialog_box->QuestionQueryAuto({
             -title => 'Remove related packages?',
             -label => "The following packages require '$name':\n\n"
                 . join( "\n",
                 grep { $_ ne $name } sort @dependent_extensions ),
             -buttons => [ 'Ignore dependencies', 'Remove all', 'Cancel' ]
-        );
+        });
         if ( $res =~ m/^Ignore/ ) {
             @dependent_extensions = ($name);
         }
@@ -1495,7 +1520,7 @@ sub _any_leave_image {
 # Purpose       : Create Enable/Upgrade/Install checkbutton and Uninstall button if appropriate
 # Returns       : Undef/empty list
 # Parameters    : hash_ref $tred              -- ref to hash that contains TrEd window global data
-#                 scalar/URI $name            -- name of the extension
+#                 scalar/URI $name            -- name/URI of the extension
 #                 Tk::Frame $frame            -- frame on which the buttons are created
 #                 hash_ref $enable_ref        -- ref to hash with extensions that will be changed (enabled/disabled/(un)installed)
 #                 Tk::ROText $text            -- ROText with extensions' information
@@ -1595,7 +1620,7 @@ sub _create_checkbutton {
 
 #######################################################################################
 # Usage         : _add_pane_items({
-#                   uri_list_ref        => $uri_list_ref,
+#                   ext_list_ref        => $ext_list_ref,
 #                   extension_data      => \%extension_data,
 #                   text                => $text,
 #                   tred                => $tred,
@@ -1605,9 +1630,9 @@ sub _create_checkbutton {
 #                   uninstallable_ref   => $uninstallable_ref,
 #                   dialog_box          => $dialog_box,
 #                 });
-# Purpose       : For each extension from @$uri_list_ref add item on window panner
+# Purpose       : For each extension from @$ext_list_ref add item on window panner
 # Returns       : Undef/empty list
-# Parameters    : array_ref $uri_list_ref      -- ref to list of extenions' URIs
+# Parameters    : array_ref $ext_list_ref      -- ref to list of extenions' URIs
 #                 hash_ref $extension_data_ref -- ref to hash of pairs ext URI => ext meta data
 #                 Tk::ROText $text             -- ROText with extensions' information
 #                 hash_ref $tred               -- ref to hash that contains TrEd window global data
@@ -1622,7 +1647,7 @@ sub _create_checkbutton {
 sub _add_pane_items {
     my ($args_ref) = @_;
 
-    my $uri_list_ref       = $args_ref->{uri_list_ref};
+    my $ext_list_ref       = $args_ref->{ext_list_ref};
     my $extension_data_ref = $args_ref->{extension_data};
     my $text               = $args_ref->{text};
     my $tred               = $args_ref->{tred};
@@ -1635,7 +1660,7 @@ sub _add_pane_items {
     my $row = 0;
     my %embedded;
 
-    foreach my $ext_name ( @{$uri_list_ref} ) {
+    foreach my $ext_name ( @{$ext_list_ref} ) {
         my $data_ref = $extension_data_ref->{$ext_name};
         my $start    = $text->index('end');
         my $frame    = $text->Frame( -background => 'white' );
@@ -1759,16 +1784,26 @@ sub _add_pane_items {
 #                 Enable/Disable them.
 #                 Returned hash's keys are URIs of extensions. Values are 0, 1, or undef, where
 #                 1 means to enable/install extension, 0 to disable/uninstall extension.
-# See Also      : _add_pane_items(), _create_uri_list()
+# See Also      : _add_pane_items(), _create_ext_list()
 sub _populate_extension_pane {
     my ( $tred, $dialog_box, $opts_ref ) = @_;
 
-    my %enable;
-    my %extension_data;
-    my %pre_installed;
+    my %enable = ();
+    my %extension_data = ();
+    my %pre_installed = ();
+    
+    %requires = ();
+    %required_by = ();
 
-    # construct URI list with required/pre-installed extensions
-    my $uri_list_ref = _create_uri_list(
+    # construct extensions list with required/(pre-)installed extensions
+    # If the user chooses to install or upgrade extensions, 
+    # $ext_list_ref would be a list of URIs of extensions.
+    # 
+    # Otherwise, $ext_list_ref would be a list of names of extensions.
+    # Following functions should be ready for such schizophrenic behaviour.
+    # The same applies to %requires, %required_by, %extension_data hashes,
+    # the keys could be either names or URIs
+    my $ext_list_ref = _create_ext_list(
         {   pre_installed_ref  => \%pre_installed,
             extension_data_ref => \%extension_data,
             enable_ref         => \%enable,
@@ -1776,13 +1811,15 @@ sub _populate_extension_pane {
             dialog_box         => $dialog_box,
         }
     );
-
-# find required TrEd version, Perl version and module requirements of all the extensions from URI list
+   
+    # find required TrEd version, Perl version and module requirements 
+    #of all the extensions from URI list
     my $uninstallable_ref
-        = _find_all_requirements( $uri_list_ref, \%extension_data );
+        = _find_uninstallable_exts( $ext_list_ref, \%extension_data );
 
-# test required extensions for unsatisfied(-able) dependencies, modify uninstallable_ref accordingly
-    _dependencies_of_req_exts( $uri_list_ref, $uninstallable_ref );
+    # test required extensions for unsatisfied(-able) 
+    # dependencies, modify uninstallable_ref accordingly
+    _dependencies_of_req_exts( $ext_list_ref, $uninstallable_ref );
 
     my $text = $opts_ref->{pane} || $dialog_box->add(
         'Scrolled'  => 'ROText',
@@ -1798,7 +1835,7 @@ sub _populate_extension_pane {
     $text->delete(qw(0.0 end));
 
     _add_pane_items(
-        {   uri_list_ref      => $uri_list_ref,
+        {   ext_list_ref      => $ext_list_ref,
             extension_data    => \%extension_data,
             text              => $text,
             tred              => $tred,
@@ -1889,7 +1926,7 @@ sub _install_ext_button {
             );
         };
     }
-    if ( $@ || !defined($ret) ) {
+    if ( $@ || !defined $ret ) {
         $manage_ext_dialog->ErrorReport(
             -title => "Installation error",
             -message =>
@@ -1988,9 +2025,11 @@ sub manage_extensions_2 {
     my $REPOSITORIES = 'Edit Repositories';
     my $INSTALL      = 'Install Selected';
 
-# if $opts_ref->{install} is true, set title to Install New Extensions, otherwise use Manage Extensions
-# if $opts_ref->{install} is true, only install button is created, otherwise, also upgrade, download new
-# and repositories buttons are created (Close button is created either way)
+    # if $opts_ref->{install} is true, set title to 
+    # 'Install New Extensions', otherwise use 'Manage Extensions'
+    # if $opts_ref->{install} is true, only install button is created, 
+    # otherwise, also upgrade, download new and repositories buttons 
+    # are created (Close button is always created)
     my $dialog_title
         = $opts_ref->{only_upgrades} ? 'Update Extensions'
         : $opts_ref->{install}       ? 'Install New Extensions'
@@ -2082,13 +2121,13 @@ sub _repo_ok_or_forced {
     my $ext_list = eval { get_extension_list($url) };
 
     return (
-        (   ref($ext_list) && !$@
+        (   ref $ext_list && !$@
                 || (
-                $manage_repos_dialog->QuestionQuery(
+                $manage_repos_dialog->QuestionQueryAuto({
                     -title   => 'Repository error',
                     -label   => 'No repository was found on a given URL!',
                     -buttons => [ 'Cancel', 'Add Anyway' ]
-                ) =~ /Anyway/
+                }) =~ /Anyway/
                 )
         )
             && !TrEd::MinMax::first { $_ eq $url } $listbox->get( 0, 'end' )
@@ -2197,28 +2236,30 @@ sub update_extensions_list {
     my ( $name, $enable, $extension_dir ) = @_;
 
     my %names;
-    @names{ ( ref($name) eq 'ARRAY' ? @{$name} : $name ) } = ();
+    @names{ ( ref $name eq 'ARRAY' ? @{$name} : $name ) } = ();
 
     $extension_dir ||= get_extensions_dir();
     my $extension_list_file
         = File::Spec->catfile( $extension_dir, 'extensions.lst' );
     if ( -f $extension_list_file ) {
-        open( my $fh, '<', $extension_list_file )
+        open my $fh, '<', $extension_list_file
             or croak(
             "Configuring extension failed: cannot read extension list $extension_list_file: $!"
             );
         my @list = <$fh>;
-        close($fh)
+        close $fh
             or croak(
             "Configuring extension failed: cannot close extension list $extension_list_file: $!"
             );
 
-        open( $fh, '>', $extension_list_file )
+        open $fh, '>', $extension_list_file
             or croak(
             "Configuring extenson failed: cannot write extension list $extension_list_file: $!"
             );
         foreach my $extension_name (@list) {
-            if ( $extension_name =~ m/^!?(\S+)\s*$/ and exists( $names{$1} ) )
+            # ext name is valid name and 
+            # it is one of the names specified by sub argument
+            if ( $extension_name =~ m/^!?(\S+)\s*$/ && exists $names{$1} )
             {
                 print $fh ( ( $enable ? q{} : q{!} ) . $1 . "\n" );
             }
@@ -2247,13 +2288,13 @@ sub _load_extension_file {
     my ($extension_list_file) = @_;
     my @extension_file;
     if ( -f $extension_list_file ) {
-        open( my $fh, '<', $extension_list_file )
+        open my $fh, '<', $extension_list_file
             or croak(
             "Installation failed: cannot read extension list $extension_list_file: $!"
             );
         @extension_file = <$fh>;
-        chomp(@extension_file);
-        close($fh)
+        chomp @extension_file;
+        close $fh
             or croak(
             "Installation failed: cannot close extension list $extension_list_file: $!"
             );
@@ -2267,7 +2308,7 @@ sub _load_extension_file {
 #######################################################################################
 # Usage         : _force_reinstall($opts_ref, $name, $dir)
 # Purpose       : Ask user whether to force extension's reinstallation/update
-# Returns       : If $opts_ref->{quiet} is 0, return value of QuestionQuery is returned.
+# Returns       : If $opts_ref->{quiet} is 0, return value of QuestionQueryAuto is returned.
 #                 Undef/empty list is returned otherwise.
 # Parameters    : hash_ref $opts_ref -- ref to hash of options
 #                 scalar $name       -- name of the extension
@@ -2279,12 +2320,12 @@ sub _force_reinstall {
     my ( $opts_ref, $name, $dir ) = @_;
 
     if ( $opts_ref->{quiet} == 0 ) {
-        return $opts_ref->{tk}->QuestionQuery(
+        return $opts_ref->{tk}->QuestionQueryAuto({
             -title => 'Reinstall?',
             -label =>
                 "Extension $name is already installed in $dir.\nDo you want to upgrade/reinstall it?",
             -buttons => [ 'Install/Upgrade', 'All', 'Cancel' ]
-        );
+        });
     }
     else {
         return;
@@ -2351,7 +2392,7 @@ sub _install_extension_from_zip {
     }
 
     # Extract zip archive, i.e. the extension
-    if ( $zip->extractTree( q{}, $dir . '/' ) == Archive::Zip::AZ_OK() ) {
+    if ( $zip->extractTree( q{}, $dir . q{/} ) == Archive::Zip::AZ_OK() ) {
 
         # try to restore executable bit
         if ( $^O ne 'MSWin32' ) {
@@ -2394,17 +2435,17 @@ sub _install_extension_from_zip {
 # See Also      : uninstall_extension()
 sub install_extensions {
     my ( $urls_ref, $opts_ref ) = @_;
-    if ( ref($urls_ref) ne 'ARRAY' ) {
+    if ( ref $urls_ref ne 'ARRAY' ) {
         croak(q{Usage: install_extensions(\@urls, \%opts)});
     }
-    return if not @{$urls_ref};
+    return if ! @{$urls_ref};
     $opts_ref ||= {};
 
     # Create extension directory if it does not exist..
     my $extension_dir = $opts_ref->{extensions_dir} || get_extensions_dir();
     if ( not -d $extension_dir ) {
         mkdir $extension_dir
-            || croak(
+            or croak(
             "Installation failed: cannot create extension directory $extension_dir: $!"
             );
     }
@@ -2414,6 +2455,7 @@ sub install_extensions {
         = File::Spec->catfile( $extension_dir, 'extensions.lst' );
     my @extension_file = _load_extension_file($extension_list_file);
 
+    # extract the zip archive with extension
     require Archive::Zip;
     for my $url ( @{$urls_ref} ) {
         my $name = $url;
@@ -2445,14 +2487,14 @@ sub install_extensions {
     }
 
     # Update extension list file
-    open( my $fh, '>', $extension_list_file )
+    open my $fh, '>', $extension_list_file 
         or croak(
         "Installation failed: cannot write to extension list $extension_list_file: $!"
         );
     foreach my $extension_name (@extension_file) {
         print $fh ( $extension_name . "\n" );
     }
-    close($fh)
+    close $fh
         or croak(
         "Installation failed: cannot close to extension list $extension_list_file: $!"
         );
@@ -2481,11 +2523,11 @@ sub uninstall_extension {
             if (
                $opts_ref->{tk}
             && !$opts_ref->{quiet}
-            && $opts_ref->{tk}->QuestionQuery(
+            && $opts_ref->{tk}->QuestionQueryAuto({
                 -title   => 'Uninstall?',
                 -label   => "Really uninstall extension $name ($dir)?",
                 -buttons => [ 'Uninstall', 'Cancel' ]
-            ) ne 'Uninstall'
+            }) ne 'Uninstall'
             );
         require File::Path;
         File::Path::rmtree($dir);
@@ -2497,7 +2539,7 @@ sub uninstall_extension {
     if ( -f $extension_list_file ) {
 
         # first load all the extensions to @ext_list
-        open( my $fh, '<', $extension_list_file )
+        open my $fh, '<', $extension_list_file
             or croak(
             "Uninstall failed: cannot read extension list $extension_list_file: $!"
             );
@@ -2508,7 +2550,7 @@ sub uninstall_extension {
             );
 
         # then write all the extension back, except $name extension
-        open( $fh, '>', $extension_list_file )
+        open $fh, '>', $extension_list_file
             or croak(
             "Uninstall failed: cannot write extension list $extension_list_file: $!"
             );
@@ -2524,9 +2566,7 @@ sub uninstall_extension {
     return 1;
 }
 
-#### EOF ManageExtensions
 
-# Preloaded methods go here.
 
 #######################################################################################
 # Usage         : get_extensions_dir()
@@ -2576,13 +2616,13 @@ sub get_extension_list {
     carp($@) if ($@);
     return [] if ( !$fh );
     my $ext_filter = qr{
-                            ^
-                            !?
-                            [[:alnum:]_-]+
-                            \s*
-                            $
+                            ^               # at the beginning of string, we accept
+                            !?              # an optional sign of disabled extension
+                            [[:alnum:]_-]+  # the name of extension
+                            \s*             # any number of whitespace
+                            $               # followed by the end of string
                        }x;
-    my @extensions = grep {m/$ext_filter/} <$fh>;
+    my @extensions = grep { m/$ext_filter/ } <$fh>;
     foreach my $extension (@extensions) {
         $extension =~ s/\s+$//;
     }
@@ -2597,7 +2637,7 @@ sub get_extension_list {
 # Returns       : nothing
 # Parameters    : array_ref $list $ext_list -- reference to list of extension names
 #                 scalar $extension_dir     -- name of the directory where extensions are stored
-# Throws        : carp if the first argument is a reference, but not array reference
+# Throws        : carps if the first argument is a reference, but not array reference
 # Comments      : If $ext_list is not supplied, get_extension_list() function is used to get the list
 #                 of extensions. If $extension_dir is not supplied, get_extensions_dir() is used to find
 #                 the directory for extensions.
@@ -2609,51 +2649,52 @@ sub init_extensions {
     if ( @_ == 0 ) {
         $list = get_extension_list();
     }
-    elsif ( ref($list) ne 'ARRAY' ) {
+    elsif ( ! defined $list || ref $list ne 'ARRAY' ) {
         carp('Usage: init_extensions( [ extension_name(s)... ] )');
+        $list = ();
     }
     $extension_dir ||= get_extensions_dir();
 
-    my ( %m, %r, %i, %s );
+    my ( %macro_includes, %resources, %includes, %stylesheets );
 
     # stylesheet paths
     if ( defined(@TrEd::Utils::stylesheet_paths) ) {
-        @s{ grep { defined($_) } @TrEd::Utils::stylesheet_paths } = ();
+        @stylesheets{ grep { defined($_) } @TrEd::Utils::stylesheet_paths } = ();
     }
 
     # resource paths
-    @r{ Treex::PML::ResourcePaths() } = ();
+    @resources{ Treex::PML::ResourcePaths() } = ();
 
     # macro include paths
     if ( defined(@TrEd::Macros::macro_include_paths) ) {
-        @m{ grep { defined($_) } @TrEd::Macros::macro_include_paths } = ();
+        @macro_includes{ grep { defined($_) } @TrEd::Macros::macro_include_paths } = ();
     }
 
     # perl include paths
-    @i{@INC} = ();
+    @includes{@INC} = ();
 
-# add each extension's resources, macros, stylesheets and libs to appropriate paths
-# used by TrEd
+    # add each extension's resources, macros, stylesheets 
+    # and libs to appropriate paths used by TrEd
     for my $name ( grep { !/^!/ } @{$list} ) {
         my $dir = File::Spec->catdir( $extension_dir, $name, 'resources' );
-        if ( -d $dir && !exists( $r{$dir} ) ) {
+        if ( -d $dir && !exists( $resources{$dir} ) ) {
             Treex::PML::AddResourcePath($dir);
-            $r{$dir} = 1;
+            $resources{$dir} = 1;
         }
         $dir = File::Spec->catdir( $extension_dir, $name );
-        if ( -d $dir && !exists( $m{$dir} ) ) {
+        if ( -d $dir && !exists( $macro_includes{$dir} ) ) {
             push @TrEd::Macros::macro_include_paths, $dir;
-            $m{$dir} = 1;
+            $macro_includes{$dir} = 1;
         }
         $dir = File::Spec->catdir( $extension_dir, $name, 'libs' );
-        if ( -d $dir && !exists( $i{$dir} ) ) {
+        if ( -d $dir && !exists( $includes{$dir} ) ) {
             push( @INC, $dir );
-            $i{$dir} = 1;
+            $includes{$dir} = 1;
         }
         $dir = File::Spec->catdir( $extension_dir, $name, 'stylesheets' );
-        if ( -d $dir && !exists( $s{$dir} ) ) {
+        if ( -d $dir && !exists( $stylesheets{$dir} ) ) {
             push( @TrEd::Utils::stylesheet_paths, $dir );
-            $s{$dir} = 1;
+            $stylesheets{$dir} = 1;
         }
     }
 
@@ -2689,19 +2730,19 @@ sub get_preinstalled_extension_list {
     # delete extensions that should be ignored / not listed
     delete @preinst{ map { /^!?(\S+)/ ? $1 : $_ } @{$except} };
 
-# filter only those extensions that exist in hash (i.e. those that are not commented out,
-# nor ignored)
+    # filter only those extensions that exist in hash 
+    # (i.e. those that are not commented out, nor ignored)
     @{$pre_installed_dir_exts}
         = grep { exists( $preinst{$_} ) } @{$pre_installed_dir_exts};
     return $pre_installed_dir_exts;
 }
 
 #######################################################################################
-# Usage         : get_extension_subpaths($list, $extension_dir, $rel_path)
+# Usage         : get_extension_subpaths($list_ref, $extension_dir, $rel_path)
 # Purpose       : Take $list of extensions in $extension_dir directory and return list of
 #                 subdirectories specified by $rel_path
 # Returns       : List of subdirectories of the extensions in $extension_dir specified by $rel_path
-# Parameters    : array_ref $list       -- reference to array of extensions
+# Parameters    : array_ref $list_ref   -- reference to array of extensions
 #                 scalar $extension_dir -- name of the directory containing extensions
 #                 scalar $rel_path      -- subdirectory name
 # Throws        : carp if $list is a reference, but not a ref to array
@@ -2710,72 +2751,72 @@ sub get_preinstalled_extension_list {
 #                 If $extension_dir is not supplied, get_extensions_dir() return value is used
 # See Also      : get_extensions_dir(), get_extension_list()
 sub get_extension_subpaths {
-    my ( $list, $extension_dir, $rel_path ) = @_;
+    my ( $list_ref, $extension_dir, $rel_path ) = @_;
     if ( @_ == 0 ) {
-        $list = get_extension_list();
+        $list_ref = get_extension_list();
     }
-    elsif ( ref($list) ne 'ARRAY' ) {
+    elsif ( ref $list_ref ne 'ARRAY' ) {
         carp(
             'Usage: get_extension_subpaths( [ extension_name(s)... ], extension_dir, rel_path )'
         );
     }
     $extension_dir ||= get_extensions_dir();
-    my @filtered_extensions_list = grep { !/^!/ } @{$list};
+    my @filtered_extensions_list = grep { !/^!/ } @{$list_ref};
     return
         map { File::Spec->catfile( $extension_dir, $_, $rel_path ) }
         @filtered_extensions_list;
 }
 
 #######################################################################################
-# Usage         : get_extension_sample_data_paths($list, $extension_dir)
+# Usage         : get_extension_sample_data_paths($list_ref, $extension_dir)
 # Purpose       : Find all the valid 'sample' subdirectories for all the extensions from
 #                 $list in $extension_dir directory
 # Returns       : List of existing 'sample' subdirectories for specified extensions
-# Parameters    : array_ref $list       -- reference to array of extensions to work with
+# Parameters    : array_ref $list_ref   -- reference to array of extensions to work with
 #                 scalar $extension_dir -- name of the directory containing extensions
 # Throws        : no exception
 # See Also      : get_extension_subpaths()
 sub get_extension_sample_data_paths {
-    my ( $list, $extension_dir ) = @_;
+    my ( $list_ref, $extension_dir ) = @_;
     return
         grep { -d $_ }
-        get_extension_subpaths( $list, $extension_dir, 'sample' );
+        get_extension_subpaths( $list_ref, $extension_dir, 'sample' );
 }
 
 #######################################################################################
-# Usage         : get_extension_doc_paths($list, $extension_dir)
+# Usage         : get_extension_doc_paths($list_ref, $extension_dir)
 # Purpose       : Find all the valid 'documentation' subdirectories for all the extensions from
 #                 $list in $extension_dir directory
 # Returns       : List of existing 'documentation' subdirectories for specified extensions
-# Parameters    : array_ref $list       -- reference to array of extensions to work with
+# Parameters    : array_ref $list_ref   -- reference to array of extensions to work with
 #                 scalar $extension_dir -- name of the directory containing extensions
 # Throws        : no exception
 # See Also      : get_extension_subpaths()
 sub get_extension_doc_paths {
-    my ( $list, $extension_dir ) = @_;
+    my ( $list_ref, $extension_dir ) = @_;
     return
         grep { -d $_ }
-        get_extension_subpaths( $list, $extension_dir, 'documentation' );
+        get_extension_subpaths( $list_ref, $extension_dir, 'documentation' );
 }
 
 #######################################################################################
-# Usage         : get_extension_template_paths($list, $extension_dir)
+# Usage         : get_extension_template_paths($list_ref, $extension_dir)
 # Purpose       : Find all the valid 'templates' subdirectories for all the extensions from
 #                 $list in $extension_dir directory
 # Returns       : List of existing 'templates' subdirectories for specified extensions
-# Parameters    : array_ref $list       -- reference to array of extensions to work with
+# Parameters    : array_ref $list_ref   -- reference to array of extensions to work with
 #                 scalar $extension_dir -- name of the directory containing extensions
 # Throws        : no exception
 # See Also      : get_extension_subpaths()
 sub get_extension_template_paths {
-    my ( $list, $extension_dir ) = @_;
+    my ( $list_ref, $extension_dir ) = @_;
     return
         grep { -d $_ }
-        get_extension_subpaths( $list, $extension_dir, 'templates' );
+        get_extension_subpaths( $list_ref, $extension_dir, 'templates' );
 }
 
 #######################################################################################
-# Usage         : _contrib_macro_paths($direcotry)
+# Usage         : _contrib_macro_paths($directory)
 # Purpose       : Find all directories and subdirectories of $directory that contains
 #                 'contrib.mac' file
 # Returns       : List of paths to contrib.mac file in subdirectories of $directory
@@ -2783,27 +2824,27 @@ sub get_extension_template_paths {
 # Throws        : no exception
 # See Also      : glob()
 sub _contrib_macro_paths {
-    my ($direcotry) = @_;
-    return glob( $direcotry . '/*/contrib.mac' ),
-        ( ( -f $direcotry . '/contrib.mac' )
-        ? $direcotry . '/contrib.mac'
+    my ($directory) = @_;
+    return glob( $directory . '/*/contrib.mac' ),
+        ( ( -f $directory . '/contrib.mac' )
+        ? $directory . '/contrib.mac'
         : () );
 }
 
 #######################################################################################
-# Usage         : get_extension_macro_paths($list, $extension_dir)
+# Usage         : get_extension_macro_paths($list_ref, $extension_dir)
 # Purpose       : Find all the paths with 'contrib.mac' file for all the extensions from
 #                 $list in $extension_dir directory
 # Returns       : List of paths to 'contrib.mac' files for specified extensions
-# Parameters    : array_ref $list       -- reference to array of extensions to work with
+# Parameters    : array_ref $list_ref   -- reference to array of extensions to work with
 #                 scalar $extension_dir -- name of the directory containing extensions
 # Throws        : no exception
 # Comments      :
 # See Also      : get_extension_subpaths()
 sub get_extension_macro_paths {
-    my ( $list, $extension_dir ) = @_;
+    my ( $list_ref, $extension_dir ) = @_;
     my @contrib_subdirs
-        = get_extension_subpaths( $list, $extension_dir, 'contrib' );
+        = get_extension_subpaths( $list_ref, $extension_dir, 'contrib' );
     return map { _contrib_macro_paths($_) } @contrib_subdirs;
 }
 
@@ -2822,7 +2863,7 @@ sub get_extension_meta_data {
     my ( $name, $extensions_dir ) = @_;
     my $metafile;
     if ( ( blessed($name) and $name->isa('URI') ) ) {
-        $metafile = URI->new('package.xml')->abs( $name . '/' );
+        $metafile = URI->new('package.xml')->abs( $name . q{/} );
     }
     else {
         $metafile
@@ -2859,7 +2900,7 @@ sub _inst_file {
 }
 
 #######################################################################################
-# Usage         : _inst_version($module)
+# Usage         : get_module_version($module)
 # Purpose       : Find out the version number for installed $module
 # Returns       : Undef if module is not present in @INC, version string
 #                 found by ExtUtils::MM::parse_version() otherwise
@@ -2867,7 +2908,7 @@ sub _inst_file {
 # Throws        : no exception
 # Comments      : requires CPAN, ExtUtils::MM
 # See Also      : _inst_file(),
-sub _inst_version {
+sub get_module_version {
     my ($module) = @_;
     require CPAN;
     require ExtUtils::MM;
@@ -2891,19 +2932,6 @@ sub _inst_version {
     return $module_version;
 }
 
-#######################################################################################
-# Usage         : get_module_version($name)
-# Purpose       : Find which version of module $name is installed
-# Returns       : Version string of installed module
-# Parameters    : scalar $name -- perl module name, e.g. Data::Dumper
-# Throws        : no exception
-# Comments      :
-# See Also      : _inst_version()
-# TODO: naco je dobry takyto wrapper?
-sub get_module_version {
-    my ($name) = @_;
-    return _inst_version($name);
-}
 
 #######################################################################################
 # Usage         : compare_module_versions($version_1, $version_2)
@@ -2919,9 +2947,128 @@ sub get_module_version {
 # See Also      : CPAN::Version->vcmp(),
 sub compare_module_versions {
     my ( $v1, $v2 ) = @_;
-    return if not eval { require CPAN; 1 };
+    return if !eval { require CPAN; 1 };
     return CPAN::Version->vcmp( $v1, $v2 );
 }
+
+#######################################################################################
+# Usage         : _check_extensions_cmdline_opts($extension_name, $enabled_ref, $disabled_ref, $macro_file_cmdline)
+# Purpose       : Tell whether the extension $extension_name is going to be enabled
+#                 or disabled according to command line options and extensions file
+# Returns       : The name of the extension with or without an exclamation mark
+#                 in the beginning (! means the extension is going to disabled)
+# Parameters    : string $extension_name -- name of the extension
+#                 hash_ref $enabled_ref -- ref to hash of explicitly enabled extensions
+#                 hash_ref $disabled_ref -- ref to hash of explicitly disabled extensions
+#                 string $macro_file_cmdline -- the string from -m switch on command line
+# Throws        : no exception
+# Comments      : If any macro is specified on the command line, the extensions are 
+#                 disabled by default. Specifying enabled extensions on command line
+#                 has however, higher priority. 
+# See Also      : prepare_extensions()
+sub _check_extensions_cmdline_opts {
+    my ($extension_name, $enabled_ref, $disabled_ref, $macro_file_cmdline) = @_;
+    # ext name starts with '!' ~ is disabled 
+    if ($extension_name =~ m/^!(.*)/) {
+
+        if (exists $enabled_ref->{'*'} && !exists $disabled_ref->{$1} 
+            || exists $enabled_ref->{$1}) 
+        {
+            # user forced enable all && did not disable this extension
+            # => make extension enabled            
+            return $1;
+        }
+        else {
+            # otherwise, keep the extension disabled
+            return $extension_name;
+        }
+    }
+    else {
+        # if a macro is specified on the command line
+        # treat the extension as if it was disabled 
+        # in extension list file
+        if ($macro_file_cmdline) {
+            if ( exists $enabled_ref->{'*'} 
+                    && !exists $disabled_ref->{$extension_name} 
+                 || exists $enabled_ref->{$extension_name} ) 
+            { 
+                return $extension_name;
+            }
+            else { 
+                return '!'.$extension_name;
+            }
+        } 
+        else {
+            if (exists $disabled_ref->{'*'} 
+                    && !exists $enabled_ref->{$extension_name} 
+                || exists $disabled_ref->{$extension_name} ) 
+            { 
+                # all extensions are disables 
+                #  and this one is not explicitly enabled
+                # or this extension is explicitly disabled
+                # => disable extension
+                return q{!} . $extension_name;
+            }
+            else { 
+                # otherwise just keep the extension enabled
+                return $extension_name;
+            }
+        }
+
+    }
+}
+
+#######################################################################################
+# Usage         : prepare_extensions($macro_file_cmdline)
+# Purpose       : Prepare all the installed extensions for use
+# Returns       : Reference to array which contains two array references: first one 
+#                 is a reference to array of installed extensions, second one is a ref 
+#                 to array of preinstalled extensions
+# Parameters    : scalar $macro_file_cmdline -- command line argument -- macro file to read 
+# Throws        : carp if required extension could not be found
+# Comments      : Also reflects command-line arguments which can enable and disable 
+#                 loading of extensions
+# See Also      : init_extensions()
+sub prepare_extensions {
+    my ($macro_file_cmdline) = @_;
+    my $extensions           = get_extension_list();
+    my $pre_installed        = get_preinstalled_extension_list($extensions);
+
+    my ( %enabled, %disabled );
+    @enabled{ split /,/,  $enable_extensions }  = ();
+    @disabled{ split /,/, $disable_extensions } = ();
+
+    #   if (defined $opt_m) {
+    #     warn("Using -m implies all extensions disabled...\n") unless $opt_q;
+    #  }
+
+    @{$extensions}
+        = map {
+        _check_extensions_cmdline_opts( $_, \%enabled, \%disabled,
+            $macro_file_cmdline )
+        } @{$extensions};
+
+    @{$pre_installed}
+        = map {
+        _check_extensions_cmdline_opts( $_, \%enabled, \%disabled,
+            $macro_file_cmdline )
+        } @{$pre_installed};
+
+    my %have;
+    @have{ @{$extensions}, @{$pre_installed} } = ();
+
+    for my $required ( keys %enabled ) {
+        if ( $required ne q{*} and !exists $have{$required} ) {
+            carp("WARNING: extension $required not found!");
+        }
+    }
+
+    init_extensions($extensions);
+    init_extensions( $pre_installed, get_preinstalled_extensions_dir() );
+
+    return [ $extensions, $pre_installed ];
+}
+
 
 1;
 
@@ -2973,6 +3120,7 @@ TrEd::Extensions version 0.2.
     repositories => $repos,
     reload_macros => \$reload_macros,
   }
+  # fires up the GUI installer
   TrEd::Extensions::manage_extensions_2($tred, $opts);
   
   
@@ -3002,7 +3150,7 @@ Construct short name for package $pkg_name
 =item Comments
 
 If $pkg name is blessed URI reference, everything from the beginning
-of $pkg_name to last slash is removed and the rest is returned. 
+of $pkg_name to last slash is removed and the rest is returned.
 Otherwise $pkg_name is returned without any modification
 
 
@@ -3020,6 +3168,7 @@ Short name for $pkg_name
 =item Purpose
 
 Create list of triples: repository, extension name, extension URI
+for repositories listed in $opts_ref->{repositories}
 
 =item Parameters
 
@@ -3027,9 +3176,9 @@ Create list of triples: repository, extension name, extension URI
 
 =item Comments
 
-Options hash reference should contain list of repositories in 
+Options hash reference should contain list of repositories in
 $opts_ref->{repositories}, information about installed extensions
-as a hash $opts_ref->{installed}{installed_ext_name}. 
+as a hash $opts_ref->{installed}{installed_ext_name}.
 If we are updating extensions, $opts_ref->{only_upgrades} should be set.
 
 =item See Also
@@ -3038,7 +3187,7 @@ L<Treex::PML::IO::make_URI()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PM
 
 =item Returns
 
-List of array references, each array contains triple repo, extension 
+List of array references, each array contains triple repo, extension
 name, extension URI
 
 =back
@@ -3089,7 +3238,7 @@ E.g. 1.1024 > 1.256, thus cmp_revisions("1.1024", "1.256") should return 1
 
 =item Returns
 
--1 if $my_revision is numerically less than $other_revision, 
+-1 if $my_revision is numerically less than $other_revision,
 0 if $my_revision is equal to $other_revision
 1 if $my_revision is greater than $other_revision
 Undef/empty list, if one of the revisions is not defined.
@@ -3097,7 +3246,7 @@ Undef/empty list, if one of the revisions is not defined.
 =back
 
 
-=item * C<TrEd::Extensions::_version_ok($my_version, $required_extension)>
+=item * C<TrEd::Extensions::_version_ok($my_version, $required_extension_ref)>
 
 =over 6
 
@@ -3108,12 +3257,12 @@ min and max required version (if specified)
 
 =item Parameters
 
-  C<$my_version> -- scalar $my_version            -- version of installed extension
-  C<$required_extension> -- hash_ref $required_extension  -- ref to hash which contains required version info
+  C<$my_version> -- scalar $my_version               -- version of installed extension
+  C<$required_extension_ref> -- hash_ref $required_extension_ref -- ref to hash which contains required version info
 
 =item Comments
 
-Required extension hash should contain at least min_version and 
+Required extension hash should contain at least min_version and
 max_version values
 
 =item See Also
@@ -3154,10 +3303,10 @@ True if the extension is installed, but not up to date.
 =back
 
 
-=item * C<TrEd::Extensions::_resolve_missing_dependency({req_data           => $req_data, 
-required_extension => $required_extension, 
-short_name         => $short_name, 
-repo               => $repo, 
+=item * C<TrEd::Extensions::_resolve_missing_dependency({req_data           => $req_data,
+required_extension => $required_extension,
+short_name         => $short_name,
+repo               => $repo,
 dialog_box         => $dialog_box })
 >
 
@@ -3177,7 +3326,7 @@ Ask user what to do with unresolved dependencies
 
 =item Comments
 
-Needs Tk and uses its QuestionQuery function
+Needs Tk and uses its QuestionQueryAuto function
 
 
 =item Returns
@@ -3204,13 +3353,13 @@ opts_ref              => $opts_ref,
 =item Purpose
 
 Check requirements of each extension that is required by $uri extension
-and add all the requirements to $extensions_list_ref 
-(if they are not already there)
+and add all the requirements to $extensions_list_ref
+(if they are not already in the list, installed or up-to date)
 
 =item Parameters
 
   C<$extension_data_ref> -- hash_ref $extension_data_ref    -- hash reference to extension's meta data
-  C<$extensions_list_ref> -- array_ref $extensions_list_ref  -- reference to array containing list of extensions
+  C<$extensions_list_ref> -- array_ref $extensions_list_ref  -- reference to array containing list of information about extensions
   C<\%uri_in_repository> -- hash_ref $uri_in_repository_ref -- ref to hash of URIs in repositories
   C<$uri> -- scalar $uri                     -- URI of the extension whose requirements are searched for
   C<$short_name> -- scalar $short_name              -- name of the extension whose requirements are searched for
@@ -3219,9 +3368,12 @@ and add all the requirements to $extensions_list_ref
 
 =item Comments
 
-If any of the required extensions is missing, user is prompted with dialog 
-to choose whether TrEd should ignore the dependency, cancel the installation 
-or skip installation of the extension
+If any of the required extensions is missing, user is prompted with dialog
+to choose whether TrEd should ignore the dependency, cancel the installation
+or skip installation of the extension.
+$extensions_list_ref and $uri_in_repository_ref can be modified as a side effect
+during finding new dependencies. This function can also modify %requires and
+required_by hash.
 
 =item See Also
 
@@ -3229,7 +3381,7 @@ L<_resolve_missing_dependency>,
 
 =item Returns
 
-String 'Cancel' if user chooses to cancel installation, 
+String 'Cancel' if user chooses to cancel installation,
 'Skip' if user chooses to skip extension $uri, undef otherwise
 
 =back
@@ -3241,7 +3393,7 @@ String 'Cancel' if user chooses to cancel installation,
 
 =item Purpose
 
-Construct hash with information, which extensions depend on specified 
+Construct hash with information, which extensions depend on specified
 extension from $requires hash
 
 =item Parameters
@@ -3270,7 +3422,8 @@ dialog_box          => $dialog_box,
 
 =item Purpose
 
-Create list of URIs of extensions from $extensions_list_ref with their dependencies
+Create list of URIs of extensions that are not installed or up-to date
+from repository specified in opts_ref hash
 
 =item Parameters
 
@@ -3278,6 +3431,13 @@ Create list of URIs of extensions from $extensions_list_ref with their dependenc
   C<$opts_ref> -- hash_ref $opts_ref             -- ref to hash of populate_extension_pane options
   C<$dialog_box> -- Tk::DialogBox $dialog_box      -- dialg box to create GUI elements
 
+=item Comments
+
+opts_ref hash should contain an element with name 'repositories', whose
+value is a reference to array of extension repositories (as their URIs) and
+an element with key 'installed', whose value is a hash reference
+with names of isntalled extensions as keys and their installed versions as
+corresponding values.
 
 =item See Also
 
@@ -3293,7 +3453,7 @@ Reference to array of URIs or undef/empty list if cancelled by user
 =back
 
 
-=item * C<TrEd::Extensions::_uri_list_with_preinstalled_exts({pre_installed_ref   => $pre_installed_ref,
+=item * C<TrEd::Extensions::_list_of_installed_extensions({pre_installed_ref   => $pre_installed_ref,
 enable_ref          => $enable_ref,
 opts_ref            => $opts_ref,
 extension_data_ref  => $extension_data_ref,
@@ -3304,20 +3464,21 @@ extension_data_ref  => $extension_data_ref,
 
 =item Purpose
 
-Create list of URIs of preinstalled extensions and 
-extensions from $extensions_list_ref
+Create list of URIs of preinstalled and installed extensions
 
 =item Parameters
 
   C<$pre_installed_ref> -- hash_ref pre_installed_ref        -- ref to hash of pre-installed extensions
   C<$enable_ref> -- hash_ref $enable_ref              -- ref to hash of enabled extensions
-  C<$opts_ref> -- hash_ref $opts_ref                -- ref to hash of populate_extension_pane options                 
-  C<$extension_data_ref> -- hash_ref $extension_data_ref      -- ref to hash of meta data about extensions                 
+  C<$opts_ref> -- hash_ref $opts_ref                -- ref to hash of populate_extension_pane options
+  C<$extension_data_ref> -- hash_ref $extension_data_ref      -- ref to hash of meta data about extensions
 
 =item Comments
 
-Also creates a hash of enabled extensions (those that are listed with exclamation 
-mark in the beginning are disabled). 
+Also creates a hash of enabled extensions (those that are listed with exclamation
+mark in the beginning are disabled). As a side effect, requires and required_by hashes
+are updated with new information about the extensions.
+Only 'progressbar' option is used from $opts_ref hash in this function.
 
 =item See Also
 
@@ -3333,7 +3494,7 @@ Reference to array of URIs
 =back
 
 
-=item * C<TrEd::Extensions::_create_uri_list({pre_installed_ref     => \%pre_installed,
+=item * C<TrEd::Extensions::_create_ext_list({pre_installed_ref     => \%pre_installed,
 extension_data_ref    => \%extension_data,
 enable_ref            => \%enable,
 opts_ref              => $opts_ref,
@@ -3345,25 +3506,33 @@ dialog_box            => $dialog_box,
 
 =item Purpose
 
-Create list of URIs of extensions
+Create list of extensions
 
 =item Parameters
 
-  C<\%pre_installed> -- hash_ref $pre_installed_ref   -- ref to empty hash of preinstalled extensions (filled by _uri_list_with_preinstalled_exts)
+  C<\%pre_installed> -- hash_ref $pre_installed_ref   -- ref to empty hash of preinstalled extensions (filled by _list_of_installed_extensions)
   C<\%extension_data> -- hash_ref $extension_data_ref  -- ref to empty hash of extensions' data (filled by this function)
   C<\%enable> -- hash_ref $enable_ref          -- ref to empty hash of enabled & disabled extensions (filled by this function)
   C<$opts_ref> -- hash_ref $opts_ref            -- ref to hash of options
   C<$dialog_box> -- Tk::DialogBox $dialog_box     -- dialg box to create GUI elements
 
+=item Comments
+
+If $opts_ref->{install} is set to true, list of URIs of extensions that are not
+installed or are not up-to date is returned. Otherwise, list of installed
+and preinstalled extensions' names is returned.
+extension_data_ref is filled accordingly, i.e. if list of URIs is returned,
+the keys of %{$extension_data_ref} hash are URIs, otherwise the keys are names
+of extensions.
 
 =item See Also
 
-L<_uri_list_with_preinstalled_exts>,
+L<_list_of_installed_extensions>,
 L<_uri_list_with_required_exts>,
 
 =item Returns
 
-Reference to list of extensions' URIs
+Reference to list of extensions/their URIs
 
 =back
 
@@ -3439,17 +3608,17 @@ Empty string if Perl's version is ok, error message otherwise
 =back
 
 
-=item * C<TrEd::Extensions::_find_all_requirements($uri_list, $extension_data_ref)>
+=item * C<TrEd::Extensions::_find_uninstallable_exts($ext_list_ref, $extension_data_ref)>
 
 =over 6
 
 =item Purpose
 
-Test all the requirements of extension from @$uri_list_ref
+Test all the requirements of extension from @$ext_list_ref
 
 =item Parameters
 
-  C<$uri_list> -- array_ref $uri_list_ref       -- ref to array of extensions' URIs
+  C<$ext_list_ref> -- array_ref $ext_list_ref       -- ref to array of extensions' URIs/names
   C<$extension_data_ref> -- hash_ref $extension_data_ref  -- ref to hash of extensions' meta data
 
 
@@ -3466,28 +3635,28 @@ Reference to hash of extensions that can't be installed
 =back
 
 
-=item * C<TrEd::Extensions::_dependencies_of_req_exts($uri_list_ref, $uninstallable_ref)>
+=item * C<TrEd::Extensions::_dependencies_of_req_exts($ext_list_ref, $uninstallable_ref)>
 
 =over 6
 
 =item Purpose
 
-Test whether all the dependecies of extensions from @$uri_list_ref are satisfied
+Test whether all the dependecies of extensions from @$ext_list_ref are satisfied
 
 =item Parameters
 
-  C<$uri_list_ref> -- array_ref $uri_list_ref     -- ref to list of extensions' URIs
+  C<$ext_list_ref> -- array_ref $ext_list_ref     -- ref to list of extensions' names
   C<$uninstallable_ref> -- hash_ref $uninstallable_ref -- ref to hash of extensions that can't be installed (due to unsatisfied dependencies)
 
 =item Comments
 
-Modifies $uninstallable_ref hash according to the uninstallability of 
+Modifies $uninstallable_ref hash according to the uninstallability of
 required extensions
 
 
 =item Returns
 
-Undef/empty list 
+Undef/empty list
 
 =back
 
@@ -3510,7 +3679,7 @@ Set extension's icon
 =item Parameters
 
   C<$data> -- hash_ref $data              -- ref to hash with extension's meta data
-  C<$name> -- scalar/URI $name            -- name of the extension
+  C<$name> -- scalar/URI $name            -- name or URI of the extension
   C<$pre_installed_ref> -- hash_ref $pre_installed_ref -- ref to hash containing names of preinstalled extensions (& empty values)
   C<$text> -- Tk::ROText $text            -- ref to ROText on which the Labels/icons are created
   C<$generic_icon> -- Tk::Photo $generic_icon     -- ref to Tk::Photo with generic extension icon
@@ -3518,7 +3687,7 @@ Set extension's icon
 
 =item Comments
 
-If extension's meta $data->{icon} is set, it is used. 
+If extension's meta $data->{icon} is set, it is used.
 Generic icon is used otherwise.
 
 
@@ -3569,7 +3738,7 @@ Undef/empty list
 
 =item Purpose
 
-Convert (and round) information amount from bytes to MiB, KiB or GiB, 
+Convert (and round) information amount from bytes to MiB, KiB or GiB,
 so that numerical part of the expression is an integer between 1 and 1023
 
 =item Parameters
@@ -3621,8 +3790,8 @@ Undef/empty list
 =item Purpose
 
 Find all the dependendents for $name listed in %required_by
-hash; continue recusively for all dependendents which exist 
-in $exists_ref hash 
+hash; continue recusively for all dependendents which exist
+in $exists_ref hash
 
 =item Parameters
 
@@ -3648,7 +3817,7 @@ List of dependendents
 =item Purpose
 
 Find all the dependendencies for $name listed in %requires
-hash; continue recusively for all dependencies which exist 
+hash; continue recusively for all dependencies which exist
 in $exists_ref hash
 
 =item Parameters
@@ -3684,8 +3853,8 @@ Mark extension and its requirements to be installed/upgraded
 =item Comments
 
 Upgrade/install checkbox callback -- called every time checkbox's state changes
-If extension is selected, adds reflexive dependency and enables all required extensions. 
-If it is unselected, removes reflexive dependency and disables required extensions, 
+If extension is selected, adds reflexive dependency and enables all required extensions.
+If it is unselected, removes reflexive dependency and disables required extensions,
 if they are not required by another extension (which does not have to be installed -> why is that? :/).
 
 =item See Also
@@ -3716,7 +3885,7 @@ Enable/disable extensions and their dependants
 
 =item Comments
 
-Enable checkbox callback -- called every time checkbox's state changes. 
+Enable checkbox callback -- called every time checkbox's state changes.
 Updates also the extensions list file.
 
 =item See Also
@@ -3750,7 +3919,7 @@ Uninstall extension callback
 
 =item Comments
 
-If the user allows it, also dependent extensions are removed. 
+If the user allows it, also dependent extensions are removed.
 Information about the extensions is removed also from $opts_ref->{versions}
 and $embedded_ref
 
@@ -3976,7 +4145,7 @@ Create Enable/Upgrade/Install checkbutton and Uninstall button if appropriate
 =item Parameters
 
   C<$tred> -- hash_ref $tred              -- ref to hash that contains TrEd window global data
-  C<$name> -- scalar/URI $name            -- name of the extension
+  C<$name> -- scalar/URI $name            -- name/URI of the extension
   C<$frame> -- Tk::Frame $frame            -- frame on which the buttons are created
   C<$enable_ref> -- hash_ref $enable_ref        -- ref to hash with extensions that will be changed (enabled/disabled/(un)installed)
   C<$text> -- Tk::ROText $text            -- ROText with extensions' information
@@ -3999,7 +4168,7 @@ Undef/empty list
 =back
 
 
-=item * C<TrEd::Extensions::_add_pane_items({uri_list_ref        => $uri_list_ref,
+=item * C<TrEd::Extensions::_add_pane_items({ext_list_ref        => $ext_list_ref,
 extension_data      => \%extension_data,
 text                => $text,
 tred                => $tred,
@@ -4015,11 +4184,11 @@ dialog_box          => $dialog_box,
 
 =item Purpose
 
-For each extension from @$uri_list_ref add item on window panner
+For each extension from @$ext_list_ref add item on window panner
 
 =item Parameters
 
-  C<$uri_list_ref> -- array_ref $uri_list_ref      -- ref to list of extenions' URIs
+  C<$ext_list_ref> -- array_ref $ext_list_ref      -- ref to list of extenions' URIs
   C<\%extension_data> -- hash_ref $extension_data_ref -- ref to hash of pairs ext URI => ext meta data
   C<$text> -- Tk::ROText $text             -- ROText with extensions' information
   C<$tred> -- hash_ref $tred               -- ref to hash that contains TrEd window global data
@@ -4057,17 +4226,17 @@ Create and populate extension window panner
 
 =item Comments
 
-Creates list of extension, finds information about dependencies between them, 
+Creates list of extension, finds information about dependencies between them,
 dependencies on other perl modules, perl version and TrEd version. Populates
-window panner with extensions and creates buttons to Install/Uninstall, 
-Enable/Disable them. 
+window panner with extensions and creates buttons to Install/Uninstall,
+Enable/Disable them.
 Returned hash's keys are URIs of extensions. Values are 0, 1, or undef, where
 1 means to enable/install extension, 0 to disable/uninstall extension.
 
 =item See Also
 
 L<_add_pane_items>,
-L<_create_uri_list>,
+L<_create_ext_list>,
 
 =item Returns
 
@@ -4082,7 +4251,7 @@ Reference to hash which contains information about extensions' changes
 
 =item Purpose
 
-Create progressbar and installs extensions marked for installation in 
+Create progressbar and installs extensions marked for installation in
 %$enable_ref hash
 
 =item Parameters
@@ -4120,7 +4289,7 @@ upgrades          => $upgrades
 
 =item Purpose
 
-Create dialog box with listed extensions which allows user to install new 
+Create dialog box with listed extensions which allows user to install new
 or update existing extensions
 
 =item Parameters
@@ -4153,7 +4322,7 @@ Undef/empty list
 
 =item Purpose
 
-Create dialog box with listed extensions which allows user to install, 
+Create dialog box with listed extensions which allows user to install,
 update, remove, enable and disable extensions
 
 =item Parameters
@@ -4163,7 +4332,7 @@ update, remove, enable and disable extensions
 
 =item Comments
 
-opts_ref should contain 'install' key in case Install button should appear 
+opts_ref should contain 'install' key in case Install button should appear
 on the widget. opts_ref->{repositories} should be a ref to a list of repositories
 with extensions.
 
@@ -4285,7 +4454,7 @@ Callback for 'Edit repositories' button
 
 =item Returns
 
-Return value of Tk::DialogBox::Show(), i.e. name of the Button invoked, 
+Return value of Tk::DialogBox::Show(), i.e. name of the Button invoked,
 in this case one of 'Add', 'Remove', 'Save' and 'Cancel'
 
 =back
@@ -4328,7 +4497,7 @@ Load extension file list if it exists. Otherwise use standard begin commentary.
 
 =item Comments
 
-If $extension_list_file exists, it is read and its lines are returned 
+If $extension_list_file exists, it is read and its lines are returned
 as a list. Otherwise, just a list of lines of beginning commentary is returned.
 
 
@@ -4357,7 +4526,7 @@ Ask user whether to force extension's reinstallation/update
 
 =item Returns
 
-If $opts_ref->{quiet} is 0, return value of QuestionQuery is returned. 
+If $opts_ref->{quiet} is 0, return value of QuestionQueryAuto is returned.
 Undef/empty list is returned otherwise.
 
 =back
@@ -4405,7 +4574,7 @@ Install extension from $url to directory $dir
 
 =item Comments
 
-Tries to download extension as a zip file from $url, extracts archive 
+Tries to download extension as a zip file from $url, extracts archive
 using Archive::Zip and fixes permissions of files if needed.
 
 =item See Also
@@ -4462,7 +4631,7 @@ Uninstall extension from extension directory and update extension list
 =item Parameters
 
   C<$name> -- scalar $name        -- name of the extension
-  C<$opts_ref> -- sahs_ref $opts_ref  -- ref to hash of options 
+  C<$opts_ref> -- sahs_ref $opts_ref  -- ref to hash of options
 
 
 =item See Also
@@ -4532,7 +4701,7 @@ Return list of extensions in repository/extensions directory
 
 =item Parameters
 
-  C<$repository> -- scalar $repository -- path to extensions repository 
+  C<$repository> -- scalar $repository -- path to extensions repository
 
 =item Comments
 
@@ -4543,13 +4712,13 @@ List of extensions listed in this file is returned.
 
 L<Treex::PML::IO::make_URI()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/IO::make_URI.pm>,
 L<File::Spec::catfile>,
-L<Treex::PML::IO::open_uri()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/IO::open_uri.pm>,
+L<Treex::PML::IO::open_uri(),|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/IO::open_uri.pm>,
 Treex::PML::IO::close_uri()
 
 =item Returns
 
-Reference to array of extension names, empty array reference if repository does not 
-contain list of extensions. Undef/empty array if extensions directory does not exist 
+Reference to array of extension names, empty array reference if repository does not
+contain list of extensions. Undef/empty array if extensions directory does not exist
 and no $repository is specified
 
 =back
@@ -4571,7 +4740,7 @@ for each extension from extensions directory
 
 =item Comments
 
-If $ext_list is not supplied, get_extension_list() function is used to get the list 
+If $ext_list is not supplied, get_extension_list() function is used to get the list
 of extensions. If $extension_dir is not supplied, get_extensions_dir() is used to find
 the directory for extensions.
 
@@ -4594,18 +4763,18 @@ nothing
 
 =item Purpose
 
-Return list of extensions from pre-installed extensions directory, 
+Return list of extensions from pre-installed extensions directory,
 except those listed in $except
 
 =item Parameters
 
   C<$except> -- array_ref $except             -- reference to list of extensions to ignore
-  C<$preinstalled_ext_dir> -- scalar $preinstalled_ext_dir  -- name of the directory with preinstalled extensions 
+  C<$preinstalled_ext_dir> -- scalar $preinstalled_ext_dir  -- name of the directory with preinstalled extensions
 
 =item Comments
 
 If no parameters were supplied, $except is considered to be an empty list,
-return value of get_preinstalled_extensions_dir() is used as $preinstalled_ext_dir 
+return value of get_preinstalled_extensions_dir() is used as $preinstalled_ext_dir
 
 =item See Also
 
@@ -4619,25 +4788,25 @@ Reference to array containing extensions from pre-installed extensions directory
 =back
 
 
-=item * C<TrEd::Extensions::get_extension_subpaths($list, $extension_dir, $rel_path)>
+=item * C<TrEd::Extensions::get_extension_subpaths($list_ref, $extension_dir, $rel_path)>
 
 =over 6
 
 =item Purpose
 
-Take $list of extensions in $extension_dir directory and return list of 
+Take $list of extensions in $extension_dir directory and return list of
 subdirectories specified by $rel_path
 
 =item Parameters
 
-  C<$list> -- array_ref $list       -- reference to array of extensions
+  C<$list_ref> -- array_ref $list_ref   -- reference to array of extensions
   C<$extension_dir> -- scalar $extension_dir -- name of the directory containing extensions
   C<$rel_path> -- scalar $rel_path      -- subdirectory name
 
 =item Comments
 
-Ignores extensions that are commented out by ! at the beginning of line. 
-If no $list is supplied, get_extension_list() return value is used. 
+Ignores extensions that are commented out by ! at the beginning of line.
+If no $list is supplied, get_extension_list() return value is used.
 If $extension_dir is not supplied, get_extensions_dir() return value is used
 
 =item See Also
@@ -4652,18 +4821,18 @@ List of subdirectories of the extensions in $extension_dir specified by $rel_pat
 =back
 
 
-=item * C<TrEd::Extensions::get_extension_sample_data_paths($list, $extension_dir)>
+=item * C<TrEd::Extensions::get_extension_sample_data_paths($list_ref, $extension_dir)>
 
 =over 6
 
 =item Purpose
 
-Find all the valid 'sample' subdirectories for all the extensions from 
+Find all the valid 'sample' subdirectories for all the extensions from
 $list in $extension_dir directory
 
 =item Parameters
 
-  C<$list> -- array_ref $list       -- reference to array of extensions to work with
+  C<$list_ref> -- array_ref $list_ref   -- reference to array of extensions to work with
   C<$extension_dir> -- scalar $extension_dir -- name of the directory containing extensions
 
 
@@ -4678,18 +4847,18 @@ List of existing 'sample' subdirectories for specified extensions
 =back
 
 
-=item * C<TrEd::Extensions::get_extension_doc_paths($list, $extension_dir)>
+=item * C<TrEd::Extensions::get_extension_doc_paths($list_ref, $extension_dir)>
 
 =over 6
 
 =item Purpose
 
-Find all the valid 'documentation' subdirectories for all the extensions from 
+Find all the valid 'documentation' subdirectories for all the extensions from
 $list in $extension_dir directory
 
 =item Parameters
 
-  C<$list> -- array_ref $list       -- reference to array of extensions to work with
+  C<$list_ref> -- array_ref $list_ref   -- reference to array of extensions to work with
   C<$extension_dir> -- scalar $extension_dir -- name of the directory containing extensions
 
 
@@ -4704,18 +4873,18 @@ List of existing 'documentation' subdirectories for specified extensions
 =back
 
 
-=item * C<TrEd::Extensions::get_extension_template_paths($list, $extension_dir)>
+=item * C<TrEd::Extensions::get_extension_template_paths($list_ref, $extension_dir)>
 
 =over 6
 
 =item Purpose
 
-Find all the valid 'templates' subdirectories for all the extensions from 
+Find all the valid 'templates' subdirectories for all the extensions from
 $list in $extension_dir directory
 
 =item Parameters
 
-  C<$list> -- array_ref $list       -- reference to array of extensions to work with
+  C<$list_ref> -- array_ref $list_ref   -- reference to array of extensions to work with
   C<$extension_dir> -- scalar $extension_dir -- name of the directory containing extensions
 
 
@@ -4730,18 +4899,18 @@ List of existing 'templates' subdirectories for specified extensions
 =back
 
 
-=item * C<TrEd::Extensions::_contrib_macro_paths($direcotry)>
+=item * C<TrEd::Extensions::_contrib_macro_paths($directory)>
 
 =over 6
 
 =item Purpose
 
-Find all directories and subdirectories of $directory that contains 
+Find all directories and subdirectories of $directory that contains
 'contrib.mac' file
 
 =item Parameters
 
-  C<$direcotry> -- scalar $directory -- name of the directory where the search starts
+  C<$directory> -- scalar $directory -- name of the directory where the search starts
 
 
 =item See Also
@@ -4755,18 +4924,18 @@ List of paths to contrib.mac file in subdirectories of $directory
 =back
 
 
-=item * C<TrEd::Extensions::get_extension_macro_paths($list, $extension_dir)>
+=item * C<TrEd::Extensions::get_extension_macro_paths($list_ref, $extension_dir)>
 
 =over 6
 
 =item Purpose
 
-Find all the paths with 'contrib.mac' file for all the extensions from 
+Find all the paths with 'contrib.mac' file for all the extensions from
 $list in $extension_dir directory
 
 =item Parameters
 
-  C<$list> -- array_ref $list       -- reference to array of extensions to work with
+  C<$list_ref> -- array_ref $list_ref   -- reference to array of extensions to work with
   C<$extension_dir> -- scalar $extension_dir -- name of the directory containing extensions
 
 
@@ -4787,7 +4956,7 @@ List of paths to 'contrib.mac' files for specified extensions
 
 =item Purpose
 
-Load package.xml metafile for extension $name and create 
+Load package.xml metafile for extension $name and create
 Treex::PML::Instance object from this metafile
 
 =item Parameters
@@ -4832,7 +5001,7 @@ Path to perl package, if it is found in @INC array, undef otherwise
 =back
 
 
-=item * C<TrEd::Extensions::_inst_version($module)>
+=item * C<TrEd::Extensions::get_module_version($module)>
 
 =over 6
 
@@ -4842,7 +5011,7 @@ Find out the version number for installed $module
 
 =item Parameters
 
-  C<$module> -- scalar $module -- name of perl module 
+  C<$module> -- scalar $module -- name of perl module
 
 =item Comments
 
@@ -4854,32 +5023,8 @@ L<_inst_file>,
 
 =item Returns
 
-Undef if module is not present in @INC, version string 
+Undef if module is not present in @INC, version string
 found by ExtUtils::MM::parse_version() otherwise
-
-=back
-
-
-=item * C<TrEd::Extensions::get_module_version($name)>
-
-=over 6
-
-=item Purpose
-
-Find which version of module $name is installed
-
-=item Parameters
-
-  C<$name> -- scalar $name -- perl module name, e.g. Data::Dumper
-
-
-=item See Also
-
-L<_inst_version>,
-
-=item Returns
-
-Version string of installed module
 
 =back
 
@@ -4890,7 +5035,7 @@ Version string of installed module
 
 =item Purpose
 
-Compare two version numbers 
+Compare two version numbers
 
 =item Parameters
 
@@ -4907,12 +5052,77 @@ L<CPAN::Version->vcmp>,
 
 =item Returns
 
-1 if $version_1 is larger than $version_2, 
+1 if $version_1 is larger than $version_2,
 -1 if $version_1 is smaller than $version_2,
-0 if versions are equal, 
+0 if versions are equal,
 undef if CPAN could not be loaded
 
 =back
+
+
+=item * C<TrEd::Extensions::_check_extensions_cmdline_opts($extension_name, $enabled_ref, $disabled_ref, $macro_file_cmdline)>
+
+=over 6
+
+=item Purpose
+
+Tell whether the extension $extension_name is going to be enabled
+or disabled according to command line options and extensions file
+
+=item Parameters
+
+  C<$extension_name> -- string $extension_name -- name of the extension
+  C<$enabled_ref> -- hash_ref $enabled_ref -- ref to hash of explicitly enabled extensions
+  C<$disabled_ref> -- hash_ref $disabled_ref -- ref to hash of explicitly disabled extensions
+  C<$macro_file_cmdline> -- string $macro_file_cmdline -- the string from -m switch on command line
+
+=item Comments
+
+If any macro is specified on the command line, the extensions are 
+disabled by default. Specifying enabled extensions on command line
+has however, higher priority. 
+
+=item See Also
+
+L<prepare_extensions>,
+
+=item Returns
+
+The name of the extension with or without an exclamation mark
+in the beginning (! means the extension is going to disabled)
+
+=back
+
+
+=item * C<TrEd::Extensions::prepare_extensions($macro_file_cmdline)>
+
+=over 6
+
+=item Purpose
+
+Prepare all the installed extensions for use
+
+=item Parameters
+
+  C<$macro_file_cmdline> -- scalar $macro_file_cmdline -- command line argument -- macro file to read 
+
+=item Comments
+
+Also reflects command-line arguments which can enable and disable 
+loading of extensions
+
+=item See Also
+
+L<init_extensions>,
+
+=item Returns
+
+Reference to array which contains two array references: first one 
+is a reference to array of installed extensions, second one is a ref 
+to array of preinstalled extensions
+
+=back
+
 
 
 
@@ -4924,20 +5134,86 @@ undef if CPAN could not be loaded
 =head1 DIAGNOSTICS
 
 
+Croaks in update_extensions_list sub 
+if extensions list file could not be found/opened/written into:
+    "Configuring extension failed: cannot read/write/open/close extension list ..."
+
+
+Croaks in _load_extension_file 
+if extensions list file could not be opened:
+    "Installation failed: cannot read extension list
+
+Croaks in install_extensions 
+if $urls_ref is not reference to array, if extension list file
+could not be opened or if extension directory could not be created:
+    "Usage: install_extensions(\@urls, \%opts)}"
+    "Installation failed: cannot create/write/close extension directory $extension_dir: $!"
+     
+Croaks in uninstall_extension 
+if extension list could not be opened for reading or writing:
+    "Uninstall failed: cannot read/close/write extension list $extension_list_file: $!"
+
+
+Carps in _set_extension_icon 
+if the icon could not be loaded: the error message itself.
+
+Carps in get_extension_list sub 
+if extension directory list (extensions.lst) could not be opened.
+
+Carps in init_extensions sub 
+if the first argument is a reference, but not array reference:
+    "Usage: init_extensions( [ extension_name(s)... ] )"
+        
+
+Carps in get_extension_subpaths sub 
+if $list is a reference, but not a ref to array:
+    "Usage: get_extension_subpaths( [ extension_name(s)... ], extension_dir, rel_path )".
+
+Carps in get_extension_meta_data sub 
+if Treex::PML::Instance::load() fails: the error message itself.
+
+
+Carps in prepare_extensions sub 
+if required extension is missing:
+    "WARNING: extension $required not found!"
+
+
 =head1 CONFIGURATION AND ENVIRONMENT
 
+Needs Treex::PML::ResourcePath to be set to a place where tred_extension_schema.xml is present.
+Path to TrEd's custom Tk libs (Tk::DialogReturn, Tk::QueryDIalog) has to be present in @INC array.
 
 =head1 DEPENDENCIES
 
-TrEd::Version,
-L<Treex::PML|http://search.cpan.org/~zaba/Treex-PML/>,
-Carp, File::Spec, File::Glob, Scalar::Util, URI, URI::file, Exporter, CPAN, ExtUtils::MM, Archive::Zip, File::Path 
-Tk::MainLoop, Tk::DialogReturn, Tk::BindButtons, Tk::ProgressBar, Tk::ErrorReport, Tk::QueryDialog, Tk::JPEG, Tk::PNG 
+TrEd modules:
+TrEd::Version, 
+TrEd::MinMax, 
+TrEd::Basics, 
+Tk::DialogReturn, 
+Tk::ErrorReport, 
+Tk::QueryDialog, 
+Tk::BindButtons, 
 
+CPAN modules:
+Archive::Zip, 
+L<Treex::PML|http://search.cpan.org/~zaba/Treex-PML/>,
+URI, 
+URI::file, 
+CPAN, 
+Tk
+
+Standard Perl modules:
+Carp,
+Exporter, 
+ExtUtils::MM,
+File::Glob, 
+File::Path,
+File::Spec,  
+Scalar::Util, 
 
 =head1 INCOMPATIBILITIES
 
-...
+No know incompatibilities.
 
 =head1 BUGS AND LIMITATIONS
 
