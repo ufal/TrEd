@@ -15,20 +15,11 @@ use Carp;
 use Cwd;
 
 # if extensions has not been dependent on this variable, we could have changed 'our' to 'my'
+# (pmltq and pdt20 access @openfiles directly)
 our @openfiles = ();
 
 my $new_file_no = 0;
 
-#print "file\n ";
-#print "iobackends" if defined $TrEd::Config::ioBackends;
-#print "opt_B" if defined $main::opt_B;
-#
-#use Data::Dumper;
-#
-#my @hm = defined $TrEd::Config::ioBackends ? $TrEd::Config::ioBackends : ();
-#print Dumper(\@hm);
-#
-#my @hm2 = defined $main::opt_B ? $main::opt_B : ();
 
 #load back-ends
 my @backends = (
@@ -244,18 +235,18 @@ sub _related_files {
             @{ $fsfile->appData('fs-part-of') };
 }
 
-# set keep to 1 if filename is related and related should be keeped
+# set keep to 1 if (filename is related and related should be keeped)
 sub _fix_keep_option {
     my ($fsfile, $file_name, $opts_ref) = @_;
     if ( !$opts_ref->{-keep} and $opts_ref->{-keep_related} ) {
-        if ( $tredDebug and $fsfile ) {
+        if ( $TrEd::Config::tredDebug and $fsfile ) {
             print STDERR "got -keep_related flag for open $file_name:\n";
             print STDERR map { $_->filename() . "\n" } _related_files($fsfile);
         }
         if ($fsfile 
             && first { $_->filename() eq $file_name } _related_files($fsfile)) {
                 $opts_ref->{-keep} = 1;
-                print STDERR "keep: $opts_ref->{-keep}\n" if $tredDebug;
+                print STDERR "keep: $opts_ref->{-keep}\n" if $TrEd::Config::tredDebug;
         }
     }
 }
@@ -271,6 +262,7 @@ sub _is_among_primary_files {
             }
             TrEd::Basics::get_primary_files_recursively($fsfile)
 }
+
 # zislo by sa premenovat, lebo to aj otvara subor, nie len checkuje recovery
 sub _check_for_recovery {
     my ($file_name, $grp, $win, $fsfile, $lockinfo, $opts_ref) = @_;
@@ -452,7 +444,7 @@ sub open_file {
     my $fsfile = $win->{FSFile};
 
     my ( $file_name, $suffix ) = TrEd::Utils::parse_file_suffix($raw_file_name);
-    print "Goto suffix is $suffix\n" if defined($suffix) && $tredDebug;
+    print "Goto suffix is $suffix\n" if defined($suffix) && $TrEd::Config::tredDebug;
 
     $opts{-keep} ||= $grp->{keepfiles};
     _fix_keep_option($fsfile, $file_name, \%opts);
@@ -520,7 +512,7 @@ sub open_file {
             if ( ref($opened_file)
                 && Treex::PML::IO::is_same_filename( $opened_file->filename(), $file_name ) )
             {
-                print "Opening postponed file\n" if $tredDebug;
+                print "Opening postponed file\n" if $TrEd::Config::tredDebug;
                 if ( !$opts{-preload} ) {
                     resumeFile( $win, $opened_file, $opts{-keep} );
                     main::update_title_and_buttons($grp);
@@ -694,7 +686,7 @@ sub closeFile {
         $fsfile = $win->{FSFile};
     }
     if ($fsfile) {
-        main::__debug( "Closing ", $fsfile->filename,
+        main::__debug( "Closing ", $fsfile->filename(),
             "; keep postponed: " 
             . defined $opts{-keep_postponed} ? $opts{-keep_postponed} : 'no' 
             . "\n" );
@@ -766,17 +758,17 @@ sub closeFile {
 
     if ( $opts{-keep_postponed} and $fsfile ) {
         print STDERR "Postponing " . $fsfile->filename() . "\n"
-            if $tredDebug;
+            if $TrEd::Config::tredDebug;
         $fsfile->changeAppData( 'last-context',    $last_context );
         $fsfile->changeAppData( 'last-stylesheet', $last_stylesheet );
     }
     else {
         if ( $fsfile
-            and not main::fsfileDisplayingWindows( $win->{framegroup}, $fsfile ) )
+            && !main::fsfileDisplayingWindows( $win->{framegroup}, $fsfile ) )
         {
             my $f = $fsfile->filename();
             print STDERR "Removing $f from list of open files\n"
-                if $tredDebug;
+                if $TrEd::Config::tredDebug;
             @openfiles = grep { $_ ne $fsfile } @openfiles;
             TrEd::RecentFiles::add_file( $win->{framegroup}, $f )
                 unless $opts{-norecent}
@@ -797,13 +789,13 @@ sub closeFile {
                 {
                     print STDERR "Attempting to close dependent "
                         . $req_fs->filename . "\n"
-                        if $tredDebug;
+                        if $TrEd::Config::tredDebug;
                     my $answer = askSaveFile( $win, 1, 1, $req_fs );
                     return if $answer == -1;
                     if ( $answer == 1 ) {
                         print STDERR "Keeping dependent "
                             . $req_fs->filename . "\n"
-                            if $tredDebug;
+                            if $TrEd::Config::tredDebug;
                     }
                     else {
                         closeFile(
@@ -962,7 +954,7 @@ sub openSecondaryFiles {
                 = TrEd::Basics::absolutize_path( $fsfile->filename, $req->[1] );
             print STDERR
                 "Pre-loading dependent $req_filename ($req->[1]) as appData('ref')->{$req->[0]}\n"
-                if $tredDebug;
+                if $TrEd::Config::tredDebug;
             my ( $req_fs, $status2 ) = open_file(
                 $win, $req_filename,
                 -preload  => 1,
@@ -1665,7 +1657,7 @@ sub resumeFile {
   my ($win,$fsfile,$keep)=@_;
   $keep||=$win->{framegroup}->{keepopen};
   return unless ref($win) and ref($fsfile);
-  print "Resuming file ".$fsfile->filename()."\n"  if $tredDebug;
+  print "Resuming file ".$fsfile->filename()."\n"  if $TrEd::Config::tredDebug;
 
   closeFile($win,-keep_postponed => $keep);
   main::__debug("Using last context: ",$fsfile->appData('last-context'));

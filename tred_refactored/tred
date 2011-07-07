@@ -51,7 +51,6 @@ use vars qw($svn_version $version $opt_u $opt_h $opt_c $opt_y
 	    %HELP  
 	    $manpage $listoptions $no_backups $no_locks  %optmap $carp
 	    $tred_d $VERSION
-	    $enable_extensions $disable_extensions
             $command $configFile
            );
 
@@ -69,6 +68,8 @@ use vars qw($svn_version $version $opt_u $opt_h $opt_c $opt_y
 # @open_types 
 # @save_types -- this is probably forgotten since it is never used
 # $valueLine -- this is probably forgotten since it is never used
+# $enable_extensions $disable_extensions -- moved to TrEd::Extensions
+
 use Exporter;
 @ISA   = qw(Exporter);
 @EXPORT= qw($insideEval
@@ -113,8 +114,8 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
   "no-locks" => \$no_locks,
   "autosave=i" => \$opt_auto_save,
   "carp" => \$carp,
-  "enable-extensions|j=s" => \$enable_extensions,
-  "disable-extensions|J=s" => \$disable_extensions,
+  "enable-extensions|j=s" => \$TrEd::Extensions::enable_extensions,
+  "disable-extensions|J=s" => \$TrEd::Extensions::disable_extensions,
   "command|C" => \$command,
 );
 $optparser->getoptions(%optmap) or $opt_u=1;
@@ -389,8 +390,9 @@ if ($^O eq 'darwin') {
 require Tk::widgets;
 import Tk::widgets
   qw(Frame Pane LabFrame Listbox HList Menu
-     ItemStyle DialogBox Tiler BrowseEntry Panedwindow Dialog DialogBox
+     ItemStyle DialogBox Tiler BrowseEntry Panedwindow Dialog 
      Scale Adjuster Entry Text);
+# duplicate import entry DialogBox
 require Tk::Font;
 
 # import encode and decode functions
@@ -470,6 +472,10 @@ use TrEd::Menu::Stylesheet;
 use TrEd::Menu::Context;
 use TrEd::Toolbar::User::Manager;
 use TrEd::Error::Message;
+use TrEd::Dialog::FileProperties;
+use TrEd::Dialog::Print;
+use TrEd::Dialog::FindNode;
+use TrEd::Dialog::ExamineBindings;
 
 # we need to have command line options already prepared 
 require TrEd::File;
@@ -565,7 +571,7 @@ TrEd::ManageFilelists::create_filelists();
 
 $insideEval=0;
 
-my %searchTemplate;
+#my %searchTemplate; # was used for find node dialog, moved there 
 
 %pckey_shift_translates= (exclam=> 1, at=> 2, numbersign=> 3,
 			   dollar=> 4, percent=> 5, asciicircum=> 6,
@@ -803,8 +809,8 @@ sub get_grp_histories {
 # Returns       : nothing
 # Parameters    : hash_ref \%confs
 # Throws        : no exceptions
-# Comments      : Requires Filelist module
-# See Also      : Filelist, TrEd::ManageFilelists::add_new_filelist(), $autoSave 
+# Comments      : 
+# See Also      : TrEd::ManageFilelists::add_new_filelist(), $autoSave 
 # TODO: tests
 sub set_config {
   my $confs=shift;
@@ -1109,7 +1115,7 @@ sub findToplevelFileFor {
   return unless $fsfile;
   my $part_of = $fsfile->appData('fs-part-of');
   if (ref($part_of) and @$part_of) {
-    return uniq map findToplevelFileFor($grp,$_), @$part_of;
+    return TrEd::Basics::uniq(map findToplevelFileFor($grp,$_), @$part_of);
   } else {
     return $fsfile;
   }
@@ -1399,16 +1405,16 @@ sub updateHelpMenu {
   }
   $hm->delete(0,'end');
   $_->destroy for $hm->children;
-  my $preinst_dir = get_preinstalled_extensions_dir();
+  my $preinst_dir = TrEd::Extensions::get_preinstalled_extensions_dir();
   my ($extensions,$pre_installed) = @{
     $opts->{preparedExtensions} ||
-    prepareExtensions($grp) ||
+    TrEd::Extensions::prepare_extensions($opt_m) ||
     [[],[]]
   };
   my %m;
   foreach my $m (
-    (map [ $_, get_extension_doc_paths([$_]) ], @$extensions),
-    (map [ $_, get_extension_doc_paths([$_],$preinst_dir) ], @$pre_installed)) {
+    (map [ $_, TrEd::Extensions::get_extension_doc_paths([$_]) ], @$extensions),
+    (map [ $_, TrEd::Extensions::get_extension_doc_paths([$_],$preinst_dir) ], @$pre_installed)) {
     $m{$m->[0]} = $m->[1] unless exists $m{$m->[0]};
   }
   for my $ext (sort keys %m) {
@@ -2026,7 +2032,7 @@ sub copyTreesDialog {
 	      -command =>
 	      [sub {
 		  my ($grp,$range)=@_;
-		  $$range=TrEd::View::Sentences::get_selection($grp);
+		  $$range=TrEd::View::Sentence::get_selection($grp);
 	       },$grp,\$range])->pack(qw/-padx 10 -side left/);
   $sf->Button(-image=> icon($grp,'contents'),
 	      -command=> [sub {
@@ -2035,8 +2041,8 @@ sub copyTreesDialog {
 			    foreach (TrEd::Print::parse_print_list($source,$$range)) {
 			      $list->[$_-1]=1;
 			    }
-			    $$range=TrEd::View::Sentences::get_selection($grp,
-                        TrEd::View::Sentences::show_sentences_dialog($grp,$d,$source,
+			    $$range=TrEd::View::Sentence::get_selection($grp,
+                        TrEd::View::Sentence::show_sentences_dialog($grp,$d,$source,
 									     $list
 									    ));
 			  },$grp,$d,\$range,$source])->pack(qw/-padx 10 -side left/);
@@ -2071,56 +2077,8 @@ sub copyTreesDialog {
   }
 }
 
-# font
-sub initTTFonts {
-  my ($grp,$toplevel)=@_;
-  print STDERR "Collecting TTF fonts..." if $tredDebug;
-  my $opts={};
-  $grp->{ttfonts}=[];
-  if ($toplevel and eval { require Tk::ProgressBar; }) {
-    my $d= $toplevel->DialogBox(-title => 'Looking for TrueType fonts...',
-				-buttons => ['Cancel']
-			       );
-    my $percent_done=0;
-    my $format = '%3d/%3d  %3d%%';
-    my $f1 = $d->Frame()->pack(-side=>'top', -padx => 5, -fill => 'x', -expand=> 1);
-    $f1->Label(-text => "Looking for TrueType fonts. This may take a moment...\n")->pack(-side => 'left');
-    my $f = $d->Frame()->pack(-side=>'top', -padx => 5, -fill => 'x', -expand=> 1);
-    $f->ProgressBar(-width => 20, -length => 300, -blocks => 1, 
-		    -colors => [0, 'darkblue'],
-		    -troughcolor => 'white',
-		    -variable => \$percent_done)->pack(-side=>'left');
-    my $cancel = 0;
-    $d->bind('<Escape>',sub{ $cancel=1 });
-    $d->Subwidget('B_Cancel')->configure( -command => sub { $cancel=1 } );
-    my $label=sprintf($format,0,0,0);
-    $f->Label(-textvariable => \$label,-width=>12)->pack(-side=>'right');
-    #$grp->{top}->Unbusy();
-    $d->BindButtons;
-    $d->Popup;
-    $d->update();
-    $opts = { callback => sub {
-		my ($font,$i,$max)=@_;
-		die "Interrupted\n" if $cancel;
-		return unless $i%10==0 or $i==$max;
-		$d->update;
-		$percent_done = int(100* $i / $max);
-		$label=sprintf($format,$i,$max,$percent_done);
-	      },
-	      _dlg => $d,
-	      try_fontconfig => ($Tk::platform eq 'unix' ? 1 : 0),
-	    };
-  }
-  eval {
-    $grp->{ttfonts}=TrEd::Print::get_ttf_fonts($opts,
-					       map TrEd::Config::tilde_expand($_),
-					       split /,/,$printOptions->{ttFontPath});
-  };
-  if ($opts) {
-    $opts->{_dlg}->destroy();
-  }
-  return $grp->{ttfonts};
-}
+# sub initTTFonts
+
 
 # print 
 sub warnWin32PrintConvert {
@@ -2154,602 +2112,12 @@ sub warn55PrintConvert {
 	    -buttons => ["Cancel","Continue anyway"]);
 }
 
-# print, UI, dialog
-sub updatePrintDialogState {
-  my ($grp,$w, $s, $extension,$toplevel)=@_; # widgets, state
+# sub updatePrintDialogState
 
-  my %t=map { $_ => 1} keys %$w; # toggle
-  my @disable;
-  if ($s->{printTo} eq 'printer') {
-    @disable = qw(printOnePerFile printImageMagickResolution psFile format_PDF format_SVG);
-  } elsif ($s->{printTo} eq 'file') {
-    @disable = qw(printImageMagickResolution command);
-  } elsif ($s->{printTo} eq 'convert') {
-    @disable = qw(command psMedia prtFmtWidth prtFmtHeight);
-  }
-  if ($s->{psMedia} ne 'User') {
-    push @disable, qw(prtFmtWidth prtFmtHeight);
-  }
+# sub _fix_combo_box_return
+# sub _fix_combo_box
 
-  if ($s->{printFormat} eq 'EPS') {
-    push @disable,qw(font psMedia prtFmtWidth prtFmtHeight);
-    push @disable,qw(printRange) unless $s->{printOnePerFile};
-  } elsif ($s->{printFormat} eq 'PS') {
-    push @disable,qw(font);
-  } elsif ($s->{printFormat} eq 'SVG') {
-    push @disable,qw(printTo_printer font);
-    # push @disable,qw(printRange) unless $s->{printOnePerFile};
-  } elsif ($s->{printFormat} eq 'PDF') {
-    push @disable,qw(printTo_printer);
-    unless ($grp->{ttfonts}) {
-      $w->{font}->toplevel->Busy(-recurse => 1);
-      initTTFonts($grp,$toplevel);
-      foreach (sort {$a cmp $b} keys %{$grp->{ttfonts}}) {
-#	$w->{font}->insert('end',$_);
-	$w->{font}->addItem($_);
-      }
-      $w->{font}->toplevel->afterIdle(sub{
-					if (exists($grp->{ttfonts}->{$s->{initTTFont}})) {
-					  $s->{ttFont} = $s->{initTTFont};
-					} else {
-					  $s->{ttFont} = EMPTY;
-					}
-				      });
-      $w->{font}->toplevel->Unbusy();
-      $w->{font}->focus;
-      eval { $w->{font}->see(0) };
-    }
-  }
-  $t{$_}=0 for (@disable);
-  if ($extension eq '?') {
-    $extension = lc($s->{printFormat});
-  }
-  $s->{psFile}=~s/\.[^.]*$/.$extension/ if defined($extension) and
-    not($s->{printTo} eq 'convert' and $extension =~ /^(?:svg|pdf|e?ps)$/);
-
-  if ($s->{printOnePerFile}) {
-    $s->{psFile}=~s/\.([^.]*)$/_\%n.$1/ if $s->{psFile}!~/[%]\d*n/;
-  }
-
-  if ($s->{psMedia} eq 'BBox') {
-    $s->{prtFmtWidth} = EMPTY;
-    $s->{prtFmtHeight} = EMPTY;
-  } elsif ($s->{psMedia} eq 'User') {
-    $s->{prtFmtWidth} = $s->{defaultPrtFmtWidth};
-    $s->{prtFmtHeight} = $s->{defaultPrtFmtHeight};
-  } else {
-    $s->{prtFmtWidth} = $TrEd::Print::media{$s->{psMedia}}[0];
-    $s->{prtFmtHeight} = $TrEd::Print::media{$s->{psMedia}}[1];
-  }
-  foreach my $widget (keys %t) {
-    if ($t{$widget}) {
-      #print "On: $widget: $w->{$widget}\n";
-      eval { $w->{$widget}->configure(-state => 'normal') };
-      eval { $w->{$widget}->configure(($w->{$widget}->isa('Tk::Entry') or
-				       $w->{$widget}->isa('Tk::BrowseEntry') or
-				       $w->{$widget}->isa('JComboBox_0_02')
-				      ) ?
-				      (-background => $s->{defaultBg}) : ()
-				     ) };
-    } else {
-      #print "Off: $widget: $w->{$widget}\n";
-      eval { $w->{$widget}->configure(-state=> 'disabled') };
-      eval { $w->{$widget}->configure(($w->{$widget}->isa('Tk::Entry') or
-				       $w->{$widget}->isa('Tk::BrowseEntry') or
-				       $w->{$widget}->isa('JComboBox_0_02')
-				      ) ?
-				      (-background => $s->{disabledBg}) : ()
-				     ) };
-    }
-    #print "---\n";
-  }
-}
-
-# make sure that editable JComboBox only contains valid values
-# Note: always get the values with GetSelected
-sub _fix_combo_box_return {
-  my $cw = shift;
-  for my $w ($cw,
-	     $cw->Subwidget('ED_Entry'),
-	     $cw->Subwidget('RO_Entry'),
-	     $cw->Subwidget('Popup')) {
-    $w->bind($w,'<Return>',
-	     [sub{
-		shift;
-		my $cw = shift;
-		if ($cw->popupIsVisible) {
-		  $cw->hidePopup;
-		} else {
-		  $cw->showPopup;
-		};
-		Tk->break;
-	      },$cw]);
-  }
-}
-sub _fix_combo_box {
-  my $cw = shift;
-  $cw->setSelected( $cw->GetSelected );
-  for my $w ($cw,
-	     $cw->Subwidget('ED_Entry'),
-	     $cw->Subwidget('RO_Entry'),
-	     $cw->Subwidget('Popup')) {
-    $w->bind('<FocusIn>',[sub {
-			    shift;
-			    my $cw = shift;
-			    my $lb = $cw->Subwidget('Listbox');
-			    if (not defined($cw->{index_on_focus})) {
-			      $cw->{index_on_focus} = $cw->CurSelection;
-			      $cw->see($cw->{index_on_focus})
-				if $cw->{index_on_focus} ne q{};
-			    }
-			  },$cw]);
-    $w->bind('<FocusOut>',[sub {
-			     shift;
-			     my $cw = shift;
-			     $cw->EntryEnter;
-			     $cw->{index_on_focus} = undef;
-			   },$cw]);
-
-    $w->bind($w,'<Return>',
-	     [sub{
-		shift;
-		my $cw = shift;
-		if ($cw->popupIsVisible) {
-		  $cw->hidePopup;
-		  $cw->EntryEnter;
-		} else {
-		  $cw->EntryEnter;
-		  $cw->showPopup;
-		};
-		Tk->break;
-	      },$cw]);
-  }
-}
-
-# print, UI, dialog
-sub printDialog {
-  my ($grp)=@_;
-  my $win = $grp->{focusedWindow};
-  return unless $win->{FSFile};
-  my ($Entry,@Entry) = get_entry_type();
-  my $e_hist=[];
-
-  my (%w,%s); # widgets, state
-  $s{command}=$printOptions->{defaultPrintCommand};
-
-  $s{psFile}=$printOptions->{psFile};
-  $s{psFile} =doEvalHook($win,"print_tree_filename_hook",$win->{FSFile}->appData('tred.print.filename'));
-  $s{psFile}=$win->{FSFile}->appData('tred.print.filename') if $s{psFile} eq EMPTY;
-  $s{psFile}=$win->{FSFile}->filename if $s{psFile} eq EMPTY;
-  $s{psFile}=~s/\.[^.]*$/.$printOptions->{printFileExtension}/;
-
-  $s{printRange}=$win->{treeNo}+1;# unless $printRange ne EMPTY;
-  $s{defaultPrtFmtWidth}=$printOptions->{prtFmtWidth};
-  $s{defaultPrtFmtHeight}=$printOptions->{prtFmtHeight};
-
-  $s{printImageMagickResolution}=$printOptions->{printImageMagickResolution};
-
-  for my $opt (qw(printTo printFormat printSentenceInfo printFileInfo printNoRotate printOnePerFile
-		  printColors prtFmtWidth prtFmtHeight prtHMargin prtVMargin psMedia)) {
-    $s{$opt}=$printOptions->{$opt};
-  }
-  $s{initTTFont} = $printOptions->{ttFont};
-  if ($s{printFormat} eq 'PDF' and defined $s{initTTFont}) {
-    initTTFonts($grp,$grp->{top}) unless $grp->{ttfonts};
-    if ($grp->{ttfonts} and exists($grp->{ttfonts}->{$s{initTTFont}})) {
-      $s{ttFont} = $s{initTTFont};
-    }
-  } else {
-    $s{ttFont} = EMPTY;
-  }
-
-  # Dialog
-  my $d= $grp->{top}->DialogBox(-title=> "Print",
-				-buttons=> ["OK", "Help", "Save configuration", "Cancel"]);
-  $d->resizable(0,0);
-  addBindTags($d,'dialog');
-  $d->BindEscape();
-  $d->Subwidget('B_Save configuration')->configure(-command =>
-						    [\&savePrintConfig,$win,\%s,\%w,1]);
-
-  $d->BindReturn($d,1);
-  $d->bind('<Tab>',[sub { shift->focusNext; }]);
-  $d->bind('<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
-  $d->bind('<Shift-Tab>',[sub { shift->focusPrev; }]);
-
-  # Command Entry
-  my $cf= $d->Frame()->pack(qw/-pady 10 -padx 10 -side top -expand yes -fill x/);
-  $w{command_label}= $cf->Label(-text=> 'Print command:',
-				-anchor=> 'w',
-				-justify=> 'right')->pack(-side=> 'left');
-  $w{command}= $cf->$Entry(@Entry,
-			   -relief=> 'sunken',
-			   -width=> 20,
-			   -font=> $font,
-			   -textvariable=> \$s{command})
-    ->pack(qw/-padx 10 -side left -expand yes -fill x/);
-  set_grp_history($grp, $w{command}, 'defaultPrintCommand', $e_hist);
-  $s{defaultBg}=$w{command}->cget('-background');
-  $s{disabledBg}=$d->cget('-background');
-
-  # Page format selection
-  my $mf = $d->Frame()->pack(qw/-pady 10 -padx 10 -side top -expand yes -fill x/);
-  $mf->Label(-text=> 'Media:',
-	     -underline => 0,
-	     -anchor=> 'w',
-	     -justify=> 'right')->pack(-side=> 'left');
-
-  $w{prtFmtWidth} = $mf->$Entry(@Entry,
-				-textvariable => \$s{prtFmtWidth},
-				-width => 5,
-				-validate => 'key',
-				-validatecommand => sub { shift =~ /^\s*\d*\s*$/ });
-  set_grp_history($grp, $w{prtFmtWidth}, 'printFmtWidth',$e_hist);
-  $w{prtFmtHeight} = $mf->$Entry(@Entry,
-				 -textvariable => \$s{prtFmtHeight},
-				 -width => 5,
-				 -validate => 'key',
-				 -validatecommand => sub { shift =~ /^\s*\d*\s*$/ });
-  set_grp_history($grp, $w{prtFmtWidth}, 'printFmtHeight',$e_hist);
-
-  my @jcombo_opts = (
-    -relief => 'flat',
-    -takefocus => 1,
-    -borderwidth => 0,
-    -highlightcolor => 'black',
-    -highlightbackground => 'gray',
-    -highlightthickness => 1,
-    -background => 'gray',
-    -popupbackground => 'black',
-    -borderwidth => 1,
-    -buttonrelief => 'ridge'
-   );
-
-
-  # TrueType font
-  my $of=$d->Frame();
-  my $bf=$of->Frame();
-
-  my %fmtbut;
-  my $pbf = $bf->Frame();
-  $w{font_label}=$pbf->Label(-text=> 'Font (TTF):',
-			       -anchor=> 'sw',
-			       -justify=> 'right');
-
-  $w{font}=$pbf->JComboBox_0_02(
-    -width => 30,
-    -mode => 'editable',
-    -validate => 'match',
-    -textvariable => \$s{ttFont},
-    -choices => [$grp->{ttfonts} ? (sort {$a cmp $b} keys %{$grp->{ttfonts}}) : ()],
-    @jcombo_opts
-   );
-  _fix_combo_box($w{font});
-
-  # Page media
-  $w{psMedia}=$mf->JComboBox_0_02(
-    -mode => 'editable',
-    -validate => 'match',
-    -listhighlight => 1,
-    -textvariable => \$s{psMedia}, # global variable in TrEd::Config
-    -choices => ['BBox', 'User', 
-		 sort {$a cmp $b} grep !/\d+x\d+|^ISO/, 
-		 keys %TrEd::Print::media ],
-    -selectcommand => [
-      sub {
-	updatePrintDialogState(@_[0..4]);
-	1;
-      },$grp,\%w,\%s,undef,$d
-     ],
-    @jcombo_opts,
-   )->pack(-side=> 'left');
-  _fix_combo_box($w{psMedia});
-  $d->bind('<Alt-m>',[sub{shift;shift->{psMedia}->focus},\%w]);
-
-  $w{prtFmtWidth}->raise($w{psMedia});
-  $w{prtFmtHeight}->raise($w{psMedia});
-  $mf->Label(-text=> 'Width:',
-	     -padx => 10,
-	     -anchor=> 'w',
-	     -justify=> 'right')->pack(-side=> 'left');
-  $w{prtFmtHeight}->pack(-side=> 'left');
-  $mf->Label(-text=> 'Height:',
-	     -padx => 10,
-	     -anchor=> 'w',
-	     -justify=> 'right')->pack(-side=> 'left');
-  $w{prtFmtWidth}->pack(-side=> 'left');
-
-  # Page Margins
-  $mf->Label(-text=> 'X margin:',
-	     -underline => 0,
-	     -padx => 10,
-	     -anchor=> 'w',
-	     -justify=> 'right')->pack(-side=> 'left');
-  $w{prtHMargin} = $mf->$Entry(@Entry,
-			       -textvariable => \$s{prtHMargin},
-			       -width => 5,
-			       -validate => 'key',
-			       -validatecommand => 
-			       sub { shift =~ /^\s*\d*[cimp]?\s*$/ })->pack(-side=> 'left');
-  $d->bind('<Alt-x>',[sub{shift;shift->{prtHMargin}->focus},\%w]);
-
-  set_grp_history($grp, $w{prtHMargin}, 'printHMargin',$e_hist);
-  $mf->Label(-text=> 'Y margin:',
-	     -underline => 0,
-	     -padx => 10,
-	     -anchor=> 'w',
-	     -justify=> 'right')->pack(-side=> 'left');
-  $w{prtVMargin}=$mf->$Entry(@Entry,
-			     -textvariable => \$s{prtVMargin},
-			     -width => 5,
-			     -validate => 'key',
-			     -validatecommand => 
-			     sub { shift =~ /^\s*\d*[cimp]?\s*$/ })->pack(-side=> 'left');
-  $d->bind('<Alt-y>',[sub{shift;shift->{prtVMargin}->focus},\%w]);
-  set_grp_history($grp, $w{prtVMargin}, 'printVMargin',$e_hist);
-
-
-  # Output filename
-  my $ff=$d->Frame();
-  $w{file_label}= $ff->Label(-text=> 'File name:',
-			     -anchor=> 'w',
-			     -justify=> 'right')->pack(-side=> 'left');
-  $w{psFile}= $ff->$Entry(@Entry,
-			-relief=> 'sunken',
-			-width=> 50,
-			-font=> $font,
-			-textvariable=> \$s{psFile})
-    ->pack(qw/-padx 10 -side left -expand yes -fill x/);
-  $d->bind('<Alt-r>',[sub{shift;shift->{psFile}->focus},\%w]);
-  set_grp_history($grp, $w{psFile}, 'printFile',$e_hist);
-  if ($s{psFile} ne EMPTY) {
-    my $start = rindex($s{psFile},"/")+1;
-    my $end = rindex($s{psFile},".");
-    if ($start<$end) {
-      $w{psFile}->selectionClear();
-      $w{psFile}->selectionRange($start,$end);
-      $w{psFile}->icursor($start);
-    }
-  }
-
-  # Print range
-  my $sf= $d->Frame();
-  $w{printRange}=$sf->$Entry(@Entry,
-			     -relief=> 'sunken',
-			     -width=> 20,
-			     -font=> $font,
-			     -textvariable=> \$s{printRange});
-  set_grp_history($grp, $w{printRange}, 'printRange',$e_hist);
-  $w{findFile} = $ff->Button(-text => '...',
-			     -underline => 0,
-		      -command =>
-		      [sub {
-			 my ($d,$s)=@_;
-			 my $initdir=dirname($s->{psFile});
-			 $initdir=cwd() if ($initdir eq './');
-			 $initdir=~s!${TrEd::Convert::Ds}$!!m;
-			 my $file=
-			   get_save_filename($d,-title => "Print To File ...",
-					     $^O eq 'MSWin32' ? () :
-					     (-initialfile=> filename($s->{psFile})),
-					     -d $initdir ? (-initialdir=> $initdir) : (),
-					     -filetypes=>
-					     [
-					      ($s->{printFormat} eq 'PDF' ?
-					      ["PDF files", [qw/.pdf .PDF/]] :
-					      ($s->{printFormat} eq 'SVG' ?
-					      ["SVG files", [qw/.svg .SVG/]] :
-					      ["PostScript files", [qw/.ps .eps .PS .EPS/]])),
-					      ["All files", '*']
-					     ]
-					    );
-			 $s->{psFile}=$file if (defined $file and $file ne EMPTY);
-		       },$d,\%s])->pack(qw/-padx 10 -side left/);
-
-  # Bitmap Resolutions
-  my $imf=$bf->Frame();
-  $w{printImageMagickResolution}=$imf->JComboBox_0_02(
-    -mode => 'editable',
-    -validate => 'key',
-    -validatecommand => sub { $_[0]=~/^\d*$/ },
-    -choices => ['50','60', '75','80','90','100','120','135','150','160','180',
-		 '200','225','240','260','300','360','600','720'],
-    -textvariable => \$s{printImageMagickResolution},
-   );
-  _fix_combo_box_return($w{printImageMagickResolution});
-  my %printbuttons = ( printer => [$bf,'Send to printer',undef,8],
-		       file =>[$bf,'Print to file','?',9],
-		       convert =>[$imf,'Convert to a bitmap format by extension (ImageMagick)','png',13]
-		     );
-
-  # print To buttons
-  foreach (qw(printer file convert)) {
-    $w{"printTo_$_"} = $printbuttons{$_}[0]->
-      Radiobutton(-text    => $printbuttons{$_}[1],
-		  -value   => $_,
-		  -underline => $printbuttons{$_}[3],
-		  -variable=> \$s{printTo},
-		  -relief  => 'flat',
-		  -command =>
-		  [\&updatePrintDialogState,$grp,\%w,\%s,$printbuttons{$_}[2],$d]
-		 );
-  }
-  $w{printTo_convert}->pack(qw/-anchor w -side left -fill y -expand 1/);
-
-  $imf->Label(-text => "Resolution", -underline => 7)->pack(qw/-padx 10 -side left/);
-  $imf->pack(qw/-fill x -expand yes -anchor nw/);
-  $w{printImageMagickResolution}->pack(qw/-padx 10 -side left/);
-
-  $d->bind('<Alt-i>',[sub{shift;shift->{printImageMagickResolution}->focus},\%w]);
-
-  $w{printTo_convert}->lower($w{printImageMagickResolution});
-
-  foreach (qw(printer file)) {
-    $w{"printTo_$_"}->pack(qw/-fill y -anchor nw/);
-  }
-
-
-  $bf->Frame()->pack(qw/-pady 5/);
-
-  # output format buttons
-  my %fmtbuttons = ( PS => [$bf,'Create PostScript','ps',11],
-		     EPS =>[$bf,'Create EPS','eps',7],
-		     SVG =>[$bf,'Create SVG','svg',7],
-		     PDF =>[$pbf,'Create PDF','pdf',8],
-		   );
-  foreach (qw(PS EPS SVG PDF)) {
-    $w{"format_$_"} = $fmtbuttons{$_}[0]->
-      Radiobutton(-text    => $fmtbuttons{$_}[1],
-		  -value   => $_,
-		  -underline => $fmtbuttons{$_}[3],
-		  -variable=> \$s{printFormat},
-		  -relief  => 'flat',
-		  -command =>
-		  [\&updatePrintDialogState,$grp,\%w,\%s,$fmtbuttons{$_}[2],$d]
-		 );
-  }
-  foreach (qw(PS EPS SVG)) {
-    $w{"format_$_"}->pack(qw/-fill y -anchor nw/);
-  }
-  $w{format_PDF}->pack(qw/-anchor w -side left -fill y -expand 1/);
-  $w{font_label}->pack(qw/-padx 10 -side left/);
-  $w{font}->pack(qw/-padx 10 -side left/);
-  $pbf->raise($w{format_EPS});
-  $pbf->pack(qw/-fill x -expand yes -anchor nw/);
-
-  $bf->Frame()->pack(qw/-pady 5/);
-
-  # print options
-  $w{printColors}=$bf->Checkbutton(-text=> 'Use colors',
-				   -underline => 0,
-			       -variable=> \$s{printColors},
-			       -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
-  $w{printFileInfo}=$bf->Checkbutton(-text=> 'Print filename and tree number',
-				     -underline => 8,
-				     -variable=> \$s{printFileInfo},
-				     -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
-  $w{printSentenceInfo}=$bf->Checkbutton(-text=> 'Print sentence',
-				     -underline => 8,
-				 -variable=> \$s{printSentenceInfo},
-				 -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
-
-  $w{printOnePerFile}=$bf->Checkbutton(-text=> 'one tree per file (use %n in the filename to place the tree number)',
-				       -underline => 4,
-				       -variable=> \$s{printOnePerFile},
-				       -command => [\&updatePrintDialogState,$grp,\%w,\%s,undef,$d],
-				       -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
-
-  $w{printNoRotate}=
-    $bf->Checkbutton(-text    => 'Disable landscape rotation of wide trees',
-		     -underline => 30,
-		     -variable=> \$s{printNoRotate},
-		     -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
-  $bf->pack(-side=> 'left');
-
-  $of->pack(qw/-padx 10 -pady 10 -side top -expand yes -fill x/);
-  $sf->Label(-text=> 'Page range:',
-	     -underline => 5,
-	     -anchor=> 'w',
-	     -justify=> 'right')->pack(-side=> 'left');
-  $d->bind('<Alt-r>',[sub{shift;shift->{printRange}->focus},\%w]);
-  $w{printRange}->pack(qw/-side left -padx 10 -fill x -expand yes/);
-
-  for ($sf,$ff) {
-    $_->raise($of);
-  }
-
-  # fill range buttons
-  $sf->Button(-image=> icon($grp,'1leftarrow'),
-	      -command =>
-	      [sub {
-		 my ($grp,$w)=@_;
-		 my $rng = TrEd::View::Sentences::get_selection($grp);
-		 $w->{printRange}->delete(0,'end');
-		 $w->{printRange}->insert(0,$rng);
-	       },$grp,\%w])->pack(qw/-padx 10 -side left/);
-  $sf->Button(-image=> icon($grp,'contents'),
-	      -command=> [sub {
-			    my ($grp,$win,$d,$w)=@_;
-			    my $list=[];
-			    foreach (TrEd::Print::parse_print_list(
-					  $win->{FSFile},
-					   $w->{printRange})) {
-			      $list->[$_-1]=1;
-			    }
-			    my $rng = TrEd::View::Sentences::get_selection($grp,
-							   TrEd::View::Sentences::show_sentences_dialog($grp,$d,
-									       $win->{FSFile},
-									       $list));
-			    $w->{printRange}->delete(0,'end');
-			    $w->{printRange}->insert(0,$rng);
-			  },$grp,$win,$d,\%w ])->pack(qw/-padx 10 -side left/);
-
-  $sf->pack(qw/-pady 10 -padx 10 -side bottom -expand yes -fill x/);
-  $ff->pack(qw/-pady 10 -padx 10 -side bottom -expand yes -fill x/);
-
-  updatePrintDialogState($grp,\%w,\%s, $printOptions->{printFileExtension},$d);
-#  $toFile ? $fe->focus : $ce->focus;
-
-  $d->BindButtons;
-  my $result= ShowDialog($d,$s{printTo} eq "command" ? $w{command} : $w{psFile},$grp->{top});
-  savePrintConfig($win,\%s,\%w,0);
-
-  my $one_per_file = 1 if $s{printOnePerFile};
-  get_grp_histories($grp,$e_hist) if ($result =~ /OK/);
-  $d->destroy;
-  undef $d;
-
-  if ($result=~ /OK/) {
-    return () if $s{printTo} eq 'convert' and
-                 warnWin32PrintConvert($win) eq 'Cancel';
-    return () if $s{printTo} eq 'convert' and
-                 warn55PrintConvert($win) eq 'Cancel';
-    return {
-      -onePerFile => $one_per_file,
-      -range => $s{printRange},
-      -to => (
-	($s{printTo} eq 'file') ? 'file' :
-	($s{printTo} eq 'convert') ? 'convert'
-	: 'pipe'),
-      -format => $s{printFormat},
-      -filename => TrEd::Config::tilde_expand($s{psFile}),
-      -sentenceInfo => $s{printSentenceInfo} 
-                        ? sub { $win->{framegroup}->{valueLine}->get_value_line($win,$_[0],$_[1],1,0,'print') } 
-                        : undef,
-      -fileInfo => $s{printFileInfo},
-      -imageMagickResolution => $s{printImageMagickResolution},
-      -convert => $imageMagickConvert,
-      -command => $s{command},
-      -colors => $s{printColors},
-      -noRotate => $s{printNoRotate},
-     };
-  
-  } else {
-    return ();
-  }
-}
-
-# print
-sub savePrintConfig {
-  my ($win,$s,$widgets,$save_to_tredrc)=@_;
-  my $grp = $win->{framegroup};
-  for my $opt (qw( printRange printOnePerFile printTo printFormat psFile
-		   printSentenceInfo printFileInfo printImageMagickResolution
-		   printNoRotate printColors ttFont prtHMargin prtVMargin )) {
-    $printOptions->{$opt}=$s->{$opt};
-  }
-  $printOptions->{defaultPrintCommand}=$s->{command};
-  $printOptions->{psMedia}=$widgets->{psMedia}->GetSelected;
-  ($printOptions->{printFileExtension})=$s->{psFile}=~m!\.([^.\\/]+)$!;
-
-  $win->{FSFile}->changeAppData('tred.print.filename',$s->{psFile});
-  if ($save_to_tredrc) {
-    saveRuntimeConfig($grp,{
-      ';' => 'Options saved from the Print dialog',
-      %$printOptions
-     });
-  }
-}
+# sub savePrintConfig 
 
 # print
 sub printThis {
@@ -2767,7 +2135,7 @@ sub printThis {
   my $err;
   do {{
     $err = 0;
-    $print_opts = printDialog($grp) || return;
+    $print_opts = TrEd::Dialog::Print::printDialog($grp) || return;
     my $one_per_file = delete $print_opts->{-onePerFile};
     if ($print_opts->{-format} eq 'PDF' and (!$grp->{ttfonts} or !$grp->{ttfonts}->{$printOptions->{ttFont}})) {
       plainErrorMessage($win,"You must select TrueType font for PDF!");
@@ -3186,7 +2554,7 @@ sub saveFileStateUpdate {
     configure(-state => (($win->{FSFile} and $win->{FSFile}->notSaved) ? 'normal' : 'disabled'));
 }
 
-# fsfile?
+# 
 sub About {
   my ($grp)=@_;
   my $message=EMPTY;
@@ -3806,6 +3174,325 @@ sub populate_recent_files_menu {
   }
 }
 
+sub create_toolbar_buttons {
+    my ($tred_ref) = @_;
+  print STDERR "Creating buttons.\n" if $tredDebug;
+
+  $tred_ref->{nextButton}=
+    $tred_ref->{Toolbar}->Button(-takefocus=>0,
+			  -text=> "Next",
+			  -relief=> $buttonsRelief,
+			  -image=> icon($tred_ref,"1rightarrow"),
+			  -state=> 'disabled',
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=>
+			  [\&tieNextTree,$tred_ref]);
+  $tred_ref->{Balloon}->attach($tred_ref->{nextButton},
+			  -balloonmsg=> "see the next tree in the file");
+  addBindTags($tred_ref->{nextButton},'my');
+
+  $tred_ref->{prevButton}=
+    $tred_ref->{Toolbar}->Button(-takefocus=>0, -text=> "Prev",
+			  -relief=> $buttonsRelief,
+			  -image=> icon($tred_ref,"1leftarrow"),
+			  -state=> 'disabled',
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=>
+			  [\&tiePrevTree,$tred_ref]);
+  $tred_ref->{Balloon}->attach($tred_ref->{prevButton},
+			  -balloonmsg=> "see the previous tree the file");
+  addBindTags($tred_ref->{prevButton},'my');
+
+  $tred_ref->{openButton}=
+    $tred_ref->{Toolbar}->Button(-takefocus=>0, -text=> "Open",
+			  -relief=> $buttonsRelief,
+			  -image=>
+			  icon($tred_ref,"fileopen"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=>
+			  [\&TrEd::Dialog::File::Open::show_dialog,$tred_ref])
+      ->pack(-side=>'left');
+  $tred_ref->{Balloon}->attach($tred_ref->{openButton},
+		 -balloonmsg=> "open file");
+  addBindTags($tred_ref->{openButton},'my');
+  $tred_ref->{saveButton}=
+    $tred_ref->{Toolbar}->Button(-takefocus=>0, -text=> "Save",
+			  -relief=> $buttonsRelief,
+			  -image=> icon($tred_ref,"filesave"),
+			  -state => 'disabled',
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&TrEd::File::saveFile,$tred_ref])->pack(-side=>'left');
+
+  $tred_ref->{Balloon}->attach($tred_ref->{saveButton},
+			  -balloonmsg=> "save current file");
+  addBindTags($tred_ref->{saveButton},'my');
+
+  $tred_ref->{reloadButton}=
+    $tred_ref->{Toolbar}->Button(-takefocus=>0, -text=> "Reload",
+			  -relief=> $buttonsRelief,
+			  -image=> icon($tred_ref,"reload"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&TrEd::File::reloadFile,$tred_ref])->pack(-side=>'left');
+
+  $tred_ref->{Balloon}->attach($tred_ref->{reloadButton},
+			  -balloonmsg=> "reload current file");
+  addBindTags($tred_ref->{reloadButton},'my');
+
+
+  ###################
+
+  $tred_ref->{prevFileButton}=
+    $tred_ref->{Toolbar}->Button(-takefocus=>0, -text=> "Prev file",
+			  -relief=> $buttonsRelief,
+			  -image=> icon($tred_ref,"start"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&tiePrevFile,$tred_ref])->pack(-side=>'left');
+  $tred_ref->{Balloon}->attach($tred_ref->{prevFileButton},
+			  -balloonmsg=> "visit the previous file in the file-list");
+  addBindTags($tred_ref->{prevFileButton},'my');
+
+  $tred_ref->{nextFileButton}=
+    $tred_ref->{Toolbar}->Button(-takefocus=>0, -text=> "Next file",
+			  -relief=> $buttonsRelief,
+			  -image=> icon($tred_ref,"finish"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&tieNextFile,$tred_ref])->pack(-side=>'left');
+  $tred_ref->{Balloon}->attach($tred_ref->{nextFileButton},
+			  -balloonmsg=> "visit the next file in the file-list");
+  addBindTags($tred_ref->{nextFileButton},'my');
+
+  # bind action control
+  for my $bind ([nextFileButton => \&TrEd::Filelist::Navigation::nextRealFile],
+		[prevFileButton => \&TrEd::Filelist::Navigation::prevRealFile]) {
+    my $button = $tred_ref->{$bind->[0]};
+    my $cmd = $bind->[1];
+    $button->bindtags([$button, ref($button), $button->toplevel, 'all']);
+    $button->bind($button, '<Control-ButtonRelease-1>',
+		  sub {
+		    $button->flash();
+		    $cmd->($tred_ref);
+		    Tk->break;
+		  });
+  }
+
+  $tred_ref->{printButton}=
+    $tred_ref->{Toolbar}->Button(-takefocus=>0, -text=> "Print",
+			  -relief=> $buttonsRelief,
+			  -image      => icon($tred_ref,"fileprint"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [sub { printThis(@_) },$tred_ref])->pack(-side=>'left');
+  $tred_ref->{Balloon}->attach($tred_ref->{printButton},
+			  -balloonmsg=> "print ...");
+  addBindTags($tred_ref->{printButton},'my');
+
+
+  #####################
+  $tred_ref->{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+    ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
+
+  # Undo button
+
+  $tred_ref->{undoButton}=
+    $tred_ref->{Toolbar}->Button(-takefocus=>0, -text=> "Undo",
+			  -relief=> $buttonsRelief,
+			  -image=> icon($tred_ref,"undo"),
+			  -state=> 'disabled',
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&TrEd::Undo::undo,$tred_ref])->pack(-side=>'left');
+  $tred_ref->{Balloon}->attach($tred_ref->{undoButton},
+			  -balloonmsg=> "undo current file");
+  addBindTags($tred_ref->{undoButton},'my');
+
+  # Redo button
+
+  $tred_ref->{redoButton}=
+    $tred_ref->{Toolbar}->Button(-takefocus=>0, -text=> "Redo",
+			  -relief=> $buttonsRelief,
+			  -image=> icon($tred_ref,"redo"),
+			  -state=> 'disabled',
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&re_do,$tred_ref])->pack(-side=>'left');
+    
+  $tred_ref->{Balloon}->attach($tred_ref->{redoButton},
+			  -balloonmsg=> "redo current file");
+  addBindTags($tred_ref->{redoButton},'my');
+
+  #####################
+  $tred_ref->{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+    ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
+
+
+  $tred_ref->{findButton}=
+    $tred_ref->{Toolbar}->Button(-takefocus=>0, -text=> "Find",
+			  -relief=> $buttonsRelief,
+			  -image      => icon($tred_ref,"searchtool"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [sub {
+					my ($grp)=@_;
+					TrEd::Dialog::FindNode::findNodeDialog($grp)
+					  if ($grp->{focusedWindow}->{currentNode});
+				      },$tred_ref])->pack(-side=>'left');
+  $tred_ref->{Balloon}->attach($tred_ref->{findButton},
+			  -balloonmsg=> "Find node ...");
+  addBindTags($tred_ref->{findButton},'my');
+
+  $tred_ref->{findNextButton}=
+    $tred_ref->{Toolbar}->Button(-takefocus=>0, -text=> "Find Next",
+			  -relief=> $buttonsRelief,
+			  -image      => icon($tred_ref,"searchtool_forward"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&doFindFirstTemplated,$tred_ref,1])
+      ->pack(-side=>'left');
+  $tred_ref->{Balloon}->attach($tred_ref->{findNextButton},
+			  -balloonmsg=> "Find next ...");
+  addBindTags($tred_ref->{findNextButton},'my');
+
+
+  $tred_ref->{findPrevButton}=
+    $tred_ref->{Toolbar}->Button(-takefocus=>0, -text=> "Find Previous",
+			  -relief=> $buttonsRelief,
+			  -image=> icon($tred_ref,"searchtool_backward"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&doFindPrevTemplated,$tred_ref,1])
+      ->pack(-side=>'left');
+  $tred_ref->{Balloon}->attach($tred_ref->{findPrevButton},
+			  -balloonmsg=> "Find previous ...");
+  addBindTags($tred_ref->{findPrevButton},'my');
+
+  $tred_ref->{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+    ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
+
+  $tred_ref->{prevButton}->pack(-side=> 'left');
+  $tred_ref->{nextButton}->pack(-side=> 'left');
+
+  #####################
+  $tred_ref->{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+    ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
+
+  $tred_ref->{vsplitButton}=
+    $tred_ref->{Toolbar}->Button(-takefocus=>0, 
+			  -text=> "Split View Vertically",
+			  -relief=> $buttonsRelief,
+			  -image=> icon($tred_ref,"view_left_right"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&splitWindow,$tred_ref,'vert'])->pack(-side=>'left');
+  $tred_ref->{Balloon}->attach($tred_ref->{vsplitButton},
+			  -balloonmsg=> "split view vertically");
+
+  $tred_ref->{hsplitButton}=
+    $tred_ref->{Toolbar}->Button(-takefocus=>0, 
+			  -text=> "Split View Horizontally",
+			  -relief=> $buttonsRelief,
+			  -image=> icon($tred_ref,"view_top_bottom"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&splitWindow,$tred_ref,'horiz'])->pack(-side=>'left');
+
+
+  $tred_ref->{Balloon}->attach($tred_ref->{hsplitButton},
+			  -balloonmsg=> "split view horizontally");
+
+  $tred_ref->{rmsplitButton}=
+    $tred_ref->{Toolbar}->Button(-takefocus=>0, 
+			  -text=> "Remove Current View",
+			  -relief=> $buttonsRelief,
+			  -state => 'disabled',
+			  -image=> icon($tred_ref,"view_remove"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&removeWindow,$tred_ref])->pack(-side=>'left');
+  $tred_ref->{Balloon}->attach($tred_ref->{rmsplitButton},
+			  -balloonmsg=> "remove current view");
+
+
+  $tred_ref->{tieWinddowsButton}=
+    $tred_ref->{Toolbar}->Checkbutton(-takefocus=>0,
+			      -text=> "Tie Displayed Windows",
+			      -variable=> \$tred_ref->{tieWindows},
+			       -relief=> $buttonsRelief,
+			      -indicatoron => 0,
+			      -image=>icon($tred_ref,"lock"),
+			      -borderwidth=> $buttonBorderWidth)->pack(-side=>'left');
+  $tred_ref->{Balloon}->attach($tred_ref->{tieWinddowsButton},
+			  -balloonmsg=> "tie all views");
+
+  $tred_ref->{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+    ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
+
+  $tred_ref->{toggleUserToolbarButton}=
+    $tred_ref->{Toolbar}->Menubutton(-takefocus=>0,
+				-tearoff=>0,
+				-text=> "Toggle User Toolbars",
+				-relief=> $buttonsRelief,
+				-indicatoron => 0,
+				-state => 'disabled',
+				-image=>icon($tred_ref,"1downarrow"),
+				-borderwidth=> $buttonBorderWidth)->pack(-side=>'left');
+  $tred_ref->{Balloon}->attach($tred_ref->{toggleUserToolbarButton},
+			  -balloonmsg=> "toggle user-defined toolbars");
+
+
+  ##########################
+    return;
+    
+}
+
+sub create_stylesheet_menu {
+    my ($tred_ref) = @_;
+    
+    $tred_ref->{StylesheetMenu} = TrEd::Menu::Stylesheet->new($tred_ref);
+  
+  $tred_ref->{attrButton}=
+    $tred_ref->{Toolbar}->Button(-takefocus=>0, -text=> "Edit Stylesheet",
+			  -relief=> $buttonsRelief,
+			  -image=> icon($tred_ref,"wizard"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [sub { TrEd::Dialog::EditStylesheet::show_dialog(@_) },$tred_ref])->pack(-side=>'right');
+  $tred_ref->{Balloon}->attach($tred_ref->{attrButton},
+			  -balloonmsg=> "customize display patterns\nof the selected stylesheet\n(e.g. change tree appearance, labels etc.)");
+  
+  $tred_ref->{StylesheetMenuLabel}=$tred_ref->{Toolbar}->Label(qw/-text Style:
+							-font C_small
+							-underline 2/)->pack(qw/-side right/);
+  
+  $tred_ref->{Balloon}->attach($tred_ref->{StylesheetMenu}->get_menu(),
+			  -balloonmsg=> "stylesheet (tree appearance)");
+  
+  
+
+  print STDERR "Packing widgets.\n" if $TrEd::Config::tredDebug;
+
+  $tred_ref->{Toolbar}->pack(-fill=> 'x', -padx=> '1', -pady=> 1);
+  return;
+}
+
+sub create_value_line_subframe {
+    my ($tred_ref) = @_;
+    
+    my $vlsubframe=$tred_ref->{vLineFrame}->Frame();
+  $tred_ref->{vLineNumLabel}=$vlsubframe->Label(-text => '-/-')->pack(qw/-side top -fill x/);
+  $tred_ref->{Balloon}->attach($tred_ref->{vLineNumLabel},
+			  -balloonmsg=> "position of the current tree\nin the file (current/total)");
+  
+  $tred_ref->{sentButton}=
+    $vlsubframe->Button(-takefocus=>0, -text=> "Sentences",
+			-relief=> $buttonsRelief,
+			-image=> icon($tred_ref,"contents"),
+			-borderwidth=> $buttonBorderWidth,
+			-command=> [\&TrEd::View::Sentence::show_sentences, $tred_ref])
+      ->pack(qw/-side top -fill x/);
+  $tred_ref->{Balloon}->attach($tred_ref->{sentButton},
+			  -balloonmsg=> "View all trees as a list of 'sentences'...\nThis dialog also allows export to HTML.");
+
+  $vlsubframe->pack(qw/-fill x -side right -padx 1 -anchor n/);
+  
+  
+  $tred_ref->{valueLine}->value_line_widget()->pack(qw/-side left -fill both -expand yes/);
+  $tred_ref->{vLineFrame}->pack(qw/-fill x -expand no/);
+
+
+  $tred_ref->{vLineSeparator}->packAfter($tred_ref->{vLineFrame},-side => 'top');
+ return;
+}
+
 sub startMain {
   my $node;
   my $parent;
@@ -3901,7 +3588,7 @@ sub startMain {
   if ($TrEd::Convert::support_unicode) {
     $top->useinputmethods(1);
   }
-  my $preparedExtensions = prepareExtensions(); #<- sets up new stylesheet, resources, macor paths
+  my $preparedExtensions = TrEd::Extensions::prepare_extensions($opt_m); #<- sets up new stylesheet, resources, macor paths
   TrEd::Utils::loadStyleSheets(\%tred);
 
   
@@ -4081,317 +3768,20 @@ sub startMain {
     $slider->bindtags([$slider,ref($slider),$slider->toplevel,'all']);
     $slider->bind($slider,'<3>', sub{ $slider->set(0); Tk->break; } );
   }
-  
 
-  print STDERR "Creating buttons.\n" if $tredDebug;
-
-  $tred{nextButton}=
-    $tred{Toolbar}->Button(-takefocus=>0,
-			  -text=> "Next",
-			  -relief=> $buttonsRelief,
-			  -image=> icon(\%tred,"1rightarrow"),
-			  -state=> 'disabled',
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=>
-			  [\&tieNextTree,\%tred]);
-  $tred{Balloon}->attach($tred{nextButton},
-			  -balloonmsg=> "see the next tree in the file");
-  addBindTags($tred{nextButton},'my');
-
-  $tred{prevButton}=
-    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Prev",
-			  -relief=> $buttonsRelief,
-			  -image=> icon(\%tred,"1leftarrow"),
-			  -state=> 'disabled',
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=>
-			  [\&tiePrevTree,\%tred]);
-  $tred{Balloon}->attach($tred{prevButton},
-			  -balloonmsg=> "see the previous tree the file");
-  addBindTags($tred{prevButton},'my');
-
-  $tred{openButton}=
-    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Open",
-			  -relief=> $buttonsRelief,
-			  -image=>
-			  icon(\%tred,"fileopen"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=>
-			  [\&TrEd::Dialog::File::Open::show_dialog,\%tred])
-      ->pack(-side=>'left');
-  $tred{Balloon}->attach($tred{openButton},
-		 -balloonmsg=> "open file");
-  addBindTags($tred{openButton},'my');
-  $tred{saveButton}=
-    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Save",
-			  -relief=> $buttonsRelief,
-			  -image=> icon(\%tred,"filesave"),
-			  -state => 'disabled',
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&TrEd::File::saveFile,\%tred])->pack(-side=>'left');
-
-  $tred{Balloon}->attach($tred{saveButton},
-			  -balloonmsg=> "save current file");
-  addBindTags($tred{saveButton},'my');
-
-  $tred{reloadButton}=
-    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Reload",
-			  -relief=> $buttonsRelief,
-			  -image=> icon(\%tred,"reload"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&TrEd::File::reloadFile,\%tred])->pack(-side=>'left');
-
-  $tred{Balloon}->attach($tred{reloadButton},
-			  -balloonmsg=> "reload current file");
-  addBindTags($tred{reloadButton},'my');
-
-
-  ###################
-
-  $tred{prevFileButton}=
-    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Prev file",
-			  -relief=> $buttonsRelief,
-			  -image=> icon(\%tred,"start"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&tiePrevFile,\%tred])->pack(-side=>'left');
-  $tred{Balloon}->attach($tred{prevFileButton},
-			  -balloonmsg=> "visit the previous file in the file-list");
-  addBindTags($tred{prevFileButton},'my');
-
-  $tred{nextFileButton}=
-    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Next file",
-			  -relief=> $buttonsRelief,
-			  -image=> icon(\%tred,"finish"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&tieNextFile,\%tred])->pack(-side=>'left');
-  $tred{Balloon}->attach($tred{nextFileButton},
-			  -balloonmsg=> "visit the next file in the file-list");
-  addBindTags($tred{nextFileButton},'my');
-
-  # bind action control
-  for my $bind ([nextFileButton => \&TrEd::Filelist::Navigation::nextRealFile],
-		[prevFileButton => \&TrEd::Filelist::Navigation::prevRealFile]) {
-    my $button = $tred{$bind->[0]};
-    my $cmd = $bind->[1];
-    $button->bindtags([$button, ref($button), $button->toplevel, 'all']);
-    $button->bind($button, '<Control-ButtonRelease-1>',
-		  sub {
-		    $button->flash();
-		    $cmd->(\%tred);
-		    Tk->break;
-		  });
-  }
-
-  $tred{printButton}=
-    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Print",
-			  -relief=> $buttonsRelief,
-			  -image      => icon(\%tred,"fileprint"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [sub { printThis(@_) },\%tred])->pack(-side=>'left');
-  $tred{Balloon}->attach($tred{printButton},
-			  -balloonmsg=> "print ...");
-  addBindTags($tred{printButton},'my');
-
-
-  #####################
-  $tred{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
-    ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
-
-  # Undo button
-
-  $tred{undoButton}=
-    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Undo",
-			  -relief=> $buttonsRelief,
-			  -image=> icon(\%tred,"undo"),
-			  -state=> 'disabled',
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&TrEd::Undo::undo,\%tred])->pack(-side=>'left');
-  $tred{Balloon}->attach($tred{undoButton},
-			  -balloonmsg=> "undo current file");
-  addBindTags($tred{undoButton},'my');
-
-  # Redo button
-
-  $tred{redoButton}=
-    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Redo",
-			  -relief=> $buttonsRelief,
-			  -image=> icon(\%tred,"redo"),
-			  -state=> 'disabled',
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&re_do,\%tred])->pack(-side=>'left');
+    create_toolbar_buttons(\%tred);  
     
-  $tred{Balloon}->attach($tred{redoButton},
-			  -balloonmsg=> "redo current file");
-  addBindTags($tred{redoButton},'my');
-
-  #####################
-  $tred{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
-    ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
-
-
-  $tred{findButton}=
-    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Find",
-			  -relief=> $buttonsRelief,
-			  -image      => icon(\%tred,"searchtool"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [sub {
-					my ($grp,$template)=@_;
-					findNodeDialog($grp,$template)
-					  if ($grp->{focusedWindow}->{currentNode});
-				      },\%tred,\%searchTemplate])->pack(-side=>'left');
-  $tred{Balloon}->attach($tred{findButton},
-			  -balloonmsg=> "Find node ...");
-  addBindTags($tred{findButton},'my');
-
-  $tred{findNextButton}=
-    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Find Next",
-			  -relief=> $buttonsRelief,
-			  -image      => icon(\%tred,"searchtool_forward"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&doFindFirstTemplated,\%tred,1])
-      ->pack(-side=>'left');
-  $tred{Balloon}->attach($tred{findNextButton},
-			  -balloonmsg=> "Find next ...");
-  addBindTags($tred{findNextButton},'my');
-
-
-  $tred{findPrevButton}=
-    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Find Previous",
-			  -relief=> $buttonsRelief,
-			  -image=> icon(\%tred,"searchtool_backward"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&doFindPrevTemplated,\%tred,1])
-      ->pack(-side=>'left');
-  $tred{Balloon}->attach($tred{findPrevButton},
-			  -balloonmsg=> "Find previous ...");
-  addBindTags($tred{findPrevButton},'my');
-
-  $tred{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
-    ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
-
-  $tred{prevButton}->pack(-side=> 'left');
-  $tred{nextButton}->pack(-side=> 'left');
-
-  #####################
-  $tred{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
-    ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
-
-  $tred{vsplitButton}=
-    $tred{Toolbar}->Button(-takefocus=>0, 
-			  -text=> "Split View Vertically",
-			  -relief=> $buttonsRelief,
-			  -image=> icon(\%tred,"view_left_right"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&splitWindow,\%tred,'vert'])->pack(-side=>'left');
-  $tred{Balloon}->attach($tred{vsplitButton},
-			  -balloonmsg=> "split view vertically");
-
-  $tred{hsplitButton}=
-    $tred{Toolbar}->Button(-takefocus=>0, 
-			  -text=> "Split View Horizontally",
-			  -relief=> $buttonsRelief,
-			  -image=> icon(\%tred,"view_top_bottom"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&splitWindow,\%tred,'horiz'])->pack(-side=>'left');
-
-
-  $tred{Balloon}->attach($tred{hsplitButton},
-			  -balloonmsg=> "split view horizontally");
-
-  $tred{rmsplitButton}=
-    $tred{Toolbar}->Button(-takefocus=>0, 
-			  -text=> "Remove Current View",
-			  -relief=> $buttonsRelief,
-			  -state => 'disabled',
-			  -image=> icon(\%tred,"view_remove"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&removeWindow,\%tred])->pack(-side=>'left');
-  $tred{Balloon}->attach($tred{rmsplitButton},
-			  -balloonmsg=> "remove current view");
-
-
-  $tred{tieWinddowsButton}=
-    $tred{Toolbar}->Checkbutton(-takefocus=>0,
-			      -text=> "Tie Displayed Windows",
-			      -variable=> \$tred{tieWindows},
-			       -relief=> $buttonsRelief,
-			      -indicatoron => 0,
-			      -image=>icon(\%tred,"lock"),
-			      -borderwidth=> $buttonBorderWidth)->pack(-side=>'left');
-  $tred{Balloon}->attach($tred{tieWinddowsButton},
-			  -balloonmsg=> "tie all views");
-
-  $tred{Toolbar}->Frame(-bd => 2, -width => 2, -relief => 'groove')
-    ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
-
-  $tred{toggleUserToolbarButton}=
-    $tred{Toolbar}->Menubutton(-takefocus=>0,
-				-tearoff=>0,
-				-text=> "Toggle User Toolbars",
-				-relief=> $buttonsRelief,
-				-indicatoron => 0,
-				-state => 'disabled',
-				-image=>icon(\%tred,"1downarrow"),
-				-borderwidth=> $buttonBorderWidth)->pack(-side=>'left');
-  $tred{Balloon}->attach($tred{toggleUserToolbarButton},
-			  -balloonmsg=> "toggle user-defined toolbars");
-
-
-  ##########################
-
-
-
-  $tred{StylesheetMenu} = TrEd::Menu::Stylesheet->new(\%tred);
-  
-  $tred{attrButton}=
-    $tred{Toolbar}->Button(-takefocus=>0, -text=> "Edit Stylesheet",
-			  -relief=> $buttonsRelief,
-			  -image=> icon(\%tred,"wizard"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [sub { TrEd::Dialog::EditStylesheet::show_dialog(@_) },\%tred])->pack(-side=>'right');
-  $tred{Balloon}->attach($tred{attrButton},
-			  -balloonmsg=> "customize display patterns\nof the selected stylesheet\n(e.g. change tree appearance, labels etc.)");
-  
-  $tred{StylesheetMenuLabel}=$tred{Toolbar}->Label(qw/-text Style:
-							-font C_small
-							-underline 2/)->pack(qw/-side right/);
-  
-  $tred{Balloon}->attach($tred{StylesheetMenu}->get_menu(),
-			  -balloonmsg=> "stylesheet (tree appearance)");
-  
-  
-
-  print STDERR "Packing widgets.\n" if $tredDebug;
-
-  $tred{Toolbar}->pack(-fill=> 'x', -padx=> '1', -pady=> 1);
-
-  $tred{UserToolbarSep}=$top->Frame(qw/-relief sunken -height 2 -borderwidth 2/);
+    create_stylesheet_menu(\%tred);
+    
+    $tred{UserToolbarSep}=$top->Frame(qw/-relief sunken -height 2 -borderwidth 2/);
   $tred{UserToolbars}=$top->Frame();
   addBindTags($tred{UserToolbars},'my');
-  my $vlsubframe=$tred{vLineFrame}->Frame();
-  $tred{vLineNumLabel}=$vlsubframe->Label(-text => '-/-')->pack(qw/-side top -fill x/);
-  $tred{Balloon}->attach($tred{vLineNumLabel},
-			  -balloonmsg=> "position of the current tree\nin the file (current/total)");
-
-  $tred{sentButton}=
-    $vlsubframe->Button(-takefocus=>0, -text=> "Sentences",
-			-relief=> $buttonsRelief,
-			-image=> icon(\%tred,"contents"),
-			-borderwidth=> $buttonBorderWidth,
-			-command=> [\&TrEd::View::Sentence::show_sentences, \%tred])
-      ->pack(qw/-side top -fill x/);
-  $tred{Balloon}->attach($tred{sentButton},
-			  -balloonmsg=> "View all trees as a list of 'sentences'...\nThis dialog also allows export to HTML.");
-
-  $vlsubframe->pack(qw/-fill x -side right -padx 1 -anchor n/);
   
-  $tred{valueLine}->value_line_widget()->pack(qw/-side left -fill both -expand yes/);
-  $tred{vLineFrame}->pack(qw/-fill x -expand no/);
-
-
-  $tred{vLineSeparator}->packAfter($tred{vLineFrame},-side => 'top');
-
-  $tred{bodyPane}=$top->Panedwindow();
+  create_value_line_subframe(\%tred);
+  
+   
+  
+    $tred{bodyPane}=$top->Panedwindow();
   $tred{bottomFrame}->pack(qw/-pady 2 -side bottom -fill x -expand no/);
   $tred{bodyPane}->pack(qw/-fill both -expand yes/);
   $tred{windowFrame}=$tred{bodyPane}->Pane();
@@ -4402,8 +3792,6 @@ sub startMain {
     ->pack(qw/-expand yes -fill both/,
 	   -in => $tred{windowFrame},
 	   -side=>'right');
-
-
   # frame canvas here
   
 #  $tred{sLineFrame}->pack(qw/-fill x -expand yes/);
@@ -4427,6 +3815,7 @@ sub startMain {
   print STDERR "GUI prepared.\n" if $tredDebug;
   $top->update;
 
+#### }}}}}}
 
   # check if TrEd has been updated
   my $version_file = File::Spec->catfile($tred_d,'last_version');
@@ -4451,14 +3840,14 @@ sub startMain {
 		  -title => "TrEd Upgraded",
 		  -buttons => ["Manage Extensions","Later"]) =~ /Manage/) {
       manage_extensions(\%tred,0);
-      $preparedExtensions = prepareExtensions(\%tred);
+      $preparedExtensions = TrEd::Extensions::prepare_extensions($opt_m);
     }
   }
 
   $top->Busy(-recurse=> 1);
   eval { loadMacros(\%tred,{preparedExtensions=>$preparedExtensions}) };
   error_message($top,$@) if $@;
-  print STDERR "Resource path: $Treex::PML::resourcePath\n" unless $opt_q;
+  print STDERR "Resource path: $Treex::PML::resourcePath\n";# unless $opt_q;
   print "Starting in context $tred{focusedWindow}->{macroContext}\n" if $tredDebug;
   doEvalHook($tred{focusedWindow},"initialize_bindings_hook");
 
@@ -4547,6 +3936,7 @@ sub startMain {
     doEvalMacro($tred{focusedWindow},$macro);
   }
 
+##### <<<<<< bindings
 
   print STDERR "Binding keystrokes...\n" if $tredDebug;
   $menubar->bind('<Escape>', sub { eval{shift->menu->Leave()}; Tk->break; } );
@@ -4631,6 +4021,7 @@ sub startMain {
 	      }
 	    }, \%tred,uc($prefix).'+']);
   }
+##### <<<<<< binding
 
   #  $top->bind('my','<Control-x><KeyPress>'=>
   #			[sub { evalMacro(@_); Tk->break; }, \%tred, 'CTRL-X+' ]);
@@ -4954,7 +4345,7 @@ sub ShowDialog {
 sub newFileFromTemplate {
   my ($grp)=@_;
   my @templates;
-  my $extensions = get_extension_list();
+  my $extensions = TrEd::Extensions::get_extension_list();
   foreach my $ext (@$extensions) {
     my ($dir) = get_extension_template_paths([$ext]);
     if (defined ($dir)) {
@@ -5682,97 +5073,8 @@ sub determineNodeType {
   plainErrorMessage($win,$@) if $@;
   return $node->type;
 }
-# dialog
-sub editFilePropertiesDialog {
-  my ($grp_or_win)=@_;
-  my ($grp,$win)=grp_win($grp_or_win);
-  my $top = $grp->{top};
-  my $fsfile = $win->{FSFile};
-  return unless $fsfile;
-  my $trees_type = $fsfile->metaData('pml_trees_type');
-  my $references = $fsfile->metaData('references');
-  my $fsrequire = $fsfile->metaData('fsrequire');
-  my $refnames = $fsfile->metaData('refnames');
-  my %id2name = $refnames ? (reverse %$refnames) : ();
-  my $schema = TrEd::Basics::file_schema($fsfile);
-  my $text =join("\n",
-		 "File Information",
-		 "----------------",
-		 "URI:\t". $fsfile->URL,
-		 "I/O Backend:\t". $fsfile->backend,
-		 "Trees:\t". ($fsfile->lastTreeNo + 1),
-		 ($schema ?
-		    ("\n\nPML Schema Information",
-		     "----------------------",
-		     "Rrevision:\t".$schema->get_revision(),
-		     "Root name:\t".$schema->get_root_name(),
-		     "Description:\t".$schema->get_description(),
-		     "URI:\t".$schema->get_url(),
-		     "Tree list type:\t".(ref($trees_type) ? $trees_type->get_decl_path : '-'),
-		     (map { "\thas $_:\t".(ref($fsfile->metaData("pml_$_")) ? "yes" : "no") } qw(prolog epilog)  ),
-		    )
-		      : ()
-		     ),
-		 (
-		   ref($references) ?
-		     (
-		       "\n\nPML References",
-		       "--------------",
-		       map {
-			 my $name = $id2name{$_} || '';
-			 $name = " [$name]" if $name;
-			 "$_$name => $references->{$_}"
-		       }  keys %$references)
-		       : ()
-		      ),
-		 (
-			 ref($fsrequire) ?
-			 ("\n\nSecondary files",
-			  "---------------",
-			  (map { "$_->[0] => $_->[1]" }  @$fsrequire),
-			 ) : ()
-		       ),
-		      );
-  my $ret = $top->ErrorReport(
-    -title   => 'Properties',
-    -msgtype => ('INFORMATION'),
-    -message => ("Current File Properties"),
-    -body => $text,
-    -buttons => ['Close',
-		 (map {
-		   $schema && ref($fsfile->metaData("pml_$_")) ? 'View '.ucfirst($_). ' Data' : ()
-		 } qw(root prolog epilog))
-		]
-  );
-  my $what = $ret;
-  if ($what =~ s/ (.*) Data/$1/) {
-    $what = 'pml_'.lc($1);
-    my $type = $what eq 'pml_root' ? $schema->get_root_type : $trees_type;
-    #    print STDERR "$what: ",$fsfile->metaData($what),"\t",$type,"\n";
-    $top->TrEdNodeEditDlg({
-      title => $ret,
-      type => $type, # fixme: what data type for pml_epliog and pml_prolog?
-      object => $fsfile->metaData($what),
-      object_name => $what,
-      search_field=>1,
-      allow_trees=> $what eq 'pml_root' ? 0 : 1,
-      enable_callback => sub { 0 },
-      no_sort => 1,
-      no_value_sort => !$sortAttrValues,
-      side_panel_wrap => $sidePanelWrap,
-    })
-  }
 
-  # $top->TrEdNodeEditDlg({
-  #   title => 'Edit Properties',
-  #   type => $cfg->schema->get_root_type,
-  #   object => get_config(),
-  #   search_field => 0,
-  #   focus => 'context_before',
-  #   no_sort=>1,
-  # });
-
-}
+#sub editFilePropertiesDialog 
 
 # 
 sub editAttrsDialog_schema {
@@ -6153,191 +5455,7 @@ sub open_url_in_browser {
 # Node searching
 #####################################################
 
-sub findNodeDialog {
-  my ($grp,$template)=@_;
-  return unless $grp->{focusedWindow}->{FSFile};
-  my $win = $grp->{focusedWindow};
-  my $r;
-  my @vals;
-  my @atord;
-  if (TrEd::Basics::file_schema($win->{FSFile})) {
-    @atord = TrEd::Basics::file_schema($win->{FSFile})->attributes;
-  } else {
-    @atord = $win->{FSFile}->FS->attributes;
-  }
-
-  if ($sortAttrs) {
-    my @atord2 = @atord;
-    if (doEvalHook($win,"sort_attrs_hook",\@atord2,'',undef)) {
-      @atord = @atord2;
-    } else {
-      @atord=sort {uc($a) cmp uc($b)} @atord
-    }
-  }
-
-  my $b;
-  my $a;
-  my $rows=min($maxDisplayedAttributes,$#atord+1);
-  my %e=();
-  $grp->{top}->Busy(-recurse=>1);
-  my $d=$grp->{top}->DialogBox(-title=> "Find Node By Attributes", -width=> '10c',
-				 -buttons=> ["Find"]);
-  my $bcl=$d->Subwidget('bottom')->Button(-text=> "Clear",
-				  -command=> [sub { my $e=shift;
-						     foreach (keys %$e) {
-						       $e->{$_}->delete(0,'end');
-						     }
-						   },\%e] );
-  my $bca=$d->Subwidget('bottom')->Button(-text=> "Cancel",
-				  -command=> [sub { shift->{selected_button}= "Cancel"},$d] );
-  foreach ($bcl,$bca) {
-    $_->configure(-width=> 10, -pady=> 0) if ($Tk::platform eq 'MSWin32');
-    $_->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
-  }
-  $d->BindReturn($d,1);
-  $d->BindEscape();
-  my $ff=$d->Frame(-relief=> 'groove',
-		   -bd => 1);
-  my $f= $ff->Scrolled('Pane',
-		      -sticky => 'we',
-		      -scrollbars=> 'oe');
-  disable_scrollbar_focus($f);
-  $f->BindMouseWheelVert(EMPTY,"EditEntry");
-
-  my $lwidth;
-  foreach (@atord) {
-    $lwidth=max2($lwidth,length($_));
-  }
-  my $height=0;
-  for (my $i=0;$i<=$#atord;$i++) {
-    $_=$atord[$i];
-    # Reliefs: raised, sunken, flat, ridge, and groove.
-    my $eef=$f->Frame()->pack(qw/-side top -expand yes -fill x/);
-    $eef->Label(-text=> $_,
-		-underline => 0,
-		-justify => 'left',
-		-width =>$lwidth,
-		-anchor=> 'nw')->pack(qw/-side left/);
-    $e{$_}= $eef->Entry(-relief=> 'sunken', -takefocus=> 1,
-			-font=> $font)->pack(qw/-side right -expand yes -fill both/);
-    addBindTags($e{$_},"EditEntry");
-    $e{$_}->insert(0,encode($template->{$_}));
-    $height += $e{$_}->reqheight() if ($i<$rows);
-    $f->bind($e{$_}, '<Tab>',       [\&focusxEditDn,$i,\%e,$f,\@atord]);
-    $f->bind($e{$_}, '<Down>',      [\&focusxEditDn,$i,\%e,$f,\@atord]);
-    $f->bind($e{$_}, '<Shift-Tab>', [\&focusxEditUp,$i,\%e,$f,\@atord]);
-    $f->bind($e{$_}, '<Shift-ISO_Left_Tab>',
-	                            [\&focusxEditUp,$i,\%e,$f,\@atord]);
-    $f->bind($e{$_}, '<Up>',        [\&focusxEditUp,$i,\%e,$f,\@atord]);
-    $f->bind($e{$_}, '<Alt-KeyPress>', [\&focusxFind,$i,\%e,$f,\@atord]);
-  }
-  $f->configure(-height => $height);
-  $f->pack(qw/-expand yes -fill both/);
-  $ff->pack(qw/-expand yes -fill both/);
-
-  do {
-    my $of=$d->Frame()->pack(qw/-expand yes -fill x/);
-    $of->Label(-text=> 'Search method: ')->pack(qw/-side left/);
-    my $om = $of->Optionmenu(-variable=> \$grp->{templateMatchMethod},
-		    -textvariable=> \$grp->{templateMatchMethod},
-		    -options=> ['Regular expression',
-				'Exhaustive regular expression',
-				'Wildcard pattern',
-				'Literal'])->pack(qw/-side left/);
-    $om->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
-    $of->Checkbutton(-text => 'Always load secondary files',
-		     -variable => \$grp->{searchAlwaysSecondary})->pack(qw/-side right/);
-  };
-  my $of=$d->Frame()->pack(qw/-expand yes -fill x/);
-  $of->Label(-text=> 'Search file-list: ')->pack(qw/-side left/);
-  my $ot = $of->Optionmenu(-variable=> \$grp->{searchFilelistTraverse},
-			   -textvariable=> \$grp->{searchFilelistTraverseText},
-			   # -textvariable is only used here to preserve last state
-			   -options=> [ [ 'Whole files' => 'all' ],
-					[ 'Particular tree' => 'tree' ],
-					[ 'Particular node' => 'node' ] ]);
-  $ot->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
-  my $oe = $of->Button(-text=> 'Edit');
-  my $om=$of->Optionmenu(-textvariable=> \$grp->{searchFilelist},
-			 -command => [
-			   sub {
-			     my $opt = pop;
-			     my $state = $opt eq '[Current file only]' ? 'disabled' : 'normal';
-			     for my $w (@_) {
-			       $w->configure(-state => $state)
-			     }
-			   },
-			   $ot,$oe
-			  ]
-			)->pack(qw/-side left/);
-  $om->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
-  my @filelists = TrEd::ManageFilelists::get_filelists();
-  $om->options(['[Current file only]', map { $_->name } @filelists]);
-  $oe->configure(
-    -command=> [ sub {
-		   my ($grp)=@_;
-		   my $name=TrEd::Dialog::Filelist::create_dialog($grp,1);
-		   $om->options(['[Current file only]',sort map { $_->name } @filelists]);
-		   $grp->{searchFilelist}=$name if (ref(TrEd::ManageFilelists::findFilelist($name)));
-		 },$grp,$om]);
-  $oe->pack(qw/-side left/);
-  $ot->pack(qw/-side left/);
-  $grp->{top}->Unbusy();
-  $d->BindButtons;
-  my $result= ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
-  if ($result=~ /Find/) {
-#    %$template = (); # cleanup template
-    my $search_code = 'sub {
-  my ($node)=@_;';
-    my $method=substr($grp->{templateMatchMethod},0,1);
-    foreach my $t (@atord) {
-      my $val = decode($e{$t}->get);
-      $searchTemplate{$t}=$val;
-      if ($val ne EMPTY) {
-	$search_code.='  return 0 unless $node->all(q{'.$t.'});
-  for ($node->all(q{'.$t.'})) { return 0 unless ';
-	if ($method eq 'E') {
-	  my $re = qr{^$val$};
-	  $search_code .= '$_ =~ m('.$re.')';
-	} elsif ($method eq 'R') {
-	  my $re = qr{$val};
-	  $search_code .= '$_ =~ m('.$re.')';
-	} elsif ($method eq 'W') {
-	  $val=~s/([+\[\].^$(){}<>\\])/\\$1/g;
-	  $val=~s/\*/.\*/g;
-	  $val=~s/\?/./g;
-	  my $re = qr{^$val$};
-	  $search_code .= '$_ =~ m('.$re.')';
-	} else { # $method eq 'L'
-	  $val =~ s{([\\'])}{\\$1}g;
-	  $search_code .= '$_ eq '."'$val'";
-	}
-	$search_code .= " }\n";
-      }
-    }
-    $search_code .= '  return 1;'."\n}";
-    print STDERR "$search_code\n" if $tredDebug;
-    $search_code = eval $search_code;
-    $grp->{searchCode}=$search_code;
-    if ($@) {
-      error_message($win,$@);
-    } else {
-      if ($grp->{searchFilelist} ne '[Current file only]') {
-	my $fl=findFilelist($grp->{searchFilelist});
-	if (ref($fl) and $fl->file_count>0 ) {
-	  local $insideEval=1;                 # no redraw
-	  $fl->set_current($fl->file_at(0));
-	  TrEd::ManageFilelists::selectFilelist($grp,$fl);
-	}
-      } else {
-	$grp->{searchFilelist}=undef;
-      }
-      doFindFirstTemplated($grp,0);
-    }
-  }
-  $d->destroy;
-  undef $d;
-}
+#sub findNodeDialog
 
 #####################################
 # bound to Escape for busy widgets
@@ -6437,7 +5555,7 @@ sub findTemplated {
     no_update_title         => $grp->{noUpdateTitle},
     no_update_postponed     => $grp->{noUpdatePostponed},
     no_recent               => $grp->{noRecent},
-    no_upd_stylesheet_menu  => $grp->{StylesheetMenu}->no_update(),
+    no_upd_stylesheet_menu  => $grp->{StylesheetMenu}->dont_update(),
     no_upd_macrolist_view   => $grp->{noUpdateMacrolistView},
     no_save_filestate_upd   => $grp->{noSaveFileStateUpdate}
    );
@@ -7420,105 +6538,12 @@ sub _evalHook {
 }
 
 
-sub examineEvent {
-  my $w = shift;
-  my $bindings = shift;
-  my $grp = $_[0];
-  my ($macro,$key,$eA,$eK,$by_event_hook, $rotated) = resolveEvent($w,@_);
-  if ($eA eq $eK) {
-    $key .= " [$eA]" if ($eA ne $key);
-  } else {
-    my $rot =  $rotated ? ' /rotated because of vertical mode/ ' : '';
-    if ($eA eq $key) {
-      $key .= " [$eK]$rot";
-    } elsif ($eK eq $key) {
-      $key .= " [$eA]$rot";
-    } else {
-      $key .= " [$eA = $eK]$rot";
-    }
-  }
-  if ($by_event_hook) {
-    if (defined($macro)) {
-      $$bindings = "$key bound by event_hook to: ".findMacroDescription($grp,$macro);
-    } else {
-      $$bindings = "$key is blocked by event_hook\n";
-    }
-  } else {
-    if (defined($macro)) {
-      $$bindings = "$key is bound to: ".findMacroDescription($grp,$macro);
-    } else {
-      $$bindings = "$key is not bound\n";
-    }
-  }
-  print $$bindings."\n";
-  Tk->break;
-}
+#sub examineEvent
 
-# binding, dialog
-sub examineBindingsDialog {
-  my ($grp)=@_;
-  my $bindings='None';
-  my $d = $grp->{top}->DialogBox(-title=> "Examine key bindings",
-				 -buttons=> ["Close"]);
-#   $d->Label(-text=> $attr,
-# 		    -anchor=> 'e',
-# 		    -justify=> 'right')->pack(-side=>'left');
-  $d->BindEscape;
-  $d->Label(qw/-wraplength 6i -justify left -text/,
-	    "Press any key to see it's binding in the current context.")->
-	      pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
-  my $t=$d->Label(-textvariable => \$bindings)->pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
-
-  $d->bind('<KeyPress>'=> [\&examineEvent, \$bindings, $grp, EMPTY ]);
-
-  foreach my $prefix ('Alt','Meta','Mod4') {
-    $d->bind("<$prefix-KeyPress>"=> [\&examineEvent, \$bindings, $grp, uc($prefix).'+' ]);
-  }
-  foreach (qw(Shift Control Meta Alt Mod4 Control-Shift Control-Alt
-              Control-Meta Control-Mod4 Alt-Shift Alt-Mod4 Meta-Shift Mod4-Shift)) {
-    foreach my $event (qw(KeyPress Right Left Up Down
-                          Return comma period Next Prior greater less)) {
-      $d->bind("<$_-$event>"=> [\&examineEvent, \$bindings, $grp, keyBind($_)."+"])
-	unless ("$_-$event" eq "Alt-KeyPress" or "$_-$event" eq "Meta-KeyPress");
-    }
-  }
-
-  my $set_bindings_func = sub { $bindings = "builtin $_[2] - $_[1]"; Tk->break; };
-  my $default_binding = $grp->{default_binding};
-  while (my ($key, $def) = each %{$default_binding->get_default_bindings()}) {
-    $d->bind($key => [ $set_bindings_func, $def->[1], $key ]);
-  }
-
-  my $context = $grp->{focusedWindow}->{macroContext};
-  my $set_override_func = sub { $bindings = "builtin $_[2] overriden in $context - $_[1]"; Tk->break; };
-  while (my ($key, $def) = each %{$default_binding->get_context_bindings($context) || {}}) {
-    $d->bind($key => [ $set_override_func, $def->[1], $key ]);
-  }
+# sub examineBindingsDialog
 
 
-  $d->Show;
-  $d->destroy;
-  undef $d;
-}
-# macro
-sub findMacroDescription {
-  my ($grp_or_win,$macro)=@_;
-  if (!ref($macro) and $macro =~ /^(.*)->/) {
-    my $b = $TrEd::Macros::menuBindings{$1};
-    my ($desc) = grep { ref($b->{$_}) and $b->{$_}[0] eq $macro } keys %$b;
-    return "$desc ($macro)" if $desc ne EMPTY;
-    return "macro $macro";
-  } else {
-    my ($grp,$win)=grp_win($grp_or_win);
-    for my $context (uniq($win->{macroContext},"TredMacro")) {
-      my $Menus = $TrEd::Macros::menuBindings{$context};
-      my %macro_to_menu = map { $Menus->{$_}->[0] => $_ } keys %{ $Menus };
-      my $desc = $macro_to_menu{$macro};
-      return $desc." (inline code)" if defined $desc;
-    }
-    return "this macro has no description (inline code)";
-  }
-}
+
 # macro
 sub doEvalMacro {
   my ($win,$macro)=(shift,shift);
@@ -7551,7 +6576,7 @@ sub doEvalMacro {
       TrEd::Bookmarks::lastActionBookmark($win->{framegroup},$bookmark) if $file_not_saved;
     } else {
       if ($file_not_saved) {
-        my $undo=TrEd::Undo::prepare_undo($win,findMacroDescription($win,$macro,TrEd::Undo::undo_type_id('UNDO_DISPLAYED_TREES')));
+        my $undo=TrEd::Undo::prepare_undo($win,TrEd::Macros::findMacroDescription($win,$macro,TrEd::Undo::undo_type_id('UNDO_DISPLAYED_TREES')));
         TrEd::Undo::save_undo($win,$undo);
         $win->{FSFile}->notSaved(1);
         TrEd::Bookmarks::lastActionBookmark($win->{framegroup},$bookmark);
@@ -7630,7 +6655,7 @@ sub resolveKey {
       }
     }
   }
-  foreach my $context (uniq($win->{macroContext},"TredMacro")) {
+  foreach my $context (TrEd::Basics::uniq($win->{macroContext},"TredMacro")) {
     foreach my $key (@_) {
       if (exists ($TrEd::Macros::keyBindings{$context}->{$key})) {
 	return($TrEd::Macros::keyBindings{$context}->{$key},$key)
@@ -8107,44 +7132,10 @@ sub cleanup_tredmacro {
 #TODO poslat do TrEd::Extensions, s tym, ze z btredu bude treba doplnit prevzatie arguemntov
 # a vypis extensions do nejakeho suboru, odtialto potom odfiltrovat init_extensions
 # extensions
-sub prepareExtensions {
-  my $extensions = get_extension_list();
-  my $pre_installed =  get_preinstalled_extension_list($extensions);
+#sub prepareExtensions 
 
-  my (%e,%d);
-  @e{ split /,/,$enable_extensions }=();
-  @d{ split /,/,$disable_extensions }=();
-
-#   if (defined $opt_m) {
-#     warn("Using -m implies all extensions disabled...\n") unless $opt_q;
-#  }
-
-  @{$extensions} =
-    map { /^!(.*)/ ?
-	    (exists($e{'*'}) && !exists($d{$1}) || exists($e{$1}) ? $1 : $_)
-	      : $opt_m ?
-		(exists($e{'*'}) && !exists($d{$_}) || exists($e{$_}) ? $_ : '!'.$_)
-		  : (exists($d{'*'}) && !exists($e{$_}) || exists($d{$_}) ? '!'.$_ : $_)
-		} @{$extensions};
-
-  @{$pre_installed} =
-      map { /^!(.*)/ ?
-	      (exists($e{'*'}) && !exists($d{$1}) || exists($e{$1}) ? $1 : $_)
-		: $opt_m ?
-		  (exists($e{'*'}) && !exists($d{$_}) || exists($e{$_}) ? $_ : '!'.$_)
-		    : (exists($d{'*'}) && !exists($e{$_})|| exists($d{$_}) ? '!'.$_ : $_)
-		  } @{$pre_installed};
-  my %have; @have{@{$extensions},@{$pre_installed}}=();
-  for my $required (keys %e) {
-    if ($required ne '*' and !exists($have{$required})) {
-      warn("WARNING: extension $required not found!");
-    }
-  }
-  init_extensions($extensions);
-  init_extensions($pre_installed, get_preinstalled_extensions_dir());
-  return [$extensions,$pre_installed];
-}
 # macros
+#TODO: skor load_extensions
 sub loadMacros {
   my ($grp,$opts)=@_;
   $opts||={};
@@ -8156,13 +7147,13 @@ sub loadMacros {
   if (ref($opts->{preparedExtensions})) {
     ($extensions,$pre_installed)=@{$opts->{preparedExtensions}}
   } else {
-    ($extensions,$pre_installed)=@{ prepareExtensions() };
+    ($extensions,$pre_installed)=@{ TrEd::Extensions::prepare_extensions($opt_m) };
   }
 
   foreach my $path (get_extension_sample_data_paths($extensions),
 		    get_extension_sample_data_paths($pre_installed,$preinst_dir)) {
-    foreach my $f (glob(File::Spec->catfile($path,'*.fl'))) {
-      TrEd::ManageFilelists::create_ext_filelist($f);
+    foreach my $extensions_filelist (glob(File::Spec->catfile($path,'*.fl'))) {
+      TrEd::ManageFilelists::create_ext_filelist($extensions_filelist);
     }
   }
 
@@ -8204,7 +7195,7 @@ sub reloadMacros {
   %TrEd::Macros::menuBindings=();
   TrEd::TreeView->clear_code_caches;
   cleanup_tredmacro($grp);
-  TrEd::Toolbar::Menu::Manager::reset_user_toolbars($grp);
+  TrEd::Toolbar::User::Manager::reset_user_toolbars($grp);
   loadMacros($grp,$opts);
   doEvalHook($grp->{focusedWindow},"macros_reloaded_hook");
   doEvalHook($grp->{focusedWindow},"initialize_bindings_hook");
@@ -8214,7 +7205,7 @@ sub reloadMacros {
   get_nodes_all($grp);
   redraw_all($grp);
 }
-# extensions
+# extensions, should it be moved to TrEd::Extensions..?
 sub manage_extensions {
   my ($grp,$do_reload) = @_;
   my $reload_macros;
@@ -8237,7 +7228,7 @@ sub manage_extensions {
     @TrEd::Utils::stylesheet_paths=();
     init_stylesheet_paths([split($Treex::PML::resourcePathSplit,$opt_S,-1)]);
 
-    my $preparedExtensions = prepareExtensions($grp);
+    my $preparedExtensions = TrEd::Extensions::prepare_extensions($opt_m);
 
     loadStyleSheets($grp);
     $grp->{StylesheetMenu}->update($grp);

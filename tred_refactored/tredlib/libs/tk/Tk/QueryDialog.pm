@@ -122,9 +122,41 @@ sub Tk::Widget::ListQuery {
   return 0;
 }
 
-sub Tk::Widget::QuestionQuery {
-  my ($w, %opts) = @_;
+# Same as QuestionQuery, but also supports automatic answer for testing 
+# purposes. Original function is left intact because some of the  extensions 
+# use it.
+sub Tk::Widget::QuestionQueryAuto {
+  my ($w, $opts_ref, $answer) = @_;
   my $top = $w->toplevel;
+  my %opts = %{$opts_ref};
+  my $label = delete $opts{-label};
+  my $d = $top->Dialog(%opts);
+  $d->add('Label', -text => $label, -wraplength => 300)->pack() if defined $label;
+  $d->BindReturn;
+  if (exists($opts{-buttons}) and 
+      grep { $_ eq 'Cancel' } @{$opts{-buttons}}) {
+    $d->BindEscape;
+  }
+  $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
+  $d->BindButtons;
+  if (defined $answer) {
+      $d->after(1000, sub {
+          # print "....>>callback \n";
+          my @frames = $d->children();
+          # look for bottom frame (ordrer no 1)
+          my @buttons = $frames[1]->children();
+          # buttons start from index 1..
+          $buttons[$answer]->invoke();
+      });
+  }
+  
+  return $d->Show;
+}
+
+sub Tk::Widget::QuestionQuery {
+  my ($w, $opts_ref, $answer) = @_;
+  my $top = $w->toplevel;
+  my %opts = %{$opts_ref};
   my $label = delete $opts{-label};
   my $d = $top->Dialog(%opts);
   $d->add('Label', -text => $label, -wraplength => 300)->pack() if defined $label;

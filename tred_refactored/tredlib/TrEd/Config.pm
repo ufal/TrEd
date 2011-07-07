@@ -879,8 +879,8 @@ sub set_config {
   }
   
   my $def_share_path = $libDir;
-  #TODO: $^O never equals Win32, it can be MSWin32, though
-  if ($^O eq 'Win32') {
+
+  if ($^O eq 'MSWin32') {
     $def_share_path =~ s/[\\\/](?:lib[\\\/]tred|tredlib)$//;
   } 
   else {

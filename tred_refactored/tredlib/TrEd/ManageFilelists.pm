@@ -10,7 +10,7 @@ use File::Spec;
 use TrEd::MinMax; # max2
 use TrEd::Basics;
 use TrEd::Config qw{$tredDebug};
-use TrEd::File;
+use TrEd::File qw{closeFile};
 
 use Treex::PML qw{&Index};
 use Treex::PML::IO;
@@ -27,7 +27,7 @@ my %filelist_from_extension = ();
 my $current_filelist = q{};
 
 
-use Data::Dumper;
+#use Data::Dumper;
 
 #sub dump_filelists {
 #  return;

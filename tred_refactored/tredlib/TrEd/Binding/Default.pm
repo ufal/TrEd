@@ -6,7 +6,7 @@ use warnings;
 our $VERSION = '0.1';
 
 # consider moving keyBindings and macroBindings from TrEd::Macro here...?
-# or create TrEd::Binding::Macro
+# or create TrEd::Binding::Macro?
 
 use Carp;
 use Tk; # using bind function
@@ -16,6 +16,7 @@ use TrEd::Basics;
 my %context_override_binding;
 
 #TODO: do nejakeho TrEd::Config::View alebo do TrEd::Config?
+# Default bindings for TrEd's MainWindow and Toolbar
 my %default_binding = (
     '<Tab>' => [
         sub {
@@ -517,6 +518,16 @@ change_binding subroutine can not be used properly.
 
 This module does not require special configuration or enviroment settings.
 
+For the binding to work properly, one needs to create at least a Tk::MainWindow
+object and also the Tk::Toolbar in the MainWindow object. 
+
+The default bindtags used for these widgets use tag 'my', therefore one needs to 
+prepend tag 'my' to bindtags for MainWindow and Toolbar.
+
+The current context in the callbacks is found out by looking up 
+$tred{focusedWindow}{macroContext} hash value. This value should be set 
+before running the callbacks.  
+
 =head1 DEPENDENCIES
 
 CPAN modules:
@@ -524,7 +535,7 @@ Tk,
 Readonly
 
 TrEd modules:
-
+TrEd::Basics
 
 Standard Perl modules:
 Carp
