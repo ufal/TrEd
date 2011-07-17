@@ -153,6 +153,30 @@ sub test_get_binding {
             "get_binding: $key binding with correct name");
     }
     
+    my $tk_binding_dump = join("\n", $tred_ref->{top}->bindDump());
+    
+    like($tk_binding_dump, qr{Binding tag 'my' has these bindings}, 
+           "default bindings: correct tag");
+    
+    my @modifiers = qw(Shift Control Meta Alt Control-Shift Control-Alt
+                    Control-Meta Shift-Alt Shift-Meta);
+    
+    my @events = qw(Key-Right Key-Left Key-Up Key-Down Key-Return Key-comma Key-period
+                    Key-greater Key-less Key-Next Key-Prior);
+    
+    # if these tests fail, maybe there is a wrong order in Shift-Alt vs Alt-Shift, etc
+    foreach my $modifier (@modifiers) {
+        foreach my $event (@events) {
+            if ( "$modifier-$event" ne "Alt-KeyPress"
+                && "$modifier-$event" ne "Meta-KeyPress" ) 
+            {
+                like($tk_binding_dump, qr/$modifier-$event/, 
+                    "default bindings for $modifier-$event");
+            }
+        }
+    }
+    
+    
     ## edge cases:
     # test also undefined context
     is_deeply($tred_ref->{default_binding}->get_binding(undef, '<Tab>'), [],

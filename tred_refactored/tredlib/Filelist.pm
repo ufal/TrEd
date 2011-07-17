@@ -1554,6 +1554,7 @@ Carp, File::Glob, Cwd, Encode, TrEd::MinMax, Readonly
 =head1 INCOMPATIBILITIES
 
 Name of rename function collides with built-in. 
+The name of function dirname can also collide, TrEd::File contains subroutine with the same name. 
 
 =head1 BUGS AND LIMITATIONS
 

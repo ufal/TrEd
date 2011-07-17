@@ -183,6 +183,8 @@ TrEd::CPConvert version 0.2.
 Basic functions for converting between two encodings. Uses either Tk::Iconv or Encode
 Perl modules, depending on the Perl version (Encode for Perl 5.8 and newer).
 
+This module is used by older extensions: vallex and pdt15_obsolete 
+
 =head1 SUBROUTINES/METHODS
 
 =over 4 

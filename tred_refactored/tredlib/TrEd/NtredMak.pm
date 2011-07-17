@@ -1,3 +1,15 @@
+
+package TredMacro;
+
+use strict;
+use warnings;
+
+use TrEd::Macros;
+ 
+#binding-context TredMacro
+TrEd::Macros::set_current_binding_contexts('TredMacro');
+
+#include "ntred.mak"
 # -*- cperl -*-
 
 # Macros for comunnicating with a BTrEd Server
@@ -53,6 +65,8 @@ sub ntred_query_box {
     return;
   }
 
+    my $grp = TrEd::Macros::get_macro_variable('grp');
+    
   my $d=$NTredQueryDialog=ToplevelFrame()
     ->Toplevel(-title => "Query remote BTrEd servers",
 	       -width=> "20c");
@@ -131,7 +145,8 @@ sub ntred_query_box {
 
   $t->focus();
   $d->Popup;
-  $FileChanged=0;
+  
+  $TredMacro::FileChanged=0;
 }
 
 sub ntred_query_box_do_query {
@@ -173,3 +188,9 @@ sub ntred_query_box_make_filelist {
   #TODO: pozriet sa na toto, asi bude treba use TrEd::ManageFilelists a potom presmerovat
   &main::selectFilelist($grp->{framegroup},$name);
 }
+
+
+#bind ntred_query_box to key Shift+F10 menu Query BTrEd Servers
+TrEd::Macros::bind_macro('ntred_query_box', 'Shift+F10', 'Query BTrEd Servers');
+
+1;

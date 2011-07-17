@@ -1,4 +1,16 @@
-#-*- cperl -*-
+# -*- cperl -*-
+package TrEd::MinorMode::Move_Nodes_Freely;
+
+use strict;
+use warnings;
+
+
+require TrEd::ExtensionsAPI;
+TredMacro->import();
+
+require TrEd::Macros;
+
+
 
 =head1 move_nodes_freely.inc
 
@@ -81,6 +93,8 @@ sub node_release_hook {
     return;
   }
   my ($x,$y) = ($e->x, $e->y);
+  my $grp = TrEd::Macros::get_macro_variable('grp');
+# grp should be imported from TredMacro...
   my $tv = $grp->treeView;
   my $canvas = $tv->realcanvas;
   $x = $canvas->canvasx($x);
@@ -98,3 +112,25 @@ sub node_release_hook {
   }
   return $what;
 }
+
+sub init_minor_mode {
+
+    $move_nodes_freely{subtree} = 'Alt';
+    
+    
+    DeclareMinorMode('Move_Nodes_Freely' => {
+      abbrev => 'move',
+      post_hooks => {
+        node_release_hook => \&node_release_hook,
+        node_style_hook => sub {
+          my ($node,$styles)=@_;
+          AddStyle($styles,'Node',-xadj => $node->{'.xadj'}||0);
+          AddStyle($styles,'Node',-yadj => $node->{'.yadj'}||0);
+        },
+      },
+    });
+
+}
+
+
+1;

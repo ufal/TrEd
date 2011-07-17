@@ -4,8 +4,7 @@ use strict;
 use warnings;
 
 use TrEd::Config;
-use TrEd::Basics qw{$EMPTY_STR};
-use TrEd::Convert qw{dirname};
+use TrEd::Utils qw{$EMPTY_STR};
 use TrEd::File;
 
 use Carp;
@@ -87,7 +86,7 @@ sub show_dialog {
     my $win = $grp->{focusedWindow};
     my $dir;
     if ($win->{FSFile}) {
-        $dir = TrEd::Convert::dirname( $win->{FSFile}->filename );
+        $dir = TrEd::File::dirname( $win->{FSFile}->filename );
     }
     $file = get_open_filename(
         $grp->{top},

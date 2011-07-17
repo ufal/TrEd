@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use TrEd::MinMax;
-use TrEd::Basics;
+use TrEd::File qw{absolutize};
 
 use Readonly;
 
@@ -26,7 +26,7 @@ sub add_file {
     my ( $grp, $file_name ) = @_;
     return if $grp->{noRecent};
     if ( defined($file_name) ) {
-        ($file_name) = TrEd::Basics::absolutize($file_name);
+        ($file_name) = TrEd::File::absolutize($file_name);
         @recent_files = grep { $_ ne $file_name } @recent_files;
         unshift @recent_files, $file_name;
     }

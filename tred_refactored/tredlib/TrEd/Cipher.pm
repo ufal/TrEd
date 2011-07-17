@@ -9,12 +9,10 @@ use base qw(Exporter);
 use vars qw(@EXPORT_OK $VERSION);
 $VERSION = "0.2";
 
-
-
-
 BEGIN {
-  @EXPORT_OK = qw(generate_random_block block_to_hex hex_to_block block_xor block_md5
-		  Negotiate Authentify save_block);
+    @EXPORT_OK
+        = qw(generate_random_block block_to_hex hex_to_block block_xor block_md5
+        Negotiate Authentify save_block);
 }
 
 #######################################################################################
@@ -25,19 +23,19 @@ BEGIN {
 # Throws        : no exceptions
 # Comments      : Reads from /dev/urandom, thus is not multiplatform, uses also perl's rand() function
 # See also      : pack(), unpack(), rand()
-#TODO: What if we are on Windows, where no /dev/urandom exist?
 sub generate_random_block {
-  my ($length) = @_;
-  if ($length <= 0) {
-    $length = 1024;
-  }
-  my $key;
-  open(my $ur, "/dev/urandom")
-    or die("Could not open /dev/urandom: $!");
-  read($ur, $key, $length);
-  close $ur;
-  my @key = map { int(rand(256))^$_ } unpack("C".$length, $key);
-  return pack("C".$length, @key);
+    my ($length) = @_;
+    if ( $length <= 0 ) {
+        $length = 1024;
+    }
+    my $key;
+    open my $ur, '<', "/dev/urandom"
+        or die("Could not open /dev/urandom: $!");
+    read( $ur, $key, $length );
+    close $ur
+        or print "Could not close /dev/urandom $!\n";
+    my @key = map { int( rand(256) ) ^ $_ } unpack( "C" . $length, $key );
+    return pack( "C" . $length, @key );
 }
 
 #######################################################################################
@@ -46,12 +44,13 @@ sub generate_random_block {
 # Returns       : Upper-cased sequence of hexadecimal codes
 # Parameters    : scalar $key -- scalar to be turned to hexadecimal codes
 # Throws        : no exceptions
-# Comments      : 
+# Comments      :
 # See also      : unpack(), sprintf()
 sub block_to_hex {
-  my ($key) = @_;
-  my @hex_codes = map { sprintf("%02x",$_) } unpack("C".length($key), $key);
-  return uc(join("", @hex_codes));
+    my ($key) = @_;
+    my @hex_codes
+        = map { sprintf( "%02x", $_ ) } unpack( "C" . length($key), $key );
+    return uc( join( q{}, @hex_codes ) );
 }
 
 #######################################################################################
@@ -60,17 +59,17 @@ sub block_to_hex {
 # Returns       : Sequence of characters represented by $hex hexcodes
 # Parameters    : scalar $hex -- string with hexadecimal values
 # Throws        : no exceptions
-# Comments      : 
+# Comments      :
 # See also      : pack()
 sub hex_to_block {
-  my ($hex) = @_;
-  my @decimal_values =  map { hex($_) } $hex=~/(..)/g;
-  return pack("C".(length($hex)/2), @decimal_values);
+    my ($hex) = @_;
+    my @decimal_values = map { hex($_) } $hex =~ /(..)/g;
+    return pack( "C" . ( length($hex) / 2 ), @decimal_values );
 }
 
 #######################################################################################
 # Usage         : block_xor($key, $data)
-# Purpose       : $key bitwise XORs $data cyclically 
+# Purpose       : $key bitwise XORs $data cyclically
 # Returns       : Result of the XOR operator
 # Parameters    : scalar $key -- key
 #                 scalar $data -- data
@@ -80,24 +79,27 @@ sub hex_to_block {
 #                 is the length of $key, changed now.
 # See also      : unpack(), pack()
 sub block_xor {
-  my ($b1, $b2) = @_;
-  # b1 is key
-  # b2 is data
-  # b1 XORs cyclically b2
-  my @b1 = unpack("C".length($b1), $b1);
-  #TODO: not sure, whether this is a copy-paste bug or intentional: original
-  # documentation says sth about cycling, but if $b2 is shortened to the length of $b1,
-  # no cycling can actually happen, so we change it
-#  my @b2 = unpack("C".length($b1), $b2);
-  my @b2 = unpack("C".length($b2), $b2);
-  
-  my @result;
-  my $i = 0;
-  while (@b2) {
-    push(@result, ($b1[$i]^shift(@b2)));
-    $i = ($i+1) % scalar(@b1); # cycle 
-  }
-  return pack("C".scalar(@result), @result);
+    my ( $b1, $b2 ) = @_;
+
+    # b1 is key
+    # b2 is data
+    # b1 XORs cyclically b2
+    my @b1 = unpack( "C" . length($b1), $b1 );
+
+    # not sure, whether this is a copy-paste bug or intentional: 
+    # original documentation says sth about cycling, 
+    # but if $b2 is shortened to the length of $b1,
+    # no cycling can actually happen, so we change it
+    #  my @b2 = unpack("C".length($b1), $b2);
+    my @b2 = unpack( "C" . length($b2), $b2 );
+
+    my @result;
+    my $i = 0;
+    while (@b2) {
+        push( @result, ( $b1[$i] ^ shift(@b2) ) );
+        $i = ( $i + 1 ) % scalar(@b1);    # cycle
+    }
+    return pack( "C" . scalar(@result), @result );
 }
 
 #######################################################################################
@@ -109,15 +111,15 @@ sub block_xor {
 # Comments      : Requires Digest::MD5
 # See also      : Digest::MD5::md5_hex()
 sub block_md5 {
-  my ($b) = @_;
-  require Digest::MD5;
-  return uc(Digest::MD5::md5_hex($b));
+    my ($b) = @_;
+    require Digest::MD5;
+    return uc( Digest::MD5::md5_hex($b) );
 }
 
 #######################################################################################
 # Usage         : Authentify($key, $peer, $control)
 # Purpose       : Authentifies $peer by its answer to AUTH_SIGN
-# Returns       : 0 if authentification fails, 1 if it is successful 
+# Returns       : 0 if authentification fails, 1 if it is successful
 # Parameters    : scalar $key             -- session key
 #                 IO::Socket::INET $peer  -- object returned by IO::Socket::accept() call
 #                 scalar $control         -- control string
@@ -125,24 +127,27 @@ sub block_md5 {
 # Comments      : Function sends AUTH_SIGN code to $peer, then waits for the answer and tests if it is correct
 # See also      : block_md5(), block_xor(), generate_random_block()
 sub Authentify {
-  my ($key, $peer, $control) = @_;
-  my $rand = generate_random_block(length($key));
-  $peer->print("$control AUTH_SIGN=",block_to_hex($rand),"\n");
-  $peer->flush();
-  my $reply;
-  $reply = readline($peer);
-  chomp ($reply);
-  unless ($reply =~ /^$control AUTH_SIGNED=([0-9ABCDEF]+)$/
-	  and $1 eq block_md5(block_xor($key, $rand))) {
-    $peer->print("$control AUTH_FAILED\n");
+    my ( $key, $peer, $control ) = @_;
+    my $rand = generate_random_block( length($key) );
+    $peer->print( "$control AUTH_SIGN=", block_to_hex($rand), "\n" );
     $peer->flush();
-    return 0;
-  } 
-  else {
-    $peer->print("$control AUTH_OK\n");
-    $peer->flush();
-    return 1;
-  }
+    my $reply;
+    $reply = readline($peer);
+    chomp($reply);
+    if (!(     $reply =~ /^$control AUTH_SIGNED=([0-9ABCDEF]+)$/
+            && $1 eq block_md5( block_xor( $key, $rand ) )
+        )
+        )
+    {
+        $peer->print("$control AUTH_FAILED\n");
+        $peer->flush();
+        return 0;
+    }
+    else {
+        $peer->print("$control AUTH_OK\n");
+        $peer->flush();
+        return 1;
+    }
 }
 
 #######################################################################################
@@ -158,18 +163,20 @@ sub Authentify {
 #                 hash value is then sent to the server.
 # See also      : hex_to_block(), block_xor(), block_md5()
 sub Negotiate {
-  my ($key, $server, $control)=@_;
-  my $reply;
-  $reply = readline($server);
-  chomp ($reply);
-  return 0 unless ($reply =~ /^$control AUTH_SIGN=([0-9ABCDEF]+)$/);
-  $server->print("$control AUTH_SIGNED=".
-		 block_md5(block_xor($key,hex_to_block($1)))."\n");
-  $server->flush();
-  $reply = readline($server);
-  chomp ($reply);
-  return 0 if ($reply ne "$control AUTH_OK");
-  return 1;
+    my ( $key, $server, $control ) = @_;
+    my $reply;
+    $reply = readline($server);
+    chomp $reply;
+    return 0 if ( $reply !~ /^$control AUTH_SIGN=([0-9ABCDEF]+)$/ );
+    my $auth_sign = $1;
+    $server->print( "$control AUTH_SIGNED="
+            . block_md5( block_xor( $key, hex_to_block($auth_sign) ) )
+            . "\n" );
+    $server->flush();
+    $reply = readline($server);
+    chomp($reply);
+    return 0 if ( $reply ne "$control AUTH_OK" );
+    return 1;
 }
 
 #######################################################################################
@@ -182,14 +189,15 @@ sub Negotiate {
 # Comments      : If there is any file with identical name, function deletes it.
 # See also      : sysopen(), unlink()
 sub save_block {
-  my ($block, $filename)=@_;
-  use Fcntl;
-  my $fh;
-  unlink($filename);
-  # Create the file if it doesn't exist & Fail if the file already exists
-  sysopen($fh, $filename, O_WRONLY|O_EXCL|O_CREAT, 0600) || die $!;
-  print $fh block_to_hex($block)."\n";
-  return close($fh);
+    my ( $block, $filename ) = @_;
+    use Fcntl;
+    my $fh;
+    unlink($filename);
+
+    # Create the file if it doesn't exist & Fail if the file already exists
+    sysopen( $fh, $filename, O_WRONLY | O_EXCL | O_CREAT, 0600 ) || die $!;
+    print $fh block_to_hex($block) . "\n";
+    return close($fh);
 }
 
 1;

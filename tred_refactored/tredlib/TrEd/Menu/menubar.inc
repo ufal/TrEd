@@ -84,7 +84,7 @@ return sub {
     'Button',
     'Add Bookmark',
     {
-      '-command' => [ \&TrEd::Bookmarks::addBookmark,$grp ],
+      '-command' => [ \&TrEd::Bookmarks::bookmark_actual_position,$grp ],
       '-underline' => 0,
      },
     undef
@@ -877,7 +877,7 @@ return sub {
 		       my ($grp)=@_;
 		       my $win=$grp->{focusedWindow};
 		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,"New Node",TrEd::Undo::undo_type_id('UNDO_ACTIVE_NODE')));
-		       my $new = TrEd::Basics::new_node($win);
+		       my $new = TrEd::Window::TreeBasics::new_node($win);
 		       determineNodeType($win,$new);
 		     },$grp],
       '-underline' => 2
@@ -928,7 +928,7 @@ return sub {
 		       my ($grp)=@_;
 		       my $win=$grp->{focusedWindow};
 		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'Remove Active Node',,TrEd::Undo::undo_type_id('UNDO_ACTIVE_ROOT')));
-		       TrEd::Basics::prune_node($win,$win->{currentNode});
+		       TrEd::Window::TreeBasics::prune_node($win,$win->{currentNode});
 		     },$grp],
       '-underline' => 0
      },
@@ -1254,7 +1254,7 @@ return sub {
 		       my ($grp)=@_;
 		       my $win = $grp->{focusedWindow};
 		       TrEd::Undo::save_undo($win, TrEd::Undo::prepare_undo($win, 'Insert New Tree After', TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')));
-		       TrEd::Basics::new_tree_after($win);
+		       TrEd::Window::TreeBasics::new_tree_after($win);
 		       determineNodeType($win,$win->{root});
 		     },$grp],
       '-underline' => 16
@@ -1269,7 +1269,7 @@ return sub {
 		       my ($grp)=@_;
 		       my $win = $grp->{focusedWindow};
 		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'Insert New Tree', TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')));
-		       TrEd::Basics::new_tree($win);
+		       TrEd::Window::TreeBasics::new_tree($win);
 		       determineNodeType($win,$win->{root});
 		     },$grp],
       '-underline' => 0
@@ -1284,7 +1284,7 @@ return sub {
 		       my ($grp)=@_;
 		       my $win = $grp->{focusedWindow};
 		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'Move Tree Backward', TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')));
-		       TrEd::Basics::move_tree($win,-1);
+		       TrEd::Window::TreeBasics::move_tree($win,-1);
 		     },$grp]
      },
     undef
@@ -1297,7 +1297,7 @@ return sub {
 		       my ($grp)=@_;
 		       my $win = $grp->{focusedWindow};
 		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'Move Tree Foreward', TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')));
-		       TrEd::Basics::move_tree($win,1);
+		       TrEd::Window::TreeBasics::move_tree($win,1);
 		     },$grp]
      },
     undef
@@ -1330,7 +1330,7 @@ return sub {
 		       my ($grp) = @_;
 		       my $win = $grp->{focusedWindow};
 		       TrEd::Undo::save_undo($win, TrEd::Undo::prepare_undo($win, 'Remove Tree', TrEd::Undo::undo_type_id('UNDO_CURRENT_TREE_AND_TREE_ORDER')));
-		       TrEd::Basics::prune_tree($win);
+		       TrEd::Window::TreeBasics::prune_tree($win);
 		     }, $grp],
       '-underline' => 8
      },

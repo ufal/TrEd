@@ -17,14 +17,14 @@ $VERSION = "0.2";
 # Parameters    : scalar $arabic_string   -- string to remix
 #                 [scalar $ignored_param  -- not used, however it's part of the prototype]
 # Throws        : no exception
-# Comments      : Prototyped function. 
-#                 Splits the string using various arabic character classes, then take all the even 
+# Comments      : Prototyped function.
+#                 Splits the string using various arabic character classes, then take all the even
 #                 elements of resulting array and split them into subarrays. Reverse all the odd elements of
-#                 each subarray, then reverse the subarray. 
-# See Also      : 
+#                 each subarray, then reverse the subarray.
+# See Also      :
 sub remix ($;$) {
-  
-  my $arabic_number_re = qr{
+
+    my $arabic_number_re = qr{
     [\x{0660}-\x{0669}]+              # at least one of arabic digits (ARABIC-INDIC DIGIT ZERO - ARABIC-INDIC DIGIT NINE)
     # and then maybe also
     (?:
@@ -32,8 +32,8 @@ sub remix ($;$) {
       [\x{0660}-\x{0669}]+           # and at least one arabic digit (ARABIC-INDIC DIGIT ZERO - ARABIC-INDIC DIGIT NINE)
     )?
   }x;
-  
-  my $latin_number_re = qr{
+
+    my $latin_number_re = qr{
     [0-9]+                            # at least one latin digit
     # and then maybe 
     (?:
@@ -41,9 +41,9 @@ sub remix ($;$) {
       [0-9]+                         # and at least one latin digit after the separator
     )?
   }x;
-  
-  # I am not sure, what this reg exp represents, but appears twice, so it can be compiled just once
-  my $arabic_substr_re = qr{
+
+# I am not sure, what this reg exp represents, but appears twice, so it can be compiled just once
+    my $arabic_substr_re = qr{
     (?:
       \p{Arabic}
       |
@@ -54,8 +54,8 @@ sub remix ($;$) {
       \p{InArabicPresentationFormsB}
     )
   }x;
-  
-  my @data = split /(  (?: $arabic_substr_re+ 
+
+    my @data = split /(  (?: $arabic_substr_re+ 
                             |
                            $arabic_number_re )
                        (?: \p{Common}*
@@ -66,19 +66,14 @@ sub remix ($;$) {
                            $arabic_number_re )
                     )* )/x, $_[0];
 
-  for (my $i = 1; $i < @data; $i += 2) {
-
-    my @atad = split /($latin_number_re | $arabic_number_re)/x, $data[$i];
-
-    for (my $j = 0; $j < @atad; $j += 2) {
-
-      $atad[$j] = reverse $atad[$j];
+    for ( my $i = 1; $i < @data; $i += 2 ) {
+        my @atad = split /($latin_number_re | $arabic_number_re)/x, $data[$i];
+        for ( my $j = 0; $j < @atad; $j += 2 ) {
+            $atad[$j] = reverse $atad[$j];
+        }
+        $data[$i] = join "", reverse @atad;
     }
-
-    $data[$i] = join "", reverse @atad;
-  }
-
-  return join "", @data;
+    return join "", @data;
 }
 
 #######################################################################################
@@ -89,12 +84,14 @@ sub remix ($;$) {
 #                 Otherwise function returns 0.
 # Parameters    : scalar $string -- string to be examined
 # Throws        : no exception
-# See Also      : 
+# See Also      :
 sub direction ($) {
-  my ($string) = @_;
-  return  1 if $string =~ /\p{Latin}|[0-9\x{0660}-\x{0669}]/;
-  return -1 if $string =~ /\p{Arabic}|\p{InArabic}|\p{InArabicPresentationFormsA}|\p{InArabicPresentationFormsB}/;
-  return  0;
+    my ($string) = @_;
+    return 1 if $string =~ /\p{Latin}|[0-9\x{0660}-\x{0669}]/;
+    return -1
+        if $string
+            =~ /\p{Arabic}|\p{InArabic}|\p{InArabicPresentationFormsA}|\p{InArabicPresentationFormsB}/;
+    return 0;
 }
 
 #######################################################################################
@@ -105,46 +102,40 @@ sub direction ($) {
 #                 scalar $dont_reverse  -- if set to 1, parts of string are not reversed
 # Throws        : no exception
 # Comments      : Reverse string, but keep latin parts in the same order, e.g. 1 2 _arabic_letter_1 _arabic_letter_2
-#                 becomes _arabic_letter_2 _arabic_letter_1 1 2. If $dont_reverse is set to 1, 
-#                 1 2 _arabic_letter_1 _arabic_letter_2 becomes _arabic_letter_1 _arabic_letter_2 1 2 
+#                 becomes _arabic_letter_2 _arabic_letter_1 1 2. If $dont_reverse is set to 1,
+#                 1 2 _arabic_letter_1 _arabic_letter_2 becomes _arabic_letter_1 _arabic_letter_2 1 2
 # See Also      : direction()
 sub remixdir ($;$) {
-  my ($string, $dont_reverse) = @_;
-  my @char = split //, $string;
+    my ( $string, $dont_reverse ) = @_;
+    my @char = split //, $string;
 
-  my $context = 1;
-  my @cut = (0);
+    my $context = 1;
+    my @cut     = (0);
 
-  my $reverse = $context == 1 ? 0 : 1;
+    my $reverse = $context == 1 ? 0 : 1;
 
-  my ($i, @line);
+    my ( $i, @line );
 
-  for ($i = 0; $i < @char; $i++) {
-
-    if ($context + direction $char[$i] == 0) {
-
-      push @cut, $i;
-      $context *= -1;
+    for ( $i = 0; $i < @char; $i++ ) {
+        if ( $context + direction $char[$i] == 0 ) {
+            push @cut, $i;
+            $context *= -1;
+        }
     }
-  }
 
-  push @cut, $i;
-  
-  for ($i = 1; $i < @cut; $i++) {
-  
-    if ($i % 2 == $reverse and not $dont_reverse) {
-    
-      unshift @line, reverse @char[$cut[$i - 1]..$cut[$i] - 1];
-    }
-    else {
-    
-      unshift @line, @char[$cut[$i - 1]..$cut[$i] - 1];
-    }
-  }
+    push @cut, $i;
 
-  return join "", @line;
+    for ( $i = 1; $i < @cut; $i++ ) {
+        if ( $i % 2 == $reverse and not $dont_reverse ) {
+            unshift @line, reverse @char[ $cut[ $i - 1 ] .. $cut[$i] - 1 ];
+        }
+        else {
+            unshift @line, @char[ $cut[ $i - 1 ] .. $cut[$i] - 1 ];
+        }
+    }
+
+    return join "", @line;
 }
-
 
 1;
 
@@ -165,7 +156,7 @@ TrEd::ArabicRemix version 0.2.
 
 =head1 SYNOPSIS
 
-  use TrEd::ArabicRemix
+  use TrEd::ArabicRemix;
   
   my $char = "\x{064B}";
   my $dir = TrEd::ArabicRemix::direction($char); # -1 
@@ -275,6 +266,7 @@ Reversed string
 
 =head1 DIAGNOSTICS
 
+No diagnostic messages.
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
@@ -286,6 +278,7 @@ No dependencies.
 
 =head1 INCOMPATIBILITIES
 
+No known incompatibilities.
 
 =head1 BUGS AND LIMITATIONS
 

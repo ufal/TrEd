@@ -19,13 +19,11 @@ BEGIN {
   our @subs = qw(
     encode 
     decode 
-    filename 
-    dirname
   );
   use_ok($module_name, @subs);
 }
 
-TrEd::Convert->import(qw{&encode &decode &filename &dirname $inputenc $outputenc});
+TrEd::Convert->import(qw{&encode &decode $inputenc $outputenc});
 
 our @subs;
 can_ok(__PACKAGE__, @subs);
@@ -179,30 +177,6 @@ sub test_encode_dont_support_unicode {
   $TrEd::Convert::support_unicode = $sup_unicode_backup;
 }
 
-
-my $path = "/etc/X11/xorg.conf";
-
-my $dir = TrEd::Convert::dirname($path);
-is($dir, "/etc/X11/", 
-  "dirname(): extract directory from path");
-
-my $file = TrEd::Convert::filename($path);
-is($file, "xorg.conf", 
-  "filename(): extract filename from path");
-
-  
-$path = 'hatlatitla';
-$dir = TrEd::Convert::dirname($path);
-is($dir, "./", 
-  "dirname(): return current directory if there is no slash in path");
-
-$file = TrEd::Convert::filename($path);
-is($file, $path, 
-  "filename(): return whole string if there is no slash in path");
-
-
-
-#print "$path => $dir, $file\n";
 
 test_decode_dont_support_unicode();
 test_decode_support_unicode();

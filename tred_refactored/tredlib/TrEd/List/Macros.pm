@@ -6,7 +6,7 @@ use warnings;
 use Tk;
 use TrEd::Macros;
 use TrEd::MinMax;
-use TrEd::Basics qw{$EMPTY_STR};
+use TrEd::Utils qw{$EMPTY_STR};
 
 # macro, menu, UI
 sub create_list {

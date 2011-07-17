@@ -14,7 +14,7 @@ use URI;
 use URI::file;
 
 use TrEd::MinMax qw(first);
-use TrEd::Basics qw{$EMPTY_STR};
+use TrEd::Utils qw{$EMPTY_STR};
 
 BEGIN {
     require Exporter;
@@ -67,10 +67,10 @@ my @extension_file_prologue = split /\n\s*/, <<'EOF';
 EOF
 
 # $ext_1 is required by $ext_2 ~> $required_by{$ext_1}{$ext_2} = 1
-my %required_by;
+my %required_by = ();
 
 # $ext_2 requires $ext_1 ~> $requires{$ext_2}{$ext_1} = 1
-my %requires;
+my %requires = ();
 
 #######################################################################################
 # Usage         : short_name($pkg_name)
@@ -2577,6 +2577,11 @@ sub uninstall_extension {
 # Comments      : Reads TrEd::Config::extensionsDir
 sub get_extensions_dir {
     return $TrEd::Config::extensionsDir;
+}
+# wrapper for PADT
+sub getExtensionsDir {
+    # maybe print that should be renamed
+    return get_extensions_dir();
 }
 
 #######################################################################################
@@ -5187,8 +5192,7 @@ Path to TrEd's custom Tk libs (Tk::DialogReturn, Tk::QueryDIalog) has to be pres
 
 TrEd modules:
 TrEd::Version, 
-TrEd::MinMax, 
-TrEd::Basics, 
+TrEd::MinMax,
 Tk::DialogReturn, 
 Tk::ErrorReport, 
 Tk::QueryDialog, 

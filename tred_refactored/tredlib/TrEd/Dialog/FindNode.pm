@@ -5,7 +5,7 @@ use warnings;
 
 use TrEd::Config qw{$sortAttrs $maxDisplayedAttributes $font $tredDebug};
 use TrEd::MinMax qw{min max2};
-use TrEd::Basics qw{$EMPTY_STR};
+use TrEd::Utils qw{$EMPTY_STR};
 use TrEd::ManageFilelists;
 use TrEd::Convert;
 use Tk;
@@ -23,10 +23,10 @@ sub findNodeDialog {
   my $r;
   my @vals;
   my @atord;
-  if (TrEd::Basics::file_schema($win->{FSFile})) {
-    @atord = TrEd::Basics::file_schema($win->{FSFile})->attributes;
+  if ( $win->{FSFile}->schema() ) {
+    @atord = $win->{FSFile}->schema()->attributes;
   } else {
-    @atord = $win->{FSFile}->FS->attributes;
+    @atord = $win->{FSFile}->FS()->attributes;
   }
 
   if ($TrEd::Config::sortAttrs) {

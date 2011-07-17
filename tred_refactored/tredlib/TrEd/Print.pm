@@ -107,6 +107,7 @@ package TrEd::Print;
 use strict;
 use Carp;
 use UNIVERSAL::DOES;
+use TrEd::Utils qw{uniq};
 
 BEGIN{
   use vars qw($bwModeNodeColor %media);
@@ -134,7 +135,7 @@ BEGIN{
 
 sub _dirs {
   my ($dir) = @_;
-  my $ds=$TrEd::Convert::Ds;
+  my $ds=$TrEd::File::dir_separator;
   my @dirs;
   if (opendir(my $dd, $dir)) {
     @dirs = map { ("${dir}${ds}$_",_dirs("${dir}${ds}$_")) } grep { -d "${dir}${ds}$_" }
@@ -145,8 +146,6 @@ sub _dirs {
   }
   return $dir,@dirs;
 }
-
-sub uniq { my %a; grep { !($a{$_}++) } @_ }
 
 sub get_ttf_fonts {
   my $opts = ref($_[0]) ? shift : {};
@@ -168,11 +167,11 @@ sub get_ttf_fonts {
     }
   }
 
-  my $ds=$TrEd::Convert::Ds;
+  my $ds=$TrEd::File::dir_separator;
   eval {
     require PDF::API2::Basic::TTF::Font;
     my @files;
-    my @dirs = uniq(map { _dirs($_) } @_);
+    my @dirs = TrEd::Utils::uniq(map { _dirs($_) } @_);
     my $i=0;
     foreach my $path (@dirs) {
       opendir my $dh, $path || next;

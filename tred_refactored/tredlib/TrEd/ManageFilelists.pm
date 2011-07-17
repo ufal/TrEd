@@ -8,19 +8,19 @@ use Cwd;
 use File::Spec;
 
 use TrEd::MinMax; # max2
-use TrEd::Basics;
+use TrEd::Utils qw{$EMPTY_STR};
 use TrEd::Config qw{$tredDebug};
-use TrEd::File qw{closeFile};
+use TrEd::File qw{closeFile absolutize filename};
 
 use Treex::PML qw{&Index};
 use Treex::PML::IO;
 use Filelist;
-use TrEd::Convert qw{filename};
 use TrEd::Bookmarks;
 use TrEd::Dialog::File::Open;
 
 # list of all loaded filelists
 my @filelists = ();
+
 # filelists from extensions
 my %filelist_from_extension = ();
 
@@ -99,7 +99,9 @@ sub findFilelist {
   my ($name) = @_;
   # dump_filelists("findFilelist", \@filelists);
   foreach my $filelist (@filelists) {
-    return $filelist if ($filelist->name() eq $name);
+    if ($filelist->name() eq $name) {
+        return $filelist;
+    }
   }
   return;
 }
@@ -177,8 +179,8 @@ sub _return_binding {
    } elsif ($answer eq 'Rename') {
      my $oldn=$current_filelist->name();
      $current_filelist->rename($text);
-     TrEd::Bookmarks::updateBookmarks($grp)
-       if ($oldn eq 'Bookmarks');
+     TrEd::Bookmarks::update_bookmarks($grp)
+       if ($oldn eq $TrEd::Bookmarks::FILELIST_NAME);
      $$fl=$text;
      main::updatePostponed($grp);
    } else {
@@ -213,7 +215,7 @@ sub insertToFilelist {
   return -1 if (@_==1 and $filelist->position($_[0])>=0);
   # this is the case when we add a file which is actually already there
 
-  my @list = map { TrEd::Basics::absolutize($_) } @_;
+  my @list = map { TrEd::File::absolutize($_) } @_;
   my $tmp;
   my $filelist_widget = TrEd::Dialog::Filelist::filelist_widget();
   my $toplevel = $filelist_widget ? $filelist_widget->toplevel : $grp->{top};
@@ -476,7 +478,7 @@ sub removeFilelistsDialog {
   my ($grp)=@_;
   # dump_filelists("removeFilelistsDialog", \@filelists);
   my @lists = sort { $a->[1] cmp $b->[1] }  
-              grep { $_->[1] ne 'Default' and $_->[1] ne 'Bookmarks' and 
+              grep { $_->[1] ne 'Default' and $_->[1] ne $TrEd::Bookmarks::FILELIST_NAME and 
 		            ($filelist_from_extension{$_->[0]}||0)!=1} 
 		      map { [$_,$_->name,lc($_->name)] } 
 		      @filelists;
@@ -534,7 +536,7 @@ sub loadStdFilelists {
   return unless -d $dir;
   my %name = map { $_->name() => $_ } @filelists;
   for my $f (glob(File::Spec->catfile($dir,'*'))) {
-    my $name = TrEd::Convert::filename($f);
+    my $name = TrEd::File::filename($f);
     $name =~ s/\.fl$//i; # strip .fl suffix if any
     my $uname = Encode::decode('UTF-8',URI::Escape::uri_unescape($name));
     if (URI::Escape::uri_escape_utf8($uname) ne $name) {
@@ -600,7 +602,7 @@ sub createFilelistsMenu {
   if ($bookmark_to) {
     $menu->separator();
     $menu->command(-label => ($bookmark_to ? 'New File List...' : 'Create New File List ...'),
-		   -command=> [\&makeNewFilelist,$grp,\&TrEd::Bookmarks::addBookmark]);
+		   -command=> [\&makeNewFilelist,$grp,\&TrEd::Bookmarks::bookmark_actual_position]);
   }
 }
 
@@ -679,7 +681,7 @@ sub bookmarkToFilelistDialog {
   return unless (@$selection);
   my $sel = $selection->[0];
   $sel =~s {^\w+.  }{};
-  TrEd::Bookmarks::addBookmark($grp,$sel);
+  TrEd::Bookmarks::bookmark_actual_position($grp,$sel);
   return;
 }
 
@@ -698,7 +700,7 @@ sub create_filelists {
   }
   
   create_cmdline_filelists($cmdline_filelists);
-  TrEd::Bookmarks::createBookmarksFilelist();
+  TrEd::Bookmarks::create_bookmarks_filelist();
   loadStdFilelists();
 }
 

@@ -7,10 +7,8 @@ use Cwd;
 
 use TrEd::Config;
 use TrEd::ValueLine;
-use TrEd::Basics;
 use TrEd::HTML::Simple;
-use TrEd::Convert qw{dirname};
-use TrEd::Utils qw{STYLESHEET_FROM_FILE}; # for STYLESHEET_FROM_FILE
+use TrEd::Utils qw{STYLESHEET_FROM_FILE $EMPTY_STR}; # for STYLESHEET_FROM_FILE
 use TrEd::File;
 use TrEd::Error::Message;
 
@@ -235,9 +233,9 @@ sub dump_view {
   my $file=$fsfile->filename();
   $file=~s/\.(?:csts|sgml|sgm|cst|trxml|trx|tei|xml|fs|pls)(?:\.gz)?$/.html/i;
 
-  my $initdir = TrEd::Convert::dirname($file);
+  my $initdir = TrEd::File::dirname($file);
   $initdir = cwd() if ($initdir eq './');
-  $initdir =~ s!${TrEd::Convert::Ds}$!!m;
+  $initdir =~ s!${TrEd::File::dir_separator}$!!m;
 
   my @selref = split /,/, get_selection($grp, $selref);
   unless (@selref) {
@@ -291,7 +289,7 @@ sub dump_view {
 	  my $no = $V; 
 	  $no =~ s/[()]|\s*//g;
 	  $img_file =~ s/\.[^.]*$/_${no}.png/;
-	  print $html "<img src=\"".TrEd::Convert::filename($img_file)."\"/><br />\n";
+	  print $html "<img src=\"".TrEd::File::filename($img_file)."\"/><br />\n";
 	  # create image
 	  my $canvas=$grp->{top}->Canvas();
 	  my $stylesheet = $win->{stylesheet};

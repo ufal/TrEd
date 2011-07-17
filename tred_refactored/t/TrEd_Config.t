@@ -8,8 +8,7 @@ use lib "$FindBin::Bin/../tredlib";
 use File::Spec;
 use File::Find;
 use Cwd;
-use TrEd::Utils qw(find_win_home);
-use TrEd::Basics qw(uniq);
+use TrEd::Utils qw(find_win_home uniq);
 
 #use Data::Dumper;
 use Tk qw{};
@@ -446,7 +445,7 @@ sub test__set_resource_path {
   $default_resource_path = $ENV{HOME} . "/.tred.d" . $separator . "${default_share_dir}resources";
   my $conf_res_paths = $ENV{HOME} . "/.tred.d/" . $separator . $ENV{HOME} . "/tred.resources";
   $expected_res_path = join($separator, ($default_resource_path, $conf_res_paths, $Treex::PML::resourcePath));
-  my @expected_paths = sort(TrEd::Basics::uniq(split($separator, $expected_res_path)));
+  my @expected_paths = sort(TrEd::Utils::uniq(split($separator, $expected_res_path)));
   
   TrEd::Config::_set_resource_path(\%confs, $default_share_dir);
   my @got_paths = sort(split($separator, $Treex::PML::resourcePath));

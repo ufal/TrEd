@@ -105,7 +105,7 @@ TrEd::Error::Message version 0.1.
 
 =head1 SYNOPSIS
 
-  use TrEd::Basics;
+  use TrEd::Error::Message;
   use TrEd::Window; # for GUI error messages
   
   my $win_ref = TrEd::Window->new(newTreeView($grp), framegroup => $grp);
@@ -130,7 +130,7 @@ whichever is more appropriate.
 
 =over 4 
 
-=item * C<TrEd::Basics::_message_box($top, $title, $msg, $nobug)>
+=item * C<TrEd::Error::Message::_message_box($top, $title, $msg, $nobug)>
 
 =over 6
 

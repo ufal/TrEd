@@ -5,9 +5,8 @@ use warnings;
 
 use TrEd::Config;
 # potom prerobit na TrEd::Stylesheets asi
-use TrEd::Utils;
+use TrEd::Utils qw{:all};
 use TrEd::MinMax qw{first};
-use TrEd::Basics qw{$EMPTY_STR};
 use TrEd::ValueLine;
 
 use Data::Dumper;
@@ -410,10 +409,10 @@ sub show_dialog {
     @atord = @$attrs;
   } else {
     if ($win->{FSFile}) {
-      if (TrEd::Basics::file_schema($win->{FSFile})) {
-	@atord = TrEd::Basics::file_schema($win->{FSFile})->attributes();
+      if ( $win->{FSFile}->schema() ) {
+	@atord = $win->{FSFile}->schema()->attributes();
       } else {
-	@atord = $win->{FSFile}->FS->attributes;
+	@atord = $win->{FSFile}->FS()->attributes;
       }
     }
     if ($TrEd::Config::sortAttrs) {

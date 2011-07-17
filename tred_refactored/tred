@@ -267,6 +267,7 @@ import TrEd::MinMax;
 import TrEd::MinMax qw(first);
 
 
+
 ############################################################
 # end of BEGIN section
 ############################################################
@@ -289,6 +290,8 @@ EOF
 }
 
 apply_initial_config();
+
+
 
 {
   # ensure ~/.tred.d exists
@@ -337,9 +340,14 @@ if (open(my $fh, '>',$pid_file)) {
   close $fh;
 }
 
+# import encode and decode functions
+require TrEd::Convert;
+import TrEd::Convert;
+
+
 $TrEd::Convert::inputenc=$opt_n if $opt_n;
 $TrEd::Config::treeViewOpts->{showHidden} = 1 if $opt_H;
-$iconPath = "$libDir/icons/crystal" unless (defined $iconPath);
+$TrEd::Config::iconPath = "$libDir/icons/crystal" unless (defined $TrEd::Config::iconPath);
 $macroFile="$libDir/tred.mac" unless (defined $macroFile);
 if (defined $opt_m) {
   $macroFile=$opt_m;
@@ -395,19 +403,12 @@ import Tk::widgets
 # duplicate import entry DialogBox
 require Tk::Font;
 
-# import encode and decode functions
-require TrEd::Convert;
-import TrEd::Convert;
 
-# if ($TrEd::Convert::support_unicode) {
-#   require Tk::Entry;
-#   require Tk::Text;
-# #  require Tk::UCSKeyBind;
-# }
+
 
 # import read_macros etc.
-require TrEd::Macros;
-import TrEd::Macros;
+use TrEd::Macros;
+#import TrEd::Macros;
 
 TrEd::Macros::define_symbol('TRED');
 #opt_y -- define symbol
@@ -436,12 +437,11 @@ require TrEd::Window;
 require TrEd::Print;
 
 # basic tree operations
-require TrEd::Basics;
-import TrEd::Basics qw{uniq};
+use TrEd::Window::TreeBasics;
 
-$TrEd::Basics::on_tree_change= \&onTreeChange;
-$TrEd::Basics::on_node_change= \&onNodeChange;
-$TrEd::Basics::on_current_change= \&onCurrentChange;
+$TrEd::Window::TreeBasics::on_tree_change= \&onTreeChange;
+$TrEd::Window::TreeBasics::on_node_change= \&onNodeChange;
+$TrEd::Window::TreeBasics::on_current_change= \&onCurrentChange;
 
 eval { require TrEd::Help; };
 
@@ -459,7 +459,6 @@ use TrEd::Dialog::Text;
 use TrEd::Binding::Default;
 use TrEd::Filelist::Navigation;
 use TrEd::ValueLine;
-use TrEd::MinorModes;
 use TrEd::StatusLine;
 use TrEd::Undo;
 use TrEd::View::Sentence;
@@ -476,10 +475,22 @@ use TrEd::Dialog::FileProperties;
 use TrEd::Dialog::Print;
 use TrEd::Dialog::FindNode;
 use TrEd::Dialog::ExamineBindings;
+use TrEd::Menu::Macro;
+use TrEd::MinorModes;
+
+# ex-macro stuff
+# this files all live in TredMacro package namespace 
+#use TrEd::ExtensionsAPI; # tred.def & tred.mac & contrib.mac 
+
+
+# still macro stuff, but separate namespace
+require TrEd::NodeGroups; # instead of contrib/node_groups/node_groups.mak
+
 
 # we need to have command line options already prepared 
 require TrEd::File;
 import TrEd::File;
+
 
 ### eof new additions ###
 
@@ -592,7 +603,7 @@ if ($opt_X ne EMPTY) {
   Fs2csts::setupSpec(split ',',$opt_X,-1);
 }
 
-print STDERR "Reading macros from $macroFile...\n" unless $opt_q;
+# print STDERR "Reading macros from $macroFile...\n" unless $opt_q;
 
 startMain(); # start the whole thing
 
@@ -618,7 +629,7 @@ sub gotoFirstDisplayedNode {
   my $tv = $win->treeView;
   my $node = first { $tv->node_is_displayed($_) } @{$win->{Nodes}};
   if ($node) {
-    TrEd::Basics::set_current($win,$node);
+    TrEd::Window::TreeBasics::set_current($win,$node);
     centerTo($win,$node);
   }
 }
@@ -629,7 +640,7 @@ sub gotoLastDisplayedNode {
   my $tv = $win->treeView;
   my $node = first { $tv->node_is_displayed($_) } reverse @{$win->{Nodes}};
   if ($node) {
-    TrEd::Basics::set_current($win,$node);
+    TrEd::Window::TreeBasics::set_current($win,$node);
     centerTo($win,$node);
   }
 }
@@ -678,7 +689,7 @@ sub icon {
     my $split = ($^O eq "MSWin32") ? ',' : ':';
     my @paths = (map {
       my $p =
-      m{^\s*\Q${TrEd::Convert::Ds}\E} ? $_ : $libDir."/icons/".$_;
+      m{^\s*\Q${TrEd::File::dir_separator}\E} ? $_ : $libDir."/icons/".$_;
       $default = 1 if $p eq $libDir."/icons/crystal";
       $p;
     } split(/$split/o,$iconPath));
@@ -729,7 +740,7 @@ sub get_save_filename {
     my $types = ref($opts{-filetypes}) ?
       join " ",map { "*".$_ } map { @{$_->[1]} } @{$opts{-filetypes}} : "*";
     my $title = $opts{-title} || 'Open';
-    my $initialdir = $opts{-initialdir}.$TrEd::Convert::Ds || EMPTY;
+    my $initialdir = $opts{-initialdir}.$TrEd::File::dir_separator || EMPTY;
     my $initialfile = $opts{-initialfile} || EMPTY;
     $c=~s/\%t/"$title"/g;
     $c=~s/\%m/"$types"/g;
@@ -854,7 +865,7 @@ sub ApplyGlobalConfig {
   foreach my $button (grep { blessed($_) and $_->isa('Tk::Button') } get_all_widgets($grp)) {
     my $icon = $button->cget('-image');
     if (defined $icon) {
-      my $f = filename($icon->cget('-file'));
+      my $f = TrEd::File::filename($icon->cget('-file'));
       $f=~s/\..*//;
       my $new = icon($grp,$f);
       Tk::catch {
@@ -1115,7 +1126,7 @@ sub findToplevelFileFor {
   return unless $fsfile;
   my $part_of = $fsfile->appData('fs-part-of');
   if (ref($part_of) and @$part_of) {
-    return TrEd::Basics::uniq(map findToplevelFileFor($grp,$_), @$part_of);
+    return TrEd::Utils::uniq(map findToplevelFileFor($grp,$_), @$part_of);
   } else {
     return $fsfile;
   }
@@ -1185,21 +1196,8 @@ sub userQuery {
 
 
 # node
-sub getNodeNo {
-  my ($win,$node)=@_;
-  if ($node) {
-    my $root;
-    my $i=0;
-    $root=$win->{FSFile}->treeList->[$win->{treeNo}];
-    while ($root and $root ne $node) {
-      $i++;
-      $root=$root->following();
-    }
-    if ($root) {
-      return $i;
-    }
-  }
-}
+# sub getNodeNo -> TrEd::Window::TreeBasics
+
 
 # bookmarks
 #sub bookmarkThis
@@ -1221,7 +1219,7 @@ sub getNodeNo {
 sub update_session_status {
     my ($grp) = @_;
     my $win = $grp->{focusedWindow};
-    update_context_list($grp);
+    $grp->{ContextsMenu}->update_context_list($grp);
     $grp->{keepcurrentfile}
         = (defined $win->{FSFile} && $win->{FSFile}->appData('noautoclose'))
         ? 1
@@ -1290,7 +1288,7 @@ sub updatePostponed {
       if ($menu) {
 	$menu->delete(0,'end');
 	$_->destroy for $menu->children;
-	TrEd::ManageFilelists::createFilelistsMenu($grp, $menu, [\&TrEd::Bookmarks::addBookmark, $grp], 1);
+	TrEd::ManageFilelists::createFilelistsMenu($grp, $menu, [\&TrEd::Bookmarks::bookmark_actual_position, $grp], 1);
       }
     }
   }
@@ -1365,7 +1363,7 @@ sub update_title_and_buttons {
     my $win = $grp->{focusedWindow};
     _update_buttons($grp, $win);
     if ( ref( $win->{FSFile} ) ) {
-        #TODO: vyhutaj pouzitie TrEd::Basics::EMPTY_STR
+        #TODO: vyhutaj pouzitie TrEd::Utils::EMPTY_STR
         my $filelist_info = EMPTY;
         if ( defined $win->{currentFileNo} && $win->{currentFilelist} ) {
             my $current = $win->{currentFileNo} + 1;
@@ -1377,7 +1375,6 @@ sub update_title_and_buttons {
             "$appName    " . $filelist_info . $win->{FSFile}->filename() );
     }
     else {
-        
         $grp->{top}->title("$appName");
     }
     return;
@@ -1479,7 +1476,7 @@ sub unhide_current_node {
 # autosave, file
 sub autosave_filename {
   my ($f)=@_;
-  my $base=filename($f);
+  my $base=TrEd::File::filename($f);
   return undef unless ($f=~s/\Q${base}\E$/#$base#.#tred#/);
   return $f;
 }
@@ -1674,163 +1671,10 @@ sub initSidePanel {
 }
 
 # sub update_status_info
+#sub update_context_list
 
-
-# context list, menu, UI
-# context menu
-#######################################################################################
-# Usage         : update_context_list($grp)
-# Purpose       : Update list of contexts in context menu, set $grp->{selectedContext}
-#                 according to allowed contexts and switch context
-# Returns       : Undef/empty list
-# Parameters    : hash_ref $grp -- reference to hash containing TrEd options
-# Throws        : No exception
-# Comments      : 
-# See Also      : 
-sub update_context_list {
-    my ($grp) = @_;
-    if ( defined $grp->{ContextsMenu} ) {
-        my $selected_context = $grp->{selectedContext};
-        my %new = map { $_ => 1 } 
-                  get_allowed_contexts( $grp->{focusedWindow} );
-        my $tredmacro_ok = delete $new{TredMacro};
-        my @allowed_contexts = [ ( $tredmacro_ok ? 'TredMacro' : () ), 
-                            sort keys %new 
-                          ];
-        $grp->{ContextsMenu}->set_options(@allowed_contexts);
-        
-        # if the selected context has changed, select TredMacro, 
-        # if it's allowed; otherwise try to use macro context 
-        # specified as a command line parameter
-        #TODO: kind of feature envy, isn't it?
-        if ( $selected_context ne $grp->{selectedContext} ) {
-            if ($tredmacro_ok) {
-                $grp->{selectedContext} = 'TredMacro';
-            }
-            elsif ( $init_macro_context
-                    && exists($new{$init_macro_context}) ) 
-            {
-                $grp->{selectedContext} = $init_macro_context;
-            }
-            switchContext( $grp->{focusedWindow}, $grp->{selectedContext},
-                1 );
-        }
-    }
-    return;
-}
-
-# macro, menu, UI
-sub update_macro_menus {
-  my ($grp)=@_;
-  update_context_list($grp);
-  if ($grp->{MacroMenu}) {
-    my $menu = $grp->{MacroMenu}->menu;
-    foreach my $context (sort(keys(%TrEd::Macros::keyBindings))) {
-      $menu->Cascade( -label => $context,
-		      -menuitems=>
-			cascadeMenus(map { $TrEd::Macros::keyBindings{$context}->{$_}=~/(?:$context\-\>)?(.*)/;
-					   [Button => $1,
-					    -command=> [sub {
-							  doEvalMacro($_[0]->{focusedWindow},
-								      $_[1]);
-						   },$grp,
-							$TrEd::Macros::keyBindings{$context}->{$_}],
-					    -accelerator=> "($_)"
-					   ]
-					 } sort(keys(%{$TrEd::Macros::keyBindings{$context}}))));
-    }
-  }
-  my $tools_menu = $grp->{ToolsMenu}; #->menu;
-  if ($grp->{UserMenu}) {
-    my $menu = $grp->{UserMenu};
-    $menu->delete(0,'end');
-    $_->destroy for $menu->children;
-    my $current;
-    $grp->{MacroMenuItems}={}; # cache menus
-    foreach my $context ("TredMacro",grep { $_ ne "TredMacro" } sort(keys(%TrEd::Macros::menuBindings))) {
-      my %macro_to_key = reverse %{ $TrEd::Macros::keyBindings{$context}||{} };
-      my $cascade = $menu->Cascade( -label => $context,
-		 -menuitems=>
-		   $grp->{MacroMenuItems}{$context}=cascadeMenus(map {
-		     my $label = $_;
-		     my $v = $TrEd::Macros::menuBindings{$context}->{$label};
-		     my $key = defined($v->[1]) ? $v->[1] : $macro_to_key{$v->[0]};
-		     $label=~s/^_+//;
-		     [Button=> $label,
-		      -command=> [sub {
-				    doEvalMacro($_[0]->{focusedWindow},
-						$_[1]);
-				  },
-				  $grp,
-				  $v->[0]],
-		      $key ? (-accelerator=> "(".$key.")") : ()]}
-                                  grep { $context ne 'TredMacro' or !/^_*\*/ } # skip "Star Tools" bindings
-				  map $_->[1], TrEd::MinMax::underscore_sort(map [$_,$_], keys(%{$TrEd::Macros::menuBindings{$context}}))));
-      $current = $cascade if $context eq $grp->{focusedWindow}{macroContext}
-    }
-    # $tools_menu->entryconfigure('Current Context*',-menu => $current->menu);
-  }
-  if ($tools_menu) {
-    # update "Star Tools" in the Tools menu
-    print STDERR "updating toolmenu\n" if $tredDebug;
-    my $end = $tools_menu->index('end');
-    my ($first,$last);
-    for (my $i=0; $i<$end; $i++) {
-      if ($tools_menu->type($i) eq 'command' and $tools_menu->entrycget($i,'-label') =~ /^\*/) {
-	$first = $i unless defined $first;
-	$last = $i;
-      } elsif (defined $first) {
-	last;
-      }
-    }
-    # print STDERR "clearing toolmenu from $first to $last\n" if defined($first) and $tredDebug;
-    $tools_menu->delete($first,$last) if (defined $first);
-    my $TredMacroMenu = $TrEd::Macros::menuBindings{TredMacro};
-    my %macro_to_key = reverse %{ $TrEd::Macros::keyBindings{TredMacro}||{} };
-    $first ||= 'end';
-    foreach my $item (map $_->[1], TrEd::MinMax::underscore_sort(map [$_,$_], grep /^_*\*/, keys %$TredMacroMenu)) {
-      my $v = $TredMacroMenu->{$item};
-      my $key = defined($v->[1]) ? $v->[1] : $macro_to_key{$v->[0]};
-      my $label = $item; $label=~s/^_+//;
-      # print STDERR "appending toolmenu $first\n" if $tredDebug;
-      $tools_menu->insert($first,
-			  'command',
-			  -label => $label,
-			  -command=> [sub { doEvalMacro($_[0]->{focusedWindow}, $_[1]); },
-				      $grp,
-				      $v->[0]],
-			  $key ? (-accelerator=> "(".$key.")") : ());
-      $first ++;
-    }
-  }
-  updateCurrentContextMenu($grp);
-}
-
-# context, menu, UI
-sub updateCurrentContextMenu {
-  my ($grp)=@_;
-  print STDERR "updating context menu\n" if $tredDebug;
-  my $context = $grp->{focusedWindow}{macroContext};
-  my $menu = $grp->{CurrentContextMacroMenu};
-  eval {
-    # if ($M->isa('Tk::Menubutton')) {
-    #   $M->configure(-text => "$context");
-    # } else {
-    #   $M->configure(-label => "$context");
-    # }
-    # my $menu = $M->menu;
-    $menu->delete(0,'end');
-    $_->destroy for $menu->children;
-    if ($TrEd::Macros::menuBindings{$context}) {
-#      $M->configure(-state=>'normal');
-      $menu->AddItems(@{$grp->{MacroMenuItems}{$context}});
-    } else {
-#      $M->configure(-state=>'disabled');
-    }
-  };
-  warn $@ if $@;
-}
-
+#sub update_macro_menus
+# sub updateCurrentContextMenu
 
 # sub update_status_line
 # sub set_status_line
@@ -1852,8 +1696,7 @@ sub update_tree_pos {
 #TODO: wrapper for extensions
 sub update_value_line {
     my ($grp, @args) = @_;
-    return $grp->{valueLine}->update(@args);
-  #return TrEd::ValueLine::update(@_);
+    return $grp->{valueLine}->update($grp, @args);
 }
 
 ### Get Nodes
@@ -2192,7 +2035,7 @@ sub printThis {
       -onRedrawDone => \&onRedrawDone,
     });
   } };
-  error_message($win, $@) if $@;
+  TrEd::Error::Message::error_message($win, $@) if $@;
   get_nodes_win($win); # printGetNodesCallback have fiddled with $win
 ## uncomment to get preview (see also above)
 #  $canvas->pack();
@@ -2250,7 +2093,7 @@ sub switchStylesheet {
     if (!defined($stylesheet)) {
       $stylesheet=$prevstylesheet;
     } elsif (grep /^\Q$stylesheet\E$/i, keys %{$grp->{stylesheets}}) {
-      error_message($win,
+      TrEd::Error::Message::error_message($win,
 		   "Stylesheet named '$stylesheet' already exists!\n",1);
       $stylesheet=$prevstylesheet;
     } else {
@@ -2295,7 +2138,7 @@ sub switchStylesheet {
 
 # context switch
 #######################################################################################
-# Usage         : update_context_list($grp)
+# Usage         : switchContext($grp)
 # Purpose       : Update list of contexts in context menu, set $grp->{selectedContext}
 #                 according to allowed contexts and switch context
 # Returns       : Undef/empty list
@@ -2331,7 +2174,7 @@ sub switchContext {
         $grp->{selectedContext} = $context;
         $grp->{StylesheetMenu}->update($grp);
         TrEd::List::Macros::update_view($win);
-        updateCurrentContextMenu($grp);
+        TrEd::Menu::Macro::updateCurrentContextMenu($grp);
     }
     my ( $l1, $l2 ) = ( $win->{got_nodes}, $win->{redrawn} );
     doEvalHook( $win, "switch_context_hook", $prev_context, $context );
@@ -2406,9 +2249,9 @@ sub onTreeChange {
 # hook
 sub onNodeChange {
   my ($win,$change,$node)=@_;
-  if ($change =~ m/^new_node/ and TrEd::Basics::file_schema($win->{FSFile})) {
+  if ($change =~ m/^new_node/ && $win->{FSFile}->schema()) {
     unless (determineNodeType($win,$node)) {
-      TrEd::Basics::prune_node($win,$node);
+      TrEd::Window::TreeBasics::prune_node($win,$node);
       return;
     }
   }
@@ -2530,19 +2373,8 @@ sub addBindTags {
   $w->bindtags([@_,$w,ref($w),$w,$w->toplevel,'all']);
 }
 
-sub cascadeMenus {
-  $maxMenuLines=max2($maxMenuLines,3);
-  my $uM=[ @_[0..min($maxMenuLines-1,$#_)] ];
-  my $uuM=$uM;
-  my $i=$maxMenuLines;
-  while ($i<=$#_) {
-    my $m = [@_[$i..min($i+$maxMenuLines-1,$#_)]];
-    push @$uuM,[Cascade=> 'More...', -menuitems=> $m];
-    $uuM=$m;
-    $i+=$maxMenuLines;
-  }
-  return $uM;
-}
+# sub cascadeMenus
+
 
 sub saveFileStateUpdate {
   my ($win)=@_;
@@ -2755,7 +2587,7 @@ sub focusCanvas {
     resetTreePosStatus($grp);
     update_session_status($grp);
     TrEd::List::Macros::update_view($grp);
-    updateCurrentContextMenu($grp);
+    TrEd::Menu::Macro::updateCurrentContextMenu($grp);
     $grp->{StylesheetMenu}->update($grp);
     updateNodeMenu($grp);
     my $fl = $newfocus->{currentFilelist};
@@ -2890,13 +2722,7 @@ sub canvasBindMouseWheelHoriz {
     }
 }
 
-# key bind
-sub keyBind {
-  local $_=shift;
-  s/-/+/g;
-  s/Control/CTRL/g;
-  return uc($_);
-}
+# sub keyBind
 
 # UI, canvas, bind
 sub createCanvasBindings {
@@ -3532,11 +3358,7 @@ sub startMain {
 
   }
 
-#  eval {
-#    require Tk::Stderr;
-#    $top->InitStderr;
-#  } unless -t \*STDOUT;
-#  undef $@;
+
   for (qw(ROText Text TextUndo Entry LabEntry HistEntry SimpleHistEntry
 	  Listbox HList CodeText)) {
     $top->optionAdd("\*$_.background", 'white');
@@ -3544,17 +3366,17 @@ sub startMain {
     $top->optionAdd("\*$_.disabledBackground", 'lightgray');
     $top->optionAdd("\*$_.disabledForeground", 'gray20');
   }
-  if (not $enableTearOff) {
+  if (!$TrEd::Config::enableTearOff) {
     for (qw(Menu)) {
       $top->optionAdd("\*$_.tearOff",0);
     }
   }
 
   if ($^O ne 'MSWin32') {
-    $top->optionAdd('\*Scrollbar.width', '10');
-    $top->optionAdd('\*Scrollbar.elementBorderWidth', '1');
-    $top->optionAdd('\*Scrollbar.borderWidth', '1');
-    $top->optionAdd('\*Scrollbar.troughColor', 'gray80');
+    $top->optionAdd("\*Scrollbar.width","10");
+    $top->optionAdd("\*Scrollbar.elementBorderWidth","1");
+    $top->optionAdd("\*Scrollbar.borderWidth","1");
+    $top->optionAdd("\*Scrollbar.troughColor","gray80");
   }
   #TODO: tie scrollbars sa nejak zresetuju, prid na to, preco a ako!
 #  my $bg = $top->optionGet('width','*Scrollbar');
@@ -3580,7 +3402,7 @@ sub startMain {
         # darken
         $_-=$level for $r,$g,$b;
       }
-      $abg = '#' . join q{}, map { sprintf('%02x', min(abs($_),255)) } $r,$g,$b;
+      $abg = '#' . join q{}, map { sprintf('%02x', TrEd::MinMax::min(abs($_),255)) } $r,$g,$b;
       $top->optionAdd('*Button.activeBackground', $abg);
     }
   }
@@ -3600,11 +3422,11 @@ sub startMain {
 
   $tred{folderImage}= icon(\%tred,'folder');
   $tred{fileImage}  = icon(\%tred,'document');
-  TrEd::Bookmarks::set_last_action($lastAction);
+  TrEd::Bookmarks::set_last_action($TrEd::Config::lastAction);
   $tred{selectedContext}=  $init_macro_context || 'TredMacro';
   $tred{buildTGTSfromCSTS}=$opt_R;
 
-  if (not $opt_G and defined($TrEd::Config::geometry) and length($TrEd::Config::geometry)) {
+  if (!defined $opt_G && defined $TrEd::Config::geometry && length $TrEd::Config::geometry) {
     if ($TrEd::Config::geometry =~ /^(.*)x(.*)\+([0-9]+)\+([0-9]+)/) {
         $TrEd::Config::geometry
 	 = "$1x$2+" . TrEd::MinMax::min($3, $top->vrootwidth() - $1).
@@ -3708,12 +3530,12 @@ sub startMain {
     populate_recent_files_menu(\%tred, \@recent_files);
     
   }
-
   $tred{templateMatchMethod}=$TrEd::Config::defaultTemplateMatchMethod;
   $tred{macroListOrder}=$TrEd::Config::defaultMacroListOrder;
-
-  $tred{selectedContext} =  'TredMacro' unless exists($TrEd::Macros::keyBindings{ $tred{selectedContext} });
-
+    
+    if (!exists $TrEd::Macros::keyBindings{ $tred{selectedContext} }) {
+        $tred{selectedContext} =  'TredMacro';
+    }
   
   $tred{ContextsMenu} = TrEd::Menu::Context->new($tred{MenubarFrame}, \%tred);  
   $tred{ContextsMenuLabel}=$tred{MenubarFrame}->Label(-text=>'Mode:',
@@ -3724,7 +3546,7 @@ sub startMain {
 
   addBindTags($tred{Toolbar},'my');
 
-  TrEd::Bookmarks::updateBookmarks(\%tred);
+  TrEd::Bookmarks::update_bookmarks(\%tred);
 
   $tred{vLineFrame}=$top->Frame();
   $tred{valueLine}=TrEd::ValueLine->new($tred{vLineFrame}, \%tred);
@@ -3798,24 +3620,10 @@ sub startMain {
 
   $tred{focusedWindow}->canvas->focus;
 
-#  print STDERR "Binding canvas destroy...\n" if $tredDebug;
-#   addBindTags($top,'TrEdMW');
-#   $top->bind('TrEdMW','<Destroy>',
-# 		      [ sub {
-# 			  shift;
-# 			  my $grp=shift;
-# 			  $geometry=$top->geometry();
-# 			  print "geometry is $geometry\n" if $tredDebug;
-# 			  if ($^O eq "MSWin32" and $top->state() eq 'zoomed') {
-# 			    $geometry=~s/\+[-0-9]+\+[-0-9]+/+-3+-3/;
-# 			  }
-# 			  print "state is ",$top->state(),"\n"  if $tredDebug;
-# 			},\%tred ]);
-
   print STDERR "GUI prepared.\n" if $tredDebug;
   $top->update;
 
-#### }}}}}}
+
 
   # check if TrEd has been updated
   my $version_file = File::Spec->catfile($tred_d,'last_version');
@@ -3832,7 +3640,7 @@ sub startMain {
     warn "Could not write version information to $version_file: $!\n";
     $ver = $VERSION; # do not bother the user in this case
   }
-  if (!$skipStartupVersionCheck and ( !$ver or $ver ne $VERSION )) {
+  if (!$TrEd::Config::skipStartupVersionCheck && ( !$ver || $ver ne $VERSION )) {
     if (userQuery($top, "TrEd was "
 		    .($ver ? "upgraded" : "installed or upgraded")
 		    ." recently.\n\n".
@@ -3844,14 +3652,16 @@ sub startMain {
     }
   }
 
+
+
   $top->Busy(-recurse=> 1);
   eval { loadMacros(\%tred,{preparedExtensions=>$preparedExtensions}) };
-  error_message($top,$@) if $@;
+  TrEd::Error::Message::error_message($top,$@) if $@;
   print STDERR "Resource path: $Treex::PML::resourcePath\n";# unless $opt_q;
   print "Starting in context $tred{focusedWindow}->{macroContext}\n" if $tredDebug;
   doEvalHook($tred{focusedWindow},"initialize_bindings_hook");
 
-  update_macro_menus(\%tred);
+  TrEd::Menu::Macro::update_macro_menus(\%tred);
   TrEd::MinorModes::update_minor_modes(\%tred);
   $tred{StylesheetMenu}->update(\%tred);
   updatePostponed(\%tred);
@@ -4022,25 +3832,14 @@ sub startMain {
 	    }, \%tred,uc($prefix).'+']);
   }
 ##### <<<<<< binding
-
+# this can not be moved up above loading macros because then 
+  # some bindings won't work... (don't ask me why)
+  $tred{default_binding} = TrEd::Binding::Default->new(\%tred);
+  $tred{default_binding}->setup_default_bindings();
   #  $top->bind('my','<Control-x><KeyPress>'=>
   #			[sub { evalMacro(@_); Tk->break; }, \%tred, 'CTRL-X+' ]);
 
-  $top->bind('my','<KeyPress>'=>
-			[sub {
-			   evalMacro(@_); Tk->break;
-			 }, \%tred, EMPTY ]);
-
-  foreach (qw(Shift Control Meta Alt Control-Shift Control-Alt
-              Control-Meta Alt-Shift Meta-Shift)) {
-    foreach my $event (qw(KeyPress Right Left Up Down
-                          Return comma period Next Prior greater less)) {
-      $top->bind('my',"<$_-$event>"=>
-			    [sub { evalMacro(@_); Tk->break; },
-			     \%tred, keyBind($_)."+"])
-	unless ("$_-$event" eq "Alt-KeyPress" or "$_-$event" eq "Meta-KeyPress")
-    }
-  }
+  
 
 #  $top->bind('all','<Tab>',undef);
 
@@ -4052,10 +3851,7 @@ sub startMain {
   $top->Tk::bind('Busy','<Any-ButtonRelease>',[\&Tk::Widget::_busy => 0]);
   $top->Tk::bind('Busy','<Any-Motion>',[\&Tk::Widget::_busy => 0]);
   $top->bind('Tk::Listbox','<KeyPress>',\&list_isearch);
-
-
-  $tred{default_binding} = TrEd::Binding::Default->new(\%tred);
-  $tred{default_binding}->setup_default_bindings();
+  
   
   #TrEd::Bindings::setup_default_bindings(\%tred);
 
@@ -4108,7 +3904,7 @@ sub handleUSR2Signal {
 
 #sub newUserToolbar
 
-# sounds like a fn from TrEd::Basics..?!
+# sounds like a fn from TrEd::Window::TreeBasics..?!
 sub makeCurrentNodeRoot {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow};
@@ -4145,7 +3941,7 @@ sub makeCurrentNodeRoot {
   }
   print STDERR "undo_type_id = |" . TrEd::Undo::undo_type_id('UNDO_ACTIVE_ROOT_AND_TREE_ORDER') . "|\n";
   TrEd::Undo::save_undo($win, TrEd::Undo::prepare_undo($win, 'Make Current Node the Root', TrEd::Undo::undo_type_id('UNDO_ACTIVE_ROOT_AND_TREE_ORDER')));
-  TrEd::Basics::make_root($win, $node, $discard );
+  TrEd::Window::TreeBasics::make_root($win, $node, $discard );
 }
 
 sub quit {
@@ -4237,7 +4033,7 @@ sub _do_goto_tree {
   my $win=shift;
   my $no=$win->{treeNo};
   $win->{treeNo}=-1;  # this is to force getNodes & redraw
-  TrEd::Basics::go_to_tree($win,$no);
+  TrEd::Window::TreeBasics::go_to_tree($win,$no);
   $win->{framegroup}->{IdleTask}=undef;
 }
 
@@ -4540,11 +4336,11 @@ sub saveConfig {
        $configFile=$trc;
      } else {
        rename("${trc}~", $trc) if $renamed;
-       error_message($top,"Cannot write to \"$trc\": $lasterr!\n".
+       TrEd::Error::Message::error_message($top,"Cannot write to \"$trc\": $lasterr!\n".
 		    "\nConfiguration could not be saved!\nCheck file and directory permissions.",1);
      }
    } else {
-     error_message($top,"Cannot write to \"$configFile\": $lasterr!\n".
+     TrEd::Error::Message::error_message($top,"Cannot write to \"$configFile\": $lasterr!\n".
 		  "\nConfiguration could not be saved!\nCheck file and directory permissions.",1);
    }
  }
@@ -4796,6 +4592,7 @@ sub autoSelectContext {
 sub get_allowed_contexts {
     my ($win) = @_;
     my $prevcontext = $win->{macroContext};
+    my @all_contexts = TrEd::Macros::get_contexts(); 
     my @ret = grep {
         (   doEvalHook(
                 $win,         "allow_switch_context_hook",
@@ -4803,7 +4600,7 @@ sub get_allowed_contexts {
                 )
                 || ''
             ) ne 'stop'
-    } TrEd::Macros::get_contexts();
+    } @all_contexts;
     $win->{macroContext} = $prevcontext;
     return @ret;
 }
@@ -5142,7 +4939,7 @@ sub editAttrsDialog_schema {
       my ($callback)=@_;
       $win->{FSFile}->notSaved(1) if $win->{FSFile};
       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,$dlg_title,TrEd::Undo::undo_type_id('UNDO_DATA'), $node));
-      TrEd::Bookmarks::lastActionBookmark($win->{framegroup});
+      TrEd::Bookmarks::last_action_bookmark($win->{framegroup});
       &$callback();
       if (length $attr_path) {
 	doEvalHook($win,"after_edit_attr_hook",$node,$attr_path,1);
@@ -5169,8 +4966,8 @@ sub editAttrsDialog {
   return if (doEvalHook($win,"do_edit_node_hook",$node) eq 'stop');
   return unless $win->{FSFile};
   return editAttrsDialog_schema($win,$node)
-    if (ref($node->type) or
-	ref(TrEd::Basics::file_schema($win->{FSFile})));
+    if (ref($node->type) ||
+	ref($win->{FSFile}->schema()));
   my @vals;
   my %e=();
   my @atord=$win->{FSFile}->FS->attributes;
@@ -5282,7 +5079,7 @@ sub editAttrsDialog {
   if ($result=~ /OK/) {
     $win->{FSFile}->notSaved(1);
     TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'Edit Node',TrEd::Undo::undo_type_id('UNDO_DATA'),$node));
-    TrEd::Bookmarks::lastActionBookmark($win->{framegroup});
+    TrEd::Bookmarks::last_action_bookmark($win->{framegroup});
     foreach $a (@atord) {
       $node->set_member($a,decode($e{$a}->get));
     }
@@ -5318,7 +5115,7 @@ sub showMacrosAsHtml {
   my $html_file = File::Spec->catfile($dir,"$context.html");
   open(my $html, '>:utf8',$html_file)
     or do {
-      error_message($grp->{top},
+      TrEd::Error::Message::error_message($grp->{top},
 		   "Cannot open temporary file $html_file.");
       return 0;
     };
@@ -5731,8 +5528,8 @@ sub findFirstTemplated {
   $node=nextNodeInSearchFilelist($grp,$node,\$tree) if ($skipfirst);
   while ($node) {
     if ($search_code->($node)) {
-      TrEd::Basics::go_to_tree($win,$tree);
-      TrEd::Basics::set_current($win, $node);
+      TrEd::Window::TreeBasics::go_to_tree($win,$tree);
+      TrEd::Window::TreeBasics::set_current($win, $node);
       centerTo($win,$node);
       return $node;
     }
@@ -5829,8 +5626,8 @@ sub findPrevTemplated {
   $node=prevNodeInSearchFilelist($grp,$node,\$tree) if ($skipfirst);
   while ($node) {
     if ($search_code->($node)) {
-      TrEd::Basics::go_to_tree($win, $tree);
-      TrEd::Basics::set_current($win, $node);
+      TrEd::Window::TreeBasics::go_to_tree($win, $tree);
+      TrEd::Window::TreeBasics::set_current($win, $node);
       centerTo($win,$node);
       return $node;
     }
@@ -5880,7 +5677,7 @@ sub text_doubleclick_modif {
   my $tv=$win->treeView;
   my ($t)=$tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($t);
-  TrEd::Basics::set_current($win,$node);
+  TrEd::Window::TreeBasics::set_current($win,$node);
   $attr=$tv->get_gen_pinfo("attr")||{};
 
   doEvalHookWithUndo($win,"text_doubleclick_hook",$node,$attr->{$t},$mod, $w->XEvent);
@@ -5895,7 +5692,7 @@ sub text_click_modif {
   my $tv=$win->treeView;
   my ($t)=$tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($t);
-  TrEd::Basics::set_current($win,$node);
+  TrEd::Window::TreeBasics::set_current($win,$node);
   ensureCurrentIsDisplayed($win);
   $attr=$tv->get_gen_pinfo("attr")||{};
 
@@ -5910,7 +5707,7 @@ sub line_click {
   my $tv=$win->treeView;
   my ($t)=$tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($t);
-  TrEd::Basics::set_current($win,$node);
+  TrEd::Window::TreeBasics::set_current($win,$node);
   ensureCurrentIsDisplayed($win);
   my $tag=$tv->get_gen_pinfo("tag")||{};
     
@@ -5938,7 +5735,7 @@ sub editAttr {
   my $tv=$win->treeView;
   my ($t)=$tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($t);
-  TrEd::Basics::set_current($win,$node);
+  TrEd::Window::TreeBasics::set_current($win,$node);
   ensureCurrentIsDisplayed($win);
   my $attr=$tv->get_gen_pinfo("attr")||{};
   doEditAttr($win,$node,$attr->{$t}) if defined $attr->{$t};
@@ -5952,8 +5749,8 @@ sub doEditAttr {
   return 0 if $result eq 'stop';
 
   return editAttrsDialog_schema($win,$node,$attr,$as_type,$focus)
-    if (ref($as_type) or ref($node->type) or
-	TrEd::Basics::file_schema($win->{FSFile}) );
+    if (ref($as_type) or ref($node->type) ||
+	$win->{FSFile}->schema() );
 
   my ($Entry,@Eopts) = get_entry_type();
   my $newvalue;
@@ -5963,7 +5760,7 @@ sub doEditAttr {
       $win->toplevel->Busy(-recurse=> 1);
       $win->{FSFile}->notSaved(1);
       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,"Edit Attribute '$attr'",TrEd::Undo::undo_type_id('UNDO_DATA'),$node));
-      TrEd::Bookmarks::lastActionBookmark($grp);
+      TrEd::Bookmarks::last_action_bookmark($grp);
       $node->set_member($attr,$newvalue);
       doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
       get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
@@ -5982,7 +5779,7 @@ sub doEditAttr {
       $grp->{top}->Busy(-recurse=> 1);
       $win->{FSFile}->notSaved(1);
       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,"Edit Attribute '$attr'",TrEd::Undo::undo_type_id('UNDO_DATA'),$node));
-      TrEd::Bookmarks::lastActionBookmark($grp);
+      TrEd::Bookmarks::last_action_bookmark($grp);
       $node->set_member($attr,$newvalue);
       doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
       get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
@@ -6022,7 +5819,7 @@ sub doEditAttr {
     get_grp_history($grp,$e, "attr-$attr");
     $win->{FSFile}->notSaved(1);
     TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,"Edit Attribute '$attr'",TrEd::Undo::undo_type_id('UNDO_DATA'),$node));
-    TrEd::Bookmarks::lastActionBookmark($grp);
+    TrEd::Bookmarks::last_action_bookmark($grp);
     $node->set_member($attr,decode($newvalue));
     doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
     get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
@@ -6110,7 +5907,7 @@ sub redraw_win {
         $win
     );
     if ( $win->{FSFile} ) {
-        TrEd::Basics::set_current( $win, $win->{currentNode} );
+        TrEd::Window::TreeBasics::set_current( $win, $win->{currentNode} );
         ensureCurrentIsDisplayed($win);
     }
     $TrEd::TreeView::on_get_root_style = undef;  #forget the reference on $win
@@ -6267,7 +6064,7 @@ sub ensureCurrentIsDisplayed {
     }
   }
   if ($node and $node != $win->{currentNode}) {
-    TrEd::Basics::set_current($win,$node);
+    TrEd::Window::TreeBasics::set_current($win,$node);
   }
 }
 
@@ -6300,7 +6097,7 @@ sub currentLeft {
     $node = $ndp;
   }
   if ($node) {
-    TrEd::Basics::set_current($win,$node);
+    TrEd::Window::TreeBasics::set_current($win,$node);
     centerTo($win,$win->{currentNode});
   }
 }
@@ -6313,7 +6110,7 @@ sub currentRight {
   my $dp=DisplayedAncestor($win,$node);
   $node = NextDisplayed($win,$node->rightmost_descendant,$dp);
   if ($node and $dp == DisplayedAncestor($win,$node)) {
-    TrEd::Basics::set_current($win,$node);
+    TrEd::Window::TreeBasics::set_current($win,$node);
     centerTo($win,$win->{currentNode});
   }
 }
@@ -6327,7 +6124,7 @@ sub currentRightLin {
   my $idx = Index(\@nodes,$node);
   if ($idx<$#nodes) {
     $node = $nodes[$idx+1];
-    TrEd::Basics::set_current($win,$node);
+    TrEd::Window::TreeBasics::set_current($win,$node);
     centerTo($win,$win->{currentNode});
   }
 }
@@ -6340,7 +6137,7 @@ sub currentLeftLin {
   my $idx = Index(\@nodes,$node);
   if ($idx>0) {
     $node = $nodes[$idx-1];
-    TrEd::Basics::set_current($win,$node);
+    TrEd::Window::TreeBasics::set_current($win,$node);
     centerTo($win,$win->{currentNode});
   }
 }
@@ -6357,7 +6154,7 @@ sub currentRightWholeLevel {
   while ($idx<$#nodes) {
     $node = $nodes[++$idx];
     if ($level==$tv->get_node_pinfo($node,'Level')) {
-      TrEd::Basics::set_current($win,$node);
+      TrEd::Window::TreeBasics::set_current($win,$node);
       centerTo($win,$win->{currentNode});
       return;
     }
@@ -6377,7 +6174,7 @@ sub currentLeftWholeLevel {
   while ($idx>0) {
     $node = $nodes[--$idx];
     if ($level==$tv->get_node_pinfo($node,'Level')) {
-      TrEd::Basics::set_current($win,$node);
+      TrEd::Window::TreeBasics::set_current($win,$node);
       centerTo($win,$win->{currentNode});
       return
     }
@@ -6394,7 +6191,7 @@ sub currentDown {
     $node = NextDisplayed($win,$node,$win->{currentNode});
   }
   if ($node) {
-    TrEd::Basics::set_current($win,$node);
+    TrEd::Window::TreeBasics::set_current($win,$node);
     centerTo($win,$win->{currentNode});
   }
 }
@@ -6408,7 +6205,7 @@ sub currentUp {
     $node = $node->parent;
   }
   if ($node) {
-    TrEd::Basics::set_current($win,$node);
+    TrEd::Window::TreeBasics::set_current($win,$node);
     centerTo($win,$win->{currentNode});
   }
 }
@@ -6471,7 +6268,7 @@ sub _evalHook {
   return unless $hook; # and $win->{currentNode};
   my $grp = $win->{framegroup};
   # Save current position (as last action position)
-  my $bookmark= $with_undo ? TrEd::Bookmarks::bookmarkThis($grp) : undef;
+  my $bookmark= $with_undo ? TrEd::Bookmarks::actual_position($grp) : undef;
 
 
   local $insideEval=1;
@@ -6498,11 +6295,12 @@ sub _evalHook {
 	if (defined $pre_hook) {
 	  print STDERR "running pre-hook $hook for $minor : $pre_hook\n"  if $hookDebug;
 	  eval { $pre_hook->(@_) };
-	  error_message($win,$@) if $@;
+	  TrEd::Error::Message::error_message($win,$@) if $@;
 	}
       }
     }
   }
+  #print "About to run hook $context->$hook: ";
   my $result=do_eval_hook($win,$context,$hook,@_);
   warn "$@\n" if $@;
   if (ref($minor_modes)) {
@@ -6512,7 +6310,7 @@ sub _evalHook {
       if (defined $post_hook) {
 	print STDERR "running post-hook $hook for $minor : $post_hook\n" if $hookDebug;
 	eval { $post_hook->(@_,$result) };
-	error_message($win,$@) if $@;
+	TrEd::Error::Message::error_message($win,$@) if $@;
       }
     }
   }
@@ -6524,7 +6322,7 @@ sub _evalHook {
 	if ($with_undo) {
 	  my $undo=TrEd::Undo::prepare_undo($win,"Hook $context"."->".$hook,TrEd::Undo::undo_type_id('UNDO_DISPLAYED_TREES')) if ($with_undo and $win and $win->{FSFile});
 	  TrEd::Undo::save_undo($win,$undo);
-	  TrEd::Bookmarks::lastActionBookmark($win->{framegroup},$bookmark);
+	  TrEd::Bookmarks::last_action_bookmark($win->{framegroup},$bookmark);
 	}
 	$win->{FSFile}->notSaved(1);
       }
@@ -6548,7 +6346,7 @@ sub _evalHook {
 sub doEvalMacro {
   my ($win,$macro)=(shift,shift);
   return unless $macro;# and $win->{currentNode};
-  my $bookmark=TrEd::Bookmarks::bookmarkThis($win->{framegroup});
+  my $bookmark=TrEd::Bookmarks::actual_position($win->{framegroup});
   $win->toplevel->Busy(-recurse=> 1);
   $insideEval=1;
 
@@ -6573,13 +6371,13 @@ sub doEvalMacro {
     if (get_macro_variable("forceFileSaved")) {
       print STDERR "Macro forcedly claims file saved.\n";
       $win->{FSFile}->notSaved($file_not_saved ? 1 : 0);
-      TrEd::Bookmarks::lastActionBookmark($win->{framegroup},$bookmark) if $file_not_saved;
+      TrEd::Bookmarks::last_action_bookmark($win->{framegroup},$bookmark) if $file_not_saved;
     } else {
       if ($file_not_saved) {
         my $undo=TrEd::Undo::prepare_undo($win,TrEd::Macros::findMacroDescription($win,$macro,TrEd::Undo::undo_type_id('UNDO_DISPLAYED_TREES')));
         TrEd::Undo::save_undo($win,$undo);
         $win->{FSFile}->notSaved(1);
-        TrEd::Bookmarks::lastActionBookmark($win->{framegroup},$bookmark);
+        TrEd::Bookmarks::last_action_bookmark($win->{framegroup},$bookmark);
       } else {
 	print STDERR "Macro claims file untouched.\n" if $macroDebug;
       }
@@ -6624,7 +6422,7 @@ sub doEvalMacro {
 
   # the rest of this routine is:
   # memory ok, speed ok
-  TrEd::Basics::set_current($win,$current) if ($current);
+  TrEd::Window::TreeBasics::set_current($win,$current) if ($current);
   ensureCurrentIsDisplayed($win);
 
   set_macro_variable(
@@ -6655,7 +6453,7 @@ sub resolveKey {
       }
     }
   }
-  foreach my $context (TrEd::Basics::uniq($win->{macroContext},"TredMacro")) {
+  foreach my $context (TrEd::Utils::uniq($win->{macroContext},"TredMacro")) {
     foreach my $key (@_) {
       if (exists ($TrEd::Macros::keyBindings{$context}->{$key})) {
 	return($TrEd::Macros::keyBindings{$context}->{$key},$key)
@@ -6756,7 +6554,7 @@ sub tieGotoTree {
     if (@tied) {
       my $result = 1;
       foreach (@tied) {
-	$result &&= TrEd::Basics::go_to_tree($_,$no);
+	$result &&= TrEd::Window::TreeBasics::go_to_tree($_,$no);
       }
       return $result;
     } else {
@@ -6764,7 +6562,7 @@ sub tieGotoTree {
     }
   } else {
     if ($grp->{focusedWindow}->{FSFile}) {
-      return TrEd::Basics::go_to_tree($grp->{focusedWindow},$no);
+      return TrEd::Window::TreeBasics::go_to_tree($grp->{focusedWindow},$no);
     } else {
       return 0;
     }
@@ -6778,7 +6576,7 @@ sub tieNextTree {
     if (@tied) {
       my $result = 1;
       foreach (@tied) {
-	$result &&= TrEd::Basics::next_tree($_);
+	$result &&= TrEd::Window::TreeBasics::next_tree($_);
       }
       return $result;
     } else {
@@ -6786,7 +6584,7 @@ sub tieNextTree {
     }
   } else {
     if ($grp->{focusedWindow}->{FSFile}) {
-      my $result = TrEd::Basics::next_tree($grp->{focusedWindow});
+      my $result = TrEd::Window::TreeBasics::next_tree($grp->{focusedWindow});
       return $result;
     } else {
       return 0;
@@ -6801,7 +6599,7 @@ sub tiePrevTree {
     if (@tied) {
       my $result = 1;
       foreach (@tied) {
-	$result &&= TrEd::Basics::prev_tree($_);
+	$result &&= TrEd::Window::TreeBasics::prev_tree($_);
       }
       return $result;
     } else {
@@ -6809,7 +6607,7 @@ sub tiePrevTree {
     }
   } else {
     if ($grp->{focusedWindow}->{FSFile}) {
-      my $result = TrEd::Basics::prev_tree($grp->{focusedWindow});
+      my $result = TrEd::Window::TreeBasics::prev_tree($grp->{focusedWindow});
       return $result;
     } else {
       return 0;
@@ -6821,7 +6619,7 @@ sub currentNext {
   my ($win)=@_;
   my $next=NextDisplayed($win,$win->{currentNode});
   if ($next) {
-    TrEd::Basics::set_current($win,$next);
+    TrEd::Window::TreeBasics::set_current($win,$next);
     centerTo($win,$win->{currentNode});
   }
 }
@@ -6831,7 +6629,7 @@ sub currentPrev {
   my ($win)=@_;
   my $prev=PrevDisplayed($win,$win->{currentNode});
   if ($prev) {
-    TrEd::Basics::set_current($win,$prev);
+    TrEd::Window::TreeBasics::set_current($win,$prev);
     centerTo($win,$win->{currentNode});
   }
 }
@@ -6844,7 +6642,7 @@ sub node_select {
   my($x, $y)= ($e->x, $e->y);
   my ($canvas_obj) = $tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($canvas_obj);
-  TrEd::Basics::set_current($win,$node);
+  TrEd::Window::TreeBasics::set_current($win,$node);
 }
 # node
 {
@@ -6870,7 +6668,7 @@ sub node_down {
       undef $canvas_obj;
     }
   }
-  TrEd::Basics::set_current($win,$node);
+  TrEd::Window::TreeBasics::set_current($win,$node);
   $w->dtag('selected');
   return unless $canvas_obj;
   $w->addtag('selected', 'withtag', $canvas_obj);
@@ -6976,7 +6774,7 @@ sub node_release {
 			 $win->{FSFile}->FS);
 	    $win->{FSFile}->notSaved(1);
 	    doEvalHook($win,"node_moved_hook",$node,$oldparent);
-	    TrEd::Bookmarks::lastActionBookmark($grp);
+	    TrEd::Bookmarks::last_action_bookmark($grp);
 	    get_nodes_fsfile($grp,$win->{FSFile});
 	    redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
 	    centerTo($win,$win->{currentNode});
@@ -7087,26 +6885,36 @@ sub list_isearch {
   }
 }
 # macro
+#TODO: do TrEd::Macros
 sub cleanup_tredmacro {
   my ($grp)=@_;
-  $TrEd::Macros::macrosEvaluated=0;
+
   # cleanup
   %TrEd::Macros::defines=(TRED => 1);
   my %packages;
-  @packages { ('TredMacro',
-	       grep {/\S/} grep { !/^main$|^TrEd::/ }
-	       map  { (/^\s*package\s+([^;\s]+)\s*;/) } (@TrEd::Macros::macros))
+
+  @packages { (
+	       grep {/\S/} 
+	       grep { !/^main$|^TrEd::/ }
+	       map  { (/^\s*package\s+([^;\s]+)\s*;/) } 
+	       (@TrEd::Macros::macros))
 	    } = ();
   my %kept_pkg;
   my %deleted_pkg;
-  foreach my $package ( sort { length($b)<=>length($a) } keys %packages ) {
+  foreach my $package ( sort { length $b <=>length $a } keys %packages ) {
     no strict qw(refs);
     print STDERR ("Cleaning package $package\n") if $tredDebug;
     my $pkg_file = $package;
     $pkg_file =~ s{::}{/}g;
     $pkg_file .= '.pm';
-    delete ${$package.'::'}{$_} foreach grep !/::$/, keys %{$package.'::'};
-    undef @kept_pkg{ map $package.'::'.$_, keys %{$package.'::'} } if %{$package.'::'};
+    my @pkg_vars = grep { !/::$/ } keys %{$package.'::'};
+    
+    foreach my $var (@pkg_vars) {
+        delete ${$package.'::'}{$var};
+    }
+    if (%{$package.'::'}) {
+        undef @kept_pkg{ map { $package.'::'.$_ } keys %{$package.'::'} };
+    }
     undef $deleted_pkg{$package.'::'};
     delete $INC{$pkg_file};
     eval("package $package; use UNIVERSAL qw(isa can);");
@@ -7115,6 +6923,15 @@ sub cleanup_tredmacro {
   print STDERR "KEPT: @{[join qq(\n\t),keys %kept_pkg]}.\n",
     "DELETED: @{[join qq(\n\t),keys %deleted_pkg]}\n"
       if $tredDebug;
+
+#nasty temporary workaround to reinit TredMacro namespace
+delete $INC{'TrEd/ExtensionsAPI.pm'};
+delete $INC{'TrEd/Mac.pm'};
+delete $INC{'TrEd/NtredMak.pm'};
+
+#delete $INC{'TrEd/MinorMode/Move_Nodes_Freely.pm'};
+#delete $INC{'TrEd/MinorMode/Show_Neighboring_Sentences.pm'};
+#delete $INC{'TrEd/MinorMode/Show_Neighboring_Trees.pm'};
 }
 
 # sub declareMinorMode
@@ -7134,12 +6951,77 @@ sub cleanup_tredmacro {
 # extensions
 #sub prepareExtensions 
 
+sub test_tredmacro {
+#    print 'before test: ' . Dumper(\%TredMacro::);
+    my @functions_we_can = qw{
+        AbsolutizeFileName
+        AddBackend
+        AddNewFileList
+        AddStyle
+        context_guessing
+        priority_context_guessing
+        __context_guessing
+        guess_context_hook
+        init_tredmacro_bindings
+    };
+    
+    foreach my $fn (@functions_we_can) {
+        if(TrEd::Macros::context_can('TredMacro', $fn)) {
+            #ok
+        }
+        else {
+            print "TredMacro can not run $fn\n";
+        }
+    }
+    
+    my @functions_we_cant = qw{
+        highlight_value_line_tag_hook
+        file_close_hook
+        allow_switch_context_hook
+        get_status_line_hook
+    };
+    
+    foreach my $fn (@functions_we_cant) {
+        if(!TrEd::Macros::context_can('TredMacro', $fn)) {
+            #ok
+        }
+        else {
+            print "TredMacro can run $fn\n";
+        }
+    }
+#    print 'after test: ' . Dumper(\%TredMacro::);
+}
+
 # macros
 #TODO: skor load_extensions
 sub loadMacros {
   my ($grp,$opts)=@_;
   $opts||={};
-  read_macros($macroFile,$libDir); # read macro tred.mac (and tred.def)
+  use Data::Dumper;
+  
+  
+#  test_tredmacro();
+  
+  read_macros(); # read macro tred.mac (and tred.def)
+  
+  require TrEd::ExtensionsAPI; #this loads TredMacro API
+  # not sure why, we don't need it here...
+  #TredMacro->import;
+  TredMacro::init_tredmacro_bindings();
+  
+  # set minor modes and this stuff, can't do it at compile time, since there is no grp...
+    TrEd::Macros::set_macro_variable('grp', $grp->{focusedWindow});
+    # minor modes
+    require TrEd::MinorMode::Move_Nodes_Freely;
+    require TrEd::MinorMode::Show_Neighboring_Sentences;
+    require TrEd::MinorMode::Show_Neighboring_Trees;
+    
+    # minors
+    TrEd::MinorMode::Move_Nodes_Freely::init_minor_mode();
+    TrEd::MinorMode::Show_Neighboring_Sentences::init_minor_mode();
+    TrEd::MinorMode::Show_Neighboring_Trees::init_minor_mode();
+  
+#print 'before loading macros: ' . Dumper(\%TredMacro::);
 
   my $preinst_dir = get_preinstalled_extensions_dir();
 
@@ -7182,25 +7064,39 @@ sub loadMacros {
     push @TrEd::Macros::macros,qq(\n} # end of "$opt_I"\n);
     print STDERR "done.\n" unless $opt_q;
   }
-
+#test_tredmacro();
 }
+
+
 # macros
 sub reloadMacros {
   my ($grp,$opts)=@_;
+  print "============================== reload =======================\n";
   doEvalHook($grp->{focusedWindow},"reload_macros_hook");
   delete $grp->{minorModes};
   delete $grp->{minorPreHooks};
   delete $grp->{minorPostHooks};
-  %TrEd::Macros::keyBindings=();
-  %TrEd::Macros::menuBindings=();
+
+# this should not be necessary, loadMacros takes care of it
+#  %TrEd::Macros::keyBindings=();
+#  %TrEd::Macros::menuBindings=();
   TrEd::TreeView->clear_code_caches;
+  
+  #use Data::Dumper;
+  
+#  print 'before: ' . Dumper(\%TredMacro::);
+  
   cleanup_tredmacro($grp);
+  
+#  print 'after cleaning: ' . Dumper(\%TredMacro::);
+  
   TrEd::Toolbar::User::Manager::reset_user_toolbars($grp);
+
   loadMacros($grp,$opts);
   doEvalHook($grp->{focusedWindow},"macros_reloaded_hook");
   doEvalHook($grp->{focusedWindow},"initialize_bindings_hook");
 
-  update_macro_menus($grp);
+  TrEd::Menu::Macro::update_macro_menus($grp);
   TrEd::List::Macros::update_view($grp);
   get_nodes_all($grp);
   redraw_all($grp);

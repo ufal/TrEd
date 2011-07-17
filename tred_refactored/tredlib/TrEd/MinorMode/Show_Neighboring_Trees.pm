@@ -1,13 +1,12 @@
 # -*- cperl -*-
 
-#ifndef Show_Neighboring_Trees
-#define Show_Neighboring_Trees
-{
-package Show_Neighboring_Trees;
+package TrEd::MinorMode::Show_Neighboring_Trees;
 use strict;
-BEGIN {
-  import TredMacro;
-}
+use warnings;
+
+use TrEd::ExtensionsAPI;
+TredMacro->import();
+
 
 my $cfg = QuickPML(
   cfg=> [
@@ -47,53 +46,55 @@ sub get_config {
   return $cfg->get_root;
 }
 
+sub _current_node_change_hook {
+  my ($node)=@_;
+  my $config = get_config();
+  return unless $config->{follow_current_node} eq 'yes';
+  my $r=$node->root;
+  my $root = TrEd::Macros::get_macro_variable('root');
+  return if $r==$root;	# same tree
+  my @trees = GetTrees();
+  for my $i (0..$#trees) {
+if ($trees[$i]==$r) {
 
-my %segment;
+  # store the node's current position in the window
+  my $grp = TrEd::Macros::get_macro_variable('grp');
+  my $c = $grp->treeView->canvas;
+  my ($x,$y )=
+    map $grp->treeView->get_node_pinfo($node, $_),
+      qw(XPOS YPOS);	# coordinates of the selected node
+  my ($xv,$yv)=( 
+    $c->xviewCoord($x),	# translate to window position
+    $c->yviewCoord($y)
+   );
+
+  GotoTree($i+1);
+  #$this = $node;
+  TrEd::Macros::set_macro_variable('this', $node);
+  Redraw();
+
+  # adjust view so that the node appears
+  # on the exact same place
+  ($x,$y)= 
+    map $grp->treeView->get_node_pinfo($node, $_),
+      qw(XPOS YPOS);
+  $c->xviewCoord($x,$xv); # restore window position
+  $c->yviewCoord($y,$yv);
+  return;
+}
+  }
+}
+
+my %segment = ();
 my $vertical;
-DeclareMinorMode 'Show_Neighboring_Trees' => {
-  abbrev => 'neigh_trees',
-  configure => \&edit_configuration,
-  post_hooks => {
-    current_node_change_hook => sub {
-      my ($node)=@_;
-      my $config = get_config();
-      return unless $config->{follow_current_node} eq 'yes';
-      my $r=$node->root;
-      return if $r==$root;	# same tree
-      my @trees = GetTrees();
-      for my $i (0..$#trees) {
-	if ($trees[$i]==$r) {
 
-	  # store the node's current position in the window
-	  my $c = $grp->treeView->canvas;
-	  my ($x,$y )=
-	    map $grp->treeView->get_node_pinfo($node, $_),
-	      qw(XPOS YPOS);	# coordinates of the selected node
-	  my ($xv,$yv)=( 
-	    $c->xviewCoord($x),	# translate to window position
-	    $c->yviewCoord($y)
-	   );
 
-	  GotoTree($i+1);
-	  $this = $node;
-	  Redraw();
-
-	  # adjust view so that the node appears
-	  # on the exact same place
-	  ($x,$y)= 
-	    map $grp->treeView->get_node_pinfo($node, $_),
-	      qw(XPOS YPOS);
-	  $c->xviewCoord($x,$xv); # restore window position
-	  $c->yviewCoord($y,$yv);
-	  return;
-	}
-      }
-    },
-    node_style_hook => sub {
+sub _node_style_hook {
       my ($node,$styles)=@_;
       AddStyle($styles,'Node',-segment => $segment{$node}.'/0') if $vertical;
-    },
-    get_nodelist_hook => sub {
+    }
+
+sub _get_nodelist_hook {
       my ($fsfile,$no,$prevcurrent,$show_hidden)=@_;
       %segment=();
       my $config = get_config();
@@ -104,7 +105,7 @@ DeclareMinorMode 'Show_Neighboring_Trees' => {
       my $to=min($no+$context_after,$fsfile->lastTreeNo);
       my $sub = UNIVERSAL::can(CurrentContext(),'get_nodelist_hook')
 	|| UNIVERSAL::can('TredMacro','get_value_line_hook');
-      my $attr=FS->order();
+      my $attr=FS()->order();
       my ($nodes,$current);
       my $l = $_[-1];
       if (ref($l) eq 'ARRAY' and @$l==2) {
@@ -135,10 +136,21 @@ DeclareMinorMode 'Show_Neighboring_Trees' => {
       $current ||= $fsfile->tree($no);
       $_[-1] = [$nodes,$current];
     }
-  },
-};
 
+
+sub init_minor_mode {
+
+    DeclareMinorMode(
+        'Show_Neighboring_Trees' => {
+                                      abbrev => 'neigh_trees',
+                                      configure => \&edit_configuration,
+                                      post_hooks => {
+                                        current_node_change_hook => \&_current_node_change_hook,
+                                        node_style_hook => \&_node_style_hook,
+                                        get_nodelist_hook => \&_get_nodelist_hook,
+                                      },
+                                    }
+    );
 }
-1;
 
-#endif Show_Neighboring_Trees
+1;

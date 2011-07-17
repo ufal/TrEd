@@ -3,8 +3,11 @@ package TrEd::Menu::Stylesheet;
 use strict;
 use warnings;
 
-use TrEd::Utils;
-use TrEd::Basics qw{$EMPTY_STR};
+use TrEd::Utils qw{$EMPTY_STR 
+    STYLESHEET_FROM_FILE
+    NEW_STYLESHEET
+    DELETE_STYLESHEET
+};
 
 use Tk;
 
@@ -54,14 +57,13 @@ sub set_dont_update {
 }
 
 #######################################################################################
-# Usage         : update_context_list($grp)
-# Purpose       : Update list of contexts in context menu, set $grp->{selectedContext}
-#                 according to allowed contexts and switch context
+# Usage         : update($grp)
+# Purpose       : ...
 # Returns       : Undef/empty list
 # Parameters    : hash_ref $grp -- reference to hash containing TrEd options
 # Throws        : No exception
 # Comments      : 
-# See Also      : is_focused(), fsfileDisplayingWindows()
+# See Also      : ...
 sub update {
     my ($self, $grp) = @_;
     return if $self->dont_update();

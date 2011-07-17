@@ -13,8 +13,7 @@ use URI::Escape;
 use Treex::PML::Schema::CDATA;
 require Exporter;
 
-use TrEd::Basics qw{$EMPTY_STR};
-use TrEd::Menu::Stylesheet;
+#use TrEd::Menu::Stylesheet;
 
 use base qw(Exporter);
 use vars qw(@stylesheet_paths $default_stylesheet_path);
@@ -23,6 +22,10 @@ use constant {
   NEW_STYLESHEET        => "<New From Current>",
   DELETE_STYLESHEET     => "<Delete Current>",
 };
+
+use Readonly;
+
+Readonly our $EMPTY_STR => q{};
 
 # Items to export into callers namespace by default. Note: do not export
 # names by default without a very good reason. Use EXPORT_OK instead.
@@ -50,10 +53,13 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
   getNodeByNo
   applyWindowStylesheet
   set_fh_encoding
-
+    
+    uniq
+    
   STYLESHEET_FROM_FILE
   NEW_STYLESHEET
   DELETE_STYLESHEET
+  $EMPTY_STR
 ) ] );
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
@@ -849,6 +855,22 @@ sub set_fh_encoding {
       or croak("Could not use binmode to set encoding to $enc on $what");
   }
 }
+
+
+#######################################################################################
+# Usage         : uniq(@array)
+# Purpose       : Remove duplicit elements from array
+# Returns       : Array without repeating elements
+# Parameters    : array @arr  -- array to be uniqued
+# Throws        : no exception
+# Comments      : Preserves type and order of elements, as suggested by Perl best practices
+sub uniq {
+    # seen -- track keys already seen elements
+    my %seen;
+    # return only those not yet seen
+    return grep { !( $seen{$_}++ ) } @_;
+}
+
 
 1;
 __END__
