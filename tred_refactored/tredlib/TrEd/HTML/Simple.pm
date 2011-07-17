@@ -5,11 +5,10 @@ use strict;
 use warnings;
 
 
-use TrEd::Utils;
-use TrEd::Basics qw{$EMPTY_STR};
-use TrEd::Convert;
+use TrEd::Utils qw{$EMPTY_STR set_fh_encoding};
+use TrEd::File;
 use TrEd::Error::Message;
-
+use TrEd::Convert;
 
 sub open {
   my ($top,$file,$title,$initdir) = @_;
@@ -19,7 +18,7 @@ sub open {
 			    ["All files",        "*"]],
 			   -title=> $title,
 			   -d $initdir ? (-initialdir=> $initdir) : (),
-			   $^O eq 'MSWin32' ? () : (-initialfile=> TrEd::Convert::filename($file)));
+			   $^O eq 'MSWin32' ? () : (-initialfile=> TrEd::File::filename($file)));
   # Add .html ending if it does not have one
   if ($file !~ m/\.htm(:?l)?$/i) {
     $file .= '.html';

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use TrEd::Macros;
-use TrEd::Basics qw{$EMPTY_STR};
+use TrEd::Utils qw{$EMPTY_STR};
 
 sub examineEvent {
   my $w = shift;

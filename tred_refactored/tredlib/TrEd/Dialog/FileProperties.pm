@@ -3,7 +3,6 @@ package TrEd::Dialog::FileProperties;
 use strict;
 use warnings;
 
-use TrEd::Basics;
 use TrEd::Config qw{$sortAttrValues $sidePanelWrap};
 
 # dialog
@@ -19,7 +18,7 @@ sub create_dialog {
   my $fsrequire = $fsfile->metaData('fsrequire');
   my $refnames = $fsfile->metaData('refnames');
   my %id2name = $refnames ? (reverse %$refnames) : ();
-  my $schema = TrEd::Basics::file_schema($fsfile);
+  my $schema = $fsfile->schema();
   my $text =join("\n",
 		 "File Information",
 		 "----------------",

@@ -6,7 +6,7 @@ use warnings;
 use TrEd::SidePanel;
 use TrEd::Config;
 use TrEd::Convert qw{encode};
-use TrEd::Basics qw{$EMPTY_STR};
+use TrEd::Utils qw{$EMPTY_STR};
 
 use Data::Dumper;
 

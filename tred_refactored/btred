@@ -44,10 +44,14 @@ use vars qw($quiet $Quiet $debug $carp $csts_xargs $strip_prefix $add_prefix
 	    $locale_charset $host $allow_switch_context
 	    @resource_paths @define_symbols $dump_macros
 	    $strict $warnings $no_backups
-	    $list_extensions $enable_extensions $disable_extensions
+	    $list_extensions 
 	    $host_port_file
 	   );
+	   
+# $enable_extensions $disable_extensions -> TrEd::Extensions
 # $userlogin
+
+    use TrEd::Extensions;
 
 ## Passing -o args... -- to TredMacro
 @TredMacro::ARGV=grep { /^-o$/.../^--$/ } @ARGV;
@@ -97,8 +101,8 @@ $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "server-host=s" => \$host,
 	    "server-port|L=s"  => \$start_server,
 	    "print-host-port=s"  => \$host_port_file,
-	    "enable-extensions|j=s" => \$enable_extensions,
-	    "disable-extensions|J=s" => \$disable_extensions,
+	    "enable-extensions|j=s" => \$TrEd::Extensions::enable_extensions,
+	    "disable-extensions|J=s" => \$TrEd::Extensions::disable_extensions,
 	    "list-extensions" => \$list_extensions,
 	    "help|h" => \$help,
 	    "list-options" => \$list_options,
@@ -301,8 +305,10 @@ require TrEd::Extensions;
 import TrEd::Extensions qw(:all);
 
 # basic tree operations
-require TrEd::Basics;
-import TrEd::Basics;
+require TrEd::Window::TreeBasics;
+import TrEd::Window::TreeBasics;
+
+use TrEd::File;
 
 #load back-ends
 @backends=('FS',ImportBackends(
@@ -391,9 +397,9 @@ set_macro_variable(root => undef,
 
 $fileNo=0;
 
-#$TrEd::Basics::on_tree_change= \&updateTredMacroGlobals;
-#$TrEd::Basics::on_node_change= \&updateTredMacroGlobals;
-#$TrEd::Basics::on_current_change= \&updateTredMacroGlobals;
+#$TrEd::Window::TreeBasics::on_tree_change= \&updateTredMacroGlobals;
+#$TrEd::Window::TreeBasics::on_node_change= \&updateTredMacroGlobals;
+#$TrEd::Window::TreeBasics::on_current_change= \&updateTredMacroGlobals;
 
 if ($list_extensions) {
   prepareExtensions({list_to=>\*STDOUT});
@@ -1503,7 +1509,7 @@ sub openSecondaryFiles {
     my $requires = $fsfile->metaData('fs-require');
     if ($requires) {
       for my $req (@$requires) {
-	my $req_filename = TrEd::Basics::absolutize_path($fsfile->filename,$req->[1]);
+	my $req_filename = TrEd::File::absolutize_path($fsfile->filename,$req->[1]);
 	_msg("Pre-loading dependent $req_filename as appData('ref')->{$req->[0]}\n") if $tredDebug;
 	unless ($grp->{'secondary'}->{$req_filename}) {
 	  if (exists($grp->{preloaded}) and $grp->{preloaded}->{$req_filename}) {
@@ -1873,7 +1879,7 @@ sub secondaryFiles {
   my ($fsfile)=@_;
   my $requires = $fsfile->metaData('fs-require');
   if ($requires) {
-    return map { TrEd::Basics::absolutize_path($fsfile->filename,$_->[1]) } @$requires;
+    return map { TrEd::File::absolutize_path($fsfile->filename,$_->[1]) } @$requires;
   } else {
     return ();
   }
@@ -1906,7 +1912,7 @@ sub closeSecondaryFilesOf {
   if ($fsfile and (!exists($grp->{preloaded}) or $grp->{preloaded}->{$fsfile->filename} != $fsfile)) {
     my $requires = $fsfile->metaData('fs-require');
     for my $req (@$requires) {
-      my $req_filename = TrEd::Basics::absolutize_path($fsfile->filename,$req->[1]);
+      my $req_filename = TrEd::File::absolutize_path($fsfile->filename,$req->[1]);
       my $secondary = $grp->{'secondary'}->{$req_filename};
       if ($secondary) {
 	closeSecondaryFilesOf($grp,$secondary);

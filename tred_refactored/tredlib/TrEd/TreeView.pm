@@ -15,7 +15,7 @@ import TrEd::MinMax;
 import TrEd::MinMax 'sum';
 
 use TrEd::Convert;
-import TrEd::Convert;
+use TrEd::File;
 
 use constant NoHash => {};
 

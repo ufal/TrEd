@@ -4,8 +4,8 @@ use strict;
 use warnings;
 
 use TrEd::Config qw{$printOptions $font $imageMagickConvert};
-use TrEd::Basics qw{$EMPTY_STR};
-use TrEd::Convert qw{filename dirname};
+use TrEd::Utils qw{$EMPTY_STR};
+use TrEd::File qw{filename dirname};
 use TrEd::View::Sentence;
 use TrEd::Print;
 
@@ -280,15 +280,15 @@ sub printDialog {
         -command   => [
             sub {
                 my ( $d, $s ) = @_;
-                my $initdir = TrEd::Convert::dirname( $s->{psFile} );
+                my $initdir = TrEd::File::dirname( $s->{psFile} );
                 $initdir = cwd() if ( $initdir eq './' );
-                $initdir =~ s!${TrEd::Convert::Ds}$!!m;
+                $initdir =~ s!${TrEd::File::dir_separator}$!!m;
                 my $file = main::get_save_filename(
                     $d,
                     -title => "Print To File ...",
                     $^O eq 'MSWin32' ? ()
                     : ( -initialfile =>
-                            TrEd::Convert::filename( $s->{psFile} ) ),
+                            TrEd::File::filename( $s->{psFile} ) ),
                     -d $initdir ? ( -initialdir => $initdir ) : (),
                     -filetypes => [
                         (   $s->{printFormat} eq 'PDF'

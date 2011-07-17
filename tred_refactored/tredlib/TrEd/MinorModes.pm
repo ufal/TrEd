@@ -3,10 +3,17 @@ package TrEd::MinorModes;
 use strict;
 use warnings;
 
+use Carp;
+
 # minor mode
 # sub declareMinorMode
 sub declare_minor_mode {
   my ($grp_or_win,$name,$opts) = @_;
+#  use Data::Dumper;
+#  print Dumper(\%main::);
+#  print Dumper(\%main::grp_win);
+#  print Dumper(\&main::grp_win);
+#  main::__debug('Hello');
   my ($grp,$win) = main::grp_win($grp_or_win);
   if (exists $grp->{minorModes}{$name}) {
     carp("WARNING: re-declaration of an existing minor context $name");

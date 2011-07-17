@@ -56,4 +56,47 @@ sub set_options {
     return $self->{context_menu}->configure(-options => @opts);
 }
 
+# context list, menu, UI
+# context menu
+#######################################################################################
+# Usage         : update_context_list($grp)
+# Purpose       : Update list of contexts in context menu, set $grp->{selectedContext}
+#                 according to allowed contexts and switch context
+# Returns       : Undef/empty list
+# Parameters    : hash_ref $grp -- reference to hash containing TrEd options
+# Throws        : No exception
+# Comments      : 
+# See Also      : 
+sub update_context_list {
+    my ($self, $grp) = @_;
+    if ( defined $self ) {
+        my $selected_context = $grp->{selectedContext};
+        my %new = map { $_ => 1 } 
+                  main::get_allowed_contexts( $grp->{focusedWindow} );
+        my $tredmacro_ok = delete $new{TredMacro};
+        my @allowed_contexts = [ ( $tredmacro_ok ? 'TredMacro' : () ), 
+                            sort keys %new 
+                          ];
+        $self->set_options(@allowed_contexts);
+        
+        # if the selected context has changed, select TredMacro, 
+        # if it's allowed; otherwise try to use macro context 
+        # specified as a command line parameter
+        #TODO: kind of feature envy, isn't it?
+        if ( $selected_context ne $grp->{selectedContext} ) {
+            if ($tredmacro_ok) {
+                $grp->{selectedContext} = 'TredMacro';
+            }
+            elsif ( defined $main::init_macro_context
+                    && exists($new{$main::init_macro_context}) ) 
+            {
+                $grp->{selectedContext} = $main::init_macro_context;
+            }
+            main::switchContext( $grp->{focusedWindow}, $grp->{selectedContext},
+                1 );
+        }
+    }
+    return;
+}
+
 1;

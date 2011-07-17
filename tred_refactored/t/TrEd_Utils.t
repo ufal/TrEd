@@ -33,12 +33,24 @@ BEGIN {
     getNodeByNo
     applyWindowStylesheet
     set_fh_encoding
+    
+    uniq
   );
   use_ok($module_name, @subs);
 }
 
 our @subs;
 can_ok(__PACKAGE__, @subs);
+
+### test function uniq()
+sub test_uniq {
+  my @array = qw{ 1 2 3 4 5 1 2 3 4 1 7 7 2 3 9 8 5 6 };
+  my @expected = qw{ 1 2 3 4 5 6 7 8 9 };
+  my @uniqued_array = sort(TrEd::Utils::uniq(@array));
+  my @sorted_expected = sort(@expected);
+    is_deeply(\@uniqued_array, \@sorted_expected,
+              "uniq(): return uniqued array");
+}
 
 sub test_fetch_from_win32_reg {
 # Test two windows functions
@@ -745,6 +757,8 @@ sub test_parse_file_suffix {
 ####################################################
 ################## Run Tests #####################
 ####################################################
+
+test_uniq();
 
 test_fetch_from_win32_reg();
 test_find_win_home();

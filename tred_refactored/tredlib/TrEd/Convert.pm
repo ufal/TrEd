@@ -9,20 +9,21 @@ package TrEd::Convert;
 use strict;
 use warnings;
 
-use TrEd::Basics qw{$EMPTY_STR};
+use TrEd::Utils qw{$EMPTY_STR};
 
 BEGIN {
-  use Exporter  ();
-  use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %encodings $inputenc
-              $outputenc $lefttoright $Ds $support_unicode $FORCE_REMIX $FORCE_NO_REMIX $needs_arabic_remix_re);
-  use TrEd::MinMax;
-  use base qw(Exporter);
-  $VERSION = "0.2";
+    use Exporter  ();
+    use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %encodings $inputenc
+                $outputenc $lefttoright $support_unicode 
+                $FORCE_REMIX $FORCE_NO_REMIX $needs_arabic_remix_re);
 
-  @EXPORT = qw(&encode &decode &filename &dirname);
-  @EXPORT_OK = qw($inputenc $outputenc $Ds %encodings);
+    use base qw(Exporter);
+    $VERSION = "0.2";
 
-  %encodings =
+    @EXPORT = qw(&encode &decode);
+    @EXPORT_OK = qw($inputenc $outputenc %encodings);
+
+    %encodings =
     (
      'iso-8859-2'   => "ì¹èø¾ýáíéìúùóò»ïµà¶å¼æñÌ©ÈØ®ÝÁÍÉÌÚÙÓÒ«Ï¥À¦Å¬ÆÑ",
      'ascii'        => "escrzyaieeuuontdlrslzcnESCRZYAIEEUUONTDLRSLZCN",
@@ -32,151 +33,122 @@ BEGIN {
      'iso-8859-6' => '¬»×ØÙÚàáâãäåæçèéêëìíîïðñò'
     );
 
-  if (not defined($lefttoright)) {
-    $lefttoright = 1;
-  }
-  if (not defined($inputenc)) {
-    $inputenc = "UTF-8";
-  }
-
-  if ($^O eq "MSWin32") {
-    if (not defined($outputenc)) {
-      $outputenc="windows-1250";
+    if ( !defined $lefttoright ) {
+        $lefttoright = 1;
     }
-    $Ds="\\"; # how filenames and directories are separated
-  } 
-  else {
-    $Ds='/';
-    $outputenc="iso-8859-2" unless defined($outputenc);
-  }
-  $support_unicode = ($Tk::VERSION ge 804.00);
-  if ($support_unicode) {
-    require TrEd::ConvertArab;
-    require TrEd::ArabicRemix;
-    *remix = \&TrEd::ArabicRemix::remix;
-    *arabjoin = \&TrEd::ConvertArab::arabjoin;
-    eval q(
-      $needs_arabic_remix_re=qr{\p{Arabic}|[\x{064B}-\x{0652}\x{0670}\x{0657}\x{0656}\x{0640}]|\p{InArabicPresentationFormsA}|\p{InArabicPresentationFormsB}};
-    );
-    die $@ if $@;
-  }
+    if ( !defined $inputenc ) {
+        $inputenc = "UTF-8";
+    }
+
+    if ($^O eq "MSWin32") {
+        if ( !defined $outputenc ) {
+            $outputenc="windows-1250";
+        }
+    } 
+    else {
+        if ( !defined $outputenc ) {
+            $outputenc="iso-8859-2";
+        }
+    }
+    $support_unicode = ($Tk::VERSION ge 804.00);
+    if ($support_unicode) {
+        require TrEd::ConvertArab;
+        require TrEd::ArabicRemix;
+        *remix = \&TrEd::ArabicRemix::remix;
+        *arabjoin = \&TrEd::ConvertArab::arabjoin;
+        eval q(
+          $needs_arabic_remix_re=qr{\p{Arabic}|[\x{064B}-\x{0652}\x{0670}\x{0657}\x{0656}\x{0640}]|\p{InArabicPresentationFormsA}|\p{InArabicPresentationFormsB}};
+        );
+        die $@ if $@;
+    }
 }
 
 no integer;
 
 #######################################################################################
 # Usage         : encode(@strings)
-# Purpose       : Change all the strings from Perl's internal representation into $outputenc 
+# Purpose       : Change all the strings from Perl's internal representation into $outputenc
 #                 and return them joined in one string
 # Returns       : Encoded string (sequence of octets)
 # Parameters    : string $str (or a list of strings) to encode
 # Throws        : no exception
 # Comments      : This function is affected by setting $FORCE_REMIX and $FORCE_NO_REMIX variables.
 #                 If $FORCE_REMIX is set or current platform is MS Win32 and $string needs arabic remix,
-#                 we use functions for arabic text, unless $FORCE_NO_REMIX is not set to true. 
+#                 we use functions for arabic text, unless $FORCE_NO_REMIX is not set to true.
 #                 On Perl version greater than or equal to 5.8, Encode::encode() is used. Otherwise, tr/// is used.
 # See Also      : Encode::encode(), tr(), TrEd::ConvertArab::arabjoin(), TrEd::ArabicRemix::remix()
 sub encode {
-  my $str = join(q{}, map { defined $_ ? $_ : q{} } @_);
-  if ($support_unicode) { # we've got support for UNICODE in perl5.8/Tk8004
-    if (($FORCE_REMIX || $^O ne 'MSWin32')
-	  &&
-	! $FORCE_NO_REMIX
-	 ) {
-      if ($str =~ $needs_arabic_remix_re) {
-        #TODO: fully qualified names? These two functions with FQN wouldn't exist if $support_unicode wasn't true, so
-        # what is the benefit of modifying glob?
-        $str = remix(arabjoin($str));
-      }
+    my $str = join( q{}, map { defined $_ ? $_ : q{} } @_ );
+    if ($support_unicode) {  # we've got support for UNICODE in perl5.8/Tk8004
+        if ( ( $FORCE_REMIX || $^O ne 'MSWin32' )
+            && !$FORCE_NO_REMIX )
+        {
+            if ( $str =~ $needs_arabic_remix_re ) {
+
+                # TODO: fully qualified names? These two functions with FQN
+                # wouldn't exist if $support_unicode wasn't true, so
+                # what is the benefit of modifying glob?
+                $str = remix( arabjoin($str) );
+            }
+        }
     }
-  } 
-  elsif ($]>=5.008) {
-    eval "use Encode (); \$str=Encode::encode(\$outputenc,\$str);";
-  } 
-  else {
-      if ($inputenc ne $outputenc) {
-        eval "tr/$encodings{$inputenc}/$encodings{$outputenc}/";
-      }
-  }
-  if (!$lefttoright) {
-    $str =~ s{([^[:ascii:]]+)}{reverse $1}eg
-  }
-  return $str;
+    elsif ( $] >= 5.008 ) {
+        eval {
+            use Encode (); 
+            $str = Encode::encode($outputenc, $str);
+        };
+    }
+    else {
+        if ( $inputenc ne $outputenc ) {
+            eval {
+                tr/$encodings{$inputenc}/$encodings{$outputenc}/
+            };
+        }
+    }
+    if ( !$lefttoright ) {
+        $str =~ s{([^[:ascii:]]+)}{reverse $1}eg;
+    }
+    return $str;
 }
 
 #######################################################################################
 # Usage         : decode($str)
 # Purpose       : Decodes sequence of octets from $outputenc to Perl's internal representation
 #                 or $inputenc
-# Returns       : Decoded string 
+# Returns       : Decoded string
 # Parameters    : string $str (or list of strings) to decode
 # Throws        : no exception
 # Comments      : If the Tk version used is greater than 804.00, or $input and $output encoding are the same,
 #                 function just returns joined strings. Otherwise it uses Encode::decode with Perl >= 5.8
 #                 or tr for Perl < 5.8
-# See Also      : Encode::decode(), tr(), 
+# See Also      : Encode::decode(), tr(),
 sub decode {
-  my $str = join q{}, @_;
-#  $lefttoright or ($str=~s{([^[:ascii:]]+)}{reverse $1}eg);
-  if(!$lefttoright) {
-    $str =~ s{([^[:ascii:]]+)}{reverse $1}eg;
-  }
-  if ($support_unicode) {
-    return $str;
-  } 
-  elsif ($]>=5.008) {
-    eval "use Encode (); \$str=Encode::decode(\$outputenc,\$str);";
-    return $str;
-  } 
-  elsif ($inputenc eq $outputenc) {
-    return $str;
-  } 
-  else {
-    eval " tr/$encodings{$outputenc}/$encodings{$inputenc}/";
-    return $str;
-  }
+    my $str = join q{}, @_;
+
+    if ( !$lefttoright ) {
+        $str =~ s{([^[:ascii:]]+)}{reverse $1}eg;
+    }
+    if ($support_unicode) {
+        return $str;
+    }
+    elsif ( $] >= 5.008 ) {
+        eval {
+            use Encode (); 
+            $str = Encode::decode($outputenc, $str);
+        };
+        return $str;
+    }
+    elsif ( $inputenc eq $outputenc ) {
+        return $str;
+    }
+    else {
+        eval { 
+            tr/$encodings{$outputenc}/$encodings{$inputenc}/
+        };
+        return $str;
+    }
 }
 
-#TODO: Do these function really belong here? What do they have in common with converting..?
-
-#######################################################################################
-# Usage         : dirname($path)
-# Purpose       : Find out the name of the directory of $path
-# Returns       : Part of the string from the first character to the last forward/backward slash.
-#                 Empty string if $path is not defined.
-# Parameters    : scalar $path -- path whose dirname we are looking for
-# Throws        : 
-# Comments      : If $path does not contain any slash (fw or bw), dot and directory separator is returned, i. e. 
-#                 "./" on Unices, ".\" on Win32
-# See Also      : index(), rindex(), substr()
-sub dirname {
-  my $a = shift;
-  # this is for the sh*tty winz where
-  # both slash and backslash may be uzed
-  # (i'd sure use File::Spec::Functions had it support
-  # for this also in 5.005 perl distro).
-  return $EMPTY_STR if (!defined $a);
-  return (index($a, $Ds) + index($a, q{/}) >= 0) ?
-          substr($a, 0, TrEd::MinMax::max(rindex($a, $Ds), rindex($a, q{/})) + 1) : ".$Ds";
-}
-
-#######################################################################################
-# Usage         : filename($path)
-# Purpose       : Extract filename from $path
-# Returns       : Part of the string after the last slash.
-#                 Empty string if $path is not defined.
-# Parameters    : scalar $path -- path with file name
-# Throws        : 
-# Comments      : E.g. returns 'filename' from '/home/john/docs/filename'
-# See Also      : index(), rindex(), substr()
-sub filename {
-  my $a = shift;
-  # this is for the sh*tty winz where
-  # both slash and backslash may be uzed
-  return $EMPTY_STR if (!defined $a);
-  return (index($a, $Ds) + index($a, q{/}) >= 0) ?
-          substr($a, TrEd::MinMax::max(rindex($a, $Ds), rindex($a, q{/})) + 1) : $a;
-}
 
 1;
 
@@ -199,14 +171,11 @@ TrEd::Convert version 0.2.
 
   use TrEd::Convert;
   
-  my $str = "¾luøouèký kùò úpìl ïábelské ódy";
+  my $str = "¾lu»ouèký kùò úpìl ïábelské ódy";
   my $internal_string = TrEd::Convert::decode($str);
   
   my $iso_8859_2_str = TrEd::Convert::encode($internal_string);  
   
-  my $path = "/etc/X11/xorg.conf";
-  
-  my $dir = TrEd::Convert::dirname($path);
   
 
 =head1 DESCRIPTION
@@ -288,72 +257,6 @@ Decoded string
 =back
 
 
-=item * C<TrEd::Convert::dirname($path)>
-
-=over 6
-
-=item Purpose
-
-Find out the name of the directory of $path
-
-
-=item Parameters
-
-  C<$path> -- scalar $path -- path whose dirname we are looking for
-
-=item Comments
-
-If $path does not contain any slash (fw or bw), dot and directory separator is returned, i. e. 
-
-"./" on Unices, ".\" on Win32
-
-=item See Also
-
-L<index>,
-L<rindex>,
-L<substr>,
-
-=item Returns
-
-Part of the string from the first character to the last forward/backward slash.
-Empty string if $path is not defined.
-
-=back
-
-
-=item * C<TrEd::Convert::filename($path)>
-
-=over 6
-
-=item Purpose
-
-Extract filename from $path
-
-
-=item Parameters
-
-  C<$path> -- scalar $path -- path with file name
-
-=item Comments
-
-E.g. returns 'filename' from '/home/john/docs/filename'
-
-
-=item See Also
-
-L<index>,
-L<rindex>,
-L<substr>,
-
-=item Returns
-
-Part of the string after the last slash.
-Empty string if $path is not defined.
-
-=back
-
-
-
 
 =back
 
@@ -369,7 +272,7 @@ This module does not require special configuration or enviroment settings.
 
 =head1 DEPENDENCIES
 
-Encode, TrEd::ArabicRemix, TrEd::ConvertArab, TrEd::MinMax
+Encode, TrEd::ArabicRemix, TrEd::ConvertArab
 
 =head1 INCOMPATIBILITIES
 

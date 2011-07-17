@@ -12,10 +12,11 @@ BEGIN {
   use File::Spec;
   use File::Glob qw(:glob);
   use TrEd::Config;
-  use TrEd::Basics;
+  use TrEd::Utils qw{uniq $EMPTY_STR};
   use TrEd::Error::Message;
   import TrEd::Config qw($default_macro_file $default_macro_encoding $macroDebug $hookDebug);
   use TrEd::Convert;
+  use TrEd::File qw{dirname};
   use Encode ();
   use Exporter  ();
   use vars qw($VERSION @ISA @EXPORT @EXPORT_OK $exec_code @macros $useEncoding
@@ -40,11 +41,19 @@ BEGIN {
     @macros
     $macrosEvaluated
     &get_contexts
+    bind_macro
   );
   # can be used from perl 5.8
   $useEncoding = ($]>=5.008);
 }
 
+# can not 'use', circular reference :/
+# do we need it here??
+#require TrEd::ExtensionsAPI;
+#TredMacro->import;
+
+
+my @current_binding_contexts = qw{TredMacro};
 
 #######################################################################################
 # Usage         : define_symbol($name, $value)
@@ -96,8 +105,8 @@ sub is_defined {
 # Comments      : 
 # See Also      : %menuBindings, %keyBindings
 sub get_contexts {
-  return TrEd::Basics::uniq sort {$a cmp $b} 
-                            (keys(%menuBindings), keys(%keyBindings));
+  return TrEd::Utils::uniq sort {$a cmp $b} 
+                            (keys %menuBindings, keys %keyBindings);
 }
 
 #######################################################################################
@@ -167,9 +176,9 @@ sub bind_key {
 sub unbind_key {
   my ($context, $key, $delete) = @_;
   my $bindings_ref = $keyBindings{$context};
-  if (ref($bindings_ref)) {
+  if (ref $bindings_ref) {
     if ($delete) {
-      return delete($bindings_ref->{_normalize_key($key)});
+      return delete $bindings_ref->{_normalize_key($key)};
     } 
     else {
       $bindings_ref->{_normalize_key($key)} = undef;  # we do not delete so that we may override TrEdMacro
@@ -192,10 +201,10 @@ sub unbind_macro {
   my ($context, $macro, $delete) = @_;
   my $bindings_ref = $keyBindings{$context};
   if (ref($bindings_ref)) {
-    while (my($key, $m) = each(%{$bindings_ref})) {
+    while (my($key, $m) = each %{$bindings_ref}) {
       next if($m ne $macro);
       if ($delete) {
-        delete($bindings_ref->{$key});
+        delete $bindings_ref->{$key};
       } 
       else {
         $bindings_ref->{$key} = undef; # we do not delete so that we may override TrEdMacro
@@ -220,8 +229,8 @@ sub get_bindings_for_macro {
   my ($context, $macro) = @_;
   my $bindings_ref = $keyBindings{$context};
   my @ret;
-  if (ref($bindings_ref)) {
-    while (my($key, $m) = each(%{$bindings_ref})) {
+  if (ref $bindings_ref) {
+    while (my($key, $m) = each %{$bindings_ref}) {
       next if($m ne $macro);
       if(wantarray()){
         push(@ret, $key);
@@ -230,7 +239,7 @@ sub get_bindings_for_macro {
         # if called in scalar context, the internal hash iterator stops somewhere in the middle of
         # the hash %keyBindings (if it finds the $macro, of course) and other functions calling each() 
         # would not work properly, because they all share the hash's internal iterator, thus we need to reset it
-        keys(%{$bindings_ref});
+        keys %{$bindings_ref};
         return $key
       }
     }
@@ -249,7 +258,7 @@ sub get_bindings_for_macro {
 sub get_binding_for_key {
   my ($context, $key) = @_;
   my $binding = $keyBindings{$context};
-  return ref($binding) ? $binding->{_normalize_key($key)} : undef;
+  return ref $binding ? $binding->{_normalize_key($key)} : undef;
 }
 
 #######################################################################################
@@ -263,7 +272,7 @@ sub get_binding_for_key {
 sub get_keybindings {
   my ($context) = @_;
   my $bindings_ref = $keyBindings{$context};
-  return ref($bindings_ref) ? %{$bindings_ref} : undef;
+  return ref $bindings_ref ? %{$bindings_ref} : undef;
 }
 
 #######################################################################################
@@ -279,9 +288,9 @@ sub get_keybindings {
 sub copy_key_bindings {
   my ($source_context, $destination_context) = @_;
   my $source_bindings_ref = $keyBindings{$source_context};
-  return if not ref($source_bindings_ref);
+  return if !ref $source_bindings_ref;
   my $dest_bindings_ref = ($keyBindings{$destination_context} ||= {});
-  while (my ($key, $macro) = each(%{$source_bindings_ref})) {
+  while (my ($key, $macro) = each %{$source_bindings_ref}) {
     $dest_bindings_ref->{$key} = $macro;
   }
   return $dest_bindings_ref;
@@ -303,8 +312,8 @@ sub copy_key_bindings {
 #TODO: Why do we use the array_ref???
 sub add_to_menu {
   my ($context, $label, $macro) = @_;
-  if (defined($label) and length($label)) {
-    if(!exists($menuBindings{$context})){
+  if (defined $label and length $label) {
+    if(!exists $menuBindings{$context}){
       $menuBindings{$context} = {};
     }
     $menuBindings{$context}->{$label}=[
@@ -327,8 +336,8 @@ sub add_to_menu {
 # See Also      : add_menu(), remove_from_menu_macro()
 sub remove_from_menu {
   my ($context, $label) = @_;
-  if (exists($menuBindings{$context})) {
-    return delete($menuBindings{$context}{$label});
+  if (exists $menuBindings{$context}) {
+    return delete $menuBindings{$context}{$label};
   }
   return;
 }
@@ -347,10 +356,10 @@ sub remove_from_menu {
 sub remove_from_menu_macro {
   my ($context, $macro) = @_;
   my $bindings_ref = $menuBindings{$context};
-  if (ref($bindings_ref)) {
-    while (my($key, $array_ref) = each(%{$bindings_ref})) {
+  if (ref $bindings_ref) {
+    while (my($key, $array_ref) = each %{$bindings_ref}) {
       next if($array_ref->[0] ne $macro);
-      delete($bindings_ref->{$key});
+      delete $bindings_ref->{$key};
     }
   }
   return;
@@ -373,17 +382,17 @@ sub get_menus_for_macro {
   my ($context, $macro) = @_;
   my $bindings_ref = $menuBindings{$context};
   my @ret;
-  if (ref($bindings_ref)) {
+  if (ref $bindings_ref) {
     while (my($key,$array_ref)=each %{$bindings_ref}) {
       next if($array_ref->[0] ne $macro);
       if(wantarray){
-        push(@ret, $key);
+        push @ret, $key;
       } 
       else {
         # if called in scalar context, the internal hash iterator stops somewhere in the middle of
         # the hash %menuBindings (if it finds the $macro, of course) and other functions calling each() 
         # would not work properly, because they all share the hash's internal iterator, thus we need to reset it
-        keys(%{$bindings_ref});
+        keys %{$bindings_ref};
         return $key;
       }
     }
@@ -402,7 +411,7 @@ sub get_menus_for_macro {
 sub get_macro_for_menu {
   my ($context, $label) = @_;
   my $bindings_ref = $menuBindings{$context};
-  return ref($bindings_ref) ? $bindings_ref->{$label} : undef;
+  return ref $bindings_ref ? $bindings_ref->{$label} : undef;
 
 }
 
@@ -416,7 +425,7 @@ sub get_macro_for_menu {
 sub get_menuitems {
   my ($context) = @_;
   my $menu_bindings_ref = $menuBindings{$context};
-  return ref($menu_bindings_ref) ? %{$menu_bindings_ref} : undef;
+  return ref $menu_bindings_ref ? %{$menu_bindings_ref} : undef;
 }
 
 #######################################################################################
@@ -431,10 +440,10 @@ sub get_menuitems {
 sub copy_menu_bindings {
   my ($source_context, $destination_context) = @_;
   my $source_bindings_ref = $menuBindings{$source_context};
-  return if(!ref($source_bindings_ref));
+  return if(!ref $source_bindings_ref);
   
   my $dest_bindings_ref = ($menuBindings{$destination_context} ||= {});
-  while (my ($key, $macro_arr) = each(%{$source_bindings_ref})) {
+  while (my ($key, $macro_arr) = each %{$source_bindings_ref}) {
     $dest_bindings_ref->{$key} = $macro_arr;
   }
   return $dest_bindings_ref;
@@ -464,18 +473,18 @@ sub _read_default_macro_file {
   #Hmm, turn off UTF-8 flag in string $default_macro_file... 
   # -> the name becomes part of the macro (in comment) 
   Encode::_utf8_off($TrEd::Config::default_macro_file);
-  # this push is also done in preprocess, shouldn't we remove it from here?
-#  push(@macros,"\n#line 1 \"$TrEd::Config::default_macro_file\"\n");
-  my $default_macro_fh;
-  open($default_macro_fh,'<',$TrEd::Config::default_macro_file) or do {
-    carp("ERROR: Cannot open macros: $TrEd::Config::default_macro_file!\n");
-    # return value is never used, do not return a number code...
-    return;
-  };
-  set_encoding($default_macro_fh, $encoding);
-  preprocess($default_macro_fh, $TrEd::Config::default_macro_file, \@macros, $contexts_ref);
-  close($default_macro_fh) or 
-    carp("ERROR: Cannot close macros: $TrEd::Config::default_macro_file!\n");;
+
+#  my $default_macro_fh;
+#  open $default_macro_fh, '<', $TrEd::Config::default_macro_file 
+#    or do {
+#        carp("ERROR: Cannot open macros: $TrEd::Config::default_macro_file!\n");
+#        # return value is never used, do not return a number code...
+#        return;
+#      };
+#  set_encoding($default_macro_fh, $encoding);
+#  preprocess($default_macro_fh, $TrEd::Config::default_macro_file, \@macros, $contexts_ref);
+#  close $default_macro_fh 
+#    or carp("ERROR: Cannot close macros: $TrEd::Config::default_macro_file!\n");;
   return;
 }
 
@@ -504,8 +513,6 @@ sub _read_default_macro_file {
 #                 should be some of Shift, Ctrl and Alt) and the specified KeySym
 #                 (this probabbly depends on platform too :( ).
 # See Also      : preprocess(), set_encoding()
-#TODO: what will happen, if we would call read_macros with $keep = 1 for the first time?
-# well, obviously, default macro would not be loaded... which is not good, I guess...
 sub read_macros {
   my ($file, $libDir, $keep, $encoding, @contexts) = @_;
 #  print "read_macros: 
@@ -513,6 +520,10 @@ sub read_macros {
 #    libdir: $libDir;
 #    keep: $keep;
 #    enc: $encoding;\n";
+  if (!defined $file) {
+      _read_default_macro_file();
+      return;
+  }
   $macrosEvaluated = 0;
   if(!defined($encoding) || $encoding eq ""){
     $encoding = $TrEd::Config::default_macro_encoding;
@@ -521,14 +532,14 @@ sub read_macros {
     @contexts = ('TredMacro');
   }
   if (!$keep) {
-    _read_default_macro_file($encoding, @contexts);
+    _read_default_macro_file($encoding, @contexts); # there isn't any default macro file any more
   }
   if ($macroDebug) {
     print STDERR "Reading $file\n";
   }
   my $macro_filehandle;
   # try to open file
-  open($macro_filehandle,'<',$file)
+  open $macro_filehandle, '<', $file
   # or to open it from different location
     || (!$keep && ($file = "$libDir/$file") && open($macro_filehandle,'<',$file)) ||
       croak("ERROR: Cannot open macros: $file ($!)!\n");
@@ -537,12 +548,32 @@ sub read_macros {
 #  print "===================================================================\n";
 #  print join("\n", @macros) . "\n";
 #  print "===================================================================\n";
-  close($macro_filehandle) or
-    croak("ERROR: Cannot close macros: $file ($!)!\n");;
+  close $macro_filehandle 
+    or croak("ERROR: Cannot close macros: $file ($!)!\n");;
   if (!$keep && $macroDebug){
     print STDERR "Read " . scalar(@macros) . " lines of code.\n";
   }
   return;
+}
+
+# should handle #bind macro instruction
+sub bind_macro {
+    my ($macro,$key,$menu)=@_;
+    $menu = TrEd::Convert::encode($menu);
+    if (defined $menu) { 
+        foreach my $context (@current_binding_contexts) {
+            add_to_menu($context, $menu => $macro);
+        } 
+    }
+    foreach my $context (@current_binding_contexts) {
+        bind_key($context, $key => $macro);
+    }
+}
+
+# should handle #binding-context macro instruction
+sub set_current_binding_contexts {
+    my $contexts = join ' ', @_;
+    @current_binding_contexts = split /\s+/, $contexts;
 }
 
 #######################################################################################
@@ -583,7 +614,7 @@ sub preprocess {
   while (<$file_handle>) {
     $line++;
     if (/^\#endif(?:$|\s)/) {
-      push(@{$macros_ref}, $_);
+      push @{$macros_ref}, $_;
       if (@conditions) {
         pop(@conditions);
         $ifok = (!@conditions || $conditions[-1]);
@@ -609,13 +640,13 @@ sub preprocess {
       }
     } 
     elsif (/^\#ifdef\s+(\S*)/) {
-      push(@{$macros_ref}, $_);
-      push(@conditions, (is_defined($1) && (!@conditions || $conditions[-1])));
+      push @{$macros_ref}, $_;
+      push @conditions, (is_defined($1) && (!@conditions || $conditions[-1]));
       $ifok = $conditions[-1];
     } 
     elsif (/^\#ifndef\s+(\S*)/) {
-      push(@{$macros_ref}, $_);
-      push(@conditions, (!is_defined($1) && (!@conditions || $conditions[-1])));
+      push @{$macros_ref}, $_;
+      push @conditions, (!is_defined($1) && (!@conditions || $conditions[-1]));
       $ifok = $conditions[-1];
     } 
     else {
@@ -629,7 +660,7 @@ sub preprocess {
         }
         push(@{$macros_ref}, $_);
         if (/^\#!(.*)$/) {
-          if (not defined $exec_code) {
+          if (!defined $exec_code) {
             $exec_code = $1; # first wins
           }
         } 
@@ -721,7 +752,7 @@ sub preprocess {
           my @includes;
           if ($pattern=~/^<(.*)>$/) {
             my $glob = $1;
-            my ($vol, $dir) = File::Spec->splitpath(dirname($file_name));
+            my ($vol, $dir) = File::Spec->splitpath(TrEd::File::dirname($file_name));
             $dir = File::Spec->catpath($vol,$dir); 
             my $cwd = cwd();
             chdir $dir;
@@ -729,7 +760,7 @@ sub preprocess {
             chdir $cwd;
           } 
           else {
-            @includes = (dirname($file_name).$pattern);
+            @includes = (TrEd::File::dirname($file_name).$pattern);
           }
           foreach my $mf (@includes) {
             _load_macro($mf, $enc, $contexts_ref, $macros_ref, $if, $libDir, $file_name, $line);
@@ -748,7 +779,7 @@ sub preprocess {
             my $mf = $f;
             print STDERR "including $mf\n" if $macroDebug;
             unless (-f $mf) {
-              $mf=dirname($file_name).$mf;
+              $mf=TrEd::File::dirname($file_name).$mf;
               print STDERR "trying $mf\n" if $macroDebug;
               unless (-f $mf) {
                 $mf="$libDir/$f";
@@ -894,6 +925,7 @@ sub initialize_macros {
       no strict;
       ${"TredMacro::grp"} = $win_ref;
       $macrosEvaluated = 1;
+      #print "macros: " . $macros . "\n";
       $result = eval { 
         my $res = eval ($macros); 
         die $@ if $@; 
@@ -1094,7 +1126,16 @@ sub context_can {
   } 
   else {
     # needs testing, if it works in Class::Std
-    return eval { $context->can($sub) };
+    #print "testing $context->$sub\n";
+#    print "$context->$sub?";
+    my $sub_ref= eval { $context->can($sub) };
+    if (defined $sub_ref) {
+#        print " yup: $sub_ref\n";
+    }
+    else {
+#        print " nope!\n";
+    }
+    return $sub_ref;
 #    return UNIVERSAL::can($context, $sub);
   }
 }
@@ -1145,7 +1186,7 @@ sub do_eval_hook {
   return if $@;
   my $result=undef;
 
-  if (context_isa($context,'TrEd::Context') and context_can($context, $hook)) {
+  if (context_isa($context,'TrEd::Context') && context_can($context, $hook)) {
     # experimental new-style calling convention
     print STDERR "running hook $context".'->global->'.$hook."\n" if $hookDebug;
     if (defined($safeCompartment)) {
@@ -1159,7 +1200,7 @@ sub do_eval_hook {
   } 
   else {
     if (!context_can($context, $hook)) {
-      if ($context ne "TredMacro" and context_can('TredMacro',$hook)) {
+      if ($context ne "TredMacro" && context_can('TredMacro',$hook)) {
         $context = "TredMacro";
       } 
       else {
@@ -1191,7 +1232,7 @@ sub findMacroDescription {
     return "macro $macro";
   } else {
     my ($grp,$win)=main::grp_win($grp_or_win);
-    for my $context (TrEd::Basics::uniq($win->{macroContext},"TredMacro")) {
+    for my $context (TrEd::Utils::uniq($win->{macroContext},"TredMacro")) {
       my $Menus = $menuBindings{$context};
       my %macro_to_menu = map { $Menus->{$_}->[0] => $_ } keys %{ $Menus };
       my $desc = $macro_to_menu{$macro};
@@ -2329,7 +2370,7 @@ The result of hook eval or undef if no hook is specified
 
 =head1 DEPENDENCIES
 
-Carp, Cwd, Treex::PML, File::Spec, File::Glob, TrEd::Config, TrEd::Basics, TrEd::Convert, Encode, Exporter
+Carp, Cwd, Treex::PML, File::Spec, File::Glob, TrEd::Config, TrEd::Utils, TrEd::Convert, Encode, Exporter
 
 
 =head1 INCOMPATIBILITIES

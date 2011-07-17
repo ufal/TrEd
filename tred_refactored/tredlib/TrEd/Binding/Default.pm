@@ -11,7 +11,8 @@ our $VERSION = '0.1';
 use Carp;
 use Tk; # using bind function
 use Readonly;
-use TrEd::Basics;
+use TrEd::Window::TreeBasics;
+use TrEd::Utils qw{$EMPTY_STR};
 
 my %context_override_binding;
 
@@ -58,14 +59,14 @@ my %default_binding = (
     '<greater>' => [
         sub {
             my $fw = $_[1]->{focusedWindow};
-            TrEd::Basics::go_to_tree( $fw, $fw->{FSFile}->lastTreeNo );
+            TrEd::Window::TreeBasics::go_to_tree( $fw, $fw->{FSFile}->lastTreeNo );
             Tk->break();
         },
         'go to last tree in file',
     ],
     '<less>' => [
         sub {
-            TrEd::Basics::go_to_tree( $_[1]->{focusedWindow}, 0 );
+            TrEd::Window::TreeBasics::go_to_tree( $_[1]->{focusedWindow}, 0 );
             Tk->break();
         },
         'go to first tree in file',
@@ -363,7 +364,7 @@ sub get_binding {
 
 #######################################################################################
 # Usage         : $default_binding->setup_default_bindings()
-# Purpose       : Create default bindings for TrEd (mainly its toolbar) using 'my' bindtag
+# Purpose       : Create default bindings for TrEd using 'my' bindtag
 # Returns       : Undef/empty list
 # Parameters    : no
 # Throws        : no exception
@@ -373,13 +374,51 @@ sub get_binding {
 sub setup_default_bindings {
     my ($self) = @_;
 
+    # new addition from main
+    $self->{grp_ref}->{top}->bind(
+        'my',
+        '<KeyPress>' => [
+            sub {
+                main::evalMacro(@_);
+                Tk->break;
+            },
+            $self->{grp_ref},
+            $EMPTY_STR
+        ]
+    );
+    
+    
+    my @modifiers = qw(Shift Control Meta Alt Control-Shift Control-Alt
+        Control-Meta Alt-Shift Meta-Shift); 
+    
+    my @events = qw(KeyPress Right Left Up Down
+            Return comma period Next Prior greater less);
+            
+    foreach my $modifier (@modifiers) {
+        foreach my $event (@events) {
+            if ( "$modifier-$event" ne "Alt-KeyPress"
+                && "$modifier-$event" ne "Meta-KeyPress" ) 
+            {
+                $self->{grp_ref}->{top}->bind(
+                    'my',
+                    "<$modifier-$event>" => [
+                        sub { main::evalMacro(@_); Tk->break; },
+                        $self->{grp_ref},
+                        keyBind($modifier) . q{+}
+                    ]
+                    );
+            }
+        }
+    }
+
     # setup default binding
     while ( my ( $key, $def ) = each %default_binding ) {
         $self->{grp_ref}->{ $def->[2] || 'Toolbar' }
-            ->bind( 'my', $key => [ \&_run_binding, $self, $key  ] );
+            ->bind( 'my', $key => [ \&_run_binding, $self, $key ] );
     }
     return;
 }
+
 
 #######################################################################################
 # Usage         : $default_binding->get_default_bindings()
@@ -449,6 +488,13 @@ sub binding_valid {
     else {
         return;
     }
+}
+
+sub keyBind {
+  local $_=shift;
+  s/-/+/g;
+  s/Control/CTRL/g;
+  return uc($_);
 }
 
 1;
@@ -535,7 +581,7 @@ Tk,
 Readonly
 
 TrEd modules:
-TrEd::Basics
+TrEd::Window::TreeBasics
 
 Standard Perl modules:
 Carp

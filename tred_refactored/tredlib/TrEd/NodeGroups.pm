@@ -1,6 +1,9 @@
 # -*- cperl -*-
 package TrEd::NodeGroups;
 
+# ex-node_groups.mak macro, 
+# turned into regular TrEd package
+
 =head1 node_groups.mak
 
 TrEd::NodeGroups - macros for visualizing groups of nodes

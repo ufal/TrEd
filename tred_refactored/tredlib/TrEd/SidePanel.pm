@@ -193,7 +193,8 @@ sub init_node_attributes {
   });
   
   $attrsView->Subwidget('xscrollbar')->configure(qw(-borderwidth 1 -width 10));
-  $attrsView->Subwidget('yscrollbar')->configure(qw(-background green));
+  #TODO: this is experimental... just to try how to change scrollbar appearance
+  #$attrsView->Subwidget('yscrollbar')->configure(qw(-background green));
   
   $cb->configure(-variable => \$attrsView->Subwidget('scrolled')->{userdata}{hide_empty});
   $grp->{sidePanel}->add('attrsView', $colf, { -label => 'Node Attributes',
@@ -372,7 +373,7 @@ sub init_filelist_view {
 			TrEd::ManageFilelists::removeFromFilelist($grp,
 					   $fl,
 					   TrEd::Dialog::Filelist::getFilelistLinePosition($fl, $anchor), $t->info('selection'));
-			TrEd::Bookmarks::updateBookmarks($grp) if (ref($fl) and $fl->name eq 'Bookmarks');
+			TrEd::Bookmarks::update_bookmarks($grp) if (ref($fl) and $fl->name eq $TrEd::Bookmarks::FILELIST_NAME);
 		      },$t,$grp],
 	],
       ]);

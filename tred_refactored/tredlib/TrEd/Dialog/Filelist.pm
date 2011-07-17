@@ -3,11 +3,12 @@ package TrEd::Dialog::Filelist;
 use strict;
 use warnings;
 
-use TrEd::Basics qw{$EMPTY_STR};
+use TrEd::Utils qw{$EMPTY_STR};
 use TrEd::Config qw{$tredDebug};
 use TrEd::ManageFilelists;
 use TrEd::Filelist::View;
 use TrEd::Error::Message;
+use TrEd::Bookmarks qw{$FILELIST_NAME};
 
 use Treex::PML;
 
@@ -39,9 +40,9 @@ sub _add_files {
         : 0;
     TrEd::ManageFilelists::insertToFilelist( $grp, $current_filelist, $pos,
         $l->getSelectedFiles );
-    TrEd::Bookmarks::updateBookmarks($grp)
+    TrEd::Bookmarks::update_bookmarks($grp)
         if ( ref($current_filelist)
-        and $current_filelist->name eq 'Bookmarks' );
+        and $current_filelist->name eq $TrEd::Bookmarks::FILELIST_NAME );
 }
 
 sub _remove_files {
@@ -50,9 +51,9 @@ sub _remove_files {
     TrEd::ManageFilelists::removeFromFilelist( $grp, $current_filelist,
         getFilelistLinePosition( $current_filelist, $t->info('anchor') ),
         $t->info('selection') );
-    TrEd::Bookmarks::updateBookmarks($grp)
+    TrEd::Bookmarks::update_bookmarks($grp)
         if ( ref($current_filelist)
-        and $current_filelist->name eq 'Bookmarks' );
+        and $current_filelist->name eq $TrEd::Bookmarks::FILELIST_NAME );
 }
 
 sub _show_in_tred {
@@ -149,16 +150,16 @@ sub _save_fl_to_file {
     my $current_filelist = TrEd::ManageFilelists::get_current_filelist();
     my $file             = $current_filelist->filename;
     unless ( defined($file) and $file ne $EMPTY_STR ) {
-        my $initdir = TrEd::Convert::dirname($file);
+        my $initdir = TrEd::File::dirname($file);
         $initdir = cwd() if ( $initdir eq './' );
-        $initdir =~ s!${TrEd::Convert::Ds}$!!m;
+        $initdir =~ s!${TrEd::File::dir_separator}$!!m;
         $file = main::get_save_filename(
             $d,
             -filetypes =>
                 [ [ "Filelists", ['.fl'] ], [ "All files", [ '*', '*.*' ] ] ],
             -title       => "Save filelist as ...",
             -initialdir  => $initdir,
-            -initialfile => TrEd::Convert::filename($file)
+            -initialfile => TrEd::File::filename($file)
         );
         $d->deiconify();
         $d->focus();

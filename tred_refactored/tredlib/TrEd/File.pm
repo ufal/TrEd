@@ -4,15 +4,24 @@ use strict;
 use warnings;
 
 use TrEd::ManageFilelists;
-use TrEd::Basics qw{$EMPTY_STR get_secondary_files absolutize_path};
 use TrEd::Config qw{$ioBackends $lockFiles $reloadKeepsPatterns %save_types %backend_map $tredDebug};
-use TrEd::MinMax qw{max2 first};
-use TrEd::Utils qw{applyFileSuffix};
+use TrEd::MinMax qw{max2 first max};
+use TrEd::Utils qw{applyFileSuffix uniq $EMPTY_STR};
 use Treex::PML;
 use TrEd::Error::Message;
 
 use Carp;
 use Cwd;
+
+my $dir_separator = q{/}; # default
+
+if ($^O eq "MSWin32") {
+    $dir_separator = "\\"; # how filenames and directories are separated
+} 
+else {
+    $dir_separator = q{/};
+}
+
 
 # if extensions has not been dependent on this variable, we could have changed 'our' to 'my'
 # (pmltq and pdt20 access @openfiles directly)
@@ -20,6 +29,17 @@ our @openfiles = ();
 
 my $new_file_no = 0;
 
+# EXPORT_OK:
+#absolutize
+#absolutize_path
+#get_secondary_files
+#get_secondary_files_recursively
+#get_primary_files
+#get_primary_files_recursively
+
+# EXPORT
+# dirname
+# filename
 
 #load back-ends
 my @backends = (
@@ -231,7 +251,7 @@ sub reload_on_usr2 {
 #TODO: docs, see also $document->relatedSuperDocuments()
 sub _related_files {
     my ($fsfile) = @_;
-    return TrEd::Basics::get_secondary_files($fsfile), 
+    return get_secondary_files($fsfile), 
             @{ $fsfile->appData('fs-part-of') };
 }
 
@@ -260,7 +280,7 @@ sub _is_among_primary_files {
     return TrEd::MinMax::first {
             Treex::PML::IO::is_same_filename( $_->filename(), $file_name );
             }
-            TrEd::Basics::get_primary_files_recursively($fsfile)
+            get_primary_files_recursively($fsfile)
 }
 
 # zislo by sa premenovat, lebo to aj otvara subor, nie len checkuje recovery
@@ -549,7 +569,7 @@ sub open_file {
         }
     }
 
-    # Check autosave file
+    # Check autosave file (also opens secondary files or sth...)
     my $status;
     ($fsfile, $status) = _check_for_recovery($file_name, $grp, $win, $fsfile, $lockinfo, \%opts);
     
@@ -778,7 +798,7 @@ sub closeFile {
             TrEd::FileLock::remove_lock( $fsfile, $f );
 
             # remove dependency
-            for my $req_fs ( TrEd::Basics::get_secondary_files($fsfile) ) {
+            for my $req_fs ( get_secondary_files($fsfile) ) {
                 if ( ref( $req_fs->appData('fs-part-of') ) ) {
                     @{ $req_fs->appData('fs-part-of') }
                         = grep { $_ != $fsfile }
@@ -951,7 +971,7 @@ sub openSecondaryFiles {
         for my $req (@$requires) {
             next if ref( $fsfile->appData('ref')->{ $req->[0] } );
             my $req_filename
-                = TrEd::Basics::absolutize_path( $fsfile->filename, $req->[1] );
+                = absolutize_path( $fsfile->filename, $req->[1] );
             print STDERR
                 "Pre-loading dependent $req_filename ($req->[1]) as appData('ref')->{$req->[0]}\n"
                 if $TrEd::Config::tredDebug;
@@ -1311,9 +1331,9 @@ sub saveFileAs {
   return unless $fsfile;
   my $file=$fsfile->filename;
 
-  $initdir=TrEd::Convert::dirname($file);
+  $initdir=dirname($file);
   $initdir=cwd if ($initdir eq './');
-  $initdir=~s!${TrEd::Convert::Ds}$!!m;
+  $initdir=~s!${dir_separator}$!!m;
 
   my $cur = $fsfile->backend || '';
   $cur=~s/Backend$//;
@@ -1523,7 +1543,7 @@ sub askSaveReferences {
   my ($win,$fsfile,$result,$filename)=@_;
   $filename = $fsfile->filename unless defined $filename;
   my (@refs);
-  my $schema = TrEd::Basics::file_schema($fsfile) || return 1;
+  my $schema = $fsfile->schema() || return 1;
   my $references = [ $schema->get_named_references ];
   return 1 unless @$references;
   my $name2id = $fsfile->metaData('refnames');
@@ -1590,7 +1610,7 @@ EOF
 	-command => [sub {
 		       my ($l)=@_;
 		       my ($file,$rest) = split / \[/,$l->get('active'),2;
-		       my $initdir2 = TrEd::Convert::dirname($file);
+		       my $initdir2 = dirname($file);
 		       $initdir2 = File::Spec->catfile($initdir,$initdir2)
 			 unless File::Spec->file_name_is_absolute($initdir2);
 		       $file = main::get_save_filename(
@@ -1669,6 +1689,177 @@ sub resumeFile {
   main::saveFileStateUpdate($win);
 }
 
+## presmerovat!!!
+#######################################################################################
+# Usage         : absolutize_path($ref_filename, $filename, [$search_resource_path])
+# Purpose       : Return absolute path unchanged, resolve relative path
+# Returns       : Resolved path, return value from Treex::PML::ResolvePath
+# Parameters    : scalar $ref_path              -- a reference filename
+#                 scalar $filename              -- a relative path to a file
+#                 scalar $search_resource_paths -- 0 or 1
+# Throws        : no exception
+# Comments      : just calls Treex::PML::ResolvePath(@_)
+# See Also      : Treex::PML::ResolvePath()
+sub absolutize_path {
+    return &Treex::PML::ResolvePath;
+}
+
+#######################################################################################
+# Usage         : absolutize(@array)
+# Purpose       : Make all paths in the @array absolute
+# Returns       : Array of absolute paths
+# Parameters    : list @array -- list of paths to be changed into absolute paths
+# Throws        : no exception
+# See Also      : File::Spec->rel2abs()
+sub absolutize {
+
+    # filter out elements containing only whitespaces
+    # if the path starts with X:/, | or /, it is absolute, just return it;
+    # otherwise change relative to absolute path
+    return
+        map { m(^[[:alnum:]]+:/|^\s*\||^\s*/) ? $_ : File::Spec->rel2abs($_) }
+        grep { !/^\s*$/ } @_;
+}
+
+
+#######################################################################################
+# Usage         : get_secondary_files($fsfile)
+# Purpose       : Find all secondary files required by Treex::PML::Document $fsfile according to its PML schema
+# Returns       : List of Treex::PML::Document objects (every object appears just once in the list)
+# Parameters    : Treex::PML::Document ref $fsfile -- the file whose secondary files we are searching for
+# Throws        : no exception
+# See Also      : Treex::PML::Document::appData(), get_secondary_files_recursively()
+sub get_secondary_files {
+    my ($fsfile) = @_;
+
+    # is probably the same as Treex::PML::Document->relatedDocuments()
+    # a reference to a list of pairs (id, URL)
+    my $requires = $fsfile->metaData('fs-require');
+    my @secondary;
+    if ($requires) {
+        foreach my $req (@$requires) {
+            my $id = $req->[0];
+            my $req_fs
+                = ref( $fsfile->appData('ref') )
+                ? $fsfile->appData('ref')->{$id}
+                : undef;
+            if ( UNIVERSAL::DOES::does( $req_fs, 'Treex::PML::Document' ) ) {
+                push( @secondary, $req_fs );
+            }
+        }
+    }
+    return uniq(@secondary);
+}
+
+#######################################################################################
+# Usage         : get_secondary_files_recursively($fsfile)
+# Purpose       : Find all secondary files required by Treex::PML::Document $fsfile according to its PML schema,
+#                 and also all secondary files of these secondary files, etc recursively
+# Returns       : List of Treex::PML::Document objects (every object appears just once in the list)
+# Parameters    : Treex::PML::Document ref $fsfile -- the file whose secondary files we are searching for
+# Throws        : no exception
+# See Also      : Treex::PML::Document::appData(), get_secondary_files()
+sub get_secondary_files_recursively {
+    my ($fsfile) = @_;
+    my @secondary = get_secondary_files($fsfile);
+    my %seen;
+    my $i = 0;
+    while ( $i < @secondary ) {
+        my $sec = $secondary[$i];
+        if ( !exists( $seen{$sec} ) ) {
+            $seen{$sec} = 1;
+            push( @secondary, get_secondary_files($sec) );
+        }
+        $i++;
+    }
+    return uniq(@secondary);
+}
+
+#######################################################################################
+# Usage         : get_primary_files($fsfile)
+# Purpose       : Find a list of Treex::PML::Document objects representing related superior documents
+# Returns       : List of Treex::PML::Document objects representing related superior documents
+# Parameters    : Treex::PML::Document ref $fsfile -- the file whose primary files we are searching for
+# Throws        : no exception
+# See Also      : Treex::PML::Document::appData(), get_primary_files_recursively()
+sub get_primary_files {
+    my ($fsfile) = @_;
+
+    # probably the same as Treex::PML::Document->relatedSuperDocuments()
+    return @{ $fsfile->appData('fs-part-of') || [] };
+}
+
+#######################################################################################
+# Usage         : get_primary_files_recursively($fsfile)
+# Purpose       : Find a list of Treex::PML::Document objects representing related superior documents,
+#                 and then list of all their superior documents, etc recursively
+# Returns       : List of Treex::PML::Document objects representing related superior documents
+# Parameters    : Treex::PML::Document ref $fsfile -- the file whose primary files we are searching for
+# Throws        : no exception
+# See Also      : get_primary_files()
+sub get_primary_files_recursively {
+    my ($fsfile) = @_;
+    my @primary = get_primary_files($fsfile);
+    my %seen;
+    my $i = 0;
+    while ( $i < @primary ) {
+        my $prim = $primary[$i];
+        if ( !exists( $seen{$prim} ) ) {
+            $seen{$prim} = 1;
+            push( @primary, get_primary_files($prim) );
+        }
+        $i++;
+    }
+    return uniq(@primary);
+}
+
+# from tred::convert
+#######################################################################################
+# Usage         : dirname($path)
+# Purpose       : Find out the name of the directory of $path
+# Returns       : Part of the string from the first character to the last forward/backward slash.
+#                 Empty string if $path is not defined.
+# Parameters    : scalar $path -- path whose dirname we are looking for
+# Throws        :
+# Comments      : If $path does not contain any slash (fw or bw), dot and directory separator is returned, i. e.
+#                 "./" on Unices, ".\" on Win32
+# See Also      : index(), rindex(), substr()
+sub dirname {
+    my $a = shift;
+
+    # this is for the sh*tty winz where
+    # both slash and backslash may be uzed
+    # (i'd sure use File::Spec::Functions had it support
+    # for this also in 5.005 perl distro).
+    return $EMPTY_STR if ( !defined $a );
+    return ( index( $a, $dir_separator ) + index( $a, q{/} ) >= 0 )
+        ? substr( $a, 0,
+        TrEd::MinMax::max( rindex( $a, $dir_separator ), rindex( $a, q{/} ) ) + 1 )
+        : ".$dir_separator";
+}
+
+#######################################################################################
+# Usage         : filename($path)
+# Purpose       : Extract filename from $path
+# Returns       : Part of the string after the last slash.
+#                 Empty string if $path is not defined.
+# Parameters    : scalar $path -- path with file name
+# Throws        :
+# Comments      : E.g. returns 'filename' from '/home/john/docs/filename'
+# See Also      : index(), rindex(), substr()
+sub filename {
+    my $a = shift;
+
+    # this is for the sh*tty winz where
+    # both slash and backslash may be uzed
+    return $EMPTY_STR if ( !defined $a );
+    return ( index( $a, $dir_separator ) + index( $a, q{/} ) >= 0 )
+        ? substr( $a,
+        TrEd::MinMax::max( rindex( $a, $dir_separator ), rindex( $a, q{/} ) ) + 1 )
+        : $a;
+}
+
+
 
 1;
 
@@ -1690,6 +1881,21 @@ TrEd::File version 0.1.
 
   use TrEd::File;
   
+  # FSFile metainfo retrieval
+  
+    my @secondary_files         = TrEd::File::get_secondary_files($fsfile);
+  my @secondary_files_recurs  = TrEd::File::get_secondary_files_recursively($fsfile);
+  
+  
+  # Find ref to related Treex::PML::Documents loaded by Treex::PML::Document->loadRelatedDocuments()
+  my $id = $secondary_files[0]->[0];
+  my $fsfile_2 = $fsfile->referenceObjectHash()->{$id};
+  
+  my @primary_files         = TrEd::File::get_primary_files($fsfile_2);
+  my @primary_files_recurs  = TrEd::File::get_primary_files_recursively($fsfile_2);
+  
+  my $path = "/etc/X11/xorg.conf";
+  my $dir = TrEd::File::dirname($path);
     
 =head1 DESCRIPTION
 
@@ -1698,6 +1904,72 @@ This package provides basic open file dialog for TrEd.
 =head1 SUBROUTINES/METHODS
 
 =over 4 
+
+
+
+=item * C<TrEd::File::dirname($path)>
+
+=over 6
+
+=item Purpose
+
+Find out the name of the directory of $path
+
+
+=item Parameters
+
+  C<$path> -- scalar $path -- path whose dirname we are looking for
+
+=item Comments
+
+If $path does not contain any slash (fw or bw), dot and directory separator is returned, i. e. 
+
+"./" on Unices, ".\" on Win32
+
+=item See Also
+
+L<index>,
+L<rindex>,
+L<substr>,
+
+=item Returns
+
+Part of the string from the first character to the last forward/backward slash.
+Empty string if $path is not defined.
+
+=back
+
+
+=item * C<TrEd::File::filename($path)>
+
+=over 6
+
+=item Purpose
+
+Extract filename from $path
+
+
+=item Parameters
+
+  C<$path> -- scalar $path -- path with file name
+
+=item Comments
+
+E.g. returns 'filename' from '/home/john/docs/filename'
+
+
+=item See Also
+
+L<index>,
+L<rindex>,
+L<substr>,
+
+=item Returns
+
+Part of the string after the last slash.
+Empty string if $path is not defined.
+
+=back
 
 
 

@@ -6,7 +6,8 @@ use strict;
 use warnings;
 
 use TrEd::Convert qw{encode};
-use TrEd::Basics qw{set_current $EMPTY_STR};
+use TrEd::Window::TreeBasics qw{set_current};
+use TrEd::Utils qw{$EMPTY_STR};
 use TrEd::Config qw{$valueLineReverseLines
     $valueLineWrap
     $vLineFont
@@ -181,7 +182,7 @@ sub _click {
         $ret ||= $EMPTY_STR;
         if ( ref($ret) and UNIVERSAL::DOES::does( $ret, 'Treex::PML::Node' ) )
         {
-            TrEd::Basics::set_current( $win, $ret );
+            TrEd::Window::TreeBasics::set_current( $win, $ret );
             main::ensureCurrentIsDisplayed($win);
             main::centerTo( $win, $ret );
             Tk->break();
@@ -196,7 +197,7 @@ sub _click {
 
                     #  print STDERR "found $t\n";
                     my $node = $nodes{$t};
-                    TrEd::Basics::set_current( $win, $node );
+                    TrEd::Window::TreeBasics::set_current( $win, $node );
                     main::ensureCurrentIsDisplayed($win);
                     main::centerTo( $win, $node );
                     Tk->break();
@@ -208,7 +209,7 @@ sub _click {
             my $node = $win->{root};
             while ($node) {
                 if ( index( join( $EMPTY_STR, @tags ), ${node} ) >= 0 ) {
-                    TrEd::Basics::set_current( $win, $node );
+                    TrEd::Window::TreeBasics::set_current( $win, $node );
                     main::ensureCurrentIsDisplayed($win);
                     main::centerTo( $win, $node );
                     Tk->break();

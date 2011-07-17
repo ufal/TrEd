@@ -6,7 +6,7 @@ use warnings;
 use Carp;
 
 use TrEd::Config qw{$tredDebug $maxUndo};
-use TrEd::Basics qw{uniq $EMPTY_STR};
+use TrEd::Utils qw{uniq $EMPTY_STR};
 use TrEd::Error::Message;
 use Data::Snapshot;
 

@@ -20,7 +20,7 @@ BEGIN {
 }
 
 use TrEd::Config qw{$noLockProto $userlogin $tredDebug $lockFiles};
-use TrEd::Basics qw{$EMPTY_STR};
+use TrEd::Utils qw{$EMPTY_STR};
 use Treex::PML;
 use Carp;
 
