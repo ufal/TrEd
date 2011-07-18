@@ -3617,7 +3617,7 @@ Resume a previously open fsfile a given window in TrEd.
 sub ResumeFile {
   my ($fsfile)=@_;
   local $main::insideEval = 0;
-  my $ret = TrEd::File::resumeFile($grp,$fsfile,1);
+  my $ret = TrEd::File::resume_file($grp,$fsfile,1);
   main::doEvalHook($grp,"file_resumed_hook");
   return $ret;
 }

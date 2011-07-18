@@ -9,6 +9,7 @@ use TrEd::Config qw{$tredDebug $maxUndo};
 use TrEd::Utils qw{uniq $EMPTY_STR};
 use TrEd::Error::Message;
 use Data::Snapshot;
+use TrEd::File;
 
 use Readonly;
 
@@ -143,8 +144,8 @@ sub save_undo {
   if ($fsfile != $win->{FSFile}) {
     warn("Undo: window displays a different file than undo was prepared for.\n");
   }
-  #TODO: why is it not $fsfile->initAppData() ?
-  main::initAppData($fsfile);
+
+  TrEd::File::init_app_data($fsfile);
 
   my $stack=$fsfile->appData('undostack');
   splice @$stack, $fsfile->appData('undo')+1; # remove redo

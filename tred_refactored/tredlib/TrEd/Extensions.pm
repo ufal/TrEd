@@ -2015,6 +2015,7 @@ sub _update_install_new_button {
 #                 on the widget. opts_ref->{repositories} should be a ref to a list of repositories
 #                 with extensions.
 # See Also      : manage_repositories(), install_extensions(), Tk::DialogBox::Show()
+#TODO: len preboha prosim nezabudni premenovat tuto funkciu, lebo ti to otrepem o hlavu ja sam
 sub manage_extensions_2 {
     my ( $tred, $opts_ref ) = @_;
     $opts_ref ||= {};
