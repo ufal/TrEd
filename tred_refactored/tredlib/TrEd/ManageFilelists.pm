@@ -10,7 +10,8 @@ use File::Spec;
 use TrEd::MinMax; # max2
 use TrEd::Utils qw{$EMPTY_STR};
 use TrEd::Config qw{$tredDebug};
-use TrEd::File qw{closeFile absolutize filename};
+require TrEd::File;
+TrEd::File->import(qw{closeFile absolutize filename});
 
 use Treex::PML qw{&Index};
 use Treex::PML::IO;

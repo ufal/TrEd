@@ -359,12 +359,12 @@ if ($]>=5.008) {
 }
 require Encode;
 
-} # BEGIN
+} ################ eof BEGIN
 
 
 my $safe=$safe_mode; # so that it cannot be changed from outside
 
-# warning, same as in TrEd!!
+#TODO: warning, same as in TrEd!!
 sub conv_from_locale {
   my ($str)=@_;
   if ($locale_charset and $TrEd::Convert::support_unicode) {
@@ -420,7 +420,7 @@ if ($dump_macros) {
 
 _msg("done.\n") unless $quiet;
 
-## this is +- the same code as in tred::create_cmdline_filelists 
+#TODO:  this is +- the same code as in tred::create_cmdline_filelists 
 if ($file_list) {
   my $fh;
   foreach my $l (split /\s*,\s*/,$file_list) {
@@ -460,7 +460,7 @@ s/\s+$// for @files;
 @ARGV=@TredMacro::ARGV;
 
 
-
+#TODO: something similar in TrEd::Config?
 %bkmap=(
 	fs => 'FS',
 	csts => 'CSTS',
@@ -577,6 +577,7 @@ sub _redirect_stderr {
   return $old;
 }
 
+#toto je hlavne maso!!
 sub startMain {
   my $grp={
 	   treeNo => 0,
@@ -1411,6 +1412,8 @@ sub _last_err {
   $ret =~ s/^\s+|\s+$//g;
   return $ret;
 }
+
+#TODO: opat porovnat s tredovou implementaciou
 sub _new_status {
   my %status = (
     ok => undef,
@@ -1545,6 +1548,7 @@ sub openSecondaryFiles {
   return $return;
 }
 #TODO: aj v trede je
+#TODO: v btrede sa vobec nepouziva...
 sub resumeFile {
   my ($grp,$fsfile)=@_;
   my $f = $fsfile->filename;
@@ -1956,6 +1960,7 @@ sub closeAllPreloaded {
   }
 }
 
+# aj v trede...
 sub doEvalHook {
   my ($group,$hook)=(shift,shift);
   return if $NO_HOOKS;
@@ -1985,6 +1990,7 @@ sub doEvalHook {
   return $result;
 }
 
+# opat, aj v trede...
 sub doEvalMacro {
   my ($group,$macro)=(shift,shift);
   return unless $macro;
@@ -2047,6 +2053,7 @@ sub packages_under {
   return keys %pkgs;
 }
 
+# hm, toto aby fungovalo riadne!!
 sub cleanup_tredmacro {
   my ($grp,@macros)=@_;
   $TrEd::Macros::macrosEvaluated=0;
@@ -2105,6 +2112,7 @@ EOF
   $TrEd::Macros::safeCompartment=undef;
 }
 
+# zbavit sa dafe mode?
 sub init_safe_mode {
   my ($grp)=@_;
   require Safe;
@@ -2141,6 +2149,7 @@ sub init_safe_mode {
   $TrEd::Macros::safeCompartment=$compartment;
 }
 
+#TODO: opat, duplicita
 sub switchContext {
   return unless $allow_switch_context;
   my ($grp,$context)=@_;
@@ -2164,7 +2173,7 @@ sub updateTredMacroGlobals {
   set_macro_variable(root => $grp->{root},
 		     this => $grp->{currentNode});
 }
-
+#TODO: tred duplicita
 sub determineNodeType {
   my ($grp,$node)=@_;
   my $type = $node->type;
@@ -2224,6 +2233,8 @@ sub prepareExtensions {
   }
   return ($extensions,$pre_installed,$preinst_dir);
 }
+
+#TODO: dtto, duplicita
 sub loadMacros {
 
   _msg("Reading macros from $macroFile...\n") unless $quiet;

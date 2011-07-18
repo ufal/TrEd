@@ -2307,7 +2307,7 @@ sub redraw {
     my $fontHeight=$self->getFontHeight()*$lineSpacing;
     $self->{canvasHeight}+=$fontHeight; # add some skip
     if ($self->get_drawFileInfo) {
-      my $currentfile=filename($fsfile->filename);
+      my $currentfile=filename($fsfile->filename());
       my ($ftext);
       $ftext="File: $currentfile";
       if (@$nodes) {

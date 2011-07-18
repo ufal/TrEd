@@ -122,7 +122,7 @@ return sub {
     {
       '-command' => [ sub {
 			my ($grp)=@_;
-			return if TrEd::File::askSaveFile($grp->{focusedWindow},0,1) == -1;
+			return if TrEd::File::ask_save_file($grp->{focusedWindow},0,1) == -1;
 			TrEd::File::closeFile($grp->{focusedWindow},-all_windows => 1);
 		      }, $grp],
       '-underline' => 0
@@ -142,7 +142,7 @@ return sub {
 					     undef,
 					     $lr->[$grp->{focusedWindow}->{currentFileNo}]) if $lr;
 			}
-			return if TrEd::File::askSaveFile($grp->{focusedWindow},0,1) == -1;
+			return if TrEd::File::ask_save_file($grp->{focusedWindow},0,1) == -1;
 			TrEd::File::closeFile($grp->{focusedWindow},-all_windows => 1);
 		      }, $grp],
       '-underline' => 12

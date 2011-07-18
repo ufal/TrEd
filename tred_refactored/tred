@@ -491,6 +491,7 @@ require TrEd::NodeGroups; # instead of contrib/node_groups/node_groups.mak
 require TrEd::File;
 import TrEd::File;
 
+TrEd::File::init_backends($opt_B);
 
 ### eof new additions ###
 
@@ -1063,17 +1064,7 @@ sub is_focused {
   return $win eq $win->{framegroup}->{focusedWindow} ? 1 : 0;
 }
 
-# fsfile (feature envy?)
-sub initAppData {
-  my ($fsfile)=@_;
-  unless (ref($fsfile->appData('undostack'))) {
-    $fsfile->changeAppData('undostack',[]);
-    $fsfile->changeAppData('undo',-1);
-    $fsfile->changeAppData('lockinfo',undef);
-  }
-  $fsfile->changeAppData('fs-part-of',[]) unless ref($fsfile->appData('fs-part-of'));
-  $fsfile->changeAppData('ref',{}) unless ref($fsfile->appData('ref'));
-}
+# sub initAppData
 
 
 # sub setFSLockInfo
@@ -1100,7 +1091,7 @@ sub closeFileInWindow {
   my ($grp,$win)=grp_win($grp_or_win);
   my $keep;
   if (fsfileDisplayingWindows($grp,$win->{FSFile})<2) {
-    $keep=TrEd::File::askSaveFile($win,1,1);
+    $keep=TrEd::File::ask_save_file($win,1,1);
     return if $keep == -1;
   }
   TrEd::File::closeFile($win, -keep_postponed => $keep);
@@ -1261,7 +1252,6 @@ sub postponed_update_menu {
     }
     return;
 }
-
 
 sub updatePostponed {
   my ($grp)=@_;
@@ -2375,7 +2365,7 @@ sub addBindTags {
 
 # sub cascadeMenus
 
-
+# save button state update
 sub saveFileStateUpdate {
   my ($win)=@_;
   my $grp = $win->{framegroup};
@@ -3948,7 +3938,7 @@ sub quit {
   my ($grp,$win)=grp_win(shift);
   # run user's exit_hook
   doEvalHook($win,"exit_hook");
-  return if TrEd::File::askSaveFiles($grp,1) == -1;
+  return if TrEd::File::ask_save_files_and_close($grp,1) == -1;
   saveRuntimeConfig($grp);
   $grp->{top}->destroy;
   $grp->{top}=undef;

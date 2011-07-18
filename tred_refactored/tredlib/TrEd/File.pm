@@ -3,7 +3,7 @@ package TrEd::File;
 use strict;
 use warnings;
 
-use TrEd::ManageFilelists;
+require TrEd::ManageFilelists;
 use TrEd::Config qw{$ioBackends $lockFiles $reloadKeepsPatterns %save_types %backend_map $tredDebug};
 use TrEd::MinMax qw{max2 first max};
 use TrEd::Utils qw{applyFileSuffix uniq $EMPTY_STR};
@@ -13,7 +13,7 @@ use TrEd::Error::Message;
 use Carp;
 use Cwd;
 
-my $dir_separator = q{/}; # default
+our $dir_separator = q{/}; # default
 
 if ($^O eq "MSWin32") {
     $dir_separator = "\\"; # how filenames and directories are separated
@@ -27,40 +27,75 @@ else {
 # (pmltq and pdt20 access @openfiles directly)
 our @openfiles = ();
 
+# the ordinal number of new file when it is opened (increases as files are opened)
 my $new_file_no = 0;
 
-# EXPORT_OK:
-#absolutize
-#absolutize_path
-#get_secondary_files
-#get_secondary_files_recursively
-#get_primary_files
-#get_primary_files_recursively
+use Exporter;
 
-# EXPORT
-# dirname
-# filename
+use base qw(Exporter);
+BEGIN {
+    our $VERSION = "0.2";
+    # because of extensions
+    our @EXPORT = qw(dirname
+                    filename
+                    );
+    our @EXPORT_OK = qw(
+                        closeFile
+                        absolutize
+                        absolutize_path
+                        get_secondary_files
+                        get_secondary_files_recursively
+                        get_primary_files
+                        get_primary_files_recursively
+                        );
+}
+
+use Carp;
+use vars qw( $VERSION @EXPORT @EXPORT_OK );
+
+use Readonly;
+
+Readonly my $ASK_SAVE_REF_LABEL => <<'EOF';
+This document contains data obtained from external resources.
+Please select which of them should be updated:
+EOF
+
 
 #load back-ends
-my @backends = (
-    'FS',
-    Treex::PML::ImportBackends(
-        defined $TrEd::Config::ioBackends 
-            ? split( /,/, $TrEd::Config::ioBackends) 
-            : (),
-        defined $main::opt_B 
-            ? split( /,/, $main::opt_B) 
-            : (),
-        qw{NTRED
-            Storable
-            PML
-            CSTS
-            TrXML
-            TEIXML
-            PMLTransform
-            }
-    )
-);
+my @backends = ();
+
+#######################################################################################
+# Usage         : init_backends($cmdline_backends)
+# Purpose       : Initialize and import backends for reading various file types
+# Returns       : Undef/empty list
+# Parameters    : scalar $cmdline_backends -- string of comma separated backend names
+# Throws        : No exception
+# Comments      : Relies on Treex::PML::ImportBackends function
+# See Also      : add_backend(), remove_backend(), get_backends()
+sub init_backends {
+    my ($cmdline_backends) = @_;
+    @backends = (
+        'FS',
+        Treex::PML::ImportBackends(
+            defined $TrEd::Config::ioBackends 
+                ? split( /,/, $TrEd::Config::ioBackends) 
+                : (),
+            defined $cmdline_backends 
+                ? split( /,/, $cmdline_backends) 
+                : (),
+            qw{NTRED
+                Storable
+                PML
+                CSTS
+                TrXML
+                TEIXML
+                PMLTransform
+                }
+        )
+    );
+    return;
+}
+
 
 #######################################################################################
 # Usage         : get_backends()
@@ -76,8 +111,9 @@ sub get_backends {
 
 
 #######################################################################################
-# Usage         : _insert_if_before($class, $before, $found_ref, $backend)
-# Purpose       : Add $class to list of returned backends if backend $before was found
+# Usage         : _insert_if_before_exists($class, $before, $found_ref, $backend)
+# Purpose       : Add $class to list of returned backends if backend $before was found,
+#                 otherwise return only $before
 # Returns       : A list containing one or two elements. If $before is equal to $backend
 #                 (or $backend . 'Backend'), function returns two elements -- $class and 
 #                 $backend. Otherwise only $backend is returned.
@@ -109,12 +145,14 @@ sub _insert_if_before_exists {
 # Parameters    : scalar $class -- Name of the added backend
 #                 scalar $before -- Name of the backend before which the $class backend is added
 # Throws        : Carp if $before is specified but not found in the list of loaded backends
+#                 Side note: this function does not call Treex::PML::ImportBackends, so it can 
+#                 add backend that does not actually exist.
 # See Also      : remove_backend(), get_backends()
 sub add_backend {
     my ($class, $before) = @_;
     if (defined $before) {
         my $found;
-        #TODO: try to use split instead?
+        #TODO: try to use splice instead?
         @backends = map {
             _insert_if_before_exists($class, $before, \$found, $_);
         } @backends;
@@ -142,7 +180,6 @@ sub remove_backend {
     return @backends;
 }
 
-#TODO: mozno tieto backendy --^ dat osve
 
 #######################################################################################
 # Usage         : get_openfiles()
@@ -199,11 +236,14 @@ sub _merge_status {
 }
 
 #######################################################################################
-# Usage         : _new_status( ok => 0, error => 'File not found')
+# Usage         : _new_status( ok => 0, error => 'File not found' )
 # Purpose       : Create a hash reference containing status information about a file operation
 # Returns       : Reference to hash which contains status information
 # Parameters    : List of status information pairs
 # Throws        : No exception
+# Comments      : The hash items for status hash are following:
+#                   ok, cancel, warnings, error, filename, backends, report
+#                 Other (custom) hash items can be passed as parameters
 # See Also      : _merge_status()
 sub _new_status {
     my %status = (
@@ -228,6 +268,7 @@ sub _new_status {
 # Throws        : No exception
 # Comments      : This function is a part of USR2 signal handler
 # See Also      : main::handleUSR2Signal()
+#TODO: test?
 sub reload_on_usr2 {
     my ( $grp, $file_name ) = @_;
     my ($fsfile) = grep {
@@ -248,30 +289,60 @@ sub reload_on_usr2 {
     return;
 }
 
-#TODO: docs, see also $document->relatedSuperDocuments()
+
+#######################################################################################
+# Usage         : _related_files($fsfile)
+# Purpose       : Find all related files of $fsfile
+# Returns       : List of Treex::PML::Document objects which represent related documents
+# Parameters    : Treex::PML::Document ref $fsfile -- ref to file whose related files are searched for
+# Throws        : No exception
+# Comments      : 
+# See Also      : get_secondary_files(), get_primary_files()
 sub _related_files {
     my ($fsfile) = @_;
     return get_secondary_files($fsfile), 
-            @{ $fsfile->appData('fs-part-of') };
+            # these are relatedSuperDocuments:
+            get_primary_files($fsfile); 
 }
 
-# set keep to 1 if (filename is related and related should be keeped)
+#######################################################################################
+# Usage         : _fix_keep_option($fsfile, $file_name, $opts_ref)
+# Purpose       : If $filename is related to $fsfile file and "-keep_related" option is true,
+#                 set also the "-keep" option to true
+# Returns       : Undef/empty list
+# Parameters    : Treex::PML::Document ref $fsfile -- ref to file whose related files are examined
+#                 scalar $file_name  -- name of file that is searched among related files of $fsfile
+#                 hash_ref $opts_ref -- ref to hash of options
+# Throws        : No exception
+# See Also      : _related_files()
 sub _fix_keep_option {
     my ($fsfile, $file_name, $opts_ref) = @_;
-    if ( !$opts_ref->{-keep} and $opts_ref->{-keep_related} ) {
-        if ( $TrEd::Config::tredDebug and $fsfile ) {
+    if ( !$opts_ref->{-keep} && $opts_ref->{-keep_related} ) {
+        if ( $TrEd::Config::tredDebug && $fsfile ) {
             print STDERR "got -keep_related flag for open $file_name:\n";
             print STDERR map { $_->filename() . "\n" } _related_files($fsfile);
         }
         if ($fsfile 
             && first { $_->filename() eq $file_name } _related_files($fsfile)) {
                 $opts_ref->{-keep} = 1;
-                print STDERR "keep: $opts_ref->{-keep}\n" if $TrEd::Config::tredDebug;
+                if ($TrEd::Config::tredDebug) {
+                    print STDERR "keep: $opts_ref->{-keep}\n";
+                }
         }
     }
+    return;
 }
 
-# return first primary file of $fsfile's primary files whose name equals to $file_name or undef
+
+#######################################################################################
+# Usage         : _is_among_primary_files($fsfile, $file_name)
+# Purpose       : Test whether $file_name is among $fsfile's primary files
+# Returns       : First $fsfile's primary file whose name equals to $file_name or undef otherwise
+# Parameters    : Treex::PML::Document ref $fsfile -- ref to file whose primary files are examined
+#                 scalar $file_name  -- name of file that is searched among primary files of $fsfile
+# Throws        : No exception
+# Comments      : Searches for primary files recursively
+# See Also      : get_primary_files_recursively()
 sub _is_among_primary_files {
     my ($file_name, $fsfile) = @_;
     if (!defined $fsfile) {
@@ -313,9 +384,9 @@ sub _check_for_recovery {
 
         # Open recovery file
         #TODO: ci to nevadi, ked tu sa dosadzuje nove fsfile
-        ( $fsfile, $status ) = loadFile( $grp, $autosave, $backends );
+        ( $fsfile, $status ) = load_file( $grp, $autosave, $backends );
         if (ref($fsfile)) {
-            main::initAppData($fsfile);
+            init_app_data($fsfile);
         }
         if ( $status->{ok} ) {
 
@@ -345,9 +416,9 @@ sub _check_for_recovery {
                     closeFile( $win, -no_update => 1 );
                 }
 
-                ( $fsfile, $status ) = loadFile( $grp, $file_name, $backends );
+                ( $fsfile, $status ) = load_file( $grp, $file_name, $backends );
                 if (ref($fsfile)) {
-                    main::initAppData($fsfile);
+                    init_app_data($fsfile);
                 }
                 if ($TrEd::Config::lockFiles) {
                     TrEd::FileLock::set_fs_lock_info( $fsfile, $lockinfo );
@@ -378,15 +449,15 @@ sub _check_for_recovery {
 
         # Open requeseted file
 
-        ( $fsfile, $status ) = loadFile( $grp, $file_name, $backends );
-        main::initAppData($fsfile) if ref($fsfile);
+        ( $fsfile, $status ) = load_file( $grp, $file_name, $backends );
+        init_app_data($fsfile) if ref $fsfile;
         TrEd::FileLock::set_fs_lock_info( $fsfile, $lockinfo )
             if $TrEd::Config::lockFiles;
     }
 
     if ( $status->{ok} ) {
         $fsfile->changeFileFormat(
-            ( $file_name =~ /\.gz$/ ? "gz-compressed " : $EMPTY_STR ) . $fsfile->backend );
+            ( $file_name =~ /\.gz$/ ? "gz-compressed " : $EMPTY_STR ) . $fsfile->backend() );
         if (!$main::no_secondary) {
             $status = openSecondaryFiles( $win, $fsfile, $status )
                 or undef $fsfile;
@@ -450,6 +521,7 @@ sub open_file {
     my ( $grp_or_win, $raw_file_name, %opts ) = @_;
     my ( $grp, $win ) = main::grp_win($grp_or_win);
     if (!$opts{-nohook}) {
+        # extension can take over our open file subroutine
         my $open_file_hook_res = main::doEvalHook( $win, "open_file_hook", 
                                                    $raw_file_name, {%opts} ); 
         if ( defined $open_file_hook_res && $open_file_hook_res eq 'stop' ) {
@@ -509,7 +581,7 @@ sub open_file {
     # Shell we close current file?
     if ( !$opts{-preload} && !$opts{-keep} ) {
         if ( main::fsfileDisplayingWindows( $grp, $fsfile ) < 2 ) {
-            my $answer = askSaveFile( $win, 1, 1 );
+            my $answer = ask_save_file( $win, 1, 1 );
             if ( $answer == -1 ) {
                 $win->toplevel->Unbusy() unless $main::insideEval;
                 return
@@ -529,12 +601,14 @@ sub open_file {
     # Search open files for requested file, resume if available
     if ( !$opts{-justheader} ) {
         foreach my $opened_file ( $fsfile, @openfiles ) {
-            if ( ref($opened_file)
+            if ( ref $opened_file
                 && Treex::PML::IO::is_same_filename( $opened_file->filename(), $file_name ) )
             {
-                print "Opening postponed file\n" if $TrEd::Config::tredDebug;
+                if ($TrEd::Config::tredDebug) {
+                    print "Opening postponed file\n";
+                }
                 if ( !$opts{-preload} ) {
-                    resumeFile( $win, $opened_file, $opts{-keep} );
+                    resume_file( $win, $opened_file, $opts{-keep} );
                     main::update_title_and_buttons($grp);
                     TrEd::Utils::applyFileSuffix( $win, $suffix );
                     main::unhide_current_node($win);
@@ -574,7 +648,7 @@ sub open_file {
     ($fsfile, $status) = _check_for_recovery($file_name, $grp, $win, $fsfile, $lockinfo, \%opts);
     
     if (!$opts{-preload}) {
-        main::set_window_file( $win, $fsfile ) ;
+        main::set_window_file( $win, $fsfile ) ; # window->set_file?
     }
     
     if ($fsfile) {
@@ -607,7 +681,7 @@ sub open_file {
     my $r = $win->{redrawn};
     if ( $opts{-preload} ) {
         if ( $fsfile && !$opts{-nohook} ) {
-            main::doEvalHook( $win, "guess_context_hook", "file_opened_hook" );
+            main::doEvalHook( $win, "guess_context_hook", "file_opened_hook" ); # wont work until grp's fsfile is set
             main::doEvalHook( $win, "file_opened_hook" );
         }
     }
@@ -627,7 +701,7 @@ sub open_file {
             main::doEvalHook( $win, "file_opened_hook" );
         }
         if ( !$opts{-noredraw} ) {
-            if ( $win->{redrawn} <= $r ) {
+            if ( $win->{redrawn} <= $r ) { # not already redrawn by some hook
                 if ($save_current) {
                     $win->{currentNode} = $save_current;
                 }
@@ -728,7 +802,7 @@ sub closeFile {
         else {
             my @part_of = main::findToplevelFileFor( $win->{framegroup}, $fsfile );
             if ( $part_of[0] != $fsfile ) {
-                return unless askSaveFile( $win, 0, 1, $fsfile ) == 0;
+                return unless ask_save_file( $win, 0, 1, $fsfile ) == 0;
                 for (@part_of) {
                     closeFile(
                         $win, %opts,
@@ -799,7 +873,7 @@ sub closeFile {
 
             # remove dependency
             for my $req_fs ( get_secondary_files($fsfile) ) {
-                if ( ref( $req_fs->appData('fs-part-of') ) ) {
+                if ( ref $req_fs->appData('fs-part-of') ) {
                     @{ $req_fs->appData('fs-part-of') }
                         = grep { $_ != $fsfile }
                         @{ $req_fs->appData('fs-part-of') };
@@ -810,7 +884,7 @@ sub closeFile {
                     print STDERR "Attempting to close dependent "
                         . $req_fs->filename . "\n"
                         if $TrEd::Config::tredDebug;
-                    my $answer = askSaveFile( $win, 1, 1, $req_fs );
+                    my $answer = ask_save_file( $win, 1, 1, $req_fs );
                     return if $answer == -1;
                     if ( $answer == 1 ) {
                         print STDERR "Keeping dependent "
@@ -860,7 +934,7 @@ sub reloadFile {
             $nodeidx-- if $nodeidx >= 0;
             $f = "$f##$no.$nodeidx";
         }
-        return if askSaveFile( $win, 0, 1 ) == -1;
+        return if ask_save_file( $win, 0, 1 ) == -1;
         my $ctxt = $grp->{selectedContext};
         closeFile( $win, -all_windows => 1 );
         open_file( $win, $f, -noredraw => 1, -nohook => 1 );
@@ -882,22 +956,26 @@ sub reloadFile {
 }
 
 #######################################################################################
-# Usage         : reload_on_usr2($grp, $file_name)
-# Purpose       : Reload file or open it if it is not open
-# Returns       : Undef/empty list
+# Usage         : load_file($grp, $file_name, $backends)
+# Purpose       : Create Treex::PML::Document object representing file $file_name 
+# Returns       : In scalar context reference to created Treex::PML::Document is returned.
+#                 In list context, a list with two elements is returned. First element is 
+#                 reference to created Treex::PML::Documet, second one is status
 # Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
-#                 string $file_name -- name of the file to reload 
+#                 string $file_name -- name of the file to open and load
+#                 array_ref $backends -- reference to array of backends to use for loading file (optional)
 # Throws        : No exception
-# Comments      : This function is a part of USR2 signal handler
-# See Also      : main::handleUSR2Signal()
-sub loadFile {
-    my ( $grp, $file, $backends ) = @_;
+# Comments      : For details about status hash_ref see doc for _new_status() function
+# See Also      : Treex::PML::Document, _new_status()
+# was main::loadFile
+sub load_file {
+    my ( $grp, $file_name, $backends ) = @_;
     $grp = main::cast_to_grp($grp);
     my @warnings;
-    my $bck = ref($backends) ? $backends : \@backends;
+    my $bck = ref $backends ? $backends : \@backends;
     my $status = _new_status(
         ok       => 0,
-        filename => $file,
+        filename => $file_name,
         backends => $bck,
         warnings => \@warnings
     );
@@ -909,7 +987,7 @@ sub loadFile {
         push @warnings, $msg;
     };
     my $fsfile = Treex::PML::Factory->createDocumentFromFile(
-        $file,
+        $file_name,
         {   encoding => $TrEd::Convert::inputenc,
             backends => $bck,
             recover  => 1,
@@ -917,13 +995,13 @@ sub loadFile {
     );
     my $error = $Treex::PML::FSError;
     $status->{error} = $error == 1 ? 'No suitable backend!' : main::_last_err();
-    $status->{report} = "Loading file '$file':\n\n";
+    $status->{report} = "Loading file '$file_name':\n\n";
 
-    if ( ref($fsfile) and $fsfile->lastTreeNo >= 0 and $error == 0 ) {
+    if ( ref $fsfile && $fsfile->lastTreeNo >= 0 && $error == 0 ) {
         $status->{ok} = @warnings ? -1 : 1;
     }
     else {
-        if ( ref($fsfile) and $error == 0 ) {
+        if ( ref $fsfile && $error == 0 ) {
             push @warnings, "NO TREES FOUND in this file.";
             $status->{ok} = -1;
         }
@@ -939,7 +1017,7 @@ sub loadFile {
     $grp->{lastOpenError} = $status->{report};
 
     if (wantarray) {
-        return ( $fsfile, $status );
+        return ($fsfile, $status);
     }
     else {
         return $fsfile;
@@ -966,7 +1044,7 @@ sub openSecondaryFiles {
     $status ||= _new_status( ok => 1 );
     return $status if $fsfile->appData('fs-require-loaded');
     $fsfile->changeAppData( 'fs-require-loaded', 1 );
-    my $requires = $fsfile->metaData('fs-require');
+    my $requires = $fsfile->metaData('fs-require'); #$fsfile->relatedDocuments()
     if (defined $requires) {
         for my $req (@$requires) {
             next if ref( $fsfile->appData('ref')->{ $req->[0] } );
@@ -985,7 +1063,7 @@ sub openSecondaryFiles {
                 closeFile( $win, -fsfile => $req_fs, -no_update => 1 );
                 return $status2;
             }
-            else {
+            else { #zaznac do zavisleho, ze je zavisly na nadradenom
                 push @{ $req_fs->appData('fs-part-of') },
                     $fsfile;    # is this a good idea?
                 main::__debug("Setting appData('ref')->{$req->[0]} to $req_fs");
@@ -1052,46 +1130,6 @@ sub closeAllFiles {
     }
 }
 
-#######################################################################################
-# Usage         : reload_on_usr2($grp, $file_name)
-# Purpose       : Reload file or open it if it is not open
-# Returns       : Undef/empty list
-# Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
-#                 string $file_name -- name of the file to reload 
-# Throws        : No exception
-# Comments      : This function is a part of USR2 signal handler
-# See Also      : main::handleUSR2Signal()
-# ask user whether the current file should be saved (and save it if yes)
-# if $keepbutton parameter is 1, allow user to keep the file
-# return 0 if file saved, 1 if file should be kept and undef if no
-# file
-sub askSaveFile {
-    my ( $win, $keepbutton, $cancelbutton, $fsfile ) = @_;
-    $fsfile ||= $win->{FSFile};
-    return 0
-        unless ref($fsfile)
-            and $fsfile->notSaved;
-    my $answer = main::userQuery(
-        $win,
-        $fsfile->filename()
-            . "\n\nFile may be changed!\nDo you want to save it?",
-        -bitmap  => 'question',
-        -title   => "Should I save the file?",
-        -buttons => [
-            'Yes', 'No',
-            $keepbutton ? 'Keep' : (), $cancelbutton ? 'Cancel' : ()
-        ]
-    );
-    if ( $answer eq 'Yes' ) {
-        return saveFile( $win, $fsfile ) == -1 ? -1 : 0;
-    }
-    elsif ( $answer eq 'Keep' ) {
-        return 1;
-    }
-    elsif ( $answer eq 'Cancel' ) {
-        return -1;
-    }
-}
 
 #######################################################################################
 # Usage         : reload_on_usr2($grp, $file_name)
@@ -1282,7 +1320,7 @@ sub newFileFromCurrent {
 
     $new->changeURL( 'unnamed' . sprintf( '%03d', $new_file_no++ ) );
     $cur = undef;
-    my $answer = askSaveFile( $win, 1, 1 );
+    my $answer = ask_save_file( $win, 1, 1 );
     return 0 if $answer == -1;
     $keep = $keep || $answer;
     closeFile( $win, -no_update => 1, -keep_postponed => $keep );
@@ -1313,71 +1351,96 @@ sub newFileFromCurrent {
     return 1;
 }
 
-
 # dialog
 #######################################################################################
 # Usage         : reload_on_usr2($grp, $file_name)
 # Purpose       : Reload file or open it if it is not open
 # Returns       : Undef/empty list
 # Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
-#                 string $file_name -- name of the file to reload 
+#                 string $file_name -- name of the file to reload
 # Throws        : No exception
 # Comments      : This function is a part of USR2 signal handler
 # See Also      : main::handleUSR2Signal()
 sub saveFileAs {
-  my ($win,$fsfile)= @_;
-  my $initdir;
-  $fsfile ||= $win->{FSFile};
-  return unless $fsfile;
-  my $file=$fsfile->filename;
+    my ( $win, $fsfile ) = @_;
+    my $initdir;
+    $fsfile ||= $win->{FSFile};
+    return unless $fsfile;
+    my $file = $fsfile->filename;
 
-  $initdir=dirname($file);
-  $initdir=cwd if ($initdir eq './');
-  $initdir=~s!${dir_separator}$!!m;
+    $initdir = dirname($file);
+    $initdir = cwd if ( $initdir eq './' );
+    $initdir =~ s!${dir_separator}$!!m;
 
-  my $cur = $fsfile->backend || '';
-  $cur=~s/Backend$//;
-  $cur=qq{ ($cur)} if $cur;
-  my $response=main::userQuery($win, "\nPlease,\nchoose one of the following output formats.\n\n".
-			 "\nWARNING:\nsome formats may be incompatible with the current file.\n",
-			 -title => "Save As ...",
-			 -buttons => ["Use current".$cur,"FS","CSTS","TrXML","TEIXML","Storable","Cancel"]);
-  return if ($response eq "Cancel");
+    my $cur = $fsfile->backend || '';
+    $cur =~ s/Backend$//;
+    $cur = qq{ ($cur)} if $cur;
+    my $response = main::userQuery(
+        $win,
+        "\nPlease,\nchoose one of the following output formats.\n\n"
+            . "\nWARNING:\nsome formats may be incompatible with the current file.\n",
+        -title   => "Save As ...",
+        -buttons => [
+            "Use current" . $cur, "FS",
+            "CSTS",               "TrXML",
+            "TEIXML",             "Storable",
+            "Cancel"
+        ]
+    );
+    return if ( $response eq "Cancel" );
 
-#urob tabulku podla pbp?
-  if ($response eq 'FS') {
-    $file=~s/\.(?:csts|sgml|sgm|cst|trxml|trx|tei|xml)/.fs/i;
-    $file=~s/\.(amt|am|m|a)/$1.fs/;
-  } elsif ($response eq 'CSTS') {
-    $file=~s/\.(?:fs|tei|trxml|trx|xml)/.csts/i;
-  } elsif ($response eq 'TrXML') {
-    $file=~s/\.(?:csts|sgml|sgm|cst|fs|tei)/.trxml/i;
-  } elsif ($response eq 'TEIXML') {
-    $file=~s/\.(?:csts|sgml|sgm|cst|fs|trxml|trx)/.xml/i;
-  } elsif ($response eq 'Storable') {
-    $file=~s/\.(?:csts|sgml|sgm|cst|fs|trxml|trx|tei|xml)/.pls/i;
-  } 
-
-  my $filetypes;
-  if ($response =~ /^Use current/) {
-    my ($backend) = grep { $backend_map{$_} eq $fsfile->backend} keys %backend_map;
-    if ($backend) {
-      $filetypes = $save_types{$backend};
-    } else {
-      $filetypes = $save_types{'all'};
+    #urob tabulku podla pbp?
+    if ( $response eq 'FS' ) {
+        $file =~ s/\.(?:csts|sgml|sgm|cst|trxml|trx|tei|xml)/.fs/i;
+        $file =~ s/\.(amt|am|m|a)/$1.fs/;
     }
-  } else {
-    $filetypes = $save_types{lc($response)};
-  }
+    elsif ( $response eq 'CSTS' ) {
+        $file =~ s/\.(?:fs|tei|trxml|trx|xml)/.csts/i;
+    }
+    elsif ( $response eq 'TrXML' ) {
+        $file =~ s/\.(?:csts|sgml|sgm|cst|fs|tei)/.trxml/i;
+    }
+    elsif ( $response eq 'TEIXML' ) {
+        $file =~ s/\.(?:csts|sgml|sgm|cst|fs|trxml|trx)/.xml/i;
+    }
+    elsif ( $response eq 'Storable' ) {
+        $file =~ s/\.(?:csts|sgml|sgm|cst|fs|trxml|trx|tei|xml)/.pls/i;
+    }
 
-  $file= main::get_save_filename($win->toplevel,-filetypes=> $filetypes,
-				     -title=> "Save As ...",
-				     -d $initdir ? (-initialdir=> $initdir) : (),
-     				     $^O eq 'MSWin32' ? () : (-initialfile=> TrEd::Convert::filename($file)));
-  return doSaveFileAs($win,$fsfile,$file,
-		    ($response !~ /^Use current/) ? $backend_map{lc($response)} : $fsfile->backend,
-		    'ask','ask'
-		   );
+    my $filetypes;
+    if ( $response =~ /^Use current/ ) {
+        my ($backend)
+            = grep { $backend_map{$_} eq $fsfile->backend } keys %backend_map;
+        if ($backend) {
+            $filetypes = $save_types{$backend};
+        }
+        else {
+            $filetypes = $save_types{'all'};
+        }
+    }
+    else {
+        $filetypes = $save_types{ lc($response) };
+    }
+
+    $file = main::get_save_filename(
+        $win->toplevel,
+        -filetypes => $filetypes,
+        -title     => "Save As ...",
+        -d $initdir ? ( -initialdir => $initdir ) : (),
+        $^O eq 'MSWin32'
+        ? ()
+        : ( -initialfile => TrEd::Convert::filename($file) )
+    );
+    return doSaveFileAs(
+        $win,
+        $fsfile,
+        $file,
+        ( $response !~ /^Use current/ )
+        ? $backend_map{ lc($response) }
+        : $fsfile->backend,
+        'ask',
+        'ask'
+    );
 }
 
 # fsfile, dialog+
@@ -1386,310 +1449,471 @@ sub saveFileAs {
 # Purpose       : Reload file or open it if it is not open
 # Returns       : Undef/empty list
 # Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
-#                 string $file_name -- name of the file to reload 
+#                 string $file_name -- name of the file to reload
 # Throws        : No exception
 # Comments      : This function is a part of USR2 signal handler
 # See Also      : main::handleUSR2Signal()
 sub doSaveFileAs {
-  my ($win, $fsfile, $filename, $backend, $update_refs, $update_filelist)=@_;
-  my ($old_file,$old_backend,$old_format) = 
-    ($fsfile->filename,$fsfile->backend,$fsfile->fileFormat);
+    my ( $win, $fsfile, $filename, $backend, $update_refs, $update_filelist )
+        = @_;
+    my ( $old_file, $old_backend, $old_format )
+        = ( $fsfile->filename, $fsfile->backend, $fsfile->fileFormat );
 
-  my $lock_change=0;
-  if ($filename ne $EMPTY_STR) {
-    if ($filename ne $fsfile->filename) {
-      if ($lockFiles) {
-	my $lock = TrEd::FileLock::check_lock(undef,$filename);
-	if ($lock eq 'my') {
-	  if (main::userQuery($win,
-			"An existing lock on the file $filename indicates that it is probably used by another file-object within this process!",
-			-bitmap=> 'question',
-			-title => "Saving to a locked file?",
-			-buttons => ['Steal lock and save','Cancel']) eq 'Cancel') {
-	    return -1;
-	  }
-	} elsif ($lock ne 'none') {
-	  if (main::userQuery($win,
-			"File $filename was $lock!",
-			-bitmap=> 'question',
-			-title => "Saving to a locked file?",
-			-buttons => ['Steal lock and save','Cancel']) eq 'Cancel') {
-	    return -1;
-	  }
-	}
-	$lock_change=1;
-	$fsfile->changeFilename($filename);
-	#TODO: here we may be locking a file that does not yet exist
-	TrEd::FileLock::set_fs_lock_info($fsfile, TrEd::FileLock::set_lock($filename));
-      } else {
-	$fsfile->changeFilename($filename);
-      }
-    }
-    if (defined $backend) {
-      $fsfile->changeBackend($backend);
-    }
-    $fsfile->changeFileFormat(($filename=~/\.gz$/ ? "gz-compressed " : $EMPTY_STR).
-				     $fsfile->backend);
-    main::update_title_and_buttons($win->{framegroup});
-    main::updatePostponed($win->{framegroup});
-    if (TrEd::File::saveFile($win,$filename)==1) {
-      TrEd::FileLock::remove_lock($fsfile,$old_file,1) if ($lock_change);
+    my $lock_change = 0;
+    if ( $filename ne $EMPTY_STR ) {
+        if ( $filename ne $fsfile->filename ) {
+            if ($lockFiles) {
+                my $lock = TrEd::FileLock::check_lock( undef, $filename );
+                if ( $lock eq 'my' ) {
+                    if (main::userQuery(
+                            $win,
+                            "An existing lock on the file $filename indicates that it is probably used by another file-object within this process!",
+                            -bitmap  => 'question',
+                            -title   => "Saving to a locked file?",
+                            -buttons => [ 'Steal lock and save', 'Cancel' ]
+                        ) eq 'Cancel'
+                        )
+                    {
+                        return -1;
+                    }
+                }
+                elsif ( $lock ne 'none' ) {
+                    if (main::userQuery(
+                            $win,
+                            "File $filename was $lock!",
+                            -bitmap  => 'question',
+                            -title   => "Saving to a locked file?",
+                            -buttons => [ 'Steal lock and save', 'Cancel' ]
+                        ) eq 'Cancel'
+                        )
+                    {
+                        return -1;
+                    }
+                }
+                $lock_change = 1;
+                $fsfile->changeFilename($filename);
 
-      if ($filename ne $old_file and 
-	  ref($fsfile->appData('fs-part-of'))) {
-	my @fs = @{$fsfile->appData('fs-part-of')};
-	if ($update_refs eq 'all') {
-	  # all
-	  $update_refs = \@fs;
-	} elsif (UNIVERSAL::isa($update_refs,'ARRAY')) {
-	  # pre-selected FSFiles
-	} elsif ($update_refs eq 'ask') {
-	  $update_refs = [];
-	  if (@fs) {
-	    my $filenames = [map { $_->filename } @fs];
-	    my $selection=[@$filenames];
-	    main::listQuery(
-	      $win->toplevel,
-	      'Rename file also in...','multiple',
-	      $filenames,$selection,
-	      label => {
-		-text => <<'EOF'
+                #TODO: here we may be locking a file that does not yet exist
+                TrEd::FileLock::set_fs_lock_info( $fsfile,
+                    TrEd::FileLock::set_lock($filename) );
+            }
+            else {
+                $fsfile->changeFilename($filename);
+            }
+        }
+        if ( defined $backend ) {
+            $fsfile->changeBackend($backend);
+        }
+        $fsfile->changeFileFormat(
+            ( $filename =~ /\.gz$/ ? "gz-compressed " : $EMPTY_STR )
+            . $fsfile->backend );
+        main::update_title_and_buttons( $win->{framegroup} );
+        main::updatePostponed( $win->{framegroup} );
+        if ( TrEd::File::saveFile( $win, $filename ) == 1 ) {
+            TrEd::FileLock::remove_lock( $fsfile, $old_file, 1 )
+                if ($lock_change);
+
+            if ( $filename ne $old_file
+                and ref( $fsfile->appData('fs-part-of') ) )
+            {
+                my @fs = @{ $fsfile->appData('fs-part-of') };
+                if ( $update_refs eq 'all' ) {
+
+                    # all
+                    $update_refs = \@fs;
+                }
+                elsif ( UNIVERSAL::isa( $update_refs, 'ARRAY' ) ) {
+
+                    # pre-selected FSFiles
+                }
+                elsif ( $update_refs eq 'ask' ) {
+                    $update_refs = [];
+                    if (@fs) {
+                        my $filenames = [ map { $_->filename } @fs ];
+                        my $selection = [@$filenames];
+                        main::listQuery(
+                            $win->toplevel,
+                            'Rename file also in...',
+                            'multiple',
+                            $filenames,
+                            $selection,
+                            label => {
+                                -text => <<'EOF'
 You have renamed the current file, but it is referred to by the file(s) below.
 Please select files that should update their references to the current file:
 EOF
-	      },
-	      list => {
-		-exportselection => 0,
-	      }
-	     );
-	    if (@$selection) {
-	      my %selected = map { $_ => 1 } grep { $_ ne $EMPTY_STR } @$selection;
-	      $update_refs = [grep { $selected{$_->filename} } @fs];
-	    }
-	  }
-	}
-	my @failed;
-	foreach my $reff (@$update_refs) {
-	  my $req = $reff->metaData('fs-require');
-	  my $references = $reff->metaData('references');
-	  my $match;
-	  if (ref($req)) {
-	    for (@$req) {
-	      if ($_->[1] eq $old_file) {
-		if (ref($references)) {
-		  $references->{$_->[0]}=$filename;
-		  $_->[1] = $filename;
-		  $reff->notSaved(1);
-		}
-		$match = 1;
-	      }
-	    }
-	  }
-	  unless ($match) {
-	    push @failed,$reff;
-	  }
-	}
-	TrEd::Error::Message::error_message($win,
-		     "Could not find reference to the current file in the following files:\n\n".
-		       join("\n",map { $_->filename } @fs),1) if @failed;
-      }
+                            },
+                            list => { -exportselection => 0, }
+                        );
+                        if (@$selection) {
+                            my %selected = map { $_ => 1 }
+                                grep { $_ ne $EMPTY_STR } @$selection;
+                            $update_refs
+                                = [ grep { $selected{ $_->filename } } @fs ];
+                        }
+                    }
+                }
+                my @failed;
+                foreach my $reff (@$update_refs) {
+                    my $req        = $reff->metaData('fs-require');
+                    my $references = $reff->metaData('references');
+                    my $match;
+                    if ( ref($req) ) {
+                        for (@$req) {
+                            if ( $_->[1] eq $old_file ) {
+                                if ( ref($references) ) {
+                                    $references->{ $_->[0] } = $filename;
+                                    $_->[1] = $filename;
+                                    $reff->notSaved(1);
+                                }
+                                $match = 1;
+                            }
+                        }
+                    }
+                    unless ($match) {
+                        push @failed, $reff;
+                    }
+                }
+                TrEd::Error::Message::error_message(
+                    $win,
+                    "Could not find reference to the current file in the following files:\n\n"
+                        . join( "\n", map { $_->filename } @fs ),
+                    1
+                ) if @failed;
+            }
 
-      my $filelist = $win->{currentFilelist};
-      if ($filelist and $filename ne $old_file) {
-	if (!defined $update_filelist or $update_filelist eq 'ask') {
-	  my $response = 
-	    main::userQuery($win,
-		      "Do you want to update the current file list (".$filelist->name.")?\n\n".
-			"This will find all occurences in the file list of:\n${old_file}\n".
-			  "and update them to point to:\n${filename}",
-		      -bitmap=> 'question',
-		      -title => 'Update file list?',
-		      -buttons => ['Yes (all references)','Only current position','No']);
-	  if ($response ne 'No') {
-	    main::renameFileInFilelist($filelist, $old_file, $filename, 
-				 $response =~ /^Only/ ? main::currentFileNo($win) : undef);
-	  }
-	} elsif ($update_filelist=~/^all$|^current$/) {
-	  main::renameFileInFilelist($filelist, $old_file, $filename, 
-			       ($update_filelist eq 'current') ? 
-				main::currentFileNo($win) : undef);
-	}
-      }
-      return 1;
-    } else {
-      TrEd::FileLock::remove_lock($fsfile,$filename,1) if ($lock_change);
-      $fsfile->changeFilename($old_file);
-      TrEd::FileLock::set_fs_lock_info($fsfile, TrEd::FileLock::set_lock($old_file)) if $lock_change;
-      $fsfile->changeBackend($old_backend);
-      $fsfile->changeFileFormat($old_format);
-      main::update_title_and_buttons($win->{framegroup});
-      return 0;
+            my $filelist = $win->{currentFilelist};
+            if ( $filelist and $filename ne $old_file ) {
+                if ( !defined $update_filelist or $update_filelist eq 'ask' )
+                {
+                    my $response = main::userQuery(
+                        $win,
+                        "Do you want to update the current file list ("
+                            . $filelist->name
+                            . ")?\n\n"
+                            . "This will find all occurences in the file list of:\n${old_file}\n"
+                            . "and update them to point to:\n${filename}",
+                        -bitmap  => 'question',
+                        -title   => 'Update file list?',
+                        -buttons => [
+                            'Yes (all references)',
+                            'Only current position',
+                            'No'
+                        ]
+                    );
+                    if ( $response ne 'No' ) {
+                        main::renameFileInFilelist(
+                            $filelist,
+                            $old_file,
+                            $filename,
+                            $response =~ /^Only/
+                            ? main::currentFileNo($win)
+                            : undef
+                        );
+                    }
+                }
+                elsif ( $update_filelist =~ /^all$|^current$/ ) {
+                    main::renameFileInFilelist(
+                        $filelist,
+                        $old_file,
+                        $filename,
+                        ( $update_filelist eq 'current' )
+                        ? main::currentFileNo($win)
+                        : undef
+                    );
+                }
+            }
+            return 1;
+        }
+        else {
+            TrEd::FileLock::remove_lock( $fsfile, $filename, 1 )
+                if ($lock_change);
+            $fsfile->changeFilename($old_file);
+            TrEd::FileLock::set_fs_lock_info( $fsfile,
+                TrEd::FileLock::set_lock($old_file) )
+                if $lock_change;
+            $fsfile->changeBackend($old_backend);
+            $fsfile->changeFileFormat($old_format);
+            main::update_title_and_buttons( $win->{framegroup} );
+            return 0;
+        }
     }
-  }
-  return 0;
+    return 0;
 }
 
+sub _change_filename {
+    my ($initdir, $l) = @_;
+    my ( $file, $rest ) = split / \[/, $l->get('active'), 2;
+    my $initdir2 = dirname($file);
+    if (!File::Spec->file_name_is_absolute($initdir2)) {
+        $initdir2 = File::Spec->catfile( $initdir, $initdir2 );
+    }
+    $file = main::get_save_filename(
+        $l->toplevel,
+        -filetypes => $save_types{all},
+        -title     => "Save As ...",
+        -d $initdir2 ? ( -initialdir => $initdir2 ) : (),
+        $^O eq 'MSWin32'
+        ? ()
+        : ( -initialfile => filename($file) )
+    );
+    if ( $file ne $EMPTY_STR ) {
+        my $index = $l->index('active');
+    
+        my %selected
+            = map { $_ => 1 }
+            grep { $l->selectionIncludes($_) }
+            ( 0 .. $l->size - 1 );
+        
+        $l->insert( $index, $file . " [" . $rest );
+        $l->delete('active');
+        $l->activate($index);
+        foreach ( 0 .. $l->size - 1 ) {
+            if ( $selected{$_} ) {
+                $l->selectionSet($_);
+            }
+            else {
+                $l->selectionClear($_);
+            }
+        }
+    }
+    Tk->break();
+    return;
+}
+
+use Readonly;
+
+
+
 #######################################################################################
-# Usage         : reload_on_usr2($grp, $file_name)
-# Purpose       : Reload file or open it if it is not open
+# Usage         : askSaveReferences($win, $fsfile, $result, $filename)
+# Purpose       : Write embedded DOM documents
 # Returns       : Undef/empty list
 # Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
-#                 string $file_name -- name of the file to reload 
+#                 string $file_name -- name of the file to reload
 # Throws        : No exception
 # Comments      : This function is a part of USR2 signal handler
 # See Also      : main::handleUSR2Signal()
-sub askSaveReferences {
-  # write embedded DOM documents
-  my ($win,$fsfile,$result,$filename)=@_;
-  $filename = $fsfile->filename unless defined $filename;
-  my (@refs);
-  my $schema = $fsfile->schema() || return 1;
-  my $references = [ $schema->get_named_references ];
-  return 1 unless @$references;
-  my $name2id = $fsfile->metaData('refnames');
-  my $id2href = $fsfile->metaData('references');
-  foreach my $reference (@$references) {
-    my $name = $reference->{name};
-    my $refid = $name2id->{$name};
-    if ($refid) {
-      my $href = $id2href->{$refid};
-      my $r;
-      if ($href and $reference->{readas} =~ /^(dom|pml)$/ and 
-	  ref($fsfile->appData('ref')) and $r=$fsfile->appData('ref')->{$refid}) {
-	push @refs, [$href." [$refid, $name]",
-		     $r,$refid,$name];
-      }
+# choose which referenced documents should be saved
+sub askSaveReferences { # result je vystupny hash... C-like predavanie vystupu...
+    my ( $win_ref, $fsfile, $result, $filename ) = @_;
+    if ( !defined $filename ) {
+        $filename = $fsfile->filename();
     }
-  }
-  my $i=0;
-  while ($i<@refs) {
-    my $r = $refs[$i][1];
-    if (UNIVERSAL::DOES::does($r,'Treex::PML::Instance')) {
-      my $schema = $r->get_schema;
-      my $references = [ $schema->get_named_references ];
-      next unless @$references;
-      my $name2id = $r->get_refname_hash();
-      my $id2href = $r->get_references_hash();
-      foreach my $reference (@$references) {
-	my $name = $reference->{name};
-	my $refid = $name2id->{$name};
-	if ($refid) {
-	  my $href = $id2href->{$refid};
-	  if ($href and $reference->{readas} =~ /^(dom|pml)$/) {
-	    my $r2 = $r->get_ref($refid);
-	    $refid=$refs[$i][2].'/'.$refid;
-	    $name=$refs[$i][3].'/'.$name;
-	    push @refs, [$href." [$refid, $name]",
-		     $r2,$refid,$name] if $r2;
-	  }
-	}
-      }
+    my (@refs);
+    my $schema = $fsfile->schema() || return 1;
+    my $references = [ $schema->get_named_references() ]; #name: adata, readas: trees; name:mdata, readas: dom
+    return 1 if (!@$references);
+    my $name2id = $fsfile->metaData('refnames'); # { mdata => m, wdata => w }
+    my $id2href = $fsfile->metaData('references'); # { a => 'URI::File', w dtto, v => vallex.pml }
+    foreach my $reference (@{$references}) {
+        my $name  = $reference->{name};
+        my $refid = $name2id->{$name}; # napr 'a', 'm'
+        if ($refid) {
+            my $href = $id2href->{$refid}; # napr 'URI::File sample0.a.gz'
+            my $r;
+            if (    $href
+                and $reference->{readas} =~ /^(dom|pml)$/
+                and ref $fsfile->appData('ref')
+                and $r = $fsfile->appData('ref')->{$refid} )
+            {
+                push @refs, [ $href . " [$refid, $name]", 
+                              $r, 
+                              $refid, 
+                              $name 
+                            ];
+            }
+        }
     }
-  } continue { $i++ }
-  @refs=map $_->[0],@refs;
-  # CURSOR
-  return 1 unless @refs;
-  my $initdir = dirname($filename);
-  my $selection = [];
-  my $return =
-    main::listQuery(
-      $win->toplevel,'Select resources to save','multiple',
-      \@refs,$selection,
-      label => {
-	-text => <<'EOF'
-This document contains data obtained from external resources.
-Please select which of them should be updated:
-EOF
-       },
-      list => {
-	-exportselection => 0,
-      },
-      buttons => [{
-	-text => 'Change filename...',
-	-underline => 7,
-	-command => [sub {
-		       my ($l)=@_;
-		       my ($file,$rest) = split / \[/,$l->get('active'),2;
-		       my $initdir2 = dirname($file);
-		       $initdir2 = File::Spec->catfile($initdir,$initdir2)
-			 unless File::Spec->file_name_is_absolute($initdir2);
-		       $file = main::get_save_filename(
-			 $l->toplevel,
-			 -filetypes=> $save_types{all},
-			 -title=> "Save As ...",
-			 -d $initdir2 ? (-initialdir=> $initdir2) : (),
-			 $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
-		       if ($file ne $EMPTY_STR) {
-			 my $index = $l->index('active');
+    my $i = 0;
+    while ( $i < @refs ) {
+        my $r = $refs[$i][1];
+        if ( UNIVERSAL::DOES::does( $r, 'Treex::PML::Instance' ) ) {
+            my $schema     = $r->get_schema();
+            my $references = [ $schema->get_named_references() ];
+            next if (!@{$references});
+            my $name2id = $r->get_refname_hash();
+            my $id2href = $r->get_references_hash();
+            foreach my $reference (@{$references}) {
+                my $name  = $reference->{name};
+                my $refid = $name2id->{$name};
+                if ($refid) {
+                    my $href = $id2href->{$refid};
+                    if ( $href && $reference->{readas} =~ /^(dom|pml)$/ ) {
+                        my $r2 = $r->get_ref($refid);
+                        $refid = $refs[$i][2] . q{/} . $refid;
+                        $name  = $refs[$i][3] . q{/} . $name;
+                        if ($r2) {
+                            push @refs,
+                                [ $href . " [$refid, $name]", 
+                                  $r2, 
+                                  $refid, 
+                                  $name 
+                                ];
+                        }
+                    }
+                }
+            }
+        }
+    }
+    continue { $i++ }
+    @refs = map { $_->[0] } @refs;
 
-			 my %selected = map {$_=>1} grep { $l->selectionIncludes($_) } (0 .. $l->size-1);
-			 $l->insert($index,$file." [".$rest);
-			 $l->delete('active');
-			 $l->activate($index);
-			 foreach (0 .. $l->size-1) {
-			   if ($selected{$_}) {
-			     $l->selectionSet($_);
-			   } else {
-			     $l->selectionClear($_);
-			   }
-			 }
-		       }
-		       Tk->break;
-		     }]
-       }]
-     );
-  if ($return) {
-    %$result = map { /^(.*) \[([^,]+),/ ? ($2 => $1) : () } @$selection;
-  }
-  return $return;
+    # CURSOR
+    return 1 if (!@refs);
+    my $initdir   = dirname($filename);
+    my $selection = [];
+    my $return    = main::listQuery(
+        $win_ref->toplevel,
+        'Select resources to save',
+        'multiple',
+        \@refs,
+        $selection,
+        label => {
+            -text => $ASK_SAVE_REF_LABEL,
+        },
+        list    => { -exportselection => 0, },
+        buttons => [
+            {   -text      => 'Change filename...',
+                -underline => 7,
+                -command   => [ \&_change_filename, $initdir ],
+            }
+        ]
+    );
+    if ($return) {
+        %{$result} = map { /^(.*) \[([^,]+),/ ? ( $2 => $1 ) : () } @{$selection};
+    }
+    return $return; # nie radsej result?
 }
 
-# dialog, file
-sub askSaveFiles {
-  my ($grp,$cancelbutton)= @_;
-
-  @{$grp->{treeWindows}} = grep { $_ ne $grp->{focusedWindow} } @{$grp->{treeWindows}};
-  unshift @{$grp->{treeWindows}},$grp->{focusedWindow};
-  my $win;
-  my %asked;
-  foreach $win (@{ $grp->{treeWindows} }) {
-    if ($win->{FSFile}) {
-      $asked{$win->{FSFile}}=1;
-      main::focusCanvas($win->canvas(),$win->{framegroup});
-      return -1 if askSaveFile($win,0,$cancelbutton) == -1;
-      closeFile($win,-no_update => 1,-all_windows => 1);
+#######################################################################################
+# Usage         : ask_save_file($win_ref, $keepbutton, $cancelbutton, $fsfile)
+# Purpose       : Ask user whether the current file should be saved and save it
+#                 if it is told so
+# Returns       : 0 if there is no file to save or the file has already been saved or the 
+#                   save was successful
+#                 1 if the user chooses to keep the file open
+#                 -1 if the user chooses to cancel the operation or something prevented file from saving
+# Parameters    : TrEd::Window ref $win_ref -- ref to TrEd::Window
+#                 scalar $keepbutton -- if set to true value, allows user to keep the file
+#                 scalar $cancelbutton -- if set to true value, allows user to cancel the operation
+#                 Treex::PML::Document ref $fsfile -- ref to file that we are asking the user about (optional) 
+# Throws        : No exception
+# Comments      : If no $fsfile is specified, the file from Window $win_ref is considered.
+# See Also      : saveFile(), userQuery()
+sub ask_save_file {
+    my ( $win_ref, $keepbutton, $cancelbutton, $fsfile ) = @_;
+    $fsfile ||= $win_ref->{FSFile};
+    # do nithing if there is no fsfile or it has been already saved
+    return 0 if (!ref $fsfile || !$fsfile->notSaved());
+    my $answer = main::userQuery(
+        $win_ref,
+        $fsfile->filename()
+            . "\n\nFile may be changed!\nDo you want to save it?",
+        -bitmap  => 'question',
+        -title   => "Should I save the file?",
+        -buttons => [
+            'Yes', 
+            'No',
+            $keepbutton ? 'Keep' : (), 
+            $cancelbutton ? 'Cancel' : ()
+        ]
+    );
+    if ( $answer eq 'Yes' ) {
+        return saveFile( $win_ref, $fsfile ) == -1 ? -1 : 0;
     }
-  }
-
-  for my $fsfile (grep { !$asked{$_} and ref($_) and $_->notSaved } @openfiles) {
-    resumeFile($grp->{focusedWindow},$fsfile);
-    main::update_title_and_buttons($grp);
-    main::get_nodes_win($grp->{focusedWindow});
-    main::redraw_win($grp->{focusedWindow});
-    main::centerTo($grp->{focusedWindow},$grp->{focusedWindow}->{currentNode});
-    $grp->{top}->update();
-    return -1 if askSaveFile($grp->{focusedWindow},0,$cancelbutton) == -1;
-  }
-  closeAllFiles($grp);
+    elsif ( $answer eq 'Keep' ) {
+        return 1;
+    }
+    elsif ( $answer eq 'Cancel' ) {
+        return -1;
+    }
 }
 
-sub resumeFile {
-  my ($win,$fsfile,$keep)=@_;
-  $keep||=$win->{framegroup}->{keepopen};
-  return unless ref($win) and ref($fsfile);
-  print "Resuming file ".$fsfile->filename()."\n"  if $TrEd::Config::tredDebug;
 
-  closeFile($win,-keep_postponed => $keep);
-  main::__debug("Using last context: ",$fsfile->appData('last-context'));
-  main::switchContext($win,$fsfile->appData('last-context'));
-  main::__debug("Using last stylesheet: ",$fsfile->appData('last-stylesheet'));
-  main::switchStylesheet($win,$fsfile->appData('last-stylesheet'));
-
-  main::set_window_file($win,$fsfile);
-  main::saveFileStateUpdate($win);
+#######################################################################################
+# Usage         : ask_save_files_and_close($grp_ref, $cancelbutton)
+# Purpose       : Ask whether to save modified files in all the Windows and close them
+# Returns       : -1 if the operation was cancelled by the user
+#                 0 otherwise
+# Parameters    : hash_ref $grp_ref -- reference to hash containing TrEd options
+#                 scalar $cancelbutton -- if set to true, displays cancel button for the user
+# Throws        : no exception
+# Comments      : 
+# See Also      : ask_save_file()
+# was main::askSaveFiles
+sub ask_save_files_and_close {
+    my ( $grp_ref, $cancelbutton ) = @_;
+    
+    # put focused window in front of other windows in $grp_ref->{treeWindows} array
+    @{ $grp_ref->{treeWindows} }
+        = grep { $_ ne $grp_ref->{focusedWindow} } @{ $grp_ref->{treeWindows} };
+    unshift @{ $grp_ref->{treeWindows} }, $grp_ref->{focusedWindow};
+    
+    my $win;
+    my %asked;
+    # ask for every file shown in opened windows
+    foreach $win ( @{ $grp_ref->{treeWindows} } ) {
+        if ( $win->{FSFile} ) {
+            $asked{ $win->{FSFile} } = 1;
+            main::focusCanvas( $win->canvas(), $win->{framegroup} );
+            return -1 if (ask_save_file( $win, 0, $cancelbutton ) == -1);
+            closeFile( $win, -no_update => 1, -all_windows => 1 );
+        }
+    }
+    
+    # take care of the rest of opened files
+    for my $fsfile ( grep { !$asked{$_} && ref $_ && $_->notSaved() }
+        @openfiles )
+    {
+        resume_file( $grp_ref->{focusedWindow}, $fsfile );
+        main::update_title_and_buttons($grp_ref);
+        main::get_nodes_win( $grp_ref->{focusedWindow} );
+        main::redraw_win( $grp_ref->{focusedWindow} );
+        main::centerTo( $grp_ref->{focusedWindow},
+            $grp_ref->{focusedWindow}->{currentNode} );
+        $grp_ref->{top}->update();
+        return -1
+            if ask_save_file( $grp_ref->{focusedWindow}, 0, $cancelbutton ) == -1;
+    }
+    closeAllFiles($grp_ref);
+    return 0;
 }
 
-## presmerovat!!!
+#######################################################################################
+# Usage         : resume_file($win_ref, $fsfile, $keep)
+# Purpose       : Resume already opened file 
+# Returns       : Undef/empty list
+# Parameters    : TrEd::Window ref $win_ref        -- ref to TrEd::Window object in which the file is going to be resumed
+#                 Treex::PML::Document ref $fsfile -- a relative path to a file
+#                 scalar $keep -- indicator whether the currently opened file should be kept open (optional)
+# Throws        : no exception
+# Comments      : If file has already been opened and fsfile object has been created, 
+#                 the file is resumed instead of opened in a regular way. 
+#                 This subroutine is a part of this resume operation, which takes care of
+#                 switching context, stylesheet, setting fsfile for TrEd::Window and
+#                 updating the state of 'save' button on TrEd's toolbar.
+# See Also      : open_file(), closeFile()
+sub resume_file {
+    my ( $win_ref, $fsfile, $keep ) = @_;
+    $keep ||= $win_ref->{framegroup}->{keepopen};
+    return if ( !ref $win_ref || !ref $fsfile );
+    if ($TrEd::Config::tredDebug) {
+        print "Resuming file " . $fsfile->filename() . "\n";
+    }
+
+    closeFile( $win_ref, -keep_postponed => $keep );
+    main::__debug( "Using last context: ", $fsfile->appData('last-context') );
+    main::switchContext( $win_ref, $fsfile->appData('last-context') );
+    main::__debug( "Using last stylesheet: ",
+        $fsfile->appData('last-stylesheet') );
+    main::switchStylesheet( $win_ref, $fsfile->appData('last-stylesheet') );
+
+    main::set_window_file( $win_ref, $fsfile );
+    main::saveFileStateUpdate($win_ref);
+    return;
+}
+
 #######################################################################################
 # Usage         : absolutize_path($ref_filename, $filename, [$search_resource_path])
 # Purpose       : Return absolute path unchanged, resolve relative path
@@ -1712,14 +1936,16 @@ sub absolutize_path {
 # Throws        : no exception
 # See Also      : File::Spec->rel2abs()
 sub absolutize {
-
-    # filter out elements containing only whitespaces
-    # if the path starts with X:/, | or /, it is absolute, just return it;
-    # otherwise change relative to absolute path
     return
+
+        # if the path starts with X:/, | or /, it is absolute, just return it;
+        # otherwise change relative to absolute path
         map { m(^[[:alnum:]]+:/|^\s*\||^\s*/) ? $_ : File::Spec->rel2abs($_) }
+
+        # filter out elements containing only whitespace
         grep { !/^\s*$/ } @_;
 }
+
 
 
 #######################################################################################
@@ -1859,6 +2085,37 @@ sub filename {
         : $a;
 }
 
+#######################################################################################
+# Usage         : init_app_data($fsfile)
+# Purpose       : Initialize $fsfile's application specific data for using the fsfile in TrEd
+# Returns       : Undef/empty list
+# Parameters    : Treex::PML::Document ref $fsfile -- ref to file to initialize
+# Throws        : No exception
+# Comments      : Initialize the undo information and information about related files, 
+#                 if they are not already set
+# See Also      : 
+# was main::initAppData
+sub init_app_data {
+    my ($fsfile) = @_;
+    # init fsfile's undo information
+    if ( !ref $fsfile->appData('undostack') ) {
+        $fsfile->changeAppData('undostack', [] );
+        $fsfile->changeAppData('undo',      -1 );
+        $fsfile->changeAppData('lockinfo',  undef );
+    }
+    # init 'fs-part-of' hash which stores information
+    # about primary file of this fsfile
+    if ( !ref $fsfile->appData('fs-part-of') ) {
+        $fsfile->changeAppData('fs-part-of', []);
+    }
+    
+    # init 'ref' hash which stores information 
+    # about loaded secondary files
+    if ( !ref $fsfile->appData('ref') ) {
+        $fsfile->changeAppData('ref', {});
+    }
+    return;
+}
 
 
 1;
@@ -1881,9 +2138,11 @@ TrEd::File version 0.1.
 
   use TrEd::File;
   
+  
+  
   # FSFile metainfo retrieval
   
-    my @secondary_files         = TrEd::File::get_secondary_files($fsfile);
+  my @secondary_files         = TrEd::File::get_secondary_files($fsfile);
   my @secondary_files_recurs  = TrEd::File::get_secondary_files_recursively($fsfile);
   
   
@@ -1894,8 +2153,11 @@ TrEd::File version 0.1.
   my @primary_files         = TrEd::File::get_primary_files($fsfile_2);
   my @primary_files_recurs  = TrEd::File::get_primary_files_recursively($fsfile_2);
   
+  
+  
   my $path = "/etc/X11/xorg.conf";
   my $dir = TrEd::File::dirname($path);
+  my $dir = TrEd::File::filename($path);
     
 =head1 DESCRIPTION
 
