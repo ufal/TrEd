@@ -184,8 +184,14 @@ fetch_url () {
 	echo "Fetching $1 into $2 using wget..."
 	wget -O "$2" "$1"
     else
-	echo "Fetching $1 into $2 using LWP::Simple..."
-	"$perl" -MLWP::Simple -e '($url,$file)=@ARGV; $res=mirror($url,$file); die "Failed to fetch $url into $file" unless $res==RC_OK or $res==RC_NOT_MODIFIED' "$1" "$2"
+        echo "Fetching $1 into $2 using File::Fetch..."
+        "$perl" -MFile::Fetch -e '
+              ($url, $file) = @ARGV;
+              $ff = File::Fetch->new(uri => $url);
+              die "Error fetching $url\n" unless ref $ff;
+              $res = $ff->fetch;
+              die $ff->error unless defined $res and length $res;
+        ' "$1" "$2"
     fi
 }
 
