@@ -4,8 +4,11 @@
 
 package TredMacro;
 
+require TrEd::Query::List;
+require TrEd::Query::String;
+require TrEd::Dialog::FocusFix;
 
-#use strict;
+use strict;
 use warnings;
 
 
@@ -59,11 +62,12 @@ sub PasteFromClipboard {
   $nodeClipboard=undef;
 }
 
+# this subroutine's name collides with one that exists in TrEd's main namespace
 sub QueryString {
   ## display a dialog box with an edit line and Ok/Cancel buttons
   ## parameters: window title, entry label, default value
 
-  main::QueryString($grp->{framegroup},@_);
+  TrEd::Query::String::new_query($grp->{framegroup},@_);
 }
 
 *StringQuery = \&QueryString;
@@ -107,7 +111,7 @@ sub EditBoxQuery {
   $d->bind(ref($ed->Subwidget('scrolled')),'<Escape>', [sub { shift; my $w=shift; $w->{selected_button}= 'Cancel'; },$d] );
   $ed->focus;
   RunCallback($opts->{-init},$d,$ed) if $opts->{-init};
-  if (main::ShowDialog($d) =~ /OK/) {
+  if (TrEd::Dialog::FocusFix::show_dialog($d) =~ /OK/) {
     $text=$ed->get('0.0','end');
     chomp($text);
     $d->destroy();
@@ -122,7 +126,7 @@ sub ListQuery {
   my ($title,$select_mode,$vals,$selected,$opts)=@_;
   $opts||={};
   my $top=delete($opts->{top}) || ToplevelFrame();
-  main::listQuery($top,$title,$select_mode,$vals,$selected,%$opts);
+  TrEd::Query::List::new_query($top,$title,$select_mode,$vals,$selected,%$opts);
 }
 
 sub QuestionQuery {
@@ -226,7 +230,7 @@ sub RedrawAndUpdateThis {
 
 
 sub GotoTreeAsk {
-  my $to=main::QueryString($grp->{framegroup},"Give a Tree Number","Number");
+  my $to=TrEd::Query::String::new_query($grp->{framegroup},"Give a Tree Number","Number");
 
   $FileNotSaved=0;
   if ($to=~/#/) {
@@ -245,7 +249,7 @@ sub GotoTreeAsk {
 
 
 sub GotoFileAsk {
-  my $to=main::QueryString($grp->{framegroup},"Give a File Number","Number");
+  my $to=TrEd::Query::String::new_query($grp->{framegroup},"Give a File Number","Number");
   return unless $to=~/^\s*\d+\s*$/;
   if (GotoFileNo($to-1)) {
     $FileNotSaved = GetFileSaveStatus();
@@ -258,7 +262,7 @@ sub GotoFileAsk {
 
 
 sub TieGotoTreeAsk {
-  my $to=main::QueryString($grp->{framegroup},"Give a Tree Number","Number");
+  my $to=TrEd::Query::String::new_query($grp->{framegroup},"Give a Tree Number","Number");
 
   if ($to=~/#/) {
     for (my $i=$grp->{treeNo}+1; $i<=$grp->{FSFile}->lastTreeNo; $i++) {

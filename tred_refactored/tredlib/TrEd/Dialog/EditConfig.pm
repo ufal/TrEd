@@ -3,7 +3,8 @@ package TrEd::Dialog::EditConfig;
 use strict;
 use warnings;
 
-
+use Tk;
+use TrEd::Config;
 
 sub show_dialog {
   my ($grp)=@_;

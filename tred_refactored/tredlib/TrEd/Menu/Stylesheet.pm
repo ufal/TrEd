@@ -3,11 +3,9 @@ package TrEd::Menu::Stylesheet;
 use strict;
 use warnings;
 
-use TrEd::Utils qw{$EMPTY_STR 
-    STYLESHEET_FROM_FILE
-    NEW_STYLESHEET
-    DELETE_STYLESHEET
-};
+use TrEd::Utils qw{$EMPTY_STR};
+
+use TrEd::Stylesheet;
 
 use Tk;
 
@@ -80,9 +78,9 @@ sub get_menu_list {
     my $context = $grp->{focusedWindow}->{macroContext};
     undef $context if $context eq 'TredMacro';
     my $match;
-    return [   TrEd::Utils::STYLESHEET_FROM_FILE(),
-               TrEd::Utils::NEW_STYLESHEET(),
-               TrEd::Utils::DELETE_STYLESHEET(),
+    return [   TrEd::Stylesheet::STYLESHEET_FROM_FILE(),
+               TrEd::Stylesheet::NEW_STYLESHEET(),
+               TrEd::Stylesheet::DELETE_STYLESHEET(),
                grep {
                    if ( $all or !defined($context) ) {
                        1;
@@ -96,29 +94,5 @@ sub get_menu_list {
                } sort keys %{ $grp->{stylesheets} }
            ];
 }
-
-#sub updateStylesheetMenu {
-#  my ($grp)=@_;
-#  return if $grp->{noUpdateStylesheetMenu};
-#  if (ref($grp->{StylesheetMenu})) {
-#    $grp->{StylesheetMenu}->configure(-options => getStylesheetMenuList($grp));
-#  }
-#}
-#
-#sub getStylesheetMenuList {
-#  my ($grp,$all)=@_;
-#  my $context=$grp->{focusedWindow}->{macroContext};
-#  undef $context if $context eq 'TredMacro';
-#  my $match;
-#  [TrEd::Utils::STYLESHEET_FROM_FILE(),TrEd::Utils::NEW_STYLESHEET(),TrEd::Utils::DELETE_STYLESHEET(),
-#   grep { 
-#     if ($all or !defined($context)) { 1 } else {
-#       $match = $grp->{stylesheets}{$_}{context} || $EMPTY_STR;
-#       chomp $match;
-#       $match = '.*' if (!$match =~ m/\S/);
-#       $context =~ /^${match}$/x ? 1 : 0;
-#     }
-#   } sort keys %{$grp->{stylesheets}}];
-#}
 
 1;

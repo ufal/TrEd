@@ -665,9 +665,11 @@ sub test__uri_list_with_required_exts {
 sub _init_ext_clean_up_paths {
     my ($clean_up_ext_names_ref) = @_;
     foreach my $ext_name (@{$clean_up_ext_names_ref}) {
-        @TrEd::Utils::stylesheet_paths 
+        my @new_stylesheet_paths 
             = grep { $_ !~ m/$ext_name/ }
-                   @TrEd::Utils::stylesheet_paths;
+                   TrEd::Stylesheet::stylesheet_paths();
+        TrEd::Stylesheet::_replace_stylesheet_paths(@new_stylesheet_paths);
+        
         @INC = grep { $_ !~ m/$ext_name/ }
                     @INC;
         @TrEd::Macros::macro_include_paths 
@@ -690,7 +692,7 @@ sub _test_init_extensions_modified_paths {
         if ($current_ext->{create_subfolders}) {
             my $stylesheet_dir_present  
                 = List::Util::first { $_ =~ m!$ext_name/stylesheets! } 
-                                    @TrEd::Utils::stylesheet_paths;
+                                    TrEd::Stylesheet::stylesheet_paths();
             my $resources_dir_present 
                 = List::Util::first { $_ =~ m!$ext_name/resources! }
                                     Treex::PML::ResourcePaths();
@@ -720,7 +722,7 @@ sub _test_init_extensions_not_modified_paths {
 
         my $stylesheet_dir_present  
             = List::Util::first { $_ =~ m!$ext_name/stylesheets! } 
-                                @TrEd::Utils::stylesheet_paths;
+                                TrEd::Stylesheet::stylesheet_paths();
         my $resources_dir_present 
             = List::Util::first { $_ =~ m!$ext_name/resources! }
                                 Treex::PML::ResourcePaths();

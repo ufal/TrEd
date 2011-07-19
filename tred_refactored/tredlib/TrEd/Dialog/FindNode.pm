@@ -10,6 +10,8 @@ use TrEd::ManageFilelists;
 use TrEd::Convert;
 use Tk;
 
+require TrEd::Dialog::FocusFix;
+
 my %searchTemplate = ();
 
 #sub findNodeDialog
@@ -147,7 +149,7 @@ sub findNodeDialog {
   $ot->pack(qw/-side left/);
   $grp->{top}->Unbusy();
   $d->BindButtons;
-  my $result= main::ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
+  my $result= TrEd::Dialog::FocusFix::show_dialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
   if ($result=~ /Find/) {
 #    %$template = (); # cleanup template
     my $search_code = 'sub {

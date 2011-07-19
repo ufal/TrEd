@@ -19,6 +19,10 @@ use Filelist;
 use TrEd::Bookmarks;
 use TrEd::Dialog::File::Open;
 
+require TrEd::Query::List;
+require TrEd::Query::User;
+require TrEd::Query::Simple;
+
 # list of all loaded filelists
 my @filelists = ();
 
@@ -223,8 +227,7 @@ sub insertToFilelist {
   @list= map {
     if (-d $_) {
       $grp->{'hist-fileListPattern'}=[] unless $grp->{'hist-fileListPattern'};
-      #TODO: ake Query??
-      $tmp = Query($toplevel, "Selection Pattern", "Insert pattern for directory $_", "*.*", 1, $grp->{'hist-fileListPattern'});
+      $tmp = TrEd::Query::Simple::new_query($toplevel, "Selection Pattern", "Insert pattern for directory $_", "*.*", 1, $grp->{'hist-fileListPattern'});
       $_ = defined($tmp) ? File::Spec->catfile($_, $tmp) : undef;
     }
     $_;
@@ -279,14 +282,14 @@ sub removeFromFilelist {
 sub createNewFilelist {
   my ($grp,$top)=@_;
   # dump_filelists("createNewFilelist", \@filelists);
-  my $name = main::QueryString($top || $grp,"File-list name", "Name: ") || return;
+  my $name = TrEd::Query::String::new_query($top || $grp,"File-list name", "Name: ") || return;
   if ($top) {
     $top->deiconify(); 
     $top->focus(); 
     $top->raise();
   }
   if (findFilelist($name)) {
-    main::userQuery($top || grp_win($grp),
+    TrEd::Query::User::new_query($top || grp_win($grp),
 	      "File-list named '$name' already exists.\n",
 	      -title => "File-list already exists",
 	      -buttons => ["OK"]);
@@ -303,14 +306,14 @@ sub createNewFilelist {
 sub _user_resolve_filelist_conflict {
   my ($top, $file_name_loaded, $file_name_new) = @_;
   if (Treex::PML::IO::is_same_file($file_name_new, $file_name_loaded)) {
-    return main::userQuery($top,
+    return TrEd::Query::User::new_query($top,
         	      "Filelist '" . $file_name_loaded . "' already loaded.\n",
         	      -bitmap=> 'question',
         	      -title => "Reload filelist?",
         	      -buttons => ['Reload','Cancel'])
   }
   else {
-    return main::userQuery($top,
+    return TrEd::Query::User::new_query($top,
         	      "Filelist named '" . $file_name_loaded . 
         		"' is already loaded from\n" . $file_name_new . "\n",
         	      -bitmap=> 'question',
@@ -337,7 +340,7 @@ sub _solve_filelist_conflict {
       my $answer = _user_resolve_filelist_conflict($top, $filelist->filename(), $l->filename());
       return ($l, 'return') if $answer eq 'Cancel';
       if ($answer eq 'Change name') {
-        my $new_name = main::QueryString($top, "Filelist name", "Name: ", $filelist->name);
+        my $new_name = TrEd::Query::String::new_query($top, "Filelist name", "Name: ", $filelist->name);
         return ($l, 'return') if (!defined($new_name));
         $filelist->rename($new_name);
         redo LOOP;
@@ -464,7 +467,7 @@ sub selectFilelistDialog {
   return unless @lists;
   my $i = 'A';
   my $selection = [$i.'.  '.$lists[0]->[1]];
-  main::listQuery($grp->{top},'Select File Lists','browse',
+  TrEd::Query::List::new_query($grp->{top},'Select File Lists','browse',
 	    [map { ($i++).".  ".$_->[1] } @lists],$selection,
 	   ) || return;
   return unless (@{$selection});
@@ -486,13 +489,13 @@ sub removeFilelistsDialog {
   return unless @lists;
   my $i = 'A';
   my $selection = [$i.'.  '.$lists[0]->[1]];
-  my $indexes = main::listQuery($grp->{top},'Remove File Lists','extended',
+  my $indexes = TrEd::Query::List::new_query($grp->{top},'Remove File Lists','extended',
 		  [map {($i++).'.  '.$_->[1]} @lists],$selection,
 		  {
 		    -label => 'Select one or more file lists',
 		  }) || return;
   return unless (@$selection and
-		 main::userQuery($grp->{top},
+		 TrEd::Query::User::new_query($grp->{top},
 			  "Realy remove ".scalar(@$selection)." file list(s)?\n",
 			  -bitmap=> 'question',
 			  -title => "Remove file lists?",
@@ -676,7 +679,7 @@ sub bookmarkToFilelistDialog {
   return unless @lists;
   my $i = 'A';
   my $selection = [$i.'.  '.$lists[0]->[1]];
-  main::listQuery($grp->{top},'Add Bookmark To File Lists','browse',
+  TrEd::Query::List::new_query($grp->{top},'Add Bookmark To File Lists','browse',
 	    [map {($i++).'.  '.$_->[1]} @lists],$selection,
 	   ) || return;
   return unless (@$selection);

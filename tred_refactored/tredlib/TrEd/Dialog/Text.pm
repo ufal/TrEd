@@ -3,6 +3,8 @@ package TrEd::Dialog::Text;
 use strict;
 use warnings;
 
+use Tk;
+
 # a simple dialog with one big text entry
 # UI, Dialog
 sub create_dialog {

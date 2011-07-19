@@ -4,10 +4,12 @@ use strict;
 use warnings;
 
 use TrEd::Config;
-# potom prerobit na TrEd::Stylesheets asi
-use TrEd::Utils qw{:all};
 use TrEd::MinMax qw{first};
 use TrEd::ValueLine;
+use TrEd::Stylesheet;
+use TrEd::Utils qw{$EMPTY_STR};
+
+require TrEd::Dialog::FocusFix;
 
 use Data::Dumper;
 
@@ -292,19 +294,19 @@ sub preview_stylesheet {
   my ($win, $grp, $e, $preview_applied_ref) = @_;
        
   ${$preview_applied_ref} = 1;
-  my ($hint,$context,$patterns) = TrEd::Utils::getStylesheetPatterns($win);
+  my ($hint,$context,$patterns) = TrEd::Stylesheet::get_stylesheet_patterns($win);
   
-  TrEd::Utils::setStylesheetPatterns($win,$e->get('0.0','end'));
+  TrEd::Stylesheet::set_stylesheet_patterns($win,$e->get('0.0','end'));
   $grp->{valueLine}->update($grp);
   #TrEd::ValueLine::update($grp);
-  if ($win->{stylesheet} eq TrEd::Utils::STYLESHEET_FROM_FILE()) {
+  if ($win->{stylesheet} eq TrEd::Stylesheet::STYLESHEET_FROM_FILE()) {
     main::get_nodes_fsfile($grp,$win->{FSFile});
     main::redraw_fsfile($grp,$win->{FSFile});
   } else {
     main::get_nodes_stylesheet($grp,$win->{stylesheet});
     main::redraw_stylesheet($grp,$win->{stylesheet});
   }
-  TrEd::Utils::setStylesheetPatterns($win,[$hint,$context,$patterns]);
+  TrEd::Stylesheet::set_stylesheet_patterns($win,[$hint,$context,$patterns]);
 }
 
 # stylesheet, dialog, UI
@@ -319,9 +321,8 @@ sub show_dialog {
   return if not ($win->treeView()->patterns() or $win->{FSFile});
 
   $grp->{top}->Busy(-recurse => 1);
-  # STYLESHEET_FROM_FILE is from TrEd::Utils
   my @buttons = ('OK', ($win->{FSFile} ? 'Preview' : ()),
-	    (($win->{FSFile} and $win->{stylesheet} ne TrEd::Utils::STYLESHEET_FROM_FILE()) ? 'Store to current file' : ()),
+	    (($win->{FSFile} and $win->{stylesheet} ne TrEd::Stylesheet::STYLESHEET_FROM_FILE()) ? 'Store to current file' : ()),
 		 'Cancel');
   my $edit_dialog=$grp->{top}->
     DialogBox(-title=> 'Stylesheet editor',
@@ -474,7 +475,7 @@ sub show_dialog {
   }
 
   {
-    my $patterns=TrEd::Utils::getStylesheetPatterns($win) || $EMPTY_STR;
+    my $patterns=TrEd::Stylesheet::get_stylesheet_patterns($win) || $EMPTY_STR;
     chomp $patterns;
     $e->insert('0.0',$patterns."\n");
   }
@@ -512,32 +513,32 @@ sub show_dialog {
   $edit_dialog->BindButtons;
   $e->focus();
   $grp->{top}->Unbusy();
-  my $result= main::ShowDialog($edit_dialog,$e,$grp->{top});
+  my $result= TrEd::Dialog::FocusFix::show_dialog($edit_dialog,$e,$grp->{top});
   if ($result eq 'Store to current file') {
-    main::switchStylesheet($grp, TrEd::Utils::STYLESHEET_FROM_FILE());
-    $grp->{selectedStylesheet} = TrEd::Utils::STYLESHEET_FROM_FILE();
+    main::switchStylesheet($grp, TrEd::Stylesheet::STYLESHEET_FROM_FILE());
+    $grp->{selectedStylesheet} = TrEd::Stylesheet::STYLESHEET_FROM_FILE();
     $win->{FSFile}->notSaved(1);
     $result = 'OK';
   }
   if ($result=~ /OK/) {
-    TrEd::Utils::setStylesheetPatterns($win,$e->get('0.0','end'));
+    TrEd::Stylesheet::set_stylesheet_patterns($win,$e->get('0.0','end'));
     $grp->{StylesheetMenu}->update($grp);
-    if ($win->{stylesheet} eq TrEd::Utils::STYLESHEET_FROM_FILE()) {
+    if ($win->{stylesheet} eq TrEd::Stylesheet::STYLESHEET_FROM_FILE()) {
       $win->{FSFile}->notSaved(1);
     } else {
-      TrEd::Utils::save_stylesheet_file($grp, $TrEd::Utils::default_stylesheet_path, $win->{stylesheet});
+      TrEd::Stylesheet::save_stylesheet_file($grp, $win->{stylesheet});
     }
     main::get_nodes_fsfile($grp,$win->{FSFile});
     $grp->{valueLine}->update($grp);
     #TrEd::ValueLine::update($grp);
-    if ($win->{stylesheet} eq TrEd::Utils::STYLESHEET_FROM_FILE()) {
+    if ($win->{stylesheet} eq TrEd::Stylesheet::STYLESHEET_FROM_FILE()) {
       main::redraw_fsfile($grp,$win->{FSFile});
     } else {
       main::redraw_stylesheet($grp,$win->{stylesheet});
     }
   } elsif ($preview_applied) {
     main::get_nodes_fsfile($grp,$win->{FSFile});
-    if ($win->{stylesheet} eq TrEd::Utils::STYLESHEET_FROM_FILE()) {
+    if ($win->{stylesheet} eq TrEd::Stylesheet::STYLESHEET_FROM_FILE()) {
       main::redraw_fsfile($grp,$win->{FSFile});
     } else {
       main::redraw_stylesheet($grp,$win->{stylesheet});

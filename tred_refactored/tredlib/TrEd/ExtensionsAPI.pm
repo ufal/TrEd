@@ -336,7 +336,7 @@ use TrEd::Convert;
 use TrEd::Filelist::Navigation;
 use TrEd::Toolbar::User::Manager;
 use TrEd::MinorModes;
-
+use TrEd::Stylesheet;
 
 # can't 'use', circular ref
 use TrEd::Macros;
@@ -3029,7 +3029,7 @@ not set and a given stylesheet is not found).
 sub SetStylesheetPatterns {
   my ($patterns,$stylesheet,$create) = @_;
   $stylesheet = GetCurrentStylesheet() unless defined $stylesheet;
-  main::setStylesheetPatterns($grp,$patterns,$stylesheet,$create);
+  TrEd::Stylesheet::set_stylesheet_patterns($grp,$patterns,$stylesheet,$create);
   if (GUI()) {
     main::redraw_stylesheet($grp->{framegroup},$stylesheet);
   }
@@ -3046,7 +3046,9 @@ they display.
 
 sub DeleteStylesheet {
   my ($stylesheet) = @_;
-  main::deleteStylesheet($grp->{framegroup},$stylesheet) if GUI();
+  if (GUI()) {
+    TrEd::Stylesheet::delete_stylesheet($grp->{framegroup},$stylesheet);
+  }
 }
 
 =item C<SaveStylesheet(name)>
@@ -3057,7 +3059,7 @@ Save given TrEd's stylesheet (to ~/.tred.d/stylesheets/name).
 
 sub SaveStylesheet {
   my ($patterns,$stylesheet) = @_;
-  main::save_stylesheet_file($grp->{framegroup},$main::defaultStylesheetPath,$stylesheet) if GUI();
+  TrEd::Stylesheet::save_stylesheet_file($grp->{framegroup}, $stylesheet) if GUI();
 }
 
 =item C<SaveStylesheets()>
@@ -3068,7 +3070,7 @@ Save all TrEd's stylesheets (to ~/.tred.d/stylesheets/).
 
 sub SaveStylesheets {
   my ($patterns) = @_;
-  main::save_stylesheets($grp->{framegroup},$main::defaultStylesheetPath) if GUI();
+  TrEd::Stylesheet::save_stylesheets($grp->{framegroup}) if GUI();
 }
 
 =item C<ReloadStylesheet(name,dir?)>
@@ -3084,7 +3086,7 @@ sub ReloadStylesheet {
   if (GUI()) {
     require URI::Escape;
     my $file = File::Spec->catfile($dir,URI::Escape::uri_escape_utf8($name));
-    main::read_stylesheet_file($grp->{framegroup},$file);
+    TrEd::Stylesheet::read_stylesheet_file($grp->{framegroup},$file);
   }
 }
 
@@ -3097,7 +3099,7 @@ specified, the default path "~/.tred.d/stylesheets/" is used.
 
 sub ReloadStylesheets {
   my ($filename) = @_;
-  main::loadStyleSheets($grp->{framegroup}) if GUI();
+  TrEd::Stylesheet::load_stylesheets($grp->{framegroup}) if GUI();
 }
 
 =item C<GetStylesheetPatterns(stylesheet)>
@@ -3113,7 +3115,7 @@ patterns. Returns empty list in case of failure.
 
 sub GetStylesheetPatterns {
   my ($stylesheet)=@_;
-  return main::getStylesheetPatterns($grp,$stylesheet);
+  return TrEd::Stylesheet::get_stylesheet_patterns($grp,$stylesheet);
 }
 
 =item C<GetPatternsByPrefix(prefix,stylesheet?)>
@@ -3125,7 +3127,7 @@ If no stylesheet name is given, a current stylesheet is used.
 
 sub GetPatternsByPrefix {
   my ($prefix,$stylesheet)=@_;
-  my ($hint,$context,$patterns) = main::getStylesheetPatterns($grp,$stylesheet);
+  my ($hint,$context,$patterns) = TrEd::Stylesheet::get_stylesheet_patterns($grp,$stylesheet);
   if ($prefix eq 'hint') {
     return $hint;
   } elsif ($prefix eq 'context') {

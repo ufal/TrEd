@@ -479,12 +479,10 @@ sub _test_macro_bindings {
   # Test reading default macro file first...
   TrEd::Macros::_read_default_macro_file($encoding, \@contexts);
   my %default_macro_file_cont = (
-    "package TredMacro" =>  "_read_default_macro_file(): macro read successfully into memory && TredMacro package found",
-    "line 1"            =>  "_read_default_macro_file(): macro read successfully into memory && line number information found",
-    "tred.def"          =>  "_read_default_macro_file(): macro read successfully into memory && file name found",
+    "tred.def"          =>  "_read_default_macro_file(): macro not read anymore",
   );
   
-  _test_macros_contain(\%default_macro_file_cont);
+  _test_macros_dont_contain(\%default_macro_file_cont);
   
   # check that key a menu bindigns are empty...
   ok(scalar(keys(%TrEd::Macros::keyBindings)) == 0, "_read_default_macro_file(): erase key bindings");
@@ -496,9 +494,13 @@ sub _test_macro_bindings {
   TrEd::Macros::read_macros($simple_macro_file, $TrEd::Config::libDir, 0, "");
   my %simple_macro_test_file_cont = (
     $simple_macro_name  =>  "read_macros(): test macro no. 1 read into memory",
-    "tred.def"          =>  "read_macros(): default macro read successfully into memory && file name found",
   );
   _test_macros_contain(\%simple_macro_test_file_cont);
+  # no deafult macro
+  %default_macro_file_cont = (
+    "tred.def"          =>  "_read_default_macro_file(): macro not read anymore",
+  );
+  _test_macros_dont_contain(\%default_macro_file_cont);
   
 #  ($key_combination, $menu_item, $context, $macro_name)
   _test_macro_bindings({"key_combination" => "CTRL+ALT+Del", 

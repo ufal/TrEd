@@ -9,6 +9,17 @@ use TrEd::MinMax qw{max2 first max};
 use TrEd::Utils qw{applyFileSuffix uniq $EMPTY_STR};
 use Treex::PML;
 use TrEd::Error::Message;
+use TrEd::FileLock;
+use TrEd::RecentFiles;
+use TrEd::Stylesheet;
+
+require Filelist;
+
+# it is not very good that TrEd::File loads this Tk and GUI stuff :/
+# dialogs for asking for user choices, 
+require TrEd::Query::List;
+require TrEd::Query::User;
+
 
 use Carp;
 use Cwd;
@@ -225,11 +236,11 @@ sub _merge_status {
     # merge warnings
     push @{ $status1_ref->{warnings} }, @{ $status2_ref->{warnings} };
     # merge errors
-    if ($status2_ref->{error} ne $EMPTY_STR) {
+    if (defined $status2_ref->{error} && $status2_ref->{error} ne $EMPTY_STR) {
         $status1_ref->{error} .= "\n" . $status2_ref->{error};
     }
     # merge reports
-    if ($status2_ref->{report} ne $EMPTY_STR) {
+    if (defined $status2_ref->{report} && $status2_ref->{report} ne $EMPTY_STR) {
         $status1_ref->{report} .= "\n" . $status2_ref->{report};
     }
     return;
@@ -365,7 +376,7 @@ sub _check_for_recovery {
     my $recover  = 'No';
     my $autosave = main::autosave_filename($file_name);
     if ( !$no_err && defined $autosave && -r $autosave ) {
-        $recover = main::userQuery(
+        $recover = TrEd::Query::User::new_query(
             $win,
             "File seems to have an auto-saved recovery file from a previous session.\n"
                 . "Shell I try to use the recovery file?",
@@ -512,7 +523,7 @@ sub _should_save_to_recent_files {
 #                   -preload      -- 1/0 --
 #                   -noredraw     -- 1/0 -- forbid redrawing after open
 #                   -norecent     -- 1/0 -- don't add opened file into recent files list
-#                   -justheader   -- 
+#                   -justheader   -- 1/0 -- don't update canvas, don't create lockfile,  
 #                 Hooks run: open_file_hook, possibly also guess_context_hook, file_opened_hook
 #                 (only in this function, other functions called from this function can trigger 
 #                  other hooks)
@@ -638,12 +649,12 @@ sub open_file {
     my $lockinfo;
     if ( !$opts{-justheader} ) {
         $lockinfo = TrEd::FileLock::lock_file( $win, $file_name, \%opts );
-        if ( $lockinfo eq 'Cancel' ) {
+        if ( defined $lockinfo && $lockinfo eq 'Cancel' ) {
             return wantarray ? ( undef, _new_status( cancel => 1 ) ) : undef;
         }
     }
 
-    # Check autosave file (also opens secondary files or sth...)
+    # Check autosave file (also loads file & secondary files files or sth...)
     my $status;
     ($fsfile, $status) = _check_for_recovery($file_name, $grp, $win, $fsfile, $lockinfo, \%opts);
     
@@ -664,8 +675,6 @@ sub open_file {
     }
     main::updatePostponed($grp);
 
-    #TODO: tento koment asi patri inam
-    # add file to filelist
     if (!$opts{-preload}) {
         main::update_title_and_buttons($grp);
     }
@@ -701,7 +710,7 @@ sub open_file {
             main::doEvalHook( $win, "file_opened_hook" );
         }
         if ( !$opts{-noredraw} ) {
-            if ( $win->{redrawn} <= $r ) { # not already redrawn by some hook
+            if ( !defined $win->{redrawn} || $win->{redrawn} <= $r ) { # not already redrawn by some hook
                 if ($save_current) {
                     $win->{currentNode} = $save_current;
                 }
@@ -828,7 +837,7 @@ sub closeFile {
 
         #  undef $NodeClipboard;
         $w->{root}       = undef;
-        $w->{stylesheet} = TrEd::Utils::STYLESHEET_FROM_FILE();
+        $w->{stylesheet} = TrEd::Stylesheet::STYLESHEET_FROM_FILE();
         main::set_window_file( $w, undef );
         delete $w->{currentNode} if ( exists $w->{currentNode} );
         $w->{treeView}->clear_pinfo();
@@ -1173,7 +1182,7 @@ sub saveFile {
 
     my $lock = TrEd::FileLock::check_lock( $fsfile, $f );
     if ( $lock =~ /^locked|^stolen|^opened/ ) {
-        if (userQuery(
+        if (TrEd::Query::User::new_query(
                 $win,
                 "File $f was $lock!",
                 -bitmap  => 'question',
@@ -1187,7 +1196,7 @@ sub saveFile {
         }
     }
     elsif ( $lock =~ /^originally locked by us/ ) {
-        if (userQuery(
+        if (TrEd::Query::User::new_query(
                 $win,
                 "File $f has been $lock, so saving it now seems quite safe.",
                 -bitmap  => 'question',
@@ -1201,7 +1210,7 @@ sub saveFile {
         }
     }
     elsif ( $lock =~ /^changed/ ) {
-        if (main::userQuery(
+        if (TrEd::Query::User::new_query(
                 $win,
                 "File $f has been $lock! Saving it now would overwrite those changes made by the other program.",
                 -bitmap  => 'question',
@@ -1375,7 +1384,7 @@ sub saveFileAs {
     my $cur = $fsfile->backend || '';
     $cur =~ s/Backend$//;
     $cur = qq{ ($cur)} if $cur;
-    my $response = main::userQuery(
+    my $response = TrEd::Query::User::new_query(
         $win,
         "\nPlease,\nchoose one of the following output formats.\n\n"
             . "\nWARNING:\nsome formats may be incompatible with the current file.\n",
@@ -1465,7 +1474,7 @@ sub doSaveFileAs {
             if ($lockFiles) {
                 my $lock = TrEd::FileLock::check_lock( undef, $filename );
                 if ( $lock eq 'my' ) {
-                    if (main::userQuery(
+                    if (TrEd::Query::User::new_query(
                             $win,
                             "An existing lock on the file $filename indicates that it is probably used by another file-object within this process!",
                             -bitmap  => 'question',
@@ -1478,7 +1487,7 @@ sub doSaveFileAs {
                     }
                 }
                 elsif ( $lock ne 'none' ) {
-                    if (main::userQuery(
+                    if (TrEd::Query::User::new_query(
                             $win,
                             "File $filename was $lock!",
                             -bitmap  => 'question',
@@ -1531,7 +1540,7 @@ sub doSaveFileAs {
                     if (@fs) {
                         my $filenames = [ map { $_->filename } @fs ];
                         my $selection = [@$filenames];
-                        main::listQuery(
+                        TrEd::Query::List::new_query(
                             $win->toplevel,
                             'Rename file also in...',
                             'multiple',
@@ -1586,7 +1595,7 @@ EOF
             if ( $filelist and $filename ne $old_file ) {
                 if ( !defined $update_filelist or $update_filelist eq 'ask' )
                 {
-                    my $response = main::userQuery(
+                    my $response = TrEd::Query::User::new_query(
                         $win,
                         "Do you want to update the current file list ("
                             . $filelist->name
@@ -1602,25 +1611,27 @@ EOF
                         ]
                     );
                     if ( $response ne 'No' ) {
-                        main::renameFileInFilelist(
-                            $filelist,
+                        if ($filelist) {
+                            $filelist->rename_file(
+                                $old_file,
+                                $filename,
+                                $response =~ /^Only/
+                                ? main::currentFileNo($win)
+                                : undef
+                            );
+                        }
+                    }
+                }
+                elsif ( $update_filelist =~ /^all$|^current$/ ) {
+                    if ($filelist) {
+                        $filelist->rename_file(
                             $old_file,
                             $filename,
-                            $response =~ /^Only/
+                            ( $update_filelist eq 'current' )
                             ? main::currentFileNo($win)
                             : undef
                         );
                     }
-                }
-                elsif ( $update_filelist =~ /^all$|^current$/ ) {
-                    main::renameFileInFilelist(
-                        $filelist,
-                        $old_file,
-                        $filename,
-                        ( $update_filelist eq 'current' )
-                        ? main::currentFileNo($win)
-                        : undef
-                    );
                 }
             }
             return 1;
@@ -1687,15 +1698,15 @@ use Readonly;
 
 #######################################################################################
 # Usage         : askSaveReferences($win, $fsfile, $result, $filename)
-# Purpose       : Write embedded DOM documents
-# Returns       : Undef/empty list
+# Purpose       : Ask the user to choose which of the modified referenced files should be saved
+# Returns       : 1 if there are no references to save
+#                 
 # Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
 #                 string $file_name -- name of the file to reload
 # Throws        : No exception
-# Comments      : This function is a part of USR2 signal handler
-# See Also      : main::handleUSR2Signal()
-# choose which referenced documents should be saved
-sub askSaveReferences { # result je vystupny hash... C-like predavanie vystupu...
+# Comments      : # result je vystupny hash... C-like predavanie vystupu...
+# See Also      : 
+sub askSaveReferences { 
     my ( $win_ref, $fsfile, $result, $filename ) = @_;
     if ( !defined $filename ) {
         $filename = $fsfile->filename();
@@ -1763,7 +1774,7 @@ sub askSaveReferences { # result je vystupny hash... C-like predavanie vystupu..
     return 1 if (!@refs);
     my $initdir   = dirname($filename);
     my $selection = [];
-    my $return    = main::listQuery(
+    my $return    = TrEd::Query::List::new_query(
         $win_ref->toplevel,
         'Select resources to save',
         'multiple',
@@ -1783,7 +1794,7 @@ sub askSaveReferences { # result je vystupny hash... C-like predavanie vystupu..
     if ($return) {
         %{$result} = map { /^(.*) \[([^,]+),/ ? ( $2 => $1 ) : () } @{$selection};
     }
-    return $return; # nie radsej result?
+    return $return;
 }
 
 #######################################################################################
@@ -1800,13 +1811,13 @@ sub askSaveReferences { # result je vystupny hash... C-like predavanie vystupu..
 #                 Treex::PML::Document ref $fsfile -- ref to file that we are asking the user about (optional) 
 # Throws        : No exception
 # Comments      : If no $fsfile is specified, the file from Window $win_ref is considered.
-# See Also      : saveFile(), userQuery()
+# See Also      : saveFile(), TrEd::Query::User::new_query()
 sub ask_save_file {
     my ( $win_ref, $keepbutton, $cancelbutton, $fsfile ) = @_;
     $fsfile ||= $win_ref->{FSFile};
     # do nithing if there is no fsfile or it has been already saved
     return 0 if (!ref $fsfile || !$fsfile->notSaved());
-    my $answer = main::userQuery(
+    my $answer = TrEd::Query::User::new_query(
         $win_ref,
         $fsfile->filename()
             . "\n\nFile may be changed!\nDo you want to save it?",

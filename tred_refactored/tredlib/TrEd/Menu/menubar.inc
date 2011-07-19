@@ -201,7 +201,7 @@ return sub {
     'Go to File List Index ...',
     {
       '-command' => [sub {
-		       my $to=QueryString($_[0],"Go To File List Index","File List Index");
+		       my $to=TrEd::Query::String::new_query($_[0],"Go To File List Index","File List Index");
 		       tieGotoFile($_[0],$to) if defined $to;
 		     },$grp
 		    ],
@@ -323,7 +323,7 @@ return sub {
     'Button',
     'Open URL ...',
     {
-      '-command' => [\&urlDialog, $grp],
+      '-command' => [\&TrEd::Dialog::URL::create_dialog, $grp],
       '-underline' => 5
      },
     undef
@@ -1191,10 +1191,10 @@ return sub {
     {
       '-command' => [sub {
 		       my ($grp)=@_;
-		       loadStyleSheets($grp);
+		       TrEd::Stylesheet::load_stylesheets($grp);
 		       $grp->{StylesheetMenu}->update($grp);
 		       foreach my $win (@{$grp->{treeWindows}}) {
-			 applyWindowStylesheet($win,$win->{stylesheet});
+			 $win->apply_stylesheet($win->{stylesheet});
 		       }
 		       get_nodes_all($grp);
 		       redraw_all($grp);
@@ -1228,7 +1228,7 @@ return sub {
     'Button',
     'Copy Trees ...',
     {
-      '-command' => [\&copyTreesDialog,$grp],
+      '-command' => [\&TrEd::Dialog::CopyTrees::create_dialog,$grp],
       '-underline' => 1
      },
     undef
@@ -1238,7 +1238,7 @@ return sub {
     'Go To Tree Number ...',
     {
       '-command' => [sub {
-		       my $to=QueryString($_[0],"Go To Tree Number","Tree Number");
+		       my $to=TrEd::Query::String::new_query($_[0],"Go To Tree Number","Tree Number");
 		       tieGotoTree($_[0],$to) if defined $to;
 		     },$grp
 		    ],
