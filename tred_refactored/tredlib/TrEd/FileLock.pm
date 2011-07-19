@@ -24,6 +24,8 @@ use TrEd::Utils qw{$EMPTY_STR};
 use Treex::PML;
 use Carp;
 
+require TrEd::Query::User;
+
 # funkcie vytiahnute z main namespace-u
 
 ######################################################################################
@@ -253,13 +255,13 @@ sub check_lock {
   my ($fsfile, $filename) = @_; # filename
   return 'Ignore' if $TrEd::Config::noCheckLocks;
   
-  if ($fsfile and not defined($filename)) {
+  if ($fsfile && !defined $filename) {
     $filename = $fsfile->filename();
   }
 
   my $lockinfo = read_lock($filename);
   
-  if (defined $lockinfo and $lockinfo ne $EMPTY_STR) {
+  if (defined $lockinfo && $lockinfo ne $EMPTY_STR) {
     # we have some information from '.lock' file
     return _check_lock_with_lockfile_info($fsfile, $filename, $lockinfo);
   }
@@ -303,7 +305,7 @@ sub lock_file {
       $answer = $auto_answer;
     }
     else {
-      $answer = main::userQuery($win,
+      $answer = TrEd::Query::User::new_query($win,
   			   "File $filename is $lock.",
   			   -bitmap=> 'question',
   			   -title => "Accessing locked file?",

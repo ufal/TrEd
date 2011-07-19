@@ -15,6 +15,7 @@ use URI::file;
 
 use TrEd::MinMax qw(first);
 use TrEd::Utils qw{$EMPTY_STR};
+require TrEd::Stylesheet;
 
 BEGIN {
     require Exporter;
@@ -2664,8 +2665,9 @@ sub init_extensions {
     my ( %macro_includes, %resources, %includes, %stylesheets );
 
     # stylesheet paths
-    if ( defined(@TrEd::Utils::stylesheet_paths) ) {
-        @stylesheets{ grep { defined($_) } @TrEd::Utils::stylesheet_paths } = ();
+    my @stylesheet_paths = TrEd::Stylesheet::stylesheet_paths();
+    if ( @stylesheet_paths ) {
+        @stylesheets { grep { defined($_) } @stylesheet_paths } = ();
     }
 
     # resource paths
@@ -2699,7 +2701,7 @@ sub init_extensions {
         }
         $dir = File::Spec->catdir( $extension_dir, $name, 'stylesheets' );
         if ( -d $dir && !exists( $stylesheets{$dir} ) ) {
-            push( @TrEd::Utils::stylesheet_paths, $dir );
+            TrEd::Stylesheet::add_stylesheet_paths($dir);
             $stylesheets{$dir} = 1;
         }
     }

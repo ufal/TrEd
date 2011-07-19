@@ -11,6 +11,8 @@ use TrEd::Config;
 #use TrEd::Utils;
 use Treex::PML;
 
+#use TrEd::Window;
+
 use Test::More;
 use Test::Exception;
 use Data::Dumper;
@@ -550,6 +552,197 @@ sub test_init_app_data {
     _test_init_app_data($fsfile_2, \%expected_app_data);
 }
 
+## create the illusion of main:
+my %hooks_run = ();
+sub doEvalHook {
+    my ($win, $hook_name) = @_;
+        
+    if (exists $hooks_run{$hook_name}) {
+        $hooks_run{$hook_name} = $hooks_run{$hook_name} + 1;
+    }
+    else {
+        $hooks_run{$hook_name} = 1;
+    }
+    return;
+}
+
+# so it does not call Tk functions
+our $insideEval = 1;
+
+my $sub_update_title_and_buttons = 0;
+my $sub_unhide_current_node = 0;
+my $sub_get_nodes_win = 0;
+my $sub_redraw_win = 0;
+my $sub_center_to = 0;
+my $sub_fsfileDisplayingWindows = 0;
+my $sub_set_window_file = 0;
+my $sub_updatePostponed = 0;
+my $sub_switchContext = 0;
+
+sub update_title_and_buttons {
+    $sub_update_title_and_buttons++;
+    return;    
+}
+
+sub unhide_current_node {
+    $sub_unhide_current_node++;
+    return;    
+}
+
+sub get_nodes_win {
+    $sub_get_nodes_win++;
+    return;
+}
+
+sub redraw_win {
+    $sub_redraw_win++;
+    return;
+}
+
+sub centerTo {
+    $sub_center_to++;
+    return;
+}
+
+sub fsfileDisplayingWindows {
+    $sub_fsfileDisplayingWindows++;
+    return;
+}
+
+sub set_window_file {
+    $sub_set_window_file++;
+    return;
+}
+
+sub updatePostponed {
+    $sub_updatePostponed++;
+    return;
+}
+
+sub switchContext {
+    $sub_switchContext++;
+    return;
+}
+
+sub grp_win {
+    my ($grp_ref) = @_;
+    return ($grp_ref, $grp_ref->{focusedWindow});
+}
+
+sub autosave_filename {
+    return;
+}
+
+sub cast_to_grp {
+    my ($grp) = @_;
+    return $grp;
+}
+
+sub _clear_err {
+    undef $!; 
+    undef $@;
+}
+
+sub _last_err {
+    return;
+}
+
+sub __debug {
+    return;
+}
+
+sub test_open_file {
+    # create fake main objects
+    my %tred_window = (
+        FSFile  => undef,
+    );
+    
+    my %grp = (
+        focusedWindow => \%tred_window,
+    );
+    
+    my $raw_file_name = File::Spec->catfile($FindBin::Bin, "test_files", "sample0.t.gz");
+    my %opts = (
+        '-keep_related' => 1,
+    );
+    
+    # note: also opens secondary files
+    my ($fsfile, $status) = TrEd::File::open_file(\%grp, $raw_file_name, %opts);
+    
+    # lock files exist for all of the opened files
+    my @files = qw{
+        sample0.t.gz
+        sample0.a.gz
+        sample0.x.gz
+    };
+    my @lockfiles 
+        = map { File::Spec->catfile($FindBin::Bin, "test_files", $_ . '.lock'); }
+          @files; 
+
+    foreach my $lockfile (@lockfiles) {
+        my $short_name = TrEd::File::filename($lockfile);
+        $short_name =~ s/\.lock//;
+        ok(-f $lockfile, "open_file(): file $short_name locked");
+        # temporary
+        unlink $lockfile;
+    }
+    
+    # opened file added to recent files
+    # (secondary files are not added to recent files)
+    my @recent_files = TrEd::RecentFiles::recent_files();
+    is($recent_files[0], $raw_file_name, 
+        "open_file(): file added to recent files");
+    
+    # prislusne rutiny prebehli zelany-pocet-krat
+    is($sub_update_title_and_buttons, 1, 
+        "open_file(): program title and buttons updated once");
+        
+    is($sub_unhide_current_node, 1, 
+        "open_file(): new current node unhidden once");
+        
+    is($sub_get_nodes_win, 2, 
+        "open_file(): get nodes in windows twice (for hooks)");
+    
+    is($sub_redraw_win, 1, 
+        "open_file(): redraw window once");
+    
+    is($sub_center_to, 1, 
+        "open_file(): center to new current node once");
+    
+    is($sub_set_window_file, 1, 
+        "open_file(): set new window file once");
+    
+    is($sub_updatePostponed, 3, 
+        "open_file(): run updatePostponed for each opened file");
+    
+    is($sub_switchContext, 0, 
+        "open_file(): no hooks active, thus no switchContext run");
+    
+    # prislusne hooks prebehli
+    my %expected_run_count = (
+        open_file_hook      => 3,
+        get_backends_hook   => 3,
+        file_opened_hook    => 3,
+        guess_context_hook  => 3,
+    );
+    
+    foreach my $hook_name (keys %expected_run_count) {
+        is($hooks_run{$hook_name}, $expected_run_count{$hook_name}, 
+            "open_file(): hook $hook_name run correct number of times");
+    };
+    
+    # test @openfiles
+    my @names_of_opened_files = sort map { $_->filename() } @TrEd::File::openfiles;
+    my @expected_openfiles = sort 
+        map { File::Spec->catfile($FindBin::Bin, "test_files", $_ ) }
+        @files;
+    
+    is_deeply(\@names_of_opened_files, \@expected_openfiles, 
+        "open_file(): openfiles contain all of the opened files");
+    
+}
+
+
 ####################################### testy samotne ###################################
 
 
@@ -593,37 +786,52 @@ is($file, $path,
 
 ########## z byvaleho Basics
 
-my $sample_file = File::Spec->catfile($FindBin::Bin, "test_files", "sample0.t.gz");
-my $fsfile = _init_fsfile($sample_file);
-
+{
+    # testing with hand-crafted fsfile
+    my $sample_file = File::Spec->catfile($FindBin::Bin, "test_files", "sample0.t.gz");
+    my $fsfile = _init_fsfile($sample_file);
+    
+      
+    test_absolutizePath();
+    
+    test_absolutize();
+    
+    test_get_secondary_files($fsfile);
+    
+    ## Get ref to Treex::PML::Document for files loaded with loadRelatedDocuments()
+    my @secondary_files = $fsfile->relatedDocuments();
+    my $id = $secondary_files[0]->[0];
+    my $fsfile_2 = $fsfile->referenceObjectHash()->{$id};
+    
+    my @secondary_files_2 = $fsfile_2->relatedDocuments();
+    $id = $secondary_files_2[0]->[0];
+    my $fsfile_3 = $fsfile_2->referenceObjectHash()->{$id};
+    
+    test_get_secondary_files_recursively($fsfile, $fsfile_2);
+    
+    test_get_primary_files($fsfile_2);
+    
+    test_get_primary_files_recursively($fsfile_2, $fsfile_3);
+    
+    test__is_among_primary_files($fsfile_3);
+    
+    test__related_files($fsfile, $fsfile_2);
+    
+    test__fix_keep_option($fsfile_2);
+    
+    test_init_app_data($fsfile, $fsfile_2);
+    
+    
+    
+    undef $fsfile;
+    undef $fsfile_2;
+    undef $fsfile_3;
+}
+{
+    $TrEd::Config::libDir = "tredlib";
+    TrEd::Config::set_config();
   
-test_absolutizePath();
-
-test_absolutize();
-
-test_get_secondary_files($fsfile);
-
-## Get ref to Treex::PML::Document for files loaded with loadRelatedDocuments()
-my @secondary_files = $fsfile->relatedDocuments();
-my $id = $secondary_files[0]->[0];
-my $fsfile_2 = $fsfile->referenceObjectHash()->{$id};
-
-my @secondary_files_2 = $fsfile_2->relatedDocuments();
-$id = $secondary_files_2[0]->[0];
-my $fsfile_3 = $fsfile_2->referenceObjectHash()->{$id};
-
-test_get_secondary_files_recursively($fsfile, $fsfile_2);
-
-test_get_primary_files($fsfile_2);
-
-test_get_primary_files_recursively($fsfile_2, $fsfile_3);
-
-test__is_among_primary_files($fsfile_3);
-
-test__related_files($fsfile, $fsfile_2);
-
-test__fix_keep_option($fsfile_2);
-
-test_init_app_data($fsfile, $fsfile_2);
-
+    # okay, we're out of previous scope, previous fsfiles should be closed
+    test_open_file();
+}
 done_testing();

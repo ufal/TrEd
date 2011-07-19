@@ -9,6 +9,7 @@ use TrEd::File qw{filename dirname};
 use TrEd::View::Sentence;
 use TrEd::Print;
 
+require TrEd::Dialog::FocusFix;
 
 # print, UI, dialog
 sub printDialog {
@@ -502,7 +503,7 @@ sub printDialog {
 
     $d->BindButtons;
     my $result
-        = main::ShowDialog( $d, $s{printTo} eq "command" ? $w{command} : $w{psFile},
+        = TrEd::Dialog::FocusFix::show_dialog( $d, $s{printTo} eq "command" ? $w{command} : $w{psFile},
         $grp->{top} );
     savePrintConfig( $win, \%s, \%w, 0 );
 

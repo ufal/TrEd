@@ -12,6 +12,10 @@ use TrEd::Bookmarks qw{$FILELIST_NAME};
 
 use Treex::PML;
 
+require TrEd::Query::User;
+require TrEd::Query::Simple;
+require TrEd::Dialog::FocusFix;
+
 my $filelist_widget;
 
 #TODO: maybe its own class for the widget?
@@ -82,7 +86,7 @@ sub _double_click {
         my $position = $current_filelist->find_pattern($data);
         $grp->{'hist-fileListPattern'} = []
             unless $grp->{'hist-fileListPattern'};
-        $data = Query(
+        $data = TrEd::Query::Simple::new_query(
             $filelist_widget->toplevel,
             "Selection Pattern",
             "Edit directory pattern for $data",
@@ -130,7 +134,7 @@ sub _delete {
     my $fl               = $current_filelist;
     if (    $fl
         and $fl->name ne 'Default'
-        and main::userQuery(
+        and TrEd::Query::User::new_query(
             $d,
             "Realy delete filelist '" . $fl->name . "'?\n",
             -bitmap  => 'question',
@@ -184,7 +188,7 @@ sub create_dialog {
     my $win = $grp->{focusedWindow};
     if ( defined( $filelist_widget ) ) {
         if ($modal) {
-            main::ShowDialog( $filelist_widget->toplevel );
+            TrEd::Dialog::FocusFix::show_dialog( $filelist_widget->toplevel );
         }
         else {
             $filelist_widget->toplevel->deiconify();
@@ -453,7 +457,7 @@ sub create_dialog {
     $d->BindButtons;
     $grp->{top}->Unbusy();
     if ($modal) {
-        main::ShowDialog($d);
+        TrEd::Dialog::FocusFix::show_dialog($d);
         $d->destroy();
         return $filelist;
     }
@@ -552,6 +556,7 @@ sub getFilelistLinePosition {
     return Treex::PML::Index( $fl->list_ref, $p );
 }
 
+#TODO: premenovat?
 sub update_2 {
   my ($grp, $fl) = @_;
   if ($filelist_widget) {

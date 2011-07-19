@@ -8,9 +8,12 @@ use Cwd;
 use TrEd::Config;
 use TrEd::ValueLine;
 use TrEd::HTML::Simple;
-use TrEd::Utils qw{STYLESHEET_FROM_FILE $EMPTY_STR}; # for STYLESHEET_FROM_FILE
+use TrEd::Utils qw{$EMPTY_STR}; 
+use TrEd::Stylesheet; # for STYLESHEET_FROM_FILE
 use TrEd::File;
 use TrEd::Error::Message;
+
+require TrEd::Dialog::FocusFix;
 
 my $selected_sentences;
 my $expand_view;
@@ -215,7 +218,7 @@ sub show_sentences_dialog {
   $d->BindEscape();
   $selref ||= [];
   populate_dialog($grp,$d,$fsfile,$selref,0);
-  main::ShowDialog($d,$top);
+  TrEd::Dialog::FocusFix::show_dialog($d,$top);
   $d->destroy;
   undef $d;
   return $selref;
@@ -294,7 +297,7 @@ sub dump_view {
 	  my $canvas=$grp->{top}->Canvas();
 	  my $stylesheet = $win->{stylesheet};
 	  my $ss = undef;
-	  if ($stylesheet ne TrEd::Utils::STYLESHEET_FROM_FILE()) {
+	  if ($stylesheet ne TrEd::Stylesheet::STYLESHEET_FROM_FILE()) {
 	    $ss=$win->{framegroup}->{stylesheets}->{$stylesheet};
 	  }
 	  eval {

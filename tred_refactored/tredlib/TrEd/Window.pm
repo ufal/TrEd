@@ -7,6 +7,8 @@ use strict;
 use Carp;
 use vars qw($AUTOLOAD);
 
+use TrEd::Stylesheet;
+
 # options
 # Nodes, root, treeView, FSFile, treeNo, currentNode
 sub new {
@@ -37,6 +39,24 @@ sub currentNode { return $_[0]->{currentNode} }
 sub DESTROY {
   my ($self)=@_;
   undef $self->{treeView};
+}
+
+#TODO: addition from Utils/Stylesheet
+# was Utils::applyWindowStylesheet
+sub apply_stylesheet {
+  my ($self,$stylesheet)=@_;
+  return unless $self;
+  my $s=$self->{framegroup}->{stylesheets}->{$stylesheet};
+  if ($stylesheet eq TrEd::Stylesheet::STYLESHEET_FROM_FILE()) {
+    $self->{treeView}->set_patterns(undef);
+    $self->{treeView}->set_hint(undef);
+  } else {
+    if ($s) {
+      $self->{treeView}->set_patterns($s->{patterns});
+      $self->{treeView}->set_hint(\$s->{hint});
+    }
+  }
+  $self->{stylesheet}=$stylesheet;
 }
 
 sub toplevel {

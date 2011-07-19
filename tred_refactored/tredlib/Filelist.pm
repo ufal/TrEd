@@ -674,6 +674,34 @@ sub find_pattern {
   return $NOT_FOUND;
 }
 
+#TODO: test, doc
+# was: main: renameFileInFilelist
+sub rename_file {
+  my ($self, $old_file, $filename, $position)=@_;
+  # TRY UPDATING THE CURRENT FILELIST:
+  #  if position is undefined - update all
+  #  if defined, update only given position
+  return unless ref($self) and UNIVERSAL::can($self,'list_ref') and UNIVERSAL::can($self,'files_ref');
+  my $pattern_list = $self->list_ref;
+  my $rel_name = File::Spec->abs2rel($filename, $self->filename);
+  # my %fixed;
+  for my $i (defined ($position) ? $position : 0..($self->file_count()-1)) {
+    my $fn = $self->file_at($i);
+    my ($f, $suffix) = TrEd::Utils::parse_file_suffix($fn);
+    if (Treex::PML::IO::is_same_file(TrEd::Filelist::Navigation::_filelistFullFileName($self,$f),$old_file)) {
+      my $pattern_no = $self->file_pattern_index($i);
+      my $pattern = $pattern_list->[$pattern_no];
+      my $new_filename =  (Treex::PML::_is_absolute($f) ?
+	  $filename.$suffix : $rel_name.$suffix);
+      $self->files_ref->[$i][0] = $new_filename;
+      if ($pattern eq $fn) {
+	# direct filename - easy: change pattern
+	$pattern_list->[$pattern_no] = $new_filename;
+      }
+    }
+  }
+}
+
 
 1;
 

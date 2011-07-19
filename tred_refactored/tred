@@ -356,8 +356,7 @@ if (defined $opt_m) {
 # don't die on error in Treex::PML::Instance::Reader, just warn...
 $Treex::PML::Instance::Reader::STRICT=0;
 
-###from TrEd::Utils
-TrEd::Utils::init_stylesheet_paths([split($Treex::PML::resourcePathSplit, $opt_S, -1)]);
+TrEd::Stylesheet::init_stylesheet_paths([split($Treex::PML::resourcePathSplit, $opt_S, -1)]);
 
 # well, setter would be nicer..
 $Treex::PML::resourcePath=
@@ -448,6 +447,9 @@ eval { require TrEd::Help; };
 #### new additions ###
 use Readonly;
 # maybe use similar approach as Padre here, require/use everything *.pm in tredlib/TrEd?
+require TrEd::Stylesheet;
+import TrEd::Stylesheet qw(:all);
+
 use TrEd::List::Macros;
 use TrEd::HTML::Simple;
 use TrEd::Dialog::MacroList;
@@ -456,6 +458,11 @@ use TrEd::FileLock;
 use TrEd::Dialog::EditStylesheet;
 use TrEd::Dialog::EditConfig;
 use TrEd::Dialog::Text;
+use TrEd::Dialog::FocusFix;
+use TrEd::Dialog::URL;
+use TrEd::Dialog::SelectValues;
+use TrEd::Dialog::CopyTrees;
+
 use TrEd::Binding::Default;
 use TrEd::Filelist::Navigation;
 use TrEd::ValueLine;
@@ -477,6 +484,11 @@ use TrEd::Dialog::FindNode;
 use TrEd::Dialog::ExamineBindings;
 use TrEd::Menu::Macro;
 use TrEd::MinorModes;
+
+require TrEd::Query::List;
+require TrEd::Query::User;
+require TrEd::Query::String;
+require TrEd::Query::Simple;
 
 # ex-macro stuff
 # this files all live in TredMacro package namespace 
@@ -916,8 +928,9 @@ sub currentFileNo {
 # Window, UI?
 sub cast_to_win {
   my ($gw)=@_;
-  return (blessed($gw) and $gw->isa('TrEd::Window')) ? $gw :
-    (ref($gw) ? $gw->{focusedWindow} : undef);
+  return (blessed($gw) and $gw->isa('TrEd::Window')) ? $gw
+         : (ref $gw                                  ? $gw->{focusedWindow} 
+         : undef);
 }
 
 # Window
@@ -1070,7 +1083,8 @@ sub is_focused {
 # sub setFSLockInfo
 
 sub _clear_err {
-  undef $!; undef $@;
+  undef $!; 
+  undef $@;
 }
 
 sub _last_err {
@@ -1165,22 +1179,11 @@ sub textDialog {
   return TrEd::Dialog::Text::create_dialog(@_);
 }
 
-# UI, Query
+# sub userQuery
+# wrapper for Elixir and PADT 
 sub userQuery {
-  my ($win, $message, %opts) = @_;
-  my $d = $win->toplevel->Dialog(
-				 %opts
-				);
-  $d->add('Label', -text => $message,
-	  -wraplength => 300)->pack();
-  $d->BindReturn($d,1);
-  if (exists($opts{-buttons}) and 
-      grep { $_ eq 'Cancel' } @{$opts{-buttons}}) {
-    $d->BindEscape();
-
-  }
-  $d->BindButtons;
-  return $d->Show;
+    require TrEd::Query::User;
+    return TrEd::Query::User::new_query(@_);
 }
 
 #sub TrEd::RecentFiles::add_file {
@@ -1693,7 +1696,7 @@ sub update_value_line {
 #######################################################################################
 # Usage         : get_nodes_win($win, $no_redraw)
 # Purpose       : Load the root, nodes and current node of tree number $win->{treeNo}
-#                 from current file in the Window $win into $win-{root}, $win->{Nodes}
+#                 from current file in the Window $win into $win->{root}, $win->{Nodes}
 #                 and $win->{currentNode} hash values
 # Returns       : Undef/empty list
 # Parameters    : TrEd::Window ref $win -- reference to TrEd::Window whose nodes are searched for
@@ -1710,6 +1713,7 @@ sub get_nodes_win {
             $win->{treeNo} = 0;
         }
         $win->{root} = $win->{FSFile}->treeList->[ $win->{treeNo} ];
+        # here the assignment happens
         ( $win->{Nodes}, $win->{currentNode} )
             = $win->treeView->nodes( $win->{FSFile}, $win->{treeNo},
             $win->{currentNode} );
@@ -1817,98 +1821,6 @@ sub addFilelist {
 ####
 
 
-# dialog, tree
-sub copyTreesDialog {
-  my ($grp)=@_;
-  return unless $grp->{focusedWindow}->{FSFile};
-  my ($Entry, @Entry) = get_entry_type();
-  my $range=$grp->{focusedWindow}->{treeNo}+1;
-  my $source=$grp->{focusedWindow}->{FSFile};
-  my $destination=$grp->{focusedWindow}->{FSFile};
-  my $d= $grp->{top}->DialogBox(-title=> 'Copy Trees',
-				-buttons=> ['OK', 'Cancel']);
-  $d->BindReturn($d,1);
-  $d->resizable(0,0);
-  addBindTags($d,'dialog');
-  $d->BindEscape();
-  $d->bind('<Tab>',[sub { shift->focusNext; }]);
-  $d->bind('<Shift-Tab>',[sub { shift->focusPrev; }]);
-  $d->bind('<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
-  my $ff= $d->Frame();
-  $ff->Label(-text=> 'Destination file:',
-	     -anchor=> 'w',
-	     -justify=> 'right')->pack(-side=> 'left');
-  my @items;
-  my $i=1;
-  foreach my $of (TrEd::File::get_openfiles()) {
-    push @items,$i++.". ".$of->filename();
-  }
-  my $om = $ff->Optionmenu(
-		  -relief => $buttonsRelief,
-		  -options => \@items,
-		  -variable => \$destination
-		 )->pack(qw/-side left -padx 10/);
-  $om->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
-  $ff->pack(qw/-pady 10 -padx 10 -side top -expand yes -fill x/);
-  my $sf= $d->Frame();
-  my $re=$sf->$Entry(@Entry,
-		     -relief=> 'sunken',
-		     -width=> 20,
-		     -font=> $font,
-		     -textvariable=> \$range);
-  set_grp_history($grp, $re, 'treeRange');
-  $sf->Label(-text=> 'Trees selection (range):',
-	     -anchor=> 'w',
-	     -justify=> 'right')->pack(-side=> 'left');
-  $re->pack(qw/-side left -padx 10 -fill x -expand yes/);
-  $sf->Button(-image=> icon($grp,'1leftarrow'),
-	      -command =>
-	      [sub {
-		  my ($grp,$range)=@_;
-		  $$range=TrEd::View::Sentence::get_selection($grp);
-	       },$grp,\$range])->pack(qw/-padx 10 -side left/);
-  $sf->Button(-image=> icon($grp,'contents'),
-	      -command=> [sub {
-			    my ($grp,$d,$range,$source)=@_;
-			    my $list=[];
-			    foreach (TrEd::Print::parse_print_list($source,$$range)) {
-			      $list->[$_-1]=1;
-			    }
-			    $$range=TrEd::View::Sentence::get_selection($grp,
-                        TrEd::View::Sentence::show_sentences_dialog($grp,$d,$source,
-									     $list
-									    ));
-			  },$grp,$d,\$range,$source])->pack(qw/-padx 10 -side left/);
-  $sf->pack(qw/-pady 10 -padx 10 -side bottom -expand yes -fill x/);
-
-  $d->BindButtons;
-  my $result= ShowDialog($d,$re,$grp->{top});
-  get_grp_history($grp, $re, 'treeRange') if ($result=~ /OK/);
-  $d->destroy();
-  undef $d;
-  if ($result=~ /OK/) {
-    $destination=~/^(\d+)/;
-    my @open_files = TrEd::File::get_openfiles();
-    my $fs=$open_files[$1-1];
-    return unless ref($fs);
-    my @list=TrEd::Print::parse_print_list($source,$range);
-    my $tree;
-    my $any;
-    foreach my $l (@list) {
-      $tree=$source->tree($l-1);
-      if ($tree) {
-	$fs->insert_tree($fs->FS->clone_subtree($tree),
-			 $fs->lastTreeNo+1);
-	$any=1;
-      }
-    }
-    if ($any) {
-      $fs->notSaved(1);
-      get_nodes_fsfile($grp,$fs);
-      redraw_fsfile($grp,$fs);
-    }
-  }
-}
 
 # sub initTTFonts
 
@@ -1918,7 +1830,7 @@ sub warnWin32PrintConvert {
   my ($win)=@_;
   return 'Continue' if $^O ne 'MSWin32' or
     (which('convert.exe') ne EMPTY) or $NoConvertWarning;
-  userQuery($win,
+  TrEd::Query::User::new_query($win,
 "This feature requires ImageMagick (http://www.imagemagick.org), which ".
 "does not seem to be installed because 'convert.exe' was found in your PATH. ".
 "Press 'Continue' if you want to try anyway.\n\n".
@@ -1934,7 +1846,7 @@ sub warn55PrintConvert {
   my $version = `$imageMagickConvert -help`;
   ($version) = split /\n/,$version;
   return 'Continue' unless ($version =~ /ImageMagick 5\.5\./);
-  userQuery($win,
+  TrEd::Query::User::new_query($win,
 	    "Your version of ImageMagick ($version) is known to hang when converting from EPS. ".
             "We suggest that you upgrade ImageMagick to version >= 6.0 or downgrade to <= 5.4.7. ".
             "If you are sure you want to continue ".
@@ -2079,7 +1991,7 @@ sub switchStylesheet {
   return if $prevstylesheet eq $stylesheet and 
     $stylesheet ne STYLESHEET_FROM_FILE(); # the file might have changed
   if ($stylesheet eq NEW_STYLESHEET()) {
-    $stylesheet=QueryString($grp,"Stylesheet name", "Name: ");
+    $stylesheet=TrEd::Query::String::new_query($grp,"Stylesheet name", "Name: ");
     if (!defined($stylesheet)) {
       $stylesheet=$prevstylesheet;
     } elsif (grep /^\Q$stylesheet\E$/i, keys %{$grp->{stylesheets}}) {
@@ -2087,14 +1999,14 @@ sub switchStylesheet {
 		   "Stylesheet named '$stylesheet' already exists!\n",1);
       $stylesheet=$prevstylesheet;
     } else {
-      my ($hint,$context,$patterns) = getStylesheetPatterns($win);
+      my ($hint,$context,$patterns) = TrEd::Stylesheet::get_stylesheet_patterns($win);
       $grp->{stylesheets}->{$stylesheet}->{hint}=$hint;
       $grp->{stylesheets}->{$stylesheet}->{context}=$context;
       $grp->{stylesheets}->{$stylesheet}->{patterns}=$patterns;
       $grp->{StylesheetMenu}->update($grp);
-      save_stylesheet_file($grp,$default_stylesheet_path,$stylesheet);
+      TrEd::Stylesheet::save_stylesheet_file($grp, $stylesheet);
     }
-    applyWindowStylesheet($win,$stylesheet);
+    $win->apply_stylesheet($stylesheet);
     $grp->{selectedStylesheet} = $stylesheet if is_focused($win);
   } elsif ($stylesheet eq DELETE_STYLESHEET()) {
     if ($prevstylesheet eq STYLESHEET_FROM_FILE()) {
@@ -2102,13 +2014,13 @@ sub switchStylesheet {
       return 0;
     }
     $stylesheet=$prevstylesheet;
-    my $answer=userQuery($win,
+    my $answer=TrEd::Query::User::new_query($win,
 			 "Really delete stylesheet '$stylesheet'?",
 			 -bitmap=> 'question',
 			 -title => "Delete stylesheet?",
 			 -buttons => ['Yes', 'No']);
     if ($answer eq 'Yes') {
-      deleteStylesheet($grp,$stylesheet);
+      TrEd::Stylesheet::delete_stylesheet($grp,$stylesheet);
     } else {
       $grp->{selectedStylesheet} = $stylesheet if is_focused($win);
       return 0;
@@ -2116,7 +2028,7 @@ sub switchStylesheet {
   } else {
     return 0 if (doEvalHook($win,"pre_switch_stylesheet_hook",
 			    $prevstylesheet,$stylesheet) eq 'stop');
-    applyWindowStylesheet($win,$stylesheet);
+    $win->apply_stylesheet($stylesheet);
     doEvalHook($win,"switch_stylesheet_hook",$prevstylesheet,$stylesheet);
     if ($win->{FSFile}) {
       get_nodes_win($win);
@@ -2606,7 +2518,7 @@ sub splitWindow {
     }
     $twin->{minorModes}=[ @{$win->{minorModes}||[]} ];
   }
-  applyWindowStylesheet($twin,$grp->{selectedStylesheet});
+  $twin->apply_stylesheet($grp->{selectedStylesheet});
   focusCanvas($canvas,$grp) unless $opts->{no_focus};
   unless ($opts->{no_redraw}) {
     get_nodes_win($twin);
@@ -3401,7 +3313,7 @@ sub startMain {
     $top->useinputmethods(1);
   }
   my $preparedExtensions = TrEd::Extensions::prepare_extensions($opt_m); #<- sets up new stylesheet, resources, macor paths
-  TrEd::Utils::loadStyleSheets(\%tred);
+  TrEd::Stylesheet::load_stylesheets(\%tred);
 
   
   Readonly my $milisec_per_min => 60000;
@@ -3631,7 +3543,7 @@ sub startMain {
     $ver = $VERSION; # do not bother the user in this case
   }
   if (!$TrEd::Config::skipStartupVersionCheck && ( !$ver || $ver ne $VERSION )) {
-    if (userQuery($top, "TrEd was "
+    if (TrEd::Query::User::new_query($top, "TrEd was "
 		    .($ver ? "upgraded" : "installed or upgraded")
 		    ." recently.\n\n".
 		        "Do you want to check for new extensions or updates?",
@@ -3663,10 +3575,10 @@ sub startMain {
     print STDERR "Stopped by init_hook\n";
     exit_tred();
   }
-  # STYLESHEET_FROM_FILE is from TrEd::Utils
+  # STYLESHEET_FROM_FILE is from TrEd::Stylesheet
   my $stylesheet=$opt_s || STYLESHEET_FROM_FILE();
   $tred{selectedStylesheet}=$stylesheet;
-  applyWindowStylesheet($tred{focusedWindow},$stylesheet);
+  $tred{focusedWindow}->apply_stylesheet($stylesheet);
 
   toggleSidePanel(\%tred);
   if ($opt_split_window) {
@@ -3902,7 +3814,7 @@ sub makeCurrentNodeRoot {
   my $fsfile = $win->{FSFile};
   return unless $fsfile and $node;
   return unless ($fsfile->test_tree_type($node) or
-		   userQuery($win,"WARNING:\n\n".
+		   TrEd::Query::User::new_query($win,"WARNING:\n\n".
 			       "The type of the current node is not a permitted root type.\n\n".
 				 "The options are:\n\n".
 				   "[Proceed anyway] - ignore the type constraints (the tree will be invalid, but may be fixed later)\n".
@@ -3914,7 +3826,7 @@ sub makeCurrentNodeRoot {
   my $root = $node->root;
   return if $root==$node;
   unless ($node->test_child_type($root)) {
-    my $res = userQuery($win,"WARNING:\n\n".
+    my $res = TrEd::Query::User::new_query($win,"WARNING:\n\n".
 			  "Normally, this operation cuts the subtree of the current node,\n".
 			    "makes the current node a new root of the tree and\n".
 			      "pastes the old root on the current node.\n\n".
@@ -4056,78 +3968,20 @@ sub onIdlePrevTree {
   Tk->break;
 }
 
-# dialog, UI
-sub RepeatedShowDialog {
-  my ($cw, $focus, $oldFocus)= @_;
-  $oldFocus= $cw->focusCurrent unless $oldFocus;
-  my $oldGrab= $cw->grabCurrent;
-  my $grabStatus= $oldGrab->grabStatus if ($oldGrab);
 
-  # instead of Popup
-  $cw->deiconify;
-  $cw->waitVisibility;
-
-  Tk::catch {
-    $cw->grab;
-  };
-  $focus->focusForce if ($focus);
-  Tk::DialogBox::Wait($cw);
-  eval {
-    $oldFocus->focusForce;
-  };
-  $cw->withdraw;
-  $cw->grabRelease;
-  if ($oldGrab) {
-    if ($grabStatus eq 'global') {
-      $oldGrab->grabGlobal;
-    } else {
-      $oldGrab->grab;
-    }
-  }
-  return $cw->{selected_button};
-}
-
-# This patches $dialog->Show which implicitly focuses the default button;
-# here focus stays where it is.
-# Usage: my $dlg=DialogBox(); ...; ShowDialog($dlg);
-# dialog
-sub ShowDialog {
-  my ($cw, $focus, $oldFocus)= @_;
-  $oldFocus= $cw->focusCurrent unless $oldFocus;
-  my $oldGrab= $cw->grabCurrent;
-#  my $old_grab= $cw->grabSave;
-#  my $old_focus= $cw->grabSave;
-  my $grabStatus= $oldGrab->grabStatus if ($oldGrab);
-
-#  $cw->grab;
-
-  $cw->Popup();
-
-  Tk::catch {
-    $cw->grab;
-  };
-  $focus->focusForce if ($focus);
-  Tk::DialogBox::Wait($cw);
-  eval {
-    $oldFocus->focusForce;
-  };
-  #&$old_grab;
-  #&$old_focus;
   
-  $cw->withdraw;
-  $cw->grabRelease;
-  if ($oldGrab) {
-    if ($grabStatus eq 'global') {
-      $oldGrab->grabGlobal;
-    } else {
-      $oldGrab->grab;
-    }
-  }
 
-  return $cw->{selected_button};
+# wrapper for vallex and remote control
+sub ShowDialog {
+    return TrEd::Dialog::FocusFix::show_dialog(@_);
+}
+# wrapper for vallex and remote control
+sub RepeatedShowDialog {
+    return TrEd::Dialog::FocusFix::repeated_show_dialog(@_);
 }
 
 # file, template
+#TODO: -->File
 sub newFileFromTemplate {
   my ($grp)=@_;
   my @templates;
@@ -4139,14 +3993,14 @@ sub newFileFromTemplate {
     }
   }
   if (!@templates) {
-    userQuery($grp->{top},
+    TrEd::Query::User::new_query($grp->{top},
 	      "Sorry, the available extensions provide no templates.",
 	      -title => "New from templates",
 	      -buttons => ["OK"]);
     return;
   }
   my $choices = [map filename($_->[1])." ($_->[0])", @templates];
-  my $ret = listQuery(
+  my $ret = TrEd::Query::List::new_query(
     $grp->{top},
     'Select a template',
     'browse',
@@ -4163,114 +4017,15 @@ sub newFileFromTemplate {
 
 
 # dialog
-sub urlDialog {
-  my ($grp,$header_only)= @_;
-  if (not(defined $grp->{lastURL}) and
-      defined($grp->{focusedWindow}->{FSFile})) {
-    $grp->{lastURL} = $grp->{focusedWindow}->{FSFile}->filename();
-  }
-  $grp->{lastURL}||='file://';
-  $grp->{urlHist} = [] unless ref($grp->{urlHist});
-  my $opts={};
-  if ( eval { require Tk::MatchEntry; 1 } ) {
-    $opts = {
-      -entry =>
-      [
-      'MatchEntry',
-      -label=>undef,
-      -choices=>[],
-      -complete=>1,
-      -wraparound => 1,
-      -autopopup=>1,
-      -fixedwidth => 0,
-      -autoshrink => 1,
-      -maxheight => 10,
-      -listcmd => sub {
-	my ($w)=@_;
-	my $file = $w->Subwidget('entry')->get();
-	my @files;
-	if ($file !~ m{^\s*([[:alnum:]][[:alnum:]]+):}) {
-	  @files = glob(TrEd::Config::tilde_expand($file).'*');
-	} elsif ($file =~ m{^\s*file:}) {
-	  $file = URI->new($file eq 'file:' ? 'file:///' : $file);
-	  if ((blessed($file) and $file->isa('URI::file'))) {
-	    @files = map { URI::file->new($_)->as_string } glob($file->file.'*');
-	  }
-	}
-	$w->configure(-choices=>\@files);
-	my $font = $w->cget('-font');
-	$w->configure(-listwidth=>10+max(map $w->fontMeasure($font,$_),@files));
-	$w->xview('end');
-      }],
-      -entry_config => sub {
-	$_[0]->Subwidget('entry')->Subwidget('entry')->configure(
-	  -background=>'white',
-	  -foreground=>'black',
-	);
-	$_[0]->focus;
-      },
-     };
-  } else {
-    undef $@;
-  }
-  my $file = QueryString($grp,"Enter URL", "URL: ",$grp->{lastURL},1,$grp->{urlHist},
-			 undef,$opts);
-  if (defined $file and $file ne EMPTY) {
-    $grp->{lastURL} = $file;
-    return TrEd::File::openStandaloneFile($grp,$file,-justheader => $header_only);
-  }
-  return 0;
-}
+# sub urlDialog 
 
 
 # sub askSaveReferences
 # sub saveFileAs
 # sub doSaveFileAs 
 
-# filelist
-#TODO: to filelist?
-sub renameFileInFilelist {
-  my ($filelist, $old_file, $filename, $position)=@_;
-  # TRY UPDATING THE CURRENT FILELIST:
-  #  if position is undefined - update all
-  #  if defined, update only given position
-  return unless ref($filelist) and UNIVERSAL::can($filelist,'list_ref') and UNIVERSAL::can($filelist,'files_ref');
-  my $pattern_list = $filelist->list_ref;
-  my $rel_name = File::Spec->abs2rel($filename, $filelist->filename);
-  # my %fixed;
-  for my $i (defined ($position) ? $position : 0..($filelist->file_count()-1)) {
-    my $fn = $filelist->file_at($i);
-    my ($f, $suffix) = TrEd::Utils::parse_file_suffix($fn);
-    if (Treex::PML::IO::is_same_file(TrEd::Filelist::Navigation::_filelistFullFileName($filelist,$f),$old_file)) {
-      my $pattern_no = $filelist->file_pattern_index($i);
-      my $pattern = $pattern_list->[$pattern_no];
-      my $new_filename =  (Treex::PML::_is_absolute($f) ?
-	  $filename.$suffix : $rel_name.$suffix);
-      $filelist->files_ref->[$i][0] = $new_filename;
-      if ($pattern eq $fn) {
-	# direct filename - easy: change pattern
-	$pattern_list->[$pattern_no] = $new_filename;
-      }
-      # 	      elsif (!$fixed{$pattern_no}) {
-      # 		my $new_pattern = QueryString($win,
-      # 					      "Update filelist pattern",
-      # 					      "Pattern:",
-      # 					      $pattern,
-      # 					    undef,
-      # 					      undef,
-      # 					      "File list reference\n${f}\n".
-      # 						"is generated from a pattern. ".
-      # 					    "You can now manually update the pattern.");
-      # 		if (defined $new_pattern) {
-      # 		  $pattern_list->[$pattern_no] = $new_pattern;
-      # 		  $fixed{$pattern_no}=1;
-      # 		}
-      # 	      }
-    }
-  }
-}
 
-
+# sub renameFileInFilelist
 
 # sub closeAllFiles
 
@@ -4357,196 +4112,22 @@ sub reconfigure {
 #sub editConfig
 
 # UI
+# sub QueryString
+# wrapper for PADT, PDT10, PDT15_obsolete
 sub QueryString {
-  my ($grp, $title, $label,$default_text, $select, $hist,$before_label,$opts)=@_;
-  my $top = (ref($grp) and UNIVERSAL::can($grp,'toplevel')) ? $grp->toplevel : $grp->{top};
-  my $newvalue=encode($default_text);
-  my $d=$top->DialogBox(-title=> $title,
-				 -buttons=> ["OK", "Cancel"]);
-  $d->BindEscape();
-  $d->BindReturn($d,1);
-  $d->bind('<Tab>',[sub { shift->focusNext; }]);
-  $d->bind('<Shift-Tab>',[sub { shift->focusPrev; }]);
+    return TrEd::Query::String::new_query(@_);
+} 
 
-  addBindTags($d,'dialog');
-  $opts||={};
-  my ($Entry,@Eopts) = @{delete($opts->{-entry}) || [get_entry_type()]};
-
-  my $f = $d;
-  if (defined $before_label) {
-    my $l= $d->Label(-text=> encode($before_label),
-		   -anchor=> 'ne',
-		   -justify=> 'left')->pack();
-    $f=$d->Frame->pack();
-  }
-  my $e=$f->$Entry(
-		@Eopts,
-		-relief=> 'sunken',
-		-width=> 70,
-		-takefocus=> 1,
-		-font=> $font,
-		-textvariable=> \$newvalue);
-  if ($opts->{-entry_config}) {
-    $opts->{-entry_config}->($e);
-  }
-  if ($e->can('history') and ref($hist)) {
-    $e->history($hist);
-  }
-  $e->selectionRange(qw(0 end)) if ($select);
-  my $l= $f->Label(-text=> encode($label),
-		    -anchor=> 'e',
-		    -justify=> 'right');
-
-  $l->pack(-side=>'left');
-  $e->pack(-side=>'right');
-  $d->resizable(0,0);
-  $d->BindButtons;
-  my $result= ShowDialog($d,$e,$top);
-  if ($result=~ /OK/) {
-    if (ref($hist) and $e->can('historyAdd')) {
-      $e->historyAdd($newvalue) if $newvalue ne EMPTY;
-      @$hist = $e->history();
-    }
-    $d->destroy; undef $d;
-    return decode($newvalue);
-  } else {
-    $d->destroy; undef $d;
-    return undef;
-  }
-}
-
-# 
+#
 sub Query {
-  my ($w, $title, $label,$default_text,$select, $hist)=@_;
-  my $newvalue=encode($default_text);
-  my $d=$w->DialogBox(-title=> $title,
-				 -buttons=> ["OK", "Cancel"]);
-  $d->BindReturn($d,1);
-  $d->BindEscape;
-  addBindTags($d,'dialog');
-  my ($Entry,@Eopts) = get_entry_type();
-  my $e=$d->add($Entry,-relief=> 'sunken',
-		    -width=> 40,
-		    -takefocus=> 1,
-		    -font=> $font,
-		    -textvariable=> \$newvalue);
-  if ($e->can('history') and ref($hist)) {
-    $e->history($hist);
-  }
-  $e->selectionRange(qw(0 end)) if ($select);
-  my $l= $d->Label(-text=> encode($label),
-		    -anchor=> 'e',
-		    -justify=> 'right');
-  $l->pack(-side=>'top');
-  $e->pack(-side=>'left');
-  $d->resizable(0,0);
-#  $e->focus;
-  $d->BindButtons;
-  my $result= ShowDialog($d,$e,$w);
-  if ($result=~/OK/) {
-    if (ref($hist) and $e->can('historyAdd')) {
-      $e->historyAdd($newvalue) if $newvalue ne EMPTY;
-      @$hist = $e->history();
-    }
-  }
-  $d->destroy;
-  undef $d;
-  if ($result=~ /OK/) {
-    return decode($newvalue);
-  } else {
-    return undef;
-  }
-}
-# UI
-sub listQuery {
-  my ($w,$title,$select_mode,$vals,$selected,%opts)=@_;
-  my $top=$w->toplevel;
-  my $d=$w->DialogBox(-title	  => $title,
-		      -width	  => '8c',
-		      -buttons  => ["OK", "Cancel"],
-		      ref($opts{dialog}) ? %{$opts{dialog}} : (),
-		     );
-  $d->BindReturn($d,1);
-  $d->BindEscape();
-  if (ref($opts{label})) {
-    $d->Label(%{$opts{label}})->pack(qw/-side top/);
-  }
-  my $l=$d->Scrolled(qw/Listbox -relief sunken
-                        -takefocus 1
-                        -width 0
-                        -scrollbars e/,
-		     -font=> $font,
-		     -selectmode => $select_mode,
-		     -height=> min($maxDisplayedValues,scalar(@$vals)),
-		     ref($opts{list}) ? %{$opts{list}} : ()
-		    )->pack(qw/-expand yes -fill both/);
-  $l->insert('end',@$vals);
-  if (@$vals>0) {
-    $l->activate(0);
-  }
-  $l->BindMouseWheelVert();
-  my $f=$d->Frame()->pack(qw/-fill x/);
-  if ($select_mode eq 'multiple') {
-    $f->Button(-text => 'All',
-	       -underline => 0,
-	       -command => [
-			    sub{
-			      my ($list)=@_;
-			      $list->selectionSet(0,'end');
-			    },
-			    $l
-			   ])->pack(-side => 'left');
-    $f->Button(-text => 'None',
-	       -underline => 0,
-	       -command => [
-			    sub{
-			      my ($list)=@_;
-			      $list->selectionClear(0,'end');
-			    },
-			    $l
-			   ])->pack(-side => 'left');
-  } else {
-    $l->bind('<Double-1>', sub { $d->{selected_button}='OK' });
-  }
-  if (ref($opts{buttons})) {
-    foreach my $b (@{$opts{buttons}}) {
-      if (ref($b->{-command}) eq 'ARRAY') {
-	push @{$b->{-command}}, $l;
-      }
-      $f->Button(%$b)->pack(-side => 'left');
-    }
-  }
-  Tk::Callback->new($opts{init})->Call($d,$l,$f) if $opts{init};
-  $d->BindButtons;
-  my $act=0;
-  my %selected = map { $_ => 1 } @$selected;
-  for ($a=0;$a<@$vals;$a++)  {
-    if ($selected{$$vals[$a]}) {
-      $l->selectionSet($a);
-      if (not $act) {
-	$act=1;
-	$l->activate($a);
-	$l->see($a);
-      }
-    }
-  }
- $l->focus;
- my $result= &main::ShowDialog($d,$l,$top);
+    return TrEd::Query::Simple::new_query(@_);
+} 
 
- if ($result!~ /Cancel/) {
-   @$selected=();
-   my @ret;
-   foreach (0 .. $l->size-1) {
-     if ($l->selectionIncludes($_)) {
-       push @$selected, $l->get($_);
-       push @ret, $_;
-     }
-   }
-   $d->destroy;
-   return \@ret;
- }
- $d->destroy;
- return undef;
+# sub listQuery
+# wrapper for pdt15_obsolete, 
+# extensions should use TredMacro::ListQuery instead
+sub listQuery {
+    return TrEd::Query::List::new_query(@_);
 }
 
 # context
@@ -4600,7 +4181,7 @@ sub selectContext {
   my ($grp)=@_;
   my $win = $grp->{focusedWindow};
   my $selection = [$win->{macroContext}];
-  listQuery($grp->{top},'Select Mode','browse',[get_allowed_contexts($win)],
+  TrEd::Query::List::new_query($grp->{top},'Select Mode','browse',[get_allowed_contexts($win)],
 	    $selection) || return;
   if (@$selection) {
     switchContext($grp->{focusedWindow},$selection->[0]);
@@ -4613,7 +4194,7 @@ sub selectStylesheet {
   my $grp = cast_to_grp($grp_or_win);
   my $win = cast_to_grp($grp_or_win);
   my $selection = [$grp->{selectedStylesheet}];
-  listQuery($grp->{top},'Select Mode','browse',
+  TrEd::Query::List::new_query($grp->{top},'Select Mode','browse',
 	    $grp->{StylesheetMenu}->get_menu_list($grp),
 	    $selection) || return;
   if (@$selection) {
@@ -4630,124 +4211,13 @@ sub stylesheetUsingWindows {
     } @{$grp->{treeWindows}};
 }
 
-# stylesheet
-sub deleteStylesheet {
-  my ($grp,$stylesheet)=@_;
-  removeStylesheetFile($grp,$default_stylesheet_path,$stylesheet);
-  $grp->{StylesheetMenu}->update($grp);
-  foreach my $win (stylesheetUsingWindows($grp,$stylesheet)) {
-    if ($grp->{focusedWindow} == $win) {
-      $grp->{selectedStylesheet} = STYLESHEET_FROM_FILE();
-    }
-    applyWindowStylesheet($win,STYLESHEET_FROM_FILE());
-    if ($win->{FSFile}) {
-      get_nodes_win($win);
-      redraw_win($win);
-    }
-  }
-}
+# sub deleteStylesheet
 
-# dialog
+
+# sub selectValuesDialog
+# wrapper for pdt15_obsolete extension
 sub selectValuesDialog {
- my ($grp, $attr, $vals, $selected, $may_add, $lastFocus,$force)=@_;
- my $a;
- my $multi=0;
- my @prevSelectionSet;
-
- my $top=$grp->{top};
- $top->Busy(-recurse=> 1);
- my $enabled=($force or doEvalHook($grp->{focusedWindow},
-				   'enable_attr_hook',
-				   $attr,
-				   "ambiguous") ne 'stop');
-
- my $d=$top->DialogBox(-title=> ($enabled ? "$attr: select values" : "$attr: values"),
-		       -width=> '8c',
-		       -buttons=> ($enabled ? ["OK", "Cancel"] : ["Cancel"]));
- $d->BindReturn($d,1);
- $d->BindEscape();
- $d->resizable(0,0);
- my $l=$d->Scrolled(qw/Listbox -relief sunken -takefocus 1 -scrollbars oe/,
-		    -height=> min($maxDisplayedValues,scalar(@$vals)),
-		    -font=> $font)->pack(qw/-expand yes -fill both/);
- disable_scrollbar_focus($l);
- $l->insert('end',@$vals);
- $l->BindMouseWheelVert();
- if ($enabled) {
-   $l->bind('<Double-ButtonPress-1>'=>
-	    [sub { my $w=shift;
-		   my $d=shift;
-		   my $e= $w->XEvent;
-		   $w->BeginSelect($w->index($e->xy));
-		   $d->{selected_button}='OK';
-		 },$d
-	    ]);
- }
- my $act=0;
- for ($a=0;$a<@$vals;$a++)  {
-   if (grep { $$vals[$a] eq $_ } @$selected) {
-     $l->selectionSet($a);
-     if (not $act) {
-       print "Activating $a\n"  if $tredDebug;
-       $act=1;
-       $l->activate($a);
-       $l->see($a);
-     }
-   }
- }
- if ($enabled) {
-   $d->Checkbutton(-text    => 'multiple select',
-		   -variable=> \$multi,
-		   -command => [sub {
-				   shift->configure(-selectmode=> $multi ? 'multiple' : 'browse');
-				 },$l],
-		   -relief  => 'flat')->pack();
-   if ($may_add) {
-     $d->Button(-text=> 'Add',
-		-command=> [sub {
-			       my ($grp,$l,$vals,$attr)=@_;
-			       $grp->{"histValue:$attr"}=[]
-				 unless $grp->{"histValue:$attr"};
-			       my $val=
-				 QueryString($grp,"Add new value","Value",
-					     undef,
-					     0,$grp->{"histValue:$attr"});
-			       return unless defined $val;
-			       push @$vals,$val;
-			       $l->insert('end',$val);
-			       $l->selectionClear(0,$l->size-1) unless $multi;
-			       $l->selectionSet($l->size-1);
-			     },$grp,$l,$vals,$attr])->pack();
-   }
- }
- $top->Unbusy();
- $l->focus;
- $d->BindButtons;
- my $result= ShowDialog($d,$l,$lastFocus);
- if ($result=~ /OK/) {
-   # Hajic wanted this (I wash my hands):
-   # first we store the values, which were selected originaly and
-   # stayed selected
-   foreach my $s (@$selected) { 
-     push @prevSelectionSet, (grep { $$vals[$_] eq $s } (0 .. $l->size-1));
-   }
-   @$selected=();
-   foreach (@prevSelectionSet) {
-     if ($l->selectionIncludes($_)) {
-       $l->selectionClear($_);
-       push @$selected,$$vals[$_];
-     }
-   }
-   foreach (0 .. $l->size-1) {
-     push @$selected, $$vals[$_] if $l->selectionIncludes($_);
-   }
-   $d->destroy;
-   undef $d;
-   return 1;
- }
- $d->destroy;
- undef $d;
- return 0;
+    return TrEd::Dialog::SelectValues::create_dialog(@_);
 }
 
 # sentence view
@@ -4778,7 +4248,7 @@ sub editListAttr {
   my @selected= map { encode($_) } split /\|/,$value;
   #print "splitted to ", join ('-',@selected),"\n";
 
-  if (selectValuesDialog($win->{framegroup},$attr,\@vals,\@selected,0,$d)) {
+  if (TrEd::Dialog::SelectValues::create_dialog($win->{framegroup},$attr,\@vals,\@selected,0,$d)) {
     return decode(join('|',@selected));
   }
   return undef;
@@ -4789,7 +4259,7 @@ sub editAmbiguousAttr {
   my @vals= map { encode($_) }split /\|/,$value;
   my @selected= @vals;
   
-  if (selectValuesDialog($win->{framegroup},$attr,\@vals,\@selected,1,$win->toplevel)) {
+  if (TrEd::Dialog::SelectValues::create_dialog($win->{framegroup},$attr,\@vals,\@selected,1,$win->toplevel)) {
     return decode(join('|',@selected));
   }
   return undef;
@@ -4850,7 +4320,7 @@ sub determineNodeType {
 	my $top = $win->toplevel;
 	my ($highest) = reverse $top->stackorder();
 	$top = $top->Widget($highest);
-	listQuery($top,'Untyped node: select node-type','browse',
+	TrEd::Query::List::new_query($top,'Untyped node: select node-type','browse',
 		  \@types,$selection) || return;
 	return @$ntypes[$1-1] if $selection->[0]=~/^(\d+) /;
 	return;
@@ -4863,227 +4333,9 @@ sub determineNodeType {
 
 #sub editFilePropertiesDialog 
 
-# 
-sub editAttrsDialog_schema {
-  my ($win,$node,$attr_path,$as_type,$focus)=@_;
-  my $grp = $win->{framegroup};
-  my $base_type = ref($as_type) ? $as_type : determineNodeType($win,$node);
-  return unless $base_type;
-  my $schema;
-  my $enabled = 1;
-  my $node_type;
+# sub editAttrsDialog_schema
+#sub editAttrsDialog
 
-  $win->toplevel->Busy(-recurse=>1);
-  if ($attr_path ne EMPTY) {
-    $node_type = $base_type->find($attr_path,1);
-    croak("Unknown attribute $attr_path") unless $node_type;
-    $enabled = 0 if doEvalHook($win,'enable_attr_hook',$attr_path,"normal",$node) eq 'stop';
-  } else {
-    $enabled= 0 if (doEvalHook($win,'enable_edit_node_hook',$node) eq 'stop');
-    $node_type = $base_type;
-  }
-
-  my $dlg_title = $attr_path ne EMPTY ? "Edit Attribute '$attr_path'" : "Edit Node";
-  my $result = $win->toplevel->TrEdNodeEditDlg({
-    title => $dlg_title,
-    type => $base_type,
-    object => $node,
-    path => $attr_path,
-    focus => (defined $focus ? $focus : $attr_path),
-    buttons => [$enabled ? ($attr_path ? qw(OK Cancel) : qw(OK Help Cancel)) : ('Cancel')],
-    no_sort=>!$sortAttrs,
-    no_value_sort=>!$sortAttrValues,
-    side_panel_wrap => $sidePanelWrap,
-    buttons_configure => {
-      Help => [ -command =>
-		  [sub {
-		     help_topic(shift,'new_editnode_interface');
-		     Tk->break;
-		   }]
-	      ]},
-    enable_callback => [ sub {
-			   my ($win,$base_path,$node,$path)=@_;
-			   return doEvalHook($win,'enable_attr_hook',$path,"normal",$node) eq 'stop' ? 0 : 1
-			 }, $win,$attr_path,$node ],
-    choices_callback => [ sub {
-			   my ($win,$base_path,$node,$path,$mtype,$editor)=@_;
-			   return doEvalHook($win,'attr_choices_hook',$path,$node,$mtype,$editor);
-			 }, $win,$attr_path,$node ],
-    validate_callback => [ sub {
-			   my ($win,$base_path,$node,$txt,$path,$mtype,$editor)=@_;
-			   my $res = doEvalHook($win,'attr_validate_hook',$txt,$path,$node,$mtype,$editor);
-			   defined $res ? $res : 1;
-			 }, $win,$attr_path,$node ],
-    attribute_sort_callback => [ sub {
-				   my ($win,$node,$array,$path)=@_;
-				   return doEvalHook($win,'sort_attrs_hook',$array,$path,$node);
-				 }, $win,$node ],
-    value_sort_callback => [ sub {
-					 my ($win,$node,$array,$path)=@_;
-					 return doEvalHook($win,'sort_attr_values_hook',$array,$path,$node);
-				       }, $win,$node ],
-    search_field => length $attr_path ? 0 : 1,
-    knit_support => 1,
-    validate_flags => PML_VALIDATE_NO_CHILDNODES,
-    set_command => sub {
-      my ($callback)=@_;
-      $win->{FSFile}->notSaved(1) if $win->{FSFile};
-      TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,$dlg_title,TrEd::Undo::undo_type_id('UNDO_DATA'), $node));
-      TrEd::Bookmarks::last_action_bookmark($win->{framegroup});
-      &$callback();
-      if (length $attr_path) {
-	doEvalHook($win,"after_edit_attr_hook",$node,$attr_path,1);
-      } else {
-	doEvalHook($win,"after_edit_node_hook",$node,1);
-      }
-    }
-   });
-  if ($result) {
-    get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
-    redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
-  } else {
-    if ($attr_path eq EMPTY) {
-      doEvalHook($win,"after_edit_node_hook",$node,0);
-    } else {
-      doEvalHook($win,"after_edit_attr_hook",$node,$attr_path,0);
-    }
-  }
-  return $result;
-}
-# dialog
-sub editAttrsDialog {
-  my ($win,$node)=@_;
-  return if (doEvalHook($win,"do_edit_node_hook",$node) eq 'stop');
-  return unless $win->{FSFile};
-  return editAttrsDialog_schema($win,$node)
-    if (ref($node->type) ||
-	ref($win->{FSFile}->schema()));
-  my @vals;
-  my %e=();
-  my @atord=$win->{FSFile}->FS->attributes;
-
-  if ($sortAttrs) {
-    @atord=sort {uc($a) cmp uc($b)} $win->{FSFile}->FS->attributes
-      unless (doEvalHook($win,"sort_attrs_hook",\@atord,'',$node));
-  }
-  my $rows=min($maxDisplayedAttributes,$#atord+1);
-  my ($a,$b,$r);
-
-  my $enabled=(doEvalHook($win,'enable_edit_node_hook',$node) eq 'stop') ? 0 : 1;
-  my @buttons = $enabled ? qw(OK Help Cancel) : ('Cancel');
-  $win->toplevel->Busy(-recurse=>1);
-  my $d=$win->toplevel->DialogBox(-title=> "Edit Node", -width=> '10c',
-				  -buttons=> \@buttons
-				 );
-  $d->Subwidget('B_Help')->configure(
-    -command => 
-      [sub {
-	 help_topic(shift,'old_editnode_interface');
-	 Tk->break;
-       },$d]) if $enabled;
-  $d->BindButtons;
-  $d->BindReturn($d,1);
-  $d->BindEscape();
-  my $ff=$d->Frame(-relief=> 'groove',
-		   -bd => 1);
-  my $f= $ff->Scrolled('Pane',
-		      -sticky => 'we',
-		      -scrollbars=> 'oe');
-  disable_scrollbar_focus($f);
-  $f->BindMouseWheelVert(EMPTY,"EditEntry");
-
-  my $lwidth;
-  foreach (@atord) {
-    $lwidth=max2($lwidth,length($_));
-  }
-  my $height=0;
-
-
-  for (my $i=0;$i<=$#atord;$i++) {
-    $_=$atord[$i];
-    # Reliefs: raised, sunken, flat, ridge, and groove.
-    my $eef=$f->Frame()->pack(qw/-side top -expand yes -fill x/);
-    $eef->Label(-text=> $_,
-		-underline => 0,
-		-justify => 'left',
-		-width =>$lwidth,
-		-anchor=> 'nw')->pack(qw/-side left/);
-
-    if  ($win->{FSFile}->FS->isList($_) or
-	 $node->get_member($_)=~/^(?:[^\|\\]|\\.)*\|/) { # readonly entry and buttons for list
-      $r= $eef->Frame();
-      $e{$_}= $r->Entry(-relief=> 'sunken', -takefocus=> 1,
-			 -font=> $font)->pack(qw/-expand yes -fill both -side left/);
-      addBindTags($e{$_},"EditEntry");
-	$b=$r->Button(-text=> "...", -takefocus=> 0,
- 		      -command=> [sub {
- 				     my ($e,$win,$node,$attr,$d)=@_;
- 				     my $result=
- 				       ($win->{FSFile}->FS->isList($attr)
- 					? editListAttr($win,$e->get,$attr,$d,$node)
- 					: editAmbiguousAttr($win,$e->get,$attr,$d));
- 				     if (defined $result) {
- 				       $e->configure(-state=> 'normal');
- 				       $e->delete(0,length($e->get));
- 				       $e->insert(0,$result);
- 				       $e->configure(-state=> 'disabled');
- 				     }
-				   },$e{$_},$win,$node,$_,$d]
-		     )->pack(qw/-side right/);
-	$e{$_}->bind($e{$_},'<space>',[sub { shift; shift->invoke; Tk->break; },$b]);
-	$e{$_}->bind($e{$_},'<Return>',[sub { shift; shift->invoke; Tk->break; },$b]);
-        $d->BindReturn($e{$_});
-	$e{$_}->bind($e{$_},'<Double-ButtonPress-1>',[sub { shift; shift->invoke; Tk->break; },$b]);
-      $e{$_}->insert(0,encode($node->get_member($_)));
-      $e{$_}->configure(-state=> 'disabled');
-      $r->pack(qw/-side right -expand yes -fill both/);
-      $height += max2($b->reqheight,$e{$_}->reqheight()) if ($i<$rows);
-    } else {
-      $e{$_}= $eef->Entry(-relief=> 'sunken', -takefocus=> 1,
-			 -font=> $font)->pack(qw/-side right -expand yes -fill both/);
-      addBindTags($e{$_},"EditEntry");
-      $e{$_}->insert(0,encode($node->get_member($_)));
-      if (doEvalHook($win,'enable_attr_hook',$_,"normal") eq 'stop') {
-	$e{$_}->configure(-state=> 'disabled');
-      }
-      $height += $e{$_}->reqheight() if ($i<$rows);
-    }
-    $f->bind($e{$_}, '<Tab>',       [\&focusxEditDn,$i,\%e,$f,\@atord]);
-    $f->bind($e{$_}, '<Down>',      [\&focusxEditDn,$i,\%e,$f,\@atord]);
-    $f->bind($e{$_}, '<Shift-Tab>', [\&focusxEditUp,$i,\%e,$f,\@atord]);
-    $f->bind($e{$_}, '<Shift-ISO_Left_Tab>',
-	                            [\&focusxEditUp,$i,\%e,$f,\@atord]);
-    $f->bind($e{$_}, '<Up>',        [\&focusxEditUp,$i,\%e,$f,\@atord]);
-    $f->bind($e{$_}, '<Alt-KeyPress>', [\&focusxFind,$i,\%e,$f,\@atord]);
-  }
-
-  $f->configure(-height => $height);
-  $f->pack(qw/-expand yes -fill both/);
-  $ff->pack(qw/-expand yes -fill both/);
-  $win->toplevel->Unbusy();
-
-  my $result= ShowDialog($d,(
-			     $atord[0] ? $e{$atord[0]}->focus : undef
-			    ),$win->toplevel);
-
-  if ($result=~ /OK/) {
-    $win->{FSFile}->notSaved(1);
-    TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'Edit Node',TrEd::Undo::undo_type_id('UNDO_DATA'),$node));
-    TrEd::Bookmarks::last_action_bookmark($win->{framegroup});
-    foreach $a (@atord) {
-      $node->set_member($a,decode($e{$a}->get));
-    }
-    doEvalHook($win,"after_edit_node_hook",$node,1);
-    get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
-    redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
-  } else {
-     doEvalHook($win,"after_edit_node_hook",$node,0);
-  }
-
-  undef %e;
-  $d->destroy;
-  return ($result =~ /OK/) ? 1 : 0;
-}
 
 sub disable_scrollbar_focus {
   my ($scrolled)=@_;
@@ -5804,7 +5056,7 @@ sub doEditAttr {
   set_grp_history($grp, $e, "attr-$attr");
   $e->icursor('end');
   $grp->{top}->Unbusy();
-  $result= ShowDialog($d,$e,$grp->{top});
+  $result= TrEd::Dialog::FocusFix::show_dialog($d,$e,$grp->{top});
   if ($result=~ /OK/) {
     get_grp_history($grp,$e, "attr-$attr");
     $win->{FSFile}->notSaved(1);
@@ -5936,7 +5188,7 @@ sub redraw_fsfile {
 sub redraw_stylesheet {
   my ($grp,$stylesheet)=@_;
   foreach my $win (stylesheetUsingWindows($grp,$stylesheet)) {
-    applyWindowStylesheet($win,$stylesheet);
+    $win->apply_stylesheet($stylesheet);
     redraw_win($win);
   }
   return;
@@ -6326,8 +5578,7 @@ sub _evalHook {
 }
 
 
-#sub examineEvent
-
+# sub examineEvent
 # sub examineBindingsDialog
 
 
@@ -6742,7 +5993,7 @@ sub node_release {
       $tv->apply_stored_style_opts("Oval",$parent);
       if (doEvalHookWithUndo($win,"node_release_hook",$node,$parent,"$button",$e) ne 'stop') {
 	if ($parent->test_child_type($node) or
-	    userQuery($win,"WARNING:\n\n".
+	    TrEd::Query::User::new_query($win,"WARNING:\n\n".
 			"The target node does not permit the dragged node ".
 			  "as a child.\nThe resulting tree will be invalid.\n\n",
 		      -bitmap=> 'question',
@@ -6874,6 +6125,7 @@ sub list_isearch {
     }
   }
 }
+
 # macro
 #TODO: do TrEd::Macros
 sub cleanup_tredmacro {
@@ -6914,14 +6166,11 @@ sub cleanup_tredmacro {
     "DELETED: @{[join qq(\n\t),keys %deleted_pkg]}\n"
       if $tredDebug;
 
-#nasty temporary workaround to reinit TredMacro namespace
-delete $INC{'TrEd/ExtensionsAPI.pm'};
-delete $INC{'TrEd/Mac.pm'};
-delete $INC{'TrEd/NtredMak.pm'};
+    #nasty temporary workaround to reinit TredMacro namespace
+    delete $INC{'TrEd/ExtensionsAPI.pm'};
+    delete $INC{'TrEd/Mac.pm'};
+    delete $INC{'TrEd/NtredMak.pm'};
 
-#delete $INC{'TrEd/MinorMode/Move_Nodes_Freely.pm'};
-#delete $INC{'TrEd/MinorMode/Show_Neighboring_Sentences.pm'};
-#delete $INC{'TrEd/MinorMode/Show_Neighboring_Trees.pm'};
 }
 
 # sub declareMinorMode
@@ -6941,46 +6190,6 @@ delete $INC{'TrEd/NtredMak.pm'};
 # extensions
 #sub prepareExtensions 
 
-sub test_tredmacro {
-#    print 'before test: ' . Dumper(\%TredMacro::);
-    my @functions_we_can = qw{
-        AbsolutizeFileName
-        AddBackend
-        AddNewFileList
-        AddStyle
-        context_guessing
-        priority_context_guessing
-        __context_guessing
-        guess_context_hook
-        init_tredmacro_bindings
-    };
-    
-    foreach my $fn (@functions_we_can) {
-        if(TrEd::Macros::context_can('TredMacro', $fn)) {
-            #ok
-        }
-        else {
-            print "TredMacro can not run $fn\n";
-        }
-    }
-    
-    my @functions_we_cant = qw{
-        highlight_value_line_tag_hook
-        file_close_hook
-        allow_switch_context_hook
-        get_status_line_hook
-    };
-    
-    foreach my $fn (@functions_we_cant) {
-        if(!TrEd::Macros::context_can('TredMacro', $fn)) {
-            #ok
-        }
-        else {
-            print "TredMacro can run $fn\n";
-        }
-    }
-#    print 'after test: ' . Dumper(\%TredMacro::);
-}
 
 # macros
 #TODO: skor load_extensions
@@ -7061,7 +6270,6 @@ sub loadMacros {
 # macros
 sub reloadMacros {
   my ($grp,$opts)=@_;
-  print "============================== reload =======================\n";
   doEvalHook($grp->{focusedWindow},"reload_macros_hook");
   delete $grp->{minorModes};
   delete $grp->{minorPreHooks};
@@ -7111,12 +6319,11 @@ sub manage_extensions {
   if ($do_reload and $reload_macros) {
 
     # reload stylesheets
-    @TrEd::Utils::stylesheet_paths=();
-    init_stylesheet_paths([split($Treex::PML::resourcePathSplit,$opt_S,-1)]);
+    TrEd::Stylesheet::init_stylesheet_paths([split($Treex::PML::resourcePathSplit,$opt_S,-1)]);
 
     my $preparedExtensions = TrEd::Extensions::prepare_extensions($opt_m);
 
-    loadStyleSheets($grp);
+    TrEd::Stylesheet::load_stylesheets($grp);
     $grp->{StylesheetMenu}->update($grp);
     updateHelpMenu($grp,{preparedExtensions => $preparedExtensions});
     
