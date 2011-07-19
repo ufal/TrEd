@@ -13,6 +13,7 @@ use Tk; # using bind function
 use Readonly;
 use TrEd::Window::TreeBasics;
 use TrEd::Utils qw{$EMPTY_STR};
+require TrEd::Dialog::EditAttributes;
 
 my %context_override_binding;
 
@@ -73,7 +74,7 @@ my %default_binding = (
     ],
     '<KeyPress-Return>' => [
         sub {
-            main::editAttrsDialog( $_[1]->{focusedWindow},
+            TrEd::Dialog::EditAttributes::create_dialog( $_[1]->{focusedWindow},
                 $_[1]->{focusedWindow}->{currentNode} );
             Tk->break();
         },
@@ -238,6 +239,7 @@ sub new {
 # Comments      : For the specification of returned array ref see documentation for
 #                 change_binding subroutine
 # See Also      : _run_binding()
+# was main::resolve_default_binding
 sub _resolve_default_binding {
     my ( $self, $context, $key ) = @_;
     my $key2    = $key;
@@ -264,7 +266,7 @@ sub _resolve_default_binding {
 # Throws        : no exception
 # Comments      : This obscure order of parameters is used because it is a Tk callback
 # See Also      : _resolve_default_binding(), get_binding()
-#sub default_binding
+# was main::default_binding
 sub _run_binding {
     my ( $mw, $default_binding, $key, @args ) = @_;
     my $grp_ref = $default_binding->{grp_ref};
@@ -344,7 +346,7 @@ sub change_binding {
 # Throws        : no exception
 # Comments      : 
 # See Also      : change_binding(), _run_binding()
-#sub get_default_binding {
+# was main::get_default_binding
 sub get_binding {
     my ( $self, $context, $key ) = @_;
     return [] if (!defined $key);

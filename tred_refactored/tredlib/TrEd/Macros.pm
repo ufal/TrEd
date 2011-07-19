@@ -726,6 +726,11 @@ sub preprocess {
           my $conditional_include = defined($1) && ($1 eq 'if') ? 1 : 0;
           my $enc = $3;
           my $f = $2;
+          # don't include these, they already exist as Perl packages
+          if ($f =~ m/tred\.mac/ || $f =~ m/move_nodes_freely\.inc/) {
+              warn "\n!!! Trying to #include $f\n This is now obsolete! Please just import the namespace instead.\n";
+              next;
+          };
           Encode::_utf8_off($f);
           my $found;
           for my $path ($libDir, @macro_include_paths) {

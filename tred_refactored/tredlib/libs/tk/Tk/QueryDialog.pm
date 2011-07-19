@@ -154,9 +154,8 @@ sub Tk::Widget::QuestionQueryAuto {
 }
 
 sub Tk::Widget::QuestionQuery {
-  my ($w, $opts_ref, $answer) = @_;
+  my ($w, %opts) = @_;
   my $top = $w->toplevel;
-  my %opts = %{$opts_ref};
   my $label = delete $opts{-label};
   my $d = $top->Dialog(%opts);
   $d->add('Label', -text => $label, -wraplength => 300)->pack() if defined $label;

@@ -5,11 +5,11 @@ use strict;
 use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../tredlib";
-#use lib "$FindBin::Bin/../tredlib/libs/tk"; # for Tk::ErrorReport
+use lib "$FindBin::Bin/../tredlib/libs/misc"; # we need to be have Data::Snapshot in INC
 
 use Test::More;
 use Test::Exception;
-use Data::Dumper;
+# use Data::Dumper;
 
 use utf8;
 use Tk;
@@ -576,6 +576,9 @@ my %tred;
 
 # MainWindow to test Tk bindings
 my $top = Tk::MainWindow->new();
+
+$TrEd::Config::libDir = "tredlib";  
+TrEd::Config::set_config();
 
 
 $tred{top} = $top;

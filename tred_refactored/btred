@@ -1355,7 +1355,7 @@ EOL
   return 0;
 }
 
-
+# aj v trede... ale viazane na window
 sub lastFileNo {
   return $#files;
 }

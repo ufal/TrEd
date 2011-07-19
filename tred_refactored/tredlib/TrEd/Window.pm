@@ -59,6 +59,48 @@ sub apply_stylesheet {
   $self->{stylesheet}=$stylesheet;
 }
 
+#######################################################################################
+# Usage         : set_current_file($win, $fsfile)
+# Purpose       : Set tree number, current node and FSFile for Window $win to values 
+#                 obtained from $fsfile
+# Returns       : Undef/empty list
+# Parameters    : TrEd::Window ref $win -- ref to TrEd::Window object which is to be altered
+#                 Treex::PML::Document ref $fsfile -- ref to Document which is set as current for the Window
+# Throws        : No exception
+# Comments      : If $fsfile is not defined, all the beforementioned values are set to undef.
+#                 If Windows is focused, session status is updated.
+# See Also      : is_focused(), fsfileDisplayingWindows()
+# was main::setWindowFile
+sub set_current_file {
+    my ( $self, $fsfile ) = @_;
+    $self->{FSFile} = $fsfile;
+    if (defined $fsfile) {
+        $self->{treeNo} = $fsfile->currentTreeNo() || 0;
+        $self->{currentNode} = $fsfile->currentNode();
+    }
+    else {
+        $self->{treeNo}      = undef;
+        $self->{currentNode} = undef;
+    }
+    if ( $self->is_focused() ) {
+        main::update_session_status( $self->{framegroup} );
+    }
+    return;
+}
+
+#######################################################################################
+# Usage         : isFocused($win)
+# Purpose       : Find out whether $win Window is currently focused
+# Returns       : 1 if the Window $win is focused, 0 otherwise
+# Parameters    : TrEd::Window ref $win -- ref to TrEd::Window object which is tested for focus
+# Throws        : No exception
+# Comments      : 
+# See Also      : 
+sub is_focused {
+  my ($self) = @_;
+  return $self eq $self->{framegroup}->{focusedWindow} ? 1 : 0;
+}
+
 sub toplevel {
   my ($self)=@_;
   return $self->canvas()->toplevel();
@@ -67,7 +109,7 @@ sub toplevel {
 # for user's comfort
 sub canvas {
   my ($self) = @_;
-  return undef unless (ref($self) and ref($self->{treeView}));
+  return if (!ref $self || !ref $self->{treeView} );
   return $self->{treeView}->canvas();
 }
 
@@ -236,6 +278,20 @@ sub splitPack {
   }
   $frame->idletasks;
   return $sep;
+}
+
+# Return the index of the last file in the current filelist.
+# was main::lastFileNo
+sub last_file_no {
+  my ($self) = @_;
+  return $self->{currentFilelist} ? $self->{currentFilelist}->file_count()-1 : -1;
+}
+
+# Return the index of the current file in the current filelist.
+# was main::currentFileNo
+sub current_file_no {
+  my ($self)=@_;
+  return $self->{currentFileNo};
 }
 
 

@@ -462,6 +462,7 @@ use TrEd::Dialog::FocusFix;
 use TrEd::Dialog::URL;
 use TrEd::Dialog::SelectValues;
 use TrEd::Dialog::CopyTrees;
+use TrEd::Dialog::EditAttributes;
 
 use TrEd::Binding::Default;
 use TrEd::Filelist::Navigation;
@@ -595,8 +596,9 @@ TrEd::ManageFilelists::create_filelists();
 
 $insideEval=0;
 
-#my %searchTemplate; # was used for find node dialog, moved there 
-
+#my %searchTemplate; # was used for find node dialog, moved there
+ 
+#TODO: nepresunut niekam k bindings alebo do configu?
 %pckey_shift_translates= (exclam=> 1, at=> 2, numbersign=> 3,
 			   dollar=> 4, percent=> 5, asciicircum=> 6,
 			   ampersand=> 7, asterisk=> 8, parenleft=> 9,
@@ -737,14 +739,13 @@ sub __debug {
   print STDERR @_,"\n" if $tredDebug;
 }
 
-#TODO: wrapper for extensions
+# wrapper for extensions
 sub get_open_filename {
     return TrEd::Dialog::File::Open::get_open_filename(@_);
 }
 
-
+#TODO: consider moving in the same place as get_open_filename?
 # file, current?, top
-# used also in extensions, probably should go to some other place..
 sub get_save_filename {
   my $w = shift;
   my %opts=@_;
@@ -796,6 +797,9 @@ sub get_entry_type {
   return ($Entry,@Eopts);
 }
 
+#### 
+#TODO: TrEd/History?
+####
 # history
 sub set_grp_history {
   my ($grp,$e,$h,$list)=@_;
@@ -913,17 +917,9 @@ sub update_treeviews {
   }
 }
 
-# filelist, but not really, top..
-sub lastFileNo {
-  my ($win)=@_;
-  return $win->{currentFilelist} ? $win->{currentFilelist}->file_count()-1 : -1;
-}
+# sub lastFileNo
 
-# current file
-sub currentFileNo {
-  my ($win)=@_;
-  return $win->{currentFileNo};
-}
+# sub currentFileNo
 
 # Window, UI?
 sub cast_to_win {
@@ -949,20 +945,7 @@ sub grp_win {
 # TrEd::Window ? should openFile in focusedWindow
 # file, filelist
 sub gotoFile {
-  my ($grp_or_win,$fn,$no_recent,$no_redraw)=@_;
-  my ($grp,$win) = grp_win($grp_or_win);
-  return unless $win->{currentFilelist};
-  return 0 if doEvalHook($win,"goto_file_hook",$fn) eq 'stop';
-  return 0 if ($fn>=$win->{currentFilelist}->file_count() or $fn<0);
-  my $last_no = $win->{currentFileNo};
-  $win->{currentFileNo} = $fn;
-  my ($fs,$status) = TrEd::File::open_file($win,TrEd::Filelist::Navigation::filelistFullFileName($win,$fn),
-			      -norecent => $no_recent, -noredraw => $no_redraw,
-			      -keep_related=>1
-			     );
-  $win->{currentFileNo} = $last_no unless $status;
-  update_filelist_views($grp,$win->{currentFilelist},0);
-  return $status;
+    return TrEd::Filelist::Navigation::go_to_file(@_);
 }
 
 # filelist, UI
@@ -975,72 +958,6 @@ sub update_filelist_views {
   }
   #TODO: nie na sipkovu notaciu?
   TrEd::Filelist::View::update($grp,$fl,$reload);
-}
-
-#TODO: where should I put these..? tieWindows? Filelist::Navigation?
-# filelist, file current
-sub tieNextFile {
-  my ($grp,$win) = grp_win(shift);
-  if ($grp->{tieWindows}) {
-    foreach my $w (@{$grp->{treeWindows}}) {
-      TrEd::Filelist::Navigation::nextFile($w) if ($w->{FSFile});
-    }
-  } else {
-    TrEd::Filelist::Navigation::nextFile($win) if ($win->{FSFile});
-  }
-}
-# filelist, file current
-sub tiePrevFile {
-  my ($grp,$win) = grp_win(shift);
-  if ($grp->{tieWindows}) {
-    foreach my $w (@{$grp->{treeWindows}}) {
-      TrEd::Filelist::Navigation::prevFile($w) if ($w->{FSFile});
-    }
-  } else {
-    TrEd::Filelist::Navigation::prevFile($win) if ($win->{FSFile});
-  }
-}
-
-# filelist, file current
-sub tieGotoFile {
-  my ($grp,$win) = grp_win(shift);
-  if ($grp->{tieWindows}) {
-    foreach my $w (@{$grp->{treeWindows}}) {
-      gotoFile($w,@_) if ($w->{FSFile});
-    }
-  } else {
-    gotoFile($win,@_) if ($win->{FSFile});
-  }
-}
-
-
-# file current
-#######################################################################################
-# Usage         : set_window_file($win, $fsfile)
-# Purpose       : Set tree number, current node and FSFile for Window $win to values 
-#                 obtained from $fsfile
-# Returns       : Undef/empty list
-# Parameters    : TrEd::Window ref $win -- ref to TrEd::Window object which is to be altered
-#                 Treex::PML::Document ref $fsfile -- ref to Document which is set as current for the Window
-# Throws        : No exception
-# Comments      : If $fsfile is not defined, all the beforementioned values are set to undef.
-#                 If Windows is focused, session status is updated.
-# See Also      : is_focused(), fsfileDisplayingWindows()
-sub set_window_file {
-    my ( $win, $fsfile ) = @_;
-    $win->{FSFile} = $fsfile;
-    if (defined $fsfile) {
-        $win->{treeNo} = $fsfile->currentTreeNo() || 0;
-        $win->{currentNode} = $fsfile->currentNode();
-    }
-    else {
-        $win->{treeNo}      = undef;
-        $win->{currentNode} = undef;
-    }
-    if ( is_focused($win) ) {
-        update_session_status( $win->{framegroup} );
-    }
-    return;
 }
 
 
@@ -1063,20 +980,7 @@ sub fsfileDisplayingWindows {
     } @{$grp->{treeWindows}};
 }
 
-#######################################################################################
-# Usage         : isFocused($win)
-# Purpose       : Find out whether $win Window is currently focused
-# Returns       : 1 if the Window $win is focused, 0 otherwise
-# Parameters    : TrEd::Window ref $win -- ref to TrEd::Window object which is tested for focus
-# Throws        : No exception
-# Comments      : 
-# See Also      : 
-#TODO: nepresunut do TrEd::Window?
-sub is_focused {
-  my ($win) = @_;
-  return $win eq $win->{framegroup}->{focusedWindow} ? 1 : 0;
-}
-
+# sub is_focused
 # sub initAppData
 
 
@@ -1200,7 +1104,7 @@ sub userQuery {
 #sub lastActionBookmark 
 
 #######################################################################################
-# Usage         : set_window_file($win, $fsfile)
+# Usage         : update_session_status($win, $fsfile)
 # Purpose       : Set tree number, current node and FSFile for Window $win to values 
 #                 obtained from $fsfile
 # Returns       : Undef/empty list
@@ -1724,7 +1628,7 @@ sub get_nodes_win {
         $win->{Nodes}       = [];
         $win->{currentNode} = undef;
     }
-    if ( is_focused($win) and !$no_redraw ) {
+    if ( $win->is_focused() and !$no_redraw ) {
         my $grp = cast_to_grp($win); #->{framegroup};
         $grp->{valueLine}->update($grp);
         #TrEd::ValueLine::update( $win->{framegroup} );
@@ -2007,10 +1911,10 @@ sub switchStylesheet {
       TrEd::Stylesheet::save_stylesheet_file($grp, $stylesheet);
     }
     $win->apply_stylesheet($stylesheet);
-    $grp->{selectedStylesheet} = $stylesheet if is_focused($win);
+    $grp->{selectedStylesheet} = $stylesheet if $win->is_focused();
   } elsif ($stylesheet eq DELETE_STYLESHEET()) {
     if ($prevstylesheet eq STYLESHEET_FROM_FILE()) {
-      $grp->{selectedStylesheet} = $prevstylesheet if is_focused($win);
+      $grp->{selectedStylesheet} = $prevstylesheet if $win->is_focused();
       return 0;
     }
     $stylesheet=$prevstylesheet;
@@ -2022,7 +1926,7 @@ sub switchStylesheet {
     if ($answer eq 'Yes') {
       TrEd::Stylesheet::delete_stylesheet($grp,$stylesheet);
     } else {
-      $grp->{selectedStylesheet} = $stylesheet if is_focused($win);
+      $grp->{selectedStylesheet} = $stylesheet if $win->is_focused();
       return 0;
     }
   } else {
@@ -2059,7 +1963,7 @@ sub switchContext {
     # if context switch is not allowed
     if ( $ret eq 'stop' ) {
         $win->{macroContext} = $prev_context;
-        if ( is_focused($win) ) {
+        if ( $win->is_focused() ) {
             $grp->{selectedContext} = $prev_context;
         }
         return 0;
@@ -2072,7 +1976,7 @@ sub switchContext {
                             ) eq 'stop');
 
     $win->{macroContext} = $context;
-    if ( is_focused($win) ) {
+    if ( $win->is_focused() ) {
         $grp->{selectedContext} = $context;
         $grp->{StylesheetMenu}->update($grp);
         TrEd::List::Macros::update_view($win);
@@ -2282,7 +2186,7 @@ sub saveFileStateUpdate {
   my ($win)=@_;
   my $grp = $win->{framegroup};
   return if $grp->{noSaveFileStateUpdate};
-  return unless is_focused($win);
+  return unless $win->is_focused();
   return unless $win->{framegroup}->{saveButton};
   $win->{framegroup}->{saveButton}->
     configure(-state => (($win->{FSFile} and $win->{FSFile}->notSaved) ? 'normal' : 'disabled'));
@@ -2873,14 +2777,14 @@ sub create_split_windows {
     for (my $i=0;$i<$fl;$i++) {
       focusCanvas($tred_ref->{treeWindows}->[$i]->canvas,$tred_ref);
       TrEd::ManageFilelists::selectFilelist($tred_ref->{treeWindows}->[$i],"CmdLine-".($i+1));
-      gotoFile($tred_ref->{treeWindows}->[$i],0);
+      TrEd::Filelist::Navigation::go_to_file($tred_ref->{treeWindows}->[$i],0);
     }
   }
   else {
     for (my $i=1;$i<$opt_split_window;$i++) {
       focusCanvas($tred_ref->{treeWindows}->[$i]->canvas,$tred_ref);
       $tred_ref->{treeWindows}->[$i]->{currentFilelist} = $tred_ref->{treeWindows}->[0]->{currentFilelist};
-      gotoFile($tred_ref->{treeWindows}->[$i],$i);
+      TrEd::Filelist::Navigation::go_to_file($tred_ref->{treeWindows}->[$i],$i);
     }
   }
   focusCanvas($tred_ref->{treeWindows}->[0]->canvas,$tred_ref);
@@ -2974,7 +2878,7 @@ sub create_toolbar_buttons {
 			  -relief=> $buttonsRelief,
 			  -image=> icon($tred_ref,"start"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&tiePrevFile,$tred_ref])->pack(-side=>'left');
+			  -command=> [\&TrEd::Filelist::Navigation::tie_prev_file,$tred_ref])->pack(-side=>'left');
   $tred_ref->{Balloon}->attach($tred_ref->{prevFileButton},
 			  -balloonmsg=> "visit the previous file in the file-list");
   addBindTags($tred_ref->{prevFileButton},'my');
@@ -2984,14 +2888,14 @@ sub create_toolbar_buttons {
 			  -relief=> $buttonsRelief,
 			  -image=> icon($tred_ref,"finish"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&tieNextFile,$tred_ref])->pack(-side=>'left');
+			  -command=> [\&TrEd::Filelist::Navigation::tie_next_file,$tred_ref])->pack(-side=>'left');
   $tred_ref->{Balloon}->attach($tred_ref->{nextFileButton},
 			  -balloonmsg=> "visit the next file in the file-list");
   addBindTags($tred_ref->{nextFileButton},'my');
 
   # bind action control
-  for my $bind ([nextFileButton => \&TrEd::Filelist::Navigation::nextRealFile],
-		[prevFileButton => \&TrEd::Filelist::Navigation::prevRealFile]) {
+  for my $bind ([nextFileButton => \&TrEd::Filelist::Navigation::next_real_file],
+		[prevFileButton => \&TrEd::Filelist::Navigation::prev_real_file]) {
     my $button = $tred_ref->{$bind->[0]};
     my $cmd = $bind->[1];
     $button->bindtags([$button, ref($button), $button->toplevel, 'all']);
@@ -4334,8 +4238,12 @@ sub determineNodeType {
 #sub editFilePropertiesDialog 
 
 # sub editAttrsDialog_schema
-#sub editAttrsDialog
 
+#sub editAttrsDialog
+# wrapper for ElixirFM
+sub editAttrsDialog {
+    return TrEd::Dialog::EditAttributes::create_dialog(@_);
+}
 
 sub disable_scrollbar_focus {
   my ($scrolled)=@_;
@@ -4722,11 +4630,11 @@ sub nextNodeInSearchFilelist {
 
   # this realises filelist search
   local $insideEval=1;
-  my $result = TrEd::Filelist::Navigation::nextOrPrevFile($grp,1,1,$traverse eq 'all' ? 1 : 0);
+  my $result = TrEd::Filelist::Navigation::next_or_prev_file($grp,1,1,$traverse eq 'all' ? 1 : 0);
   _quick_update($grp);
   # wait for Escape
   while (!$grp->{stopSearch} and $result and !$win->{currentNode}) {
-    $result = TrEd::Filelist::Navigation::nextOrPrevFile($grp,1,1,$traverse eq 'all' ? 1 : 0);
+    $result = TrEd::Filelist::Navigation::next_or_prev_file($grp,1,1,$traverse eq 'all' ? 1 : 0);
     # wait for Escape
     _quick_update($grp);
   }
@@ -4816,13 +4724,13 @@ sub prevNodeInSearchFilelist {
   local $insideEval=1;
   my $no_redraw = $win->{noRedraw};
   $win->{noRedraw}=1;
-  my $result = TrEd::Filelist::Navigation::nextOrPrevFile($grp,-1,1,$traverse eq 'all' ? 1 : 0);
+  my $result = TrEd::Filelist::Navigation::next_or_prev_file($grp,-1,1,$traverse eq 'all' ? 1 : 0);
 
   # wait for Escape
   _quick_update($grp);
   while ($result and !$grp->{stopSearch}
 	 and !$win->{FSFile} || $win->{FSFile}->lastTreeNo<0) {
-    $result = TrEd::Filelist::Navigation::nextOrPrevFile($grp,-1,1,$traverse eq 'all' ? 1 : 0);
+    $result = TrEd::Filelist::Navigation::next_or_prev_file($grp,-1,1,$traverse eq 'all' ? 1 : 0);
     # wait for Escape
     _quick_update($grp);
   }
@@ -4964,7 +4872,7 @@ sub editAttrs {
   my $win=findCanvasWindow($grp,$w);
   my $tv=$win->treeView;
   my $node=$tv->get_obj_pinfo($tv->find_item('withtag','current'));
-  editAttrsDialog($win,$node);
+  TrEd::Dialog::EditAttributes::create_dialog($win,$node);
   ensureCurrentIsDisplayed($win);
 }
 
@@ -4990,7 +4898,7 @@ sub doEditAttr {
   my $result= doEvalHook($win,'do_edit_attr_hook',$attr,$node);
   return 0 if $result eq 'stop';
 
-  return editAttrsDialog_schema($win,$node,$attr,$as_type,$focus)
+  return TrEd::Dialog::EditAttributes::dialog_schema($win,$node,$attr,$as_type,$focus)
     if (ref($as_type) or ref($node->type) ||
 	$win->{FSFile}->schema() );
 

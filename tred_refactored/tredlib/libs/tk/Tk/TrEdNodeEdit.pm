@@ -1019,7 +1019,6 @@ sub remove_sequence_member {
 # that add, delete, insert, reorder elements and members
 sub add_buttons {
   my ($hlist,$path)=@_;
-
   my $parent = $hlist->info(parent => $path);
   my $mtype = $hlist->info(data => $path)->{type};
   my $ptype = $parent ne "" ? $hlist->info(data => $parent)->{type} : undef;

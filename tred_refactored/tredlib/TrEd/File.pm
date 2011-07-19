@@ -369,7 +369,7 @@ sub _is_among_primary_files {
 sub _check_for_recovery {
     my ($file_name, $grp, $win, $fsfile, $lockinfo, $opts_ref) = @_;
     
-    # $grp->{noOpenFileError} can be set by TrEd::Filelist::Navigation::nextOrPrevFile, 
+    # $grp->{noOpenFileError} can be set by TrEd::Filelist::Navigation::next_or_prev_file, 
     # but I'm not sure what is it good for.. something with autosaving...?
     my $no_err = $grp->{noOpenFileError};  
     
@@ -659,7 +659,7 @@ sub open_file {
     ($fsfile, $status) = _check_for_recovery($file_name, $grp, $win, $fsfile, $lockinfo, \%opts);
     
     if (!$opts{-preload}) {
-        main::set_window_file( $win, $fsfile ) ; # window->set_file?
+        $win->set_current_file( $fsfile ) ; # window->set_file?
     }
     
     if ($fsfile) {
@@ -740,7 +740,7 @@ sub open_file {
 # Comments      : This function is a part of USR2 signal handler
 # See Also      : main::handleUSR2Signal()
 # openStandaloneFile should be called whenever a file is opened via
-# a non-filelist operation (that is other than nextFile, or gotoFile)
+# a non-filelist operation (that is other than next_file, or go_to_file)
 # file
 sub openStandaloneFile {
     my ( $grp_or_win, $file ) = @_;
@@ -838,10 +838,10 @@ sub closeFile {
         #  undef $NodeClipboard;
         $w->{root}       = undef;
         $w->{stylesheet} = TrEd::Stylesheet::STYLESHEET_FROM_FILE();
-        main::set_window_file( $w, undef );
+        $w->set_current_file( undef );
         delete $w->{currentNode} if ( exists $w->{currentNode} );
         $w->{treeView}->clear_pinfo();
-        if ( main::is_focused($w) ) {
+        if ( $w->is_focused() ) {
             # povodny vyznam
 #            my $rtl = $w->{framegroup}->{focusedWindow}->treeView()->rightToLeft($w->{framegroup}->{focusedWindow}->{FSFile});
             my $rtl = $w->treeView()->rightToLeft($w->{FSFile});
@@ -1335,7 +1335,7 @@ sub newFileFromCurrent {
     closeFile( $win, -no_update => 1, -keep_postponed => $keep );
 
     #  $new->new_tree(0);
-    main::set_window_file( $win, $new );
+    $win->set_current_file( $new );
     push @openfiles, $win->{FSFile};
     main::updatePostponed($grp);
 
@@ -1615,8 +1615,8 @@ EOF
                             $filelist->rename_file(
                                 $old_file,
                                 $filename,
-                                $response =~ /^Only/
-                                ? main::currentFileNo($win)
+                                $response =~ /^Only/ && $win
+                                ? $win->currentFileNo()
                                 : undef
                             );
                         }
@@ -1627,8 +1627,8 @@ EOF
                         $filelist->rename_file(
                             $old_file,
                             $filename,
-                            ( $update_filelist eq 'current' )
-                            ? main::currentFileNo($win)
+                            ( $update_filelist eq 'current' && $win )
+                            ? $win->currentFileNo()
                             : undef
                         );
                     }
@@ -1920,7 +1920,7 @@ sub resume_file {
         $fsfile->appData('last-stylesheet') );
     main::switchStylesheet( $win_ref, $fsfile->appData('last-stylesheet') );
 
-    main::set_window_file( $win_ref, $fsfile );
+    $win_ref->set_current_file( $fsfile );
     main::saveFileStateUpdate($win_ref);
     return;
 }
