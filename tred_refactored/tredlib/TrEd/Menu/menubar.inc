@@ -202,7 +202,7 @@ return sub {
     {
       '-command' => [sub {
 		       my $to=TrEd::Query::String::new_query($_[0],"Go To File List Index","File List Index");
-		       tieGotoFile($_[0],$to) if defined $to;
+		       TrEd::Filelist::Navigation::tie_go_to_file($_[0],$to) if defined $to;
 		     },$grp
 		    ],
       '-underline' => 0
@@ -231,7 +231,7 @@ return sub {
     'Button',
     'Next in File List',
     {
-      '-command' => [\&tieNextFile,$grp],
+      '-command' => [\&TrEd::Filelist::Navigation::tie_next_file,$grp],
       '-underline' => 0
      },
     undef
@@ -240,7 +240,7 @@ return sub {
     'Button',
     'Previous in File List',
     {
-      '-command' => [\&tiePrevFile,$grp],
+      '-command' => [\&TrEd::Filelist::Navigation::tie_prev_file,$grp],
       '-underline' => 0
      },
     undef
@@ -785,7 +785,7 @@ return sub {
       '-accelerator' => 'Enter',
       '-command' => [sub {
 		       my ($grp)=@_;
-		       editAttrsDialog($grp->{focusedWindow},
+		       TrEd::Dialog::EditAttributes::create_dialog($grp->{focusedWindow},
 				       $grp->{focusedWindow}->{currentNode})
 			 if ($grp->{focusedWindow}->{currentNode});
 		     },$grp],

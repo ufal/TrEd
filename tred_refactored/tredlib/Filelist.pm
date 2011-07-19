@@ -688,7 +688,7 @@ sub rename_file {
   for my $i (defined ($position) ? $position : 0..($self->file_count()-1)) {
     my $fn = $self->file_at($i);
     my ($f, $suffix) = TrEd::Utils::parse_file_suffix($fn);
-    if (Treex::PML::IO::is_same_file(TrEd::Filelist::Navigation::_filelistFullFileName($self,$f),$old_file)) {
+    if (Treex::PML::IO::is_same_file(TrEd::Filelist::Navigation::_filelist_full_filename($self,$f),$old_file)) {
       my $pattern_no = $self->file_pattern_index($i);
       my $pattern = $pattern_list->[$pattern_no];
       my $new_filename =  (Treex::PML::_is_absolute($f) ?

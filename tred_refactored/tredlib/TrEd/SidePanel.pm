@@ -354,7 +354,7 @@ sub init_filelist_view {
 	$win->{currentFilelist}->set_current($data);
 	my $pos = $win->{currentFilelist}->position;
 	if ($pos>=0) {
-	  main::gotoFile($win,$pos);
+	  TrEd::Filelist::Navigation::go_to_file($win,$pos);
 	}
       }
     };

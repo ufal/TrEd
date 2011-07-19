@@ -3178,8 +3178,9 @@ Set stylesheet for the active window.
 sub SetCurrentStylesheet {
   my ($stylesheet_name)=@_;
   if (StylesheetExists($stylesheet_name) or $stylesheet_name eq STYLESHEET_FROM_FILE()) {
-    $grp->{framegroup}{selectedStylesheet} = $stylesheet_name if $grp->{framegroup} and
-      main::is_focused($grp);
+    if ($grp->{framegroup} && $grp->is_focused()) {
+        $grp->{framegroup}{selectedStylesheet} = $stylesheet_name;
+    }
     return main::switchStylesheet($grp,$stylesheet_name);
   }
   return -1;
@@ -4047,7 +4048,7 @@ sub GotoFileNo {
   if ($FileNotSaved ne '?' and $FileNotSaved) {
     SetFileSaveStatus(1);
   }
-  $result=main::gotoFile($grp,$_[0]);
+  $result=TrEd::Filelist::Navigation::go_to_file($grp,$_[0]);
   $root=$grp->{root};
   $this=$grp->{currentNode};
   return $result;
@@ -4062,7 +4063,10 @@ Return the index of the last file in the current filelist.
 sub LastFileNo {
   shift if @_ and !ref($_[0]);
   my $win = ref($_[0]) ? $_[0] : $grp;
-  main::lastFileNo($win);
+  if ($win) {
+    return $win->last_file_no();
+  }
+  return;
 }
 
 =item C<CurrentFileNo($win?)>
@@ -4074,7 +4078,10 @@ Return the index of the current file in the current filelist.
 sub CurrentFileNo {
   shift if @_ and !ref($_[0]);
   my $win = ref($_[0]) ? $_[0] : $grp;
-  main::currentFileNo($win);
+  if ($win) {
+    return $win->current_file_no();
+  }
+  return;
 }
 
 =item C<SaveAndNextFile()>
@@ -4101,7 +4108,7 @@ sub NextFile {
   if ($FileNotSaved ne '?' and $FileNotSaved) {
     SetFileSaveStatus(1);
   }
-  if ($result=TrEd::Filelist::Navigation::nextFile($grp)) {
+  if ($result=TrEd::Filelist::Navigation::next_file($grp)) {
     $root=$grp->{root};
     $this=$grp->{currentNode} || $root;
     $FileNotSaved=GetFileSaveStatus();
@@ -4136,7 +4143,7 @@ sub PrevFile {
   if ($FileNotSaved ne '?' and $FileNotSaved) {
     SetFileSaveStatus(1);
   }
-  if ($result=TrEd::Filelist::Navigation::prevFile($grp)) {
+  if ($result=TrEd::Filelist::Navigation::prev_file($grp)) {
     $root=$grp->{root};
     $this=$grp->{currentNode} || $root;
     $FileNotSaved=GetFileSaveStatus();

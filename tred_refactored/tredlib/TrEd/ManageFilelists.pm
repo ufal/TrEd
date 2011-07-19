@@ -63,14 +63,14 @@ sub selectFilelistNoUpdate {
   my ($grp_or_win, $list_name, $noResetPosition) = @_;
   # dump_filelists("selectFilelistNoUpdate", \@filelists);
   my ($grp,$win) = main::grp_win($grp_or_win);
-  my $fl = main::is_focused($win) ? switchFilelist($grp,$list_name) : findFilelist($list_name);
+  my $fl = $win->is_focused() ? switchFilelist($grp,$list_name) : findFilelist($list_name);
   print "Selecting filelist '$list_name' (found: $fl)\n" if $tredDebug;
   return if (!defined($fl));
   # little fiddling with condition
   if (!exists $win->{currentFilelist} || $fl != $win->{currentFilelist}) {
     # save file position in the current file-list
     # before switching
-    $win->{currentFilelist}->set_current(TrEd::Filelist::Navigation::filelistFullFileName($win, $win->{currentFileNo}))
+    $win->{currentFilelist}->set_current(TrEd::Filelist::Navigation::filelist_full_filename($win, $win->{currentFileNo}))
       if ref($win->{currentFilelist});
     $win->{currentFilelist} = $fl;
   }
@@ -87,10 +87,10 @@ sub selectFilelist {
     if ($win->{currentFileNo} >= $fl->file_count()) {
       TrEd::File::closeFile($win);
     } else {
-      # we use nextFile instead of gotoFile so that
+      # we use next_file instead of go_to_file so that
       # the user can 'Skip broken files'
       $win->{currentFileNo}--;
-      TrEd::Filelist::Navigation::nextFile($win);
+      TrEd::Filelist::Navigation::next_file($win);
     }
     main::update_title_and_buttons($grp);
     #TODO: neprepisat na sipkovu notaciu?
@@ -690,6 +690,7 @@ sub bookmarkToFilelistDialog {
 }
 
 # zo zaciatku tredu
+# was main::createCmdLineFilelists
 sub create_filelists {
   my ($cmdline_filelists) = @_;
   print STDERR "Creating filelists...\n" if $tredDebug;
@@ -720,7 +721,7 @@ sub create_cmdline_filelists {
     my $filelist_name = 'CmdLine-' . $fl_no;
     my $fl = new Filelist($filelist_name, $filelist);
     $fl->load();
-    TrEd::ManageFilelists::add_new_filelist(undef, $fl);
+    add_new_filelist(undef, $fl);
     $fl_no++;
   }
   print STDERR "Done...\n" if $tredDebug;

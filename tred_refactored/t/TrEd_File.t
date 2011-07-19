@@ -5,22 +5,21 @@ use strict;
 use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../tredlib";
-
+use lib "$FindBin::Bin/../tredlib/libs/tk";
 
 use TrEd::Config;
 #use TrEd::Utils;
 use Treex::PML;
 
-#use TrEd::Window;
+use TrEd::Window;
 
 use Test::More;
 use Test::Exception;
 use Data::Dumper;
 use Carp;
-#use Readonly;
-#use File::Path qw{remove_tree};
+
 use List::Util; # max sub
-#use Archive::Zip;
+
 
 
 BEGIN {
@@ -653,12 +652,10 @@ sub __debug {
 
 sub test_open_file {
     # create fake main objects
-    my %tred_window = (
-        FSFile  => undef,
-    );
     
+    my $win = TrEd::Window->new();
     my %grp = (
-        focusedWindow => \%tred_window,
+        focusedWindow => $win,
     );
     
     my $raw_file_name = File::Spec->catfile($FindBin::Bin, "test_files", "sample0.t.gz");

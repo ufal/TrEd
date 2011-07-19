@@ -4,14 +4,16 @@ use strict;
 use warnings;
 
 use TrEd::Utils qw{$EMPTY_STR};
-use TrEd::Config qw{$sortAttrs $sortAttrValues $sidePanelWrap};
-use List::Util qw{max2};
+use TrEd::Config qw{$sortAttrs $sortAttrValues $sidePanelWrap $font $maxDisplayedAttributes};
+use TrEd::MinMax qw{max2 min};
+
+use Treex::PML::Schema;
 
 require TrEd::Undo;
 require TrEd::Bookmarks;
 
-
-sub editAttrsDialog_schema {
+# was main::editAttrsDialog_schema
+sub dialog_schema {
   my ($win,$node,$attr_path,$as_type,$focus)=@_;
   my $grp = $win->{framegroup};
   my $base_type = ref($as_type) ? $as_type : main::determineNodeType($win,$node);
@@ -50,7 +52,8 @@ sub editAttrsDialog_schema {
 	      ]},
     enable_callback => [ sub {
 			   my ($win,$base_path,$node,$path)=@_;
-			   return main::doEvalHook($win,'enable_attr_hook',$path,"normal",$node) eq 'stop' ? 0 : 1
+			   my $enable_attr = main::doEvalHook($win,'enable_attr_hook',$path,"normal",$node);
+			   return (defined $enable_attr && $enable_attr eq 'stop') ? 0 : 1
 			 }, $win,$attr_path,$node ],
     choices_callback => [ sub {
 			   my ($win,$base_path,$node,$path,$mtype,$editor)=@_;
@@ -89,7 +92,7 @@ sub editAttrsDialog_schema {
     main::get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
     main::redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
   } else {
-    if ($attr_path eq EMPTY) {
+    if ($attr_path eq $EMPTY_STR) {
       main::doEvalHook($win,"after_edit_node_hook",$node,0);
     } else {
       main::doEvalHook($win,"after_edit_attr_hook",$node,$attr_path,0);
@@ -98,11 +101,14 @@ sub editAttrsDialog_schema {
   return $result;
 }
 
-sub editAttrsDialog {
+#TODO: toto nefunguje pri mazani struktury atributov!!!
+# was main::editAttrsDialog
+sub create_dialog {
   my ($win,$node)=@_;
-  return if (main::doEvalHook($win,"do_edit_node_hook",$node) eq 'stop');
+  my $edit_node_hook_res = main::doEvalHook($win,"do_edit_node_hook",$node);
+  return if (defined $edit_node_hook_res && $edit_node_hook_res eq 'stop');
   return unless $win->{FSFile};
-  return editAttrsDialog_schema($win,$node)
+  return dialog_schema($win,$node)
     if (ref($node->type) ||
 	ref($win->{FSFile}->schema()));
   my @vals;
@@ -137,11 +143,11 @@ sub editAttrsDialog {
 		      -sticky => 'we',
 		      -scrollbars=> 'oe');
   main::disable_scrollbar_focus($f);
-  $f->BindMouseWheelVert(EMPTY,"EditEntry");
+  $f->BindMouseWheelVert($EMPTY_STR,"EditEntry");
 
   my $lwidth;
   foreach (@atord) {
-    $lwidth=max2($lwidth,length($_));
+    $lwidth=TrEd::MinMax::max2($lwidth,length($_));
   }
   my $height=0;
 
