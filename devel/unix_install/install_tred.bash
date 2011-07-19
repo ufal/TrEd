@@ -191,6 +191,10 @@ fetch_url () {
               die "Error fetching $url\n" unless ref $ff;
               $res = $ff->fetch;
               die $ff->error unless defined $res and length $res;
+              $target = $ff->output_file;
+              if ($target ne $file) {
+                rename $target, $file or die "Cannot rename: $!";
+              }
         ' "$1" "$2"
     fi
 }
