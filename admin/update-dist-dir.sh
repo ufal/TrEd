@@ -45,4 +45,4 @@ if [ -e ${TRED_DIST_DIR}.old ]; then \
 	rm -rf ${TRED_DIST_DIR}.old; \
 fi && \
 
-echo "Updating distrib direcotry done"
+echo "Updating distrib directory done"
