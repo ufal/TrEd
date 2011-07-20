@@ -13,7 +13,7 @@ echo "Preparing TrEd web directory in $WWW" && \
 rm -f ${WWW}/tred/ar01*.html && \
 # copy documentation to $WWW/
 cp -Rf ${TRED_DIST_DIR}/documentation/{*.html,*.css,pics} ${WWW}/tred/ && \
-##TODO comment!
+##change urls in index.html to point to the directory of that index, should be changed when there is another place for TrEd
 xsh2 -P ${WWW}/tred/index.html 'nobackups; rm //*[@class="offline"]; map :i { s{^http://ufal.mff.cuni.cz/~pajas/tred/}{./} } //@href;' && \
 
 ##ATT we need to run win32_ppm/get_packages_tred_58 a get_packages_tred_510.sh before this is run

@@ -24,6 +24,9 @@ LOG=~/ufal_work/ms.mff.cuni.cz/net_work_projects_tred/make_log
 # SHELL=/bin/bash
 TMP=/tmp
 
+# if the desired perl version changes, it should also be changed 
+# in win32_strawberry/tred-installer.nsi (search for $DesiredPerlVersion variable)
+DESIRED_PERL_VERSION='5.12'
 
 # UFAL installation paths
 ## INSTALL_BASE=/f/common
@@ -40,6 +43,7 @@ RSS=${WWW}/tred/changelog.rss
 # Basic paths
 TRED_SVN=https://svn.ms.mff.cuni.cz/svn/TrEd_refactored/
 TRED_SVN_REPO=${TRED_SVN}/tred_refactored/
+TRED_PORTABLE_REPO=${TRED_SVN}/tred_portable/
 TRED_SVN_EXT=https://svn.ms.mff.cuni.cz/svn/TrEd/extensions/
 TREEX_PML_REPO=https://svn.ms.mff.cuni.cz/svn/perl_libs/distribution/Treex-PML
 WIN32_DIST_REPO=https://svn.ms.mff.cuni.cz/svn/perl_libs/distribution/win32_build_script
