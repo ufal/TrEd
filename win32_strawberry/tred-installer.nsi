@@ -169,7 +169,7 @@ Function .onInit
 	; try to find perl executable and version
 	Call testPerl
 	
-	StrCpy $DesiredPerlVersion "5.10"
+	StrCpy $DesiredPerlVersion "5.12"
 	StrCpy $CustomPerlFolder ""
 	; does the user need to configure that?
 	StrCpy $tredDataDir "$LOCALAPPDATA\tred_data"	
@@ -636,6 +636,7 @@ Section "Uninstall"
 	RMDir /r "$INSTDIR\examples\"
 	RMDir /r "$INSTDIR\resources\"
 	RMDir /r "$INSTDIR\tredlib\"
+	RMDir /r "$INSTDIR\t\"
 	;RMDir /r "$INSTDIR\sample_data\"
 	
 	RMDir /r "$APPDATA\.tred.d\"
