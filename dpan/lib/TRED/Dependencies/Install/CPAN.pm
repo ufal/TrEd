@@ -301,7 +301,7 @@ sub install_tred_deps_cpan {
 	# Report which packages failed to install
 	print("Installing Perl modules done.\n");
 	CPAN::Shell->failed();
-	print("If some of the modules failed to install correctly, please, install them manually.\n");
+	print("If some of the modules failed to install correctly, please, install them manually using CPAN command.\n");
 }
 
 

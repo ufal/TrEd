@@ -175,6 +175,7 @@ sub new {
 		*POSIX
 		PostScript::ISOLatin1Encoding
 		PostScript::StandardEncoding
+		Readonly
 		*Safe
 		*Scalar::Util
 		*Storable
