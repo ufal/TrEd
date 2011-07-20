@@ -16,9 +16,9 @@ if [ -z "$BASH" ]; then
 fi
 
 
-tred_url="http://ufal.mff.cuni.cz/~pajas/tred/tred-current.tar.gz"
-tred_dep="http://ufal.mff.cuni.cz/~pajas/tred/tred-dep-unix.tar.gz"
-tred_svn="svn://anonymous@svn.ms.mff.cuni.cz/TrEd/trunk"
+tred_url="http://www.ms.mff.cuni.cz/~fabip4am/big/tred/tred/tred-current.tar.gz"
+tred_dep="http://www.ms.mff.cuni.cz/~fabip4am/big/tred/tred/tred-dep-unix.tar.gz"
+tred_svn="svn://anonymous@svn.ms.mff.cuni.cz/svn/TrEd_refactored/tred_refactored"
 
 # readlink -f does not work on Mac OSX, so here is a Perl-based workaround:
 readlink_nf () {
