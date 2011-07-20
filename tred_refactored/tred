@@ -970,8 +970,7 @@ sub update_filelist_views {
 #                 Treex::PML::Document $fsfile -- reference to file 
 # Throws        : No exception
 # Comments      : 
-# See Also      :
-#TODO: mozno funkcia do TrEd::Window -- TrEd::Window::displays($fsfile)? 
+# See Also      : 
 sub fsfileDisplayingWindows {
   my ($grp, $fsfile)=@_;
   return 
@@ -1002,18 +1001,8 @@ sub _last_err {
 # sub removeLock
 # sub checkLock
 
-# file, UI
-#TODO: mozno do TrEd::File
-sub closeFileInWindow {
-  my ($grp_or_win)=@_;
-  my ($grp,$win)=grp_win($grp_or_win);
-  my $keep;
-  if (fsfileDisplayingWindows($grp,$win->{FSFile})<2) {
-    $keep=TrEd::File::ask_save_file($win,1,1);
-    return if $keep == -1;
-  }
-  TrEd::File::closeFile($win, -keep_postponed => $keep);
-}
+# sub closeFileInWindow
+
 
 # file, UI, fsfile
 sub filePartOfADisplayedFile {
@@ -3143,6 +3132,8 @@ sub startMain {
 
   $Treex::PML::IO::lwp_user_agent = TrEd::UserAgent->new($top, keep_alive=>1);
 
+
+
   if ($^O eq 'MSWin32') {
     # a workaround for focus being lost after popup menu usage on Win32
     
@@ -3154,12 +3145,28 @@ sub startMain {
     require Tk::DialogBox;
     {
       my $old=\&Tk::Widget::DialogBox;
-      *Tk::Widget::DialogBox = \&_tk_dialog_alternative($old); 
+      *Tk::Widget::DialogBox = sub {
+            my $d = &$old;
+            if ($d) {
+                for my $w ( grep $_->isa('Tk::Button'), $d->Subwidget ) {
+                    $w->configure(-padx=>7, -pady=>2, -width=>0);
+                }
+            }
+            return $d;
+      };
     }
     require Tk::Dialog;
     {
       my $old=\&Tk::Widget::Dialog;
-      *Tk::Widget::Dialog = \&_tk_dialog_alternative($old);
+      *Tk::Widget::Dialog = sub {
+          my $d = &$old;
+          if ($d) {
+              for my $w ( grep $_->isa('Tk::Button'), $d->Subwidget ) {
+                  $w->configure(-padx=>7, -pady=>2, -width=>0);
+              }
+          }
+          return $d;
+      };
     }
 
   }

@@ -46,6 +46,7 @@ require TrEd::Query::User;
 #                 hostname of the computer, process id and the time of the last modifiaction 
 #                 of the locked file.
 # See Also      : check_lock(), remove_lock()
+# was main::setLock
 sub set_lock {
   my ($filename) = @_; # filename
   my $protocol = Treex::PML::IO::get_protocol($filename);
@@ -84,6 +85,7 @@ sub set_lock {
 # Throws        : nothing
 # Comments      : 
 # See Also      : check_lock()
+# was main::readLock
 sub read_lock {
   my ($filename) = @_;
   my $protocol = Treex::PML::IO::get_protocol($filename);
@@ -124,6 +126,7 @@ sub read_lock {
 # Comments      : Lock is removed if $force evaluates to true, $fsfile is not defined
 #                 or if check_lock returns lock status that starts with 'my' or 'changed'
 # See Also      : set_lock(), check_lock()
+# was main::removeLock
 # TODO: test
 sub remove_lock {
   my ($fsfile, $filename, $force) = @_; # filename
@@ -250,7 +253,8 @@ sub _check_lock_only_mem_lock {
 # Throws        : nothing
 # Comments      : Complex and difficult to understand, diagram should be drawn here, 
 #                 but it's quite difficult to draw it here..
-# See Also      : 
+# See Also      : set_lock(), read_lock()
+# was main::checkLock
 sub check_lock {
   my ($fsfile, $filename) = @_; # filename
   return 'Ignore' if $TrEd::Config::noCheckLocks;
@@ -368,6 +372,7 @@ sub lock_open_file {
 # Comments      : 
 # See Also      : lock_open_file(), lock_file()
 #TODO: test
+# was main::setFSLockInfo
 sub set_fs_lock_info {
   my ($fsfile, $lockinfo) = @_;
   if (defined $fsfile) {

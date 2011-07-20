@@ -770,14 +770,15 @@ sub openStandaloneFile {
 }
 
 #######################################################################################
-# Usage         : reload_on_usr2($grp, $file_name)
-# Purpose       : Reload file or open it if it is not open
-# Returns       : Undef/empty list
-# Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
-#                 string $file_name -- name of the file to reload 
+# Usage         : closeFile($win, %opts)
+# Purpose       : 
+# Returns       : Undef/empty list if no file was closed (either because there is no file to 
+#                 close, or the user cancelled the operation)
+#                 1 if the file was closed successfully
+# Parameters    : ... 
 # Throws        : No exception
-# Comments      : This function is a part of USR2 signal handler
-# See Also      : main::handleUSR2Signal()
+# Comments      : 
+# See Also      : 
 sub closeFile {
     my ( $win, %opts ) = @_;
 
@@ -2128,6 +2129,28 @@ sub init_app_data {
     return;
 }
 
+
+#######################################################################################
+# Usage         : close_file_in_window($grp_or_win)
+# Purpose       : Close current opened file in window specified by $grp_or_win
+# Returns       : Undef/empty list if the operation was cancelled by the user
+#                 1 if the file was closed
+# Parameters    : hash_ref $grp_or_win -- ref to hash of TrEd's options or to 
+# Throws        : No exception
+# Comments      : Initialize the undo information and information about related files, 
+#                 if they are not already set
+# See Also      : 
+# was main::closeFileInWindow
+sub close_file_in_window {
+  my ($grp_or_win)=@_;
+  my ($grp,$win)=main::grp_win($grp_or_win);
+  my $keep;
+  if (main::fsfileDisplayingWindows($grp,$win->{FSFile})<2) {
+    $keep=ask_save_file($win,1,1);
+    return if $keep == -1;
+  }
+  return closeFile($win, -keep_postponed => $keep);
+}
 
 1;
 
