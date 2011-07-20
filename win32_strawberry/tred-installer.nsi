@@ -250,11 +250,13 @@ Function findStrawberryPerlLink
 	ClearErrors
 	;; find build number
 	; Download webpage with versions of Perl and links to installers
-	inetc::get /SILENT "http://strawberryperl.com/" "$TEMP\strawberry-page.html"
+	inetc::get "http://strawberryperl.com/" "$TEMP\strawberry-page.html"
 	Pop $R0 ;Get the return value
 	StrCmp $R0 "OK" +3
 		MessageBox MB_OK "Download failed: $R0 $\nPlease exit installer and install Perl manually."
 		Quit
+	
+	
 	; find link on the page
 	FileOpen $HtmlPage $TEMP\strawberry-page.html r
 	IfErrors done
