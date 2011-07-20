@@ -3652,7 +3652,7 @@ save it.
 sub CloseFileInWindow {
   shift unless ref($_[0]);
   my $win = shift() || $grp;
-  my $ret = GUI() && TrEd::File::closeFileInWindow($win);
+  my $ret = GUI() && TrEd::File::close_file_in_window($win);
   $Redraw='all';
 }
 

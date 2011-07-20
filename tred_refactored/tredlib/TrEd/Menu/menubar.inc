@@ -153,7 +153,7 @@ return sub {
     'Button',
     'Close in Window',
     {
-      '-command' => [ \&main::closeFileInWindow, $grp],
+      '-command' => [ \&TrEd::File::close_file_in_window, $grp],
       '-underline' => 9
      },
     undef
