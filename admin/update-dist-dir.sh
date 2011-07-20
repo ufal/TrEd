@@ -9,7 +9,7 @@ echo "Updating distribution directory of TrEd" && \
 if [ -e ${TRED_DIST_DIR}.new ]; then 
 	# directory does exist, which is not ok...
 	echo "${TRED_DIST_DIR}.new already exists! Delete it..."
-	exit;
+	exit 1;
 fi && \
 
 echo "Exporting svn" && \
