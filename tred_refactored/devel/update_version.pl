@@ -35,8 +35,9 @@ my $version_file = File::Spec->rel2abs('../tredlib/TrEd/Version.pm',$rb);
 
 die "Did not find $version_file!" if !-f $version_file;
 
-my $REPO = shift || 'svn://svn.ms.mff.cuni.cz/TrEd/trunk';
-my $VER='1.'.`svn info "$REPO" |grep "^Revision:" |cut -f2 -d:`;
+my $REPO = shift || 'https://svn.ms.mff.cuni.cz/svn/TrEd_refactored/tred_refactored/';
+
+my $VER='1.9.'.`svn info "$REPO" |grep "^Revision:" |cut -f2 -d:`;
 chomp $VER;
 $VER=~s/\s+//g;
 
