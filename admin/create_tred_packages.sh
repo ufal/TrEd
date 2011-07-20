@@ -13,7 +13,6 @@ fi
 
 ulimit -s 8192 # for 7zip
 
-REPO="https://svn.ms.mff.cuni.cz/svn/TrEd/trunk"
 
 DIST_DIR="$1"
 WININST="$2"
@@ -22,7 +21,7 @@ WWW="$3"
 SFX=$(dirname $0)/7zExtra/7zS.sfx
 
 if [ -z "$VER" ]; then
-    VER=`$DIST_DIR/tred/devel/update_version.pl -n`
+    VER=`$DIST_DIR/tred/devel/update_version.pl -n ${TRED_SVN_REPO}`
 fi
 
 cd "$DIST_DIR"
@@ -45,13 +44,16 @@ chmod 664 "${WWW}/${PKG}"
 opts_7zip="-m0=BCJ2 -m1=LZMA:d25:fb255 -m2=LZMA:d19 -m3=LZMA:d19 -mb0:1 -mb0s1:2 -mb0s2:3 -mx"
 
 # cleanup
-rm -f "${WWW}/${WINPKG}_noAP.7z";
-rm -f "${WWW}/${WINPKG}_noAP.exe";
-rm -f "${WWW}/${WINPKG}_small.7z";
-rm -f "${WWW}/${WINPKG}_small.exe";
-rm -f "${WWW}/${WINPKG}.7z";
-rm -f "${WWW}/${WINPKG}.exe";
+# rm -f "${WWW}/${WINPKG}_noAP.7z";
+# rm -f "${WWW}/${WINPKG}_noAP.exe";
+# rm -f "${WWW}/${WINPKG}_small.7z";
+# rm -f "${WWW}/${WINPKG}_small.exe";
+# rm -f "${WWW}/${WINPKG}.7z";
+# rm -f "${WWW}/${WINPKG}.exe";
 rm -f "${WWW}/tred-installer.exe";
+rm -f "${WWW}/tred-installer-perl-included.exe";
+rm -f "${WWW}/tred-portable.7z";
+
 
 function append_package() {
     eval "extra_opts=($1)"; shift
@@ -65,31 +67,44 @@ function append_package() {
 # create Win32 packages
 cd "${WININST}"
 
-append_package "'-xr!*::*' '-xr!ActivePerl*.msi'" "${WWW}/${WINPKG}_small" !(packages_unix|extensions|backup)
+#append_package "'-xr!*::*' '-xr!ActivePerl*.msi'" "${WWW}/${WINPKG}_small" !(packages_unix|extensions|backup)
 
-cp "${WWW}/${WINPKG}_small.7z" "${WWW}/${WINPKG}_noAP.7z";
-append_package '' "${WWW}/${WINPKG}_noAP" extensions;
+#cp "${WWW}/${WINPKG}_small.7z" "${WWW}/${WINPKG}_noAP.7z";
+#append_package '' "${WWW}/${WINPKG}_noAP" extensions;
 
-cp "${WWW}/${WINPKG}_noAP.7z" "${WWW}/${WINPKG}.7z";
-append_package '' "${WWW}/${WINPKG}" activeperl58_win32;
+#cp "${WWW}/${WINPKG}_noAP.7z" "${WWW}/${WINPKG}.7z";
+#append_package '' "${WWW}/${WINPKG}" activeperl58_win32;
 
+#generate portable package
+#Attention: this package is only chceked out from svn, it is not updated automatically!
+echo "Generate Portable Package for Windows" && \
+cd $TRED_STRAWBERRYPERL_DIR && \
+rm -rf "tred-portable.7z" && \
+mkdir tred-portable && \
+svn export $TRED_PORTABLE_REPO "tred-portable" && \
+7za a tred-portable.7z  tred-portable/
+cp "tred-portable.7z" "${WWW}/tred-portable.7z" && \
+rm -rf tred-portable/ && \
 
-# create NSIS installer for Strawberry Perl 
+# create NSIS installer for Windows, without Strawberry Perl 
 echo "Generate Nullsoft Installer for Windows" && \
 cd $TRED_STRAWBERRYPERL_DIR && \
 makensis tred-installer.nsi && \
-cp "tred-installer.exe" "${WWW}/tred-installer.exe" 
+cp "tred-installer.exe" "${WWW}/tred-installer.exe" && \
+
+# create NSIS installer for Windows, Strawberry Perl inculded
+${ADMIN_DIR}/create_installer_with_strawberry_perl.sh && \
+
 
 # update download sizes on the web-page
-perl -pi~ -e "s{\(SIZE_OF:(.*?)\)}{ my \$file='${WWW}/'.\$1; my (\$size)=split /\\s/,\`du --si \$file\`,2; '('.\$size.')'}eg;" ${WWW}/index.html
+perl -pi~ -e "s{\(SIZE_OF:(.*?)\)}{ my \$file='${WWW}/'.\$1; my (\$size)=split /\\s/,\`du --si \$file\`,2; '('.\$size.')'}eg;" ${WWW}/index.html && \
 
 # links
-cd "${WWW}"
-rm -f tred-current.tar.gz
-ln "${PKG}" tred-current.tar.gz
-rm -f tred_wininst_en.exe
-rm -f tred_wininst_en.7z
-ln "${WINPKG}.7z" tred_wininst_en.7z
-ln "${WINPKG}.exe" tred_wininst_en.exe
-rm -f tred_win32strawberry_en.exe
-ln "tred-installer.exe" tred_win32strawberry_en.exe
+cd "${WWW}" && \
+rm -f tred-current.tar.gz && \
+ln "${PKG}" tred-current.tar.gz && \
+# rm -f tred_wininst_en.exe && \
+# rm -f tred_wininst_en.7z && \
+# ln "${WINPKG}.7z" tred_wininst_en.7z && \
+# ln "${WINPKG}.exe" tred_wininst_en.exe && \
+
