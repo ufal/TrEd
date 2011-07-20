@@ -1,1 +1,1 @@
-/home/pierre/ufal_work/release__new/TrEd_refactored/admin/env_refactored.sh
+env_refactored.sh
