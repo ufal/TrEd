@@ -23,7 +23,7 @@ ${TRED_EXT_DIR}/update && \
 
 echo "Updating portable tred" && \
 # perform update of portable tred's checkout directory
-cd $TRED_PORTABLE_REPO && \
+cd ${PROJECT_DIR}/tred_portable && \
 svn up && \
 
 cp ${TRED_SRC_DIR}/ChangeLog ${TRED_DIST_DIR}.new/ && \
