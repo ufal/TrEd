@@ -412,7 +412,14 @@ sub test_remove {
   is_deeply(\@got_list_of_files, \@expected_list_of_files, 
     "Filelist->remove(): files removed successfully");
   
-  
+  # also test for empty removes
+  my @patterns = undef;
+  is($file_list->remove(@patterns), undef, 
+    "Filelist->remove(): return undef if no files were specified");
+  is_deeply(\@got_list, \@expected_list, 
+    "Filelist->remove(): don't modify the filelist if no files were specified");
+  is_deeply(\@got_list_of_files, \@expected_list_of_files, 
+    "Filelist->remove(): don't modify the filelist if no files were specified");
 }
 
 # this test won't work if it would be run before remove test, which gets rid of
