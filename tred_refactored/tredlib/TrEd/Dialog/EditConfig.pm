@@ -6,6 +6,8 @@ use warnings;
 use Tk;
 use TrEd::Config;
 
+require TrEd::RuntimeConfig;
+
 sub show_dialog {
   my ($grp)=@_;
   return unless $grp;
@@ -76,7 +78,7 @@ sub show_dialog {
 	   -underline => 2,
 	   -command=> [sub {
 			  my ($grp,$d,$t)=@_;
-			  main::saveConfig($d,[$t->get("0.0","end")]);
+			  TrEd::RuntimeConfig::save_config($d,[$t->get("0.0","end")], $main::opt_q);
 			  TrEd::Config::apply_config(split(/\n/,$t->get("0.0","end")));
 			  main::reconfigure($grp);
 			  main::get_nodes_all($grp);
@@ -107,8 +109,8 @@ sub show_dialog {
   $d->BindButtons();
   $d->bind('<Destroy>'=> [sub { shift; shift->{configDialog}=undef; },$grp ]);
   $d->bind($d,'<Escape>'=> [sub { shift; shift->destroy(); },$d]);
-  my $config = main::getConfigFromFile() || [];
-  main::updateRuntimeConfig($grp,$config);
+  my $config = TrEd::RuntimeConfig::get_config_from_file() || [];
+  TrEd::RuntimeConfig::update_runtime_config($grp,$config);
   $t->insert('0.0' , join(q{}, @{$config}) . "\n");
   $t->mark(qw/set insert 0.0/);
   $t->focus();

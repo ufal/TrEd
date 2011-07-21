@@ -54,25 +54,26 @@ sub add_to_menu {
     $menu->add('checkbutton',
 	       -label => $self->{name}.' toolbar',
 	       -variable => \$self->{toolbar_state},
-	       -command => [\&toggleUserToolbar, $self],
+	       -command => [\&toggle_user_toolbar, $self],
 	      );
 }
 
-# user toolbar, UI
-sub toggleUserToolbar {
+# was main::toggleUserToolbar
+sub toggle_user_toolbar {
   my ($self)=@_;
   if ( $self->{toolbar_state} ) {
-    $self->showUserToolbar();
+    $self->show();
   } else {
-    $self->hideUserToolbar();
+    $self->hide();
   }
 }
 
 # user toolbar, UI
-sub hideUserToolbar {
+# was main::hideUserToolbar
+sub hide {
   my ($self)=@_;
   my $tb = $self->{toolbar};  
-  #getUserToolbar($grp,$name);
+  #get_user_toolbar($grp,$name);
   if ($tb) {
     my $height = $tb->height();
     my %info = $tb->packInfo;
@@ -90,10 +91,10 @@ sub hideUserToolbar {
 }
 
 # user toolbar, UI
-sub showUserToolbar {
+sub show {
   my ($self)=@_;
   my $tb = $self->{toolbar};  
-  #getUserToolbar($grp,$name);
+  #get_user_toolbar($grp,$name);
   if ($tb) {
     $tb->pack(-fill=>'x');
     $self->{toolbar_state}=1;
@@ -103,7 +104,7 @@ sub showUserToolbar {
 }
 
 # user toolbar, UI
-sub userToolbarVisible {
+sub visible {
   my ($self)=@_;
   my $tb =  $self->{toolbar};
   if ($tb) {
@@ -112,31 +113,13 @@ sub userToolbarVisible {
   return;
 }
 
-#TODO: nazov zmenit
-# user toolbar, UI
-sub getUserToolbar {
+
+# was main::getUserToolbar
+sub get_user_toolbar {
   my ($self)=@_;
   return $self->{toolbar};
 }
 
-# user toolbar, UI
-#sub removeUserToolbar {
-#  my ($grp_or_win,$name)=@_;
-#  my $grp=cast_to_grp($grp_or_win);
-#  my $tb = delete $grp->{UserToolbarHash}{$name};
-#  delete $grp->{UserToolbarState}{$name};
-#  print "remove toolbar $name => $tb\n" if $TrEd::Config::tredDebug;
-#  return unless $tb;
-#  if (keys %{$grp->{UserToolbarHash}}) {
-#    $tb->packForget;
-#  } else {
-#    $tb->packForget;
-#    $grp->{UserToolbars}->packForget;
-#    $grp->{UserToolbarSep}->packForget;
-#  }
-#  _updateToolbarMenu($grp);
-#  return $tb;
-#}
 
 
 1;

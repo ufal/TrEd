@@ -5,12 +5,10 @@ use strict;
 use warnings;
 
 use TrEd::Macros;
+use TrEd::ManageFilelists;
  
 #binding-context TredMacro
 TrEd::Macros::set_current_binding_contexts('TredMacro');
-
-#include "ntred.mak"
-# -*- cperl -*-
 
 # Macros for comunnicating with a BTrEd Server
 
@@ -179,14 +177,13 @@ sub ntred_query_box_do_query {
 sub ntred_query_box_make_filelist {
   my ($grp,$r)=@_;
   my $name='ntred_client';
-  my $fl=main::findFilelist($name);
+  my $fl=TrEd::ManageFilelists::findFilelist($name);
   print STDERR $fl,"\n";
-  $fl=main::addFilelist(Filelist->new($name)) unless $fl;
+  $fl=TrEd::ManageFilelists::addFilelist(Filelist->new($name)) unless $fl;
   $fl->clear();
   $fl->add(0,split /\n/,$r->get("0.0","end"));
   &main::updatePostponed($grp->{framegroup});
-  #TODO: pozriet sa na toto, asi bude treba use TrEd::ManageFilelists a potom presmerovat
-  &main::selectFilelist($grp->{framegroup},$name);
+  TrEd::ManageFilelists::selectFilelist($grp->{framegroup},$name);
 }
 
 

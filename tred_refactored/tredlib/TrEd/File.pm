@@ -565,7 +565,7 @@ sub open_file {
             # set current tree and node for $win Window
             TrEd::Utils::applyFileSuffix( $win, $suffix );
             main::unhide_current_node($win);
-            main::get_nodes_win( $win, $opts{-noredraw} );
+            $win->get_nodes( $opts{-noredraw} );
             if ( !$opts{-nohook} ) {
                 main::doEvalHook( $win, "guess_context_hook", "file_resumed_hook" );
                 main::doEvalHook( $win, "file_resumed_hook" );
@@ -623,7 +623,7 @@ sub open_file {
                     main::update_title_and_buttons($grp);
                     TrEd::Utils::applyFileSuffix( $win, $suffix );
                     main::unhide_current_node($win);
-                    main::get_nodes_win( $win, $opts{-noredraw} );
+                    $win->get_nodes( $opts{-noredraw} );
                     if ( !$opts{-nohook} ) {
                         main::doEvalHook( $win, "guess_context_hook",
                             "file_resumed_hook" );
@@ -684,7 +684,7 @@ sub open_file {
         TrEd::Utils::applyFileSuffix( $win, $suffix );
         $save_current = $win->{currentNode};
         main::unhide_current_node($win);
-        main::get_nodes_win( $win, 1 );    # for the hook below
+        $win->get_nodes(1); # for the hook below
     }
     # if redraw is called during the hook, we will know it
     my $r = $win->{redrawn};
@@ -714,7 +714,7 @@ sub open_file {
                 if ($save_current) {
                     $win->{currentNode} = $save_current;
                 }
-                main::get_nodes_win($win);    # the hook may have changed something
+                $win->get_nodes();    # the hook may have changed something
                 main::redraw_win($win);
             }
             main::centerTo( $win, $win->{currentNode} );
@@ -850,7 +850,7 @@ sub closeFile {
 #            TrEd::ValueLine::set_value( $w->{framegroup}, $EMPTY_STR );
         }
         unless ( $opts{-no_update} ) {
-            main::get_nodes_win($w);
+            $w->get_nodes();
             main::redraw_win($w);
         }
     }
@@ -959,7 +959,7 @@ sub reloadFile {
             }
             main::doEvalHook( $win, "file_reloaded_hook" );
         }
-        main::get_nodes_win($win);
+        $win->get_nodes();
         main::redraw_win($win);
         main::centerTo( $win, $win->{currentNode} );
     }
@@ -1343,7 +1343,7 @@ sub newFileFromCurrent {
     main::update_title_and_buttons($grp);
     $win->{redrawn}
         = 0;    # if redraw is called during the hook, we will know it
-    main::get_nodes_win($win);
+    $win->get_nodes();
     if (    $main::init_macro_context ne $EMPTY_STR
         and $win->{macroContext} ne $main::init_macro_context )
     {
@@ -1878,15 +1878,16 @@ sub ask_save_files_and_close {
     for my $fsfile ( grep { !$asked{$_} && ref $_ && $_->notSaved() }
         @openfiles )
     {
-        resume_file( $grp_ref->{focusedWindow}, $fsfile );
+        my $win = $grp_ref->{focusedWindow};
+        resume_file( $win, $fsfile );
         main::update_title_and_buttons($grp_ref);
-        main::get_nodes_win( $grp_ref->{focusedWindow} );
-        main::redraw_win( $grp_ref->{focusedWindow} );
-        main::centerTo( $grp_ref->{focusedWindow},
-            $grp_ref->{focusedWindow}->{currentNode} );
+        $win->get_nodes();
+        main::redraw_win( $win );
+        main::centerTo( $win,
+            $win->{currentNode} );
         $grp_ref->{top}->update();
         return -1
-            if ask_save_file( $grp_ref->{focusedWindow}, 0, $cancelbutton ) == -1;
+            if ask_save_file( $win, 0, $cancelbutton ) == -1;
     }
     closeAllFiles($grp_ref);
     return 0;

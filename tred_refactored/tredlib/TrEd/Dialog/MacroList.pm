@@ -1,4 +1,3 @@
-# asi to bude chciet urobit include aj dajakeho Tk
 package TrEd::Dialog::MacroList;
 
 use strict;
@@ -181,9 +180,9 @@ sub create_dialog {
   $botframe->pack(qw/-side bottom -fill both/);
   $topframe->pack(qw/-side top -fill both -ipady 3 -ipadx 3 -expand 1/);
 
-  $d->BindButtons;
-  $t->focus;
-  $d->Popup;
+  $d->BindButtons();
+  $t->focus();
+  $d->Popup();
 }
 
 

@@ -135,12 +135,14 @@ return sub {
     {
       '-command' => [ sub {
 			my ($grp)=@_;
-			if (ref($grp->{focusedWindow}->{currentFilelist})) {
+			if (ref $grp->{focusedWindow}->{currentFilelist}) {
 			  my $lr = $grp->{focusedWindow}->{currentFilelist}->list_ref;
-			  TrEd::ManageFilelists::removeFromFilelist($grp,
+			  if (scalar @{$lr}) {
+			     TrEd::ManageFilelists::removeFromFilelist($grp,
 					     undef,
 					     undef,
-					     $lr->[$grp->{focusedWindow}->{currentFileNo}]) if $lr;
+					     $lr->[$grp->{focusedWindow}->{currentFileNo}]);
+			  }
 			}
 			return if TrEd::File::ask_save_file($grp->{focusedWindow},0,1) == -1;
 			TrEd::File::closeFile($grp->{focusedWindow},-all_windows => 1);
@@ -1006,7 +1008,7 @@ return sub {
       '-command' => [sub {
 		       my $win=$_[0]->{focusedWindow};
 		       $win->treeView->set_clearTextBackground($treeViewOpts->{clearTextBackground});
-		       get_nodes_win($win);
+		       $win->get_nodes();
 		       redraw_win($win);
 		     },$grp],
       '-underline' => 0,
@@ -1023,7 +1025,7 @@ return sub {
 		       my $win = $grp->{focusedWindow};
 		       ## vice versa setting should be done when focus changes
 		       $win->{treeView}->set_drawEdgeBoxes($treeViewOpts->{drawEdgeBoxes});
-		       get_nodes_win($win);
+		       $win->get_nodes();
 		       redraw_win($win);
 		     },$grp],
       '-underline' => 1,
@@ -1040,7 +1042,7 @@ return sub {
 		       ## vice versa setting should be done when focus changes
 		       my $win = $grp->{focusedWindow};
 		       $win->{treeView}->set_drawBoxes($treeViewOpts->{drawBoxes});
-		       get_nodes_win($win);
+		       $win->get_nodes();
 		       redraw_win($win);
 		     },$grp],
       '-underline' => 0,
@@ -1064,7 +1066,7 @@ return sub {
       '-command' => [sub {
 		       my $win=$_[0]->{focusedWindow};
 		       $win->treeView->set_showHidden($treeViewOpts->{showHidden});
-		       get_nodes_win($win);
+		       $win->get_nodes();
 		       redraw_win($win);
 		       ensureCurrentIsDisplayed($win);
 		     },$grp],

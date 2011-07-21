@@ -51,7 +51,7 @@ use vars qw($svn_version $version $opt_u $opt_h $opt_c $opt_y
 	    %HELP  
 	    $manpage $listoptions $no_backups $no_locks  %optmap $carp
 	    $tred_d $VERSION
-            $command $configFile
+            $command
            );
 
 # $userlogin
@@ -69,7 +69,7 @@ use vars qw($svn_version $version $opt_u $opt_h $opt_c $opt_y
 # @save_types -- this is probably forgotten since it is never used
 # $valueLine -- this is probably forgotten since it is never used
 # $enable_extensions $disable_extensions -- moved to TrEd::Extensions
-
+# $configFile -> RuntimeConfig
 use Exporter;
 @ISA   = qw(Exporter);
 @EXPORT= qw($insideEval
@@ -81,11 +81,12 @@ use Exporter;
 use Getopt::Long;
 use Pod::Usage;
 
+
 my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 %optmap =  (
   'quiet|q' => \$opt_q,
   'macro-file|m=s' => \$opt_m,
-  'config-file|c=s' => \$opt_c,
+  'config-file|c=s' => \$TrEd::RuntimeConfig::cmdline_config_file,
   'filelist|l=s' => \$opt_filelist,
   'context|t=s' => \$init_macro_context,
   'file-encoding|n=s' => \$opt_n,
@@ -224,8 +225,12 @@ my $initial_config;
 # see perlsub
 sub apply_initial_config { set_config($initial_config); undef $initial_config }
 $TrEd::Config::set_user_config=sub { $initial_config=shift };	# tred specific configuration
-# global $configFile
-$configFile=TrEd::Config::read_config(); # this may setup a new $libDir
+# 'global' $configFile
+# $configFile = TrEd::Config::read_config(); # this may setup a new $libDir
+require TrEd::RuntimeConfig;
+print "config file: $TrEd::RuntimeConfig::cmdline_config_file\n\n";
+TrEd::RuntimeConfig::init_runtime_config();
+
 
 unless (-d $libDir) {
   print <<'EOL';
@@ -898,6 +903,24 @@ sub ApplyGlobalConfig {
   update_treeviews($grp);
   $grp->{top}->afterCancel($grp->{autoSaveCallback});
   $grp->{autoSaveCallback}=$grp->{top}->repeat($autoSave*60000, [\&autoSaveAll,$grp]) if $autoSave>0;
+}
+
+# config
+sub reconfigure {
+  my ($grp)=@_;
+  TrEd::RecentFiles::add_file($grp);
+  prepareFonts($grp);
+  update_title_and_buttons($grp);
+  $grp->{top}->optionAdd("*font",$TrEd::Config::guiFont) if $TrEd::Config::guiFont;
+  $grp->{valueLine}->value_line_widget()->configure(-font=> $TrEd::Config::vLineFont);
+  if (defined $grp->{statusLine}) {
+    $grp->{statusLine}->configure(-font=> $TrEd::Config::vLineFont);
+  }
+  foreach (@{$grp->{treeWindows}}) {
+    $_->treeView->apply_options($TrEd::Config::treeViewOpts);
+  }
+
+  ApplyGlobalConfig($grp);
 }
 
 # treeView, UI
@@ -1585,53 +1608,20 @@ sub update_value_line {
     return $grp->{valueLine}->update($grp, @args);
 }
 
-### Get Nodes
-#######################################################################################
-# Usage         : get_nodes_win($win, $no_redraw)
-# Purpose       : Load the root, nodes and current node of tree number $win->{treeNo}
-#                 from current file in the Window $win into $win->{root}, $win->{Nodes}
-#                 and $win->{currentNode} hash values
-# Returns       : Undef/empty list
-# Parameters    : TrEd::Window ref $win -- reference to TrEd::Window whose nodes are searched for
-#                 scalar $no_redraw     -- indicator that forbids redrawing during the function
-# Throws        : No exception
-# Comments      : Updates TrEd::ValueLine if $no_redraw is not set.
-# See Also      : 
+# sub get_nodes_win
 sub get_nodes_win {
-    my ( $win, $no_redraw ) = @_;
-    if ( $win->{FSFile} ) {
-        # set hook 
-        $TrEd::TreeView::on_get_nodes = [ \&onGetNodes, $win ];
-        if ( $win->{treeNo} < 0 and $win->{FSFile}->lastTreeNo >= 0 ) {
-            $win->{treeNo} = 0;
-        }
-        $win->{root} = $win->{FSFile}->treeList->[ $win->{treeNo} ];
-        # here the assignment happens
-        ( $win->{Nodes}, $win->{currentNode} )
-            = $win->treeView->nodes( $win->{FSFile}, $win->{treeNo},
-            $win->{currentNode} );
-    }
-    else {
-        print "no nodes to get\n" if $tredDebug;
-        $win->{root}        = undef;
-        $win->{Nodes}       = [];
-        $win->{currentNode} = undef;
-    }
-    if ( $win->is_focused() and !$no_redraw ) {
-        my $grp = cast_to_grp($win); #->{framegroup};
-        $grp->{valueLine}->update($grp);
-        #TrEd::ValueLine::update( $win->{framegroup} );
+    my ($win, $no_redraw) = @_;
+    if (defined $win) {
+        return $win->get_nodes($no_redraw);
     }
     return;
 }
-
-
 # node, fsfile
 sub get_nodes_fsfile {
   my ($grp,$fsfile)=@_;
   return if $insideEval;
   foreach my $w (fsfileDisplayingWindows($grp,$fsfile)) {
-    get_nodes_win($w);
+    $w->get_nodes();
   }
   return;
 }
@@ -1642,7 +1632,7 @@ sub get_nodes_fsfile_tree {
   return if $insideEval;
   foreach my $w (grep {$_->{treeNo} == $tree_no}
 	   fsfileDisplayingWindows($grp,$fsfile)) {
-    get_nodes_win($w,$no_redraw);
+    $w->get_nodes($no_redraw);
   }
   return;
 }
@@ -1651,7 +1641,7 @@ sub get_nodes_stylesheet {
   my ($grp,$stylesheet)=@_;
   return if $insideEval;
   foreach (stylesheetUsingWindows($grp,$stylesheet)) {
-    get_nodes_win($_);
+    $_->get_nodes();
   }
   return;
 }
@@ -1660,7 +1650,7 @@ sub get_nodes_stylesheet {
 sub get_nodes_all {
   my ($grp)=@_;
   foreach my $w (@{ $grp->{treeWindows} }) {
-    get_nodes_win($w);
+    $w->get_nodes();
   }
   return;
 }
@@ -1673,17 +1663,9 @@ sub get_nodes_all {
 
 #sub selectFilelistNoUpdate
 #sub selectFilelist 
-#TODO: wrappers for ntred.mak?
-sub selectFilelist {
-  TrEd::ManageFilelists::selectFilelist(@_);
-}
- 
-sub findFilelist {
-  TrEd::ManageFilelists::findFilelist(@_);
-}
-sub addFilelist {
-  TrEd::ManageFilelists::addFilelist(@_);
-}
+#sub selectFilelist 
+#sub findFilelist 
+#sub addFilelist 
 
 #sub looseFilePositionInFilelist
 
@@ -1696,7 +1678,7 @@ sub addFilelist {
 #sub removeFromFilelist
 #sub createNewFilelist 
 
-#sub _user_resolve_filelist_conflict 
+#sub _user_resolve_filelist_conflict
 #sub _solve_filelist_conflict 
 #sub add_new_filelist 
 #sub deleteFilelist 
@@ -1758,6 +1740,7 @@ sub warn55PrintConvert {
 # sub savePrintConfig 
 
 # print
+#TODO: to TrEd::Print?
 sub printThis {
   my ($grp)=@_;
   my $win = $grp->{focusedWindow};
@@ -1831,7 +1814,7 @@ sub printThis {
     });
   } };
   TrEd::Error::Message::error_message($win, $@) if $@;
-  get_nodes_win($win); # printGetNodesCallback have fiddled with $win
+  $win->get_nodes(); # printGetNodesCallback have fiddled with $win
 ## uncomment to get preview (see also above)
 #  $canvas->pack();
 #  ShowDialog($dlg);
@@ -1839,41 +1822,11 @@ sub printThis {
   $canvas->destroy();
 }
 
-# treeView, fsfile
-sub getWindowPatterns {
-  my ($win)=@_;
-  if ($win->treeView->patterns()) {
-    return @{$win->treeView->patterns()}
-  } elsif ($win->{FSFile}) {
-    return $win->{FSFile}->patterns();
-  } else {
-    return ();
-  }
-}
 
-# treeView, fsfile
-sub getWindowHint {
-  my ($win)=@_;
-  if (defined($win->treeView->hint)) {
-    return ${$win->treeView->hint()};
-  } elsif ($win->{FSFile}) {
-    return $win->{FSFile}->hint();
-  } else {
-    return undef;
-  }
-}
+# sub getWindowPatterns
+# sub getWindowHint
 
-# stylesheet
-sub getWindowContextRE {
-  my ($win)=@_;
-  my $grp = cast_to_grp($win);
-  my $stylesheet = $win->{stylesheet};
-  if (exists($grp->{stylesheets}->{$stylesheet})) {
-    return $grp->{stylesheets}->{$stylesheet}->{context};
-  } else {
-    return undef;
-  }
-}
+# sub getWindowContextRE
 
 # stylesheet
 sub switchStylesheet {
@@ -1924,7 +1877,7 @@ sub switchStylesheet {
     $win->apply_stylesheet($stylesheet);
     doEvalHook($win,"switch_stylesheet_hook",$prevstylesheet,$stylesheet);
     if ($win->{FSFile}) {
-      get_nodes_win($win);
+      $win->get_nodes();
       redraw_win($win);
     }
   }
@@ -1974,7 +1927,7 @@ sub switchContext {
     my ( $l1, $l2 ) = ( $win->{got_nodes}, $win->{redrawn} );
     doEvalHook( $win, "switch_context_hook", $prev_context, $context );
     unless ($noredraw) {
-        get_nodes_win($win) unless $l1 < $win->{got_nodes};
+        $win->get_nodes() unless $l1 < $win->{got_nodes};
         if ($l2 >= $win->{redrawn}) {
             # something should be done with display attrs vs windows maybe
             redraw_win($win); 
@@ -2414,7 +2367,7 @@ sub splitWindow {
   $twin->apply_stylesheet($grp->{selectedStylesheet});
   focusCanvas($canvas,$grp) unless $opts->{no_focus};
   unless ($opts->{no_redraw}) {
-    get_nodes_win($twin);
+    $win->get_nodes();
     redraw_win($twin);
   }
   return $twin;
@@ -2684,25 +2637,6 @@ sub createCanvasBindings {
     }
   }
 }
-
-# sub MenubarItem {
-#   my ($menubar) = shift;
-#   my %opts = @_;
-#   if ($menubar->class eq 'Menu') {
-#     $menubar->cascade(%opts);
-#   } else {
-#     my $label = delete $opts{-label};
-#     if ($label ne EMPTY) {
-#       my $underline = index($label,'~')+$[;
-#       if ($underline >= 0 and !exists($opts{-underline})) {
-# 	$label =~ s/~//;
-# 	$opts{-underline} = $underline;
-#       }
-#       $opts{-text} = $label;
-#     }
-#     $menubar->Menubutton(%opts)->pack(qw/-side left/);
-#   }
-# }
 
 sub _menu_swaps {
   return (
@@ -3676,7 +3610,7 @@ sub startMain {
 
   MainLoop;
   if ($tred{top}) {
-    saveRuntimeConfig(\%tred);
+    TrEd::RuntimeConfig::save_runtime_config(\%tred);
   }
 
   # Finished ------------------------------------------
@@ -3717,7 +3651,7 @@ sub handleUSR2Signal {
 
 #sub newUserToolbar
 
-# sounds like a fn from TrEd::Window::TreeBasics..?!
+#TODO: sounds like a fn from TrEd::Window::TreeBasics..?!
 sub makeCurrentNodeRoot {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow};
@@ -3762,85 +3696,11 @@ sub quit {
   # run user's exit_hook
   doEvalHook($win,"exit_hook");
   return if TrEd::File::ask_save_files_and_close($grp,1) == -1;
-  saveRuntimeConfig($grp);
+ TrEd::RuntimeConfig::save_runtime_config($grp);
   $grp->{top}->destroy;
   $grp->{top}=undef;
 }
 
-# config
-sub getConfigFromFile {
-  my @conf;
-  if (open(my $fh,"<",$configFile)) {
-    @conf=<$fh>;
-    close($fh);
-    return \@conf;
-  } else {
-    return;
-  }
-}
-
-# config
-sub saveRuntimeConfig {
-  my ($grp,$update) = @_;
-  # Save configuration
-  print STDERR "Saving some configuration options.\n" if $tredDebug;
-  my $config = getConfigFromFile() || [];
-  updateRuntimeConfig($grp,$config,$update);
-  saveConfig($grp,$config);
-}
-
-# config
-sub updateRuntimeConfig {
-  my ($grp,$conf,$update)=@_;
-  $update||={};
-  my $comment = ';; Options changed by TrEd on every close (DO NOT EDIT)';
-  my $ommit="canvasheight|canvaswidth|recentfile[0-9]+|geometry|showsidepanel|lastaction|filelist[0-9]+";
-  my $update_comment = delete $update->{';'};
-  for (keys %$update) {
-    $ommit.=qq(|$_);
-  }
-  @$conf = grep { !/^\s*(?:\Q$comment\E|(?:$ommit)\s*=)/i } @$conf;
-  @$conf = grep { !/^\s*;*\s*\Q$update_comment\E/i } @$conf if defined $update_comment;
-  pop @$conf while @$conf and $conf->[-1] =~ /^\s*$/;
-
-  push @$conf, "\n",";; ".$update_comment."\n" if $update_comment;
-  push @$conf, (map { qq($_\t=\t).$update->{$_}."\n" } keys %$update);
-
-  push @$conf, "\n",$comment."\n";
-  #  $geometry=~s/^[0-9]+x[0-9]+//;
-  if (TrEd::Bookmarks::get_last_action()) {
-    my $s = TrEd::Bookmarks::get_last_action();
-    $s=~s/\\/\\\\/g;
-    push @$conf,"LastAction\t=\t".$s."\n";
-  }
-  if ($grp->{top}) {
-    eval {
-      $TrEd::Config::geometry=$grp->{top}->geometry();
-      print "geometry is $TrEd::Config::geometry\n" if $tredDebug;
-      if ($^O eq "MSWin32" and $grp->{top}->state() eq 'zoomed') {
-	$TrEd::Config::geometry=~s/\+[-0-9]+\+[-0-9]+/+-3+-3/;
-      }
-    };
-  }
-  do {
-    my $s;
-    my @recentFiles = TrEd::RecentFiles::recent_files();
-    push @$conf,
-      "Geometry\t=\t".$TrEd::Config::geometry."\n",
-      "ShowSidePanel\t=\t".$showSidePanel."\n",
-      "CanvasHeight\t=\t".$defCHeight."\n",
-      "CanvasWidth\t=\t".$defCWidth."\n",
-	map { 
-	  $s=$recentFiles[$_];
-	  $s=~s/\\/\\\\/g;
-	  "RecentFile$_\t=\t$s\n"
-	} 0..$#recentFiles;
-
-    TrEd::ManageFilelists::update_filelists($s, $conf);
-    
-  };
-  chomp $conf->[-1];
-}
 
 sub _do_goto_tree {
   my $win=shift;
@@ -3924,10 +3784,7 @@ sub newFileFromTemplate {
   return;
 }
 
-#sub fileDialog
-
-
-# dialog
+# sub fileDialog
 # sub urlDialog 
 
 
@@ -3943,84 +3800,8 @@ sub newFileFromTemplate {
 
 # sub askSaveFile
 
-# config
-sub saveConfig {
- my ($win,$config)=@_;
- my $top;
- if (ref($win)=~/^Tk::/) {
-   $top = $win->toplevel;
- } else {
-   $top = $win->{top};
- }
- my ($default_trc)=File::Spec->catfile($libDir,'tredrc');
- if (Treex::PML::IO::is_same_file($configFile,$default_trc)) {
-   $configFile = File::Spec->catfile($ENV{HOME},'.tredrc');
- }
- my $exists = -e $configFile ? 1 : 0;
- if (!$exists or (-f $configFile and -w $configFile)) {
-    my $renamed = rename $configFile, "${configFile}~" if $exists;
-    if (open(my $fh,">$configFile")) {
-      print STDERR "Saving tred configuration to: $configFile\n" unless $opt_q;
-      print $fh (@$config);
-      close($fh);
-      return;
-    } elsif ($renamed) {
-      rename "${configFile}~", $configFile;
-    }
-  }
- # otherwise something went wrong
- { 
-   my $lasterr=conv_from_locale($!);
-   my ($trc)=File::Spec->catfile($ENV{HOME},'.tredrc');
-   if (!Treex::PML::IO::is_same_file($configFile,$trc)  and
-       ((defined($top) and
-	   $top->
-	     messageBox(-icon=> 'warning',
-			-message=> "Cannot write configuration to $configFile: $lasterr\n\n".
-			  "Shell I try to save it to ~/.tredrc?\n",
-			-title=> 'Configuration cannot be saved',
-			-type=> 'YesNo',
-			# -default=> 'Yes' # problem: Windows 'yes', UNIX 'Yes'
-		       )=~ m(yes)i) or 
-	 (!defined($top) and ! -f $trc and !defined($opt_c)))) {
-     my $renamed = rename $trc, "${trc}~";
-     if (open(my $fh,">".$trc)) {
-       print STDERR "SAVING CONFIG TO: $trc\n";
-       print $fh (@$config);
-       print STDERR "done\n";
-       close($fh);
-       $configFile=$trc;
-     } else {
-       rename("${trc}~", $trc) if $renamed;
-       TrEd::Error::Message::error_message($top,"Cannot write to \"$trc\": $lasterr!\n".
-		    "\nConfiguration could not be saved!\nCheck file and directory permissions.",1);
-     }
-   } else {
-     TrEd::Error::Message::error_message($top,"Cannot write to \"$configFile\": $lasterr!\n".
-		  "\nConfiguration could not be saved!\nCheck file and directory permissions.",1);
-   }
- }
-}
 
-# config
-sub reconfigure {
-  my ($grp)=@_;
-  TrEd::RecentFiles::add_file($grp);
-  prepareFonts($grp);
-  update_title_and_buttons($grp);
-  $grp->{top}->optionAdd("*font",$guiFont) if $guiFont;
-  $grp->{valueLine}->value_line_widget()->configure(-font=> $vLineFont);
-  if (defined $grp->{statusLine}) {
-    $grp->{statusLine}->configure(-font=> $vLineFont);
-  }
-  foreach (@{$grp->{treeWindows}}) {
-    $_->treeView->apply_options($treeViewOpts);
-  }
-
-  ApplyGlobalConfig($grp);
-}
-
-#sub editConfig
+# sub editConfig
 
 # UI
 # sub QueryString
@@ -4053,7 +3834,7 @@ sub autoSelectContext {
       $win->{macroContext}=$prevcontext;
       switchContext($win,'TredMacro');
     } else {
-      get_nodes_win($win); # the hook may have changed something
+      $win->get_nodes(); # the hook may have changed something
       redraw_win($win);
       centerTo($win,$win->{currentNode});
     }
@@ -4567,7 +4348,7 @@ sub findTemplated {
   $grp->{noSaveFileStateUpdate} = $save{no_save_filestate_upd};
 
 
-  get_nodes_win($win);
+  $win->get_nodes();
   redraw_win($win);
   update_title_and_buttons($grp);
   updatePostponed($grp);
@@ -5550,7 +5331,7 @@ sub doEvalMacro {
     get_nodes_all($win->{framegroup});
     redraw_all($win->{framegroup});
   } elsif (get_macro_variable("Redraw") eq 'win') {
-    get_nodes_win($win);
+    $win->get_nodes();
     redraw_win($win);
   } elsif (get_macro_variable("Redraw") eq 'tree') {
     get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
@@ -5560,7 +5341,7 @@ sub doEvalMacro {
       get_nodes_all($win->{framegroup});
       redraw_all($win->{framegroup});
     } else {
-      get_nodes_win($win);
+      $win->get_nodes();
       redraw_win($win);
     }
   } elsif (get_macro_variable("Redraw") eq 'none') {
@@ -6227,7 +6008,7 @@ sub manage_extensions {
   $new = join ' ', @$repos;
   if ($new=~/\S/ and $new ne $extensionRepos) {
     $extensionRepos=$new;
-    saveRuntimeConfig($grp,{
+    TrEd::RuntimeConfig::save_runtime_config($grp,{
       extensionRepos => $extensionRepos,
     });
   }

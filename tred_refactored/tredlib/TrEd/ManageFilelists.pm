@@ -255,7 +255,7 @@ sub insertToFilelist {
 
 sub removeFromFilelist {
   my ($grp_or_win, $filelist, $position)=(shift,shift,shift);
-  unless (@_) {
+  if (!(@_)) {
     print STDERR "removeFromFilelist: no file given\n";
     return;
   }
@@ -370,6 +370,7 @@ sub _solve_filelist_conflict {
 # See Also      : .. 
 # TODO: tests
 # TODO: to je iny filelist ako je ten tredlib/Filelist.pm?
+# was main::addNewFilelist
 sub add_new_filelist {
   my ($grp, $fl, $top) = @_;
   # dump_filelists("add_new_filelist", \@filelists);
@@ -611,7 +612,7 @@ sub createFilelistsMenu {
 }
 
 #TODO:
-# filelist menu, UI
+
 sub makeNewFilelist {
   my ($grp,$action)=@_;
 # Let's suppose that once there was only one argument to this function and then 

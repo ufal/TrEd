@@ -349,7 +349,7 @@ sub dump_view {
       }
     }
     TrEd::HTML::Simple::close($html);
-    main::get_nodes_win($win); # printGetNodesCallback may have fiddled with $win
+    $win->get_nodes(); # printGetNodesCallback may have fiddled with $win
   }
   TrEd::Error::Message::error_message($win,$errors) if defined $errors;
   return $file;

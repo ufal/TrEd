@@ -8,6 +8,7 @@ use Carp;
 use vars qw($AUTOLOAD);
 
 use TrEd::Stylesheet;
+use TrEd::Config qw{$tredDebug};
 
 # options
 # Nodes, root, treeView, FSFile, treeNo, currentNode
@@ -60,7 +61,7 @@ sub apply_stylesheet {
 }
 
 #######################################################################################
-# Usage         : set_current_file($win, $fsfile)
+# Usage         : $win->set_current_file($fsfile)
 # Purpose       : Set tree number, current node and FSFile for Window $win to values 
 #                 obtained from $fsfile
 # Returns       : Undef/empty list
@@ -89,7 +90,7 @@ sub set_current_file {
 }
 
 #######################################################################################
-# Usage         : isFocused($win)
+# Usage         : $win->is_focused()
 # Purpose       : Find out whether $win Window is currently focused
 # Returns       : 1 if the Window $win is focused, 0 otherwise
 # Parameters    : TrEd::Window ref $win -- ref to TrEd::Window object which is tested for focus
@@ -294,6 +295,80 @@ sub current_file_no {
   return $self->{currentFileNo};
 }
 
+#######################################################################################
+# Usage         : $win->get_nodes($no_redraw)
+# Purpose       : Load the root, nodes and current node of tree number $win->{treeNo}
+#                 from current file in the Window $win into $win->{root}, $win->{Nodes}
+#                 and $win->{currentNode} hash values
+# Returns       : Undef/empty list
+# Parameters    : scalar $no_redraw     -- indicator that forbids redrawing during the function
+# Throws        : No exception
+# Comments      : Updates TrEd::ValueLine if $no_redraw is not set.
+# See Also      :
+# was main::get_nodes_win 
+sub get_nodes {
+    my ( $self, $no_redraw ) = @_;
+    if ( $self->{FSFile} ) {
+        # set hook 
+        $TrEd::TreeView::on_get_nodes = [ \&main::onGetNodes, $self ];
+        if ( $self->{treeNo} < 0 and $self->{FSFile}->lastTreeNo >= 0 ) {
+            $self->{treeNo} = 0;
+        }
+        $self->{root} = $self->{FSFile}->treeList->[ $self->{treeNo} ];
+        # here the assignment happens
+        ( $self->{Nodes}, $self->{currentNode} )
+            = $self->treeView->nodes( $self->{FSFile}, $self->{treeNo},
+            $self->{currentNode} );
+    }
+    else {
+        print "no nodes to get\n" if $tredDebug;
+        $self->{root}        = undef;
+        $self->{Nodes}       = [];
+        $self->{currentNode} = undef;
+    }
+    if ( $self->is_focused() and !$no_redraw ) {
+        my $grp = main::cast_to_grp($self); #->{framegroup};
+        $grp->{valueLine}->update($grp);
+        #TrEd::ValueLine::update( $self->{framegroup} );
+    }
+    return;
+}
+
+# was main::getWindowPatterns
+sub get_patterns {
+  my ($self)=@_;
+  if ($self->treeView->patterns()) {
+    return @{$self->treeView->patterns()}
+  } elsif ($self->{FSFile}) {
+    return $self->{FSFile}->patterns();
+  } else {
+    return ();
+  }
+}
+
+# was main::getWindowHint
+sub get_hint {
+  my ($win)=@_;
+  if (defined($win->treeView->hint)) {
+    return ${$win->treeView->hint()};
+  } elsif ($win->{FSFile}) {
+    return $win->{FSFile}->hint();
+  } else {
+    return undef;
+  }
+}
+
+# was main::getWindowContextRE
+sub get_contex_RE {
+  my ($win)=@_;
+  my $grp = cast_to_grp($win);
+  my $stylesheet = $win->{stylesheet};
+  if (exists($grp->{stylesheets}->{$stylesheet})) {
+    return $grp->{stylesheets}->{$stylesheet}->{context};
+  } else {
+    return undef;
+  }
+}
 
 
 1;
