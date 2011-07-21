@@ -631,8 +631,9 @@ sub add_arrayref {
 # See also      : add()
 sub remove {
   my ($self, @patterns_to_remove) = @_;
-  return if not ref $self;
-  
+  return if (!ref $self);
+  @patterns_to_remove = grep { defined $_ } @patterns_to_remove;
+  return if (!scalar @patterns_to_remove);
   my %remove = map { $_ => 1 } @patterns_to_remove;
   @{ $self->list_ref() } = grep { !$remove{$_}++ } @{ $self->list_ref() }; #remove and uniq
 

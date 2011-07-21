@@ -255,7 +255,8 @@ sub insertToFilelist {
 
 sub removeFromFilelist {
   my ($grp_or_win, $filelist, $position)=(shift,shift,shift);
-  if (!(@_)) {
+    my @files_to_remove = grep { defined } @_;
+  if (!scalar @files_to_remove) {
     print STDERR "removeFromFilelist: no file given\n";
     return;
   }
@@ -265,7 +266,7 @@ sub removeFromFilelist {
   $position = $win->{currentFileNo} if not defined($position);
   return unless ref($filelist) && UNIVERSAL::can($filelist, 'remove');
   
-  $filelist->remove(@_);
+  $filelist->remove(@files_to_remove);
   if ($filelist eq $win->{currentFilelist}) {
     $win->{currentFileNo} = TrEd::MinMax::min($win->{currentFileNo},
 			       $filelist->file_count - 1);
