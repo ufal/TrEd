@@ -129,66 +129,34 @@
     <section id="install-windows">
       <title>Windows</title>
       <section>
-	<title>Step 1: installation of <application>ActivePerl for Windows</application></title>
+	<title>Step 1: installation of <application>Strawberry Perl for Windows</application></title>
       <para>
 	<application>TrEd</application> for Windows requires
-	<ulink url="http://www.activestate.com/Products/ActivePerl/">ActivePerl</ulink>.
-	Due to its re-distribution restrictions, the tool cannot be 
-	bundled with <application>TrEd</application> and you have to
-	download and install it separately from:
-      </para>
-      <itemizedlist>
-	<listitem>
-	  <para><ulink url="http://www.activestate.com/Products/Download/Download.plex?id=ActivePerl">http://www.activestate.com/Products/Download/Download.plex?id=ActivePerl</ulink></para>
-	</listitem>
-      </itemizedlist>
-      <para>If the ActivePerl Installer complains about 
-      being unable to create entries in the windows registry due to 
-      missing permissions, just press <literal>Ignore</literal>.
-      In that case you may need to point TrEd Installer to
-      the directory in which you installed ActivePerl, as described below.
+	<ulink url="http://strawberryperl.com/">Strawberry Perl</ulink>.
+	It can be installed separately before the installation of <application>TrEd</application> or during the installation of <application>TrEd</application>.
+	Packages with Strawberry Perl included are also available on the <application>TrEd</application>'s home page. These installation wizards 
+	can download and set up Strawberry Perl, if it is not already installed on the system.
       </para>
       </section>
       <section>
 	<title>Step 2: installation of <application>TrEd</application></title>
 	<para>
-	  To finish the installation, download a
-	  TrEd installer for Windows from <ulink url="http://ufal.mff.cuni.cz/~pajas/tred">the project's
-	  homepage</ulink>.  This single package contains
+	  Download one of the versions of
+	  TrEd installer for Windows from <ulink url="http://www.ms.mff.cuni.cz/~fabip4am/big/tred/tred/">the project's
+	  homepage</ulink>.  These packages contains
 	  <application>TrEd</application> as well as all required Perl
-	  modules.  To complete the installation, run the installer and 
-	  follow the
-	  instructions.
+	  modules. You can choose from 3 packages -- one with Strawberry Perl included, one without Strawberry Perl
+	and one portable version of TrEd with portable Strawberry Perl included.
 	</para>
 	<para>
-	  The installer tries to automatically 
-	  detect the current ActivePerl installation
-	  based on Windows registry entries.
-	  Sometimes (e.g. if ActivePerl was installed by 
-	  some other user and the registry entries
-	  are not readable)
-	  the auto-detection may fail; for such cases, the
-	  installer offers an option to browse to the folder
-	  containing the installation of Perl
-	  (usually <filename>c:\perl</filename>),
-	  which bypasses the registry.
-	</para>
-	<para>
-	  The last step of the installer allows you
-	  to select and install some of the
-	  <link linkend="extension_package">extension packages</link>. 
-	  For example, the users of the <ulink url="http://ufal.mff.cuni.cz/pdt2.0/">Prague Dependency Treebank 2.0</ulink> are adviced
-	  to install at least the <literal>pdt20</literal>
-	  extension package.
-	  (Note that extensions can be
-	  installed anytime later, using
-	  the <link linkend="extension_manager">Extension Manager</link>.
+	  The portable version can be extracted to any location on your hard drive by <a href="http://www.7-zip.org/">7-zip</a>.
+	To install non-portable TrEd, just follow the instructions of the installers.
 	</para>
 	<warning>
 	<para>
 	  It is not recommended to run TrEd with the CygWin distribution
 	  of Perl (but you can install
-	  ActiveState Perl, even if you already have a Perl installation
+	  Strawberry Perl, even if you already have a Perl installation
 	  in CygWin). If you really must try running TrEd in CygWin,
 	  follow the instructions for setup on <link linkend="install-unix">UNIX-like systems</link> (but you have been warned).
 	</para>
