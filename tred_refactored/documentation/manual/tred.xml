@@ -149,7 +149,7 @@
 	and one portable version of TrEd with portable Strawberry Perl included.
 	</para>
 	<para>
-	  The portable version can be extracted to any location on your hard drive by <a href="http://www.7-zip.org/">7-zip</a>.
+	  The portable version can be extracted to any location on your hard drive by <ulink url="http://www.7-zip.org/">7-zip</ulink>.
 	To install non-portable TrEd, just follow the instructions of the installers.
 	</para>
 	<warning>
