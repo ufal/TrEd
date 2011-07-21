@@ -6,6 +6,7 @@ EXTDIR=`dirname $(readlink -fen $0)`
 PERL_URL="http://strawberryperl.com/"
 PERL_INSTALLER_DL="strawberry-perl.msi"
 
+WWW="$1"
 
 function get_strawberry() {
 	rm -f web

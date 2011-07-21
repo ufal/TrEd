@@ -13,6 +13,7 @@ fi
 
 ulimit -s 8192 # for 7zip
 
+# warning: WWW is overwritten here by the third script argument!
 
 DIST_DIR="$1"
 WININST="$2"
@@ -83,7 +84,7 @@ rm -rf "tred-portable.7z" && \
 ln -s ../tred_portable tred-portable && \
 7za a -l '-xr!.svn' tred-portable.7z  tred-portable/ && \
 cp "tred-portable.7z" "${WWW}/tred-portable.7z" && \
-rm -f tred-portable/ && \
+rm -f tred-portable && \
 
 # create NSIS installer for Windows, without Strawberry Perl 
 echo "Generate Nullsoft Installer for Windows" && \
@@ -92,7 +93,7 @@ makensis tred-installer.nsi && \
 cp "tred-installer.exe" "${WWW}/tred-installer.exe" && \
 
 # create NSIS installer for Windows, Strawberry Perl inculded
-${ADMIN_DIR}/create_installer_with_strawberry_perl.sh && \
+${ADMIN_DIR}/create_installer_with_strawberry_perl.sh ${WWW} && \
 
 
 # update download sizes on the web-page
@@ -101,7 +102,7 @@ perl -pi~ -e "s{\(SIZE_OF:(.*?)\)}{ my \$file='${WWW}/'.\$1; my (\$size)=split /
 # links
 cd "${WWW}" && \
 rm -f tred-current.tar.gz && \
-ln "${PKG}" tred-current.tar.gz && \
+ln "${PKG}" tred-current.tar.gz 
 # rm -f tred_wininst_en.exe && \
 # rm -f tred_wininst_en.7z && \
 # ln "${WINPKG}.7z" tred_wininst_en.7z && \
