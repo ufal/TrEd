@@ -21,6 +21,11 @@ echo "Updating extensions" && \
 # perform pre-updates, update svn, then some post-updates for extension (currently only for tmt) according to extension/.make.d directory 
 ${TRED_EXT_DIR}/update && \
 
+echo "Updating portable tred" && \
+# perform update of portable tred's checkout directory
+cd $TRED_PORTABLE_REPO && \
+svn up && \
+
 cp ${TRED_SRC_DIR}/ChangeLog ${TRED_DIST_DIR}.new/ && \
 
 echo "Creating manual pages and documentation" && \

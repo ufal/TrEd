@@ -80,11 +80,10 @@ cd "${WININST}"
 echo "Generate Portable Package for Windows" && \
 cd $TRED_STRAWBERRYPERL_DIR && \
 rm -rf "tred-portable.7z" && \
-mkdir tred-portable && \
-svn export $TRED_PORTABLE_REPO "tred-portable" && \
-7za a tred-portable.7z  tred-portable/
+ln -s ../tred_portable tred-portable && \
+7za a -l '-xr!.svn' tred-portable.7z  tred-portable/ && \
 cp "tred-portable.7z" "${WWW}/tred-portable.7z" && \
-rm -rf tred-portable/ && \
+rm -f tred-portable/ && \
 
 # create NSIS installer for Windows, without Strawberry Perl 
 echo "Generate Nullsoft Installer for Windows" && \
