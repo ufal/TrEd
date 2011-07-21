@@ -1,0 +1,37 @@
+#!/bin/bash
+
+EXTDIR=`dirname $(readlink -fen $0)`
+. "$EXTDIR"/env.sh
+
+PERL_URL="http://strawberryperl.com/"
+PERL_INSTALLER_DL="strawberry-perl.msi"
+
+
+function get_strawberry() {
+	rm -f web
+	wget ${PERL_URL} -O web >> $LOG
+	
+	PERL_LINK_REGEXP="http://.*strawberry-perl-${DESIRED_PERL_VERSION}.[0-9.]\+.msi"
+	
+	DESIRED_PERL_INSTALLER=`grep -o $PERL_LINK_REGEXP web | head -n 1`
+	echo "Downloading Strawberry Perl $DESIRED_PERL_VERSION"
+	wget ${DESIRED_PERL_INSTALLER} -O $PERL_INSTALLER_DL >> $LOG
+	
+	rm -f web
+	
+}
+
+
+
+# create NSIS installer for Windows, without Strawberry Perl 
+echo "Generate Nullsoft Installer for Windows (with Perl inculded)" && \
+cd $TRED_STRAWBERRYPERL_DIR/perl && \
+get_strawberry && \
+
+
+cd $TRED_STRAWBERRYPERL_DIR
+makensis tred-installer-perl-included.nsi && \
+cp "tred-installer-perl-included.exe" "${WWW}/tred-installer-perl-included.exe" && \
+
+rm -f perl/$PERL_INSTALLER_DL
+
