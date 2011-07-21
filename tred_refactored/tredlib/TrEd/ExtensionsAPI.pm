@@ -2390,7 +2390,7 @@ sub Redraw {
   my $ie=$main::insideEval;
   $main::insideEval=0;
   TrEd::Window::TreeBasics::set_current($win,$this) if (!$ignoreThis and $this);
-  main::get_nodes_win($win);
+  $win->get_nodes();
   main::redraw_win($win);
   main::centerTo($win,$this) if (!$ignoreThis and $this);
   main::update_title_and_buttons($win->{framegroup});
@@ -4858,14 +4858,14 @@ sub noop { 1 }
 sub NewUserToolbar {
   my ($name,$opts)=@_;
   my $user_toolbar = TrEd::Toolbar::User::Manager::create_new_user_toolbar($grp->{framegroup},$name,$opts);
-  return $user_toolbar->getUserToolbar() if defined $user_toolbar;
+  return $user_toolbar->get_user_toolbar() if defined $user_toolbar;
   return;
 }
 
 sub GetUserToolbar {
   my ($name)=@_;
   my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
-  return $user_toolbar->getUserToolbar() if defined $user_toolbar;
+  return $user_toolbar->get_user_toolbar() if defined $user_toolbar;
   return;
   
 }
@@ -4885,14 +4885,14 @@ sub DestroyUserToolbar {
 sub HideUserToolbar {
   my ($name)=@_;
   my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
-  return $user_toolbar->hideUserToolbar() if defined $user_toolbar;
+  return $user_toolbar->hide() if defined $user_toolbar;
   return;
 }
 
 sub ShowUserToolbar {
   my ($name)=@_;
   my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
-  return $user_toolbar->showUserToolbar() if defined $user_toolbar;
+  return $user_toolbar->show() if defined $user_toolbar;
   return;
 }
 
@@ -4923,7 +4923,7 @@ sub DisableUserToolbar {
 sub UserToolbarVisible {
   my ($name)=@_;
   my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
-  return $user_toolbar->userToolbarVisible();
+  return $user_toolbar->visible();
 }
 sub AttachTooltip {
   my ($widget, $message)=@_;

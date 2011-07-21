@@ -181,7 +181,7 @@ sub _create_fl {
     $$filelistref = $fl->name if defined $fl;
 }
 
-# sub filelistDialog {
+# was main::filelistDialog {
 sub create_dialog {
     use Tk::LabFrame;
     my ( $grp, $modal ) = @_;

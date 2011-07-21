@@ -73,7 +73,7 @@ sub destroy_user_toolbar {
   
   print "remove toolbar $name => $tb\n" if $TrEd::Config::tredDebug;
   return if ! defined $tb;
-  $tb = $tb->getUserToolbar();
+  $tb = $tb->get_user_toolbar();
   
   if (keys %user_toolbars) {
     $tb->packForget();
@@ -98,6 +98,5 @@ sub reset_user_toolbars {
   %user_toolbars=();
   return;
 }
-
 
 1;

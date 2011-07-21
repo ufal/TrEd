@@ -9,9 +9,12 @@ use TrEd::File qw{filename dirname};
 use TrEd::View::Sentence;
 use TrEd::Print;
 
+require TrEd::RuntimeConfig;
+
 require TrEd::Dialog::FocusFix;
 
 # print, UI, dialog
+#TODO: rename to create_dialog?
 sub printDialog {
     my ($grp) = @_;
     my $win = $grp->{focusedWindow};
@@ -770,7 +773,7 @@ sub savePrintConfig {
 
     $win->{FSFile}->changeAppData( 'tred.print.filename', $s->{psFile} );
     if ($save_to_tredrc) {
-        main::saveRuntimeConfig(
+        TrEd::RuntimeConfig::save_runtime_config(
             $grp,
             {   ';' => 'Options saved from the Print dialog',
                 %{$printOptions}

@@ -515,7 +515,7 @@ sub delete_stylesheet {
     }
     $win->apply_stylesheet(STYLESHEET_FROM_FILE());
     if ($win->{FSFile}) {
-      main::get_nodes_win($win);
+      $win->get_nodes();
       main::redraw_win($win);
     }
   }
