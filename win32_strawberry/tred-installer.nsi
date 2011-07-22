@@ -316,6 +316,18 @@ Function installStrawberryPerl
 		Pop $Label
 		Quit
 	done:
+		; update PATH from registry, or we wouldn't be able to find newly installed Perl
+		; set both OriginalPath and PATH environment variable so that modules can be installed
+		; (hopefully) flawlessly
+		; HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment -> Path
+		ReadRegStr $OriginalPath HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
+		
+		StrCpy $R0 "$OriginalPath"
+		System::Call 'Kernel32::SetEnvironmentVariableA(t, t) i("PATH", R0).r0'
+		StrCmp $0 0  "" +2
+			MessageBox MB_OK "Can't set environment variable"
+
+		
 		Call testPerl
 		; Update label after Perl installation
 		${NSD_SetText} $PerlInstalledLabel $PerlMsg
