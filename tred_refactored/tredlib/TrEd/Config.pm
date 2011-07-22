@@ -579,12 +579,13 @@ sub _set_treeViewOpts {
     $treeViewOpts->{font} = $font;
 
     # Background image
-    if (    $confs_ref->{backgroundimage} ne ""
-        and !-f $confs_ref->{backgroundimage}
-        and -f $libDir . "/" . $confs_ref->{backgroundimage} )
+    my $bg_image = $confs_ref->{backgroundimage};
+    if ( defined $bg_image && $bg_image ne ""
+        and !-f $bg_image
+        and -f $libDir . "/" . $bg_image )
     {
         $treeViewOpts->{backgroundImage}
-            = $libDir . "/" . $confs_ref->{backgroundimage};
+            = $libDir . "/" . $bg_image;
     }
     else {
         $treeViewOpts->{backgroundImage}
@@ -683,7 +684,10 @@ sub _set_resource_path {
         = tilde_expand(q(~/.tred.d)) . $resourcePathSplit . $def_res_path;
 
     # original resourcePath
-    my @r = split( $resourcePathSplit, $Treex::PML::resourcePath );
+    my @r = ();
+    if (defined $Treex::PML::resourcePath) {
+        @r = split( $resourcePathSplit, $Treex::PML::resourcePath );
+    }
     my $r;
     if ( exists( $confs_ref->{'resourcepath'} ) ) {
 
@@ -802,15 +806,11 @@ sub _set_print_options {
 
             # Read paths from registry on Windows
             if ( $^O eq "MSWin32" ) {
-                require Win32::Registry;
                 my %shf;
-                my $ShellFolders;
-                my $shfolders
+                require TrEd::Utils;
+                my $ShellFolders
                     = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders";
-                $::HKEY_CURRENT_USER->Open( $shfolders, $ShellFolders )
-                    or warn "Cannot read $shfolders $^E\n";
-                $ShellFolders->GetValues( \%shf );
-                @fontpath = ( $shf{Fonts}[2] );
+                @fontpath = TrEd::Utils::fetch_from_win32_reg('HKEY_CURRENT_USER', $ShellFolders, 'Fonts');
 
                 #		 qw(c:/windows/fonts/ c:/winnt/fonts/);
             }
