@@ -290,10 +290,12 @@ sub install_tred_deps_cpan {
 
 		# these are windows-specific packages, that can be installed according to user's choice, either from the internet, or from local CPAN mirror
 		if ($self->{'platform'} eq "MSWin32"){
+			print "Detected Windows platform, install Windows-only dependencies...\n";
 			$self->_install_modules_smartly($self->{'install_config'}->win_pkgs());
 		}
 		
 		if ($self->{'platform'} eq "darwin"){
+			print "Detected MacOS platform, install Mac-only dependencies...\n";
 			$self->_install_modules_smartly($self->{'install_config'}->mac_pkgs());
 		}
 	};

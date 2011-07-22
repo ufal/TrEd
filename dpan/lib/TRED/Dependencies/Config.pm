@@ -101,7 +101,7 @@ sub new {
 		!Win32::Codepage::Simple
 		Win32API::File
 		Win32::Job
-		Win32::Registry
+		!Win32::Registry
 		Win32::Shortcut
 		Win32::TieRegistry
 	};
@@ -285,6 +285,7 @@ sub new {
 	#            -- Actually, it is needed for TectoMT base extension, so we should better keep it.
 	# HTML::LinkExtor   -- used only in old setup script
 	# HTML::TreeBuilder -- -- || --
+	# Win32::Registry -- obsolete, removed from TrEd::Config, now only for maintenance, developing & testing purposes...
 	
 	my %ppm_repos = (
 		"univ" => {
