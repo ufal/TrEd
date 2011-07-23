@@ -155,7 +155,7 @@ sub _filename_not_empty {
 # Usage         : $filelist->save()
 # Purpose       : Write the list of patterns to a file whose filename is obtained via
 #                 the filename method
-# Returns       : 1 if successful, undef if not called on object or if there is no 
+# Returns       : 1 if successful, undef if not called on a reference or if there is no 
 #                 need to save the filelist
 # Parameters    : no
 # Throws        : Warns if the $filename file could not be opened for writing
@@ -169,7 +169,7 @@ sub save {
   my $fh;
   # no need to save - not changed (filelist is prepared for lazy loading,
   # but wasn't loaded yet)
-  if (defined($self->filename) and defined($self->{load}) and 
+  if (defined($self->filename()) and defined($self->{load}) and 
       $self->{load} eq $self->filename()) {
     return;
   }
@@ -198,7 +198,6 @@ sub save {
 # Throws        : Croaks if the file could not be opened or closed.
 # Comments      : Removes empty lines, duplicate filenames, but does not remove duplicate patterns
 # See also      : load()
-# Tested by other public functions, no test on its own
 sub _lazy_load {
   my ($self) = @_;
   return if not defined $self->{load};

@@ -105,7 +105,7 @@ sub _return_binding {
         $dialog->BindButtons;
         my $answer = $dialog->Show();
         if ( $answer eq 'Create' ) {
-            TrEd::ManageFilelists::addFilelist( Filelist->new($text) );
+            TrEd::ManageFilelists::add_filelist( Filelist->new($text) );
             switch_filelist( $grp, $text );
             main::updatePostponed($grp);
         }
