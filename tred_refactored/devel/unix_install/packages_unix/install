@@ -570,7 +570,9 @@ sub fetch_from_CPAN {
 	foreach (@mirror_list) {
 	  my $url = $_."authors/id/".$file;
 	  print "Fetching URL '$url'\n";
-	  system($wget." '$url'")==0 && last;
+	  system($wget." '$url'")==0 
+	  && print "URL fetched OK\n" 
+	  && last;
 	  print "failed: exit status $?\n";
 	}
       } else {
