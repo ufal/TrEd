@@ -328,7 +328,10 @@ Function installStrawberryPerl
 		; set both OriginalPath and PATH environment variable so that modules can be installed
 		; (hopefully) flawlessly
 		; HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment -> Path
-		ReadRegStr $OriginalPath HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
+		ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "Path"
+		
+		; expand Path read before ^^ into OriginalPath
+		ExpandEnvStrings $OriginalPath $0
 		
 		StrCpy $R0 "$OriginalPath"
 		System::Call 'Kernel32::SetEnvironmentVariableA(t, t) i("PATH", R0).r0'
