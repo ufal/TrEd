@@ -5,10 +5,10 @@ use TrEd::TreeView;
 use Tk::Separator;
 use strict;
 use Carp;
-use vars qw($AUTOLOAD);
 
 use TrEd::Stylesheet;
-use TrEd::Config qw{$tredDebug};
+use TrEd::Config qw{$tredDebug $stippleInactiveWindows};
+
 
 # options
 # Nodes, root, treeView, FSFile, treeNo, currentNode
@@ -20,17 +20,6 @@ sub new {
   return $new;
 }
 
-# sub AUTOLOAD {
-#   my $self=shift;
-#   return undef unless ref($self);
-#   my $sub = $AUTOLOAD;
-#   $sub =~ s/.*:://;
-#   if ($sub=~/^(?:treeView|FSFile|treeNo|currentNode)$/) {
-#     return $self->{$sub};
-#   } else {
-#     croak "Undefined method $sub called on class ".ref($self);
-#   }
-# }
 
 sub treeView { return $_[0]->{treeView} }
 sub FSFile { return $_[0]->{FSFile} }
@@ -367,6 +356,108 @@ sub get_contex_RE {
     return $grp->{stylesheets}->{$stylesheet}->{context};
   } else {
     return undef;
+  }
+}
+
+#######################################################################################
+# Usage         : $win->redraw()
+# Purpose       : Redraw Window $win
+# Returns       : Undef/empty list
+# Parameters    : TrEd::Window ref $win -- reference to TrEd::Window object
+# Throws        : No exception
+# Comments      : Runs these hooks:
+#                   $TrEd::TreeView::on_get_root_style
+#                   $TrEd::TreeView::on_get_node_style
+#                   $TrEd::TreeView::on_redraw_done 
+# See Also      : TrEd::TreeView::redraw()
+#TODO:          Also look at the undo stuff after redraw
+sub redraw {
+    my ($self) = @_;
+    return if ( $self->{noRedraw} or $main::insideEval );
+    print STDERR "redraw $self\n" if $tredDebug;
+
+    #------------------------------------------------------------
+    #{
+    #use Benchmark;
+    #my $t0= new Benchmark;
+    #for (my $i=0;$i<=50;$i++) {
+    #------------------------------------------------------------
+    $TrEd::TreeView::on_get_root_style = [ \&main::onGetRootStyle, $self ];
+    $TrEd::TreeView::on_get_node_style = [ \&main::onGetNodeStyle, $self ];
+    $TrEd::TreeView::on_redraw_done    = [ \&main::onRedrawDone,   $self ];
+    my $vl;
+
+    my $grp = main::cast_to_grp($self);
+
+    if ( $self->{FSFile} and $self->treeView()->get_drawSentenceInfo() ) {
+        $vl = $grp->{valueLine}->get_value_line( $self, $self->{FSFile},
+            $self->{treeNo}, 1, 0, 'html' );
+    }
+    
+    # may be used to check that this function was called (e.g. during a hook),
+    # do not forget to reset the value first
+    $self->{redrawn}++;
+          
+    $self->treeView->redraw(
+        $self->{FSFile},
+        $self->{currentNode},
+        $self->{Nodes},
+
+        # CHANGE THIS (this is just for printing) :
+        ( defined($vl) ? $vl : q{} ),
+        (   $stippleInactiveWindows
+            ? ( ( $self == $grp->{focusedWindow} )
+                ? 'hidden'
+                : 'normal' )
+            : undef
+        ),
+        $self
+    );
+    if ( $self->{FSFile} ) {
+        TrEd::Window::TreeBasics::set_current( $self, $self->{currentNode} );
+        $self->ensure_current_is_displayed();
+    }
+    $TrEd::TreeView::on_get_root_style = undef;  #forget the reference on $self
+    $TrEd::TreeView::on_get_node_style = undef;
+    $TrEd::TreeView::on_redraw_done    = undef;
+
+    if ( $self == $grp->{focusedWindow} ) {
+        main::saveFileStateUpdate($self);
+        TrEd::Undo::reset_undo_status($self);
+        main::resetTreePosStatus( $grp );
+        $self->{framegroup}->{statusLine}->update_status($self);
+        main::updateNodeMenu($self);
+    }
+
+    #------------------------------------------------------------
+    #}
+    #my $t1= new Benchmark;
+    #my $td= timediff($t1, $t0);
+    #print "redraw: the code took:",timestr($td),"\n";
+    #}
+    #------------------------------------------------------------
+
+    return;
+}
+
+# was main::ensureCurrentIsDisplayed
+sub ensure_current_is_displayed {
+  my ($self)=@_;
+  return unless $self->{FSFile};
+  my $node = $self->{currentNode};
+  while ($node and !$self->treeView->node_is_displayed($node)) {
+    $node = $node->parent;
+  }
+  if (!$node) {
+    my $rtl = TrEd::Window::TreeBasics::tree_is_reversed($self);
+    if ($rtl) {
+      $node = $self->{Nodes}->[-1];
+    } else {
+      $node = $self->{Nodes}->[0];
+    }
+  }
+  if ($node and $node != $self->{currentNode}) {
+    TrEd::Window::TreeBasics::set_current($self,$node);
   }
 }
 

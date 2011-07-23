@@ -6,7 +6,7 @@ use warnings;
 use TrEd::Config qw{$sortAttrValues $sidePanelWrap};
 
 # dialog
-# sub editFilePropertiesDialog
+# was main::editFilePropertiesDialog
 sub create_dialog {
   my ($grp_or_win)=@_;
   my ($grp,$win)=main::grp_win($grp_or_win);

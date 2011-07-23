@@ -129,7 +129,7 @@ sub updateCurrentContextMenu {
     # my $menu = $M->menu;
     $menu->delete(0,'end');
     $_->destroy for $menu->children;
-    if ($TrEd::Macros::menuBindings{$context}) {
+    if (defined $context && $TrEd::Macros::menuBindings{$context}) {
 #      $M->configure(-state=>'normal');
       $menu->AddItems(@{$macro_menu_items{$context}});
     } else {

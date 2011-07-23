@@ -46,10 +46,10 @@ sub set_last_action {
 # Returns       : Filelist object which represents bookmarks or undef if this filelist does not exist
 # Parameters    : no
 # Throws        : no exception
-# See Also      : TrEd::ManageFilelists::findFilelist()
+# See Also      : TrEd::ManageFilelists::find_filelist()
 # was main::bookmarkFilelist
 sub bookmark_filelist {
-    return TrEd::ManageFilelists::findFilelist($FILELIST_NAME);
+    return TrEd::ManageFilelists::find_filelist($FILELIST_NAME);
 }
 
 #######################################################################################
@@ -113,7 +113,7 @@ sub bookmark_actual_position {
     my ( $grp, $to_filelist ) = @_;
     my $filelist
         = defined $to_filelist
-        ? TrEd::ManageFilelists::findFilelist($to_filelist)
+        ? TrEd::ManageFilelists::find_filelist($to_filelist)
         : bookmark_filelist();
     return if !ref $filelist;
     my $bookmark = actual_position($grp);

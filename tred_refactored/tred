@@ -228,7 +228,6 @@ $TrEd::Config::set_user_config=sub { $initial_config=shift };	# tred specific co
 # 'global' $configFile
 # $configFile = TrEd::Config::read_config(); # this may setup a new $libDir
 require TrEd::RuntimeConfig;
-print "config file: $TrEd::RuntimeConfig::cmdline_config_file\n\n";
 TrEd::RuntimeConfig::init_runtime_config();
 
 
@@ -976,7 +975,7 @@ sub update_filelist_views {
   my ($grp_or_win,$fl,$reload)=@_;
   my ($grp,$win) = grp_win($grp_or_win);
   my $filelist_widget = TrEd::Dialog::Filelist::filelist_widget();
-  if ($filelist_widget and (TrEd::ManageFilelists::get_current_filelist() == $fl)) {
+  if ($filelist_widget && (TrEd::Dialog::Filelist::get_current_filelist() == $fl)) {
     TrEd::Filelist::View::update_a_filelist_view($grp,$filelist_widget,$fl,$win->{currentFileNo},$reload);
   }
   #TODO: nie na sipkovu notaciu?
@@ -1664,7 +1663,7 @@ sub get_nodes_all {
 #sub selectFilelistNoUpdate
 #sub selectFilelist 
 #sub selectFilelist 
-#sub findFilelist 
+#sub find_filelist 
 #sub addFilelist 
 
 #sub looseFilePositionInFilelist
@@ -1878,7 +1877,7 @@ sub switchStylesheet {
     doEvalHook($win,"switch_stylesheet_hook",$prevstylesheet,$stylesheet);
     if ($win->{FSFile}) {
       $win->get_nodes();
-      redraw_win($win);
+      $win->redraw();
     }
   }
   return 1;
@@ -1930,7 +1929,7 @@ sub switchContext {
         $win->get_nodes() unless $l1 < $win->{got_nodes};
         if ($l2 >= $win->{redrawn}) {
             # something should be done with display attrs vs windows maybe
-            redraw_win($win); 
+            $win->redraw();
         }
     }
 }
@@ -2375,8 +2374,8 @@ sub splitWindow {
   $twin->apply_stylesheet($grp->{selectedStylesheet});
   focusCanvas($canvas,$grp) unless $opts->{no_focus};
   unless ($opts->{no_redraw}) {
-    $win->get_nodes();
-    redraw_win($twin);
+    $twin->get_nodes();
+    $twin->redraw();
   }
   return $twin;
 }
@@ -2386,10 +2385,10 @@ sub removeWindow {
   my ($grp,$win)=@_;
   $win ||= $grp->{focusedWindow};
   my $windows = $grp->{treeWindows};
-  if (@$windows > 1) {
+  if (@{$windows} > 1) {
     doEvalHook($win,"pre_switch_context_hook",$win->{macroContext},'<NONE>',$win);
-    @$windows=grep {$_ ne $win} @$windows;
-    $grp->{rmsplitButton}->configure(-state => 'disabled') if $grp->{rmsplitButton} and @$windows<=1;
+    @{$windows}=grep {$_ ne $win} @{$windows};
+    $grp->{rmsplitButton}->configure(-state => 'disabled') if $grp->{rmsplitButton} and @{$windows}<=1;
     TrEd::File::closeFile($win,-no_update => 1, -keep_postponed => 1);
     my $brother=$win->canvas_destroy();
     if ($win == $grp->{focusedWindow}) {
@@ -2659,8 +2658,8 @@ sub updateNodeMenu {
   my ($grp,$win) = grp_win($grp_or_win);
   my $m = $grp->{main_menu};
   return unless $m and
-    (($grp->{main_menu_tree_orientation_state} ? 1 : 0) != (treeIsVertical($grp) ? 1 : 0));
-  $grp->{main_menu_tree_orientation_state}=treeIsVertical($grp);
+    (($grp->{main_menu_tree_orientation_state} ? 1 : 0) != (TrEd::Window::TreeBasics::tree_is_vertical($grp) ? 1 : 0));
+  $grp->{main_menu_tree_orientation_state}=TrEd::Window::TreeBasics::tree_is_vertical($grp);
   for my $swap (_menu_swaps()) {
     my ($item1,$item2) = @$swap;
     my $accel1 = $m->get_menu_option($item1,'-accelerator');
@@ -2674,8 +2673,8 @@ sub _change_orientation {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow};
   $win->treeView->set_displayMode($treeViewOpts->{displayMode});
-  redraw_win($win);
-  ensureCurrentIsDisplayed($win);
+  $win->redraw();
+  $win->ensure_current_is_displayed();
   updateNodeMenu($grp);
 }
 
@@ -3470,8 +3469,8 @@ sub startMain {
     }
   };
 
-  if (TrEd::ManageFilelists::findFilelist('Default')->count == 0 
-            && TrEd::ManageFilelists::findFilelist('CmdLine-1')) {
+  if (TrEd::ManageFilelists::find_filelist('Default')->count == 0 
+            && TrEd::ManageFilelists::find_filelist('CmdLine-1')) {
     print STDERR "Selecting CmdLine-1 filelist." if $tredDebug;
     TrEd::ManageFilelists::selectFilelist(\%tred,'CmdLine-1');
   } else {
@@ -3825,7 +3824,7 @@ sub Query {
 
 # sub listQuery
 # wrapper for pdt15_obsolete, 
-# extensions should use TredMacro::ListQuery instead
+# extensions should use TredMacro::ListQuery instead anyway..
 sub listQuery {
     return TrEd::Query::List::new_query(@_);
 }
@@ -3843,7 +3842,7 @@ sub autoSelectContext {
       switchContext($win,'TredMacro');
     } else {
       $win->get_nodes(); # the hook may have changed something
-      redraw_win($win);
+      $win->redraw();
       centerTo($win,$win->{currentNode});
     }
   } else {
@@ -4357,14 +4356,14 @@ sub findTemplated {
 
 
   $win->get_nodes();
-  redraw_win($win);
+  $win->redraw();
   update_title_and_buttons($grp);
   updatePostponed($grp);
   $grp->{StylesheetMenu}->update($grp);
   TrEd::List::Macros::update_view($grp);
   saveFileStateUpdate($win);
   unless ($result) {
-#    redraw_win($win);
+#    $win->redraw();
     $grp->{top}->toplevel->
       messageBox(-icon=> 'warning',
 		 -message=> $grp->{stopSearch} ? "Interrupted by user!" : "No matching node found!",
@@ -4639,7 +4638,7 @@ sub text_click_modif {
   my ($t)=$tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($t);
   TrEd::Window::TreeBasics::set_current($win,$node);
-  ensureCurrentIsDisplayed($win);
+  $win->ensure_current_is_displayed();
   $attr=$tv->get_gen_pinfo("attr")||{};
 
   doEvalHookWithUndo($win,"text_click_hook",$node,$attr->{$t},$mod, $w->XEvent);
@@ -4654,7 +4653,7 @@ sub line_click {
   my ($t)=$tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($t);
   TrEd::Window::TreeBasics::set_current($win,$node);
-  ensureCurrentIsDisplayed($win);
+  $win->ensure_current_is_displayed();
   my $tag=$tv->get_gen_pinfo("tag")||{};
     
   doEvalHookWithUndo($win,"line_click_hook",$node,$tag->{$t},$button, $double,$modif, $w->XEvent);
@@ -4669,7 +4668,7 @@ sub editAttrs {
   my $tv=$win->treeView;
   my $node=$tv->get_obj_pinfo($tv->find_item('withtag','current'));
   TrEd::Dialog::EditAttributes::create_dialog($win,$node);
-  ensureCurrentIsDisplayed($win);
+  $win->ensure_current_is_displayed();
 }
 
 sub editAttr {
@@ -4682,7 +4681,7 @@ sub editAttr {
   my ($t)=$tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($t);
   TrEd::Window::TreeBasics::set_current($win,$node);
-  ensureCurrentIsDisplayed($win);
+  $win->ensure_current_is_displayed();
   my $attr=$tv->get_gen_pinfo("attr")||{};
   doEditAttr($win,$node,$attr->{$t}) if defined $attr->{$t};
 }
@@ -4798,93 +4797,20 @@ sub nodeBoxOptions {
 					 $win->{currentNode},$edge);
 }
 
-#######################################################################################
-# Usage         : redraw_win($win)
-# Purpose       : Redraw Window $win
-# Returns       : Undef/empty list
-# Parameters    : TrEd::Window ref $win -- reference to TrEd::Window object
-# Throws        : No exception
-# Comments      : Runs these hooks:
-#                   $TrEd::TreeView::on_get_root_style
-#                   $TrEd::TreeView::on_get_node_style
-#                   $TrEd::TreeView::on_redraw_done 
-# See Also      : TrEd::TreeView::redraw()
-#TODO:          Also look at the undo stuff after redraw
+# sub redraw_win
 sub redraw_win {
     my ($win) = @_;
-    return if ( $win->{noRedraw} or $insideEval );
-    print STDERR "redraw $win\n" if $tredDebug;
-
-    #------------------------------------------------------------
-    #{
-    #use Benchmark;
-    #my $t0= new Benchmark;
-    #for (my $i=0;$i<=50;$i++) {
-    #------------------------------------------------------------
-    $TrEd::TreeView::on_get_root_style = [ \&onGetRootStyle, $win ];
-    $TrEd::TreeView::on_get_node_style = [ \&onGetNodeStyle, $win ];
-    $TrEd::TreeView::on_redraw_done    = [ \&onRedrawDone,   $win ];
-    my $vl;
-
-    my $grp = cast_to_grp($win);
-
-    if ( $win->{FSFile} and $win->treeView()->get_drawSentenceInfo() ) {
-        $vl = $grp->{valueLine}->get_value_line( $win, $win->{FSFile},
-            $win->{treeNo}, 1, 0, 'html' );
+    if ($win) {
+        return $win->redraw();
     }
-    
-    # may be used to check that this function was called (e.g. during a hook),
-    # do not forget to reset the value first
-    $win->{redrawn}++;
-          
-    $win->treeView->redraw(
-        $win->{FSFile},
-        $win->{currentNode},
-        $win->{Nodes},
-
-        # CHANGE THIS (this is just for printing) :
-        ( defined($vl) ? $vl : EMPTY ),
-        (   $stippleInactiveWindows
-            ? ( ( $win == $grp->{focusedWindow} )
-                ? 'hidden'
-                : 'normal' )
-            : undef
-        ),
-        $win
-    );
-    if ( $win->{FSFile} ) {
-        TrEd::Window::TreeBasics::set_current( $win, $win->{currentNode} );
-        ensureCurrentIsDisplayed($win);
-    }
-    $TrEd::TreeView::on_get_root_style = undef;  #forget the reference on $win
-    $TrEd::TreeView::on_get_node_style = undef;
-    $TrEd::TreeView::on_redraw_done    = undef;
-
-    if ( $win == $grp->{focusedWindow} ) {
-        saveFileStateUpdate($win);
-        TrEd::Undo::reset_undo_status($win);
-        resetTreePosStatus( $grp );
-        $win->{framegroup}->{statusLine}->update_status($win);
-        updateNodeMenu($win);
-    }
-
-    #------------------------------------------------------------
-    #}
-    #my $t1= new Benchmark;
-    #my $td= timediff($t1, $t0);
-    #print "redraw: the code took:",timestr($td),"\n";
-    #}
-    #------------------------------------------------------------
-
     return;
 }
-
 
 sub redraw_fsfile {
   my ($grp,$fsfile)=@_;
   return if $insideEval or !$fsfile;
   foreach (fsfileDisplayingWindows($grp,$fsfile)) {
-    redraw_win($_);
+    $_->redraw();
   }
   return;
 }
@@ -4893,7 +4819,7 @@ sub redraw_stylesheet {
   my ($grp,$stylesheet)=@_;
   foreach my $win (stylesheetUsingWindows($grp,$stylesheet)) {
     $win->apply_stylesheet($stylesheet);
-    redraw_win($win);
+    $win->redraw();
   }
   return;
 }
@@ -4904,7 +4830,7 @@ sub redraw_fsfile_tree {
   return if $insideEval or !$fsfile;
   foreach (grep {$_->{treeNo} == $tree_no}
 	   fsfileDisplayingWindows($grp,$fsfile)) {
-    redraw_win($_);
+    $_->redraw();
   }
   return;
 }
@@ -4912,7 +4838,7 @@ sub redraw_fsfile_tree {
 sub redraw_all {
   my ($grp)=@_;
   foreach (@{ $grp->{treeWindows} }) {
-    redraw_win($_);
+    $_->redraw();
   }
   return;
 }
@@ -4994,41 +4920,10 @@ sub scrollCanvasToXY {
   return;
 }
 
-sub ensureCurrentIsDisplayed {
-  my ($win)=@_;
-  return unless $win->{FSFile};
-  my $node = $win->{currentNode};
-  while ($node and !$win->treeView->node_is_displayed($node)) {
-    $node = $node->parent;
-  }
-  if (!$node) {
-    my $rtl = treeIsReversed($win);
-    if ($rtl) {
-      $node = $win->{Nodes}->[-1];
-    } else {
-      $node = $win->{Nodes}->[0];
-    }
-  }
-  if ($node and $node != $win->{currentNode}) {
-    TrEd::Window::TreeBasics::set_current($win,$node);
-  }
-}
+# sub treeIsVertical
 
-sub treeIsVertical {
-  my ($grp) = @_;
-  my $win=$grp->{focusedWindow};
-  return unless $win;
-  return $win->treeView->get_verticalTree;
-}
+# sub treeIsReversed
 
-sub treeIsReversed {
-  my ($grp_win) = @_;
-  my $win=cast_to_win($grp_win);
-  return unless $win;
-  my $rtl = $win->treeView->rightToLeft($win->{FSFile});
-  return $rtl if defined $rtl;
-  return $win->treeView->get_reverseNodeOrder;
-}
 
 sub currentLeft {
   my ($grp)=@_;
@@ -5212,6 +5107,7 @@ sub _evalHook {
   my ($with_undo,$win,$hook)=(shift,shift,shift);
   
   return unless $hook; # and $win->{currentNode};
+  return if (!defined $win);
   my $grp = $win->{framegroup};
   # Save current position (as last action position)
   my $bookmark= $with_undo ? TrEd::Bookmarks::actual_position($grp) : undef;
@@ -5291,6 +5187,7 @@ sub _evalHook {
 sub doEvalMacro {
   my ($win,$macro)=(shift,shift);
   return unless $macro;# and $win->{currentNode};
+  return if (!defined $win); # we wouldn't be able to run functions like $win->toplevel, etc..
   my $bookmark=TrEd::Bookmarks::actual_position($win->{framegroup});
   $win->toplevel->Busy(-recurse=> 1);
   $insideEval=1;
@@ -5340,7 +5237,7 @@ sub doEvalMacro {
     redraw_all($win->{framegroup});
   } elsif (get_macro_variable("Redraw") eq 'win') {
     $win->get_nodes();
-    redraw_win($win);
+    $win->redraw();
   } elsif (get_macro_variable("Redraw") eq 'tree') {
     get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
     redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
@@ -5350,7 +5247,7 @@ sub doEvalMacro {
       redraw_all($win->{framegroup});
     } else {
       $win->get_nodes();
-      redraw_win($win);
+      $win->redraw();
     }
   } elsif (get_macro_variable("Redraw") eq 'none') {
     # do nothing
@@ -5368,7 +5265,7 @@ sub doEvalMacro {
   # the rest of this routine is:
   # memory ok, speed ok
   TrEd::Window::TreeBasics::set_current($win,$current) if ($current);
-  ensureCurrentIsDisplayed($win);
+  $win->ensure_current_is_displayed();
 
   set_macro_variable(
     this => undef,
@@ -5427,7 +5324,7 @@ sub resolveEvent {
   my @possib=();
   my $macro=undef;
   my $rotated = 0;
-  if (treeIsVertical($grp) and exists $TrEd::Config::vertical_key_arrow_map{$K}) {
+  if (TrEd::Window::TreeBasics::tree_is_vertical($grp) and exists $TrEd::Config::vertical_key_arrow_map{$K}) {
     print STDERR "vertical tree: translating $K to " if $keyboardDebug;
     $K = $TrEd::Config::vertical_key_arrow_map{$K};
     print STDERR "$K\n" if $keyboardDebug;
@@ -5732,7 +5629,7 @@ sub node_release {
     $w->coords($sel, $tv->node_coords($node,$win->{currentNode}));
     # print lower;
     $w->lower($sel,'point');
-  } else { redraw_win($win); }
+  } else { $win->redraw(); }
 }
 # node
 sub node_release_modif {
@@ -5785,7 +5682,7 @@ sub re_do {
 sub undo {
   return TrEd::Undo::undo(@_);
 };
-#sub resetUndoStatus {
+#sub resetUndoStatus
 
 sub resetTreePosStatus {
   my ($grp)=@_;
@@ -5839,7 +5736,7 @@ sub cleanup_tredmacro {
   %TrEd::Macros::defines=(TRED => 1);
   my %packages;
 
-  @packages { (
+  @packages { ('TredMacro',
 	       grep {/\S/} 
 	       grep { !/^main$|^TrEd::/ }
 	       map  { (/^\s*package\s+([^;\s]+)\s*;/) } 
@@ -5870,7 +5767,9 @@ sub cleanup_tredmacro {
     "DELETED: @{[join qq(\n\t),keys %deleted_pkg]}\n"
       if $tredDebug;
 
-    #nasty temporary workaround to reinit TredMacro namespace
+    # workaround to reinit TredMacro namespace, 
+    # since the functions can be overridden by extensions,
+    # we have to reinit default behaviour
     delete $INC{'TrEd/ExtensionsAPI.pm'};
     delete $INC{'TrEd/Mac.pm'};
     delete $INC{'TrEd/NtredMak.pm'};

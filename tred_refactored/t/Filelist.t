@@ -278,15 +278,52 @@ sub test_position {
   foreach my $filename (@list_of_files) {
     # test with filenames
     is($file_list->position($filename), $index, 
-      "Filelist->file_at(): return index of filename correctly");
+      "Filelist->position(): return index of file $filename correctly");
     
     # test with Treex::PML::Documents  
     my $document = Treex::PML::Document->create({ name => $filename });
     is($file_list->position($document), $index, 
-      "Filelist->file_at(): return index of Treex::PML::Document correctly");
+      "Filelist->position(): return index of Treex::PML::Document correctly");
     
     $index++;
   }
+  
+  # position of file that does not exist
+  is($file_list->position('file_is_not_in_filelist'), -1, 
+      "Filelist->position(): return value for file that is not in the filelist");
+}
+
+sub test_loose_position_of_file {
+  my ($file_list, $files_in_list_ref) = @_;
+  
+  
+  my @list_of_files = map { $_->[0] } @{$files_in_list_ref};
+  my $index = 0;
+  foreach my $filename (@list_of_files) {
+    # test with filenames
+    my $filename_plus_suffix = $filename . '#012';
+    is($file_list->loose_position_of_file($filename_plus_suffix), $index, 
+      "Filelist->loose_position_of_file(): return index of file $filename_plus_suffix correctly");
+    
+    
+    # test with Treex::PML::Documents  
+    my $document = Treex::PML::Document->create({ name => $filename });
+    is($file_list->loose_position_of_file($document), $index, 
+      "Filelist->loose_position_of_file(): return index of Treex::PML::Document correctly");
+
+    # test relative filenames support
+    #my ($volume,$directories,$filename) = File::Spec->splitpath( $filename );
+    $filename = "t/test_filelists/$filename";
+    is($file_list->loose_position_of_file($filename), $index, 
+      "Filelist->loose_position_of_file(): return index of file $filename correctly");
+    
+    
+    
+    $index++;
+  }
+  
+  #TODO: pridaj tu nejake testy na rel path...
+  # s!.*/([^/]\+)$!$1! -- use as filename
   
   # position of file that does not exist
   is($file_list->position('file_is_not_in_filelist'), -1, 
@@ -541,6 +578,8 @@ sub test_filelist {
   test_file_at($file_list, $files_in_list_ref);
   
   test_position($file_list, $files_in_list_ref);
+  
+  test_loose_position_of_file($file_list, $files_in_list_ref);
   
   test_file_pattern_index($file_list, $files_in_list_ref);
   

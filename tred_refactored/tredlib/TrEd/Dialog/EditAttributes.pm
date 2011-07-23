@@ -101,7 +101,7 @@ sub dialog_schema {
   return $result;
 }
 
-#TODO: toto nefunguje pri mazani struktury atributov!!!
+
 # was main::editAttrsDialog
 sub create_dialog {
   my ($win,$node)=@_;

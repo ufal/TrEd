@@ -570,7 +570,25 @@ sub test_change_binding_tk__ {
                          $TrEd::Binding::Default::DEFAULT_CONTEXT . "::" . $callback_return_value);
 }
 
-### start testing
+sub test_normalize_key {
+    my %key_normalization = (
+      "Ctrl + Alt + Del"  => "CTRL + ALT + DEL",
+      "Ctrl-Alt+Del"      => "CTRL+ALT+DEL",
+      "Ctrl+X"            => "CTRL+X",
+      "Meta-č"            => "META+Č",
+      "Alt->"             => "ALT+>"
+    );
+    
+    foreach my $key (keys(%key_normalization)){
+      is(TrEd::Binding::Default::normalize_key($key), $key_normalization{$key},
+          "normalize_key(): key normalization ok");
+    }
+        
+}
+
+######################################################
+################ start testing #######################
+######################################################
 
 my %tred;
 
@@ -635,5 +653,7 @@ note("Test running Tk::Callback callbacks");
 test_change_binding_tk__(\%tred, $new_binding_name, $context);
 
 test_run_binding_tk_callback(\%tred, $context);
+
+test_normalize_key();
 
 done_testing();

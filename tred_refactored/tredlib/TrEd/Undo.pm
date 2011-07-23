@@ -93,7 +93,7 @@ sub prepare_undo {
     # $data = $data;
   } else {
     #TODO: in tred.def, would it work..?
-    main::ErrorMessage($win, "Unknown undo type: $what\n");
+    TrEd::Error::Message::error_message($win, "Unknown undo type: $what\n");
     return;
   }
   if (!defined $snapshot) {
@@ -126,7 +126,8 @@ sub prepare_redo {
 	   $what == $UNDO_TYPE{UNDO_DATA_AND_TREE_ORDER}) {
     return prepare_undo($win,$message,$UNDO_TYPE{UNDO_DATA_AND_TREE_ORDER},$snapshot->[1]);
   } else {
-    main::ErrorMessage($win, "Unknown undo type: $what\n");
+    TrEd::Error::Message::error_message($win, "Unknown undo type: $what\n");
+    
     return prepare_undo($win,$message);
   }
 }
@@ -226,7 +227,7 @@ sub undo {
 	}
 	@{$fsfile->treeList}=@{$snapshot->[1]};
       } else {
-        main::ErrorMessage($win, "Unknown undo type: $what\n");
+        TrEd::Error::Message::error_message($win, "Unknown undo type: $what\n");
       }
     } elsif ($type eq 'FS') {
       my $prev = $fsfile->treeList->[$treeNo];
@@ -251,14 +252,13 @@ sub undo {
     $win->{treeNo}=$treeNo;
     main::get_nodes_fsfile_tree($win->{framegroup},$fsfile,$treeNo);
     $win->{currentNode}=ref($undo->[3]) ? $undo->[3] : $win->{Nodes}[$undo->[3]];
-    main::ensureCurrentIsDisplayed($win);
+    $win->ensure_current_is_displayed();
     main::redraw_fsfile_tree($win->{framegroup},$fsfile,$treeNo);
     main::centerTo($win,$win->{currentNode});
   } else {
     TrEd::Error::Message::error_message($win,"Corrupted undo stack!");
   }
 }
-#TODO: that is nasty -- using error_message and ErrorMessage at the same time
 
 # undo
 sub reset_undo_status {

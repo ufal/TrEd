@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# tests for TrEd::ArabicRemix
+# tests for TrEd::Extensions
 
 use strict;
 use warnings;

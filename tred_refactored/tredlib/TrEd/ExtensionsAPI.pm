@@ -2391,7 +2391,7 @@ sub Redraw {
   $main::insideEval=0;
   TrEd::Window::TreeBasics::set_current($win,$this) if (!$ignoreThis and $this);
   $win->get_nodes();
-  main::redraw_win($win);
+  $win->redraw();
   main::centerTo($win,$this) if (!$ignoreThis and $this);
   main::update_title_and_buttons($win->{framegroup});
   $main::insideEval=$ie;
@@ -3866,10 +3866,15 @@ returned absolute path.
 
 sub AbsolutizeFileName {
   my ($filename,$relfile) = @_;
-  return unless defined $filename;
+  return if !defined $filename;
   my $suffix;
   ($filename,$suffix)=TrEd::Utils::parse_file_suffix($filename);
-  return Treex::PML::ResolvePath($relfile,$filename).$suffix;
+  if (defined $suffix) {
+    return Treex::PML::ResolvePath($relfile,$filename).$suffix;
+  }
+  else {
+      return Treex::PML::ResolvePath($relfile,$filename);
+  }
 }
 
 

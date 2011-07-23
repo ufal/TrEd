@@ -183,7 +183,7 @@ sub _click {
         if ( ref($ret) and UNIVERSAL::DOES::does( $ret, 'Treex::PML::Node' ) )
         {
             TrEd::Window::TreeBasics::set_current( $win, $ret );
-            main::ensureCurrentIsDisplayed($win);
+            $win->ensure_current_is_displayed();
             main::centerTo( $win, $ret );
             Tk->break();
             return;
@@ -198,7 +198,7 @@ sub _click {
                     #  print STDERR "found $t\n";
                     my $node = $nodes{$t};
                     TrEd::Window::TreeBasics::set_current( $win, $node );
-                    main::ensureCurrentIsDisplayed($win);
+                    $win->ensure_current_is_displayed();
                     main::centerTo( $win, $node );
                     Tk->break();
                     return;
@@ -210,7 +210,7 @@ sub _click {
             while ($node) {
                 if ( index( join( $EMPTY_STR, @tags ), ${node} ) >= 0 ) {
                     TrEd::Window::TreeBasics::set_current( $win, $node );
-                    main::ensureCurrentIsDisplayed($win);
+                    $win->ensure_current_is_displayed();
                     main::centerTo( $win, $node );
                     Tk->break();
                     return;

@@ -18,6 +18,115 @@ require TrEd::Dialog::FocusFix;
 
 my $filelist_widget;
 
+# currently shown filelist in Filelist Dialog
+our $current_filelist = q{};
+
+#######################################################################################
+# Usage         : switch_filelist($grp, $list_name)
+# Purpose       : Switch current filelist to $list_name in Filelist Dialog
+# Returns       : Filelist that is switched to, if successful
+#                 Undef/empty list if $grp is not a reference or there is no filelist
+#                 with name $list_name
+# Parameters    : hash_ref $grp -- reference to hash containing TrEd options
+#                 string $list_name -- name of filelist to switch to
+# Throws        : no exception
+# Comments      : Function can also accept Filelist object as its second argument.
+# See Also      :
+# this is only a local switch inside the file list dialog window,
+# but returns filelist of a given name as a by-product
+# was main::switchFilelist
+sub switch_filelist {
+    my ( $grp, $list_name ) = @_;
+
+    # _dump_filelists("switch_filelist", \@filelists);
+    if ($tredDebug) {
+        print "Switching filelist to '$list_name'\n";
+    }
+    return if ( !ref $grp );
+    my $fl = undef;
+
+    # if $list_name is a Filelist object, not a name,
+    # find out its name
+    if ( ref $list_name ) {
+        $fl        = $list_name;
+        $list_name = $fl->name();
+    }
+
+    # return, if we are asked to switch to current filelist
+    return $current_filelist
+        if ( ref $current_filelist
+        && $list_name eq $current_filelist->name() );
+
+    if ( !$fl ) {
+        $fl = TrEd::ManageFilelists::find_filelist($list_name);
+    }
+    return if ( !$fl );
+
+    # set current filelist
+    $current_filelist = $fl; 
+
+    # update filelist views
+    update_view( $grp, $fl );
+
+    return $fl;
+}
+
+#######################################################################################
+# Usage         : _return_binding($w, $grp, $filelist_ref)
+# Purpose       : Handle the return key press in filelist dialog -- switch to specified 
+#                 filelist or create/rename existing filelist
+# Returns       : Undef\empty string
+# Parameters    : Tk::Widget $w -- widget which called this callback
+#                 hash_ref $grp -- reference to hash containing TrEd options
+#                 scalar_ref $filelist_ref -- ref to name of filelist to change
+# Throws        : no exception
+# Comments      : As a side effect, the name referenced by $filelist_ref is changed 
+#                 according to user's choice (represented by selected item on the widget)
+# See Also      : switch_filelist()
+sub _return_binding {
+    my ( $w, $grp, $filelist_ref ) = @_;
+    # text = selection from dialog
+    my $text = $w->get();
+    # if the filelist with specified name exists, switch to that one
+    # otherwise ask the user what to do
+    if ( TrEd::ManageFilelists::find_filelist($text) ) {
+        switch_filelist( $grp, $text );
+    }
+    else {
+        return if $text eq $EMPTY_STR;
+        my $dialog = $w->toplevel->Dialog(
+            -text => "File-list named $text does not exist.\n"
+                . "Do you want to create new filelist or rename current?",
+            -bitmap  => 'question',
+            -title   => 'Create/Rename?',
+            -buttons => [ 'Create', 'Rename', 'Cancel' ]
+        );
+        $dialog->BindReturn( $dialog, 1 );
+        $dialog->BindButtons;
+        my $answer = $dialog->Show();
+        if ( $answer eq 'Create' ) {
+            TrEd::ManageFilelists::addFilelist( Filelist->new($text) );
+            switch_filelist( $grp, $text );
+            main::updatePostponed($grp);
+        }
+        elsif ( $answer eq 'Rename' ) {
+            my $old_name = $current_filelist->name();
+            $current_filelist->rename($text);
+            if ( $old_name eq $TrEd::Bookmarks::FILELIST_NAME ) {
+                TrEd::Bookmarks::update_bookmarks($grp);
+            }
+            ${$filelist_ref} = $text;
+            main::updatePostponed($grp);
+        }
+        else {
+            if ($current_filelist) {
+                ${$filelist_ref} = $current_filelist->name();
+            }
+        }
+    }
+    return;
+}
+
 #TODO: maybe its own class for the widget?
 sub filelist_widget {
     return $filelist_widget;
@@ -37,7 +146,7 @@ sub _filter {
 sub _add_files {
     my ( $grp, $t, $l ) = @_;
     my $anchor           = $t->info('anchor');
-    my $current_filelist = TrEd::ManageFilelists::get_current_filelist();
+    my $current_filelist = get_current_filelist();
     my $pos
         = defined($anchor)
         ? getFilelistLinePosition( $current_filelist, $anchor )
@@ -51,7 +160,7 @@ sub _add_files {
 
 sub _remove_files {
     my ( $grp, $t ) = @_;
-    my $current_filelist = TrEd::ManageFilelists::get_current_filelist();
+    my $current_filelist = get_current_filelist();
     TrEd::ManageFilelists::removeFromFilelist( $grp, $current_filelist,
         getFilelistLinePosition( $current_filelist, $t->info('anchor') ),
         $t->info('selection') );
@@ -62,7 +171,7 @@ sub _remove_files {
 
 sub _show_in_tred {
     my ($grp) = @_;
-    my $current_filelist = TrEd::ManageFilelists::get_current_filelist();
+    my $current_filelist = get_current_filelist();
     $current_filelist->set_current(
         $filelist_widget->info( 'data', $filelist_widget->info('anchor') ) );
     TrEd::ManageFilelists::selectFilelist( $grp, $current_filelist );
@@ -70,15 +179,16 @@ sub _show_in_tred {
 
 sub _double_click {
     my ( $w, $grp ) = @_;
-    my $current_filelist = TrEd::ManageFilelists::get_current_filelist();
+    my $current_filelist = get_current_filelist();
     my $anchor           = $filelist_widget->info('anchor');
     my $nextentry        = $filelist_widget->info( 'next', $anchor );
     my $data             = $filelist_widget->info( 'data', $anchor );
     my $nextentry_parent;
-    if (defined $nextentry) {
+    if ( defined $nextentry ) {
         $nextentry_parent = $filelist_widget->info( 'parent', $nextentry );
-    } 
-    if (    $nextentry && $nextentry_parent 
+    }
+    if (   $nextentry
+        && $nextentry_parent
         && $nextentry_parent eq $anchor )
     {
 
@@ -115,22 +225,22 @@ sub _destroy {
     shift;
     my $grp = shift;
     $filelist_widget = undef;
-    TrEd::ManageFilelists::set_current_filelist(undef);
+    set_current_filelist(undef);
 }
 
 sub _escape {
-    my ($forget, $dialog, $modal) = @_;
+    my ( $forget, $dialog, $modal ) = @_;
     $modal ? $dialog->{selected_button} = "Cancel" : $dialog->destroy();
 }
 
 sub _close {
-    my ($dialog, $modal) = @_;
+    my ( $dialog, $modal ) = @_;
     $modal ? $dialog->{selected_button} = "Cancel" : $dialog->destroy();
 }
 
 sub _delete {
     my ( $grp, $d, $filelistref ) = @_;
-    my $current_filelist = TrEd::ManageFilelists::get_current_filelist();
+    my $current_filelist = get_current_filelist();
     my $fl               = $current_filelist;
     if (    $fl
         and $fl->name ne 'Default'
@@ -151,7 +261,7 @@ sub _delete {
 
 sub _save_fl_to_file {
     my ( $grp, $d ) = @_;
-    my $current_filelist = TrEd::ManageFilelists::get_current_filelist();
+    my $current_filelist = get_current_filelist();
     my $file             = $current_filelist->filename;
     unless ( defined($file) and $file ne $EMPTY_STR ) {
         my $initdir = TrEd::File::dirname($file);
@@ -186,7 +296,7 @@ sub create_dialog {
     use Tk::LabFrame;
     my ( $grp, $modal ) = @_;
     my $win = $grp->{focusedWindow};
-    if ( defined( $filelist_widget ) ) {
+    if ( defined($filelist_widget) ) {
         if ($modal) {
             TrEd::Dialog::FocusFix::show_dialog( $filelist_widget->toplevel );
         }
@@ -197,7 +307,7 @@ sub create_dialog {
         }
         return;
     }
-    return if ( $filelist_widget );
+    return if ($filelist_widget);
 
     $grp->{top}->Busy( -recurse => 1 );
     my $filelist;
@@ -217,8 +327,8 @@ sub create_dialog {
         }
     }
 
-    TrEd::ManageFilelists::set_current_filelist( $win->{currentFilelist} );
-    my $current_filelist = TrEd::ManageFilelists::get_current_filelist();
+    set_current_filelist( $win->{currentFilelist} );
+    my $current_filelist = get_current_filelist();
     $filelist = $current_filelist->name();
     my $d = $grp->{top}->Toplevel( -title => "Filelist" );
     $d->withdraw();
@@ -346,7 +456,7 @@ sub create_dialog {
                 sub {
                     my ( $w, $grp ) = @_;
                     my $current_filelist
-                        = TrEd::ManageFilelists::get_current_filelist();
+                        = get_current_filelist();
                     my $anchor = $filelist_widget->info('anchor');
                     my $nextentry = $filelist_widget->info( 'next', $anchor );
                     unless ($nextentry
@@ -497,10 +607,10 @@ sub _listcmd_1 {
         $l->insert( 0, $_->name );
     }
 }
-
+# trigerred by choosing different filelist in drop down menu
 sub _browsecmd_1 {
     my ( $grp, $list, $l ) = @_;
-    TrEd::ManageFilelists::switchFilelist( $grp, $$list );
+    switch_filelist( $grp, $$list );
 }
 
 sub feedHListWithFilelist {
@@ -556,18 +666,50 @@ sub getFilelistLinePosition {
     return Treex::PML::Index( $fl->list_ref, $p );
 }
 
-#TODO: premenovat?
-sub update_2 {
-  my ($grp, $fl) = @_;
-  if ($filelist_widget) {
-    
-    TrEd::Filelist::View::update_a_filelist_view($grp,$filelist_widget, $fl, 0, 1);
-    if (defined($fl->current)) {
-      my $max_pos = TrEd::MinMax::max2(0, $fl->position);
-      TrEd::Filelist::View::update_a_filelist_view($grp,$filelist_widget, $fl, $max_pos, 0);
+#TODO: premenovat
+# extracted from switch_filelist
+sub update_view {
+    my ( $grp, $fl ) = @_;
+    if ($filelist_widget) {
+
+        TrEd::Filelist::View::update_a_filelist_view( $grp, $filelist_widget,
+            $fl, 0, 1 );
+        if ( defined( $fl->current ) ) {
+            my $max_pos = TrEd::MinMax::max2( 0, $fl->position );
+            TrEd::Filelist::View::update_a_filelist_view( $grp,
+                $filelist_widget, $fl, $max_pos, 0 );
+        }
+        $filelist_widget->update();
     }
-    $filelist_widget->update();
-  }
+}
+
+#######################################################################################
+# Usage         : unbind_key($context, $key, $delete)
+# Purpose       : Discard binding for key $key in specified $context (if $delete is true, delete it, otherwise set bound macro to undef)
+# Returns       : The result of delete function or undef/empty list, depending on the context
+# Parameters    : string $context -- context in which the binding is being deleted
+#                 string $key     -- key or key combination, e.g. 'Ctrl+x'
+#                 bool $delete    -- if set to true, binding is deleted, otherwise the macro is just set to undef
+# Throws        : no exception
+# Comments      : ...
+# See Also      : bind_key(), get_binding_for_key(), get_bindings_for_macro()
+sub get_current_filelist {
+    return $current_filelist;
+}
+
+#######################################################################################
+# Usage         : unbind_key($context, $key, $delete)
+# Purpose       : Discard binding for key $key in specified $context (if $delete is true, delete it, otherwise set bound macro to undef)
+# Returns       : The result of delete function or undef/empty list, depending on the context
+# Parameters    : string $context -- context in which the binding is being deleted
+#                 string $key     -- key or key combination, e.g. 'Ctrl+x'
+#                 bool $delete    -- if set to true, binding is deleted, otherwise the macro is just set to undef
+# Throws        : no exception
+# Comments      : ...
+# See Also      : bind_key(), get_binding_for_key(), get_bindings_for_macro()
+sub set_current_filelist {
+    my ($new_current_fl) = @_;
+    $current_filelist = $new_current_fl;
 }
 
 1;

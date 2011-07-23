@@ -88,8 +88,8 @@ sub toggle_minor_mode {
     enable_minor_mode($grp_or_win,$name);
   }
   $win->get_nodes();
-  main::redraw_win($win);
-  main::ensureCurrentIsDisplayed($win);
+  $win->redraw();
+  $win->ensure_current_is_displayed();
   main::centerTo($win,$win->{currentNode});
 }
 

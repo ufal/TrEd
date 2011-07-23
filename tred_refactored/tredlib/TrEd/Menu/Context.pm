@@ -83,7 +83,8 @@ sub update_context_list {
         # if it's allowed; otherwise try to use macro context 
         # specified as a command line parameter
         #TODO: kind of feature envy, isn't it?
-        if ( $selected_context ne $grp->{selectedContext} ) {
+        if ( defined $selected_context 
+            && $selected_context ne $grp->{selectedContext} ) {
             if ($tredmacro_ok) {
                 $grp->{selectedContext} = 'TredMacro';
             }
@@ -92,8 +93,7 @@ sub update_context_list {
             {
                 $grp->{selectedContext} = $main::init_macro_context;
             }
-            main::switchContext( $grp->{focusedWindow}, $grp->{selectedContext},
-                1 );
+            main::switchContext( $grp->{focusedWindow}, $grp->{selectedContext}, 1 );
         }
     }
     return;

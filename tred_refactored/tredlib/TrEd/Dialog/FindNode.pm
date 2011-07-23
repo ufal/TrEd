@@ -143,7 +143,7 @@ sub findNodeDialog {
 		   my ($grp)=@_;
 		   my $name=TrEd::Dialog::Filelist::create_dialog($grp,1);
 		   $om->options(['[Current file only]',sort map { $_->name } @filelists]);
-		   $grp->{searchFilelist}=$name if (ref(TrEd::ManageFilelists::findFilelist($name)));
+		   $grp->{searchFilelist}=$name if (ref(TrEd::ManageFilelists::find_filelist($name)));
 		 },$grp,$om]);
   $oe->pack(qw/-side left/);
   $ot->pack(qw/-side left/);
@@ -189,7 +189,7 @@ sub findNodeDialog {
       TrEd::Error::Message::error_message($win,$@);
     } else {
       if ($grp->{searchFilelist} ne '[Current file only]') {
-	my $fl=TrEd::ManageFilelists::findFilelist($grp->{searchFilelist});
+	my $fl=TrEd::ManageFilelists::find_filelist($grp->{searchFilelist});
 	if (ref($fl) and $fl->file_count>0 ) {
 	  local $main::insideEval=1;                 # no redraw
 	  $fl->set_current($fl->file_at(0));

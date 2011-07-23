@@ -163,7 +163,7 @@ U<Boxes around labels>
 EOF
 
 # functions from main namespace
-# extract callbacks...
+#TODO: extract callbacks...?
 sub tred_pod_add_tags {
   my ($grp,$w)=@_;
   $w->tag(qw(configure link -font C_default -foreground blue));

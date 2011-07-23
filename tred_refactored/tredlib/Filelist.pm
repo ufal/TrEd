@@ -23,6 +23,7 @@ use File::Glob qw(:glob);
 use Cwd;
 use Encode qw(encode decode);
 use TrEd::MinMax qw(max2);
+require TrEd::Utils;
 
 use Readonly;
 
@@ -91,7 +92,7 @@ sub rename {
 # Throws        : no exceptions
 sub filename {
   my ($self, $new_name) = @_;
-  return if not ref $self;
+  return if !ref $self;
   return defined($new_name) ? $self->{filename} = $new_name : $self->{filename};
 }
 
@@ -104,7 +105,7 @@ sub filename {
 # Throws        : no exceptions
 sub _filelist_path_without_dir_sep {
   my ($file_path, $dir_separator) = @_;
-  return if not defined $file_path;
+  return if !defined $file_path;
   return (index($file_path, $dir_separator) >= 0 || index($file_path, q{/}) >= 0);
 }
 
@@ -490,7 +491,7 @@ sub file_at {
 #                 corresponding to the given Treex::PML::Document object. If the argument is string,
 #                 return an index of the string in the file list. If no argument is given,
 #                 return index of current file.
-# See also      : file_at(), file_pattern_index()
+# See also      : file_at(), file_pattern_index(), loose_position_of_file()
 sub position {
   my ($self, $fsfile) = @_;
   return if not ref $self;
@@ -520,6 +521,42 @@ sub position {
   return $NOT_FOUND;
 }
 
+#######################################################################################
+# Usage         : $filelist->loose_position_of_file($fsfile)
+# Purpose       : Find the position of file $fsfile in filelist even if the name 
+#                 of the file contains suffix or if relative portion of file name matches
+# Returns       : Position of $fsfile in the filelist. 
+#                 -1 if file was not found 
+# Parameters    : string/Treex::PML::Document ref $fsfile -- name of fsfile or the object itself
+# Throws        : no exception
+# Comments      : The relative path is constructed from the position of current filelist.
+#                 E.g. if the filename of the filelist is 'my_filelists/trees.fl', 
+#                 and $fsfile is 'my_filelists/analytical_trees.tgz#123', then it should be found
+#                 if 'analytical_trees.tgz' is part of trees.fl filelist.
+# See Also      : position()
+sub loose_position_of_file {
+    my ( $self, $fsfile ) = @_;
+
+    # _dump_filelists("looseFilePositionInFilelist", \@filelists);
+    return if (!ref $self);
+    
+    my $pos = $self->position($fsfile);
+    return $pos if $pos >= 0;
+    
+    my $fname = ref $fsfile ? $fsfile->filename() : $fsfile;
+    ($fname) = TrEd::Utils::parse_file_suffix($fname);
+    my $files    = $self->files_ref();
+    my $basedir  = $self->dirname();
+    my $relfname = $fname;
+    if ( index( $fname, $basedir ) == 0 ) {
+        $relfname = substr( $fname, length($basedir) );
+    }
+    for ( my $i = 0; $i < $self->file_count(); $i++ ) {
+        my ($fn) = TrEd::Utils::parse_file_suffix( $files->[$i]->[0] );
+        return $i if ( $fname eq $fn || $relfname eq $fn );
+    }
+    return -1;
+}
 
 #######################################################################################
 # Usage         : $filelist->file_pattern_index($n)
@@ -631,9 +668,12 @@ sub add_arrayref {
 # See also      : add()
 sub remove {
   my ($self, @patterns_to_remove) = @_;
+  # Don't do anything if there are no files to remove
   return if (!ref $self);
+  
   @patterns_to_remove = grep { defined $_ } @patterns_to_remove;
   return if (!scalar @patterns_to_remove);
+  
   my %remove = map { $_ => 1 } @patterns_to_remove;
   @{ $self->list_ref() } = grep { !$remove{$_}++ } @{ $self->list_ref() }; #remove and uniq
 

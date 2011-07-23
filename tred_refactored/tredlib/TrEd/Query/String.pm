@@ -26,7 +26,7 @@ sub new_query {
 
   main::addBindTags($d,'dialog');
   $opts||={};
-  my ($Entry,@Eopts) = @{delete($opts->{-entry}) || [get_entry_type()]};
+  my ($Entry,@Eopts) = @{delete($opts->{-entry}) || [main::get_entry_type()]};
 
   my $f = $d;
   if (defined $before_label) {
