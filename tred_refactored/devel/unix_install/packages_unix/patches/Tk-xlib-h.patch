@@ -1,6 +1,6 @@
 https://bugs.gentoo.org/show_bug.cgi?id=345987
---- Tk-804.029/pTk/Xlib.h
-+++ Tk-804.029/pTk/Xlib.h
+--- pTk/Xlib.h
++++ pTk/Xlib.h
 @@ -1,6 +1,7 @@
  #ifndef _XLIB
  #define _XLIB
