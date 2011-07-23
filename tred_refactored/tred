@@ -2128,10 +2128,18 @@ sub saveFileStateUpdate {
   my ($win)=@_;
   my $grp = $win->{framegroup};
   return if $grp->{noSaveFileStateUpdate};
-  return unless $win->is_focused();
-  return unless $win->{framegroup}->{saveButton};
-  $win->{framegroup}->{saveButton}->
-    configure(-state => (($win->{FSFile} and $win->{FSFile}->notSaved) ? 'normal' : 'disabled'));
+  
+  return if (!$win->{framegroup}->{saveButton});
+  
+  if (eval { $win->isa('TrEd::Window') }) {
+      return if (!$win->is_focused());
+      $win->{framegroup}->{saveButton}->configure(
+        -state => (($win->{FSFile} and $win->{FSFile}->notSaved) ? 'normal' : 'disabled'));
+  }
+  else {
+      return;
+  }
+  
 }
 
 # 
