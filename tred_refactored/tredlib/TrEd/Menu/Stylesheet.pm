@@ -71,12 +71,13 @@ sub update {
     }
 }
 
-#TODO: mali by sme nahradit $grp->{stylesheets} za parameter @stylesheets alebo volanie TrEd::Stylesheet::get_shitz
 # podobne pre $context a 
 sub get_menu_list {
     my ( $self, $grp, $all ) = @_;
     my $context = $grp->{focusedWindow}->{macroContext};
-    undef $context if $context eq 'TredMacro';
+    if (defined $context && $context eq 'TredMacro') {
+        undef $context;
+    }
     my $match;
     return [   TrEd::Stylesheet::STYLESHEET_FROM_FILE(),
                TrEd::Stylesheet::NEW_STYLESHEET(),
@@ -88,7 +89,9 @@ sub get_menu_list {
                    else {       # TrEd::Stylesheet::get_stylesheet_context($_)?
                        $match = $grp->{stylesheets}{$_}{context} || $EMPTY_STR;
                        chomp $match;
-                       $match = '.*' if (!$match =~ /\S/);
+                       if (!$match =~ /\S/) {
+                        $match = '.*';
+                       }
                        $context =~ /^${match}$/x ? 1 : 0;
                    }
                } sort keys %{ $grp->{stylesheets} }

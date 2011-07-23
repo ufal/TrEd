@@ -858,7 +858,7 @@ return sub {
     'Left Sibling',
     {
       '-accelerator' => 'Left',
-      '-command' => [sub { &treeIsReversed ? &currentRight : &currentLeft },$grp]
+      '-command' => [sub { &TrEd::Window::TreeBasics::tree_is_reversed ? &currentRight : &currentLeft },$grp]
      },
     undef
    ],
@@ -900,7 +900,7 @@ return sub {
     'Next in Order',
     {
       '-accelerator' => 'Shift+Down',
-      '-command' => [sub{ &treeIsReversed ? &currentLeftLin : &currentRightLin },$grp]
+      '-command' => [sub{ &TrEd::Window::TreeBasics::tree_is_reversed ? &currentLeftLin : &currentRightLin },$grp]
      },
     undef
    ],
@@ -918,7 +918,7 @@ return sub {
     'Previous in Order',
     {
       '-accelerator' => 'Shift+Up',
-      '-command' => [sub{ &treeIsReversed ? &currentRightLin : &currentLeftLin },$grp]
+      '-command' => [sub{ &TrEd::Window::TreeBasics::tree_is_reversed ? &currentRightLin : &currentLeftLin },$grp]
      },
     undef
    ],
@@ -950,7 +950,7 @@ return sub {
     'Right Sibling',
     {
       '-accelerator' => 'Right',
-      '-command' => [sub { &treeIsReversed ? &currentLeft : &currentRight },$grp]
+      '-command' => [sub { &TrEd::Window::TreeBasics::tree_is_reversed ? &currentLeft : &currentRight },$grp]
      },
     undef
    ],
@@ -1009,7 +1009,7 @@ return sub {
 		       my $win=$_[0]->{focusedWindow};
 		       $win->treeView->set_clearTextBackground($treeViewOpts->{clearTextBackground});
 		       $win->get_nodes();
-		       redraw_win($win);
+		       $win->redraw();
 		     },$grp],
       '-underline' => 0,
       '-variable' => \$treeViewOpts->{clearTextBackground}
@@ -1026,7 +1026,7 @@ return sub {
 		       ## vice versa setting should be done when focus changes
 		       $win->{treeView}->set_drawEdgeBoxes($treeViewOpts->{drawEdgeBoxes});
 		       $win->get_nodes();
-		       redraw_win($win);
+		       $win->redraw();
 		     },$grp],
       '-underline' => 1,
       '-variable' => \$treeViewOpts->{drawEdgeBoxes}
@@ -1043,7 +1043,7 @@ return sub {
 		       my $win = $grp->{focusedWindow};
 		       $win->{treeView}->set_drawBoxes($treeViewOpts->{drawBoxes});
 		       $win->get_nodes();
-		       redraw_win($win);
+		       $win->redraw();
 		     },$grp],
       '-underline' => 0,
       '-variable' => \$treeViewOpts->{drawBoxes}
@@ -1067,8 +1067,8 @@ return sub {
 		       my $win=$_[0]->{focusedWindow};
 		       $win->treeView->set_showHidden($treeViewOpts->{showHidden});
 		       $win->get_nodes();
-		       redraw_win($win);
-		       ensureCurrentIsDisplayed($win);
+		       $win->redraw();
+		       $win->ensure_current_is_displayed();
 		     },$grp],
       '-underline' => 5,
       '-variable' => \$treeViewOpts->{showHidden}

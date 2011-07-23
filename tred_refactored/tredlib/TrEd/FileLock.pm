@@ -317,7 +317,7 @@ sub lock_file {
     }
     if ($answer eq 'Cancel') {
       if (not ($opts_ref and ($opts_ref->{-preload} or $opts_ref->{-noredraw}))) {
-        main::redraw_win($win);
+        $win->redraw();
       }
       if (not $main::insideEval) {
         $win->toplevel->Unbusy();

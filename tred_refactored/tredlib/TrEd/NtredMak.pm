@@ -177,7 +177,7 @@ sub ntred_query_box_do_query {
 sub ntred_query_box_make_filelist {
   my ($grp,$r)=@_;
   my $name='ntred_client';
-  my $fl=TrEd::ManageFilelists::findFilelist($name);
+  my $fl=TrEd::ManageFilelists::find_filelist($name);
   print STDERR $fl,"\n";
   $fl=TrEd::ManageFilelists::addFilelist(Filelist->new($name)) unless $fl;
   $fl->clear();

@@ -396,6 +396,23 @@ sub set_current {
     return;
 }
 
+# was main::treeIsVertical
+sub tree_is_vertical {
+  my ($grp) = @_;
+  my $win=$grp->{focusedWindow};
+  return unless $win;
+  return $win->treeView->get_verticalTree;
+}
+
+# was main::treeIsReversed
+sub tree_is_reversed {
+  my ($grp_win) = @_;
+  my $win=main::cast_to_win($grp_win);
+  return unless $win;
+  my $rtl = $win->treeView->rightToLeft($win->{FSFile});
+  return $rtl if defined $rtl;
+  return $win->treeView->get_reverseNodeOrder;
+}
 
 1;
 

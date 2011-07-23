@@ -5,19 +5,20 @@ use warnings;
 
 use TrEd::Config qw{$font};
 use TrEd::Utils qw{$EMPTY_STR};
+use TrEd::Convert;
 
 use Tk;
 
 # was main::Query
 sub new_query {
   my ($w, $title, $label,$default_text,$select, $hist)=@_;
-  my $newvalue=encode($default_text);
+  my $newvalue=TrEd::Convert::encode($default_text);
   my $d=$w->DialogBox(-title=> $title,
 				 -buttons=> ["OK", "Cancel"]);
   $d->BindReturn($d,1);
   $d->BindEscape;
   main::addBindTags($d,'dialog');
-  my ($Entry,@Eopts) = get_entry_type();
+  my ($Entry,@Eopts) = main::get_entry_type();
   my $e=$d->add($Entry,-relief=> 'sunken',
 		    -width=> 40,
 		    -takefocus=> 1,
@@ -45,7 +46,7 @@ sub new_query {
   $d->destroy;
   undef $d;
   if ($result=~ /OK/) {
-    return decode($newvalue);
+    return TrEd::Convert::decode($newvalue);
   } else {
     return undef;
   }

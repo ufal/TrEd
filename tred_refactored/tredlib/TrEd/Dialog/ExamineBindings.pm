@@ -5,7 +5,7 @@ use warnings;
 
 use TrEd::Macros;
 use TrEd::Utils qw{$EMPTY_STR};
-use TrEd::Binding::Default qw{keyBind};
+use TrEd::Binding::Default qw{normalize_key};
 
 sub examineEvent {
   my $w = shift;
@@ -65,7 +65,7 @@ sub create_dialog {
               Control-Meta Control-Mod4 Alt-Shift Alt-Mod4 Meta-Shift Mod4-Shift)) {
     foreach my $event (qw(KeyPress Right Left Up Down
                           Return comma period Next Prior greater less)) {
-      $dialog_box->bind("<$_-$event>"=> [\&examineEvent, \$bindings, $grp, TrEd::Binding::Default::keyBind($_)."+"])
+      $dialog_box->bind("<$_-$event>"=> [\&examineEvent, \$bindings, $grp, TrEd::Binding::Default::normalize_key($_)."+"])
 	unless ("$_-$event" eq "Alt-KeyPress" or "$_-$event" eq "Meta-KeyPress");
     }
   }

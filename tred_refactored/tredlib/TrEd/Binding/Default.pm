@@ -83,11 +83,11 @@ my %default_binding = (
     '<KeyPress-Left>' => [
         sub {
             my $grp = $_[1];
-            if ( main::treeIsVertical($grp) ) {
+            if ( TrEd::Window::TreeBasics::tree_is_vertical($grp) ) {
                 main::currentUp($grp);
             }
             else {
-                main::treeIsReversed($grp)
+                TrEd::Window::TreeBasics::tree_is_reversed($grp)
                     ? main::currentRight($grp)
                     : main::currentLeft($grp);
             }
@@ -114,11 +114,11 @@ my %default_binding = (
     '<KeyPress-Right>' => [
         sub {
             my $grp = $_[1];
-            if ( main::treeIsVertical($grp) ) {
+            if ( TrEd::Window::TreeBasics::tree_is_vertical($grp) ) {
                 main::currentDown($grp);
             }
             else {
-                main::treeIsReversed($grp)
+                TrEd::Window::TreeBasics::tree_is_reversed($grp)
                     ? main::currentLeft($grp)
                     : main::currentRight($grp);
             }
@@ -137,7 +137,7 @@ my %default_binding = (
     '<KeyPress-Up>' => [
         sub {
             my $grp = $_[1];
-            if ( main::treeIsVertical($grp) ) {
+            if ( TrEd::Window::TreeBasics::tree_is_vertical($grp) ) {
                 main::currentLeft($grp);
             }
             else {
@@ -150,7 +150,7 @@ my %default_binding = (
     '<Shift-Up>' => [
         sub {
             my $grp = $_[1];
-            main::treeIsReversed($grp)
+            TrEd::Window::TreeBasics::tree_is_reversed($grp)
                 ? main::currentRightLin($grp)
                 : main::currentLeftLin($grp);
             Tk->break();
@@ -160,7 +160,7 @@ my %default_binding = (
     '<KeyPress-Down>' => [
         sub {
             my $grp = $_[1];
-            if ( main::treeIsVertical($grp) ) {
+            if ( TrEd::Window::TreeBasics::tree_is_vertical($grp) ) {
                 main::currentRight($grp);
             }
             else {
@@ -173,7 +173,7 @@ my %default_binding = (
     '<Shift-Down>' => [
         sub {
             my $grp = $_[1];
-            main::treeIsReversed($grp)
+            TrEd::Window::TreeBasics::tree_is_reversed($grp)
                 ? main::currentLeftLin($grp)
                 : main::currentRightLin($grp);
             Tk->break();
@@ -406,7 +406,7 @@ sub setup_default_bindings {
                     "<$modifier-$event>" => [
                         sub { main::evalMacro(@_); Tk->break; },
                         $self->{grp_ref},
-                        keyBind($modifier) . q{+}
+                        normalize_key($modifier) . q{+}
                     ]
                     );
             }
@@ -492,11 +492,21 @@ sub binding_valid {
     }
 }
 
-sub keyBind {
-  local $_=shift;
-  s/-/+/g;
-  s/Control/CTRL/g;
-  return uc($_);
+#######################################################################################
+# Usage         : normalize_key($key_code)
+# Purpose       : Normalize the key code to use it in Tk binding 
+# Returns       : Standardized version of string representation of keycode
+# Parameters    : scalar $key_code -- key code/combination to normalize
+# Throws        : no exception
+# Comments      : Normalize means, to change + to -, Control to CTRL and all the characters
+#                 are changed to upper case
+# See Also      : TrEd::Macros::_normalize_key()
+# was main::keyBind
+sub normalize_key {
+    my ($key_code) = @_;
+    $key_code =~ s/-/+/g;
+    $key_code =~ s/Control/CTRL/g;
+    return uc($key_code);
 }
 
 1;
@@ -524,9 +534,14 @@ TrEd::Binding::Default version 0.1.
 The key bindings in TrEd's GUI use the bindings system provided by Tk library. 
 To manage the bindings, this module has been created. 
 The bindings configuration is stored in two hashes. The first one stores default bindings 
-and it is used for special context called "*", which means these bindings applies to all contexts. 
+and it is used for special context called "*", (which means these bindings applies to all contexts). 
+
 Besides the default beindings, there also exist context specific bindings which are stored 
-separately in the second hash. 
+separately in the second hash (named %context_override_binding). These specific bindings 
+is usually set by extensions. 
+
+The extensions can set up new bindings by calling Bind function from Extensions API
+(see also the documentation for TredMacro). 
 
 The hashes used to store the bindings have following structure:
 
@@ -535,11 +550,11 @@ e.g. <Tab>', '<Shift-ISO_Left_Tab>', '<period>', '<Shift-Home>', etc.
 
 The value of the hash is a reference to array, which contains 2 or 3 elements, the last one 
 is optional.
-The 1st element is a code reference, i.e. the action invoked by the key (combination)
+The 1st element is a code reference, i.e. the action invoked by the key (key combination)
 The 2nd element is a name of the action.
 The 3rd element is a name of the widget, to which the binding applies. It has to be one of the 
-widgets stored in $grp_ref (e.g. 'Toolbar' for $grp_ref->{Toolbar}), 
-since the binding is created by calling the bind subroutine on one of these Tk objects. 
+widgets stored in $grp_ref (e.g. 'Toolbar' for $grp_ref->{Toolbar}, etc.), 
+since the binding is created by calling the bind subroutine on this Tk object. 
 
 The hash used to store context specific information has one more level which divides
 the bindings in specific contexts.

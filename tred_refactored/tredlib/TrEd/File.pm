@@ -437,7 +437,7 @@ sub _check_for_recovery {
             }
             elsif ( $answer eq 'Ignore' ) {
                 if ( !$opts_ref->{-preload} && !$opts_ref->{-noredraw} ) {
-                    redraw_win($win);
+                    $win->redraw();
                 }
                 if (!$main::insideEval) {
                     $win->toplevel->Unbusy();
@@ -571,7 +571,7 @@ sub open_file {
                 main::doEvalHook( $win, "file_resumed_hook" );
             }
             if ( !$opts{-noredraw} ) {
-                main::redraw_win($win);
+                $win->redraw();
                 main::centerTo( $win, $win->{currentNode} );
             }
             if ( !$opts{-norecent} && !$fsfile->appData('norecent') ) {
@@ -630,7 +630,7 @@ sub open_file {
                         main::doEvalHook( $win, "file_resumed_hook" );
                     }
                     if ( !$opts{-noredraw} ) {
-                        main::redraw_win($win);
+                        $win->redraw();
                         main::centerTo( $win, $win->{currentNode} );
                     }
                     if ( _should_save_to_recent_files($fsfile, \%opts)) {
@@ -715,7 +715,7 @@ sub open_file {
                     $win->{currentNode} = $save_current;
                 }
                 $win->get_nodes();    # the hook may have changed something
-                main::redraw_win($win);
+                $win->redraw();
             }
             main::centerTo( $win, $win->{currentNode} );
         }
@@ -851,7 +851,7 @@ sub closeFile {
         }
         unless ( $opts{-no_update} ) {
             $w->get_nodes();
-            main::redraw_win($w);
+            $w->redraw();
         }
     }
 
@@ -960,7 +960,7 @@ sub reloadFile {
             main::doEvalHook( $win, "file_reloaded_hook" );
         }
         $win->get_nodes();
-        main::redraw_win($win);
+        $win->redraw();
         main::centerTo( $win, $win->{currentNode} );
     }
 }
@@ -1353,7 +1353,7 @@ sub newFileFromCurrent {
         main::doEvalHook( $win, "guess_context_hook", "file_opened_hook" );
     }
     main::doEvalHook( $win, "file_opened_hook" );
-    main::redraw_win($win) unless $win->{redrawn};
+    $win->redraw() unless $win->{redrawn};
     main::centerTo( $win, $win->{currentNode} );
     $win->toplevel->Unbusy() unless $main::insideEval;
 
@@ -1882,7 +1882,7 @@ sub ask_save_files_and_close {
         resume_file( $win, $fsfile );
         main::update_title_and_buttons($grp_ref);
         $win->get_nodes();
-        main::redraw_win( $win );
+        $win->redraw();
         main::centerTo( $win,
             $win->{currentNode} );
         $grp_ref->{top}->update();

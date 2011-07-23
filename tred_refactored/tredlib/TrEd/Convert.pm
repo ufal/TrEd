@@ -100,6 +100,18 @@ sub encode {
     }
     else {
         if ( $inputenc ne $outputenc ) {
+            no warnings 'misc';
+        	# otherwise Perl 5.12 warns that 
+        	# 'Replacement list is longer than search list'
+        	# This warning appears because the length of variables differ, 
+        	# not the actual replacement strings have different length
+        	
+        	# This warning could also be fixed by renaming shorter variable
+        	# to match the length of name of the longer one, i.e.
+        	# my $inputenc_ = $inputenc;
+        	# and then
+        	# tr/$encodings{$inputenc_}/$encodings{$outputenc}/
+            
             eval {
                 tr/$encodings{$inputenc}/$encodings{$outputenc}/
             };

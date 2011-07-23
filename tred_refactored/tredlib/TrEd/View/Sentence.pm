@@ -19,7 +19,7 @@ my $selected_sentences;
 my $expand_view;
 my $dialog;
 
-#sub reloadSentenceView {
+# was main::reloadSentenceView
 sub reload_view {
   my ($grp,$t,$selref)=@_;
   return unless $t;
@@ -122,6 +122,7 @@ sub _sentence_is_selected {
   }
 }
 
+# was main::sentViewSelectAll
 sub select_all_sentences {
   my ($grp, $selection_ref) = @_;
   return if (!_selection_is_valid($selection_ref));
@@ -131,7 +132,7 @@ sub select_all_sentences {
   return;
 }
 
-
+# was main::sentViewSelectNone
 sub select_none {
   my ($grp, $selection_ref) = @_;
   return if (!_selection_is_valid($selection_ref));
@@ -141,25 +142,25 @@ sub select_none {
   return;
 }
 
-
+# was main::sentViewGetSelection
 sub get_selection {
   my ($grp, $selection_ref) = @_;
   $selection_ref ||= $selected_sentences;
-  my $rng = $EMPTY_STR; #rng? what is it? its range...
+  my $range = $EMPTY_STR;
  
   if (_selection_is_valid($selection_ref)) {
     for (my $i = 0; $i <= $#{$selection_ref}; $i++) {
       if (_sentence_is_selected($selection_ref, $i)) {
-        $rng .= ($i+1) . q{,};
+        $range .= ($i+1) . q{,};
       }
     }
     # remove trailing comma
-    $rng =~ s/,$//;
+    $range =~ s/,$//;
   }
-  return $rng;
+  return $range;
 }
 
-# sentence view
+# was main::sentViewToggleCollapse
 sub toggle_collapse {
  my ($grp,$t,$val)=@_;
  if (!defined $val) {
@@ -178,7 +179,7 @@ sub toggle_collapse {
  }} while (!$@);
 }
 
-
+# was main::viewSentences
 sub show_sentences {
   my ($grp)=@_;
   return unless $grp and ref($grp->{focusedWindow}->{FSFile});
@@ -206,7 +207,7 @@ sub show_sentences {
   $d->Popup;
 }
 
-
+# was main::viewSentencesDialog
 sub show_sentences_dialog {
   my ($grp,$top,$fsfile,$selref)=@_;
   return unless $grp and ref($grp->{focusedWindow}->{FSFile});
@@ -224,7 +225,7 @@ sub show_sentences_dialog {
   return $selref;
 }
 
-# sentence view
+# was main::dumpSentView
 sub dump_view {
   my ($grp, $fsfile, $t, $create_images, $selref)=@_;
 
@@ -355,7 +356,7 @@ sub dump_view {
   return $file;
 }
 
-
+# was main::populateSentencesDialog
 sub populate_dialog {
   my ($grp,$d,$fsfile,$selref,$close_button)=@_;
   return unless $grp and $fsfile;
