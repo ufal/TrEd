@@ -608,6 +608,7 @@ sub _set_treeViewOpts {
 sub _set_fonts {
     my ($confs_ref) = @_;
     my $fontenc = _set_font_encoding();
+
     if ( exists( $confs_ref->{'font'} ) ) {
         $font = $confs_ref->{'font'};
 

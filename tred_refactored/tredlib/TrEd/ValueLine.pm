@@ -227,7 +227,6 @@ sub _click {
 }
 
 # sub get_value_line
-#TODO: named args?
 sub get_value_line {
     my ( $self, $win, $fsfile, $no, $no_numbers, $tags, $type ) = @_;
     my $vl;
@@ -238,7 +237,8 @@ sub get_value_line {
             if ( ref($vl) ) {
                 unless ($tags) {
 
-# important: encode inside - required by arabic, otherwise the text gets remixed
+                    # important: encode inside - required by arabic, 
+                    # otherwise the text gets remixed
                     $vl = join $EMPTY_STR,
                         map { TrEd::Convert::encode( $_->[0] ) } @$vl;
                 }

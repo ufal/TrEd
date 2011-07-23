@@ -3,21 +3,29 @@ package TrEd::RuntimeConfig;
 use strict;
 use warnings;
 
-use TrEd::Config qw{$tredDebug};
+use TrEd::Config;
+# initialized in BEGIN block, initialization here would delete
+# the value set in BEGIN block => don't do it here
+my $configFile; 
+
+BEGIN {
+    # we need to run this early to set up all the config options for other 
+    # modules (not only lib, but also fonts, etc...)
+    # this may setup a new $libDir
+    $configFile = TrEd::Config::read_config();
+}
+
 require TrEd::Error::Message;
 
-use TrEd::RecentFiles;
-use File::Spec;
-use Treex::PML;
-use TrEd::Bookmarks;
-use TrEd::ManageFilelists;
+require TrEd::RecentFiles;
+require File::Spec;
+require Treex::PML;
+require TrEd::Bookmarks;
+require TrEd::ManageFilelists;
 
-my $configFile = q{};
+
 our $cmdline_config_file;
 
-sub init_runtime_config {
-    $configFile = TrEd::Config::read_config(); # this may setup a new $libDir
-}
 
 # config
 sub get_config_from_file {
@@ -35,7 +43,7 @@ sub get_config_from_file {
 sub save_runtime_config {
   my ($grp,$update) = @_;
   # Save configuration
-  print STDERR "Saving some configuration options.\n" if $tredDebug;
+  print STDERR "Saving some configuration options.\n" if $TrEd::Config::tredDebug;
   my $config = get_config_from_file() || [];
   update_runtime_config($grp,$config,$update);
   save_config($grp,$config, $main::opt_q);
@@ -68,7 +76,7 @@ sub update_runtime_config {
   if ($grp->{top}) {
     eval {
       $TrEd::Config::geometry=$grp->{top}->geometry();
-      print "geometry is $TrEd::Config::geometry\n" if $tredDebug;
+      print "geometry is $TrEd::Config::geometry\n" if $TrEd::Config::tredDebug;
       if ($^O eq "MSWin32" and $grp->{top}->state() eq 'zoomed') {
 	$TrEd::Config::geometry=~s/\+[-0-9]+\+[-0-9]+/+-3+-3/;
       }

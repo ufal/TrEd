@@ -23,13 +23,13 @@ require TrEd::Query::List;
 require TrEd::Query::User;
 require TrEd::Query::Simple;
 
+our $VERSION = "0.1";
+
 # list of all loaded filelists
 my @filelists = ();
 
 # filelists from extensions
 my %filelist_from_extension = ();
-
-#use Data::Dumper;
 
 #######################################################################################
 # Usage         : _dump_filelists($fn_name, $filelists_ref)
@@ -51,6 +51,7 @@ sub _dump_filelists {
     #  foreach my $fl (@{$filelists_ref}) {
     #    print "\t" . $fl . q{: } . $fl->name .  "\n";
     #  }
+    return;
 }
 
 #######################################################################################
@@ -60,7 +61,7 @@ sub _dump_filelists {
 # Parameters    : no
 # Throws        : no exception
 # Comments      :
-# See Also      : add_new_filelist(), addFilelist(), deleteFilelist()
+# See Also      : add_new_filelist(), add_filelist(), deleteFilelist()
 sub get_filelists {
 
     # _dump_filelists("get_filelists", \@filelists);
@@ -89,22 +90,19 @@ sub find_filelist {
 
 
 #######################################################################################
-# Usage         : unbind_key($context, $key, $delete)
-# Purpose       : Discard binding for key $key in specified $context (if $delete is true, delete it, otherwise set bound macro to undef)
-# Returns       : The result of delete function or undef/empty list, depending on the context
-# Parameters    : string $context -- context in which the binding is being deleted
-#                 string $key     -- key or key combination, e.g. 'Ctrl+x'
-#                 bool $delete    -- if set to true, binding is deleted, otherwise the macro is just set to undef
+# Usage         : add_filelist($filelist)
+# Purpose       : Add filelist to array of filelists
+# Returns       : Added Filelist object
+# Parameters    : Filelist ref $filelist -- reference to Filelist to be added
 # Throws        : no exception
-# Comments      : ...
-# See Also      : bind_key(), get_binding_for_key(), get_bindings_for_macro()
-sub addFilelist {
-    my ($fl) = @_;
-
-    # _dump_filelists("addFilelist", \@filelists);
-    push @filelists, $fl;
-    print "adding filelist " . $fl->name() . "\n";
-    return $fl;
+# See Also      : find_filelist(),
+# was main::addFilelist 
+sub add_filelist {
+    my ($filelist) = @_;
+    # _dump_filelists("add_filelist", \@filelists);
+    push @filelists, $filelist;
+    print "Adding filelist " . $filelist->name() . "\n";
+    return $filelist;
 }
 
 #######################################################################################
@@ -144,7 +142,8 @@ sub _user_resolve_filelist_conflict {
 
 #######################################################################################
 # Usage         : unbind_key($context, $key, $delete)
-# Purpose       : Discard binding for key $key in specified $context (if $delete is true, delete it, otherwise set bound macro to undef)
+# Purpose       : Ask user what to do if filelist with same name as he/she wants to create
+#                 already exists
 # Returns       : The result of delete function or undef/empty list, depending on the context
 # Parameters    : string $context -- context in which the binding is being deleted
 #                 string $key     -- key or key combination, e.g. 'Ctrl+x'
@@ -160,23 +159,24 @@ sub _solve_filelist_conflict {
         confess($@);
     }
 
-    my $l;
+    my $colliding_filelist;
 LOOP:
     for my $dummy (1) {
 
         # ($l) = grep { $_->name eq $fl->name } @filelists;
-        $l = TrEd::MinMax::first { $_->name() eq $filelist->name() }
-        @filelists;
-        last if not $l;
+        $colliding_filelist 
+            = TrEd::MinMax::first { $_->name() eq $filelist->name() }
+                                  @filelists;
+        last if not $colliding_filelist; #don't prompt user if nothing collides
         if ($top) {
             my $answer = _user_resolve_filelist_conflict( $top,
-                $filelist->filename(), $l->filename() );
-            return ( $l, 'return' ) if $answer eq 'Cancel';
+                $filelist->filename(), $colliding_filelist->filename() );
+            return ( $colliding_filelist, 'return' ) if $answer eq 'Cancel';
             if ( $answer eq 'Change name' ) {
                 my $new_name
                     = TrEd::Query::String::new_query( $top, "Filelist name",
                     "Name: ", $filelist->name );
-                return ( $l, 'return' ) if ( !defined($new_name) );
+                return ( $colliding_filelist, 'return' ) if ( !defined($new_name) );
                 $filelist->rename($new_name);
                 redo LOOP;
             }
@@ -188,13 +188,13 @@ LOOP:
     }
 
     if ( $old_name ne $filelist->name() ) {
-        if ( not $main::opt_q ) {
+        if ( !$main::opt_q ) {
             print STDERR 'Saving filelist ' . $filelist->name() . ' to: ',
                 $filelist->filename(), "\n";
         }
         $filelist->save();    # filelist renamed
     }
-    return ( $l, 'cont' );
+    return ( $colliding_filelist, 'cont' );
 }
 
 #######################################################################################
@@ -788,7 +788,7 @@ sub createNewFilelist {
     }
     else {
         my $fl = Filelist->new($name);
-        addFilelist($fl);
+        add_filelist($fl);
         TrEd::Dialog::Filelist::switch_filelist( $grp, $fl->name );
         main::updatePostponed($grp);
         return $fl;
@@ -916,21 +916,23 @@ sub removeFilelistsDialog {
 # Usage         : add_new_filelist(..)
 # Purpose       : ...  
 # Returns       : ..
-# Parameters    : ..
+# Parameters    : hash_ref $grp
+#                 Filelist ref $fl
+#                 Tk::Widget $top
 # Throws        : ..
 # Comments      : ..
 # See Also      : .. 
 # TODO: tests
-# TODO: to je iny filelist ako je ten tredlib/Filelist.pm?
 # was main::addNewFilelist
 sub add_new_filelist {
   my ($grp, $fl, $top) = @_;
   # dump_filelists("add_new_filelist", \@filelists);
-  return if not defined($fl) or $fl eq $EMPTY_STR;
+  return if (!defined($fl) || $fl eq $EMPTY_STR);
   
-  #TODO: nad tymto este podumaj dakus
+  # returns other filelist with same name, or the original 
+  # filelist, if the name is unique
   my ($l, $cont) = _solve_filelist_conflict($top, $fl);
-  # osetri return $l 
+  
   if($cont eq 'return') {
     return $l;
   }

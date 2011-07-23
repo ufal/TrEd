@@ -179,7 +179,7 @@ sub ntred_query_box_make_filelist {
   my $name='ntred_client';
   my $fl=TrEd::ManageFilelists::find_filelist($name);
   print STDERR $fl,"\n";
-  $fl=TrEd::ManageFilelists::addFilelist(Filelist->new($name)) unless $fl;
+  $fl=TrEd::ManageFilelists::add_filelist(Filelist->new($name)) unless $fl;
   $fl->clear();
   $fl->add(0,split /\n/,$r->get("0.0","end"));
   &main::updatePostponed($grp->{framegroup});

@@ -3420,7 +3420,13 @@ Return L<Treex::PML::FSFormat|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/
 =cut
 
 sub FS {
-  return CurrentFile()->FS();
+    my $current_file = CurrentFile();
+    if (defined $current_file) {
+        return CurrentFile()->FS();
+    }
+    else {
+        return;
+    }
 }
 
 =item C<GetOrd(node)>
