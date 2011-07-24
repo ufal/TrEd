@@ -137,6 +137,11 @@
 	Packages with Strawberry Perl included are also available on the <application>TrEd</application>'s home page. These installation wizards 
 	can download and set up Strawberry Perl, if it is not already installed on the system.
       </para>
+      <para>
+	  Active Perl is no longer supported. If you already have Active Perl installed, you have to install Strawberry Perl 
+	  and choose proper custom Perl directory during the installation 
+	  (by default, Strawberry Perl executable is installed to C:\strawberry\perl\bin).
+	</para>
       </section>
       <section>
 	<title>Step 2: installation of <application>TrEd</application></title>
