@@ -49,7 +49,7 @@ use vars qw($quiet $Quiet $debug $carp $csts_xargs $strip_prefix $add_prefix
 	   );
 	   
 # $enable_extensions $disable_extensions -> TrEd::Extensions
-# $userlogin
+# $userlogin is in TrEd::Config now
 
     use TrEd::Extensions;
 
@@ -134,7 +134,7 @@ use constant {
   ERROR_SAVE_SECONDARY => 16,
 };
 
-#TODO: zdielany kod btred, jtred, tred
+
 
 $quiet=1 if $Quiet;
 $NO_HOOKS = 0;
@@ -1620,7 +1620,7 @@ sub openFile {
       $return = 0;
     }
   }
-  unless (!$grp->{FSFile} || defined($grp->{currentNode})) {
+  if ($grp->{FSFile} and !defined($grp->{currentNode})) {
     $grp->{currentNode}=$grp->{root};
   }
 
@@ -1642,16 +1642,16 @@ sub applyFileSuffix {
   if ($goto=~/^##([0-9]+)/) {
     my $no = int($1 - 1);
     $grp->{treeNo}=min(max(0,$no),$fsfile->lastTreeNo);
-    warn "RA $grp->{root}.";
     $grp->{root} = $fsfile->tree($grp->{treeNo});
-    warn "RB $grp->{root}.";
+    
     return 0 if $grp->{treeNo} != $no;
   } elsif ($goto=~/^#([0-9]+)/) {
     # this is PDT 1.0-specific code, sorry
     my $no;
     for (my $i=0;$i<=$fsfile->lastTreeNo;$i++) {
       if ($fsfile->treeList->[$i]->{form} eq "#$1") {
-        $no=$i; last;
+        $no=$i; 
+        last;
       }
     }
     return 0 unless defined $no;
@@ -1723,10 +1723,10 @@ sub applyFileSuffix {
   # new: we're the dot in .[0-9]+ (TM)
   if ($goto=~/\.([0-9]+)$/) {
     my $node=getNodeByNo($grp,$1);
-    warn "N $node";
+
     if ($node) {
       $grp->{currentNode}=$node;
-      warn Dumper $grp;
+
       return 1;
     } else {
       return 0;
