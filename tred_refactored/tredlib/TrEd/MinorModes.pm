@@ -120,7 +120,10 @@ sub update_minor_modes {
     update_minor_mode_menu($grp, $grp->{minorModesMenu}->cget('-menu'), 0);
     update_minor_mode_menu($grp, $grp->{MinorModesMainMenu}, 1);
   }
-  if ($grp->{focusedWindow} == $win) {
+  if (defined $grp->{focusedWindow} 
+      && defined $win 
+      && $grp->{focusedWindow} == $win) 
+  {
     my %activate = map {$_=>1} @{$win->{minorModes}};
     for my $name (keys %{$grp->{minorModesLabels}}) {
       if (not (delete $activate{$name})) {

@@ -105,7 +105,12 @@ sub _get_nodelist_hook {
       my $to=min($no+$context_after,$fsfile->lastTreeNo);
       my $sub = UNIVERSAL::can(CurrentContext(),'get_nodelist_hook')
 	|| UNIVERSAL::can('TredMacro','get_value_line_hook');
-      my $attr=FS()->order();
+	my $schema = FS();
+	my $attr = q{};
+	if (defined $schema) {
+	    $attr=$schema->order();
+	}
+      # my $attr=FS()->order(); 
       my ($nodes,$current);
       my $l = $_[-1];
       if (ref($l) eq 'ARRAY' and @$l==2) {

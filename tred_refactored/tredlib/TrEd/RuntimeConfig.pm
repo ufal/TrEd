@@ -8,12 +8,6 @@ use TrEd::Config;
 # the value set in BEGIN block => don't do it here
 my $configFile; 
 
-BEGIN {
-    # we need to run this early to set up all the config options for other 
-    # modules (not only lib, but also fonts, etc...)
-    # this may setup a new $libDir
-    $configFile = TrEd::Config::read_config();
-}
 
 require TrEd::Error::Message;
 
@@ -37,6 +31,11 @@ sub get_config_from_file {
   } else {
     return;
   }
+}
+
+sub init_config {
+    my ($new_config_file) = @_;
+    $configFile = $new_config_file;
 }
 
 # was main::saveRuntimeConfig
