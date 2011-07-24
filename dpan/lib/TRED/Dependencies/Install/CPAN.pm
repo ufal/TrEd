@@ -178,6 +178,12 @@ sub _print_basic_info {
 	print "Installation info:\n\tPerl version: $]\n";
 	print "\tOS: " . $self->{'platform'} . "\n";
 	print "\tCPAN version:  $CPAN::VERSION\n";
+	my @env_vars = qw{PATH TERM PERL_JSON_BACKEND PERL_YAML_BACKEND};
+	foreach my $var (@env_vars) {
+		print "\t$var:  " . defined $ENV{$var} ? $ENV{$var} : "undef" . "\n";
+	}
+	my $perl_lib = join(";", @INC);
+	print "\tPERL5LIB:  " . $perl_lib . "\n";
 }
 
 sub _install_modules {
