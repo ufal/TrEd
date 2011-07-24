@@ -96,7 +96,9 @@ pack-extensions:
 prepare-tred-web-release:
 	cd admin && ./prepare-tred-web-release.sh
 
-update-dep-packages: prereq update-unix-dep-packages update-win32-dep-packages update-win32-strawberry-dep-packages
+update-dep-packages: prereq update-unix-dep-packages update-win32-strawberry-dep-packages
+# no longer need to do this, only for active perl...
+# update-win32-dep-packages
 
 # Fetch fresh dependency packages from CPAN and other sources
 # (in the unix_install/packages_unix directory)
