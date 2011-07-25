@@ -15,6 +15,7 @@ import TrEd::MinMax;
 import TrEd::MinMax 'sum';
 
 use TrEd::Convert;
+import TrEd::Convert;
 use TrEd::File;
 
 use constant NoHash => {};
@@ -406,29 +407,16 @@ sub store_obj_pinfo {
 #   $self->{iinfo}->{$obj}=$value;
 # }
 
-#######################################################################################
-# Usage         : $tree_view->get_node_pinfo($node, $key)
-# Purpose       : Read the information $key associated with node $node
-# Returns       : Undef/empty list if not called on a TreeView reference. Value of
-#                 the $key if it exists.
-# Parameters    : Treex::PML::Node ref $node -- reference to Node object
-#                 scalar $key                -- property/piece of information name
-# Throws        : No exception
-# Comments      : If $key contains capital letters 'X' or 'Y', the information is 
-#                 treated as coordinates and it is scaled according to current
-#                 scale_factor
-# See Also      : store_node_pinfo(), scale_factor()
 sub get_node_pinfo {
-    my ( $self, $node, $key ) = @_;
-    return if (!ref($self));
-    my $val;
-    $val = $self->{node_info}{$node}{$key};
-    if ( $key =~ /[XY]/ ) {
-        return $self->scale_factor() * $val;
-    }
-    else {
-        return $val;
-    }
+  my ($self,$node,$key) = @_;
+  return undef unless ref($self);
+  my $val;
+  $val = $self->{node_info}{$node}{$key};
+  if ($key=~/[XY]/) {
+    return $self->scale_factor * $val;
+  } else {
+    return $val;
+  }
 }
 
 sub get_obj_pinfo {
@@ -598,43 +586,21 @@ sub value_line {
   }
 }
 
-#######################################################################################
-# Usage         : $tree_view->nodes($fsfile, $tree_no, $prev_current)
-# Purpose       : 
-# Returns       : A list that contains two values -- reference to array 
-#                 of nodes in tree number $tree_no from document $fsfile 
-#                 and current node in this tree.
-# Parameters    : Treex::PML::Document $fsfile -- reference to document file
-#                 scalar $tree_no              -- tree number
-#                 scalar $prev_current         -- suggested current node in the wanted tree
-# Throws        : No exception
-# Comments      : If the $prev_current node is a node of the tree found in $fsfile, 
-#                 the current node is set to $prev_node. Otherwise, the tree's root
-#                 is returned as the current node.
-#                 Runs $TrEd::TreeView::on_get_nodes hook if it is specified.
-# See Also      : Treex::PML::Document::nodes()
 sub nodes {
-    my ( $self, $fsfile, $tree_no, $prevcurrent ) = @_;
-    my $right_to_left = $self->rightToLeft($fsfile);
-    if (!defined $right_to_left) {
-        $right_to_left = $self->{reverseNodeOrder};
+  my ($self,$fsfile,$tree_no,$prevcurrent)=@_;
+  my $right_to_left = $self->rightToLeft($fsfile);
+  $right_to_left = $self->{reverseNodeOrder} unless defined $right_to_left;
+  my $l = callback($on_get_nodes,$self,$fsfile,$tree_no,$prevcurrent);
+  if (ref($l) eq 'ARRAY' and @$l==2) {
+    return @$l;
+  } else {
+    my ($nodes,$current)=$fsfile->nodes($tree_no,$prevcurrent,$self->get_showHidden());
+    if ($right_to_left) {
+      return ([reverse @$nodes],$current);
     }
-    # run hook
-    my $l = callback( $on_get_nodes, $self, $fsfile, $tree_no, $prevcurrent );
-    if ( ref($l) eq 'ARRAY' and @{$l} == 2 ) {
-        return @{$l};
-    }
-    else {
-        my ( $nodes, $current )
-            = $fsfile->nodes( $tree_no, $prevcurrent,
-            $self->get_showHidden() );
-        if ($right_to_left) {
-            return ( [ reverse @{$nodes} ], $current );
-        }
-        return ( $nodes, $current );
-    }
+    return ($nodes,$current);
+  }
 }
-
 
 sub getFontHeight {
   my ($self)=@_;
@@ -1647,6 +1613,34 @@ sub callback {
   }
 }
 
+sub convert_dash {
+    my ($self, $dash, $width) = @_;
+
+    if ($dash=~/\d\s*,/) {
+        return [split ',', $dash];
+    } elsif ($dash!~/\d/) {
+        my $w = $width || $self->get_lineWidth || 1;
+        # manually transform the dash (we do this because itemcget -dash returns garbage and we need a correct value for printing
+        my @out = ();
+        for (split '',$dash) {
+            if ($_ eq '.') {
+                push @out, $w,2*$w;
+            } elsif ($_ eq ',') {
+                push @out, 2*$w,2*$w;
+            } elsif ($_ eq '-') {
+                push @out, 3*$w,2*$w;
+            } elsif ($_ eq '_') {
+                push @out, 4*$w,2*$w;
+            } elsif ($_ eq ' ' and @out) {
+                $out[-1]+=$w;
+            }
+        }
+        return \@out;
+    } else {
+        return '';
+    }
+}
+
 sub redraw {
   my ($self,$fsfile,$currentNode,$nodes,$valtext,$stipple,$grp)=@_;
   #  local $SIG{__DIE__} = sub { Carp::confess(@_) };
@@ -1843,29 +1837,7 @@ sub redraw {
     my @hints=split '&',$line_style->{'-hint'};
     my @dash;
     for my $d (split '&',$line_style->{'-dash'}) {
-      if ($d=~/\d\s*,/) {
-	push @dash, [split ',',$d];
-      } elsif ($d!~/\d/) {
-	my $w = $width[1+$#dash] || $self->get_lineWidth || 1;
-	# manually transform the dash (we do this because itemcget -dash returns garbage and we need a correct value for printing
-	my @d;
-	for (split '',$d) {
-	  if ($_ eq '.') {
-	    push @d, $w,2*$w;
-	  } elsif ($_ eq ',') {
-	    push @d, 2*$w,2*$w;
-	  } elsif ($_ eq '-') {
-	    push @d, 3*$w,2*$w;
-	  } elsif ($_ eq '_') {
-	    push @d, 4*$w,2*$w;
-	  } elsif ($_ eq ' ' and @d) {
-	    $d[-1]+=$w;
-	  }
-	}
-	push @dash,\@d;
-      } else {
-	push @dash,'';
-      }
+      push @dash, $self->convert_dash($d, $width[1+$#dash]);
     }
 
     my @smooth=split '&',$line_style->{'-smooth'};
@@ -1979,6 +1951,7 @@ sub redraw {
 				     ) } (0..int(@obj_coords/2-1)))
 				     : (map(int(($i=($i+1)%2) ? $_+$x : $_+$y), @obj_coords))),
 				-tags => $tag,
+                -dash => exists $obj_spec{dash} ? $self->convert_dash(delete $obj_spec{dash}, $obj_spec{width}) : undef,
 				map(('-'.$_=>$obj_spec{$_}),keys %obj_spec)
 			       );
 	      }
@@ -2307,7 +2280,7 @@ sub redraw {
     my $fontHeight=$self->getFontHeight()*$lineSpacing;
     $self->{canvasHeight}+=$fontHeight; # add some skip
     if ($self->get_drawFileInfo) {
-      my $currentfile=filename($fsfile->filename());
+      my $currentfile=filename($fsfile->filename);
       my ($ftext);
       $ftext="File: $currentfile";
       if (@$nodes) {
@@ -2489,24 +2462,13 @@ sub raise_order {
   }
 }
 
-#######################################################################################
-# Usage         : $tree_view->reset_scroll_region()
-# Purpose       : Reset scroll region of the TrEd::TreeView object
-# Returns       : Undef/empty list
-# Parameters    : no
-# Throws        : No exception
-# Comments      : Sets -scrollregion option, xviewMoveto and yviewMoveto options for 
-#                 Tk::Canvas 
-# See Also      : Tk::Canvas
+
 sub reset_scroll_region {
-    my ($self) = @_;
-    my $canvas = $self->canvas();
-    #these are standard Tk::Canvas functions
-    $canvas->configure( -scrollregion =>
-            [ 0, 0, $self->{canvasWidth} || 0, $self->{canvasHeight} || 0 ] );
-    $canvas->xviewMoveto(0);
-    $canvas->yviewMoveto(0);
-    return;
+  my ($self)=@_;
+  my $canvas = $self->canvas;
+  $canvas->configure(-scrollregion =>[0,0, $self->{canvasWidth}||0, $self->{canvasHeight}||0]);
+  $canvas->xviewMoveto(0);
+  $canvas->yviewMoveto(0);
 }
 
 
