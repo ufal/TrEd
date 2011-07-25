@@ -14,12 +14,11 @@ Include this macro in your binding context if you want to disable all
 default TredMacro key-bindings that modify trees, such as copy/paste,
 etc.
 
+Extensions can also use TredMacro::UnbindTreeEdit($context) function.
+
 =cut
 
-#unbind-key F7
-#unbind-key Shift+F7
-#unbind-key F8
-#unbind-key F5
-#unbind-key F6
-#unbind-key Ctrl+Insert
-#unbind-key Shift+Insert
+require TrEd::ExtensionsAPI;
+# CurrentContext would not work here, because the current context would be 
+# TredMacro, we need to pass the name of package that called this function
+TredMacro::UnbindTreeEdit(__PACKAGE__);
