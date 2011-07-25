@@ -51,7 +51,6 @@ TRED_TARGET_DIR=
 SYSTEM=0
 USE_SVN=0
 LIBS_ONLY=0
-TRED_DIR=
 NO_LIBS=0
 args=()
 while [ $# -gt 0 ]; do
@@ -105,6 +104,7 @@ help () {
             - C libraries to ~/TrEd/dependencies/lib/
             - Perl modules to ~/TrEd/dependencies/lib/perl5/
             - wrapper start_* scripts to ~/TrEd/
+            Recommended for Mac OS X.
 
       ./install_tred.bash --tred-prefix ~
             - same as ./install_tred.bash --tred-dir ~/tred
@@ -112,14 +112,14 @@ help () {
       ./install_tred.bash --tred-dir /opt/tred --prefix /usr
           This installs:
             - TrEd into /opt/tred/
-            - C libraries to /usr/lib/
+            - C libraries to /usr/lib/        (dangerous for Mac OS X)
             - Perl modules to /usr/lib/perl5/
             - wrapper start_* scripts to /usr/bin/
 
       ./install_tred.bash --tred-dir /opt/tred --system
           This installs:
             - TrEd into /opt/tred/
-            - C libraries to /usr/lib/
+            - C libraries to /usr/lib/         (dangerous for Mac OS X)
             - Perl modules to $Config{installsitelib}
             - wrapper start_* scripts to /usr/bin/
 
@@ -184,8 +184,18 @@ fetch_url () {
 	echo "Fetching $1 into $2 using wget..."
 	wget -O "$2" "$1"
     else
-	echo "Fetching $1 into $2 using LWP::Simple..."
-	"$perl" -MLWP::Simple -e '($url,$file)=@ARGV; $res=mirror($url,$file); die "Failed to fetch $url into $file" unless $res==RC_OK or $res==RC_NOT_MODIFIED' "$1" "$2"
+        echo "Fetching $1 into $2 using File::Fetch..."
+        "$perl" -MFile::Fetch -e '
+              ($url, $file) = @ARGV;
+              $ff = File::Fetch->new(uri => $url);
+              die "Error fetching $url\n" unless ref $ff;
+              $res = $ff->fetch;
+              die $ff->error unless defined $res and length $res;
+              $target = $ff->output_file;
+              if ($target ne $file) {
+                rename $target, $file or die "Cannot rename: $!";
+              }
+        ' "$1" "$2"
     fi
 }
 
@@ -205,6 +215,15 @@ Cannot specify both --tred-prefix and --tred-dir!
 EOF
     usage;
     exit 3;
+fi
+
+if [ x`uname -s` == xDarwin ] && ( [ "x$PREFIX" == x/usr ] || [ "x$SYSTEM" = x1 ] ); then
+    echo The installation script is going to rewrite system libraries.  >&2 
+    echo -n 'Are you sure to proceed? (y/n) ' >&2
+    until [ x$answer == xy ] || [ x$answer = xn ] ; do
+        read answer
+    done
+    if [ x$answer == xn ] ; then exit 3 ; fi
 fi
 
 TRED_BUILD_DIR="$1"
