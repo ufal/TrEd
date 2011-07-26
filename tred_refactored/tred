@@ -5798,12 +5798,11 @@ sub cleanup_tredmacro {
 sub loadMacros {
   my ($grp,$opts)=@_;
   $opts||={};
-  use Data::Dumper;
-  
+  #use Data::Dumper;
   
 #  test_tredmacro();
   
-  read_macros(); # read macro tred.mac (and tred.def)
+  read_macros(); # this used to read macro tred.mac (and tred.def), now only init
   
   require TrEd::ExtensionsAPI; #this loads TredMacro API
   # not sure why, we don't need it here...

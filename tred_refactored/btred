@@ -12,10 +12,15 @@
 #
 
 package main;
+
+use strict;
+use warnings;
+
+
 use Carp;
 use Getopt::Long;
 use Pod::Usage;
-use IO;
+#use IO;
 use IO::File;
 use File::Glob qw(:glob);
 use Cwd;
@@ -24,8 +29,11 @@ use strict;
 my $optparser;
 my $exit_code = 0;
 
-BEGIN {
+# temporarily here
+use Data::Dumper;
 
+BEGIN {
+     
 use 5.008;
 use vars qw($quiet $Quiet $debug $carp $csts_xargs $strip_prefix $add_prefix
 	    $strip_suffix $append_suffix $output_format $config_file
@@ -40,7 +48,7 @@ use vars qw($quiet $Quiet $debug $carp $csts_xargs $strip_prefix $add_prefix
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
 	    @files $backend %bkmap $nosave @preload_modules $print_version
 	    $VERSION $lib $extra_backends $file_list $list_options
-	    $_ERR %optmap $no_secondary $include_macro $ioBackends
+	    $_ERR %optmap $no_secondary $include_macro
 	    $locale_charset $host $allow_switch_context
 	    @resource_paths @define_symbols $dump_macros
 	    $strict $warnings $no_backups
@@ -50,8 +58,8 @@ use vars qw($quiet $Quiet $debug $carp $csts_xargs $strip_prefix $add_prefix
 	   
 # $enable_extensions $disable_extensions -> TrEd::Extensions
 # $userlogin is in TrEd::Config now
-
-    use TrEd::Extensions;
+# $ioBackends references repointed to TrEd::Config
+    
 
 ## Passing -o args... -- to TredMacro
 @TredMacro::ARGV=grep { /^-o$/.../^--$/ } @ARGV;
@@ -214,15 +222,15 @@ if (-d $libDir) {
   find_win_home();
 
   eval {
-    setFHEncoding($_ERR,':utf8',"_ERR");
-    setFHEncoding(\*STDERR,$term_encoding,"STDERR");
-    setFHEncoding(\*STDOUT,$term_encoding,"STDOUT");
+    set_fh_encoding($_ERR,':utf8',"_ERR");
+    set_fh_encoding(\*STDERR,$term_encoding,"STDERR");
+    set_fh_encoding(\*STDOUT,$term_encoding,"STDOUT");
   };
 
   my $ld=$libDir;
   require TrEd::Config;
   import TrEd::Config;
-  import TrEd::Config qw(&read_config &set_default_config_file_search_list $defaultMacroFile $macroDebug $hookDebug);
+  import TrEd::Config qw(&read_config &set_default_config_file_search_list $default_macro_file $macroDebug $hookDebug);
   $libDir=$ld;
 }
 
@@ -286,6 +294,8 @@ $Treex::PML::resourcePath=join($Treex::PML::resourcePathSplit,
 
 _msg("Resource path: $Treex::PML::resourcePath\n") unless $quiet;
 
+
+
 # import min and max functions
 require TrEd::MinMax;
 import TrEd::MinMax;
@@ -298,23 +308,25 @@ import TrEd::Convert;
 require TrEd::Macros;
 import TrEd::Macros;
 
+
 $TrEd::Macros::strict = $strict;
 $TrEd::Macros::warnings = $warnings;
 
+
+
 require TrEd::Extensions;
 import TrEd::Extensions qw(:all);
+
 
 # basic tree operations
 require TrEd::Window::TreeBasics;
 import TrEd::Window::TreeBasics;
 
-use TrEd::File;
+require TrEd::File;
+import TrEd::File;
 
 #load back-ends
-@backends=('FS',ImportBackends(
-  split(/,/,$extra_backends),
-  split(/,/,$ioBackends),
-  qw(NTRED Storable PML CSTS TrXML TEIXML PMLTransform)));
+@backends=@{TrEd::File::init_backends($extra_backends)};
 
 
 # these are for macros
@@ -494,6 +506,8 @@ foreach my $module (@preload_modules) {
 }
 
 startMain();
+use Data::Dumper;
+#print Dumper(\%INC);
 exit $exit_code;
 
 ############################
@@ -504,7 +518,7 @@ sub _set_encoding {
   my ($fh,$enc,$what)=@_;
   eval {
     _msg("forcing encoding $enc for $what\n") if $debug;
-    setFHEncoding(@_);
+    set_fh_encoding(@_);
   };
   _msg($@) if $@;
 }
@@ -927,8 +941,8 @@ sub startMain {
 	  defined && s/[\n\r]+$// for ($f,$d,$e);
 	  # chomp $f;
 	  $macroFile = $f if $f;
-	  $enable_extensions = $e;
-	  $disable_extensions = $d;
+	  $TrEd::Extensions::enable_extensions = $e;
+	  $TrEd::Extensions::disable_extensions = $d;
 	  _msg "Reloading macros from $macroFile libdir=$libDir at client's request\n";
 	  %TrEd::Macros::defines=(BTRED => 1); # reset defines
 	  eval {
@@ -1305,8 +1319,8 @@ EOL
 
    _msg "<script>\n$premacro;\n</script>\n" if $tredDebug;
    doEvalMacro($grp,$premacro);
-
-    exit if doEvalHook($grp,"start_hook") eq 'stop'; # run start_hook
+    my $hook_result = doEvalHook($grp,"start_hook");
+    exit if defined $hook_result && $hook_result eq 'stop'; # run start_hook
     preloadFiles($grp,\@files) if $preload; # -P : load all files into memory
 
     exit if $preload and doEvalHook($grp,"preload_hook") eq 'stop'; # run start_hook
@@ -1567,7 +1581,8 @@ sub resumeFile {
 #TODO: aj v trede je
 sub openFile {
   my ($grp,$f,%opts) = @_;
-  if (doEvalHook($grp,"open_file_hook",$f,{%opts}) eq 'stop') {
+  my $hook_result = doEvalHook($grp,"open_file_hook",$f,{%opts}); 
+  if (defined $hook_result && $hook_result eq 'stop') {
     # not sure what status should we return
     return 1;
   }
@@ -1615,7 +1630,8 @@ sub openFile {
   unless ($opts{-justpreloaded}) {
     doEvalHook($grp,"guess_context_hook","file_opened_hook");
     my $hook_result = doEvalHook($grp,"file_opened_hook");
-    if ($opts{'-hook_can_stop'} and
+    if ($opts{'-hook_can_stop'} &&
+      defined $hook_result &&
 	  $hook_result eq 'stop') {
       $return = 0;
     }
@@ -1973,7 +1989,9 @@ sub doEvalHook {
 		     'TredMacro::libDir' => $libDir,
 		     'TredMacro::FileNotSaved' => '?',
 		     'TredMacro::forceFileSaved' => 0);
-  my $result=do_eval_hook($group,$group->{macroContext},$hook);
+  my $result=do_eval_hook($group,$group->{macroContext},$hook,@_);
+  
+  
   _msg "$@" if $@;
   exit ($exit_code|ERROR_HOOK) if ($@ and !$warn_only and !$start_server);
 
@@ -2014,7 +2032,7 @@ sub doEvalMacro {
       $group->{FSFile}->notSaved($group->{FSFile}->notSaved or
 				 get_macro_variable('FileNotSaved'));
     }
-    set_current($group,get_macro_variable('this')) if (get_macro_variable('this'));
+    TrEd::Window::TreeBasics::set_current($group,get_macro_variable('this')) if (get_macro_variable('this'));
   }
   set_macro_variable(
     this => undef,
@@ -2200,8 +2218,8 @@ sub prepareExtensions {
   my $pre_installed;
   {
     my (%e,%d);
-    @e{ split /,/,$enable_extensions }=();
-    @d{ split /,/,$disable_extensions }=();
+    @e{ split /,/,$TrEd::Extensions::enable_extensions }=();
+    @d{ split /,/,$TrEd::Extensions::disable_extensions }=();
     if ($macro) {
       _msg("Using -m implies all extensions disabled...\n") unless $quiet;
     }
@@ -2235,10 +2253,30 @@ sub prepareExtensions {
 }
 
 #TODO: dtto, duplicita
+#TODO: bude treba upravit pre nove makra!!!
+# cim skor
 sub loadMacros {
 
-  _msg("Reading macros from $macroFile...\n") unless $quiet;
-  read_macros($macroFile,$libDir);	# read macros
+  #_msg("Reading macros from $macroFile...\n") unless $quiet;
+  read_macros();	# read macros
+
+    require TrEd::ExtensionsAPI; #this loads TredMacro API
+  # not sure why, we don't need it here...
+  #TredMacro->import;
+  TredMacro::init_tredmacro_bindings();
+  
+  # set minor modes and this stuff, can't do it at compile time, since there is no grp...
+#    TrEd::Macros::set_macro_variable('grp', $grp->{focusedWindow});
+#    # minor modes
+#    require TrEd::MinorMode::Move_Nodes_Freely;
+#    require TrEd::MinorMode::Show_Neighboring_Sentences;
+#    require TrEd::MinorMode::Show_Neighboring_Trees;
+#    
+#    # minors
+#    TrEd::MinorMode::Move_Nodes_Freely::init_minor_mode();
+#    TrEd::MinorMode::Show_Neighboring_Sentences::init_minor_mode();
+#    TrEd::MinorMode::Show_Neighboring_Trees::init_minor_mode();
+  
 
   my ($extensions,$pre_installed,$preinst_dir) = prepareExtensions();
   init_extensions($extensions);
@@ -2252,7 +2290,7 @@ sub loadMacros {
     push @TrEd::Macros::macros,qq(\n\n=pod\n\n=cut\n\n} # end of "$ext_contrib"\n);
   }
   if ($include_macro) {
-    _msg("Reading additional macros from $include_macro...\n") unless $quiet;
+    _msg("Reading additional macros frosam $include_macro...\n") unless $quiet;
     push @TrEd::Macros::macros,qq(\n#line 0 "$include_macro"\n{\npackage TredMacro;\n);
     read_macros($include_macro,$libDir,1);
     push @TrEd::Macros::macros,qq(\n\n=pod\n\n=cut\n\n} # end of "$include_macro"\n);

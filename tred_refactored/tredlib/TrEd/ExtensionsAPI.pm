@@ -5,7 +5,7 @@
 package TredMacro;
 
 use strict;
-use warnings;
+#use warnings;
 
 
 use Exporter;
@@ -319,22 +319,27 @@ BEGIN {
   import Treex::PML qw(&Index &CloneValue &FindInResources &FindDirInResources &ResolvePath);
 #  import main;
 
+# these includes are only for tred with GUI
+if ( exists &Tk::MainLoop ) {
+        require TrEd::Binding::Default;
+        require TrEd::ManageFilelists;
+        require TrEd::Filelist::Navigation;
+        require TrEd::Toolbar::User::Manager;
+        
+    }
+
 }
 
 use vars @FORCE_EXPORT;
 
-
 # new ones
 use TrEd::Window::TreeBasics;
 use TrEd::Error::Message;
-use TrEd::Binding::Default;
+
 use TrEd::File;
-use TrEd::ManageFilelists;
 use TrEd::Utils;
 use TrEd::Config;
 use TrEd::Convert;
-use TrEd::Filelist::Navigation;
-use TrEd::Toolbar::User::Manager;
 use TrEd::MinorModes;
 use TrEd::Stylesheet;
 
@@ -506,7 +511,6 @@ Display the next tree in the current file.
 
 sub NextTree {
 #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
-print STDERR ">>>>>>>> NextTree\n";
   my $result=TrEd::Window::TreeBasics::next_tree($grp);
   $root=$grp->{root};
   $this=$root;
@@ -3019,7 +3023,7 @@ displayed file.
 
 =cut
 
-sub STYLESHEET_FROM_FILE { &main::STYLESHEET_FROM_FILE }
+sub STYLESHEET_FROM_FILE { &TrEd::Stylesheet::STYLESHEET_FROM_FILE }
 
 =item C<SetStylesheetPatterns(patterns,stylesheet,create)>
 
@@ -3736,8 +3740,10 @@ any other value means no update. Default is 'ask'.
 
 sub SaveAs {
   # TODO: implement in btred
-#ifdef TRED
   my ($opts)=@_;
+  if (!TrEd::Macros::is_defined('TRED')) {
+      _croak("SaveAs(): Not yet implemented!");
+  }
   if (!ref($opts)) {
     $opts  = { filename => $opts };
   }
@@ -3757,9 +3763,6 @@ sub SaveAs {
   $FileNotSaved=GetFileSaveStatus();
   $forceFileSaved=!$FileNotSaved;
   return $ret;
-#else
-  _croak("SaveAs(): Not yet implemented!");
-#endif
 }
 
 =item C<GetOpenFiles()>
@@ -3770,11 +3773,12 @@ postponed files).
 =cut
 
 sub GetOpenFiles {
-#ifdef TRED
-  return TrEd::File::get_openfiles();
-#else
-  return grep defined, ($grp->{fsfile}, values %{$grp->{preloaded}});
-#endif
+  if (TrEd::Macros::is_defined('TRED')) {
+    return TrEd::File::get_openfiles();
+  }
+  else {
+      return grep defined, ($grp->{fsfile}, values %{$grp->{preloaded}});
+  }
 }
 
 
@@ -3825,6 +3829,7 @@ Creates a new TrED filelist from a given C<Filelist> object.
 #ifdef TRED
 sub AddNewFileList {
   my ($fl)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   croak("Not a file-list object") unless UNIVERSAL::DOES::does($fl,'Filelist');
   TrEd::ManageFilelists::add_new_filelist($grp->{framegroup},$fl);
 }
@@ -3841,6 +3846,7 @@ from TrEd's internal list of open filelists.
 #ifdef TRED
 sub RemoveFileList {
   my ($fl)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   $fl = GetFileList($fl) unless ref($fl);
   croak("No such file-list") unless UNIVERSAL::DOES::does($fl,'Filelist');
   TrEd::ManageFilelists::deleteFilelist($grp->{framegroup},$fl);
@@ -3857,6 +3863,7 @@ This macro is only available in TrEd. It returns the current file-list
 
 #ifdef TRED
 sub GetCurrentFileList {
+  return if !TrEd::Macros::is_defined('TRED');
   my $win = $_[0] || $grp;
   return $win->{currentFilelist};
 }
@@ -3873,6 +3880,7 @@ and returns the corresponding C<Filelist> object. Returns undef if not found.
 #ifdef TRED
 sub GetFileList {
   my ($name) = @_;
+  return if !TrEd::Macros::is_defined('TRED');
   return unless defined $name;
   my @filelists = TrEd::ManageFilelists::get_filelists();
   return first { $_->name eq $name } @filelists;
@@ -3913,6 +3921,7 @@ name for the current window.
 #ifdef TRED
 sub SetCurrentFileList {
   my $name=shift;
+  return if !TrEd::Macros::is_defined('TRED');
   croak("Usage: SelectFilelist(name)") if !defined($name) or ref($name) or !length($name);
   TrEd::ManageFilelists::selectFilelist($grp,$name,@_);
 }
@@ -3944,6 +3953,7 @@ filelists.
 
 #ifdef TRED
 sub TrEdFileLists {
+  return if !TrEd::Macros::is_defined('TRED');
   return TrEd::ManageFilelists::get_filelists();
 }
 #endif
@@ -4887,6 +4897,7 @@ sub noop { 1 }
 #ifdef TRED
 sub NewUserToolbar {
   my ($name,$opts)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   my $user_toolbar = TrEd::Toolbar::User::Manager::create_new_user_toolbar($grp->{framegroup},$name,$opts);
   return $user_toolbar->get_user_toolbar() if defined $user_toolbar;
   return;
@@ -4894,6 +4905,7 @@ sub NewUserToolbar {
 
 sub GetUserToolbar {
   my ($name)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
   return $user_toolbar->get_user_toolbar() if defined $user_toolbar;
   return;
@@ -4902,11 +4914,13 @@ sub GetUserToolbar {
 
 sub RemoveUserToolbar {
   my ($name)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   return TrEd::Toolbar::User::Manager::destroy_user_toolbar($grp->{framegroup},$name);
 }
 
 sub DestroyUserToolbar {
   my ($name)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   my $tb =  TrEd::Toolbar::User::Manager::destroy_user_toolbar($grp->{framegroup},$name);
   $tb->destroy if $tb;
   return;
@@ -4914,6 +4928,7 @@ sub DestroyUserToolbar {
 
 sub HideUserToolbar {
   my ($name)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
   return $user_toolbar->hide() if defined $user_toolbar;
   return;
@@ -4921,6 +4936,7 @@ sub HideUserToolbar {
 
 sub ShowUserToolbar {
   my ($name)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
   return $user_toolbar->show() if defined $user_toolbar;
   return;
@@ -4928,6 +4944,7 @@ sub ShowUserToolbar {
 
 sub EnableUserToolbar {
   my ($name)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   my $tb =  GetUserToolbar($name);
   if ($tb) {
     for my $w (main::get_widget_descendants($tb)) {
@@ -4940,6 +4957,7 @@ sub EnableUserToolbar {
 
 sub DisableUserToolbar {
   my ($name)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   my $tb =  GetUserToolbar($name);
   if ($tb) {
     for my $w (main::get_widget_descendants($tb)) {
@@ -4952,11 +4970,13 @@ sub DisableUserToolbar {
 
 sub UserToolbarVisible {
   my ($name)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
   return $user_toolbar->visible();
 }
 sub AttachTooltip {
   my ($widget, $message)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   $grp->{framegroup}{Balloon}->attach($widget, -balloonmsg=> $message);
 }
 
@@ -4969,6 +4989,7 @@ sub AttachTooltip {
 sub DeclareMinorMode {
 #ifdef TRED
   my ($name,$opts)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   croak "The 1st argument to DeclareMinorMode must be a context name!" unless (defined($name) and length($name) and !ref($name));
   croak "The 2nd argument to DeclareMinorMode must be a hash reference!" unless ref($opts) eq 'HASH';
 #  croak "Too soon to call  DeclareMinorMode" unless ref($grp) and ref($grp->{framegroup});
@@ -4979,6 +5000,7 @@ sub DeclareMinorMode {
 sub EnableMinorMode {
 #ifdef TRED
   my ($name, $win)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   TrEd::MinorModes::enable_minor_mode($win || $grp, $name);
 #endif
 }
@@ -4986,6 +5008,7 @@ sub EnableMinorMode {
 sub DisableMinorMode {
 #ifdef TRED
   my ($name,$win)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   TrEd::MinorModes::disable_minor_mode($win || $grp,$name);
 #endif
 }
@@ -4993,6 +5016,7 @@ sub DisableMinorMode {
 sub ListEnabledMinorModes {
 #ifdef TRED
   my ($win)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   $win||=$grp;
   return ref($win->{minorModes}) ? @{$win->{minorModes}} : ();
 #endif
@@ -5001,6 +5025,7 @@ sub ListEnabledMinorModes {
 sub IsMinorModeEnabled {
 #ifdef TRED
   my ($name,$win)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   $win||=$grp;
   return 0 unless ref($win->{minorModes});
   for my $c (@{$win->{minorModes}}) {
@@ -5013,6 +5038,7 @@ sub IsMinorModeEnabled {
 sub SetMinorModeData {
 #ifdef TRED
   my ($name,$key,$value,$win)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   $win||=$grp;
   return $win->{minorModeData}{$name}{$key}=$value;
 #endif
@@ -5021,20 +5047,16 @@ sub SetMinorModeData {
 sub GetMinorModeData {
 #ifdef TRED
   my ($name,$key,$win)=@_;
+  return if !TrEd::Macros::is_defined('TRED');
   $win||=$grp;
   return $win->{minorModeData}{$name}{$key};
 #endif
 }
 
 
-
-
 =back
 
 =cut
-
-
-
 
 
 1;

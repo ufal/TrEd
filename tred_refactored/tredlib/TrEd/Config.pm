@@ -17,7 +17,6 @@ BEGIN {
     use Exporter ();
     use base qw(Exporter);
 
-    #  use Tk; # Tk::strictMotif
     $VERSION = "0.2";
     @EXPORT  = qw(@config_file_search_list $set_user_config $override_options
         $appName

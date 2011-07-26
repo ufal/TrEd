@@ -4,7 +4,8 @@ use strict;
 use warnings;
 
 use TrEd::MinMax;
-use TrEd::File qw{absolutize};
+require TrEd::File;
+TrEd::File->import(qw{absolutize});
 
 use Readonly;
 

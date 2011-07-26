@@ -4,9 +4,15 @@
 
 package TredMacro;
 
-require TrEd::Query::List;
-require TrEd::Query::String;
-require TrEd::Dialog::FocusFix;
+BEGIN {
+    # load only if we use GUI, not in btred
+    if ( exists &Tk::MainLoop ) {
+        require TrEd::Query::List;
+        require TrEd::Query::String;
+        require TrEd::Dialog::FocusFix;
+    }
+}
+
 
 use strict;
 use warnings;
@@ -665,6 +671,10 @@ sub guess_context_hook {
   return SwitchContext($mode) if defined $mode;
   return unless $grp->{FSFile};
   foreach my $sub (@TredMacro::AUTO_CONTEXT_GUESSING) {
+#      use Data::Dumper;
+#      $Data::Dumper::Deparse = 1;
+#      print 'guess context: ' . Dumper($sub);
+#      print "hook: $hook\n\n";
     my $ret = &$sub;
     if (defined($ret)) {
       SwitchContext($ret);
