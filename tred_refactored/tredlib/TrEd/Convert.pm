@@ -50,7 +50,7 @@ BEGIN {
             $outputenc="iso-8859-2";
         }
     }
-    $support_unicode = ($Tk::VERSION ge 804.00);
+    $support_unicode = (defined $Tk::VERSION && $Tk::VERSION ge 804.00);
     if ($support_unicode) {
         require TrEd::ConvertArab;
         require TrEd::ArabicRemix;

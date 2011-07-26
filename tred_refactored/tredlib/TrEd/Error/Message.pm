@@ -3,8 +3,6 @@ package TrEd::Error::Message;
 use strict;
 use warnings;
 
-use Tk;
-
 
 our $VERSION = "0.1";
 our $on_error = undef;

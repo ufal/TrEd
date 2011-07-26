@@ -17,11 +17,16 @@ use Treex::PML qw{&Index};
 use Treex::PML::IO;
 use Filelist;
 require TrEd::Bookmarks;
-require TrEd::Dialog::File::Open;
 
-require TrEd::Query::List;
-require TrEd::Query::User;
-require TrEd::Query::Simple;
+BEGIN {
+    if ( exists &Tk::MainLoop ) {
+        require TrEd::Dialog::File::Open;
+        require TrEd::Query::List;
+        require TrEd::Query::User;
+        require TrEd::Query::Simple;
+    }
+}
+
 
 our $VERSION = "0.1";
 

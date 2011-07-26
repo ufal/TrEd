@@ -430,7 +430,7 @@ sub _test_macro_file {
   # clear macros loaded before
   @TrEd::Macros::macros = ();
   # load macro from new macro file
-  TrEd::Macros::preprocess($macro_fh, $macro_file_name, \@TrEd::Macros::macros, \@TrEd::Macros::contexts);
+  TrEd::Macros::preprocess($macro_fh, $macro_file_name, \@TrEd::Macros::macros, \@TrEd::Macros::contexts, $TrEd::Config::libDir);
   # check if it contains what it should 
   if(defined($should_contain_ref) && ref($should_contain_ref)) {
     _test_macros_contain($should_contain_ref);

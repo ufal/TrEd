@@ -4,17 +4,16 @@ use strict;
 #use warnings;
 use Carp;
 
-#use Data::Dumper;
+use Data::Dumper;
 
 BEGIN {
   use Cwd;
   use Treex::PML;
   use File::Spec;
   use File::Glob qw(:glob);
-  use TrEd::Config;
+  use TrEd::Config qw($default_macro_file $default_macro_encoding $macroDebug $hookDebug);
   use TrEd::Utils qw{uniq $EMPTY_STR};
   use TrEd::Error::Message;
-  import TrEd::Config qw($default_macro_file $default_macro_encoding $macroDebug $hookDebug);
   use TrEd::Convert;
   use TrEd::File qw{dirname};
   use Encode ();
@@ -46,11 +45,6 @@ BEGIN {
   # can be used from perl 5.8
   $useEncoding = ($]>=5.008);
 }
-
-# can not 'use', circular reference :/
-# do we need it here??
-#require TrEd::ExtensionsAPI;
-#TredMacro->import;
 
 
 my @current_binding_contexts = qw{TredMacro};
@@ -544,7 +538,7 @@ sub read_macros {
     || (!$keep && ($file = "$libDir/$file") && open($macro_filehandle,'<',$file)) ||
       croak("ERROR: Cannot open macros: $file ($!)!\n");
   set_encoding($macro_filehandle, $encoding);
-  preprocess($macro_filehandle, $file, \@macros, \@contexts);
+  preprocess($macro_filehandle, $file, \@macros, \@contexts, $libDir);
 #  print "===================================================================\n";
 #  print join("\n", @macros) . "\n";
 #  print "===================================================================\n";
@@ -577,7 +571,7 @@ sub set_current_binding_contexts {
 }
 
 #######################################################################################
-# Usage         : preprocess($file_handle, $file_name, \@macros, \@contexts)
+# Usage         : preprocess($file_handle, $file_name, \@macros, \@contexts, $libDir)
 # Purpose       : Preprocess file $file_name, save the results to macros and contexts arrays
 #                 Include #includes and #ifincludes respecting #ifdefs, #ifndefs, #elsifs, etc.
 # Returns       : nothing
@@ -585,6 +579,7 @@ sub set_current_binding_contexts {
 #                 string $file_name         -- name of the file whose handle is passed as arg 1
 #                 array_ref $macros         -- reference to array storing lines of macro files
 #                 array_ref $contexts       -- reference to array storing macro contexts, i.e. TrEd modes
+#                 scalar $libDir            -- directory which contains TrEd libraries 
 # Throws        : a scalar (string) if it fails to include a file or finds unmatched elseif/endif
 # Comments      : new "pragmas":
 #                   include <file>  ... relative to tred's libdir
@@ -603,7 +598,7 @@ sub set_current_binding_contexts {
 #                   insert <method> [as] [menu] <menu>[/submenu[/...]]
 # See Also      : read_macros(), 
 sub preprocess {
-  my ($file_handle, $file_name, $macros_ref, $contexts_ref) = @_;
+  my ($file_handle, $file_name, $macros_ref, $contexts_ref, $libDir) = @_;
   # Again, turn off UTF-8 flag for string $file_name, it is used as a comment in macro string
   Encode::_utf8_off($file_name);
 
@@ -728,7 +723,7 @@ sub preprocess {
           my $f = $2;
           # don't include these, they already exist as Perl packages
           if ($f =~ m/tred\.mac/ || $f =~ m/move_nodes_freely\.inc/) {
-              warn "\n!!! Trying to #include $f\n This is now obsolete! Please just import the namespace instead.\n";
+              warn "\nTrying to #include $f. This is now obsolete. Please just import the namespace instead.\n\n";
               next;
           };
           Encode::_utf8_off($f);

@@ -17,14 +17,17 @@ BEGIN {
                 set_fs_lock_info 
                 set_lock
                );
+   if ( exists &Tk::MainLoop ) {
+        # it is not very good that TrEd::FileLock loads this Tk and GUI stuff :/
+        # dialogs for asking for user choices, 
+        require TrEd::Query::User;
+    }
 }
 
 use TrEd::Config qw{$noLockProto $userlogin $tredDebug $lockFiles};
 use TrEd::Utils qw{$EMPTY_STR};
 use Treex::PML;
 use Carp;
-
-require TrEd::Query::User;
 
 # funkcie vytiahnute z main namespace-u
 

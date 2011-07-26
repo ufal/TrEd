@@ -15,11 +15,14 @@ use TrEd::Stylesheet;
 
 require Filelist;
 
-# it is not very good that TrEd::File loads this Tk and GUI stuff :/
-# dialogs for asking for user choices, 
-require TrEd::Query::List;
-require TrEd::Query::User;
-
+BEGIN {
+    if ( exists &Tk::MainLoop ) {
+        # it is not very good that TrEd::File loads this Tk and GUI stuff :/
+        # dialogs for asking for user choices, 
+        require TrEd::Query::List;
+        require TrEd::Query::User;
+    }
+}
 
 use Carp;
 use Cwd;
@@ -78,7 +81,7 @@ my @backends = ();
 #######################################################################################
 # Usage         : init_backends($cmdline_backends)
 # Purpose       : Initialize and import backends for reading various file types
-# Returns       : Undef/empty list
+# Returns       : List of loaded backends
 # Parameters    : scalar $cmdline_backends -- string of comma separated backend names
 # Throws        : No exception
 # Comments      : Relies on Treex::PML::ImportBackends function
@@ -104,7 +107,7 @@ sub init_backends {
                 }
         )
     );
-    return;
+    return \@backends;
 }
 
 
