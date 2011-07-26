@@ -30,44 +30,51 @@ as you need.
 =cut
 
 sub fold_subtree_toggle {
-  my $hide = FileUserData("hide") || {};   # hash nodes not to show
-  my $fold = FileUserData("fold") || {};   # fold-state of a subtree
-  my $folded = $fold->{$this}; # currently folded
+    my $hide = FileUserData('hide') || {};    # hash nodes not to show
+    my $fold = FileUserData('fold') || {};    # fold-state of a subtree
+    my $folded = $fold->{$this};              # currently folded
 
-  $fold->{$this}=!$folded; # toggle
-  my $node=$this->firstson;
-  while ($node) {
-     $hide->{$node}=!$folded; # toggle visibility
+    $fold->{$this} = !$folded;                # toggle
+    my $node = $this->firstson;
+    while ($node) {
+        $hide->{$node} = !$folded;            # toggle visibility
 
-     if ($fold->{$node}) {
-        # this is a folded subtree within our folded subtree
-        # we skip it, keeping it folded and the nodes hidden
-        $node=$node->following_right_or_up($this);
-     } else {
-        # next node
-        $node=$node->following($this);
-     }
-  }
-  # store the data
-  FileUserData("hide",$hide);
-  FileUserData("fold",$fold);
-  ChangingFile(0);
+        if ( $fold->{$node} ) {
+
+            # this is a folded subtree within our folded subtree
+            # we skip it, keeping it folded and the nodes hidden
+            $node = $node->following_right_or_up($this);
+        }
+        else {
+
+            # next node
+            $node = $node->following($this);
+        }
+    }
+
+    # store the data
+    FileUserData( 'hide', $hide );
+    FileUserData( 'fold', $fold );
+    ChangingFile(0);
+    return;
 }
 
 sub fold_subtree_unfold_all {
-  my $hide = FileUserData("hide") || {};
-  my $fold = FileUserData("fold") || {};
-  my $folded = $fold->{$this}; # currently folded
+    my $hide = FileUserData('hide') || {};
+    my $fold = FileUserData('fold') || {};
+    my $folded = $fold->{$this};    # currently folded
 
-  delete $fold->{$this};
-  my $node=$this->firstson;
-  while ($node) {
-     delete $fold->{$node};
-     delete $hide->{$node};
-     $node=$node->following($this);
-  }
-  # store the data
-  FileUserData("hide",$hide);
-  FileUserData("fold",$fold);
-  ChangingFile(0);
+    delete $fold->{$this};
+    my $node = $this->firstson;
+    while ($node) {
+        delete $fold->{$node};
+        delete $hide->{$node};
+        $node = $node->following($this);
+    }
+
+    # store the data
+    FileUserData( 'hide', $hide );
+    FileUserData( 'fold', $fold );
+    ChangingFile(0);
+    return;
 }

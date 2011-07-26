@@ -791,8 +791,8 @@ sub _required_perl_version {
     my ($req_modules_ref) = @_;
 
     my $requires_perl = $EMPTY_STR;
-    foreach my $requirements ( grep { lc( $_->{name} ) eq 'perl' }
-        @{$req_modules_ref} )
+    foreach my $requirements ( grep { length $_ && lc( $_->{name} ) eq 'perl' }
+                               @{$req_modules_ref} )
     {
         my $req = $EMPTY_STR;
         if ( $requirements->{min_version} ) {
