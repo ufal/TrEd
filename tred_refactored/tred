@@ -2232,8 +2232,8 @@ sub newTreeView {
 		   $treeViewOpts->{backgroundColor} 
 		   ? (-background=> $treeViewOpts->{backgroundColor}) : ()
 		  );
-  canvasBindMouseWheelVert($canvas,"");
-  canvasBindMouseWheelHoriz($canvas,"Shift");
+  canvasBindMouseWheelVert($canvas,"", $grp);
+  canvasBindMouseWheelHoriz($canvas,"Shift", $grp);
   canvasBindMouseScale($grp,$canvas,"Control");
   createCanvasBindings($grp,$canvas);
   addBindTags($canvas,'my');
@@ -2430,15 +2430,14 @@ sub canvasBindMouseScale {
 
 # UI, mouse wheel
 sub canvasBindMouseWheelVert {
-    my($w,$modifier)= @_;
+    my($w,$modifier, $grp)= @_;
     $modifier||="";
     $modifier.="-" if ($modifier);
-    for my $widget ($Tk::platform eq 'MSWin32' ?
-		    ($w->toplevel,$w) : ($w)) {
+    for my $widget ($Tk::platform eq 'MSWin32' ? ($w->toplevel,$w) : ($w)) {
       $widget->Tk::bind("<$modifier"."MouseWheel>",
 			[ sub {
-			    $_[1]->yview('scroll',-($_[2]/120),'units')
-			  }, $w, Tk::Ev("D")]);
+			    $grp->{focusedWindow}->canvas()->yview('scroll',-($_[2]/120),'units')
+			  }, $w, Tk::Ev("D"), $grp]);
     }
     if ($Tk::platform ne 'MSWin32') {
       $w->CanvasBind("<$modifier"."4>", sub { $_[0]->yview('scroll', -3, 'units')
@@ -2460,13 +2459,14 @@ sub canvasBindMouseWheelVert {
 
 # UI, mouse wheel
 sub canvasBindMouseWheelHoriz {
-    my($w,$modifier)= @_;
+    my($w,$modifier, $grp)= @_;
     $modifier||="";
     $modifier.="-" if ($modifier);
-    for my $widget ($Tk::platform eq 'MSWin32' ?
-		    ($w->toplevel,$w) : ($w)) {
+    for my $widget ($Tk::platform eq 'MSWin32' ? ($w->toplevel,$w) : ($w)) {
       $widget->Tk::bind("<$modifier"."MouseWheel>",
-			  [ sub { $_[1]->xview('scroll',-($_[2]/120),'units') }, $w, Tk::Ev("D")]);
+			  [ sub {
+			  	$grp->{focusedWindow}->canvas()->xview('scroll',-($_[2]/120),'units') }, $w, Tk::Ev("D"),$grp
+			  ]);
     }
     if ($Tk::platform ne 'MSWin32') {
       $w->CanvasBind("<$modifier"."4>", sub { $_[0]->xview('scroll', -3, 'units')
