@@ -64,281 +64,322 @@
 
 #endif no_extra_edit_menu_bindings
 
-
 #include "reordering.inc"
 
-
 sub new_tree_after {
-  DetermineNodeType(NewTreeAfter());
+    return DetermineNodeType( NewTreeAfter() );
 }
+
 sub new_rbrother {
-  my $save = $this;
-  my $new = NewRBrother();
-  unless (DetermineNodeType($new)) {
-    DeleteLeafNode($new);
-    $this=$save;
-    return;
-  }
-  return $new;
+    my $save = $this;
+    my $new  = NewRBrother();
+    if ( !DetermineNodeType($new) ) {
+        DeleteLeafNode($new);
+        $this = $save;
+        return;
+    }
+    return $new;
 }
+
 sub new_lbrother {
-  my $save = $this;
-  my $new = NewLBrother();
-  unless (DetermineNodeType($new)) {
-    DeleteLeafNode($new);
-    $this=$save;
-    return;
-  }
-  return $new;
+    my $save = $this;
+    my $new  = NewLBrother();
+    if ( !DetermineNodeType($new) ) {
+        DeleteLeafNode($new);
+        $this = $save;
+        return;
+    }
+    return $new;
 }
+
 sub new_son {
-  my $save = $this;
-  my $new = NewSon();
-  unless (DetermineNodeType($new)) {
-    DeleteLeafNode($new);
-    $this=$save;
-    return;
-  }
-  return $new;
+    my $save = $this;
+    my $new  = NewSon();
+    if ( !DetermineNodeType($new) ) {
+        DeleteLeafNode($new);
+        $this = $save;
+        return;
+    }
+    return $new;
 }
+
 sub new_parent {
-  return unless $this->parent;
-  my $save = $this;
-  my $new = NewParent();
-  unless (DetermineNodeType($new)) {
-    delete_node_keep_children($new);
-    $this=$save;
-    return;
-  }
-  return $new;
+    return if !$this->parent;
+    my $save = $this;
+    my $new  = NewParent();
+    if ( !DetermineNodeType($new) ) {
+        delete_node_keep_children($new);
+        $this = $save;
+        return;
+    }
+    return $new;
 }
 
 sub cut_to_firstson {
-  return unless ($this and $this->firstson and $this->parent);
-  my $p=$this->parent;
-  my $b=$this->firstson;
+    return if ( !$this || !$this->firstson || !$this->parent );
+    my $p = $this->parent;
+    my $first_son = $this->firstson;
 
-  if (!$b->test_child_type($this) or
-      !$p->test_child_type($b) or
-      first {!$b->test_child_type($_) } $this->children
-     ) {
-    QuestionQuery("Cannot move node",
-		  "Incompatible node types!\n",
-		  'Ok');
+    if (   !$first_son->test_child_type($this)
+        || !$p->test_child_type($first_son)
+        || first { !$first_son->test_child_type($_) } $this->children )
+    {
+        QuestionQuery( 'Cannot move node',
+            "Incompatible node types!\n", 'Ok' );
+        return;
+    }
+
+    CutNode($first_son);
+    $this = CutPaste( $this, $first_son );
+    $first_son = PasteNode( $first_son, $p );
+    foreach ( $this->children ) {
+        CutPaste( $_, $first_son );
+    }
     return;
-  }
-
-  CutNode($b);
-  $this=CutPaste($this,$b);
-  $b=PasteNode($b,$p);
-  foreach ($this->children) {
-    CutPaste($_,$b);
-  }
 }
+
 sub cut_to_parents_parent {
-  my $p = $this && $this->parent && $this->parent->parent;
-  return unless $p;
-  if (!$p->test_child_type($this)) {
-    QuestionQuery("Cannot move node",
-		  "Incompatible node types!\n",
-		  'Ok');
-    return;
-  }
+    my $p = $this && $this->parent && $this->parent->parent;
+    return if !$p;
+    if ( !$p->test_child_type($this) ) {
+        QuestionQuery( 'Cannot move node',
+            "Incompatible node types!\n", 'Ok' );
+        return;
+    }
 
-  my $ordering=TredMacro::_node_ord($this->parent);
-  if (defined($ordering) and length($ordering)) {
-    CutPaste($this,$p);
-  } else {
-    CutPasteAfter($this,$this->parent);
-  }
+    my $ordering = TredMacro::_node_ord( $this->parent );
+    if ( defined $ordering && length $ordering ) {
+        return CutPaste( $this, $p );
+    }
+    else {
+        return CutPasteAfter( $this, $this->parent );
+    }
 }
+
 sub cut_to_parents_rbrother {
-  return unless $this and $this->parent and $this->parent->rbrother;
-  my $b=$this->parent->rbrother;
-  if (!$b->test_child_type($this)) {
-    QuestionQuery("Cannot move node",
-		  "Incompatible node types!\n",
-		  'Ok');
-    return;
-  }
-  CutPaste($this,$b);
+    return if (!$this || !$this->parent || !$this->parent->rbrother);
+    my $parents_rbrother = $this->parent->rbrother;
+    if ( !$parents_rbrother->test_child_type($this) ) {
+        QuestionQuery( 'Cannot move node',
+            "Incompatible node types!\n", 'Ok' );
+        return;
+    }
+    return CutPaste( $this, $parents_rbrother );
 }
+
 sub cut_to_parents_lbrother {
-  return unless $this and $this->parent and $this->parent->lbrother;
-  my $b=$this->parent->lbrother;
-  if (!$b->test_child_type($this)) {
-    QuestionQuery("Cannot move node",
-		  "Incompatible node types!\n",
-		  'Ok');
-    return;
-  }
-  CutPaste($this,$b);
+    return if (!$this || !$this->parent || !$this->parent->lbrother);
+    my $parents_lbrother = $this->parent->lbrother;
+    if ( !$parents_lbrother->test_child_type($this) ) {
+        QuestionQuery( 'Cannot move node',
+            "Incompatible node types!\n", 'Ok' );
+        return;
+    }
+    return CutPaste( $this, $parents_lbrother );
 }
+
 sub cut_to_sibling {
-  return unless $this;
-  my $b = $this->lbrother;
-  if ($b) {
-    if ($b->firstson) {
-      my $ordering=TredMacro::_node_ord($b->firstson);
-      if (defined($ordering) and length($ordering)) {
-	if (!$b->test_child_type($this)) {
-	  QuestionQuery("Cannot move node",
-			"Incompatible node types!\n",
-			'Ok');
-	  return;
-	}
-	CutPaste($this,$b);
-      } else {
-	if (!$b->test_child_type($this)) {
-	  QuestionQuery("Cannot move node",
-			"Incompatible node types!\n",
-			'Ok');
-	  return;
-	}
-	$b=$b->firstson;
-	$b=$b->rbrother while $b->rbrother;
-	CutPasteAfter($this,$b);
-      }
-    } else {
-      if (!$b->test_child_type($this)) {
-	QuestionQuery("Cannot move node",
-		      "Incompatible node types!\n",
-		      'Ok');
-	return;
-      }
-      CutPaste($this,$b);
+    return if !$this;
+    my $sibling = $this->lbrother;
+    if ($sibling) {
+        if ( $sibling->firstson ) {
+            my $ordering = TredMacro::_node_ord( $sibling->firstson );
+            if ( defined $ordering and length $ordering ) {
+                if ( !$sibling->test_child_type($this) ) {
+                    QuestionQuery(
+                        'Cannot move node',
+                        "Incompatible node types!\n",
+                        'Ok'
+                    );
+                    return;
+                }
+                CutPaste( $this, $sibling );
+            }
+            else {
+                if ( !$sibling->test_child_type($this) ) {
+                    QuestionQuery(
+                        'Cannot move node',
+                        "Incompatible node types!\n",
+                        'Ok'
+                    );
+                    return;
+                }
+                $sibling = $sibling->firstson;
+                while ($sibling->rbrother) {
+                    $sibling = $sibling->rbrother;
+                }
+                CutPasteAfter( $this, $sibling );
+            }
+        }
+        else {
+            if ( !$sibling->test_child_type($this) ) {
+                QuestionQuery(
+                    'Cannot move node',
+                    "Incompatible node types!\n",
+                    'Ok'
+                );
+                return;
+            }
+            CutPaste( $this, $sibling );
+        }
     }
-  } elsif ($b=$this->rbrother) {
-    if ($b->firstson) {
-      my $ordering=TredMacro::_node_ord($b->firstson);
-      if (defined($ordering) and length($ordering)) {
-	if (!$b->test_child_type($this)) {
-	  QuestionQuery("Cannot move node",
-			"Incompatible node types!\n",
-			'Ok');
-	  return;
-	}
-	CutPaste($this,$b);
-      } else {
-	if (!$b->test_child_type($this)) {
-	  QuestionQuery("Cannot move node",
-			"Incompatible node types!\n",
-			'Ok');
-	  return;
-	}
-	$b=$b->firstson;
-	$b=$b->lbrother while $b->lbrother;
-	CutPasteBefore($this,$b);
-      }
-    } else {
-      if (!$b->test_child_type($this)) {
-	QuestionQuery("Cannot move node",
-		      "Incompatible node types!\n",
-		      'Ok');
-	return;
-      }
-      CutPaste($this,$b);
+    elsif ( $sibling = $this->rbrother ) {
+        if ( $sibling->firstson ) {
+            my $ordering = TredMacro::_node_ord( $sibling->firstson );
+            if ( defined $ordering && length $ordering ) {
+                if ( !$sibling->test_child_type($this) ) {
+                    QuestionQuery(
+                        'Cannot move node',
+                        "Incompatible node types!\n",
+                        'Ok'
+                    );
+                    return;
+                }
+                CutPaste( $this, $sibling );
+            }
+            else {
+                if ( !$sibling->test_child_type($this) ) {
+                    QuestionQuery(
+                        'Cannot move node',
+                        "Incompatible node types!\n",
+                        'Ok'
+                    );
+                    return;
+                }
+                $sibling = $sibling->firstson;
+                while ($sibling->lbrother) {
+                    $sibling = $sibling->lbrother;
+                }
+                CutPasteBefore( $this, $sibling );
+            }
+        }
+        else {
+            if ( !$sibling->test_child_type($this) ) {
+                QuestionQuery(
+                    'Cannot move node',
+                    "Incompatible node types!\n",
+                    'Ok'
+                );
+                return;
+            }
+            CutPaste( $this, $sibling );
+        }
     }
-  }
+    return;
 }
 
 sub trim_subtree {
-  return unless ($this and $root and $this!=$root);
-  my $node=$this;
-  CutNode($node);
-  $grp->{FSFile}->set_tree($node,$grp->{treeNo});
-  $root->destroy;
-  $this=$node;
-  $root=$node;
+    return if ( !$this || !$root || !$this != $root );
+    my $node = $this;
+    CutNode($node);
+    $grp->{FSFile}->set_tree( $node, $grp->{treeNo} );
+    $root->destroy;
+    $this = $node;
+    $root = $node;
+    return;
 }
 
 sub copy_to_clipboard {
-  return unless ($this);
-  $TredMacro::nodeClipboard=CloneSubtree($this);
+    return if (!$this);
+    $TredMacro::nodeClipboard = CloneSubtree($this);
+    return;
 }
 
 sub cut_to_clipboard {
-  return unless ($this and $this->parent);
-  $TredMacro::nodeClipboard=$this;
-  $this=$this->rbrother ? $this->rbrother : $this->parent;
-  CutNode($TredMacro::nodeClipboard);
-  if (_node_ord( $TredMacro::nodeClipboard)) {
-    my $nodesref=GetNodes();
-    SortByOrd($nodesref);
-    NormalizeOrds($nodesref);
-  }
+    return if ( !$this || !$this->parent );
+    $TredMacro::nodeClipboard = $this;
+    $this = $this->rbrother ? $this->rbrother : $this->parent;
+    CutNode($TredMacro::nodeClipboard);
+    if ( _node_ord($TredMacro::nodeClipboard) ) {
+        my $nodesref = GetNodes();
+        SortByOrd($nodesref);
+        NormalizeOrds($nodesref);
+    }
+    return;
 }
 
 sub paste_from_clipboard {
-  return unless ($this and $TredMacro::nodeClipboard);
-  if (!$this->test_child_type($TredMacro::nodeClipboard)) {
-    QuestionQuery("Cannot paste node",
-		  "The type of the clipboard node is not compatible\n"
-		  ."with the current node!",
-		  'Ok');
+    return if ( !$this || !$TredMacro::nodeClipboard );
+    if ( !$this->test_child_type($TredMacro::nodeClipboard) ) {
+        QuestionQuery(
+            'Cannot paste node',
+            "The type of the clipboard node is not compatible\n"
+                . 'with the current node!',
+            'Ok'
+        );
+        return;
+    }
+    if ( _node_ord($this) ) {
+        my $clipnodes = GetNodes($TredMacro::nodeClipboard);
+        SortByOrd($clipnodes);
+        NormalizeOrds($clipnodes);
+        my $nodes = GetNodes($root);
+        SortByOrd($nodes);
+        NormalizeOrds($nodes);
+        my $ord   = FS()->order;
+        my $shift = $this->{$ord};
+
+        foreach my $node (@{$clipnodes}) {
+            $node->{$ord} += $shift;
+        }
+        foreach my $node (@{$nodes}) {
+            if ($node->{$ord} > $shift) {
+                $node->{$ord} += $#{$clipnodes} + 1;
+            }
+        }
+    }
+    PasteNode( $TredMacro::nodeClipboard, $this );
+    $this = $TredMacro::nodeClipboard;
+    $TredMacro::nodeClipboard = undef;
     return;
-  }
-  if (_node_ord($this)) {
-    my $clipnodes=GetNodes($TredMacro::nodeClipboard);
-    SortByOrd($clipnodes);
-    NormalizeOrds($clipnodes);
-    my $nodes=GetNodes($root);
-    SortByOrd($nodes);
-    NormalizeOrds($nodes);
-    my $ord=FS()->order;
-    my $shift=$this->{$ord};
-    foreach my $node (@$clipnodes) {
-      $node->{$ord}+=$shift;
-    }
-    foreach my $node (@$nodes) {
-      $node->{$ord}+=$#$clipnodes+1 if $node->{$ord}>$shift;
-    }
-  }
-  PasteNode($TredMacro::nodeClipboard,$this);
-  $this=$TredMacro::nodeClipboard;
-  $TredMacro::nodeClipboard=undef;
 }
 
 sub paste_as_new_tree {
-  return unless ($grp->{FSFile} and $TredMacro::nodeClipboard);
+    return if ( !$grp->{FSFile} || !$TredMacro::nodeClipboard );
 
-  if ($this) {
-    my $clipnodes=GetNodes($TredMacro::nodeClipboard);
-    SortByOrd($clipnodes);
-    NormalizeOrds($clipnodes);
-  }
-  my $pos=$grp->{FSFile}->lastTreeNo()+1;
-  $grp->{FSFile}->insert_tree($TredMacro::nodeClipboard,$pos);
-  GotoTree($pos+1);
-  $TredMacro::nodeClipboard=undef;
+    if ($this) {
+        my $clipnodes = GetNodes($TredMacro::nodeClipboard);
+        SortByOrd($clipnodes);
+        NormalizeOrds($clipnodes);
+    }
+    my $pos = $grp->{FSFile}->lastTreeNo() + 1;
+    $grp->{FSFile}->insert_tree( $TredMacro::nodeClipboard, $pos );
+    GotoTree( $pos + 1 );
+    $TredMacro::nodeClipboard = undef;
+    return;
 }
 
 sub delete_node_keep_children {
-  shift unless ref $_[0];
-  my $node=shift()||$this;
-  my $parent = $node->parent;
-  return unless $parent;
-  if (first {!$parent->test_child_type($_)}
-	$node->children) {
-    QuestionQuery("Cannot delete node",
-		  "The node cannot be deleted: some of its child nodes\n".
-		  "has incompatible type with the parent node!",
-		 'Ok');
-    return;
-  }
+    if (!ref $_[0]) {
+        shift;
+    }
+    my $node = shift() || $this;
+    my $parent = $node->parent;
+    return if !$parent;
+    if ( first { !$parent->test_child_type($_) } $node->children ) {
+        QuestionQuery(
+            'Cannot delete node',
+            "The node cannot be deleted: some of its child nodes\n"
+                . 'has incompatible type with the parent node!',
+            'Ok'
+        );
+        return;
+    }
 
-  my $ordering=TredMacro::_node_ord($node);
-  if (defined($ordering) and length($ordering)) {
-    for my $child ($node->children) {
-      CutPaste($child,$parent);
+    my $ordering = TredMacro::_node_ord($node);
+    if ( defined $ordering && length $ordering ) {
+        for my $child ( $node->children ) {
+            CutPaste( $child, $parent );
+        }
     }
-  } else {
-    for my $child ($node->children) {
-      CutPasteBefore($child,$node);
+    else {
+        for my $child ( $node->children ) {
+            CutPasteBefore( $child, $node );
+        }
     }
-  }
-  DeleteLeafNode($node);
-  if ($this==$node) {
-    $this=$parent;
-  }
+    DeleteLeafNode($node);
+    if ( $this == $node ) {
+        $this = $parent;
+    }
+    return;
 }

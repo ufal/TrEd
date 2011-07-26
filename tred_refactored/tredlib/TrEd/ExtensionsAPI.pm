@@ -2749,7 +2749,7 @@ sub Bind {
       $bind=shift;
     }
     my ($caller)=caller;
-    if (ref($bind) eq 'HASH') {
+    if (ref $bind eq 'HASH') {
       my $context  =$bind->{context}||$caller;
       if (exists $bind->{changing_file}) {
 	my $changes_file = $bind->{changing_file};
@@ -2803,6 +2803,25 @@ sub UnbindBuiltin {
   $key=~s/([^-]+-)/ucfirst($1)/eg;
   $key=~s/Ctrl-/Control-/g;
   $grp->{framegroup}{top}->bind('my',"<$key>",undef);
+}
+
+
+# Function to be used instead of unbind_edit.inc  
+sub UnbindTreeEdit {
+    return unless GUI();
+    my ($context) = @_;
+    my @keys = (
+        'F7',
+        'Shift+F7',
+        'F8',
+        'F5',
+        'F6',
+        'Ctrl+Insert',
+        'Shift+Insert',
+    );
+    foreach my $key (@keys) {
+        TrEd::Macros::unbind_key($context, $key);
+    }
 }
 
 =item C<OverrideBuiltinBinding(context,key-binding, binding_spec )>

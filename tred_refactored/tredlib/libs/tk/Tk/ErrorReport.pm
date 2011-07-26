@@ -1,44 +1,50 @@
 package Tk::ErrorReport;
+
 # pajas@ufal.mff.cuni.cz          14 èen 2007
+
+use strict;
+use warnings;
 
 # this package actually adds a method to Tk::Widget
 
 use Tk::widgets qw(ROText);
 
 sub Tk::Widget::ErrorReport {
-  my ($w,%opts)=@_;
+    my ( $w, %opts ) = @_;
 
-  require Tk::BindMouseWheel;
-  require Tk::BindButtons;
-  require Tk::ROText;
+    require Tk::BindMouseWheel;
+    require Tk::BindButtons;
+    require Tk::ROText;
 
-  my $mw = $w->toplevel;
-  my $msgtype = delete $opts{-msgtype} || 'ERROR';
-  my $msg = delete $opts{-message};
-  my $body = delete $opts{-body};
-  my $d= $mw->DialogBox(($opts{-buttons} ? (-buttons=> ['OK']) : ()),
-			%opts
-		       );
-  $d->Label(-text => $msgtype,
-	    -justify => 'left',
-	    -foreground => 'red'
-	   )
-    ->pack(-pady => 5,-side => 'top', -fill => 'x');
-  $d->Label(-text => $msg,
-	    -justify => 'left'
-	   )->pack(-pady => 10,-side => 'top', -fill => 'x');
-  my $t= $d->
-    Scrolled(qw/ROText -relief sunken -borderwidth 2
-		-scrollbars oe/);
-  $t->Subwidget('scrolled')->menu->delete('File');
-  $t->pack(qw/-side top -expand yes -fill both/);
-  $t->insert('0.0',$body);
-  $t->BindMouseWheelVert();
-  $d->BindButtons;
-  return $d->Show;
+    my $mw      = $w->toplevel;
+    my $msgtype = delete $opts{-msgtype} || 'ERROR';
+    my $msg     = delete $opts{-message};
+    my $body    = delete $opts{-body};
+    my $d = $mw->DialogBox( ( $opts{-buttons} ? ( -buttons => ['OK'] ) : () ),
+        %opts );
+    $d->Label(
+        -text       => $msgtype,
+        -justify    => 'left',
+        -foreground => 'red'
+    )->pack( -pady => 5, -side => 'top', -fill => 'x' );
+    $d->Label(
+        -text    => $msg,
+        -justify => 'left'
+    )->pack( -pady => 10, -side => 'top', -fill => 'x' );
+    my $t = $d->Scrolled(
+        qw/ROText -relief sunken -borderwidth 2
+            -scrollbars oe/
+    );
+    $t->Subwidget('scrolled')->menu->delete('File');
+    $t->pack(qw/-side top -expand yes -fill both/);
+    $t->insert( '0.0', $body );
+    $t->BindMouseWheelVert();
+    $d->BindButtons;
+    return $d->Show;
 }
 
 1;
+
 __END__
 
 =head1 NAME

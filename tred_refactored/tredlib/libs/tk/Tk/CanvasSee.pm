@@ -1,153 +1,202 @@
 package Tk::CanvasSee;
+
 # pajas@ufal.mff.cuni.cz          22 èen 2007
 
 # this package adds $canvas->see(tag-or-item) method for scrolled canvases
+use strict;
 
 use Tk::Canvas;
-use strict;
+
 use Carp;
 {
-no integer;
-sub Tk::Canvas::see {
-  my ($c, $item,$x_aura,$y_aura) = @_;
-  my @s = $c->cget('-scrollregion');
-  return unless defined $s[0];
-  my @bbox = $c->bbox( $item );
-  my @xview = $c->xview;
-  my @yview = $c->yview;
-  my ($w,$h) = ($s[2]-$s[0], $s[3]-$s[1]);
-  my @view = ($s[0]+$w*$xview[0],
-	      $s[1]+$h*$yview[0],
-	      $s[0]+$w*$xview[1],
-	      $s[1]+$h*$yview[1]);
-  if ($x_aura<=1) {
-    $x_aura*=$w*($xview[1]-$xview[0]);
-  }
-  if ($y_aura<=1) {
-    $y_aura*=$h*($yview[1]-$yview[0]);
-  }
-  if ($bbox[0]<$view[0] or $bbox[2]-$bbox[0]>$view[2]-$view[0]) {
-    # west-most corner off view or bbox too wide
-    $c->xviewMoveto(($bbox[0]-$x_aura-$s[0])/$w) if $w;
-  } elsif ($bbox[2]>$view[2]) {
-    $c->xviewMoveto( ($bbox[2]+$x_aura-$s[0]-($view[2]-$view[0]))/$w) if $w;
-  }
-  if ($bbox[1]<$view[1] or $bbox[3]-$bbox[1]>$view[3]-$view[1]) {
-    # north-most corner off view or bbox too high
-    $c->yviewMoveto(($bbox[1]-$y_aura-$s[1])/$h) if $h;
-  } elsif ($bbox[3]>$view[3]) {
-    $c->yviewMoveto( ($bbox[3]+$y_aura-$s[1]-($view[3]-$view[1]))/$h) if $h;
-  }
-  return 1;
-}
-sub Tk::Canvas::scrollWidth {
-  my ($c)=@_;
-  my @s = $c->cget('-scrollregion');
-  return unless defined $s[0];
-  return $s[2]-$s[0];
+    no integer;
 
-}
-sub Tk::Canvas::scrollHeight {
-  my ($c)=@_;
-  my @s = $c->cget('-scrollregion');
-  return unless defined $s[0];
-  return $s[3]-$s[1];
+    sub Tk::Canvas::see {
+        my ( $c, $item, $x_aura, $y_aura ) = @_;
+        my @s = $c->cget('-scrollregion');
+        return unless defined $s[0];
+        my @bbox  = $c->bbox($item);
+        my @xview = $c->xview;
+        my @yview = $c->yview;
+        my ( $w, $h ) = ( $s[2] - $s[0], $s[3] - $s[1] );
+        my @view = (
+            $s[0] + $w * $xview[0],
+            $s[1] + $h * $yview[0],
+            $s[0] + $w * $xview[1],
+            $s[1] + $h * $yview[1]
+        );
 
-}
-sub Tk::Canvas::xviewCoord {
-  my ($c,$x,$new)=@_;
-  my @s = $c->cget('-scrollregion');
-  my $w = $s[2]-$s[0];
-  return $x unless $w;
-  my @xview = $c->xview;
-  if (@_==2) {
-    my $vx = $x-$s[0]-$xview[0]*$w;
-    return $vx;
-  } elsif (@_==3) {
-    return $c->xviewMoveto(($x-$s[0]-$new)/$w);
-  } else {
-    croak("Tk::Canvas::xviewCoord: wrong number of arguments: expected 1 or 2");
-  }
-}
-sub Tk::Canvas::yviewCoord {
-  my ($c,$y,$new)=@_;
-  my @s = $c->cget('-scrollregion');
-  my $h = $s[3]-$s[1];
-  return $y unless $h;
-  my @yview = $c->yview;
-  my $vy = $y-$s[1]-$yview[0]*$h;
-  if (@_==2) {
-    return $vy;
-  } elsif (@_==3) {
-    return $c->yviewMoveto(($y-$s[1]-$new)/$h);
-  } else {
-    croak("Tk::Canvas::yviewCoord: wrong number of arguments: expected 1 or 2");
-  }
-}
+        if ( $x_aura <= 1 ) {
+            $x_aura *= $w * ( $xview[1] - $xview[0] );
+        }
+        if ( $y_aura <= 1 ) {
+            $y_aura *= $h * ( $yview[1] - $yview[0] );
+        }
+        if (   $bbox[0] < $view[0]
+            or $bbox[2] - $bbox[0] > $view[2] - $view[0] )
+        {
 
-sub Tk::Canvas::xviewCenter {
-  my $c = shift;
-  my $w = $c->scrollWidth;
-  return unless $w;
-  my ($item, $x);
-  if (@_==1) {
-    $item = shift;
-  } elsif (@_>1) {
-    my $what = shift;
-    if ($what eq 'coord') {
-      $x = shift;
-    } elsif ($what eq 'item' or $what eq 'withtag') {
-      $item = shift;
-    } elsif ($what eq 'fraction') {
-      $x = $what*$w;
-    } else {
-      croak("Tk::Canvas::xviewCenter: wrong arguments: expected either 0 arguments (get xview center), or 1 argument (tag_or_ID), or 2 arguments ".
-	      "(item => tag_or_ID or x => x-coord or xview => float)");
+            # west-most corner off view or bbox too wide
+            $c->xviewMoveto( ( $bbox[0] - $x_aura - $s[0] ) / $w ) if $w;
+        }
+        elsif ( $bbox[2] > $view[2] ) {
+            $c->xviewMoveto(
+                ( $bbox[2] + $x_aura - $s[0] - ( $view[2] - $view[0] ) )
+                / $w )
+                if $w;
+        }
+        if (   $bbox[1] < $view[1]
+            or $bbox[3] - $bbox[1] > $view[3] - $view[1] )
+        {
+
+            # north-most corner off view or bbox too high
+            $c->yviewMoveto( ( $bbox[1] - $y_aura - $s[1] ) / $h ) if $h;
+        }
+        elsif ( $bbox[3] > $view[3] ) {
+            $c->yviewMoveto(
+                ( $bbox[3] + $y_aura - $s[1] - ( $view[3] - $view[1] ) )
+                / $h )
+                if $h;
+        }
+        return 1;
     }
-  }
-  my @xview = $c->xview;
-  return $w*($xview[1]+$xview[0])/2 unless defined($x) or defined($item);
-  if (defined $item) {
-    my @bbox = $c->bbox( $item );
-    $x=($bbox[2]+$bbox[0])/2;
-  }
-  return unless $w;
-  my $move_to = $x/$w-($xview[1]-$xview[0])/2;
-  $move_to=0 if $move_to < 0;
-  return $c->xviewMoveto($move_to);
-}
-sub Tk::Canvas::yviewCenter {
-  my $c = shift;
-  my $h = $c->scrollHeight;
-  return unless $h;
-  my ($item, $y);
-  if (@_==1) {
-    $item = shift;
-  } elsif (@_>1) {
-    my $what = shift;
-    if ($what eq 'coord') {
-      $y = shift;
-    } elsif ($what eq 'item' or $what eq 'withtag') {
-      $item = shift;
-    } elsif ($what eq 'fraction') {
-      $y = $what*$h;
-    } else {
-      croak("Tk::Canvas::yviewCenter: wrong arguments: expected either 0 arguments (get yview center), or 1 argument (tag_or_ID), or 2 arguments ".
-	      "(item => tag_or_ID or y => y-coord or yview => float)");
-    }
-  }
-  my @yview = $c->yview;
-  return $h*($yview[1]+$yview[0])/2 unless defined($y) or defined($item);
-  if (defined $item) {
-    my @bbox = $c->bbox( $item );
-    $y=($bbox[3]+$bbox[1])/2;
-  }
-  return unless $h;
-  my $move_to = $y/$h-($yview[1]-$yview[0])/2;
-  $move_to = 0 if $move_to < 0;
-  return $c->yviewMoveto($move_to);
 
-}
+    sub Tk::Canvas::scrollWidth {
+        my ($c) = @_;
+        my @s = $c->cget('-scrollregion');
+        return unless defined $s[0];
+        return $s[2] - $s[0];
+
+    }
+
+    sub Tk::Canvas::scrollHeight {
+        my ($c) = @_;
+        my @s = $c->cget('-scrollregion');
+        return unless defined $s[0];
+        return $s[3] - $s[1];
+
+    }
+
+    sub Tk::Canvas::xviewCoord {
+        my ( $c, $x, $new ) = @_;
+        my @s = $c->cget('-scrollregion');
+        my $w = $s[2] - $s[0];
+        return $x unless $w;
+        my @xview = $c->xview;
+        if ( @_ == 2 ) {
+            my $vx = $x - $s[0] - $xview[0] * $w;
+            return $vx;
+        }
+        elsif ( @_ == 3 ) {
+            return $c->xviewMoveto( ( $x - $s[0] - $new ) / $w );
+        }
+        else {
+            croak(
+                "Tk::Canvas::xviewCoord: wrong number of arguments: expected 1 or 2"
+            );
+        }
+    }
+
+    sub Tk::Canvas::yviewCoord {
+        my ( $c, $y, $new ) = @_;
+        my @s = $c->cget('-scrollregion');
+        my $h = $s[3] - $s[1];
+        return $y unless $h;
+        my @yview = $c->yview;
+        my $vy    = $y - $s[1] - $yview[0] * $h;
+        if ( @_ == 2 ) {
+            return $vy;
+        }
+        elsif ( @_ == 3 ) {
+            return $c->yviewMoveto( ( $y - $s[1] - $new ) / $h );
+        }
+        else {
+            croak(
+                "Tk::Canvas::yviewCoord: wrong number of arguments: expected 1 or 2"
+            );
+        }
+    }
+
+    sub Tk::Canvas::xviewCenter {
+        my $c = shift;
+        my $w = $c->scrollWidth;
+        return unless $w;
+        my ( $item, $x );
+        if ( @_ == 1 ) {
+            $item = shift;
+        }
+        elsif ( @_ > 1 ) {
+            my $what = shift;
+            if ( $what eq 'coord' ) {
+                $x = shift;
+            }
+            elsif ( $what eq 'item' or $what eq 'withtag' ) {
+                $item = shift;
+            }
+            elsif ( $what eq 'fraction' ) {
+                $x = $what * $w;
+            }
+            else {
+                croak(
+                    "Tk::Canvas::xviewCenter: wrong arguments: expected either 0 arguments (get xview center), or 1 argument (tag_or_ID), or 2 arguments "
+                        . "(item => tag_or_ID or x => x-coord or xview => float)"
+                );
+            }
+        }
+        my @xview = $c->xview;
+        return $w * ( $xview[1] + $xview[0] ) / 2
+            unless defined($x)
+                or defined($item);
+        if ( defined $item ) {
+            my @bbox = $c->bbox($item);
+            $x = ( $bbox[2] + $bbox[0] ) / 2;
+        }
+        return unless $w;
+        my $move_to = $x / $w - ( $xview[1] - $xview[0] ) / 2;
+        $move_to = 0 if $move_to < 0;
+        return $c->xviewMoveto($move_to);
+    }
+
+    sub Tk::Canvas::yviewCenter {
+        my $c = shift;
+        my $h = $c->scrollHeight;
+        return unless $h;
+        my ( $item, $y );
+        if ( @_ == 1 ) {
+            $item = shift;
+        }
+        elsif ( @_ > 1 ) {
+            my $what = shift;
+            if ( $what eq 'coord' ) {
+                $y = shift;
+            }
+            elsif ( $what eq 'item' or $what eq 'withtag' ) {
+                $item = shift;
+            }
+            elsif ( $what eq 'fraction' ) {
+                $y = $what * $h;
+            }
+            else {
+                croak(
+                    "Tk::Canvas::yviewCenter: wrong arguments: expected either 0 arguments (get yview center), or 1 argument (tag_or_ID), or 2 arguments "
+                        . "(item => tag_or_ID or y => y-coord or yview => float)"
+                );
+            }
+        }
+        my @yview = $c->yview;
+        return $h * ( $yview[1] + $yview[0] ) / 2
+            unless defined($y)
+                or defined($item);
+        if ( defined $item ) {
+            my @bbox = $c->bbox($item);
+            $y = ( $bbox[3] + $bbox[1] ) / 2;
+        }
+        return unless $h;
+        my $move_to = $y / $h - ( $yview[1] - $yview[0] ) / 2;
+        $move_to = 0 if $move_to < 0;
+        return $c->yviewMoveto($move_to);
+
+    }
 
 }
 1;

@@ -75,7 +75,7 @@ The tag :all also exports the function
 which returns 0 if the versions are equal, -1 if TRED_VERSION is less than $otherversion and
 1 otherwise.
 
-=head1 COPYRIGHT AND LICENSE
+=head1 LICENSE AND COPYRIGHT
 
 Copyright (C) 2008 by Petr Pajas
 

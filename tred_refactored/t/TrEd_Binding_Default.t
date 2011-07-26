@@ -197,11 +197,11 @@ sub tk_callback {
     my ($tred_ref, $ret_value) = @_;
     
     my $context = $tred_ref->{focusedWindow}->{macroContext};
-    #print "&& __callback called in context $context\n";
+    print "tk_callback called in context $context\n";
     if (defined $context) {
         $tred_ref->{callback_called}->{$context}++;
     }
-    #print "returning ".$context . "::" . $ret_value."\n";
+    print "returning ".$context . "::" . $ret_value."\n";
     return $context . "::" . $ret_value;
 }
 
@@ -300,11 +300,11 @@ sub test_change_binding {
         sub {
             my ($mw, $tred_ref) = @_;
             my $context__ = $_[1]->{focusedWindow}->{macroContext} || q{}; 
-            
+            print "new callback called in context $context__\n";
             $_[1]->{callback_called}->{$context__}++;
             
             my $modif_cb_return_value = $context__ . q{::} . $callback_return_value;
-            
+            print "returning $modif_cb_return_value\n";
             return $modif_cb_return_value;
         },
         $new_binding_name,
@@ -589,6 +589,11 @@ sub test_normalize_key {
 ######################################################
 ################ start testing #######################
 ######################################################
+
+sub evalMacro {
+    my ($w,$grp,$prefix)=@_;
+    print "..inside eval macro...\n";
+}
 
 my %tred;
 

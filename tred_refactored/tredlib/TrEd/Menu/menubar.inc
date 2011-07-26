@@ -122,7 +122,8 @@ return sub {
     {
       '-command' => [ sub {
 			my ($grp)=@_;
-			return if TrEd::File::ask_save_file($grp->{focusedWindow},0,1) == -1;
+			return if TrEd::File::ask_save_file($grp->{focusedWindow},0,1)
+			          == $TrEd::File::SAVING_CANCELLED_OR_UNSUCCESSFUL;
 			TrEd::File::closeFile($grp->{focusedWindow},-all_windows => 1);
 		      }, $grp],
       '-underline' => 0
@@ -144,7 +145,8 @@ return sub {
 					     $lr->[$grp->{focusedWindow}->{currentFileNo}]);
 			  }
 			}
-			return if TrEd::File::ask_save_file($grp->{focusedWindow},0,1) == -1;
+			return if TrEd::File::ask_save_file($grp->{focusedWindow},0,1)
+			          == $TrEd::File::SAVING_CANCELLED_OR_UNSUCCESSFUL;
 			TrEd::File::closeFile($grp->{focusedWindow},-all_windows => 1);
 		      }, $grp],
       '-underline' => 12
@@ -203,8 +205,10 @@ return sub {
     'Go to File List Index ...',
     {
       '-command' => [sub {
-		       my $to=TrEd::Query::String::new_query($_[0],"Go To File List Index","File List Index");
-		       TrEd::Filelist::Navigation::tie_go_to_file($_[0],$to) if defined $to;
+		       my $to=TrEd::Query::String::new_query($_[0],'Go To File List Index','File List Index');
+		       if (defined $to) {
+		          TrEd::Filelist::Navigation::tie_go_to_file($_[0],$to);
+		       }
 		     },$grp
 		    ],
       '-underline' => 0
@@ -497,7 +501,7 @@ return sub {
     'hooks',
     {
       '-underline' => 0,
-      '-variable' => \$hookDebug
+      '-variable' => \$TrEd::Config::hookDebug
      },
     undef
    ],
@@ -506,7 +510,7 @@ return sub {
     'keyboard',
     {
       '-underline' => 0,
-      '-variable' => \$keyboardDebug
+      '-variable' => \$TrEd::Config::keyboardDebug
      },
     undef
    ],
@@ -515,7 +519,7 @@ return sub {
     'macros',
     {
       '-underline' => 0,
-      '-variable' => \$macroDebug
+      '-variable' => \$TrEd::Config::macroDebug
      },
     undef
    ],
@@ -524,7 +528,7 @@ return sub {
     'tred',
     {
       '-underline' => 0,
-      '-variable' => \$tredDebug
+      '-variable' => \$TrEd::Config::tredDebug
      },
     undef
    ],
@@ -693,7 +697,7 @@ return sub {
     'Button',
     '* Extension Tools',
     {
-      '-state' => disabled
+      '-state' => 'disabled'
      },
     undef
    ],
@@ -787,9 +791,10 @@ return sub {
       '-accelerator' => 'Enter',
       '-command' => [sub {
 		       my ($grp)=@_;
-		       TrEd::Dialog::EditAttributes::create_dialog($grp->{focusedWindow},
-				       $grp->{focusedWindow}->{currentNode})
-			 if ($grp->{focusedWindow}->{currentNode});
+		       if ($grp->{focusedWindow}->{currentNode}) {
+		          TrEd::Dialog::EditAttributes::create_dialog($grp->{focusedWindow},
+				       $grp->{focusedWindow}->{currentNode});
+		       }
 		     },$grp],
       '-underline' => 0
      },
@@ -801,8 +806,9 @@ return sub {
     {
       '-command' => [sub {
 		       my ($grp)=@_;
-		       TrEd::Dialog::FindNode::findNodeDialog($grp)
-			 if ($grp->{focusedWindow}->{currentNode});
+		       if ($grp->{focusedWindow}->{currentNode}) {
+		          TrEd::Dialog::FindNode::findNodeDialog($grp);
+		       }
 		     },$grp],
       '-underline' => 0
      },
@@ -858,7 +864,12 @@ return sub {
     'Left Sibling',
     {
       '-accelerator' => 'Left',
-      '-command' => [sub { &TrEd::Window::TreeBasics::tree_is_reversed ? &currentRight : &currentLeft },$grp]
+      '-command' => [sub {
+                        my ($grp)=@_;
+                        TrEd::Window::TreeBasics::tree_is_reversed($grp)
+                        ? currentRight($grp)
+                        : currentLeft($grp)
+                    },$grp]
      },
     undef
    ],
@@ -878,7 +889,7 @@ return sub {
       '-command' => [sub {
 		       my ($grp)=@_;
 		       my $win=$grp->{focusedWindow};
-		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,"New Node",TrEd::Undo::undo_type_id('UNDO_ACTIVE_NODE')));
+		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'New Node',TrEd::Undo::undo_type_id('UNDO_ACTIVE_NODE')));
 		       my $new = TrEd::Window::TreeBasics::new_node($win);
 		       determineNodeType($win,$new);
 		     },$grp],
@@ -918,7 +929,12 @@ return sub {
     'Previous in Order',
     {
       '-accelerator' => 'Shift+Up',
-      '-command' => [sub{ &TrEd::Window::TreeBasics::tree_is_reversed ? &currentRightLin : &currentLeftLin },$grp]
+      '-command' => [sub{
+                        my ($grp)=@_;
+                        TrEd::Window::TreeBasics::tree_is_reversed(@_)
+                        ? currentRightLin(@_)
+                        : currentLeftLin(@_)
+                        },$grp]
      },
     undef
    ],
@@ -950,7 +966,12 @@ return sub {
     'Right Sibling',
     {
       '-accelerator' => 'Right',
-      '-command' => [sub { &TrEd::Window::TreeBasics::tree_is_reversed ? &currentLeft : &currentRight },$grp]
+      '-command' => [sub {
+                        my ($grp)=@_;
+                        TrEd::Window::TreeBasics::tree_is_reversed(@_)
+                        ? currentLeft(@_)
+                        : currentRight(@_)
+                        },$grp]
      },
     undef
    ],
@@ -1083,7 +1104,7 @@ return sub {
 		       TrEd::SidePanel::update_attribute_view($_[0]);
 		     },$grp],
       '-underline' => 1,
-      '-variable' => \$sortAttrs
+      '-variable' => \$TrEd::Config::sortAttrs
      },
     undef
    ],
@@ -1095,7 +1116,7 @@ return sub {
 		       TrEd::SidePanel::update_attribute_view($_[0]);
 		     },$grp],
       '-underline' => 1,
-      '-variable' => \$sortAttrValues
+      '-variable' => \$TrEd::Config::sortAttrValues
      },
     undef
    ],
@@ -1105,7 +1126,7 @@ return sub {
     {
       '-command' => [\&update_treeviews,$grp],
       '-underline' => 17,
-      '-variable' => \$stippleInactiveWindows
+      '-variable' => \$TrEd::Config::stippleInactiveWindows
      },
     undef
    ],
@@ -1240,8 +1261,10 @@ return sub {
     'Go To Tree Number ...',
     {
       '-command' => [sub {
-		       my $to=TrEd::Query::String::new_query($_[0],"Go To Tree Number","Tree Number");
-		       tieGotoTree($_[0],$to) if defined $to;
+		       my $to=TrEd::Query::String::new_query($_[0],'Go To Tree Number','Tree Number');
+		       if (defined $to) {
+		          tieGotoTree($_[0],$to);
+		       }
 		     },$grp
 		    ],
       '-underline' => 0
@@ -1255,7 +1278,12 @@ return sub {
       '-command' => [sub {
 		       my ($grp)=@_;
 		       my $win = $grp->{focusedWindow};
-		       TrEd::Undo::save_undo($win, TrEd::Undo::prepare_undo($win, 'Insert New Tree After', TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')));
+		       TrEd::Undo::save_undo($win,
+		          TrEd::Undo::prepare_undo($win,
+		                                   'Insert New Tree After',
+		                                   TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')
+		                                   )
+		                              );
 		       TrEd::Window::TreeBasics::new_tree_after($win);
 		       determineNodeType($win,$win->{root});
 		     },$grp],
@@ -1270,7 +1298,12 @@ return sub {
       '-command' => [sub {
 		       my ($grp)=@_;
 		       my $win = $grp->{focusedWindow};
-		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'Insert New Tree', TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')));
+		       TrEd::Undo::save_undo($win,
+                  TrEd::Undo::prepare_undo($win,
+		                                   'Insert New Tree',
+		                                   TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')
+		                                   )
+		                               );
 		       TrEd::Window::TreeBasics::new_tree($win);
 		       determineNodeType($win,$win->{root});
 		     },$grp],
@@ -1285,7 +1318,12 @@ return sub {
       '-command' => [sub {
 		       my ($grp)=@_;
 		       my $win = $grp->{focusedWindow};
-		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'Move Tree Backward', TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')));
+		       TrEd::Undo::save_undo($win,
+		          TrEd::Undo::prepare_undo($win,
+		                                   'Move Tree Backward',
+		                                   TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')
+		                                   )
+		                               );
 		       TrEd::Window::TreeBasics::move_tree($win,-1);
 		     },$grp]
      },
@@ -1298,7 +1336,12 @@ return sub {
       '-command' => [sub {
 		       my ($grp)=@_;
 		       my $win = $grp->{focusedWindow};
-		       TrEd::Undo::save_undo($win,TrEd::Undo::prepare_undo($win,'Move Tree Foreward', TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')));
+		       TrEd::Undo::save_undo($win,
+		          TrEd::Undo::prepare_undo($win,
+		                                   'Move Tree Foreward',
+		                                   TrEd::Undo::undo_type_id('UNDO_TREE_ORDER')
+		                                   )
+		                              );
 		       TrEd::Window::TreeBasics::move_tree($win,1);
 		     },$grp]
      },
@@ -1479,7 +1522,7 @@ return sub {
     {
       '-command' => [\&toggleSidePanel,$grp],
       '-underline' => 1,
-      '-variable' => \$showSidePanel
+      '-variable' => \$TrEd::Config::showSidePanel
      },
     undef
    ],
@@ -1511,7 +1554,7 @@ return sub {
    ],
   'SEPARATOR' => [
     'Separator',
-    ''
+    q{}
    ]
  };
 }

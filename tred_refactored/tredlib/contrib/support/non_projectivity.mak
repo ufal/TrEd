@@ -4,6 +4,9 @@
 
 package NonProjectivity;
 
+use strict;
+use warnings;
+
 BEGIN { import TredMacro; }
 
 =pod
@@ -50,6 +53,7 @@ representation), subordination in the technical sense, all nodes.
 =cut
 
 sub non_proj_edges {
+
 # arguments are: root of the subtree to be projectivized
 # switch whether projectivize only visible or all nodes
 # the ordering attribute
@@ -64,68 +68,86 @@ sub non_proj_edges {
 # (keys being the lower nodes concatenated with the upper nodes of non-projective edges,
 # values references to arrays containing the node, the parent, and nodes in the respective gaps)
 
+    my ( $top, $onlyvisible, $ord, $filterNode, $returnParents, $subord,
+        $filterGap )
+        = @_;
 
-  my ($top,$onlyvisible,$ord,$filterNode,$returnParents,$subord,$filterGap) = @_;
+    return if !ref $top;
 
-  return undef unless ref($top);
+    if ( !defined $ord ) {
+        $ord = $TredMacro::grp->{FSFile}->FS->order();
+    }
+    if ( !defined $filterNode ) {
+        $filterNode = sub {1};
+    }
+    if ( !defined $returnParents ) {
+        $returnParents
+            = sub { return $_[0]->parent ? ( $_[0]->parent ) : () };
+    }
+    if ( !defined $subord ) {
+        $subord = sub {
+            my ( $n, $top ) = @_;
+            while ( $n->parent and $n != $top ) { $n = $n->parent }
+            return ( $n == $top ) ? 1 : 0;    # returns 1 if true, 0 otherwise
+        };
+    }
+    if ( !defined $filterGap ) {
+        $filterGap = sub {1};
+    }
 
-  $ord = $grp->{FSFile}->FS->order() unless defined($ord);
-  $filterNode = sub { 1 } unless defined($filterNode);
-  $returnParents = sub { return $_[0]->parent ? ($_[0]->parent) : () } unless defined $returnParents;
-  $subord = sub { my ($n,$top) = @_;
-		  while ($n->parent and $n!=$top) {$n=$n->parent};
-		  return ($n==$top) ? 1 : 0; # returns 1 if true, 0 otherwise
-		} unless defined($subord);
-  $filterGap = sub { 1 } unless defined($filterGap);
+    my %npedges;
 
-  my %npedges;
+    # get the nodes of the subtree
+    my @subtree = sort { $a->{$ord} <=> $b->{$ord} } (
+        $onlyvisible ? $top->visible_descendants( FS() ) : $top->descendants,
+        $top
+    );
 
-  # get the nodes of the subtree
-  my @subtree = sort {$a->{$ord} <=> $b->{$ord}}
-    ($onlyvisible ? $top->visible_descendants(FS()) : $top->descendants, $top);
+    # just store the index in the subtree in a special attribute of each node
+    foreach my $i ( 0 .. $#subtree ) { $subtree[$i]->{'_proj_index'} = $i }
 
-  # just store the index in the subtree in a special attribute of each node
-  for (my $i=0; $i<=$#subtree; $i++) {$subtree[$i]->{'_proj_index'} = $i}
+# now check all the edges of the subtree (but only those accepted by filterNode
+    foreach my $node ( grep { $filterNode->($_) } @subtree ) {
 
-  # now check all the edges of the subtree (but only those accepted by filterNode
-  foreach my $node (grep {&$filterNode($_)} @subtree) {
+        next if ( $node == $top );    # skip the top of the subtree
 
-    next if ($node==$top); # skip the top of the subtree
+        foreach my $parent ( $returnParents->($node) ) {
 
-    foreach my $parent (&$returnParents($node)) {
+            # span of the current edge
+            my ( $l, $r )
+                = ( $node->{'_proj_index'}, $parent->{'_proj_index'} );
 
-      # span of the current edge
-      my ($l,$r)=($node->{'_proj_index'}, $parent->{'_proj_index'});
+            # set the boundaries of the interval covered by the current edge
+            if ( $l > $r ) { ( $l, $r ) = ( $r, $l ) }
 
-      # set the boundaries of the interval covered by the current edge
-      if ($l > $r) { ($l,$r) = ($r,$l) };
+            # check all nodes covered by the edge
+            for ( my $j = $l + 1; $j < $r; $j++ ) {
 
-      # check all nodes covered by the edge
-      for (my $j=$l+1; $j<$r; $j++) {
+                my $gap = $subtree[$j];    # potential node in gap
+                  # mark a non-projective edge and save the node causing the non-projectivity (ie in the gap)
+                if ( !( $subord->( $gap, $parent ) ) && $filterGap->($gap) ) {
+                    my $key = scalar $node . scalar $parent;
+                    if ( exists $npedges{$key} ) {
+                        push @{ $npedges{$key} }, $gap;
+                    }
+                    else { $npedges{$key} = [ $node, $parent, $gap ] }
+                }    # unless
 
-	my $gap=$subtree[$j]; # potential node in gap
-	# mark a non-projective edge and save the node causing the non-projectivity (ie in the gap)
-	if (not(&$subord($gap,$parent)) and &$filterGap($gap)) {
-	  my $key=scalar($node).scalar($parent);
-	  if (exists($npedges{$key})) { push @{$npedges{$key}}, $gap }
-	  else { $npedges{$key} = [$node, $parent, $gap] };
-	} # unless
+            }    # for $j
 
-      } # for $j
+        }    # foreach $parent
 
-    } # foreach $parent
+    }    # foreach $node
 
-  } # foreach $node
+    my $node = $TredMacro::root;  # delete auxiliary indeces in the whole tree
+    while ($node) {
+        delete $node->{'_proj_index'};
+        $node = $node->following();
+    }
 
-  my $node=$root; # delete auxiliary indeces in the whole tree
-  while ($node) {
-    delete $node->{'_proj_index'};
-    $node=$node->following();
-  };
+    return \%npedges;
 
-  return \%npedges;
-
-} # sub non_proj_edges
+}    # sub non_proj_edges
 
 =back
 
@@ -134,7 +156,6 @@ sub non_proj_edges {
 Jiri Havelka
 
 =cut
-
 
 #endif NonProjectivity
 

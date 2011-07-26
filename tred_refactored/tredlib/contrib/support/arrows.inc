@@ -176,124 +176,134 @@ instruction in L<http://ufal.mff.cuni.cz/~pajas/tred/ar01s10.html>).
 
 #ifdef TRED
 
-{ # arrows.inc
-use strict;
-my %displayed_nodes_hash;
+{    # arrows.inc
+    use strict;
+    my %displayed_nodes_hash;
 
-sub DrawArrows_init {
-  return unless CurrentFile();
-  for my $node (GetDisplayedNodes()) {
-    $displayed_nodes_hash{$node}=1
-  }
-  FileUserData('DrawArrows',{});
-  return;
-}
+    sub DrawArrows_init {
+        return if !CurrentFile();
+        for my $node ( GetDisplayedNodes() ) {
+            $displayed_nodes_hash{$node} = 1;
+        }
+        FileUserData( 'DrawArrows', {} );
+        return;
+    }
 
-# clear caches
-sub DrawArrows_cleanup {
-  %displayed_nodes_hash=();
-  return unless CurrentFile();
-  FileUserData('DrawArrows',undef);
-  return;
-}
+    # clear caches
+    sub DrawArrows_cleanup {
+        %displayed_nodes_hash = ();
+        return if !CurrentFile();
+        FileUserData( 'DrawArrows', undef );
+        return;
+    }
 
-#         -originx => 'xn',
-#         -originy => 'yn',
-# 	  -deltax => $rotate_dfr_doc,
-# 	  -deltay => 30,
-# 	  -target => PML::SearchForNodeById($coref)[0],
-# 	  -tag => $cortype,
-# 	  -arrow =>'last',
-# 	  -arrowshape => '16,18,3',
-#         -dash => '',
-# 	  -width => 1,
-# 	  -smooth => 1,
-# 	  -fill => CustomColor('arrow_'.$_) },
+    #         -originx => 'xn',
+    #         -originy => 'yn',
+    # 	  -deltax => $rotate_dfr_doc,
+    # 	  -deltay => 30,
+    # 	  -target => PML::SearchForNodeById($coref)[0],
+    # 	  -tag => $cortype,
+    # 	  -arrow =>'last',
+    # 	  -arrowshape => '16,18,3',
+    #         -dash => '',
+    # 	  -width => 1,
+    # 	  -smooth => 1,
+    # 	  -fill => CustomColor('arrow_'.$_) },
 
-my @opts = qw(-tag -arrow -arrowshape -width -smooth -fill -dash -hint -decoration);
-sub DrawArrows {
-  my ($node,$styles,$edges,$opts)=@_;
-  my $i;
-  my %props;
-  my $arrows = FileUserData('DrawArrows');
-  foreach my $edge (@$edges) {
-    my $raise = $edge->{-raise}||$opts->{-raise}||25;
-    my $frac  = $edge->{-frac}||$opts->{-frac}||0.12;
-    my $target = $edge->{-target};
-    my $originx = $edge->{-originx} || 'xn';
-    my $originy = $edge->{-originy} || 'yn';
-    my ($dx,$dy)=@$edge{qw(-deltax -deltay)};
-    $dx||=0; $dy||=0;
-    if ($node == $target) {
-      # same node
-      push @{$props{-coords}},<<COORDS;
-	$originx,$originy,
-        $originx+$raise+$dx,$originy-$raise/2+$dy,
-        $originx+2*$raise+$dx,$originy+$dy,
-        $originx+$raise+$dx,$originy+$raise/2+$dy,
-        $originx,$originy
+    my @opts
+        = qw(-tag -arrow -arrowshape -width -smooth -fill -dash -hint -decoration);
+
+    sub DrawArrows {
+        my ( $node, $styles, $edges, $opts ) = @_;
+        my $i;
+        my %props;
+        my $arrows = FileUserData('DrawArrows');
+        foreach my $edge (@{$edges}) {
+            my $raise = $edge->{-raise} || $opts->{-raise} || 25;
+            my $frac  = $edge->{-frac}  || $opts->{-frac}  || 0.12;
+            my $target  = $edge->{-target};
+            my $originx = $edge->{-originx} || 'xn';
+            my $originy = $edge->{-originy} || 'yn';
+            my ( $dx, $dy ) = @$edge{qw(-deltax -deltay)};
+            $dx ||= 0;
+            $dy ||= 0;
+
+            if ( $node == $target ) {
+
+                # same node
+                push @{ $props{-coords} }, <<"COORDS";
+$originx,$originy,
+$originx+$raise+$dx,$originy-$raise/2+$dy,
+$originx+2*$raise+$dx,$originy+$dy,
+$originx+$raise+$dx,$originy+$raise/2+$dy,
+$originx,$originy
 COORDS
-    } elsif (defined($target) and $displayed_nodes_hash{$target}) {
-      # same sentence
-      my $arr = $arrows->{$node}||=[];
-      $i=@{$arr};
-      my $T="[! FileUserData('DrawArrows')->{\$this}[$i] !]";
-      push @$arr,$target;
-      $i++;
-      my $X="(x$T-$originx)";
-      my $Y="(y$T-$originy)";
-      my $D="sqrt($X**2+$Y**2)";
-      my $c = <<COORDS;
+            }
+            elsif ( defined($target) and $displayed_nodes_hash{$target} ) {
 
+                # same sentence
+                my $arr = $arrows->{$node} ||= [];
+                $i = @{$arr};
+                my $T = "[! FileUserData('DrawArrows')->{\$this}[$i] !]";
+                push @{$arr}, $target;
+                $i++;
+                my $X = "(x$T-$originx)";
+                my $Y = "(y$T-$originy)";
+                my $D = "sqrt($X**2+$Y**2)";
+                my $c = <<"COORDS";
 $originx,$originy,
 (x$T+$originx)/2 - $Y*($raise/$D+$frac) + $dx,
 (y$T+$originy)/2 + $X*($raise/$D+$frac) + $dy,
 x$T,y$T
-
 COORDS
-      push @{$props{-coords}},$c;
-    } elsif ($dx||$dy) { # should be always the same document, if it exists at all
-      if ($edge->{-smooth}) {
-      my $xT="$originx+$dx";
-      my $yT="$originy+$dy";
-      my $X="($xT-$originx)";
-      my $Y="($yT-$originy)";
-      my $D="sqrt($X**2+$Y**2)";
-      my $c = <<COORDS;
-
+                push @{ $props{-coords} }, $c;
+            }
+            elsif ( $dx || $dy )
+            {    # should be always the same document, if it exists at all
+                if ( $edge->{-smooth} ) {
+                    my $xT = "$originx+$dx";
+                    my $yT = "$originy+$dy";
+                    my $X  = "($xT-$originx)";
+                    my $Y  = "($yT-$originy)";
+                    my $D  = "sqrt($X**2+$Y**2)";
+                    my $c  = <<"COORDS";
 $originx,$originy,
 ($xT+$originx)/2 - $Y*($raise/$D+$frac),
 ($yT+$originy)/2 + $X*($raise/$D+$frac),
 $xT,$yT
-
 COORDS
 
-	push @{$props{-coords}},$c;
-      } else {
-	push @{$props{-coords}},"$originx,$originy,$originx+$dx,$originy+$dy";
-      }
-    } else {
-      next;
-    }
-    for my $p (@opts) {
-      push @{$props{$p}}, ($edge->{$p}||$opts->{$p}||'');
-    }
-  }
-  if (defined($props{-coords}) and @{$props{-coords}}) {
-    my %line = GetStyles($styles,'Line');
-    $line{-coords} ||= 'n,n,p,p';
-    # make sure we don't alter any previous line
-    my $lines = scalar($line{-coords}=~/&/g)+1;
-    for (@opts) {
-      $line{$_}.='&'x($lines-scalar($line{$_}=~/&/g)-1);
-    }
-    AddStyle($styles,'Line', map {
-      $_ => $line{$_}.join('&','',@{$props{$_}})
-    } ('-coords',@opts));
-  }
-  return;
-}
+                    push @{ $props{-coords} }, $c;
+                }
+                else {
+                    push @{ $props{-coords} },
+                        "$originx,$originy,$originx+$dx,$originy+$dy";
+                }
+            }
+            else {
+                next;
+            }
+            for my $p (@opts) {
+                push @{ $props{$p} }, ( $edge->{$p} || $opts->{$p} || q{} );
+            }
+        }
+        if ( defined $props{-coords} && @{ $props{-coords} } ) {
+            my %line = GetStyles( $styles, 'Line' );
+            $line{-coords} ||= 'n,n,p,p';
 
-} # arrows.inc
+            # make sure we don't alter any previous line
+            my $lines = scalar( $line{-coords} =~ /&/g ) + 1;
+            for (@opts) {
+                $line{$_}
+                    .= q{&} x ( $lines - scalar( $line{$_} =~ /&/g ) - 1 );
+            }
+            AddStyle( $styles, 'Line',
+                map { $_ => $line{$_} . join(q{&}, q{}, @{ $props{$_} }) }
+                    ( '-coords', @opts ) );
+        }
+        return;
+    }
+
+}    # arrows.inc
 
 #endif

@@ -1813,6 +1813,10 @@ sub askSaveReferences {
 # Throws        : No exception
 # Comments      : If no $fsfile is specified, the file from Window $win_ref is considered.
 # See Also      : saveFile(), TrEd::Query::User::new_query()
+use Readonly;
+Readonly our $SAVING_CANCELLED_OR_UNSUCCESSFUL => -1;
+Readonly our $SAVING_KEEP_FILE => 1;
+
 sub ask_save_file {
     my ( $win_ref, $keepbutton, $cancelbutton, $fsfile ) = @_;
     $fsfile ||= $win_ref->{FSFile};
@@ -1832,13 +1836,15 @@ sub ask_save_file {
         ]
     );
     if ( $answer eq 'Yes' ) {
-        return saveFile( $win_ref, $fsfile ) == -1 ? -1 : 0;
+        return saveFile( $win_ref, $fsfile ) == -1 
+                ? $SAVING_CANCELLED_OR_UNSUCCESSFUL 
+                : 0;
     }
     elsif ( $answer eq 'Keep' ) {
-        return 1;
+        return $SAVING_KEEP_FILE;
     }
     elsif ( $answer eq 'Cancel' ) {
-        return -1;
+        return $SAVING_CANCELLED_OR_UNSUCCESSFUL;
     }
 }
 
