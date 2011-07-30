@@ -78,7 +78,7 @@ The first two arguments ($node and $styles) are the first two arguments passed t
 The third argument,
 \@arrow_definitions, is an ARRAY reference containing definitions of
 the arrows to draw. Each arrow definition is a HASH reference defining the target node or target coordinates for the other end
-of the arrow and style options. Style options common to all arrows can be also passed in the optional HASH reference passed as the last argument 
+of the arrow and style options. Style options common to all arrows can be also passed in the optional HASH reference passed as the last argument
 \%common_arrow_options.
 
 =back
@@ -105,7 +105,7 @@ be used to specify the target coordinates.
 
 the x-coordinate of the origin (defaults to 'xn' - the x-coordinate of the current node)
 
-=item -originy 
+=item -originy
 
 the y-coordinate of the origin (defaults to 'yn' - the y-coordinate of the current node)
 
@@ -294,8 +294,11 @@ COORDS
             # make sure we don't alter any previous line
             my $lines = scalar( $line{-coords} =~ /&/g ) + 1;
             for (@opts) {
+                my $ampersands = defined $line{$_} 
+                               ? scalar( $line{$_} =~ /&/g )
+                               : 0;
                 $line{$_}
-                    .= q{&} x ( $lines - scalar( $line{$_} =~ /&/g ) - 1 );
+                    .= q{&} x ( $lines - $ampersands - 1 );
             }
             AddStyle( $styles, 'Line',
                 map { $_ => $line{$_} . join(q{&}, q{}, @{ $props{$_} }) }

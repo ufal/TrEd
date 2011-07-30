@@ -52,7 +52,7 @@ sub new {
     if ( $@ ) {
 	die ($@)  unless $error eq "warn";
 	warn ($@) unless $error eq "ignore";
-	return undef;
+	return;
     }
 
     $self;

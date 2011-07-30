@@ -14,7 +14,7 @@ use TrEd::Utils qw{$EMPTY_STR};
 BEGIN {
     use Exporter  ();
     use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %encodings $inputenc
-                $outputenc $lefttoright $support_unicode 
+                $outputenc $lefttoright $support_unicode
                 $FORCE_REMIX $FORCE_NO_REMIX $needs_arabic_remix_re);
 
     use base qw(Exporter);
@@ -44,12 +44,16 @@ BEGIN {
         if ( !defined $outputenc ) {
             $outputenc="windows-1250";
         }
-    } 
+    }
     else {
         if ( !defined $outputenc ) {
-            $outputenc="iso-8859-2";
+            # if text will be unreadable under some special circumstances
+            # maybe set outputenc back to iso-8859-2
+            #$outputenc="iso-8859-2";
+            $outputenc="iso-10646-1";
         }
     }
+    
     $support_unicode = (defined $Tk::VERSION && $Tk::VERSION ge 804.00);
     if ($support_unicode) {
         require TrEd::ConvertArab;
@@ -94,24 +98,24 @@ sub encode {
     }
     elsif ( $] >= 5.008 ) {
         eval {
-            use Encode (); 
+            use Encode ();
             $str = Encode::encode($outputenc, $str);
         };
     }
     else {
         if ( $inputenc ne $outputenc ) {
             no warnings 'misc';
-        	# otherwise Perl 5.12 warns that 
-        	# 'Replacement list is longer than search list'
-        	# This warning appears because the length of variables differ, 
-        	# not the actual replacement strings have different length
-        	
-        	# This warning could also be fixed by renaming shorter variable
-        	# to match the length of name of the longer one, i.e.
-        	# my $inputenc_ = $inputenc;
-        	# and then
-        	# tr/$encodings{$inputenc_}/$encodings{$outputenc}/
-            
+            # otherwise Perl 5.12 warns that
+            # 'Replacement list is longer than search list'
+            # This warning appears because the length of variables differ,
+            # not the actual replacement strings have different length
+
+            # This warning could also be fixed by renaming shorter variable
+            # to match the length of name of the longer one, i.e.
+            # my $inputenc_ = $inputenc;
+            # and then
+            # tr/$encodings{$inputenc_}/$encodings{$outputenc}/
+
             eval {
                 tr/$encodings{$inputenc}/$encodings{$outputenc}/
             };
@@ -145,7 +149,7 @@ sub decode {
     }
     elsif ( $] >= 5.008 ) {
         eval {
-            use Encode (); 
+            use Encode ();
             $str = Encode::decode($outputenc, $str);
         };
         return $str;
@@ -154,7 +158,7 @@ sub decode {
         return $str;
     }
     else {
-        eval { 
+        eval {
             tr/$encodings{$outputenc}/$encodings{$inputenc}/
         };
         return $str;
@@ -170,32 +174,32 @@ __END__
 =head1 NAME
 
 
-TrEd::Convert - Basic functions for converting between input and output encodings 
+TrEd::Convert - Basic functions for converting between input and output encodings
 
 
 =head1 VERSION
 
-This documentation refers to 
+This documentation refers to
 TrEd::Convert version 0.2.
 
 
 =head1 SYNOPSIS
 
   use TrEd::Convert;
-  
+
   my $str = "¾lu»ouèký kùò úpìl ïábelské ódy";
   my $internal_string = TrEd::Convert::decode($str);
-  
-  my $iso_8859_2_str = TrEd::Convert::encode($internal_string);  
-  
-  
+
+  my $iso_8859_2_str = TrEd::Convert::encode($internal_string);
+
+
 
 =head1 DESCRIPTION
 
 
 =head1 SUBROUTINES/METHODS
 
-=over 4 
+=over 4
 
 
 =item * C<TrEd::Convert::encode(@strings)>
@@ -204,7 +208,7 @@ TrEd::Convert version 0.2.
 
 =item Purpose
 
-Change all the strings from Perl's internal representation into $outputenc 
+Change all the strings from Perl's internal representation into $outputenc
 
 and return them joined in one string
 
@@ -217,7 +221,7 @@ and return them joined in one string
 This function is affected by setting $FORCE_REMIX and $FORCE_NO_REMIX variables.
 
 If $FORCE_REMIX is set or current platform is MS Win32 and $string needs arabic remix,
-we use functions for arabic text, unless $FORCE_NO_REMIX is not set to true. 
+we use functions for arabic text, unless $FORCE_NO_REMIX is not set to true.
 On Perl version greater than or equal to 5.8, Encode::encode() is used. Otherwise, tr/// is used.
 
 =item See Also
@@ -263,7 +267,7 @@ L<tr>,
 
 =item Returns
 
-Decoded string 
+Decoded string
 
 
 =back
@@ -276,7 +280,7 @@ Decoded string
 =head1 DIAGNOSTICS
 
 If the pre-compiation of $needs_arabic_remix regular expression fails,
-compilation of this module fails with error message describing the error. 
+compilation of this module fails with error message describing the error.
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
@@ -288,12 +292,12 @@ Encode, TrEd::ArabicRemix, TrEd::ConvertArab
 
 =head1 INCOMPATIBILITIES
 
-Names of encode and decode functions collide with Encode module functions. 
+Names of encode and decode functions collide with Encode module functions.
 
 =head1 BUGS AND LIMITATIONS
 
 There are no known bugs in this module.
-Please report problems to 
+Please report problems to
 Zdenek Zabokrtsky <zabokrtsky@ufal.ms.mff.cuni.cz>
 
 Patches are welcome.
@@ -303,9 +307,9 @@ Patches are welcome.
 
 Petr Pajas <pajas@matfyz.cz>
 
-Copyright (c) 
+Copyright (c)
 2010 Petr Pajas <pajas@matfyz.cz>
-2011 Peter Fabian (documentation & tests). 
+2011 Peter Fabian (documentation & tests).
 All rights reserved.
 
 

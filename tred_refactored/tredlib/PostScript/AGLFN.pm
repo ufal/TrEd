@@ -1,20 +1,21 @@
 package Tie::AGLFN;
 
 use Carp;
+use strict;
 
 sub TIEARRAY {
-  my ($class, $hash) = @_;
-  return bless $hash,$class;
+    my ( $class, $hash ) = @_;
+    return bless $hash, $class;
 }
 
 sub FETCH {
-  $_[0]->{$_[1]}
+    $_[0]->{ $_[1] };
 }
 
-sub STORE {}
+sub STORE { }
 
 sub FETCHSIZE {
-  return scalar(keys(%{$_[0]}));
+    return scalar( keys( %{ $_[0] } ) );
 }
 
 package PostScript::AGLFN;
@@ -34,88 +35,85 @@ PostScript::AGLFN - map characters to Adobe Glyph Names
 =cut
 
 sub get_aglfn {
-  unless ($charmap) {
-    $charmap = {
-		map { /^([0-9a-fA-F]+) (.*)/ ? (hex($1) => $2) : () }
-		grep { !/^#|^\s*$/ } <PostScript::AGLFN::DATA>
-	       };
-  }
-  $charmap;
+    unless ($charmap) {
+        $charmap = {
+            map { /^([0-9a-fA-F]+) (.*)/ ? ( hex($1) => $2 ) : () }
+            grep { !/^#|^\s*$/ } <PostScript::AGLFN::DATA>
+        };
+    }
+    $charmap;
 }
 
 sub new {
-  my $class = shift;
-  my $self = $class->SUPER::new(@_);
-  my @ev;
-  tie @ev,'Tie::AGLFN', get_aglfn();
-  $self->{encodingvector} = \@ev;
-  bless($self,$class);
+    my $class = shift;
+    my $self  = $class->SUPER::new(@_);
+    my @ev;
+    tie @ev, 'Tie::AGLFN', get_aglfn();
+    $self->{encodingvector} = \@ev;
+    bless( $self, $class );
 }
 
 sub stringwidth {
-    my ($self, $string, $pt) = @_;
+    my ( $self, $string, $pt ) = @_;
 
     my $wx = $self->CharWidthData;
     my $ev = $self->EncodingVector;
-    if ( scalar(@{$self->{encodingvector}}) <= 0 ) {
-	die ($self->FileName . ": Missing Encoding\n");
+    if ( scalar( @{ $self->{encodingvector} } ) <= 0 ) {
+        die( $self->FileName . ": Missing Encoding\n" );
     }
     my $wd = 0;
-    foreach ( unpack ("U*", $string)) {
-	$wd += $wx->{$ev->[$_]||'.undef'};
+    foreach ( unpack( "U*", $string ) ) {
+        $wd += $wx->{ $ev->[$_] || '.undef' };
     }
 
     if ( defined $pt ) {
-	carp ("Using a PointSize argument to stringwidth is deprecated")
-	  if $^W;
-	$wd *= $pt / 1000;
+        carp("Using a PointSize argument to stringwidth is deprecated")
+            if $^W;
+        $wd *= $pt / 1000;
     }
     $wd;
 }
 
 sub kstringwidth {
-    my ($self, $string, $pt) = @_;
+    my ( $self, $string, $pt ) = @_;
 
     my $wx = $self->CharWidthData;
     my $ev = $self->EncodingVector;
-    if ( scalar(@{$self->{encodingvector}}) <= 0 ) {
-	croak ($self->FileName . ": Missing Encoding\n");
+    if ( scalar( @{ $self->{encodingvector} } ) <= 0 ) {
+        croak( $self->FileName . ": Missing Encoding\n" );
     }
     my $kr = $self->KernData;
     my $wd = 0;
     my $prev;
-    foreach ( unpack ("C*", $string) ) {
-	my $this = $ev->[$_] || '.undef';
-	$wd += $wx->{$this};
-	if ( defined $prev ) {
-	    my $kw = $kr->{$prev,$this};
-	    $wd += $kw if defined $kw;
-	}
-	$prev = $this;
+    foreach ( unpack( "C*", $string ) ) {
+        my $this = $ev->[$_] || '.undef';
+        $wd += $wx->{$this};
+        if ( defined $prev ) {
+            my $kw = $kr->{ $prev, $this };
+            $wd += $kw if defined $kw;
+        }
+        $prev = $this;
     }
     if ( defined $pt ) {
-	carp ("Using a PointSize argument to kstringwidth is deprecated")
-	  if $^W;
-	$wd *= $pt / 1000;
+        carp("Using a PointSize argument to kstringwidth is deprecated")
+            if $^W;
+        $wd *= $pt / 1000;
     }
     $wd;
 }
 
-
 sub char_name {
-  return $self->{encodingvector}->[$_[0]];
+    my ($self) = @_;
+    return $self->{encodingvector}->[ $_[0] ];
 }
 
-
 1;
-
 
 =head1 AUTHOR
 
 Petr Pajas <pajas@matfyz.cz>
 
 =cut
-
 
 __DATA__
 0041 A

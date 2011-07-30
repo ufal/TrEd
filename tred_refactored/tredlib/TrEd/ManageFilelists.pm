@@ -9,7 +9,7 @@ use File::Spec;
 
 #use TrEd::MinMax; # max2
 use TrEd::Utils qw{$EMPTY_STR};
-use TrEd::Config qw{$tredDebug};
+use TrEd::Config qw{$tredDebug @config_filelists};
 require TrEd::File;
 TrEd::File->import(qw{closeFile absolutize filename});
 
@@ -27,7 +27,6 @@ BEGIN {
     }
 }
 
-
 our $VERSION = "0.1";
 
 # list of all loaded filelists
@@ -35,6 +34,8 @@ my @filelists = ();
 
 # filelists from extensions
 my %filelist_from_extension = ();
+
+my %filelist_from_std_location = ();
 
 #######################################################################################
 # Usage         : _dump_filelists($fn_name, $filelists_ref)
@@ -93,7 +94,6 @@ sub find_filelist {
     return;
 }
 
-
 #######################################################################################
 # Usage         : add_filelist($filelist)
 # Purpose       : Add filelist to array of filelists
@@ -101,9 +101,10 @@ sub find_filelist {
 # Parameters    : Filelist ref $filelist -- reference to Filelist to be added
 # Throws        : no exception
 # See Also      : find_filelist(),
-# was main::addFilelist 
+# was main::addFilelist
 sub add_filelist {
     my ($filelist) = @_;
+
     # _dump_filelists("add_filelist", \@filelists);
     push @filelists, $filelist;
     print "Adding filelist " . $filelist->name() . "\n";
@@ -134,7 +135,7 @@ sub _user_resolve_filelist_conflict {
     else {
         return TrEd::Query::User::new_query(
             $top,
-            "Filelist named '" 
+            "Filelist named '"
                 . $file_name_loaded
                 . "' is already loaded from\n"
                 . $file_name_new . "\n",
@@ -169,10 +170,11 @@ LOOP:
     for my $dummy (1) {
 
         # ($l) = grep { $_->name eq $fl->name } @filelists;
-        $colliding_filelist 
+        $colliding_filelist
             = TrEd::MinMax::first { $_->name() eq $filelist->name() }
-                                  @filelists;
-        last if not $colliding_filelist; #don't prompt user if nothing collides
+        @filelists;
+        last
+            if not $colliding_filelist; #don't prompt user if nothing collides
         if ($top) {
             my $answer = _user_resolve_filelist_conflict( $top,
                 $filelist->filename(), $colliding_filelist->filename() );
@@ -181,7 +183,8 @@ LOOP:
                 my $new_name
                     = TrEd::Query::String::new_query( $top, "Filelist name",
                     "Name: ", $filelist->name );
-                return ( $colliding_filelist, 'return' ) if ( !defined($new_name) );
+                return ( $colliding_filelist, 'return' )
+                    if ( !defined($new_name) );
                 $filelist->rename($new_name);
                 redo LOOP;
             }
@@ -248,8 +251,7 @@ sub selectFilelistDialog {
     #  for (@filelists) {
     #    #Dump($_->name);
     #  }
-    my @lists
-        = sort { $a->[2] cmp $b->[2] }
+    my @lists = sort { $a->[2] cmp $b->[2] }
         ( map { [ $_, $_->name, lc( $_->name ) ] } @filelists );
     return unless @lists;
     my $i         = 'A';
@@ -306,10 +308,10 @@ sub loadFilelist {
 # Throws        : no exception
 # Comments      : ...
 # See Also      : bind_key(), get_binding_for_key(), get_bindings_for_macro()
-sub loadStdFilelists {
+sub load_std_filelists {
     my $dir = File::Spec->catdir( $main::tred_d, 'filelists' );
 
-    # _dump_filelists("loadStdFilelists", \@filelists);
+    # _dump_filelists("load_std_filelists", \@filelists);
     return unless -d $dir;
     my %name = map { $_->name() => $_ } @filelists;
     for my $f ( glob( File::Spec->catfile( $dir, '*' ) ) ) {
@@ -348,7 +350,7 @@ sub loadStdFilelists {
                     warn $@;
                 }
                 else {
-                    $filelist_from_extension{$fl} = 2;
+                    $filelist_from_std_location{$fl} = 2;
                 }
             }
         }
@@ -464,26 +466,27 @@ sub makeNewFilelist {
 # Comments      : ...
 # See Also      : bind_key(), get_binding_for_key(), get_bindings_for_macro()
 # extracted from main::updateRuntimeConfig
-sub update_filelists {
+sub update_runtimeconfig_filelists {
     my ( $s, $conf ) = @_;
 
     # _dump_filelists("update_filelists", \@filelists);
     my $i = 0;
-    foreach (@filelists) {
+    foreach my $filelist (@filelists) {
         next
-            if ( exists $filelist_from_extension{$_}
-            && $filelist_from_extension{$_} == 1 );
-        my $fn   = ref($_) && $_->filename;
-        my $name = ref($_) && $_->name;
-        next if ( $name eq 'Default' or $name =~ /^CmdLine-\d+$/ );
-        unless ( defined($fn) and length($fn) ) {
-            saveStdFilelist($_);
+            if ( exists $filelist_from_extension{$filelist}
+            && $filelist_from_extension{$filelist} == 1 );
+        my $fn   = ref $filelist && $filelist->filename();
+        my $name = ref $filelist && $filelist->name();
+        next if ( $name eq 'Default' || $name =~ /^CmdLine-\d+$/ );
+        if ( !defined $fn || !length $fn ) {
+            saveStdFilelist($filelist);
         }
         else {
-            $_->save;
-            if ( !$filelist_from_extension{$_} )
-            {    # note: this equals 2 for "StdFilelist" loaded from ~/.tred.d
-                $s = $_->filename();
+            $filelist->save();
+            if (   !$filelist_from_extension{$filelist}
+                && !$filelist_from_std_location{$filelist} )
+            {
+                $s = $filelist->filename();
                 $s =~ s/\\/\\\\/g;
                 push @{$conf}, "filelist" . $i++ . "\t\t=\t" . $s . "\n";
             }
@@ -537,8 +540,9 @@ sub bookmarkToFilelistDialog {
     my ($grp) = @_;
     my @lists = sort { $a->[2] cmp $b->[2] }
         grep { ( $filelist_from_extension{ $_->[0] } || 0 ) != 1 }
-        map { [ $_, $_->name, lc( $_->name ) ] } @filelists;
-    return unless @lists;
+        map { [ $_, $_->name, lc( $_->name ) ] } 
+        @filelists;
+    return if !@lists;
     my $i         = 'A';
     my $selection = [ $i . '.  ' . $lists[0]->[1] ];
     TrEd::Query::List::new_query( $grp->{top}, 'Add Bookmark To File Lists',
@@ -581,7 +585,7 @@ sub create_filelists {
 
     create_cmdline_filelists($cmdline_filelists);
     TrEd::Bookmarks::create_bookmarks_filelist();
-    loadStdFilelists();
+    load_std_filelists();
 }
 
 #######################################################################################
@@ -624,14 +628,11 @@ sub create_cmdline_filelists {
 # See Also      : bind_key(), get_binding_for_key(), get_bindings_for_macro()
 # extracted from main::set_config
 sub load_filelists_from_conf {
-    my ($confs) = @_;
     my $fl;
-    foreach ( sort { substr( $a, 8 ) <=> substr( $b, 8 ) }
-        grep /^filelist[0-9]+/,
-        keys %{$confs} )
+    foreach my $config_filelist ( @TrEd::Config::config_filelists )
     {
         print "Reading $_\n" if $tredDebug;
-        $fl = Filelist->new( undef, $confs->{$_} );
+        $fl = Filelist->new( undef, $config_filelist );
         next unless $fl;
         eval {
             print STDERR "Reading filelist " . $fl->filename() . "\n"
@@ -749,7 +750,9 @@ sub removeFromFilelist {
     }
     my $filelist_widget = TrEd::Dialog::Filelist::filelist_widget();
     main::update_filelist_views( $grp, $filelist, 1 );
-    if ( $filelist_widget and $TrEd::Dialog::Filelist::current_filelist == $filelist ) {
+    if (    $filelist_widget
+        and $TrEd::Dialog::Filelist::current_filelist == $filelist )
+    {
         $position
             = TrEd::MinMax::min2( $position, $filelist->file_count - 1 );
         TrEd::Filelist::View::update_a_filelist_view( $grp, $filelist_widget,
@@ -832,26 +835,29 @@ sub insertToFilelist {
     my $toplevel
         = $filelist_widget ? $filelist_widget->toplevel : $grp->{top};
     @list = map {
-        if ( -d $_ )
+        my $dir = $_;
+        if ( -d $dir )
         {
             $grp->{'hist-fileListPattern'} = []
                 unless $grp->{'hist-fileListPattern'};
             $tmp = TrEd::Query::Simple::new_query(
                 $toplevel,
                 "Selection Pattern",
-                "Insert pattern for directory $_",
+                "Insert pattern for directory $dir",
                 "*.*", 1, $grp->{'hist-fileListPattern'}
             );
-            $_ = defined($tmp) ? File::Spec->catfile( $_, $tmp ) : undef;
+            $dir = defined $tmp ? File::Spec->catfile( $dir, $tmp ) : undef;
         }
-        $_;
+        $dir;
     } @list;
     $position = TrEd::MinMax::min( $position + 1, $filelist->count() ) - 1;
     print "Inserting @list to position ", $position + 1, "\n" if $tredDebug;
     $filelist->add( $position + 1, @list );
 
     main::update_filelist_views( $grp, $filelist, 1 );
-    if ( $filelist_widget and $TrEd::Dialog::Filelist::current_filelist == $filelist ) {
+    if (    $filelist_widget
+        and $TrEd::Dialog::Filelist::current_filelist == $filelist )
+    {
         $position = TrEd::MinMax::max2( 0, $filelist->position( $list[0] ) );
         TrEd::Filelist::View::update_a_filelist_view( $grp, $filelist_widget,
             $filelist, $position, 0 );
@@ -889,7 +895,7 @@ sub removeFilelistsDialog {
     # _dump_filelists("removeFilelistsDialog", \@filelists);
     my @lists = sort { $a->[1] cmp $b->[1] }
         grep {
-        $_->[1] ne 'Default'
+                $_->[1] ne 'Default'
             and $_->[1] ne $TrEd::Bookmarks::FILELIST_NAME
             and ( $filelist_from_extension{ $_->[0] } || 0 )
             != 1
@@ -919,80 +925,88 @@ sub removeFilelistsDialog {
 
 #######################################################################################
 # Usage         : add_new_filelist(..)
-# Purpose       : ...  
+# Purpose       : ...
 # Returns       : ..
 # Parameters    : hash_ref $grp
 #                 Filelist ref $fl
 #                 Tk::Widget $top
 # Throws        : ..
 # Comments      : ..
-# See Also      : .. 
+# See Also      : ..
 # TODO: tests
 # was main::addNewFilelist
 sub add_new_filelist {
-  my ($grp, $fl, $top) = @_;
-  # dump_filelists("add_new_filelist", \@filelists);
-  return if (!defined($fl) || $fl eq $EMPTY_STR);
-  
-  # returns other filelist with same name, or the original 
-  # filelist, if the name is unique
-  my ($l, $cont) = _solve_filelist_conflict($top, $fl);
-  
-  if($cont eq 'return') {
-    return $l;
-  }
-  
-  if ($l) {
-      @{ $l->list_ref } = $fl->list();
-      $l->filename($fl->filename()); # set filename
-      $l->expand();
-      if ($grp) {
-        $TrEd::Dialog::Filelist::current_filelist = undef;
-        TrEd::Dialog::Filelist::switch_filelist($grp, $l);
-      }
-      undef $fl;
-      return $l;
-  }
-  if (not defined($fl->name()) or $fl->name() eq $EMPTY_STR) {
-    undef $fl;
-    return;
-  }
-  push @filelists, $fl;
-  if ($grp) {
-    TrEd::Dialog::Filelist::switch_filelist($grp,$fl);
-    main::updatePostponed($grp);
-  }
-  return $fl;
+    my ( $grp, $fl, $top ) = @_;
+
+    # dump_filelists("add_new_filelist", \@filelists);
+    return if ( !defined($fl) || $fl eq $EMPTY_STR );
+
+    # returns other filelist with same name, or the original
+    # filelist, if the name is unique
+    my ( $l, $cont ) = _solve_filelist_conflict( $top, $fl );
+
+    if ( $cont eq 'return' ) {
+        return $l;
+    }
+
+    if ($l) {
+        @{ $l->list_ref } = $fl->list();
+        $l->filename( $fl->filename() );    # set filename
+        $l->expand();
+        if ($grp) {
+            $TrEd::Dialog::Filelist::current_filelist = undef;
+            TrEd::Dialog::Filelist::switch_filelist( $grp, $l );
+        }
+        undef $fl;
+        return $l;
+    }
+    if ( not defined( $fl->name() ) or $fl->name() eq $EMPTY_STR ) {
+        undef $fl;
+        return;
+    }
+    push @filelists, $fl;
+    if ($grp) {
+        TrEd::Dialog::Filelist::switch_filelist( $grp, $fl );
+        main::updatePostponed($grp);
+    }
+    return $fl;
 }
 
 sub deleteFilelist {
-  my ($grp, @lists)=@_;
-  # dump_filelists("deleteFilelist", \@filelists);
-  @lists = grep {
-    (ref($_) ? (($filelist_from_extension{$_}||0)!=1) : do { carp("deleteFilelist: $_ is not a filelist object!"); 0 })
-    and $_->name !~ /^(Default|Bookmarks)$/
-  } @lists;
-  my %to_delete; 
-  @to_delete{ @lists } = ();
-  return unless @lists;
-  print "Removing filelists ".join(",",map $_->name(), @lists)."\n" if $tredDebug;
-  @filelists = grep { !exists($to_delete{$_}) } @filelists;
-  for my $list (@lists) {
-    if (($filelist_from_extension{$list} || 0) == 2) {
-      my $fn = $list->filename();
-      if ($fn) {
-        print "Deleting filelist file $fn\n" if $tredDebug;
-        unlink $fn;
-      }
+    my ( $grp, @lists ) = @_;
+
+    # dump_filelists("deleteFilelist", \@filelists);
+    @lists = grep {
+        (   ref($_)
+            ? ( ( $filelist_from_extension{$_} || 0 ) != 1 )
+            : do { carp("deleteFilelist: $_ is not a filelist object!"); 0 }
+            )
+            and $_->name !~ /^(Default|Bookmarks)$/
+    } @lists;
+    my %to_delete;
+    @to_delete{@lists} = ();
+    return unless @lists;
+    print "Removing filelists " . join( ",", map $_->name(), @lists ) . "\n"
+        if $tredDebug;
+    @filelists = grep { !exists( $to_delete{$_} ) } @filelists;
+    for my $list (@lists) {
+        if ( ( $filelist_from_extension{$list} || 0 ) == 2 ) {
+            my $fn = $list->filename();
+            if ($fn) {
+                print "Deleting filelist file $fn\n" if $tredDebug;
+                unlink $fn;
+            }
+        }
     }
-  }
-  if (defined $TrEd::Dialog::Filelist::current_filelist && exists($to_delete{$TrEd::Dialog::Filelist::current_filelist})) {
-    $TrEd::Dialog::Filelist::current_filelist=undef;
-    TrEd::Dialog::Filelist::switch_filelist($grp,'Default');
-  }
-  undef @lists;
-  main::updatePostponed($grp);
-  return;
+    if ( defined $TrEd::Dialog::Filelist::current_filelist
+        && exists( $to_delete{$TrEd::Dialog::Filelist::current_filelist} ) )
+    {
+        $TrEd::Dialog::Filelist::current_filelist = undef;
+        TrEd::Dialog::Filelist::switch_filelist( $grp, 'Default' );
+    }
+    undef @lists;
+    main::updatePostponed($grp);
+    return;
 }
 
 1;

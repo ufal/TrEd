@@ -9,7 +9,7 @@ BEGIN {
     import TrEd::MinMax qw(first min max);
     use UNIVERSAL::DOES;
     use TrEd::File qw{absolutize absolutize_path};
-    
+
     use Exporter ();
     use vars qw($VERSION @ISA @EXPORT @EXPORT_OK
         $on_tree_change
@@ -23,7 +23,7 @@ BEGIN {
         $on_tree_change
         $on_node_change
         $on_current_change
-        
+
         go_to_tree
         next_tree
         prev_tree
@@ -35,7 +35,7 @@ BEGIN {
         new_node
         prune_node
         set_current
-        
+
         get_node_no
     };
     use Treex::PML::Schema;
@@ -60,7 +60,7 @@ else {
 #######################################################################################
 # Usage         : get_node_no($win_ref, $node)
 # Purpose       : Find the ordinal number of node in current tree
-# Returns       : The ordinal number of $node within current tree or undef if the node 
+# Returns       : The ordinal number of $node within current tree or undef if the node
 #                 has not been found
 # Parameters    : TrEd::Window ref $win_ref -- reference to TrEd::Window object
 #                 Treex::PML::Node ref $node -- reference to Node, which we are searching for in current tree
@@ -208,7 +208,7 @@ sub new_tree_after {
 # Throws        : no exception
 # Comments      : Marks the modified file as notSaved(1), calls on_tree_chage() callback
 #                 The trees with position greater than the current position are moved to position - 1
-#                 This implementation allows deleting from the end of file using negative indices, 
+#                 This implementation allows deleting from the end of file using negative indices,
 #                 e.g. $win_ref->treeNo = -1
 # See Also      : go_to_tree(), on_tree_change(), Treex::PML::Document::notSaved(), Treex::PML::Document::destroy_tree()
 #TODO:            shouldn't it be coherent and we should not allow negative indices?
@@ -318,7 +318,7 @@ sub new_node {
     return if !( defined $fsfile && defined $parent );
 
     # Treex::PML::Node warns users against using Treex::PML::Node->new(), hm?
-    my $new_node = $parent->new(); 
+    my $new_node = $parent->new();
     $new_node->paste_on( $parent, $fsfile->FS() );
     my $order = $fsfile->FS()->order();
     if (defined $order && $order) {
@@ -354,7 +354,7 @@ sub prune_node {
     ## Deletes given node
     my ( $win_ref, $node ) = @_;
     my $fsfile = $win_ref->{FSFile};
-    return undef if !( $fsfile and $node and $node->parent() );
+    return if !( $fsfile and $node and $node->parent() );
 
     # make all the sons of the current node its parent's sons
     my $son;
@@ -398,20 +398,20 @@ sub set_current {
 
 # was main::treeIsVertical
 sub tree_is_vertical {
-  my ($grp) = @_;
-  my $win=$grp->{focusedWindow};
-  return unless $win;
-  return $win->treeView->get_verticalTree;
+    my ($grp) = @_;
+    my $win = $grp->{focusedWindow};
+    return unless $win;
+    return $win->treeView->get_verticalTree;
 }
 
 # was main::treeIsReversed
 sub tree_is_reversed {
-  my ($grp_win) = @_;
-  my $win=main::cast_to_win($grp_win);
-  return unless $win;
-  my $rtl = $win->treeView->rightToLeft($win->{FSFile});
-  return $rtl if defined $rtl;
-  return $win->treeView->get_reverseNodeOrder;
+    my ($grp_win) = @_;
+    my $win = main::cast_to_win($grp_win);
+    return unless $win;
+    my $rtl = $win->treeView->rightToLeft( $win->{FSFile} );
+    return $rtl if defined $rtl;
+    return $win->treeView->get_reverseNodeOrder;
 }
 
 1;
@@ -426,14 +426,14 @@ TrEd::Window::TreeBasics - Basic functions for manipulating trees in L<Treex::PM
 
 =head1 VERSION
 
-This documentation refers to 
+This documentation refers to
 TrEd::Window::TreeBasics version 0.2.
 
 
 =head1 SYNOPSIS
 
   use TrEd::Window::TreeBasics;
-  
+
   # backends to use by Treex::PML
   my @backends=(
     'FS',
@@ -447,7 +447,7 @@ TrEd::Window::TreeBasics version 0.2.
          PMLTransform
         })
     );
-  
+
   # create Treex::PML::Document
   my $file_name = "my_file";
   my $fsfile = Treex::PML::Factory->createDocumentFromFile(
@@ -457,64 +457,64 @@ TrEd::Window::TreeBasics version 0.2.
       backends => \@backends,
       recover => 1,
     });
-  
-  my $win_ref = { 
+
+  my $win_ref = {
     treeNo => 0,
     FSFile => $fsfile,
     macroContext =>  'TredMacro',
     currentNode => $fsfile->tree(0),
     root => $fsfile->tree(0),
   }
-  
+
   # Changing position in file
   my $new_position = TrEd::Window::TreeBasics::go_to_tree($win_ref, 42);
-  
+
   my $success = TrEd::Window::TreeBasics::next_tree($win_ref);
   $success = TrEd::Window::TreeBasics::prev_tree($win_ref);
-  
+
   # Tree manipulation -- creating, deleting and moving trees
   $success = TrEd::Window::TreeBasics::new_tree($win_ref);
   $success = TrEd::Window::TreeBasics::new_tree_after($win_ref);
-  
+
   $success = TrEd::Window::TreeBasics::prune_tree($win_ref);
-  
+
   my $delta = "3";
   $success = TrEd::Window::TreeBasics::move_tree($win_ref, $delta);
-  
+
   # Node manipulation -- creating, deleting, creating new root from existing node
   my $root = $fsfile->tree(0);
   my $node = $root->firstson();
   my $discard_old_root = 1;
-  
+
   $win_ref->{treeNo} = 0;
   $win_ref->{root} = $fsfile->tree(0);
-  
+
   $success = TrEd::Window::TreeBasics::make_root($win_ref, $node, $discard_old_root);
-  
+
   # create new node as a child of current node
   my $new_node = TrEd::Window::TreeBasics::new_node($win_ref);
-  
+
   # find the ordinal number of new node
   my $node_no = TrEd::Window::TreeBasics::get_node_no($win_ref, $new_node);
-  
+
   # prune the new node
   $success = TrEd::Window::TreeBasics::prune_node($win_ref, $new_node);
-  
-  
-  # Utility functions 
-  TrEd::Window::TreeBasics::set_current($win_ref, $node);  
-  
+
+
+  # Utility functions
+  TrEd::Window::TreeBasics::set_current($win_ref, $node);
+
 
 =head1 DESCRIPTION
 
-Most of these functions are wrappers around some of the L<Treex::PML::Document|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm> and 
+Most of these functions are wrappers around some of the L<Treex::PML::Document|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm> and
 L<Treex::PML::Node|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Node.pm> functions that set up win_ref/grp_ref according to needs of TrEd
-and call callbacks. 
+and call callbacks.
 
 
 =head1 SUBROUTINES/METHODS
 
-=over 4 
+=over 4
 
 
 =item * C<Tred::Window::Basics::get_node_no($win_ref, $node)>
@@ -534,7 +534,7 @@ Find the ordinal number of node in current tree
 
 =item Returns
 
-The ordinal number of $node within current tree or undef if the node 
+The ordinal number of $node within current tree or undef if the node
 has not been found
 
 =back
@@ -568,12 +568,12 @@ Function modifies $win_ref and calls on_tree_chage() callback.
 
 =item See also
 
-L<Treex::PML::Document::lastTreeNo|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>, 
+L<Treex::PML::Document::lastTreeNo|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>,
 L<Treex::PML::Document::treeList|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>
 
 =item Returns
 
-The ordinal number of the 'destination' tree (counted from 0), 
+The ordinal number of the 'destination' tree (counted from 0),
 undef if $win_ref->{FSFile} is not defined (empty list in list context)
 
 =back
@@ -640,16 +640,16 @@ C<$win_ref> -- hash reference, see description for L<go_to_tree>
 =item Description
 
 Marks the modified file as notSaved(1), calls on_tree_chage() callback
-The tree on the current position and all the trees with position 
+The tree on the current position and all the trees with position
 greater than the current position move to position + 1.
 
-If $win_ref->{treeNo} is negative, new tree is created at the position counted from 
-the end of file, if the position is after the end of file, new tree is created after 
+If $win_ref->{treeNo} is negative, new tree is created at the position counted from
+the end of file, if the position is after the end of file, new tree is created after
 the last tree
 
 =item See also
 
-L<Treex::PML::Document::new_tree|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>, 
+L<Treex::PML::Document::new_tree|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>,
 L<go_to_tree>, L<Treex::PML::Document::notSaved|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>
 
 =item Returns
@@ -675,15 +675,15 @@ C<$win_ref> -- hash reference, see description for L<go_to_tree>
 
 Marks the modified file as notSaved(1), calls on_tree_chage() callback.
 
-The tree after the current position and all the trees with position 
+The tree after the current position and all the trees with position
 greater than the one after the current position move to position + 1
 
 Unlike new_tree and prune_tree, this function does not support negative indices
 
 =item See also
 
-L<Treex::PML::Document::new_tree|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>, 
-L<go_to_tree>, 
+L<Treex::PML::Document::new_tree|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>,
+L<go_to_tree>,
 L<Treex::PML::Document::notSaved()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>
 
 =item Returns
@@ -710,13 +710,13 @@ C<$win_ref> -- hash reference, see description for L<go_to_tree>
 Marks the modified file as notSaved(1), calls on_tree_chage() callback
 
 The trees with position greater than the current position are moved to position - 1
- 
+
 This implementation allows deleting from the end of file using negative indices, e.g. $win_ref->treeNo = -1
 
 =item See also
 
-L<Treex::PML::Document::destroy_tree|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>, 
-L<go_to_tree>, 
+L<Treex::PML::Document::destroy_tree|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>,
+L<go_to_tree>,
 L<Treex::PML::Document::notSaved()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>
 
 =item Returns
@@ -747,8 +747,8 @@ All the trees with position greater than current position + $delta move to their
 
 =item See also
 
-L<Treex::PML::Document::move_tree_to|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>, 
-L<go_to_tree>, 
+L<Treex::PML::Document::move_tree_to|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>,
+L<go_to_tree>,
 L<Treex::PML::Document::notSaved()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>
 
 =item Returns
@@ -764,7 +764,7 @@ Undef if $win_ref->{FSFile} is undefined or if delta is 0, 1 otherwise
 
 =item Purpose
 
-Make the specified $node new root of the current tree, 
+Make the specified $node new root of the current tree,
 optionally throwing out the former root if $discard is true
 
 =item Parameters
@@ -781,9 +781,9 @@ Node types are not changed, i.e. attr('nodetype') of the new root will be preser
 
 =item See also
 
-L<Treex::PML::Node::cut|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Node.pm>, 
+L<Treex::PML::Node::cut|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Node.pm>,
 L<Treex::PML::Node::paste_on|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Node.pm>,
-L<go_to_tree>, 
+L<go_to_tree>,
 L<Treex::PML::Document::notSaved()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>
 
 =item Returns
@@ -814,12 +814,12 @@ Marks the modified file as notSaved(1), calls on_node_chage() callback
 L<Treex::PML::Node::new|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Node.pm>,
 L<Treex::PML::Struct::set_member|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Struct.pm>,
 L<Treex::PML::Struct::paste_on|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Struct.pm>,
-L<go_to_tree>, 
+L<go_to_tree>,
 L<Treex::PML::Document::notSaved()|http://search.cpan.org/~zaba/Treex-PML/lib/Treex/PML/Document.pm>
 
 =item Returns
 
-Undef if $win_ref->{FSFile} or $win_ref->{currentNode} are not defined, 
+Undef if $win_ref->{FSFile} or $win_ref->{currentNode} are not defined,
 reference to new Treex::PML::Node object otherwise
 
 =back
@@ -852,8 +852,8 @@ L<set_current>,
 
 =item Returns
 
-Undef if $win_ref->{FSFile} or $node or $node's parent are not defined, 
-return value of Treex::PML::Node::destroy_leaf() is returned otherwise 
+Undef if $win_ref->{FSFile} or $node or $node's parent are not defined,
+return value of Treex::PML::Node::destroy_leaf() is returned otherwise
 (which currently means that 1 is returned)
 
 =back
@@ -894,9 +894,9 @@ Nothing
 =head1 DIAGNOSTICS
 
 
-Croaks "The currently installed version of the File::Spec module 
+Croaks "The currently installed version of the File::Spec module
 doesn't provide rel2abs() method. Please upgrade it!" if the version
-of File::Spec does not provide rel2abs subroutine.  
+of File::Spec does not provide rel2abs subroutine.
 
 
 =head1 CONFIGURATION AND ENVIRONMENT
@@ -927,7 +927,7 @@ No known incompatibilities.
 =head1 BUGS AND LIMITATIONS
 
 There are no known bugs in this module.
-Please report problems to 
+Please report problems to
 Zdenek Zabokrtsky <zabokrtsky@ufal.ms.mff.cuni.cz>
 
 Patches are welcome.
@@ -937,9 +937,9 @@ Patches are welcome.
 
 Petr Pajas <pajas@matfyz.cz>
 
-Copyright (c) 
+Copyright (c)
 2010 Petr Pajas <pajas@matfyz.cz>
-2011 Peter Fabian (documentation & tests). 
+2011 Peter Fabian (documentation & tests).
 All rights reserved.
 
 

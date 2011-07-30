@@ -26,7 +26,7 @@ sub new {
                     -command        => [\&_switch_stylesheet_callback, $grp], #option value is appended to args
                     -relief         => 'groove', #$menubarRelief,
                     -borderwidth=> 2)->pack(qw/-side right -padx 3/);
-	$menu->menu->bind("<KeyPress>", [\&main::NavigateMenuByFirstKey,Tk::Ev('K')]);
+    $menu->menu->bind("<KeyPress>", [\&main::NavigateMenuByFirstKey,Tk::Ev('K')]);
     my $obj = {
         menu      => $menu,
         no_update => undef,
@@ -34,9 +34,9 @@ sub new {
     return bless $obj, $class;
 }
 
-sub _switch_stylesheet_callback { 
+sub _switch_stylesheet_callback {
     my ($grp,$stylesheet) = @_;
-	main::switchStylesheet($grp, $stylesheet);
+    main::switchStylesheet($grp, $stylesheet);
 }
 
 sub get_menu {
@@ -60,7 +60,7 @@ sub set_dont_update {
 # Returns       : Undef/empty list
 # Parameters    : hash_ref $grp -- reference to hash containing TrEd options
 # Throws        : No exception
-# Comments      : 
+# Comments      :
 # See Also      : ...
 sub update {
     my ($self, $grp) = @_;
@@ -71,7 +71,7 @@ sub update {
     }
 }
 
-# podobne pre $context a 
+# podobne pre $context a
 sub get_menu_list {
     my ( $self, $grp, $all ) = @_;
     my $context = $grp->{focusedWindow}->{macroContext};

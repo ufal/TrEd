@@ -5,8 +5,8 @@
 package TredMacro;
 
 use strict;
-#use warnings;
 
+#use warnings;
 
 use Exporter;
 use Treex::PML;
@@ -17,315 +17,320 @@ use TrEd::MinMax qw(first max maxstr min minstr reduce sum);
 use base qw(Exporter);
 use Carp;
 use vars qw(@FORCE_EXPORT @EXPORT);
+
 # should they be exported?
 #        can
 #        isa
 BEGIN {
-  @FORCE_EXPORT = qw($libDir $grp $root $this $_NoSuchTree $Redraw $stderr $stdout
-		     $forceFileSaved $FileChanged $FileNotSaved $NodeClipboard @AUTO_CONTEXT_GUESSING);
+    @FORCE_EXPORT
+        = qw($libDir $grp $root $this $_NoSuchTree $Redraw $stderr $stdout
+        $forceFileSaved $FileChanged $FileNotSaved $NodeClipboard @AUTO_CONTEXT_GUESSING);
     @EXPORT = qw{
-            AbsolutizeFileName
-            AddBackend
-            AddNewFileList
-            AddStyle
-            AddToAlt
-            AddToList
-            AddToListUniq
-            AddToSeq
-            Alt
-            AltV
-            AppendFSHeader
-            AttachTooltip
-            Attributes
-            Backends
-            Bind
-            CallerDir
-            CallerPath
-            can
-            CenterOtherWinTo
-            ChangingFile
-            CloneSubtree
-            CloseFile
-            CloseFileInWindow
-            CloseGUI
-            CloseWindow
-            configure_node_menu_items
-            context_guessing
-            CopyNode
-            CopyValues
-            CopyValues_nochange
-            critical_node_menu_items
-            _croak
-            CurrentContext
-            CurrentContextForWindow
-            CurrentFile
-            CurrentFileNo
-            CurrentNodeInOtherWindow
-            CurrentTreeNumber
-            CurrentWindow
-            CustomColor
-            Cut
-            CutNode
-            CutPaste
-            CutPasteAfter
-            CutPasteBefore
-            CutToClipboard
-            DeclareMinorMode
-            DefaultInputEncoding
-            DeleteLeafNode
-            DeleteStylesheet
-            DeleteSubtree
-            DeleteThisNode
-            DestroyTree
-            DestroyUserToolbar
-            DetermineNodeType
-            DirPart
-            DisableMinorMode
-            disable_node_menu_items
-            DisableUserToolbar
-            EditAttribute
-            EditBoxQuery
-            EnableMinorMode
-            enable_node_menu_items
-            EnableUserToolbar
-            ErrorMessage
-            exit_hook
-            FileAppData
-            FileMetaData
-            FileName
-            FilePart
-            FileUserData
-            Find
-            FindMacroDir
-            FindNext
-            FindNext_nochange
-            Find_nochange
-            FindPrev
-            FindPrevious_nochange
-            FirstTree
-            ForgetRedo
-            FPosition
-            FS
-            GetBalloonPattern
-            GetCurrentFileList
-            GetCurrentStylesheet
-            GetDisplayAttrs
-            GetDisplayedNodes
-            GetFileList
-            GetFileSaveStatus
-            GetMinorModeData
-            GetNodeIndex
-            GetNodes
-            GetNodesExceptSubtree
-            GetOpenFiles
-            GetOrd
-            GetPatternsByPrefix
-            GetSecondaryFiles
-            GetSpecialPattern
-            GetStyles
-            GetStylesheetPatterns
-            GetTrees
-            GetUserToolbar
-            GetVisibleNodes
-            GotoFileAsk
-            GotoFileNo
-            GotoNextNodeLin
-            GotoPrevNodeLin
-            GotoTree
-            GotoTreeAsk
-            guess_context_hook
-            GUI
-            HiddenVisible
-            Hide
-            HideUserToolbar
-            import
-            import_only
-            InfoMessage
-            init_hook
-            initialize_bindings_hook
-            init_tredmacro_bindings
-            InVerticalMode
-            isa
-            IsAlt
-            IsHidden
-            IsList
-            IsMinorModeEnabled
-            IsSeq
-            LastFileNo
-            LastTree
-            List
-            ListEnabledMinorModes
-            ListIntersect
-            ListQuery
-            ListRegroupElements
-            ListSubtract
-            ListUnion
-            ListV
-            LocateNode
-            MacroCallback
-            MoveNode
-            MoveSubtree
-            NewLBrother
-            NewParent
-            NewRBrother
-            NewSon
-            NewTree
-            NewTreeAfter
-            NewUserToolbar
-            NextFile
-            NextNode
-            NextNodeLinear
-            NextTree
-            NextTree_nochange
-            NextVisibleNode
-            node_menu_item_cget
-            noop
-            NormalizeOrds
-            NPosition
-            Open
-            open_file_hook
-            OpenSecondaryFiles
-            OverrideBuiltinBinding
-            ParseNodeAddress
-            PasteFromClipboard
-            PasteNode
-            PasteNodeAfter
-            PasteNodeBefore
-            PasteValues
-            PerlEval
-            PerlSearch
-            PerlSearchNext
-            PlainDeleteNode
-            PlainDeleteSubtree
-            PlainNewSon
-            PrevFile
-            PrevNode
-            PrevNodeLinear
-            PrevTree
-            PrevTree_nochange
-            PrevVisibleNode
-            Print
-            PrintDialog
-            priority_context_guessing
-            QueryString
-            QuestionQuery
-            QuickPML
-            quit
-            Redo
-            Redraw
-            Redraw_All
-            RedrawAndUpdateThis
-            Redraw_FSFile
-            Redraw_FSFile_Tree
-            RedrawStatusLine
-            register_exit_hook
-            register_init_hook
-            register_initialize_bindings_hook
-            register_open_file_hook
-            register_reload_macros_hook
-            register_start_hook
-            ReloadCurrentFile
-            reload_macros_hook
-            ReloadStylesheet
-            ReloadStylesheets
-            RemoveBackend
-            RemoveFileList
-            RemoveTree
-            RemoveUserToolbar
-            RepasteNode
-            ResumeFile
-            RunCallback
-            Save
-            SaveAndNextFile
-            SaveAndPrevFile
-            SaveAs
-            SaveStylesheet
-            SaveStylesheets
-            SaveUndo
-            SeqV
-            SetBalloonPattern
-            SetCurrentFileList
-            SetCurrentFileListInWindow
-            SetCurrentNodeInOtherWindow
-            SetCurrentStylesheet
-            SetCurrentWindow
-            SetDefaultInputEncoding
-            SetDisplayAttrs
-            SetFileSaveStatus
-            SetMinorModeData
-            SetStylesheetPatterns
-            SetupXPath
-            ShiftNodeLeft
-            ShiftNodeLeftSkipHidden
-            ShiftNodeRight
-            ShiftNodeRightSkipHidden
-            ShowUserToolbar
-            SlurpURI
-            SortByOrd
-            SplitWindowHorizontally
-            SplitWindowVertically
-            StandardTredFont
-            StandardTredValueLineFont
-            start_hook
-            stderr
-            stdout
-            StylesheetExists
-            STYLESHEET_FROM_FILE
-            Stylesheets
-            SubstituteFSHeader
-            SwitchContext
-            SwitchContextForWindow
-            ThisAddress
-            ThisAddressNTRED
-            TieFirstTree
-            TieGotoTree
-            TieGotoTreeAsk
-            TieLastTree
-            TieNextTree
-            TieNextTree_nochange
-            TiePrevTree
-            TiePrevTree_nochange
-            tmpFileName
-            ToggleHiding
-            ToplevelFrame
-            TrEdFileLists
-            TrEdWindows
-            UnbindBuiltin
-            UndeclareAttributes
-            Undo
-            uniq
-            unregister_exit_hook
-            unregister_init_hook
-            unregister_initialize_bindings_hook
-            unregister_open_file_hook
-            unregister_reload_macros_hook
-            unregister_start_hook
-            UserConf
-            UserToolbarVisible
-            writeln
-            ntred_query_box_make_filelist
-            ntred_query_box_do_query
-            ntred_query_box
-            ntred_query
-            Position
+        AbsolutizeFileName
+        AddBackend
+        AddNewFileList
+        AddStyle
+        AddToAlt
+        AddToList
+        AddToListUniq
+        AddToSeq
+        Alt
+        AltV
+        AppendFSHeader
+        AttachTooltip
+        Attributes
+        Backends
+        Bind
+        CallerDir
+        CallerPath
+        can
+        CenterOtherWinTo
+        ChangingFile
+        CloneSubtree
+        CloseFile
+        CloseFileInWindow
+        CloseGUI
+        CloseWindow
+        configure_node_menu_items
+        context_guessing
+        CopyNode
+        CopyValues
+        CopyValues_nochange
+        critical_node_menu_items
+        _croak
+        CurrentContext
+        CurrentContextForWindow
+        CurrentFile
+        CurrentFileNo
+        CurrentNodeInOtherWindow
+        CurrentTreeNumber
+        CurrentWindow
+        CustomColor
+        Cut
+        CutNode
+        CutPaste
+        CutPasteAfter
+        CutPasteBefore
+        CutToClipboard
+        DeclareMinorMode
+        DefaultInputEncoding
+        DeleteLeafNode
+        DeleteStylesheet
+        DeleteSubtree
+        DeleteThisNode
+        DestroyTree
+        DestroyUserToolbar
+        DetermineNodeType
+        DirPart
+        DisableMinorMode
+        disable_node_menu_items
+        DisableUserToolbar
+        EditAttribute
+        EditBoxQuery
+        EnableMinorMode
+        enable_node_menu_items
+        EnableUserToolbar
+        ErrorMessage
+        exit_hook
+        FileAppData
+        FileMetaData
+        FileName
+        FilePart
+        FileUserData
+        Find
+        FindMacroDir
+        FindNext
+        FindNext_nochange
+        Find_nochange
+        FindPrev
+        FindPrevious_nochange
+        FirstTree
+        ForgetRedo
+        FPosition
+        FS
+        GetBalloonPattern
+        GetCurrentFileList
+        GetCurrentStylesheet
+        GetDisplayAttrs
+        GetDisplayedNodes
+        GetFileList
+        GetFileSaveStatus
+        GetMinorModeData
+        GetNodeIndex
+        GetNodes
+        GetNodesExceptSubtree
+        GetOpenFiles
+        GetOrd
+        GetPatternsByPrefix
+        GetSecondaryFiles
+        GetSpecialPattern
+        GetStyles
+        GetStylesheetPatterns
+        GetTrees
+        GetUserToolbar
+        GetVisibleNodes
+        GotoFileAsk
+        GotoFileNo
+        GotoNextNodeLin
+        GotoPrevNodeLin
+        GotoTree
+        GotoTreeAsk
+        guess_context_hook
+        GUI
+        HiddenVisible
+        Hide
+        HideUserToolbar
+        import
+        import_only
+        InfoMessage
+        init_hook
+        initialize_bindings_hook
+        init_tredmacro_bindings
+        InVerticalMode
+        isa
+        IsAlt
+        IsHidden
+        IsList
+        IsMinorModeEnabled
+        IsSeq
+        LastFileNo
+        LastTree
+        List
+        ListEnabledMinorModes
+        ListIntersect
+        ListQuery
+        ListRegroupElements
+        ListSubtract
+        ListUnion
+        ListV
+        LocateNode
+        MacroCallback
+        MoveNode
+        MoveSubtree
+        NewLBrother
+        NewParent
+        NewRBrother
+        NewSon
+        NewTree
+        NewTreeAfter
+        NewUserToolbar
+        NextFile
+        NextNode
+        NextNodeLinear
+        NextTree
+        NextTree_nochange
+        NextVisibleNode
+        node_menu_item_cget
+        noop
+        NormalizeOrds
+        NPosition
+        Open
+        open_file_hook
+        OpenSecondaryFiles
+        OverrideBuiltinBinding
+        ParseNodeAddress
+        PasteFromClipboard
+        PasteNode
+        PasteNodeAfter
+        PasteNodeBefore
+        PasteValues
+        PerlEval
+        PerlSearch
+        PerlSearchNext
+        PlainDeleteNode
+        PlainDeleteSubtree
+        PlainNewSon
+        PrevFile
+        PrevNode
+        PrevNodeLinear
+        PrevTree
+        PrevTree_nochange
+        PrevVisibleNode
+        Print
+        PrintDialog
+        priority_context_guessing
+        QueryString
+        QuestionQuery
+        QuickPML
+        quit
+        Redo
+        Redraw
+        Redraw_All
+        RedrawAndUpdateThis
+        Redraw_FSFile
+        Redraw_FSFile_Tree
+        RedrawStatusLine
+        register_exit_hook
+        register_init_hook
+        register_initialize_bindings_hook
+        register_open_file_hook
+        register_reload_macros_hook
+        register_start_hook
+        ReloadCurrentFile
+        reload_macros_hook
+        ReloadStylesheet
+        ReloadStylesheets
+        RemoveBackend
+        RemoveFileList
+        RemoveTree
+        RemoveUserToolbar
+        RepasteNode
+        ResumeFile
+        RunCallback
+        Save
+        SaveAndNextFile
+        SaveAndPrevFile
+        SaveAs
+        SaveStylesheet
+        SaveStylesheets
+        SaveUndo
+        SeqV
+        SetBalloonPattern
+        SetCurrentFileList
+        SetCurrentFileListInWindow
+        SetCurrentNodeInOtherWindow
+        SetCurrentStylesheet
+        SetCurrentWindow
+        SetDefaultInputEncoding
+        SetDisplayAttrs
+        SetFileSaveStatus
+        SetMinorModeData
+        SetStylesheetPatterns
+        SetupXPath
+        ShiftNodeLeft
+        ShiftNodeLeftSkipHidden
+        ShiftNodeRight
+        ShiftNodeRightSkipHidden
+        ShowUserToolbar
+        SlurpURI
+        SortByOrd
+        SplitWindowHorizontally
+        SplitWindowVertically
+        StandardTredFont
+        StandardTredValueLineFont
+        start_hook
+        stderr
+        stdout
+        StylesheetExists
+        STYLESHEET_FROM_FILE
+        Stylesheets
+        SubstituteFSHeader
+        SwitchContext
+        SwitchContextForWindow
+        ThisAddress
+        ThisAddressNTRED
+        TieFirstTree
+        TieGotoTree
+        TieGotoTreeAsk
+        TieLastTree
+        TieNextTree
+        TieNextTree_nochange
+        TiePrevTree
+        TiePrevTree_nochange
+        tmpFileName
+        ToggleHiding
+        ToplevelFrame
+        TrEdFileLists
+        TrEdWindows
+        UnbindBuiltin
+        UndeclareAttributes
+        Undo
+        uniq
+        unregister_exit_hook
+        unregister_init_hook
+        unregister_initialize_bindings_hook
+        unregister_open_file_hook
+        unregister_reload_macros_hook
+        unregister_start_hook
+        UserConf
+        UserToolbarVisible
+        writeln
+        ntred_query_box_make_filelist
+        ntred_query_box_do_query
+        ntred_query_box
+        ntred_query
+        Position
     };
-#new
-#message
-#throw
-#quit
-#_import
-  *FileChanged=\$TredMacro::FileNotSaved;	# alias
-  import Treex::PML qw(ImportBackends);
-  import Treex::PML qw(&Index &CloneValue &FindInResources &FindDirInResources &ResolvePath);
-#  import main;
 
-# these includes are only for tred with GUI
-if ( exists &Tk::MainLoop ) {
+    #new
+    #message
+    #throw
+    #quit
+    #_import
+    *FileChanged = \$TredMacro::FileNotSaved;    # alias
+    import Treex::PML qw(ImportBackends);
+    import Treex::PML
+        qw(&Index &CloneValue &FindInResources &FindDirInResources &ResolvePath);
+
+    #  import main;
+
+    # these includes are only for tred with GUI
+    if ( exists &Tk::MainLoop ) {
         require TrEd::Binding::Default;
         require TrEd::ManageFilelists;
         require TrEd::Filelist::Navigation;
         require TrEd::Toolbar::User::Manager;
-        
+
     }
 
 }
@@ -345,21 +350,21 @@ use TrEd::Stylesheet;
 
 # can't 'use', circular ref
 use TrEd::Macros;
-use TrEd::Mac; # instead of tred.mac
-use TrEd::NtredMak; # instead of contrib/ntred/contrib.mac and ntred.mak,
-
+use TrEd::Mac;         # instead of tred.mac
+use TrEd::NtredMak;    # instead of contrib/ntred/contrib.mac and ntred.mak,
 
 # The following is a workaround for a nasty bug of Class::Std in case somebody wants to use it
 sub isa {
-    return &UNIVERSAL::isa 
+    return &UNIVERSAL::isa;
 }
-sub can { 
+
+sub can {
     return &UNIVERSAL::can;
 }
 
 sub _croak {
-  my ($pkg, $file, $line) = caller(1);
-  die join('',@_).' at '.$file.' line '.$line."\n";
+    my ( $pkg, $file, $line ) = caller(1);
+    die join( '', @_ ) . ' at ' . $file . ' line ' . $line . "\n";
 }
 
 =pod
@@ -425,7 +430,6 @@ This variable contains a path to TrEd library directory.
 
 =cut
 
-
 ## =head2 FUNCTION REFERENCE
 
 ###########################################################
@@ -446,13 +450,14 @@ The number of the first tree for this function is 1.
 =cut
 
 sub GotoTree {
-#  $FileNotSaved=0 if ($FileNotSaved eq '?');
-  my $to=shift()-1;
-  my $result=TrEd::Window::TreeBasics::go_to_tree($grp,$to);
-  $_NoSuchTree= ($to != $result);
-  $root=$grp->{root};
-  $this=$root;
-  return $result;
+
+    #  $FileNotSaved=0 if ($FileNotSaved eq '?');
+    my $to = shift() - 1;
+    my $result = TrEd::Window::TreeBasics::go_to_tree( $grp, $to );
+    $_NoSuchTree = ( $to != $result );
+    $root        = $grp->{root};
+    $this        = $root;
+    return $result;
 }
 
 =item C<TieGotoTree(n)>
@@ -463,15 +468,15 @@ The number of the first tree for this function is 1.
 =cut
 
 sub TieGotoTree {
-#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
-  my $to=shift()-1;
-  my $result=main::tieGotoTree($grp,$to);
-  $root=$grp->{root};
-  $this=$root;
-  $Redraw='tie';
-  return $result;
-}
 
+    #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+    my $to = shift() - 1;
+    my $result = main::tieGotoTree( $grp, $to );
+    $root   = $grp->{root};
+    $this   = $root;
+    $Redraw = 'tie';
+    return $result;
+}
 
 =item C<TieNextTree()>
 
@@ -480,12 +485,13 @@ Display the next tree in all tied windows.
 =cut
 
 sub TieNextTree {
-#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
-  my $result=main::tieNextTree($grp);
-  $root=$grp->{root};
-  $this=$root;
-  $Redraw='tie';
-  return $result;
+
+    #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+    my $result = main::tieNextTree($grp);
+    $root   = $grp->{root};
+    $this   = $root;
+    $Redraw = 'tie';
+    return $result;
 }
 
 =item C<TiePrevTree()>
@@ -495,12 +501,13 @@ Display the previous tree in all tied windows.
 =cut
 
 sub TiePrevTree {
-#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
-  my $result=main::tiePrevTree($grp);
-  $root=$grp->{root};
-  $this=$root;
-  $Redraw='tie';
-  return $result;
+
+    #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+    my $result = main::tiePrevTree($grp);
+    $root   = $grp->{root};
+    $this   = $root;
+    $Redraw = 'tie';
+    return $result;
 }
 
 =item C<NextTree()>
@@ -510,12 +517,13 @@ Display the next tree in the current file.
 =cut
 
 sub NextTree {
-#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
-  my $result=TrEd::Window::TreeBasics::next_tree($grp);
-  $root=$grp->{root};
-  $this=$root;
-  $_NoSuchTree=!$result; # for compatibility with Graph2Tred
-  return $result;
+
+    #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+    my $result = TrEd::Window::TreeBasics::next_tree($grp);
+    $root        = $grp->{root};
+    $this        = $root;
+    $_NoSuchTree = !$result;       # for compatibility with Graph2Tred
+    return $result;
 }
 
 =item C<PrevTree()>
@@ -524,15 +532,15 @@ Display the previous tree in the current file.
 
 =cut
 
-sub PrevTree { 
-#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
-  my $result=TrEd::Window::TreeBasics::prev_tree($grp);
-  $root=$grp->{root};
-  $this=$root;
-  $_NoSuchTree=!$result; # for compatibility with Graph2Tred
-  return $result;
-}
+sub PrevTree {
 
+    #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+    my $result = TrEd::Window::TreeBasics::prev_tree($grp);
+    $root        = $grp->{root};
+    $this        = $root;
+    $_NoSuchTree = !$result;       # for compatibility with Graph2Tred
+    return $result;
+}
 
 =item C<GetTrees()>
 
@@ -542,12 +550,16 @@ C<<< CurrentFile()->trees >>>.
 =cut
 
 sub GetTrees {
-  my $fsfile = CurrentFile();
-  if ($fsfile) {
-    return $fsfile->trees;
-  } else {
-    croak("Cannot get trees: no Treex::PML::Document is currently open\n");
-  }
+    my ($package, $filename, $line) = caller;
+    #print "gettin trees: called from $package:$line ($filename)\n";
+    my $fsfile = CurrentFile();
+    if ($fsfile) {
+        return $fsfile->trees;
+    }
+    else {
+        croak(
+            "Cannot get trees: no Treex::PML::Document is currently open\n");
+    }
 }
 
 =item C<GetSecondaryFiles($fsfile?)>
@@ -564,12 +576,13 @@ Only those secondary files that are already open are returned.
 =cut
 
 sub GetSecondaryFiles {
-  my ($fsfile)=@_;
-  $fsfile||=CurrentFile();
-  return exists(&TrEd::File::get_secondary_files) ? TrEd::File::get_secondary_files($fsfile) : ()
+    my ($fsfile) = @_;
+    $fsfile ||= CurrentFile();
+    return
+        exists(&TrEd::File::get_secondary_files)
+        ? TrEd::File::get_secondary_files($fsfile)
+        : ();
 }
-
-
 
 =item C<NextNode(node,top?)>
 
@@ -582,8 +595,8 @@ Nodes menu item.
 =cut
 
 sub NextNode {
-  my ($node,$top)=@_;
-  return $node ? main::NextDisplayed($grp,$node,$top) : undef;
+    my ( $node, $top ) = @_;
+    return $node ? main::NextDisplayed( $grp, $node, $top ) : undef;
 }
 
 =item C<PrevNode(node,top?)>
@@ -597,8 +610,8 @@ Nodes menu item.
 =cut
 
 sub PrevNode {
-  my ($node,$top)=@_;
-  return $node ? main::PrevDisplayed($grp,$node,$top) : undef;
+    my ( $node, $top ) = @_;
+    return $node ? main::PrevDisplayed( $grp, $node, $top ) : undef;
 }
 
 =item C<NextVisibleNode(node,top?)>
@@ -611,14 +624,14 @@ are skipped.
 =cut
 
 sub NextVisibleNode {
-  my ($node,$top)=@_;
-  $node=$node->following($top);
-  my $fs=FS();
-  while ($node) {
-    return $node unless ($fs->isHidden($node));
-    $node=$node->following_right_or_up($top);
-  }
-  return 0;
+    my ( $node, $top ) = @_;
+    $node = $node->following($top);
+    my $fs = FS();
+    while ($node) {
+        return $node unless ( $fs->isHidden($node) );
+        $node = $node->following_right_or_up($top);
+    }
+    return 0;
 }
 
 =item C<PrevVisibleNode(node,top?)>
@@ -631,14 +644,14 @@ are skipped.
 =cut
 
 sub PrevVisibleNode {
-  my ($node,$top)=@_;
-  $node=$node->previous($top);
-  my $fs=FS();
-  while ($node) {
-    return $node unless ($fs->isHidden($node));
-    $node=$node->previous($top);
-  }
-  return 0;
+    my ( $node, $top ) = @_;
+    $node = $node->previous($top);
+    my $fs = FS();
+    while ($node) {
+        return $node unless ( $fs->isHidden($node) );
+        $node = $node->previous($top);
+    }
+    return 0;
 }
 
 =item C<IsHidden(node)>
@@ -650,8 +663,8 @@ C<< FS()->isHidden(node) >>
 =cut
 
 sub IsHidden {
-  my ($node)=@_;
-  return FS()->isHidden($node);
+    my ($node) = @_;
+    return FS()->isHidden($node);
 }
 
 =item C<Hide(node)>
@@ -661,13 +674,13 @@ Hide a given node.
 =cut
 
 sub Hide {
-  my ($node)=@_;
-  my $hide=FS()->hide();
-  if ($node and $hide ne "") {
-    $node->{$hide}='hide';
-    return 1;
-  }
-  return 0;
+    my ($node) = @_;
+    my $hide = FS()->hide();
+    if ( $node and $hide ne "" ) {
+        $node->{$hide} = 'hide';
+        return 1;
+    }
+    return 0;
 }
 
 =item C<GetNodes(top?)>
@@ -680,14 +693,14 @@ returned is ordered in the depth-first ordering.
 =cut
 
 sub GetNodes {
-  my $top = defined($_[0]) ? $_[0] : $root;
-  my $node=$top;
-  my @n;
-  while ($node) {
-    push @n,$node;
-    $node=$node->following($top);
-  }
-  return wantarray ? @n : \@n;
+    my $top = defined( $_[0] ) ? $_[0] : $root;
+    my $node = $top;
+    my @n;
+    while ($node) {
+        push @n, $node;
+        $node = $node->following($top);
+    }
+    return wantarray ? @n : \@n;
 }
 
 =item C<GetVisibleNodes(top?)>
@@ -700,14 +713,14 @@ subtrees are skipped.
 =cut
 
 sub GetVisibleNodes {
-  my $top = defined($_[0]) ? $_[0] : $root;
-  my $node=$top;
-  my @n;
-  while ($node) {
-    push @n,$node;
-    $node=$node->following_visible(FS(),$top);
-  }
-  return @n;
+    my $top = defined( $_[0] ) ? $_[0] : $root;
+    my $node = $top;
+    my @n;
+    while ($node) {
+        push @n, $node;
+        $node = $node->following_visible( FS(), $top );
+    }
+    return @n;
 }
 
 =item C<GetDisplayedNodes($win?)>
@@ -719,11 +732,11 @@ e.g. specified with get_nodelist_hook).
 =cut
 
 sub GetDisplayedNodes {
-  my $win = ref($_[0]) ? $_[0] : $grp;
-  if (ref $win->{Nodes}) {
-    return @{$win->{Nodes}};
-  }
-  return;
+    my $win = ref( $_[0] ) ? $_[0] : $grp;
+    if ( ref $win->{Nodes} ) {
+        return @{ $win->{Nodes} };
+    }
+    return;
 }
 
 =item C<PrevNodeLinear(node,attribute,top?)>
@@ -735,26 +748,27 @@ a subtree of top is examined.
 =cut
 
 sub PrevNodeLinear {
-  my ($node, $attr, $top) = @_;
+    my ( $node, $attr, $top ) = @_;
 
-  return unless $node;
+    return unless $node;
 
-  my $v=$node->{$attr};
-  my $best;
-  my $best_v;
+    my $v = $node->{$attr};
+    my $best;
+    my $best_v;
 
-  my $nv;
-  $node=$top || $node->root; # reusing variable $node
-  while ($node) {
-    $nv=$node->{$attr};
-    if ($nv < $v and
-	(!$best or $nv > $best_v)) {
-      $best_v=$nv;
-      $best=$node;
+    my $nv;
+    $node = $top || $node->root;    # reusing variable $node
+    while ($node) {
+        $nv = $node->{$attr};
+        if ( $nv < $v
+            and ( !$best or $nv > $best_v ) )
+        {
+            $best_v = $nv;
+            $best   = $node;
+        }
+        $node = $node->following($top);
     }
-    $node=$node->following($top);
-  }
-  return $best;
+    return $best;
 }
 
 =item C<NextNodeLinear(node,attribute,top?)>
@@ -766,26 +780,27 @@ a subtree of top is examined.
 =cut
 
 sub NextNodeLinear {
-  my ($node, $attr, $top) = @_;
+    my ( $node, $attr, $top ) = @_;
 
-  return unless $node;
+    return unless $node;
 
-  my $v=$node->{$attr};
-  my $best;
-  my $best_v;
+    my $v = $node->{$attr};
+    my $best;
+    my $best_v;
 
-  my $nv;
-  $node=$top || $node->root; # reusing the variable
-  while ($node) {
-    $nv=$node->{$attr};
-    if ($nv > $v and
-	(!$best or $nv < $best_v)) {
-      $best_v=$nv;
-      $best=$node;
+    my $nv;
+    $node = $top || $node->root;    # reusing the variable
+    while ($node) {
+        $nv = $node->{$attr};
+        if ( $nv > $v
+            and ( !$best or $nv < $best_v ) )
+        {
+            $best_v = $nv;
+            $best   = $node;
+        }
+        $node = $node->following($top);
     }
-    $node=$node->following($top);
-  }
-  return $best;
+    return $best;
 }
 
 =item C<CurrentTreeNumber( $win? )>
@@ -799,9 +814,9 @@ the current window).
 =cut
 
 sub CurrentTreeNumber {
-  shift if @_ and !ref($_[0]);
-  my $win = $_[0] || $grp;
-  return $win->{treeNo};
+    shift if @_ and !ref( $_[0] );
+    my $win = $_[0] || $grp;
+    return $win->{treeNo};
 }
 
 =item C<GetNodeIndex()>
@@ -811,13 +826,13 @@ Return given node's position in the deep-first tree ordering.
 =cut
 
 sub GetNodeIndex {
-  my $node = ref($_[0]) ? $_[0] : $this;
-  my $i=-1;
-  while ($node) {
-    $node=$node->previous();
-    $i++;
-  }
-  return $i;
+    my $node = ref( $_[0] ) ? $_[0] : $this;
+    my $i = -1;
+    while ($node) {
+        $node = $node->previous();
+        $i++;
+    }
+    return $i;
 }
 
 =item C<LocateNode(node?,fsfile?)>
@@ -833,27 +848,29 @@ the corresponding L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML
 =cut
 
 sub LocateNode {
-  my $node = ref($_[0]) ? $_[0] :
-      @_ ? confess("Cannot get position of an undefined node") : $this;
-  my $fsfile = ref($_[1]) ? $_[1] : CurrentFile();
-  return unless ref $node;
-  my $tree = $node->root;
-  if ($fsfile==CurrentFile() and $tree == $root) {
-    return (FileName(),CurrentTreeNumber()+1,GetNodeIndex($node));
-  } else {
-    my $i = 1;
-    foreach my $t ($fsfile->trees) {
-      if ($t == $tree) {
-	return ($fsfile->filename,$i,GetNodeIndex($node));
-      }
-      $i++;
+    my $node
+        = ref( $_[0] ) ? $_[0]
+        : @_           ? confess("Cannot get position of an undefined node")
+        :                $this;
+    my $fsfile = ref( $_[1] ) ? $_[1] : CurrentFile();
+    return unless ref $node;
+    my $tree = $node->root;
+    if ( $fsfile == CurrentFile() and $tree == $root ) {
+        return ( FileName(), CurrentTreeNumber() + 1, GetNodeIndex($node) );
     }
-    my $type = $node->type;
-    my ($id_attr) = $type && $type->find_members_by_role('#ID');
-    return ($fsfile->filename,0,GetNodeIndex($node),
-	    $id_attr && $node->{ $id_attr->get_name }
-	   );
-  }
+    else {
+        my $i = 1;
+        foreach my $t ( $fsfile->trees ) {
+            if ( $t == $tree ) {
+                return ( $fsfile->filename, $i, GetNodeIndex($node) );
+            }
+            $i++;
+        }
+        my $type = $node->type;
+        my ($id_attr) = $type && $type->find_members_by_role('#ID');
+        return ( $fsfile->filename, 0, GetNodeIndex($node),
+            $id_attr && $node->{ $id_attr->get_name } );
+    }
 }
 
 =item C<ThisAddress(node?,fsfile?)>
@@ -870,14 +887,14 @@ the corresponding L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML
 
 =cut
 
-
 sub ThisAddress {
-  my ($f,$i,$n,$id)=&LocateNode;
-  if ($i==0 and $id) {
-    return $f.'#'.$id;
-  } else {
-    return $f.'##'.$i.'.'.$n;
-  }
+    my ( $f, $i, $n, $id ) = &LocateNode;
+    if ( $i == 0 and $id ) {
+        return $f . '#' . $id;
+    }
+    else {
+        return $f . '##' . $i . '.' . $n;
+    }
 }
 
 =item C<ThisAddressNTRED(node?,fsfile?)>
@@ -899,12 +916,13 @@ the corresponding L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML
 =cut
 
 sub ThisAddressNTRED {
-  my ($f,$i,$n,$id)=&LocateNode;
-  if ($i==0 and $id) {
-    return 'ntred://'.$f.'#'.$id;
-  } else {
-    return 'ntred://'.$f.'@'.$i.'##1.'.$n;
-  }
+    my ( $f, $i, $n, $id ) = &LocateNode;
+    if ( $i == 0 and $id ) {
+        return 'ntred://' . $f . '#' . $id;
+    }
+    else {
+        return 'ntred://' . $f . '@' . $i . '##1.' . $n;
+    }
 }
 
 =item C<FPosition(node?,fsfile?)>
@@ -913,8 +931,7 @@ Prints the result of C<ThisAddress> on stdout.
 
 =cut
 
-sub FPosition { print ThisAddress(@_),"\n"; }
-
+sub FPosition { print ThisAddress(@_), "\n"; }
 
 =item C<NPosition(node?,fsfile?)>
 
@@ -922,7 +939,7 @@ Prints the result of C<ThisAddressNTRED> on stdout.
 
 =cut
 
-sub NPosition { print ThisAddressNTRED(@_),"\n"; }
+sub NPosition { print ThisAddressNTRED(@_), "\n"; }
 
 =item C<ParseNodeAddress(address)>
 
@@ -931,7 +948,7 @@ as a two element list.
 
 =cut
 
-sub ParseNodeAddress { &main::parse_file_suffix }
+sub ParseNodeAddress {&main::parse_file_suffix}
 
 =back
 
@@ -951,25 +968,27 @@ new-parent is not a descendant of node or node itself. If the check
 fails, the macro dies with an error before any change is made.
 
 Note: this macro does not verify node types. Use
-C<$parent-E<gt>test_child_type($node)> to be sure that type declarations permit 
+C<$parent-E<gt>test_child_type($node)> to be sure that type declarations permit
 the node as a child node of the new parent.
 
 =cut
 
 sub Cut {
-  my ($node)=@_;
-  return $node->cut();
+    my ($node) = @_;
+    return $node->cut();
 }
+
 sub CutPaste {
-  my($cutted,$target)=@_;
-  my $p = $target;
-  while ($p) {
-    if( $p == $cutted ) {
-      _croak("Cannot paste node to its descendant or self in ".ThisAddress($cutted));
+    my ( $cutted, $target ) = @_;
+    my $p = $target;
+    while ($p) {
+        if ( $p == $cutted ) {
+            _croak( "Cannot paste node to its descendant or self in "
+                    . ThisAddress($cutted) );
+        }
+        $p = $p->parent;
     }
-    $p=$p->parent;
-  }
-  PasteNode($cutted,$target);
+    PasteNode( $cutted, $target );
 }
 
 =item C<CutPasteBefore(node,ref_node)>
@@ -981,23 +1000,23 @@ node or node itself. This macro dies on error before any change is
 made.
 
 Note: this macro does not verify node types. Use
-C<$parent-E<gt>test_child_type($node)> to be sure that type declarations permit 
+C<$parent-E<gt>test_child_type($node)> to be sure that type declarations permit
 the node as a child node of the new parent.
 
 =cut
 
 sub CutPasteBefore {
-  my($cutted,$ref_node)=@_;
-  my $p = $ref_node->parent;
-  while ($p) {
-    if( $p == $cutted ) {
-      _croak("Cannot paste node to its descendant or self at ".ThisAddress($cutted));
+    my ( $cutted, $ref_node ) = @_;
+    my $p = $ref_node->parent;
+    while ($p) {
+        if ( $p == $cutted ) {
+            _croak( "Cannot paste node to its descendant or self at "
+                    . ThisAddress($cutted) );
+        }
+        $p = $p->parent;
     }
-    $p=$p->parent;
-  }
-  PasteNodeBefore($cutted,$ref_node);
+    PasteNodeBefore( $cutted, $ref_node );
 }
-
 
 =item C<CutPasteAfter(node,ref_node)>
 
@@ -1007,22 +1026,24 @@ that new-parent is not a descendant of node or node itself. This macro
 dies on error before any change is made.
 
 Note: this macro does not verify node types. Use
-C<$parent-E<gt>test_child_type($node)> to be sure that type declarations permit 
+C<$parent-E<gt>test_child_type($node)> to be sure that type declarations permit
 the node as a child node of the new parent.
 
 =cut
 
 sub CutPasteAfter {
-  my($cutted,$ref_node)=@_;
-  _croak("CutPasteAfter: ref-node not given at ".ThisAddress($cutted)) unless $ref_node;
-  my $p = $ref_node->parent;
-  while ($p) {
-    if( $p == $cutted ) {
-      _croak("Cannot paste node to its descendant or self at ".ThisAddress($cutted));
+    my ( $cutted, $ref_node ) = @_;
+    _croak( "CutPasteAfter: ref-node not given at " . ThisAddress($cutted) )
+        unless $ref_node;
+    my $p = $ref_node->parent;
+    while ($p) {
+        if ( $p == $cutted ) {
+            _croak( "Cannot paste node to its descendant or self at "
+                    . ThisAddress($cutted) );
+        }
+        $p = $p->parent;
     }
-    $p=$p->parent;
-  }
-  PasteNodeAfter($cutted,$ref_node);
+    PasteNodeAfter( $cutted, $ref_node );
 }
 
 =item C<PasteNode(node,new-parent)>
@@ -1032,16 +1053,16 @@ subtree is placed among other children of new-parent with respect to
 the numbering attribute.
 
 Note: this macro does not verify node types. Use
-C<$parent-E<gt>test_child_type($node)> to be sure that type declarations permit 
+C<$parent-E<gt>test_child_type($node)> to be sure that type declarations permit
 the node as a child node of the new parent.
 
 =cut
 
 sub PasteNode {
-  my ($node,$p)=@_; 
-  my $ord=_node_ord($node);
-  $node->cut()->paste_on($p,$ord);
-  return $node;
+    my ( $node, $p ) = @_;
+    my $ord = _node_ord($node);
+    $node->cut()->paste_on( $p, $ord );
+    return $node;
 }
 
 =item C<PasteNodeBefore(node,ref_node)>
@@ -1050,14 +1071,14 @@ Cut given node (including its subtree) and paste it on ref_node's
 parent node just before ref_node.
 
 Note: this macro does not verify node types. Use
-C<$parent-E<gt>test_child_type($node)> to be sure that type declarations permit 
+C<$parent-E<gt>test_child_type($node)> to be sure that type declarations permit
 the node as a child node of the new parent.
 
 =cut
 
 sub PasteNodeBefore {
-  my($node,$ref_node)=@_;
-  $node->cut()->paste_before($ref_node);
+    my ( $node, $ref_node ) = @_;
+    $node->cut()->paste_before($ref_node);
 }
 
 =item C<PasteNodeAfter(node,ref_node)>
@@ -1066,14 +1087,14 @@ Cut given node (including its subtree) and paste it on ref_node's
 parent node just after ref_node.
 
 Note: this macro does not verify node types. Use
-C<$parent-E<gt>test_child_type($node)> to be sure that type declarations permit 
+C<$parent-E<gt>test_child_type($node)> to be sure that type declarations permit
 the node as a child node of the new parent.
 
 =cut
 
 sub PasteNodeAfter {
-  my($node,$ref_node)=@_;
-  $node->cut()->paste_after($ref_node);
+    my ( $node, $ref_node ) = @_;
+    $node->cut()->paste_after($ref_node);
 }
 
 =item C<CloneSubtree(node)>
@@ -1084,8 +1105,8 @@ preserved) of the given subtree.
 =cut
 
 sub CloneSubtree {
-  my ($node)=@_;
-  return FS()->clone_subtree($node);
+    my ($node) = @_;
+    return FS()->clone_subtree($node);
 }
 
 =item C<CopyNode(node)>
@@ -1097,8 +1118,8 @@ current file.
 =cut
 
 sub CopyNode {
-  my ($node)=@_;
-  return FS()->clone_node($node);
+    my ($node) = @_;
+    return FS()->clone_node($node);
 }
 
 =item C<CutNode(node)>
@@ -1110,11 +1131,11 @@ attach it to some node again.
 =cut
 
 sub CutNode {
-  my $node=shift;
-  my $parent=$node->parent;
-  my $result=$node->cut();
-  $this=$parent if ($result and $this==$node);
-  return $result;
+    my $node   = shift;
+    my $parent = $node->parent;
+    my $result = $node->cut();
+    $this = $parent if ( $result and $this == $node );
+    return $result;
 }
 
 =item C<NewTree()>
@@ -1126,10 +1147,10 @@ object is returned.
 =cut
 
 sub NewTree {
-  TrEd::Window::TreeBasics::new_tree($grp);
-  $root=$grp->{root};
-  $this=$root;
-  return $root;
+    TrEd::Window::TreeBasics::new_tree($grp);
+    $root = $grp->{root};
+    $this = $root;
+    return $root;
 }
 
 =item C<NewTreeAfter()>
@@ -1141,10 +1162,10 @@ object is returned.
 =cut
 
 sub NewTreeAfter {
-  TrEd::Window::TreeBasics::new_tree_after($grp);
-  $root=$grp->{root};
-  $this=$root;
-  return $root;
+    TrEd::Window::TreeBasics::new_tree_after($grp);
+    $root = $grp->{root};
+    $this = $root;
+    return $root;
 }
 
 #
@@ -1152,14 +1173,14 @@ sub NewTreeAfter {
 #
 
 sub _node_ord {
-  my ($node)=@_;
-  my $type = $node ? $node->type : undef;
-  if ($type) {
-    my $ord = $node->get_ordering_member_name;
-    return $ord if defined $ord;
-  }
-  my $fsfile = CurrentFile();
-  return $fsfile ? $fsfile->FS->order : undef;
+    my ($node) = @_;
+    my $type = $node ? $node->type : undef;
+    if ($type) {
+        my $ord = $node->get_ordering_member_name;
+        return $ord if defined $ord;
+    }
+    my $fsfile = CurrentFile();
+    return $fsfile ? $fsfile->FS->order : undef;
 }
 
 =item C<NewRBrother(node)>
@@ -1177,25 +1198,27 @@ of C<$this> is preserved.
 sub NewRBrother {
 ## Adds new RBrother to current node and shifts
 ## ords of the other nodes appropriately
-  my $ref=ref($_[0]) ? $_[0] : $this;
+    my $ref = ref( $_[0] ) ? $_[0] : $this;
 
-  return unless ($ref and $ref->parent);
-  my $nd=Treex::PML::Factory->createNode();
-  my $ord = _node_ord($ref);
+    return unless ( $ref and $ref->parent );
+    my $nd  = Treex::PML::Factory->createNode();
+    my $ord = _node_ord($ref);
 
-  if (defined $ord) {
-    $nd->{$ord}=$ref->{$ord}+1;
-    my $node=$ref->root;
-    while ($node) {
-      $node->{$ord}++ if ($node ne $nd and $node->{$ord}>$ref->{$ord});
-      $node=$node->following;
+    if ( defined $ord ) {
+        $nd->{$ord} = $ref->{$ord} + 1;
+        my $node = $ref->root;
+        while ($node) {
+            $node->{$ord}++
+                if ( $node ne $nd and $node->{$ord} > $ref->{$ord} );
+            $node = $node->following;
+        }
+        PasteNode( $nd, $ref->parent );
     }
-    PasteNode($nd,$ref->parent);
-  } else {
-    PasteNodeAfter($nd,$ref);
-  }
-  $this=$nd unless ref($_[0]);
-  return $nd;
+    else {
+        PasteNodeAfter( $nd, $ref );
+    }
+    $this = $nd unless ref( $_[0] );
+    return $nd;
 }
 
 =item C<NewLBrother(node)>
@@ -1213,23 +1236,25 @@ of C<$this> is preserved.
 sub NewLBrother {
 ## Adds new RLrother to current node and shifts
 ## ords of the other nodes appropriately
-  my $ref=ref($_[0]) ? $_[0] : $this;
-  return unless ($ref and $ref->parent);
-  my $nd=Treex::PML::Factory->createNode();
-  my $ord=_node_ord($ref);
-  if (defined $ord) {
-    $nd->{$ord}=$ref->{$ord};
-    my $node=$ref->root;
-    while ($node) {
-      $node->{$ord}++ if ($node ne $nd and $node->{$ord}>=$ref->{$ord});
-      $node=$node->following;
+    my $ref = ref( $_[0] ) ? $_[0] : $this;
+    return unless ( $ref and $ref->parent );
+    my $nd  = Treex::PML::Factory->createNode();
+    my $ord = _node_ord($ref);
+    if ( defined $ord ) {
+        $nd->{$ord} = $ref->{$ord};
+        my $node = $ref->root;
+        while ($node) {
+            $node->{$ord}++
+                if ( $node ne $nd and $node->{$ord} >= $ref->{$ord} );
+            $node = $node->following;
+        }
+        PasteNode( $nd, $ref->parent );
     }
-    PasteNode($nd,$ref->parent);
-  } else {
-    PasteNodeBefore($nd,$ref);
-  }
-  $this=$nd unless ref($_[0]);
-  return $nd;
+    else {
+        PasteNodeBefore( $nd, $ref );
+    }
+    $this = $nd unless ref( $_[0] );
+    return $nd;
 }
 
 =item C<NewSon(parent)>
@@ -1247,28 +1272,28 @@ given the value of C<$this> is preserved.
 sub NewSon {
 ## Adds new son to current node and shifts
 ## ords of the other nodes appropriately
-  my $ref=ref($_[0]) ? $_[0] : $this;
-  return unless ($ref);
-  my $nd=Treex::PML::Factory->createNode();
-  my $ord=_node_ord($ref);
-  if (defined $ord) {
-    $nd->{$ord}=$ref->{$ord}+1;
-    my $node=$ref->root;
-    while ($node) {
-      $node->{$ord}++ if ($node->{$ord}>$ref->{$ord});
-      $node=$node->following;
+    my $ref = ref( $_[0] ) ? $_[0] : $this;
+    return unless ($ref);
+    my $nd  = Treex::PML::Factory->createNode();
+    my $ord = _node_ord($ref);
+    if ( defined $ord ) {
+        $nd->{$ord} = $ref->{$ord} + 1;
+        my $node = $ref->root;
+        while ($node) {
+            $node->{$ord}++ if ( $node->{$ord} > $ref->{$ord} );
+            $node = $node->following;
+        }
     }
-  }
-  PasteNode($nd,$ref);
-  $this=$nd unless ref($_[0]);
-  return $nd;
+    PasteNode( $nd, $ref );
+    $this = $nd unless ref( $_[0] );
+    return $nd;
 }
 
 =item C<NewParent(node)>
 
 Create a node between given node and its parent and recalculate the
 special FS numbering attribute values in the whole tree so that the
-new node is the first node left to the given node. 
+new node is the first node left to the given node.
 
 If no node is given, this function operates on C<$this> and
 B<resets> C<$this> to the newly created node. If a parent node is
@@ -1277,39 +1302,42 @@ given the value of C<$this> is preserved.
 =cut
 
 sub NewParent {
-  my $ref=ref($_[0]) ? $_[0] : $this;
-  return unless ($ref);
-  my $nd=Treex::PML::Factory->createNode();
-  my $ord=_node_ord($ref);
-  if (defined $ord) {
-    $nd->{$ord}=$ref->{$ord};
-    my $node=$ref->root;
-    while ($node) {
-      $node->{$ord}++ if ($node->{$ord}>=$ref->{$ord});
-      $node=$node->following;
+    my $ref = ref( $_[0] ) ? $_[0] : $this;
+    return unless ($ref);
+    my $nd  = Treex::PML::Factory->createNode();
+    my $ord = _node_ord($ref);
+    if ( defined $ord ) {
+        $nd->{$ord} = $ref->{$ord};
+        my $node = $ref->root;
+        while ($node) {
+            $node->{$ord}++ if ( $node->{$ord} >= $ref->{$ord} );
+            $node = $node->following;
+        }
     }
-  }
-  if ($ref->parent) {
-    if (defined $ord) {
-      PasteNode($nd,$ref->parent);
-    } else {
-      PasteNodeAfter($nd,$ref);
+    if ( $ref->parent ) {
+        if ( defined $ord ) {
+            PasteNode( $nd, $ref->parent );
+        }
+        else {
+            PasteNodeAfter( $nd, $ref );
+        }
+        CutNode($ref);
+        PasteNode( $ref, $nd );
     }
-    CutNode($ref);
-    PasteNode($ref,$nd);
-  } else { # root of the tree
-    my $fsfile = CurrentFile();
-    my $trees=$fsfile->treeList();
-    my $n=Index($trees,$ref);
-    if ($n<0) {
-      die "tree not found in the current Treex::PML::Document";
-    } else {
-      $fsfile->set_tree($nd,$n);
+    else {    # root of the tree
+        my $fsfile = CurrentFile();
+        my $trees  = $fsfile->treeList();
+        my $n      = Index( $trees, $ref );
+        if ( $n < 0 ) {
+            die "tree not found in the current Treex::PML::Document";
+        }
+        else {
+            $fsfile->set_tree( $nd, $n );
+        }
+        PasteNode( $ref, $nd );
     }
-    PasteNode($ref,$nd);
-  }
-  $this=$nd unless ref($_[0]);
-  return $nd;
+    $this = $nd unless ref( $_[0] );
+    return $nd;
 }
 
 =item C<DeleteThisNode()>
@@ -1322,11 +1350,11 @@ root of the current tree, this macro does nothing.
 =cut
 
 sub DeleteThisNode {
-  return unless $this and $this->parent;
-  my $p = $this->parent;
-  if (DeleteLeafNode($this)) {
-    $this=$p;
-  }
+    return unless $this and $this->parent;
+    my $p = $this->parent;
+    if ( DeleteLeafNode($this) ) {
+        $this = $p;
+    }
 }
 
 =item C<DeleteLeafNode(node)>
@@ -1340,25 +1368,27 @@ a given node is not a leaf, this macro does nothing.
 sub DeleteLeafNode {
 ## Deletes a given node and shifts
 ## ords of the other nodes appropriately
-  shift unless ref($_[0]);
-  my $n = $_[0] || $this;
-  return unless ($n);
-  my $ord=_node_ord($n);
-  if (length $ord) {
-    my $order=$n->{$ord};
-    my $node = $n->root;
-    if ($n->destroy_leaf) {
-      while ($node) {
-	$node->{$ord}-- if ($node->{$ord}>$order);
-	$node=$node->following;
-      }
-      return 1;
-    } else {
-      return 0;
+    shift unless ref( $_[0] );
+    my $n = $_[0] || $this;
+    return unless ($n);
+    my $ord = _node_ord($n);
+    if ( length $ord ) {
+        my $order = $n->{$ord};
+        my $node  = $n->root;
+        if ( $n->destroy_leaf ) {
+            while ($node) {
+                $node->{$ord}-- if ( $node->{$ord} > $order );
+                $node = $node->following;
+            }
+            return 1;
+        }
+        else {
+            return 0;
+        }
     }
-  } else {
-    return $n->destroy_leaf() ? 1 : 0;
-  }
+    else {
+        return $n->destroy_leaf() ? 1 : 0;
+    }
 }
 
 =item C<DeleteSubtree(node)>
@@ -1370,18 +1400,20 @@ in the numbering.
 =cut
 
 sub DeleteSubtree {
-  shift unless ref($_[0]);
-  my $n = $_[0] || $this;
-  my $top = $n->root;
-  if (PlainDeleteSubtree($n)) {
-    my $ord=_node_ord($top);
-    if ($ord ne "") {
-      my $i=0;
-      for my $node (sort { $a->{$ord} <=> $b->{$ord} } $top,$top->descendants) {
-	$node->{$ord} = $i++;
-      }
+    shift unless ref( $_[0] );
+    my $n = $_[0] || $this;
+    my $top = $n->root;
+    if ( PlainDeleteSubtree($n) ) {
+        my $ord = _node_ord($top);
+        if ( $ord ne "" ) {
+            my $i = 0;
+            for my $node ( sort { $a->{$ord} <=> $b->{$ord} } $top,
+                $top->descendants )
+            {
+                $node->{$ord} = $i++;
+            }
+        }
     }
-  }
 }
 
 =item C<RemoveTree(n?,fsfile?)>
@@ -1399,18 +1431,20 @@ use $tree->destroy method on the returned tree to prevent a memory leak.
 =cut
 
 sub RemoveTree {
-  shift if @_==1 and $_[0]!~/^\D/; # class name
-  my ($no,$fsfile)=@_;
-  croak("RemoveTree: must specify tree number!") if defined($fsfile) and !defined($no);
-  $no=CurrentTreeNumber() if !defined $no;
-  my $fs = $fsfile||CurrentFile();
-  my $res = $fs->delete_tree($no);
-  if ($fs==CurrentFile()) {
-    $no=CurrentTreeNumber();
-    $no = max(0,min($no,$fs->lastTreeNo));
-    $grp->{treeNo}=$no;
-  }
-  return $res;
+    shift if @_ == 1 and $_[0] !~ /^\D/;    # class name
+    my ( $no, $fsfile ) = @_;
+    croak("RemoveTree: must specify tree number!")
+        if defined($fsfile)
+            and !defined($no);
+    $no = CurrentTreeNumber() if !defined $no;
+    my $fs = $fsfile || CurrentFile();
+    my $res = $fs->delete_tree($no);
+    if ( $fs == CurrentFile() ) {
+        $no            = CurrentTreeNumber();
+        $no            = max( 0, min( $no, $fs->lastTreeNo ) );
+        $grp->{treeNo} = $no;
+    }
+    return $res;
 }
 
 =item C<DestroyTree(n?,fsfile?)>
@@ -1421,14 +1455,13 @@ on success.
 =cut
 
 sub DestroyTree {
-  my $tree=&RemoveTree;
-  if ($tree) {
-    $tree->destroy;
-    return 1;
-  }
-  return;
+    my $tree = &RemoveTree;
+    if ($tree) {
+        $tree->destroy;
+        return 1;
+    }
+    return;
 }
-
 
 =item C<DetermineNodeType($node)>
 
@@ -1440,10 +1473,9 @@ user is asked to choose the correct type.
 =cut
 
 sub DetermineNodeType {
-  my ($node)=@_;
-  main::determineNodeType($grp,$node);
+    my ($node) = @_;
+    main::determineNodeType( $grp, $node );
 }
-
 
 =item C<CopyValues()>
 
@@ -1454,14 +1486,15 @@ attribute of the current node to a global hash variable named
 =cut
 
 my %ValuesClipboard = ();
+
 sub CopyValues {
-  undef %ValuesClipboard;
-  my @attrs = Attributes($this,1);
-  foreach my $atr (@attrs) {
-    $ValuesClipboard{$atr} = Treex::PML::CloneValue($this->{$atr});
-  }
-  delete $ValuesClipboard{_node_ord($this)}; # we do not copy this
-  #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+    undef %ValuesClipboard;
+    my @attrs = Attributes( $this, 1 );
+    foreach my $atr (@attrs) {
+        $ValuesClipboard{$atr} = Treex::PML::CloneValue( $this->{$atr} );
+    }
+    delete $ValuesClipboard{ _node_ord($this) };    # we do not copy this
+        #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
 }
 
 =item C<PasteValues()>
@@ -1473,9 +1506,9 @@ function does not perform any node-type validity checks.
 =cut
 
 sub PasteValues {
-  foreach $_ (keys(%ValuesClipboard)) {
-    $this->{$_}=$ValuesClipboard{$_};
-  }
+    foreach $_ ( keys(%ValuesClipboard) ) {
+        $this->{$_} = $ValuesClipboard{$_};
+    }
 }
 
 =item C<PlainNewSon(parent)>
@@ -1487,11 +1520,11 @@ node (by setting C<$this> to point to it).
 
 sub PlainNewSon {
 ## Adds new son to a given parent
-  my $parent=shift;
-  return unless ($parent);
-  my $nd=Treex::PML::Factory->createNode();
-  PasteNode($nd,$parent);
-  return $this=$nd;
+    my $parent = shift;
+    return unless ($parent);
+    my $nd = Treex::PML::Factory->createNode();
+    PasteNode( $nd, $parent );
+    return $this = $nd;
 }
 
 =item C<PlainDeleteNode()>
@@ -1504,11 +1537,11 @@ tree).
 
 sub PlainDeleteNode {
 ## Deletes given node
-  my $node=shift;
-  return unless ($node and $node->parent);
+    my $node = shift;
+    return unless ( $node and $node->parent );
 
-  $this=$this->parent if ($node == $this);
-  return $node->destroy_leaf();
+    $this = $this->parent if ( $node == $this );
+    return $node->destroy_leaf();
 }
 
 =item C<PlainDeleteSubtree(node)>
@@ -1519,11 +1552,11 @@ This macro does not recalculate ordering attributes.
 =cut
 
 sub PlainDeleteSubtree {
-  shift unless ref($_[0]);
-  my $n = $_[0] || $this;
-  return 0 unless ($n and $n->parent);
-  $n->destroy();
-  return 1;
+    shift unless ref( $_[0] );
+    my $n = $_[0] || $this;
+    return 0 unless ( $n and $n->parent );
+    $n->destroy();
+    return 1;
 }
 
 =item C<NormalizeOrds(listref)>
@@ -1540,40 +1573,43 @@ corresponds to their order in the given list.
 =cut
 
 sub NormalizeOrds {
-  my ($nodesref)=@_;
-  return unless @$nodesref>0;
-  my $ord=_node_ord($nodesref->[0]);
-  if (defined($ord) and length($ord)) {
-    my $i = 0;
-    for my $node (@$nodesref) {
-      $node->{$ord}=$i++;
+    my ($nodesref) = @_;
+    return unless @$nodesref > 0;
+    my $ord = _node_ord( $nodesref->[0] );
+    if ( defined($ord) and length($ord) ) {
+        my $i = 0;
+        for my $node (@$nodesref) {
+            $node->{$ord} = $i++;
+        }
+        for my $node (@$nodesref) {
+            RepasteNode($node);
+        }
     }
-    for my $node (@$nodesref) {
-      RepasteNode($node);
+    else {
+
+        # this is tricky, all we can do here is to reorder siblings
+        my %by_parent;
+        my $p;
+        for my $node (@$nodesref) {
+            if ( $p = $node->parent ) {
+                push @{ $by_parent{$p} }, $node;
+            }
+        }
+        foreach my $group ( values %by_parent ) {
+            if ( @$group > 1 ) {
+                my $prev;
+                foreach my $node (@$group) {
+                    if ($prev) {
+                        CutPasteAfter( $node, $prev );
+                    }
+                    else {
+                        CutPaste( $node, $node->parent );
+                    }
+                    $prev = $node;
+                }
+            }
+        }
     }
-  } else {
-    # this is tricky, all we can do here is to reorder siblings
-    my %by_parent;
-    my $p;
-    for my $node (@$nodesref) {
-      if ($p=$node->parent) {
-	push @{$by_parent{$p}},$node;
-      }
-    }
-    foreach my $group (values %by_parent) {
-      if (@$group>1) {
-	my $prev;
-	foreach my $node (@$group) {
-	  if ($prev) {
-	    CutPasteAfter($node,$prev);
-	  } else {
-	    CutPaste($node,$node->parent);
-	  }
-	  $prev=$node;
-	}
-      }
-    }
-  }
 }
 
 =item C<SortByOrd(listref)>
@@ -1584,13 +1620,13 @@ the values of the special FS numbering attribute.
 =cut
 
 sub SortByOrd {
-  my ($nodesref)=@_;
-  my $ord=_node_ord($nodesref->[0]);
-  if (defined $ord) {
-    local ($a,$b);
-    @$nodesref=sort { $a->{$ord} <=> $b->{$ord} } @$nodesref;
-  }
-  return $nodesref;
+    my ($nodesref) = @_;
+    my $ord = _node_ord( $nodesref->[0] );
+    if ( defined $ord ) {
+        local ( $a, $b );
+        @$nodesref = sort { $a->{$ord} <=> $b->{$ord} } @$nodesref;
+    }
+    return $nodesref;
 }
 
 =item C<RepasteNode(node)>
@@ -1602,10 +1638,10 @@ correspondence with the values of the special FS numbering attribute.
 =cut
 
 sub RepasteNode {
-  my ($node)=@_;
-  my $parent=$node->parent;
-  return unless $parent;
-  CutPaste($node,$parent);
+    my ($node) = @_;
+    my $parent = $node->parent;
+    return unless $parent;
+    CutPaste( $node, $parent );
 }
 
 =item C<ShiftNodeRightSkipHidden(node)>
@@ -1617,36 +1653,38 @@ special FS numbering attribute appropriately.
 =cut
 
 sub ShiftNodeRightSkipHidden {
-  my ($node)=@_;
-  return unless $node;
-  my $ord=_node_ord($node);
-  if (defined($ord) and length($ord)) {
-    my @all=GetNodes();
-    SortByOrd(\@all);
+    my ($node) = @_;
+    return unless $node;
+    my $ord = _node_ord($node);
+    if ( defined($ord) and length($ord) ) {
+        my @all = GetNodes();
+        SortByOrd( \@all );
 
-    # This is sideeffect, but
-    # whe want to do this anyway
-    NormalizeOrds(\@all);
-    #
-    #
-    my $n=$node->{$ord};
-    return $n if ($n == $#all);
+        # This is sideeffect, but
+        # whe want to do this anyway
+        NormalizeOrds( \@all );
 
-    my @vis=GetVisibleNodes();
-    SortByOrd(\@vis);
-    my $m=Index(\@vis,$node);
-    return unless (defined($m) and $m<$#vis);
-    my $x=min(Index(\@all,$vis[$m+1]),$#all);
-    for (my $i=$n+1;$i<=$x;$i++) {
-      $all[$i]->{$ord}--;
+        #
+        #
+        my $n = $node->{$ord};
+        return $n if ( $n == $#all );
+
+        my @vis = GetVisibleNodes();
+        SortByOrd( \@vis );
+        my $m = Index( \@vis, $node );
+        return unless ( defined($m) and $m < $#vis );
+        my $x = min( Index( \@all, $vis[ $m + 1 ] ), $#all );
+        for ( my $i = $n + 1; $i <= $x; $i++ ) {
+            $all[$i]->{$ord}--;
+        }
+        $node->{$ord} = $x;
+        RepasteNode($node);
     }
-    $node->{$ord}=$x;
-    RepasteNode($node);
-  } elsif($node->parent) {
-    my $rb = $node->rbrother;
-    $rb = $rb->rbrother while($rb and IsHidden($rb));
-    CutPasteAfter($node,$rb) if $rb;
-  }
+    elsif ( $node->parent ) {
+        my $rb = $node->rbrother;
+        $rb = $rb->rbrother while ( $rb and IsHidden($rb) );
+        CutPasteAfter( $node, $rb ) if $rb;
+    }
 }
 
 =item C<ShiftNodeLeftSkipHidden(node,min?)>
@@ -1660,36 +1698,38 @@ ordering attribute of node.
 =cut
 
 sub ShiftNodeLeftSkipHidden {
-  my ($node,$min)=@_;          # min sets the minimum left...
-  return unless $node;
-  my $ord=_node_ord($node);     # ... boundary for Ord
-  if (defined($ord) and length($ord)) {
-    my @all=GetNodes();
-    SortByOrd(\@all);
+    my ( $node, $min ) = @_;    # min sets the minimum left...
+    return unless $node;
+    my $ord = _node_ord($node);    # ... boundary for Ord
+    if ( defined($ord) and length($ord) ) {
+        my @all = GetNodes();
+        SortByOrd( \@all );
 
-    # This is a side-effect, but
-    # we want to do it anyway
-    NormalizeOrds(\@all);
-    #
-    #
-    my $n=$node->{$ord};
-    return $n if ($n == 0);
+        # This is a side-effect, but
+        # we want to do it anyway
+        NormalizeOrds( \@all );
 
-    my @vis=GetVisibleNodes();
-    SortByOrd(\@vis);
-    my $m=Index(\@vis,$node);
-    return unless (defined($m) and !defined($min) || $m>$min);
-    my $x=max(Index(\@all,$vis[$m-1]),0);
-    for (my $i=$n-1;$i>=$x;$i--) {
-      $all[$i]->{$ord}++;
+        #
+        #
+        my $n = $node->{$ord};
+        return $n if ( $n == 0 );
+
+        my @vis = GetVisibleNodes();
+        SortByOrd( \@vis );
+        my $m = Index( \@vis, $node );
+        return unless ( defined($m) and !defined($min) || $m > $min );
+        my $x = max( Index( \@all, $vis[ $m - 1 ] ), 0 );
+        for ( my $i = $n - 1; $i >= $x; $i-- ) {
+            $all[$i]->{$ord}++;
+        }
+        $node->{$ord} = $x;
+        RepasteNode($node);
     }
-    $node->{$ord}=$x;
-    RepasteNode($node);
-  } elsif ($node->parent) {
-    my $lb = $node->lbrother;
-    $lb=$lb->lbrother while ($lb and IsHidden($lb));
-    CutPasteBefore($node,$lb) if $lb;
-  }
+    elsif ( $node->parent ) {
+        my $lb = $node->lbrother;
+        $lb = $lb->lbrother while ( $lb and IsHidden($lb) );
+        CutPasteBefore( $node, $lb ) if $lb;
+    }
 }
 
 =item C<ShiftNodeRight(node)>
@@ -1701,29 +1741,31 @@ accordingly.
 =cut
 
 sub ShiftNodeRight {
-  my ($node)=@_;
-  return unless $node;
+    my ($node) = @_;
+    return unless $node;
 
-  my $ord=_node_ord($node);
-  if (defined($ord) and length($ord)) {
-    my @all=GetNodes();
-    SortByOrd(\@all);
+    my $ord = _node_ord($node);
+    if ( defined($ord) and length($ord) ) {
+        my @all = GetNodes();
+        SortByOrd( \@all );
 
-    # This is a side-effect, but
-    # we want to do it anyway
-    NormalizeOrds(\@all);
-    #
-    #
+        # This is a side-effect, but
+        # we want to do it anyway
+        NormalizeOrds( \@all );
 
-    my $n = $node->{$ord};
-    return $n if ($n == $#all);
-    $all[$n+1]->{$ord}=$n;
-    $node->{$ord}=$n+1;
-    RepasteNode($node);
-  } elsif ($node->parent) {
-    my $rb = $node->rbrother;
-    CutPasteAfter($node,$rb) if $rb;
-  }
+        #
+        #
+
+        my $n = $node->{$ord};
+        return $n if ( $n == $#all );
+        $all[ $n + 1 ]->{$ord} = $n;
+        $node->{$ord} = $n + 1;
+        RepasteNode($node);
+    }
+    elsif ( $node->parent ) {
+        my $rb = $node->rbrother;
+        CutPasteAfter( $node, $rb ) if $rb;
+    }
 }
 
 =item C<ShiftNodeLeft(node)>
@@ -1735,29 +1777,31 @@ appropriately.
 =cut
 
 sub ShiftNodeLeft {
-  my ($node)=@_;
-  return unless $node;
-  my $ord=_node_ord($node);
-  if (defined($ord) and length($ord)) {
-    my @all=GetNodes();
-    SortByOrd(\@all);
+    my ($node) = @_;
+    return unless $node;
+    my $ord = _node_ord($node);
+    if ( defined($ord) and length($ord) ) {
+        my @all = GetNodes();
+        SortByOrd( \@all );
 
-    # This is sideeffect, but
-    # whe want to do this anyway
-    NormalizeOrds(\@all);
-    #
-    #
+        # This is sideeffect, but
+        # whe want to do this anyway
+        NormalizeOrds( \@all );
 
-    my $n=$node->{$ord};
-    return $n if ($n == 0);
+        #
+        #
 
-    $all[$n-1]->{$ord}=$n;
-    $node->{$ord}=$n-1;
-    RepasteNode($node);
-  } elsif ($node->parent) {
-    my $lb = $node->lbrother;
-    CutPasteBefore($node,$lb) if $lb;
-  }
+        my $n = $node->{$ord};
+        return $n if ( $n == 0 );
+
+        $all[ $n - 1 ]->{$ord} = $n;
+        $node->{$ord} = $n - 1;
+        RepasteNode($node);
+    }
+    elsif ( $node->parent ) {
+        my $lb = $node->lbrother;
+        CutPasteBefore( $node, $lb ) if $lb;
+    }
 }
 
 =item C<GetNodesExceptSubtree(node)>
@@ -1770,20 +1814,22 @@ the parameter.)
 =cut
 
 sub GetNodesExceptSubtree ($) {
-  my $tops=shift;
-  return unless ref($tops->[0]);
-  my @all;
-  my $node=$root;
-  # @all is filled the the visible nodes of the whole tree
-  while ($node) {          # except for the nodes depending on the given node
-    push @all, $node;
-    if (defined(Index($tops,$node))) {
-      $node=$node->following_right_or_up;
-    } else {
-      $node=$node->following;
-    }
-  }#while
-  return \@all;
+    my $tops = shift;
+    return unless ref( $tops->[0] );
+    my @all;
+    my $node = $root;
+
+    # @all is filled the the visible nodes of the whole tree
+    while ($node) {    # except for the nodes depending on the given node
+        push @all, $node;
+        if ( defined( Index( $tops, $node ) ) ) {
+            $node = $node->following_right_or_up;
+        }
+        else {
+            $node = $node->following;
+        }
+    }    #while
+    return \@all;
 }
 
 =item C<MoveNode(source-node,target-node)>
@@ -1794,13 +1840,15 @@ the second parameter in the ordering on nodes.
 =cut
 
 sub MoveNode ($$) {
-  my ($top, $after) = @_;
-  return unless (ref($top) and ref($after) and ($top != $after));
-  my $all = [GetNodes($top)];
-  SortByOrd($all);
-  splice @$all,Index($all,$top),1;   # the top node is cut off from the array
-  splice @$all,Index($all,$after)+1,0,$top;   # the top node is spliced after the appropriate node
-  NormalizeOrds($all);  # the ordering attribute is modified accordingly
+    my ( $top, $after ) = @_;
+    return unless ( ref($top) and ref($after) and ( $top != $after ) );
+    my $all = [ GetNodes($top) ];
+    SortByOrd($all);
+    splice @$all, Index( $all, $top ),
+        1;    # the top node is cut off from the array
+    splice @$all, Index( $all, $after ) + 1, 0,
+        $top;             # the top node is spliced after the appropriate node
+    NormalizeOrds($all);  # the ordering attribute is modified accordingly
 }
 
 =item C<MoveSubtree(source-node,target-node)>
@@ -1814,15 +1862,17 @@ the technical root node is always first in the ordering.)
 =cut
 
 sub MoveSubtree ($$) {
-  my ($top, $after) = @_;
-  return unless (ref($top) and ref($after) and ($top != $after));
-  my $all=GetNodesExceptSubtree([$top]);
-  SortByOrd($all);
-  splice @$all,Index($all,$top),1;   # the top node is cut off from the array
-  my $subtree=[GetNodes($top)];
-  SortByOrd($subtree);
-  splice @$all,Index($all,$after)+1,0,@$subtree;   # the subtree is spliced after the appropriate node
-  NormalizeOrds($all);  # the ordering attributes are modified accordingly
+    my ( $top, $after ) = @_;
+    return unless ( ref($top) and ref($after) and ( $top != $after ) );
+    my $all = GetNodesExceptSubtree( [$top] );
+    SortByOrd($all);
+    splice @$all, Index( $all, $top ),
+        1;    # the top node is cut off from the array
+    my $subtree = [ GetNodes($top) ];
+    SortByOrd($subtree);
+    splice @$all, Index( $all, $after ) + 1, 0,
+        @$subtree;         # the subtree is spliced after the appropriate node
+    NormalizeOrds($all);   # the ordering attributes are modified accordingly
 }
 
 =back
@@ -1848,7 +1898,6 @@ you might result with a copy of the complete tree, schema, etc.
 
 =cut
 
-
 =item C<IsList(value)>
 
 Check that a given value is a list, i.e. L<Treex::PML::List|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/List.pm> object.
@@ -1856,7 +1905,7 @@ Check that a given value is a list, i.e. L<Treex::PML::List|http://search.cpan.o
 =cut
 
 sub IsList {
-  return 1 if UNIVERSAL::DOES::does($_[0], 'Treex::PML::List');
+    return 1 if UNIVERSAL::DOES::does( $_[0], 'Treex::PML::List' );
 }
 
 =item C<IsAlt(value)>
@@ -1866,7 +1915,7 @@ Check that a given value is an alternative, i.e. L<Treex::PML::Alt|http://search
 =cut
 
 sub IsAlt {
-  return 1 if UNIVERSAL::DOES::does($_[0], 'Treex::PML::Alt');
+    return 1 if UNIVERSAL::DOES::does( $_[0], 'Treex::PML::Alt' );
 }
 
 =item C<IsSeq(value)>
@@ -1876,7 +1925,7 @@ Check that a given value is a sequence, i.e. L<Treex::PML::Seq|http://search.cpa
 =cut
 
 sub IsSeq {
-  return 1 if UNIVERSAL::DOES::does($_[0], 'Treex::PML::Seq');
+    return 1 if UNIVERSAL::DOES::does( $_[0], 'Treex::PML::Seq' );
 }
 
 =item C<List(value,value,...)>
@@ -1886,7 +1935,7 @@ Return a new list (L<Treex::PML::List|http://search.cpan.org/~pajas/Treex-PML/li
 =cut
 
 sub List {
-  Treex::PML::Factory->createList([@_],1);
+    Treex::PML::Factory->createList( [@_], 1 );
 }
 
 =item C<Alt(value,value,...)>
@@ -1896,7 +1945,7 @@ Return a new alternative (L<Treex::PML::Alt|http://search.cpan.org/~pajas/Treex-
 =cut
 
 sub Alt {
-  Treex::PML::Factory->createAlt([@_],1);
+    Treex::PML::Factory->createAlt( [@_], 1 );
 }
 
 =item C<AltV(value)>
@@ -1907,7 +1956,7 @@ all its values. Otherwise return value.
 =cut
 
 sub AltV {
-  UNIVERSAL::DOES::does($_[0], 'Treex::PML::Alt') ? @{$_[0]} : $_[0]
+    UNIVERSAL::DOES::does( $_[0], 'Treex::PML::Alt' ) ? @{ $_[0] } : $_[0];
 }
 
 =item C<ListV(value)>
@@ -1918,7 +1967,7 @@ all its values. Otherwise return empty (Perl) list.
 =cut
 
 sub ListV {
-  UNIVERSAL::DOES::does($_[0], 'Treex::PML::List') ? @{$_[0]} : ()
+    UNIVERSAL::DOES::does( $_[0], 'Treex::PML::List' ) ? @{ $_[0] } : ();
 }
 
 =item C<SeqV(value)>
@@ -1930,7 +1979,7 @@ list.
 =cut
 
 sub SeqV {
-  UNIVERSAL::DOES::does($_[0], 'Treex::PML::Seq') ? $_[0]->elements : ()
+    UNIVERSAL::DOES::does( $_[0], 'Treex::PML::Seq' ) ? $_[0]->elements : ();
 }
 
 =item C<AddToAlt(node,attr,value,value...)>
@@ -1946,18 +1995,23 @@ well as the given values.
 =cut
 
 sub AddToAlt {
-  my ($node,$attr)=(shift,shift);
-  if ($node->{$attr} eq "") {
-    if (@_>1) {
-      $node->{$attr}=Treex::PML::Factory->createAlt([uniq(@_)],1);
-    } else {
-      $node->{$attr}=$_[0];
+    my ( $node, $attr ) = ( shift, shift );
+    if ( $node->{$attr} eq "" ) {
+        if ( @_ > 1 ) {
+            $node->{$attr}
+                = Treex::PML::Factory->createAlt( [ uniq(@_) ], 1 );
+        }
+        else {
+            $node->{$attr} = $_[0];
+        }
     }
-  } elsif (IsAlt($node->{$attr})) {
-    @{$node->{$attr}} = uniq(@{$node->{$attr}},@_);
-  } else {
-    $node->{$attr} = Treex::PML::Factory->createAlt([$node->{$attr},@_],1);
-  }
+    elsif ( IsAlt( $node->{$attr} ) ) {
+        @{ $node->{$attr} } = uniq( @{ $node->{$attr} }, @_ );
+    }
+    else {
+        $node->{$attr}
+            = Treex::PML::Factory->createAlt( [ $node->{$attr}, @_ ], 1 );
+    }
 }
 
 =item C<AddToList(node,attr,value,value,...)>
@@ -1971,16 +2025,19 @@ a L<Treex::PML::List|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/List.
 =cut
 
 sub AddToList {
-  my ($node,$attr)=(shift,shift);
-  my $val = $node->attr($attr);
-  if (IsList($val)) {
-    push @$val,@_;
-  } elsif ($val eq "") {
-    $val = Treex::PML::Factory->createList([@_],1);
-    $node->set_attr($attr,$val,1);
-  } else {
-    die "AddToList: Attribute '$attr' contains a non-empty non-list value. Refusing to add to '$val'!\n"
-  }
+    my ( $node, $attr ) = ( shift, shift );
+    my $val = $node->attr($attr);
+    if ( IsList($val) ) {
+        push @$val, @_;
+    }
+    elsif ( $val eq "" ) {
+        $val = Treex::PML::Factory->createList( [@_], 1 );
+        $node->set_attr( $attr, $val, 1 );
+    }
+    else {
+        die
+            "AddToList: Attribute '$attr' contains a non-empty non-list value. Refusing to add to '$val'!\n";
+    }
 }
 
 =item C<AddToListUniq(node,attr,value,value,...)>
@@ -1995,16 +2052,19 @@ defined, non-empty, yet not a L<Treex::PML::List|http://search.cpan.org/~pajas/T
 =cut
 
 sub AddToListUniq {
-  my ($node,$attr)=(shift,shift);
-  my $val = $node->attr($attr);
-  if (IsList($val)) {
-    @$val = uniq(@$val,@_);
-  } elsif ($val eq "") {
-    $val = Treex::PML::Factory->createList([uniq(@_)]);
-    $node->set_attr($attr,$val,1);
-  } else {
-    die "AddToList: Attribute '$attr' contains a non-empty non-list value. Refusing to add to '$val'!\n"
-  }
+    my ( $node, $attr ) = ( shift, shift );
+    my $val = $node->attr($attr);
+    if ( IsList($val) ) {
+        @$val = uniq( @$val, @_ );
+    }
+    elsif ( $val eq "" ) {
+        $val = Treex::PML::Factory->createList( [ uniq(@_) ] );
+        $node->set_attr( $attr, $val, 1 );
+    }
+    else {
+        die
+            "AddToList: Attribute '$attr' contains a non-empty non-list value. Refusing to add to '$val'!\n";
+    }
 }
 
 =item C<AddToSeq(node, attr, name => value, name => value,...)> or C<AddToSeq(node, attr, element, ...)>
@@ -2018,23 +2078,26 @@ a L<Treex::PML::Seq|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Seq.pm
 =cut
 
 sub AddToSeq {
-  my ($node,$attr)=(shift,shift);
-  my $val = $node->attr($attr);
-  unless (IsSeq($val)) {
-    if (!defined($val) or !length($val)) {
-      $val = Treex::PML::Factory->createSeq();
-      $node->set_attr($attr,$val,1);
-    } else {
-      die "AddToSeq: Attribute '$attr' contains a non-empty non-sequence value. Refusing to add to '$val'!\n"
+    my ( $node, $attr ) = ( shift, shift );
+    my $val = $node->attr($attr);
+    unless ( IsSeq($val) ) {
+        if ( !defined($val) or !length($val) ) {
+            $val = Treex::PML::Factory->createSeq();
+            $node->set_attr( $attr, $val, 1 );
+        }
+        else {
+            die
+                "AddToSeq: Attribute '$attr' contains a non-empty non-sequence value. Refusing to add to '$val'!\n";
+        }
     }
-  }
-  while (@_) {
-    if (UNIVERSAL::DOES::does($_[0], 'Treex::PML::Seq::Element')) {
-      $val->push_element_obj(shift);
-    } else {
-      $val->push_element((shift,shift));
+    while (@_) {
+        if ( UNIVERSAL::DOES::does( $_[0], 'Treex::PML::Seq::Element' ) ) {
+            $val->push_element_obj(shift);
+        }
+        else {
+            $val->push_element( ( shift, shift ) );
+        }
     }
-  }
 }
 
 =back
@@ -2045,7 +2108,7 @@ sub AddToSeq {
 
 =cut
 
-sub uniq { 
+sub uniq {
     return &TrEd::Utils::uniq;
 }
 
@@ -2068,12 +2131,12 @@ removed.
 =cut
 
 sub ListIntersect {
-  my %counts;
-  my $first = shift;
-  $counts{$_}++ for (map { @$_ } @_);
-  my $count  = scalar(@_);
-  my @res = uniq grep { $counts{$_}==$count } @{$first};
-  return wantarray ? @res : List(@res);
+    my %counts;
+    my $first = shift;
+    $counts{$_}++ for ( map {@$_} @_ );
+    my $count = scalar(@_);
+    my @res = uniq grep { $counts{$_} == $count } @{$first};
+    return wantarray ? @res : List(@res);
 }
 
 =item C<ListSubtract(array-ref, array-ref)>
@@ -2085,11 +2148,11 @@ context returns a list. All duplicities are removed.
 =cut
 
 sub ListSubtract($$) {
-  my %a; @a{ @{$_[1]} }=();
-  my @res = grep { !exists($a{$_}) ? $a{$_}=1 : 0 } @{$_[0]};
-  return wantarray ? @res : List(@res);
+    my %a;
+    @a{ @{ $_[1] } } = ();
+    my @res = grep { !exists( $a{$_} ) ? $a{$_} = 1 : 0 } @{ $_[0] };
+    return wantarray ? @res : List(@res);
 }
-
 
 =item C<ListUnion(array-ref, array-ref, ...)>
 
@@ -2100,10 +2163,9 @@ duplicities are removed.
 =cut
 
 sub ListUnion {
-  my @res = uniq map @$_,@_;
-  return wantarray ? @res : List(@res);
+    my @res = uniq map @$_, @_;
+    return wantarray ? @res : List(@res);
 }
-
 
 =item C<ListRegroupElements(array-ref, array-ref, ...)>
 
@@ -2115,13 +2177,13 @@ representing a column in the matrix).
 =cut
 
 sub ListRegroupElements {
-  my @r;
-  for (my $row=0; $row<@_;$row++) {
-    for (my $col=0; $col<@{$_[$row]}; $col++) {
-      $r[$col][$row] = $_[$row][$col];
+    my @r;
+    for ( my $row = 0; $row < @_; $row++ ) {
+        for ( my $col = 0; $col < @{ $_[$row] }; $col++ ) {
+            $r[$col][$row] = $_[$row][$col];
+        }
     }
-  }
-  return wantarray ? @r : List(@r);
+    return wantarray ? @r : List(@r);
 }
 
 =back
@@ -2135,7 +2197,6 @@ sub ListRegroupElements {
 
 =cut
 
-
 =item C<GUI()>
 
 Return a reference if running from TrEd, i.e., GUI is available;
@@ -2144,9 +2205,8 @@ a TrEd::Window object representing the currently focused window.
 
 =cut
 
-
 sub GUI {
-  return (ref($grp) eq 'TrEd::Window') ? $grp : undef;
+    return ( ref($grp) eq 'TrEd::Window' ) ? $grp : undef;
 }
 
 =item C<CloseGUI()>
@@ -2156,14 +2216,13 @@ exits.
 
 =cut
 
-
 sub CloseGUI {
-  my $win = GUI();
-  if ($win) {
-    ToplevelFrame()->afterIdle([\&main::quit,$win]);
-    $Redraw='none';
-    ChangingFile(0);
-  }
+    my $win = GUI();
+    if ($win) {
+        ToplevelFrame()->afterIdle( [ \&main::quit, $win ] );
+        $Redraw = 'none';
+        ChangingFile(0);
+    }
 }
 
 =item C<TrEdWindows()>
@@ -2174,7 +2233,7 @@ windows.
 =cut
 
 sub TrEdWindows {
-  return @{$grp->{framegroup}{treeWindows}};
+    return @{ $grp->{framegroup}{treeWindows} };
 }
 
 =item C<CurrentWindow()>
@@ -2193,23 +2252,25 @@ Focus a given window.
 =cut
 
 sub SetCurrentWindow {
-  shift unless ref($_[0]);
-  my $win = shift || $grp;
-  if ((blessed($win) and $win->isa('TrEd::Window'))) {
-    my $tred = $grp->{framegroup};
-    unless ($win == $tred->{focusedWindow}) {
-      main::focusCanvas($win->canvas, $tred);
+    shift unless ref( $_[0] );
+    my $win = shift || $grp;
+    if ( ( blessed($win) and $win->isa('TrEd::Window') ) ) {
+        my $tred = $grp->{framegroup};
+        unless ( $win == $tred->{focusedWindow} ) {
+            main::focusCanvas( $win->canvas, $tred );
+        }
+        $win = $tred->{focusedWindow};
+        unless ( $grp == $win ) {
+            $grp  = $win;
+            $this = $win->{currentNode};
+            $root = $win->{root};
+        }
+        return ( $grp == $win ) ? 1 : 0;
     }
-    $win = $tred->{focusedWindow};
-    unless ($grp == $win) {
-      $grp = $win;
-      $this = $win->{currentNode};
-      $root = $win->{root};
+    else {
+        die
+            "Usage: SetCurrentWindow(\$win) (argument is not a TrEd::Window)!";
     }
-    return ($grp == $win) ? 1 : 0;
-  } else {
-    die "Usage: SetCurrentWindow(\$win) (argument is not a TrEd::Window)!"
-  }
 }
 
 =item C<SplitWindowHorizontally(\%opts?)>
@@ -2244,10 +2305,14 @@ the new view to the current height of the active view.
 =cut
 
 sub SplitWindowHorizontally {
-  shift unless ref $_[0];
-  return main::splitWindow($grp->{framegroup},'horiz',{no_focus=> 1,
-						       ref($_[0]) ? %{$_[0]} : ()
-						     });
+    shift unless ref $_[0];
+    return main::splitWindow(
+        $grp->{framegroup},
+        'horiz',
+        {   no_focus => 1,
+            ref( $_[0] ) ? %{ $_[0] } : ()
+        }
+    );
 }
 
 =item C<SplitWindowVertically()>
@@ -2282,10 +2347,14 @@ the new view to the current height of the active view.
 =cut
 
 sub SplitWindowVertically {
-  shift unless ref $_[0];
-  return main::splitWindow($grp->{framegroup},'vert',{no_focus=>1,
-						      ref($_[0]) ? %{$_[0]} : ()
-						    });
+    shift unless ref $_[0];
+    return main::splitWindow(
+        $grp->{framegroup},
+        'vert',
+        {   no_focus => 1,
+            ref( $_[0] ) ? %{ $_[0] } : ()
+        }
+    );
 }
 
 =item C<CloseWindow(win?)>
@@ -2297,13 +2366,12 @@ the closed window was focused, then a next sibling window gets focus.
 =cut
 
 sub CloseWindow {
-  shift unless ref($_[0]);
-  my $win = shift || $grp;
-  main::removeWindow($grp->{framegroup},$win);
-  SetCurrentWindow();
-  return $grp;
+    shift unless ref( $_[0] );
+    my $win = shift || $grp;
+    main::removeWindow( $grp->{framegroup}, $win );
+    SetCurrentWindow();
+    return $grp;
 }
-
 
 =item C<CurrentFile(win?)>
 
@@ -2314,11 +2382,24 @@ arguments.
 =cut
 
 sub CurrentFile {
-  shift unless ref($_[0]);
-  my $win = shift || $grp;
-  if ($win) {
-    return $win->{FSFile};
-  }
+    shift if !ref $_[0];
+    my $win = shift || $grp;
+    my ($package, $filename, $line) = caller;
+    # print "CurrentFile: win=$win called from $package $line ($filename )\n";
+
+    if ($win) {
+#        use Data::Dumper;
+#        $Data::Dumper::Maxdepth = 1;
+#        $Data::Dumper::Deparse = 1;
+#        print "CurrentFile== " . Dumper($win->{FSFile}) . "\n";
+#        if ($win->{FSFile}) {
+#            print "file is " . $win->{FSFile}->filename() . "\n";
+#        }
+#        else {
+#            print "no file\n";
+#        }
+        return $win->{FSFile};
+    }
 }
 
 =item C<CurrentNodeInOtherWindow(win)>
@@ -2328,12 +2409,12 @@ Return the node currently active in a given window.
 =cut
 
 sub CurrentNodeInOtherWindow {
-  shift unless ref($_[0]);
-  my $win = shift || $grp;
-  if ($win) {
-    return $win->{currentNode};
-  }
-  return;
+    shift unless ref( $_[0] );
+    my $win = shift || $grp;
+    if ($win) {
+        return $win->{currentNode};
+    }
+    return;
 }
 
 =item C<SetCurrentNodeInOtherWindow(win,node)>
@@ -2343,10 +2424,11 @@ Set active node for a given window.
 =cut
 
 sub SetCurrentNodeInOtherWindow {
-  my ($win,$node)=@_;
-  TrEd::Window::TreeBasics::set_current($win,$node);
+    my ( $win, $node ) = @_;
+    TrEd::Window::TreeBasics::set_current( $win, $node );
 }
-*SetCurrentNodeInOtherWin = \&SetCurrentNodeInOtherWindow; # compatibility alias
+*SetCurrentNodeInOtherWin
+    = \&SetCurrentNodeInOtherWindow;    # compatibility alias
 
 =item C<InVerticalMode()>
 
@@ -2355,9 +2437,8 @@ Return true if the tree is currently displayed in the vertical mode.
 =cut
 
 sub InVerticalMode {
-  return $grp->treeView->get_verticalTree;
+    return $grp->treeView->get_verticalTree;
 }
-
 
 =item C<ToplevelFrame()>
 
@@ -2366,7 +2447,7 @@ Returns the Tk::Toplevel object containing the current window.
 =cut
 
 sub ToplevelFrame {
-  return $grp && $grp->toplevel();
+    return $grp && $grp->toplevel();
 }
 
 =item C<PrintDialog(...)>
@@ -2374,7 +2455,6 @@ sub ToplevelFrame {
 See the description in the L<Printing trees> section.
 
 =cut
-
 
 =item C<Redraw($win?.$ignoreThis)>
 
@@ -2388,17 +2468,18 @@ of the window (i.e. $win->{currentNode}).
 =cut
 
 sub Redraw {
-  _croak("Cannot call Redraw without a GUI\n") unless GUI();
-  my $win = shift() || $grp;
-  my $ignoreThis = shift;
-  my $ie=$main::insideEval;
-  $main::insideEval=0;
-  TrEd::Window::TreeBasics::set_current($win,$this) if (!$ignoreThis and $this);
-  $win->get_nodes();
-  $win->redraw();
-  main::centerTo($win,$this) if (!$ignoreThis and $this);
-  main::update_title_and_buttons($win->{framegroup});
-  $main::insideEval=$ie;
+    _croak("Cannot call Redraw without a GUI\n") unless GUI();
+    my $win        = shift() || $grp;
+    my $ignoreThis = shift;
+    my $ie         = $main::insideEval;
+    $main::insideEval = 0;
+    TrEd::Window::TreeBasics::set_current( $win, $this )
+        if ( !$ignoreThis and $this );
+    $win->get_nodes();
+    $win->redraw();
+    main::centerTo( $win, $this ) if ( !$ignoreThis and $this );
+    main::update_title_and_buttons( $win->{framegroup} );
+    $main::insideEval = $ie;
 }
 
 =item C<Redraw_FSFile()>
@@ -2409,17 +2490,17 @@ file.
 =cut
 
 sub Redraw_FSFile {
-  _croak("Cannot call Redraw without a GUI\n") unless GUI();
-  my $ie=$main::insideEval;
-  $main::insideEval=0;
-  TrEd::Window::TreeBasics::set_current($grp,$this) if ($this);
-  my $fsfile = CurrentFile();
-  my $framegroup = $grp->{framegroup};
-  main::get_nodes_fsfile($framegroup,$fsfile);
-  main::redraw_fsfile($framegroup,$fsfile);
-  main::centerTo($grp,$this) if ($this);
-  main::update_title_and_buttons($framegroup);
-  $main::insideEval=$ie;
+    _croak("Cannot call Redraw without a GUI\n") unless GUI();
+    my $ie = $main::insideEval;
+    $main::insideEval = 0;
+    TrEd::Window::TreeBasics::set_current( $grp, $this ) if ($this);
+    my $fsfile     = CurrentFile();
+    my $framegroup = $grp->{framegroup};
+    main::get_nodes_fsfile( $framegroup, $fsfile );
+    main::redraw_fsfile( $framegroup, $fsfile );
+    main::centerTo( $grp, $this ) if ($this);
+    main::update_title_and_buttons($framegroup);
+    $main::insideEval = $ie;
 }
 
 =item C<Redraw_FSFile_Tree()>
@@ -2430,17 +2511,17 @@ tree.
 =cut
 
 sub Redraw_FSFile_Tree {
-  _croak "Cannot call Redraw without a GUI" unless GUI();
-  my $ie=$main::insideEval;
-  $main::insideEval=0;
-  my $fsfile = CurrentFile();
-  my $framegroup = $grp->{framegroup};
-  TrEd::Window::TreeBasics::set_current($grp,$this) if ($this);
-  main::get_nodes_fsfile_tree($framegroup,$fsfile,$grp->{treeNo});
-  main::redraw_fsfile_tree($framegroup,$fsfile,$grp->{treeNo});
-  main::centerTo($grp,$this) if ($this);
-  main::update_title_and_buttons($framegroup);
-  $main::insideEval=$ie;
+    _croak "Cannot call Redraw without a GUI" unless GUI();
+    my $ie = $main::insideEval;
+    $main::insideEval = 0;
+    my $fsfile     = CurrentFile();
+    my $framegroup = $grp->{framegroup};
+    TrEd::Window::TreeBasics::set_current( $grp, $this ) if ($this);
+    main::get_nodes_fsfile_tree( $framegroup, $fsfile, $grp->{treeNo} );
+    main::redraw_fsfile_tree( $framegroup, $fsfile, $grp->{treeNo} );
+    main::centerTo( $grp, $this ) if ($this);
+    main::update_title_and_buttons($framegroup);
+    $main::insideEval = $ie;
 }
 
 =item C<Redraw_All()>
@@ -2450,16 +2531,17 @@ Force TrEd to immediately redraw all windows.
 =cut
 
 sub Redraw_All {
-  _croak "Cannot call Redraw without a GUI" unless GUI();
-  my $ie=$main::insideEval;
-  $main::insideEval=0;
-  TrEd::Window::TreeBasics::set_current($grp,$this) if ($this);
-  main::get_nodes_all($grp->{framegroup});
-  main::redraw_all($grp->{framegroup});
-  main::centerTo($grp,$this) if ($this);
-  #TODO: toto je trocha divne imho
-  main::update_title_and_buttons($main::win->{framegroup});
-  $main::insideEval=$ie;
+    _croak "Cannot call Redraw without a GUI" unless GUI();
+    my $ie = $main::insideEval;
+    $main::insideEval = 0;
+    TrEd::Window::TreeBasics::set_current( $grp, $this ) if ($this);
+    main::get_nodes_all( $grp->{framegroup} );
+    main::redraw_all( $grp->{framegroup} );
+    main::centerTo( $grp, $this ) if ($this);
+
+    #TODO: toto je trocha divne imho
+    main::update_title_and_buttons( $main::win->{framegroup} );
+    $main::insideEval = $ie;
 }
 
 =item C<RedrawStatusLine()>
@@ -2469,15 +2551,14 @@ Force TrEd to immediately redraw status line.
 =cut
 
 sub RedrawStatusLine {
-  _croak "Cannot call Redraw without a GUI" unless GUI();
-  local $main::insideEval=0;
-  if ($this) {
-    TrEd::Window::TreeBasics::set_current($grp,$this);
-    main::centerTo($grp,$this);
-  }
-  $grp->{statusLine}->update_status($grp);
+    _croak "Cannot call Redraw without a GUI" unless GUI();
+    local $main::insideEval = 0;
+    if ($this) {
+        TrEd::Window::TreeBasics::set_current( $grp, $this );
+        main::centerTo( $grp, $this );
+    }
+    $grp->{statusLine}->update_status($grp);
 }
-
 
 =item C<EditAttribute(node,attribute)>
 
@@ -2486,8 +2567,8 @@ Open edit attribute GUI.
 =cut
 
 sub EditAttribute {
-  _croak "Cannot call EditAttribute without a GUI" unless GUI();
-  main::doEditAttr($grp,@_);
+    _croak "Cannot call EditAttribute without a GUI" unless GUI();
+    main::doEditAttr( $grp, @_ );
 }
 
 =item C<Undo()>
@@ -2508,10 +2589,10 @@ your macros which may possibly invoke the hook.
 =cut
 
 sub Undo {
-  main::undo($grp);
-  $this = $grp->{currentNode};
-  $root = $this->root if $this;
-  ChangingFile(0);
+    main::undo($grp);
+    $this = $grp->{currentNode};
+    $root = $this->root if $this;
+    ChangingFile(0);
 }
 
 =item C<Redo()>
@@ -2522,10 +2603,10 @@ changes $this and $root.
 =cut
 
 sub Redo {
-  main::re_do($grp);
-  $this = $grp->{currentNode};
-  $root = $this->root if $this;
-  ChangingFile(0);
+    main::re_do($grp);
+    $this = $grp->{currentNode};
+    $root = $this->root if $this;
+    ChangingFile(0);
 }
 
 =item C<SaveUndo(comment)>
@@ -2537,8 +2618,8 @@ user-visible one-line diescription of the action following SaveUndo.
 =cut
 
 sub SaveUndo {
-  $grp->{currentNode} = $this;
-  main::save_undo($grp, main::prepare_undo($grp,'Macro: '.$_[0]));
+    $grp->{currentNode} = $this;
+    main::save_undo( $grp, main::prepare_undo( $grp, 'Macro: ' . $_[0] ) );
 }
 
 =item C<ForgetRedo()>
@@ -2550,12 +2631,11 @@ Redo.
 =cut
 
 sub ForgetRedo {
-  my $stack=FileAppData('undostack');
-  if ($stack) {
-    splice @$stack, FileAppData('undo')+1; # remove redo
-  }
+    my $stack = FileAppData('undostack');
+    if ($stack) {
+        splice @$stack, FileAppData('undo') + 1;    # remove redo
+    }
 }
-
 
 =item C<Find()>
 
@@ -2564,10 +2644,11 @@ Open the Find Node by Attributes GUI dialog.
 =cut
 
 sub Find {
-  _croak "Cannot call Find without a GUI" unless GUI();
-  $grp->{framegroup}->{findButton}->invoke();
-  $this=$grp->{currentNode};
-#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+    _croak "Cannot call Find without a GUI" unless GUI();
+    $grp->{framegroup}->{findButton}->invoke();
+    $this = $grp->{currentNode};
+
+    #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
 }
 
 =item C<FindNext()>
@@ -2578,10 +2659,11 @@ of the Find... menu command or FindNode macro usage.
 =cut
 
 sub FindNext {
-  _croak "Cannot call FindNext without a GUI" unless GUI();
-  $grp->{framegroup}->{findNextButton}->invoke();
-  $this=$grp->{currentNode};
-#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+    _croak "Cannot call FindNext without a GUI" unless GUI();
+    $grp->{framegroup}->{findNextButton}->invoke();
+    $this = $grp->{currentNode};
+
+    #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
 }
 
 =item C<FindPrev()>
@@ -2592,12 +2674,12 @@ use of the Find... menu command or FindNode macro usage.
 =cut
 
 sub FindPrev {
-  _croak "Cannot call FindPrev without a GUI" unless GUI();
-  $grp->{framegroup}->{findPrevButton}->invoke();
-  $this=$grp->{currentNode};
-#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
-}
+    _croak "Cannot call FindPrev without a GUI" unless GUI();
+    $grp->{framegroup}->{findPrevButton}->invoke();
+    $this = $grp->{currentNode};
 
+    #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+}
 
 =item C<ErrorMessage(message)>
 
@@ -2607,7 +2689,7 @@ text window.  In BTrEd print the error message on standard error output.
 =cut
 
 sub ErrorMessage {
-  TrEd::Error::Message::error_message($grp,join("",@_),1);
+    TrEd::Error::Message::error_message( $grp, join( "", @_ ), 1 );
 }
 
 =item C<InfoMessage(message)>
@@ -2618,17 +2700,18 @@ text window.  In BTrEd print the message on standard output.
 =cut
 
 sub InfoMessage {
-  my $message = join("",@_);
-  if (GUI()) {
-    ToplevelFrame()->ErrorReport(
-      -title   => 'Information',
-      -msgtype => 'INFO',
-      -message => '',
-      -body => $message,
-     );
-  } else {
-    print STDERR $message;
-  }
+    my $message = join( "", @_ );
+    if ( GUI() ) {
+        ToplevelFrame()->ErrorReport(
+            -title   => 'Information',
+            -msgtype => 'INFO',
+            -message => '',
+            -body    => $message,
+        );
+    }
+    else {
+        print STDERR $message;
+    }
 }
 
 =item C<StandardTredFont()>
@@ -2639,7 +2722,7 @@ TrEd to label tree-nodes.
 =cut
 
 sub StandardTredFont {
-  return $main::font;
+    return $main::font;
 }
 
 =item C<StandardTredValueLineFont()>
@@ -2650,7 +2733,7 @@ TrEd to display the "sentence" above the tree.
 =cut
 
 sub StandardTredValueLineFont {
-  return $main::vLineFont;
+    return $main::vLineFont;
 }
 
 =item C<CenterOtherWinTo(win,node)>
@@ -2660,10 +2743,9 @@ Center given window to a given node.
 =cut
 
 sub CenterOtherWinTo {
-  my ($win,$node)=@_;
-  main::centerTo($win,$node);
+    my ( $win, $node ) = @_;
+    main::centerTo( $win, $node );
 }
-
 
 =item C<HiddenVisible(win?)>
 
@@ -2673,9 +2755,9 @@ currently focused window if called without an argument).
 =cut
 
 sub HiddenVisible {
-  shift unless ref($_[0]);
-  my $win = shift || $grp;
-  return (ref($win->{treeView}) and $win->{treeView}->get_showHidden());
+    shift unless ref( $_[0] );
+    my $win = shift || $grp;
+    return ( ref( $win->{treeView} ) and $win->{treeView}->get_showHidden() );
 }
 
 =item C<ToggleHiding($win?)>
@@ -2686,9 +2768,10 @@ called without an argument), hide them and vice versa.
 =cut
 
 sub ToggleHiding {
-  shift unless ref($_[0]);
-  my $win = shift || $grp;
-  $win->{treeView}->set_showHidden(int(!$win->{treeView}->get_showHidden));
+    shift unless ref( $_[0] );
+    my $win = shift || $grp;
+    $win->{treeView}
+        ->set_showHidden( int( !$win->{treeView}->get_showHidden ) );
 }
 
 =back
@@ -2742,54 +2825,60 @@ binding.
 =cut
 
 sub Bind {
-  return unless GUI();
-  while (@_) {
-    my $macro = shift;
-    my $bind;
-    if (@_==0 and ref($macro) eq 'HASH') {
-      $bind = $macro;
-      $macro = $macro->{command};
-    } else  {
-      $bind=shift;
+    return unless GUI();
+    while (@_) {
+        my $macro = shift;
+        my $bind;
+        if ( @_ == 0 and ref($macro) eq 'HASH' ) {
+            $bind  = $macro;
+            $macro = $macro->{command};
+        }
+        else {
+            $bind = shift;
+        }
+        my ($caller) = caller;
+        if ( ref $bind eq 'HASH' ) {
+            my $context = $bind->{context} || $caller;
+            if ( exists $bind->{changing_file} ) {
+                my $changes_file = $bind->{changing_file};
+                my $old_macro    = $macro;
+                if ( ref($old_macro) eq 'CODE' ) {
+                    $macro = sub {
+                        &$old_macro();
+                        ChangingFile($changes_file);
+                        }
+                }
+                else {
+                    my ( $ctxt, $mac );
+                    if ( $macro =~ /^(\w+)-\>(.*)/ ) {
+                        $ctxt = $1;
+                        $mac  = $2;
+                    }
+                    else {
+                        $ctxt = $context;
+                        $mac  = $old_macro;
+                    }
+                    $macro = sub {
+                        $ctxt->$mac();
+                        ChangingFile($changes_file);
+                        }
+                }
+            }
+            if ( $bind->{key} ) {
+                TrEd::Macros::bind_key( $context, $bind->{key}, $macro );
+            }
+            if ( $bind->{menu} ) {
+                TrEd::Macros::add_to_menu( $context, $bind->{menu}, $macro );
+            }
+        }
+        elsif ( defined($bind) and !ref($bind) ) {
+            TrEd::Macros::bind_key( $caller, $bind, $macro );
+        }
+        else {
+            croak("Usage: Bind(macro => string|hash-ref, ...)");
+        }
     }
-    my ($caller)=caller;
-    if (ref $bind eq 'HASH') {
-      my $context  =$bind->{context}||$caller;
-      if (exists $bind->{changing_file}) {
-	my $changes_file = $bind->{changing_file};
-	my $old_macro=$macro;
-	if (ref($old_macro) eq 'CODE') {
-	  $macro = sub {
-	    &$old_macro();
-	    ChangingFile($changes_file);
-	  }
-	} else {
-	  my ($ctxt,$mac);
-	  if ($macro=~/^(\w+)-\>(.*)/) {
-	    $ctxt=$1; $mac=$2;
-	  } else {
-	    $ctxt=$context; $mac=$old_macro;
-	  }
-	  $macro = sub {
-	    $ctxt->$mac();
-	    ChangingFile($changes_file);
-	  }
-	}
-      }
-      if ($bind->{key}) {
-	TrEd::Macros::bind_key($context,$bind->{key},$macro);
-      }
-      if ($bind->{menu}) {
-	TrEd::Macros::add_to_menu($context,$bind->{menu},$macro);
-      }
-    } elsif(defined($bind) and !ref($bind)) {
-      TrEd::Macros::bind_key($caller,$bind,$macro);
-    } else {
-      croak("Usage: Bind(macro => string|hash-ref, ...)");
-    }
-  }
 }
-
 
 =item C<UnbindBuiltin(key-binding)>
 
@@ -2801,30 +2890,23 @@ key-bining once removed cannot be restored (except by restarting TrEd).
 =cut
 
 sub UnbindBuiltin {
-  return unless GUI();
-  my ($key)=@_;
-  $key=~s/\+/-/g;	# convert ctrl-x to ctrl+x
-  $key=~s/([^-]+-)/ucfirst($1)/eg;
-  $key=~s/Ctrl-/Control-/g;
-  $grp->{framegroup}{top}->bind('my',"<$key>",undef);
+    return unless GUI();
+    my ($key) = @_;
+    $key =~ s/\+/-/g;                    # convert ctrl-x to ctrl+x
+    $key =~ s/([^-]+-)/ucfirst($1)/eg;
+    $key =~ s/Ctrl-/Control-/g;
+    $grp->{framegroup}{top}->bind( 'my', "<$key>", undef );
 }
 
-
-# Function to be used instead of unbind_edit.inc  
+# Function to be used instead of unbind_edit.inc
 sub UnbindTreeEdit {
     return unless GUI();
     my ($context) = @_;
-    my @keys = (
-        'F7',
-        'Shift+F7',
-        'F8',
-        'F5',
-        'F6',
-        'Ctrl+Insert',
-        'Shift+Insert',
-    );
+    my @keys
+        = ( 'F7', 'Shift+F7', 'F8', 'F5', 'F6', 'Ctrl+Insert', 'Shift+Insert',
+        );
     foreach my $key (@keys) {
-        TrEd::Macros::unbind_key($context, $key);
+        TrEd::Macros::unbind_key( $context, $key );
     }
 }
 
@@ -2897,24 +2979,32 @@ grand-parent instead of a parent:
 =cut
 
 sub OverrideBuiltinBinding {
-  return unless GUI();
-  my ($context,$key,$spec)=@_;
-  $key=~s/\+/-/g;	# convert ctrl-x to ctrl+x
-  $key=~s/([^-]+-)/ucfirst($1)/eg;
-  $key=~s/Ctrl-/Control-/g;
-my $grp = TrEd::Macros::get_macro_variable('grp');
-  if (defined $spec) {
-      if(!TrEd::Binding::Default::binding_valid($spec)) {
-        croak("OverrideBuiltinBinding: invalid binding for context $context, key <$key> , must be [code, description]!")
-      }
-      # default_binding might not be constructed, so do it this way...
-    return TrEd::Binding::Default::change_binding( $grp->{framegroup}->{default_binding}, $context, $key, $spec );
-  } else {
-      # default_binding might not be constructed, so do it this way...
-    return TrEd::Binding::Default::get_binding($grp->{framegroup}->{default_binding}, $context, $key); 
-  }
-}
+    return unless GUI();
+    my ( $context, $key, $spec ) = @_;
+    $key =~ s/\+/-/g;                    # convert ctrl-x to ctrl+x
+    $key =~ s/([^-]+-)/ucfirst($1)/eg;
+    $key =~ s/Ctrl-/Control-/g;
+    my $grp = TrEd::Macros::get_macro_variable('grp');
+    if ( defined $spec ) {
+        if ( !TrEd::Binding::Default::binding_valid($spec) ) {
+            croak(
+                "OverrideBuiltinBinding: invalid binding for context $context, key <$key> , must be [code, description]!"
+            );
+        }
 
+        # default_binding might not be constructed, so do it this way...
+        return TrEd::Binding::Default::change_binding(
+            $grp->{framegroup}->{default_binding},
+            $context, $key, $spec );
+    }
+    else {
+
+        # default_binding might not be constructed, so do it this way...
+        return TrEd::Binding::Default::get_binding(
+            $grp->{framegroup}->{default_binding},
+            $context, $key );
+    }
+}
 
 =item C<MacroCallback(macro_spec,@args)>
 
@@ -2947,62 +3037,77 @@ widget).
 =cut
 
 sub MacroCallback {
-  my ($binding,@args)=@_;
-  my $macro;
-  my ($context)=caller;
-  if (ref($binding) eq 'HASH') {
-    my $command = $binding->{command};
-    $context = $binding->{context} || $context;
-    return unless $command;
-    if (exists($binding->{changing_file})) {
-      my $changes_file = $binding->{changing_file};
-      if (ref($command) eq 'CODE') {
-	$macro = sub {
-	  &$command(@_);
-	  ChangingFile($changes_file);
-	};
-      } else {
-	$macro = sub {
-	  $context->$command(@_);
-	  ChangingFile($changes_file);
-	}
-      }
-    } else {
-      $macro = $command;
+    my ( $binding, @args ) = @_;
+    my $macro;
+    my ($context) = caller;
+    if ( ref($binding) eq 'HASH' ) {
+        my $command = $binding->{command};
+        $context = $binding->{context} || $context;
+        return unless $command;
+        if ( exists( $binding->{changing_file} ) ) {
+            my $changes_file = $binding->{changing_file};
+            if ( ref($command) eq 'CODE' ) {
+                $macro = sub {
+                    &$command(@_);
+                    ChangingFile($changes_file);
+                };
+            }
+            else {
+                $macro = sub {
+                    $context->$command(@_);
+                    ChangingFile($changes_file);
+                    }
+            }
+        }
+        else {
+            $macro = $command;
+        }
     }
-  } else {
-    $macro = $binding;
-  }
-  $macro = (ref($macro) or $macro=~/^\w+-\>/) ? $macro : $context.'->'.$macro;
-  my $mark;
-  return [sub {
-	    my @cb_args;
-	    my $arg;
-	    while (@_) {
-	      $arg = shift @_;
-	      if (defined($arg) and $arg!=\$mark) {
-		push @cb_args, $arg;
-	      } else {
-		last
-	      }
-	    }
-	    my $tred=shift @_;
-	    my $m = $macro;
-	    if (@cb_args or @_) {
-	      if (ref($m) eq 'ARRAY') {
-		push @$m, @cb_args, @_;
-	      } elsif (ref($m)) {
-		$m=[$m, @cb_args, @_];
-	      } else {
-		$m=[eval "sub { $m(\@_) }", @cb_args, @_];
-	      }
-	    }
-	    if ($main::insideEval) {
-	      main::do_eval_macro($tred->{focusedWindow},$m);
-	    } else {
-	      main::doEvalMacro($tred->{focusedWindow},$m);
-	    }
-	  },\$mark,$grp->{framegroup},@args];
+    else {
+        $macro = $binding;
+    }
+    $macro
+        = ( ref($macro) or $macro =~ /^\w+-\>/ )
+        ? $macro
+        : $context . '->' . $macro;
+    my $mark;
+    return [
+        sub {
+            my @cb_args;
+            my $arg;
+            while (@_) {
+                $arg = shift @_;
+                if ( defined($arg) and $arg != \$mark ) {
+                    push @cb_args, $arg;
+                }
+                else {
+                    last;
+                }
+            }
+            my $tred = shift @_;
+            my $m    = $macro;
+            if ( @cb_args or @_ ) {
+                if ( ref($m) eq 'ARRAY' ) {
+                    push @$m, @cb_args, @_;
+                }
+                elsif ( ref($m) ) {
+                    $m = [ $m, @cb_args, @_ ];
+                }
+                else {
+                    $m = [ eval "sub { $m(\@_) }", @cb_args, @_ ];
+                }
+            }
+            if ($main::insideEval) {
+                main::do_eval_macro( $tred->{focusedWindow}, $m );
+            }
+            else {
+                main::doEvalMacro( $tred->{focusedWindow}, $m );
+            }
+        },
+        \$mark,
+        $grp->{framegroup},
+        @args
+    ];
 }
 
 =back
@@ -3023,7 +3128,7 @@ displayed file.
 
 =cut
 
-sub STYLESHEET_FROM_FILE { &TrEd::Stylesheet::STYLESHEET_FROM_FILE }
+sub STYLESHEET_FROM_FILE {&TrEd::Stylesheet::STYLESHEET_FROM_FILE}
 
 =item C<SetStylesheetPatterns(patterns,stylesheet,create)>
 
@@ -3050,13 +3155,14 @@ not set and a given stylesheet is not found).
 =cut
 
 sub SetStylesheetPatterns {
-  my ($patterns,$stylesheet,$create) = @_;
-  $stylesheet = GetCurrentStylesheet() unless defined $stylesheet;
-  TrEd::Stylesheet::set_stylesheet_patterns($grp,$patterns,$stylesheet,$create);
-  if (GUI()) {
-    main::redraw_stylesheet($grp->{framegroup},$stylesheet);
-  }
-  $Redraw='all';
+    my ( $patterns, $stylesheet, $create ) = @_;
+    $stylesheet = GetCurrentStylesheet() unless defined $stylesheet;
+    TrEd::Stylesheet::set_stylesheet_patterns( $grp, $patterns, $stylesheet,
+        $create );
+    if ( GUI() ) {
+        main::redraw_stylesheet( $grp->{framegroup}, $stylesheet );
+    }
+    $Redraw = 'all';
 }
 
 =item C<DeleteStylesheet(stylesheet)>
@@ -3068,10 +3174,11 @@ they display.
 =cut
 
 sub DeleteStylesheet {
-  my ($stylesheet) = @_;
-  if (GUI()) {
-    TrEd::Stylesheet::delete_stylesheet($grp->{framegroup},$stylesheet);
-  }
+    my ($stylesheet) = @_;
+    if ( GUI() ) {
+        TrEd::Stylesheet::delete_stylesheet( $grp->{framegroup},
+            $stylesheet );
+    }
 }
 
 =item C<SaveStylesheet(name)>
@@ -3081,8 +3188,9 @@ Save given TrEd's stylesheet (to ~/.tred.d/stylesheets/name).
 =cut
 
 sub SaveStylesheet {
-  my ($patterns,$stylesheet) = @_;
-  TrEd::Stylesheet::save_stylesheet_file($grp->{framegroup}, $stylesheet) if GUI();
+    my ( $patterns, $stylesheet ) = @_;
+    TrEd::Stylesheet::save_stylesheet_file( $grp->{framegroup}, $stylesheet )
+        if GUI();
 }
 
 =item C<SaveStylesheets()>
@@ -3092,8 +3200,8 @@ Save all TrEd's stylesheets (to ~/.tred.d/stylesheets/).
 =cut
 
 sub SaveStylesheets {
-  my ($patterns) = @_;
-  TrEd::Stylesheet::save_stylesheets($grp->{framegroup}) if GUI();
+    my ($patterns) = @_;
+    TrEd::Stylesheet::save_stylesheets( $grp->{framegroup} ) if GUI();
 }
 
 =item C<ReloadStylesheet(name,dir?)>
@@ -3104,13 +3212,14 @@ default path "~/.tred.d/stylesheets/" is used.
 =cut
 
 sub ReloadStylesheet {
-  my ($name,$dir) = @_;
-  $dir = $main::defaultStylesheetPath unless defined $dir;
-  if (GUI()) {
-    require URI::Escape;
-    my $file = File::Spec->catfile($dir,URI::Escape::uri_escape_utf8($name));
-    TrEd::Stylesheet::read_stylesheet_file($grp->{framegroup},$file);
-  }
+    my ( $name, $dir ) = @_;
+    $dir = $main::defaultStylesheetPath unless defined $dir;
+    if ( GUI() ) {
+        require URI::Escape;
+        my $file = File::Spec->catfile( $dir,
+            URI::Escape::uri_escape_utf8($name) );
+        TrEd::Stylesheet::read_stylesheet_file( $grp->{framegroup}, $file );
+    }
 }
 
 =item C<ReloadStylesheets(dir?)>
@@ -3121,8 +3230,8 @@ specified, the default path "~/.tred.d/stylesheets/" is used.
 =cut
 
 sub ReloadStylesheets {
-  my ($filename) = @_;
-  TrEd::Stylesheet::load_stylesheets($grp->{framegroup}) if GUI();
+    my ($filename) = @_;
+    TrEd::Stylesheet::load_stylesheets( $grp->{framegroup} ) if GUI();
 }
 
 =item C<GetStylesheetPatterns(stylesheet)>
@@ -3137,8 +3246,8 @@ patterns. Returns empty list in case of failure.
 =cut
 
 sub GetStylesheetPatterns {
-  my ($stylesheet)=@_;
-  return TrEd::Stylesheet::get_stylesheet_patterns($grp,$stylesheet);
+    my ($stylesheet) = @_;
+    return TrEd::Stylesheet::get_stylesheet_patterns( $grp, $stylesheet );
 }
 
 =item C<GetPatternsByPrefix(prefix,stylesheet?)>
@@ -3149,15 +3258,19 @@ If no stylesheet name is given, a current stylesheet is used.
 =cut
 
 sub GetPatternsByPrefix {
-  my ($prefix,$stylesheet)=@_;
-  my ($hint,$context,$patterns) = TrEd::Stylesheet::get_stylesheet_patterns($grp,$stylesheet);
-  if ($prefix eq 'hint') {
-    return $hint;
-  } elsif ($prefix eq 'context') {
-    return $context;
-  } else {
-    return map { /^\Q$prefix\E:\s*((?:.|\n)*?)\s*$/ ? $1 : () } @$patterns;
-  }
+    my ( $prefix, $stylesheet ) = @_;
+    my ( $hint, $context, $patterns )
+        = TrEd::Stylesheet::get_stylesheet_patterns( $grp, $stylesheet );
+    if ( $prefix eq 'hint' ) {
+        return $hint;
+    }
+    elsif ( $prefix eq 'context' ) {
+        return $context;
+    }
+    else {
+        return
+            map { /^\Q$prefix\E:\s*((?:.|\n)*?)\s*$/ ? $1 : () } @$patterns;
+    }
 }
 
 =item C<StylesheetExists(stylesheet)>
@@ -3167,8 +3280,9 @@ Returns true if stylesheet with a given name exists.
 =cut
 
 sub StylesheetExists {
-  return 1 if exists ($grp->{framegroup}{stylesheets})
-    and exists ($grp->{framegroup}{stylesheets}{$_[0]});
+    return 1
+        if exists( $grp->{framegroup}{stylesheets} )
+            and exists( $grp->{framegroup}{stylesheets}{ $_[0] } );
 }
 
 =item C<Stylesheets()>
@@ -3178,7 +3292,7 @@ Returns a list of TrEd's stylesheet names.
 =cut
 
 sub Stylesheets {
-  return (keys(%{$grp->{framegroup}{stylesheets}}));
+    return ( keys( %{ $grp->{framegroup}{stylesheets} } ) );
 }
 
 =item C<GetCurrentStylesheet()>
@@ -3189,7 +3303,7 @@ window.
 =cut
 
 sub GetCurrentStylesheet {
-  return $grp->{stylesheet};
+    return $grp->{stylesheet};
 }
 
 =item C<SetCurrentStylesheet(stylesheet_name)>
@@ -3199,16 +3313,17 @@ Set stylesheet for the active window.
 =cut
 
 sub SetCurrentStylesheet {
-  my ($stylesheet_name)=@_;
-  if (StylesheetExists($stylesheet_name) or $stylesheet_name eq STYLESHEET_FROM_FILE()) {
-    if ($grp->{framegroup} && $grp->is_focused()) {
-        $grp->{framegroup}{selectedStylesheet} = $stylesheet_name;
+    my ($stylesheet_name) = @_;
+    if ( StylesheetExists($stylesheet_name)
+        or $stylesheet_name eq STYLESHEET_FROM_FILE() )
+    {
+        if ( $grp->{framegroup} && $grp->is_focused() ) {
+            $grp->{framegroup}{selectedStylesheet} = $stylesheet_name;
+        }
+        return main::switchStylesheet( $grp, $stylesheet_name );
     }
-    return main::switchStylesheet($grp,$stylesheet_name);
-  }
-  return -1;
+    return -1;
 }
-
 
 =item C<GetSpecialPattern(prefix)> - OBSOLETE!!
 
@@ -3217,11 +3332,13 @@ This macro is obsoleted by GetPatternsByPrefix.
 =cut
 
 sub GetSpecialPattern {
-  my ($patname)=@_;
-  return unless CurrentFile();
-  carp("GetSpecialPattern is obsolete: use GetPatternsByPrefix('$patname',STYLESHEET_FROM_FILE()) instead");
-  my ($pat) = GetPatternsByPrefix($patname,STYLESHEET_FROM_FILE());
-  return $pat;
+    my ($patname) = @_;
+    return unless CurrentFile();
+    carp(
+        "GetSpecialPattern is obsolete: use GetPatternsByPrefix('$patname',STYLESHEET_FROM_FILE()) instead"
+    );
+    my ($pat) = GetPatternsByPrefix( $patname, STYLESHEET_FROM_FILE() );
+    return $pat;
 }
 
 =item C<SetDisplayAttrs(pattern,...)> - OBSOLETE!!
@@ -3233,10 +3350,12 @@ a hint pattern.
 =cut
 
 sub SetDisplayAttrs {
-  my $fsfile = CurrentFile();
-  return unless $fsfile;
-  carp("SetDisplayAttrs is obsolete: use SetStylesheetPatterns([...],STYLESHEET_FROM_FILE()) instead");
-  $fsfile->changePatterns(@_);
+    my $fsfile = CurrentFile();
+    return unless $fsfile;
+    carp(
+        "SetDisplayAttrs is obsolete: use SetStylesheetPatterns([...],STYLESHEET_FROM_FILE()) instead"
+    );
+    $fsfile->changePatterns(@_);
 }
 
 =item C<SetBalloonPattern(string,...)> - OBSOLETE!!
@@ -3247,10 +3366,12 @@ the currently displayed L<Treex::PML::Document|http://search.cpan.org/~pajas/Tre
 =cut
 
 sub SetBalloonPattern {
-  my $fsfile = CurrentFile();
-  return unless $fsfile;
-  $fsfile->changeHint(join "\n",@_);
-  carp("SetBalloonPattern is obsolete: use SetStylesheetPatterns([...],STYLESHEET_FROM_FILE()) instead");
+    my $fsfile = CurrentFile();
+    return unless $fsfile;
+    $fsfile->changeHint( join "\n", @_ );
+    carp(
+        "SetBalloonPattern is obsolete: use SetStylesheetPatterns([...],STYLESHEET_FROM_FILE()) instead"
+    );
 }
 
 =item C<GetDisplayAttrs()> - OBSOLETE!!
@@ -3261,10 +3382,12 @@ for a C<hint:> pattern.
 =cut
 
 sub GetDisplayAttrs {
-  my $fsfile = CurrentFile();
-  return unless $fsfile;
-  carp("GetDisplayAttrs is obsolete: use GetStylesheetPatterns(STYLESHEET_FROM_FILE()) instead");
-  return $fsfile->patterns();
+    my $fsfile = CurrentFile();
+    return unless $fsfile;
+    carp(
+        "GetDisplayAttrs is obsolete: use GetStylesheetPatterns(STYLESHEET_FROM_FILE()) instead"
+    );
+    return $fsfile->patterns();
 }
 
 =item C<GetBalloonPattern()> - OBSOLETE!!
@@ -3275,12 +3398,13 @@ L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Doc
 =cut
 
 sub GetBalloonPattern {
-  my $fsfile = CurrentFile();
-  return unless $fsfile;
-  carp("GetBalloonPattern is obsolete: use (\$hint)=GetPatternsByPrefix('hint',STYLESHEET_FROM_FILE()) instead");
-  return $fsfile->hint();
+    my $fsfile = CurrentFile();
+    return unless $fsfile;
+    carp(
+        "GetBalloonPattern is obsolete: use (\$hint)=GetPatternsByPrefix('hint',STYLESHEET_FROM_FILE()) instead"
+    );
+    return $fsfile->hint();
 }
-
 
 =item C<CustomColor(name,new-value?)>
 
@@ -3288,16 +3412,16 @@ Get or set user defined custom color.
 
 =cut
 
-
 sub CustomColor {
-  my ($color,$value)=@_;
-  return unless GUI();
-  if (defined($value)) {
-    return $TrEd::Config::treeViewOpts->{customColors}->{$color}=$value;
-  } else {
-    $value = $TrEd::Config::treeViewOpts->{customColors}->{$color};
-    return $value;
-  }
+    my ( $color, $value ) = @_;
+    return unless GUI();
+    if ( defined($value) ) {
+        return $TrEd::Config::treeViewOpts->{customColors}->{$color} = $value;
+    }
+    else {
+        $value = $TrEd::Config::treeViewOpts->{customColors}->{$color};
+        return $value;
+    }
 }
 
 =item C<UserConf(name,new-value?)>
@@ -3307,14 +3431,14 @@ Get or set value of a user defined configuration option.
 =cut
 
 sub UserConf {
-  my ($name,$value)=@_;
-  if (@_>=1) {
-    $TrEd::Config::userConf->{$name}=$value;
-  } else {
-    $TrEd::Config::userConf->{$name};
-  }
+    my ( $name, $value ) = @_;
+    if ( @_ >= 1 ) {
+        $TrEd::Config::userConf->{$name} = $value;
+    }
+    else {
+        $TrEd::Config::userConf->{$name};
+    }
 }
-
 
 =item C<AddStyle(styles,object,key =E<gt> value,...)>
 
@@ -3324,15 +3448,14 @@ style-hash (can be used e.g. from node_style_hook).
 =cut
 
 sub AddStyle {
-  my ($styles,$style,%s)=@_;
-  if (exists($styles->{$style})) {
-    $styles->{$style}{$_}=$s{$_} for keys %s;
-  } else {
-    $styles->{$style}=\%s;
-  }
+    my ( $styles, $style, %s ) = @_;
+    if ( exists( $styles->{$style} ) ) {
+        $styles->{$style}{$_} = $s{$_} for keys %s;
+    }
+    else {
+        $styles->{$style} = \%s;
+    }
 }
-
-
 
 =item C<GetStyles(styles,object,$feature?)>
 
@@ -3347,21 +3470,24 @@ This function can be used e.g. from node_style_hook.
 =cut
 
 sub GetStyles {
-  my $styles=shift;
-  my $style=shift;
-  my $feature=shift;
-  unless (defined($style)) {
-    carp("Usage: GetStyles(\$styles,\$object_type,\$feature?), where \$object_type is e.g. 'Node', 'Oval', or 'Line'\n");
-  }
-  my $s = $styles->{$style};
-  if (defined($s)) {
-    if (defined $feature) {
-      return $s->{ $feature };
-    } else {
-      return %$s;
+    my $styles  = shift;
+    my $style   = shift;
+    my $feature = shift;
+    unless ( defined($style) ) {
+        carp(
+            "Usage: GetStyles(\$styles,\$object_type,\$feature?), where \$object_type is e.g. 'Node', 'Oval', or 'Line'\n"
+        );
     }
-  }
-  return;
+    my $s = $styles->{$style};
+    if ( defined($s) ) {
+        if ( defined $feature ) {
+            return $s->{$feature};
+        }
+        else {
+            return %$s;
+        }
+    }
+    return;
 }
 
 =back
@@ -3381,7 +3507,7 @@ Return the name of the current macro context.
 =cut
 
 sub CurrentContext {
-  return $grp->{macroContext};
+    return $grp->{macroContext};
 }
 
 =item C<SwitchContext(context)>
@@ -3391,7 +3517,7 @@ Switch to given macro context.
 =cut
 
 sub SwitchContext {
-  main::switchContext($grp,shift);
+    main::switchContext( $grp, shift );
 }
 
 =item C<CurrentContextForWindow(win)>
@@ -3401,9 +3527,9 @@ Get a macro context currently selected in a given window.
 =cut
 
 sub CurrentContextForWindow {
-  shift unless ref($_[0]);
-  my $win = shift || GUI();
-  return $win ? $win->{macroContext} : undef;
+    shift unless ref( $_[0] );
+    my $win = shift || GUI();
+    return $win ? $win->{macroContext} : undef;
 }
 
 =item C<SwitchContextForWindow(win,context)>
@@ -3413,19 +3539,17 @@ Switch given window to given macro context.
 =cut
 
 sub SwitchContextForWindow {
-  shift unless ref($_[0]);
-  my $win = shift || GUI();
-  if ($win) {
-    my ($ctxt,$no_redraw) = @_;
-    main::switchContext($win,$ctxt,$no_redraw);
-  }
+    shift unless ref( $_[0] );
+    my $win = shift || GUI();
+    if ($win) {
+        my ( $ctxt, $no_redraw ) = @_;
+        main::switchContext( $win, $ctxt, $no_redraw );
+    }
 }
-
 
 =back
 
 =cut
-
 
 ###########################################################
 
@@ -3444,7 +3568,7 @@ Return L<Treex::PML::FSFormat|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/
 
 sub FS {
     my $current_file = CurrentFile();
-    if (defined $current_file) {
+    if ( defined $current_file ) {
         return CurrentFile()->FS();
     }
     else {
@@ -3460,8 +3584,7 @@ C<<< $node-E<gt>{FS()->order()} >>>
 
 =cut
 
-sub GetOrd { return $_[0]->{_node_ord($_[0])}; }
-
+sub GetOrd { return $_[0]->{ _node_ord( $_[0] ) }; }
 
 =item C<Attributes(node?,normal_fields?)>
 
@@ -3483,22 +3606,25 @@ return only first-level attribute names. This is equivalent to
 =cut
 
 sub Attributes {
-  my ($node,$members_only) = shift;
-  if ($node and $node->type) {
-    if ($members_only) {
-      return $node->type->get_normal_fields();
-    } else {
-      return $node->type->schema->attributes($node->type);
+    my ( $node, $members_only ) = shift;
+    if ( $node and $node->type ) {
+        if ($members_only) {
+            return $node->type->get_normal_fields();
+        }
+        else {
+            return $node->type->schema->attributes( $node->type );
+        }
     }
-  } else {
-    my $fsfile=CurrentFile();
-    return unless $fsfile;
-    if (ref($fsfile->metaData('schema'))) {
-      return $fsfile->metaData('schema')->attributes()
-    } else {
-      return $fsfile->FS->attributes;
+    else {
+        my $fsfile = CurrentFile();
+        return unless $fsfile;
+        if ( ref( $fsfile->metaData('schema') ) ) {
+            return $fsfile->metaData('schema')->attributes();
+        }
+        else {
+            return $fsfile->FS->attributes;
+        }
     }
-  }
 }
 
 =item C<SubstituteFSHeader(declarations)>
@@ -3509,9 +3635,8 @@ declarations must be passed to this function.
 =cut
 
 sub SubstituteFSHeader {
-  CurrentFile()->changeFS(FS()->create(@_));
+    CurrentFile()->changeFS( FS()->create(@_) );
 }
-
 
 =item C<AppendFSHeader(declarations)>
 
@@ -3521,17 +3646,17 @@ of the current document.
 =cut
 
 sub AppendFSHeader {
-  my $new=FS()->create(@_);
-  my $newdefs=$new->defs();
-  my $fsfile = CurrentFile();
-  my $fs=$fsfile->FS;
-  my $defs=$fsfile->FS->defs();
-  my $list=$fsfile->FS->list();
-  foreach ($new->attributes()) {
-    push @$list, $_ unless ($fs->exists($_));
-    $defs->{$_}=$newdefs->{$_};
-  }
-  @{$fs->unparsed}=$fs->toArray() if $fs->unparsed;
+    my $new     = FS()->create(@_);
+    my $newdefs = $new->defs();
+    my $fsfile  = CurrentFile();
+    my $fs      = $fsfile->FS;
+    my $defs    = $fsfile->FS->defs();
+    my $list    = $fsfile->FS->list();
+    foreach ( $new->attributes() ) {
+        push @$list, $_ unless ( $fs->exists($_) );
+        $defs->{$_} = $newdefs->{$_};
+    }
+    @{ $fs->unparsed } = $fs->toArray() if $fs->unparsed;
 }
 
 =item C<UndeclareAttributes(attribute,...)>
@@ -3541,15 +3666,17 @@ Remove declarations of given attributes from the FS header
 =cut
 
 sub UndeclareAttributes {
-  my $fsfile = CurrentFile();
-  my $fs=$fsfile->FS;
-  my $defs=$fsfile->FS->defs();
-  my $list=$fsfile->FS->list();
-  delete @{$defs}{@_};
+    my $fsfile = CurrentFile();
+    my $fs     = $fsfile->FS;
+    my $defs   = $fsfile->FS->defs();
+    my $list   = $fsfile->FS->list();
+    delete @{$defs}{@_};
 
-  @$list=grep { exists($defs->{$_}) } @$list;
-  @{$fs->unparsed}=grep { !/^\@\S+\s+([^\s|]+)/ || exists($defs->{$1})  }
-    @{$fs->unparsed} if $fs->unparsed;
+    @$list = grep { exists( $defs->{$_} ) } @$list;
+    @{ $fs->unparsed }
+        = grep { !/^\@\S+\s+([^\s|]+)/ || exists( $defs->{$1} ) }
+        @{ $fs->unparsed }
+        if $fs->unparsed;
 
 }
 
@@ -3575,15 +3702,16 @@ value. C<ChangingFile(1)> also resets C<$forceFileSaved> to 0.
 =cut
 
 sub ChangingFile {
-  my ($val)=@_;
-  $val=1 if !defined($val);
-  if ($FileChanged eq '?') {
-    $FileChanged=$val;
-  } elsif ($FileChanged==0) {
-    $FileChanged=$val;
-  }
-  $forceFileSaved=0 if ($val);
-  return $FileChanged;
+    my ($val) = @_;
+    $val = 1 if !defined($val);
+    if ( $FileChanged eq '?' ) {
+        $FileChanged = $val;
+    }
+    elsif ( $FileChanged == 0 ) {
+        $FileChanged = $val;
+    }
+    $forceFileSaved = 0 if ($val);
+    return $FileChanged;
 }
 
 =item C<CurrentFile()>
@@ -3600,14 +3728,14 @@ that may contain various flags internally used by TrEd.
 =cut
 
 sub Open {
-  my ($filename,$opts)=@_;
-  $opts||={};
-  my $ret = TrEd::File::open_file($grp,$filename,%$opts);
-  if (exists($grp->{framegroup})) { # why?
-    $root=$grp->{root};
-    $this=$grp->{currentNode};
-  }
-  return $ret;
+    my ( $filename, $opts ) = @_;
+    $opts ||= {};
+    my $ret = TrEd::File::open_file( $grp, $filename, %$opts );
+    if ( exists( $grp->{framegroup} ) ) {    # why?
+        $root = $grp->{root};
+        $this = $grp->{currentNode};
+    }
+    return $ret;
 }
 
 =item C<OpenSecondaryFiles($fsfile)>
@@ -3617,12 +3745,12 @@ Open secondary files for a given L<Treex::PML::Document|http://search.cpan.org/~
 =cut
 
 sub OpenSecondaryFiles {
-  my ($fsfile)=@_;
-  my $status = TrEd::File::openSecondaryFiles($grp,$fsfile);
-  unless ($status->{ok}) {
-    die($status->{error});
-  }
-  return 1;
+    my ($fsfile) = @_;
+    my $status = TrEd::File::openSecondaryFiles( $grp, $fsfile );
+    unless ( $status->{ok} ) {
+        die( $status->{error} );
+    }
+    return 1;
 }
 
 =item C<ReloadCurrentFile()>
@@ -3632,12 +3760,12 @@ Close and reload current fsfile.
 =cut
 
 sub ReloadCurrentFile {
-  my $ret = TrEd::File::reloadFile($grp);
-  if (exists($grp->{framegroup})) { # why?
-    $root=$grp->{root};
-    $this=$grp->{currentNode};
-  }
-  return $ret;
+    my $ret = TrEd::File::reloadFile($grp);
+    if ( exists( $grp->{framegroup} ) ) {    # why?
+        $root = $grp->{root};
+        $this = $grp->{currentNode};
+    }
+    return $ret;
 }
 
 =item C<Resume($fsfile)>
@@ -3647,11 +3775,11 @@ Resume a previously open fsfile a given window in TrEd.
 =cut
 
 sub ResumeFile {
-  my ($fsfile)=@_;
-  local $main::insideEval = 0;
-  my $ret = TrEd::File::resume_file($grp,$fsfile,1);
-  main::doEvalHook($grp,"file_resumed_hook");
-  return $ret;
+    my ($fsfile) = @_;
+    local $main::insideEval = 0;
+    my $ret = TrEd::File::resume_file( $grp, $fsfile, 1 );
+    main::doEvalHook( $grp, "file_resumed_hook" );
+    return $ret;
 }
 
 =item C<CloseFile(file?)>
@@ -3661,12 +3789,13 @@ Close a given L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib
 =cut
 
 sub CloseFile {
-  shift unless ref($_[0]);
-  my $file = $_[0]||CurrentFile();
-  croak("Not a Treex::PML::Document object!\n") 
-    if defined($file) and !UNIVERSAL::DOES::does($file,'Treex::PML::Document');
-  TrEd::File::closeFile($grp,$file);
-  $Redraw='all';
+    shift unless ref( $_[0] );
+    my $file = $_[0] || CurrentFile();
+    croak("Not a Treex::PML::Document object!\n")
+        if defined($file)
+            and !UNIVERSAL::DOES::does( $file, 'Treex::PML::Document' );
+    TrEd::File::closeFile( $grp, $file );
+    $Redraw = 'all';
 }
 
 =item C<CloseFileInWindow(window?)>
@@ -3679,10 +3808,10 @@ save it.
 =cut
 
 sub CloseFileInWindow {
-  shift unless ref($_[0]);
-  my $win = shift() || $grp;
-  my $ret = GUI() && TrEd::File::close_file_in_window($win);
-  $Redraw='all';
+    shift unless ref( $_[0] );
+    my $win = shift() || $grp;
+    my $ret = GUI() && TrEd::File::close_file_in_window($win);
+    $Redraw = 'all';
 }
 
 =item C<Save()>
@@ -3692,17 +3821,17 @@ Save the current L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/
 =cut
 
 sub Save {
-  my $ret = (TrEd::File::saveFile($grp) == 1);
-  $FileNotSaved=GetFileSaveStatus();
-  $forceFileSaved=!$FileNotSaved;
-  return $ret;
+    my $ret = ( TrEd::File::saveFile($grp) == 1 );
+    $FileNotSaved   = GetFileSaveStatus();
+    $forceFileSaved = !$FileNotSaved;
+    return $ret;
 }
 
 =item C<SaveAs({ option=>value,... })>
 
 NOTE: This macro is currently only available in TrEd.
 
-Save the current L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> under a new filename. 
+Save the current L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> under a new filename.
 Returns 1 if the file was saved successfully.
 
 Options:
@@ -3731,7 +3860,7 @@ other values mean no update. Default is 'ask'.
 =item update_filelist
 
 update references from the current filelist to this file.  Values can
-be: 'ask', 'current' (update only the current position); 
+be: 'ask', 'current' (update only the current position);
 any other value means no update. Default is 'ask'.
 
 =back
@@ -3739,30 +3868,30 @@ any other value means no update. Default is 'ask'.
 =cut
 
 sub SaveAs {
-  # TODO: implement in btred
-  my ($opts)=@_;
-  if (!TrEd::Macros::is_defined('TRED')) {
-      _croak("SaveAs(): Not yet implemented!");
-  }
-  if (!ref($opts)) {
-    $opts  = { filename => $opts };
-  }
-  my $fsfile = $opts->{fsfile} || CurrentFile();
-  my $filename = $opts->{filename} || $fsfile->filename;
-  my $backend = $opts->{backend} || $fsfile->backend;
-  my $update_refs = $opts->{update_refs} || 'ask';
-  my $update_filelist = $opts->{update_filelist} || 'ask';
 
-  my $ret = (TrEd::File::doSaveFileAs($grp,
-				$fsfile,
-				$filename,
-				$backend,
-				$update_refs,
-				$update_filelist
-			       ) == 1);
-  $FileNotSaved=GetFileSaveStatus();
-  $forceFileSaved=!$FileNotSaved;
-  return $ret;
+    # TODO: implement in btred
+    my ($opts) = @_;
+    if ( !TrEd::Macros::is_defined('TRED') ) {
+        _croak("SaveAs(): Not yet implemented!");
+    }
+    if ( !ref($opts) ) {
+        $opts = { filename => $opts };
+    }
+    my $fsfile          = $opts->{fsfile}          || CurrentFile();
+    my $filename        = $opts->{filename}        || $fsfile->filename;
+    my $backend         = $opts->{backend}         || $fsfile->backend;
+    my $update_refs     = $opts->{update_refs}     || 'ask';
+    my $update_filelist = $opts->{update_filelist} || 'ask';
+
+    my $ret = (
+        TrEd::File::doSaveFileAs(
+            $grp,     $fsfile,      $filename,
+            $backend, $update_refs, $update_filelist
+            ) == 1
+    );
+    $FileNotSaved   = GetFileSaveStatus();
+    $forceFileSaved = !$FileNotSaved;
+    return $ret;
 }
 
 =item C<GetOpenFiles()>
@@ -3773,14 +3902,14 @@ postponed files).
 =cut
 
 sub GetOpenFiles {
-  if (TrEd::Macros::is_defined('TRED')) {
-    return TrEd::File::get_openfiles();
-  }
-  else {
-      return grep defined, ($grp->{fsfile}, values %{$grp->{preloaded}});
-  }
+    if ( TrEd::Macros::is_defined('TRED') ) {
+        return TrEd::File::get_openfiles();
+    }
+    else {
+        return grep defined,
+            ( $grp->{fsfile}, values %{ $grp->{preloaded} } );
+    }
 }
-
 
 =item C<Backends()>
 
@@ -3789,7 +3918,7 @@ Return a list of currently registered I/O backends.
 =cut
 
 sub Backends {
-  return TrEd::File::get_backends();
+    return TrEd::File::get_backends();
 }
 
 =item C<AddBackend($classname,$before_backend)>
@@ -3801,10 +3930,10 @@ backend. Otherwise the backend is added as a last backend.
 
 =cut
 
-sub AddBackend {  
-  my $class = shift;
-  my $before = shift;
-  TrEd::File::add_backend($class, $before);
+sub AddBackend {
+    my $class  = shift;
+    my $before = shift;
+    TrEd::File::add_backend( $class, $before );
 }
 
 =item C<RemoveBackend($classname)>
@@ -3814,10 +3943,9 @@ Remove (unregister) a given backend.
 =cut
 
 sub RemoveBackend {
-  my $class = shift;
-  TrEd::File::remove_backend($class);
+    my $class = shift;
+    TrEd::File::remove_backend($class);
 }
-
 
 =item C<AddNewFileList($filelist)>
 
@@ -3828,11 +3956,13 @@ Creates a new TrED filelist from a given C<Filelist> object.
 
 #ifdef TRED
 sub AddNewFileList {
-  my ($fl)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  croak("Not a file-list object") unless UNIVERSAL::DOES::does($fl,'Filelist');
-  TrEd::ManageFilelists::add_new_filelist($grp->{framegroup},$fl);
+    my ($fl) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    croak("Not a file-list object")
+        unless UNIVERSAL::DOES::does( $fl, 'Filelist' );
+    TrEd::ManageFilelists::add_new_filelist( $grp->{framegroup}, $fl );
 }
+
 #endif
 
 =item C<RemoveFileList($filelist_object_or_name)>
@@ -3845,14 +3975,15 @@ from TrEd's internal list of open filelists.
 
 #ifdef TRED
 sub RemoveFileList {
-  my ($fl)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  $fl = GetFileList($fl) unless ref($fl);
-  croak("No such file-list") unless UNIVERSAL::DOES::does($fl,'Filelist');
-  TrEd::ManageFilelists::deleteFilelist($grp->{framegroup},$fl);
+    my ($fl) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    $fl = GetFileList($fl) unless ref($fl);
+    croak("No such file-list")
+        unless UNIVERSAL::DOES::does( $fl, 'Filelist' );
+    TrEd::ManageFilelists::deleteFilelist( $grp->{framegroup}, $fl );
 }
-#endif
 
+#endif
 
 =item C<GetCurrentFileList($win?)>
 
@@ -3863,10 +3994,11 @@ This macro is only available in TrEd. It returns the current file-list
 
 #ifdef TRED
 sub GetCurrentFileList {
-  return if !TrEd::Macros::is_defined('TRED');
-  my $win = $_[0] || $grp;
-  return $win->{currentFilelist};
+    return if !TrEd::Macros::is_defined('TRED');
+    my $win = $_[0] || $grp;
+    return $win->{currentFilelist};
 }
+
 #endif
 
 =item C<GetFileList($name)>
@@ -3879,12 +4011,13 @@ and returns the corresponding C<Filelist> object. Returns undef if not found.
 
 #ifdef TRED
 sub GetFileList {
-  my ($name) = @_;
-  return if !TrEd::Macros::is_defined('TRED');
-  return unless defined $name;
-  my @filelists = TrEd::ManageFilelists::get_filelists();
-  return first { $_->name eq $name } @filelists;
+    my ($name) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    return unless defined $name;
+    my @filelists = TrEd::ManageFilelists::get_filelists();
+    return first { $_->name eq $name } @filelists;
 }
+
 #endif
 
 =item C<AbsolutizeFileName($relative_path,$base_path)>
@@ -3898,18 +4031,17 @@ returned absolute path.
 =cut
 
 sub AbsolutizeFileName {
-  my ($filename,$relfile) = @_;
-  return if !defined $filename;
-  my $suffix;
-  ($filename,$suffix)=TrEd::Utils::parse_file_suffix($filename);
-  if (defined $suffix) {
-    return Treex::PML::ResolvePath($relfile,$filename).$suffix;
-  }
-  else {
-      return Treex::PML::ResolvePath($relfile,$filename);
-  }
+    my ( $filename, $relfile ) = @_;
+    return if !defined $filename;
+    my $suffix;
+    ( $filename, $suffix ) = TrEd::Utils::parse_file_suffix($filename);
+    if ( defined $suffix ) {
+        return Treex::PML::ResolvePath( $relfile, $filename ) . $suffix;
+    }
+    else {
+        return Treex::PML::ResolvePath( $relfile, $filename );
+    }
 }
-
 
 =item C<SetCurrentFileList($name)>
 
@@ -3920,12 +4052,14 @@ name for the current window.
 
 #ifdef TRED
 sub SetCurrentFileList {
-  my $name=shift;
-  return if !TrEd::Macros::is_defined('TRED');
-  croak("Usage: SelectFilelist(name)") if !defined($name) or ref($name) or !length($name);
-  TrEd::ManageFilelists::selectFilelist($grp,$name,@_);
+    my $name = shift;
+    return if !TrEd::Macros::is_defined('TRED');
+    croak("Usage: SelectFilelist(name)")
+        if !defined($name)
+            or ref($name)
+            or !length($name);
+    TrEd::ManageFilelists::selectFilelist( $grp, $name, @_ );
 }
-
 
 =item C<SetCurrentFileListInWindow($name, $win)>
 
@@ -3935,11 +4069,14 @@ name for the given window.
 =cut
 
 sub SetCurrentFileListInWindow {
-  my $name = shift;
-  my $win = shift;
-  croak("Usage: SelectFilelistInWindow(name,win)") if !defined($name) or ref($name) or !length($name);
-  return unless ref $win;
-  TrEd::ManageFilelists::selectFilelist($win,$name,@_);
+    my $name = shift;
+    my $win  = shift;
+    croak("Usage: SelectFilelistInWindow(name,win)")
+        if !defined($name)
+            or ref($name)
+            or !length($name);
+    return unless ref $win;
+    TrEd::ManageFilelists::selectFilelist( $win, $name, @_ );
 }
 
 #endif
@@ -3953,11 +4090,11 @@ filelists.
 
 #ifdef TRED
 sub TrEdFileLists {
-  return if !TrEd::Macros::is_defined('TRED');
-  return TrEd::ManageFilelists::get_filelists();
+    return if !TrEd::Macros::is_defined('TRED');
+    return TrEd::ManageFilelists::get_filelists();
 }
-#endif
 
+#endif
 
 =item C<GetFileSaveStatus()>
 
@@ -3967,8 +4104,8 @@ otherwise.
 =cut
 
 sub GetFileSaveStatus {
-  my $fsfile = CurrentFile();
-  return $fsfile ? $fsfile->notSaved : 0;
+    my $fsfile = CurrentFile();
+    return $fsfile ? $fsfile->notSaved : 0;
 }
 
 =item C<SetFileSaveStatus()>
@@ -3980,10 +4117,9 @@ macro (and TrEd/bTrEd would not notice that).
 =cut
 
 sub SetFileSaveStatus {
-  my $fsfile = CurrentFile();
-  $fsfile->notSaved($_[0]) if $fsfile;
+    my $fsfile = CurrentFile();
+    $fsfile->notSaved( $_[0] ) if $fsfile;
 }
-
 
 =item C<DefaultInputEncoding()>
 
@@ -3992,9 +4128,8 @@ Return's TrEd's/bTrEd's default IO encoding.
 =cut
 
 sub DefaultInputEncoding {
-  return $TrEd::Convert::inputenc;
+    return $TrEd::Convert::inputenc;
 }
-
 
 =item C<SetDefaultInputEncoding(encoding)>
 
@@ -4003,9 +4138,8 @@ Set TrEd's/bTrEd's default IO encoding.
 =cut
 
 sub SetDefaultInputEncoding {
-  $TrEd::Convert::inputenc = $_[0];
+    $TrEd::Convert::inputenc = $_[0];
 }
-
 
 =item C<FileName()>
 
@@ -4014,8 +4148,8 @@ Return current file's name.
 =cut
 
 sub FileName {
-  my $fsfile = CurrentFile();
-  return $fsfile->filename if $fsfile;
+    my $fsfile = CurrentFile();
+    return $fsfile->filename if $fsfile;
 }
 
 =item C<FileMetaData(key,value?)>
@@ -4028,12 +4162,13 @@ key, overwritting any previous value.
 =cut
 
 sub FileMetaData {
-  my ($name,$value)=@_;
-  if (@_<=1) {
-    CurrentFile()->metaData($name);
-  } else {
-    CurrentFile()->changeMetaData($name,$value);
-  }
+    my ( $name, $value ) = @_;
+    if ( @_ <= 1 ) {
+        CurrentFile()->metaData($name);
+    }
+    else {
+        CurrentFile()->changeMetaData( $name, $value );
+    }
 }
 
 =item C<FileUserData(key,value?)>
@@ -4046,16 +4181,17 @@ key, overwritting any previous value.
 =cut
 
 sub FileUserData {
-  my ($name,$value)=@_;
-  my $fsfile = CurrentFile();
-  unless ($fsfile) {
-    confess("FileUserData: no file is open\n");
-  }
-  if (@_<=1) {
-    $fsfile->userData()->{$name};
-  } else {
-    $fsfile->userData()->{$name}=$value;
-  }
+    my ( $name, $value ) = @_;
+    my $fsfile = CurrentFile();
+    unless ($fsfile) {
+        confess("FileUserData: no file is open\n");
+    }
+    if ( @_ <= 1 ) {
+        $fsfile->userData()->{$name};
+    }
+    else {
+        $fsfile->userData()->{$name} = $value;
+    }
 }
 
 =item C<FileAppData(key,value?)>
@@ -4068,12 +4204,13 @@ associated with the key, overwritting any previous value.
 =cut
 
 sub FileAppData {
-  my ($name,$value)=@_;
-  if (@_<=1) {
-    CurrentFile()->appData($name);
-  } else {
-    CurrentFile()->changeAppData($name,$value);
-  }
+    my ( $name, $value ) = @_;
+    if ( @_ <= 1 ) {
+        CurrentFile()->appData($name);
+    }
+    else {
+        CurrentFile()->changeAppData( $name, $value );
+    }
 }
 
 =item C<GotoFileNo(n)>
@@ -4084,14 +4221,14 @@ The number of the first file in filelist is 0.
 =cut
 
 sub GotoFileNo {
-  my $result;
-  if ($FileNotSaved ne '?' and $FileNotSaved) {
-    SetFileSaveStatus(1);
-  }
-  $result=TrEd::Filelist::Navigation::go_to_file($grp,$_[0]);
-  $root=$grp->{root};
-  $this=$grp->{currentNode};
-  return $result;
+    my $result;
+    if ( $FileNotSaved ne '?' and $FileNotSaved ) {
+        SetFileSaveStatus(1);
+    }
+    $result = TrEd::Filelist::Navigation::go_to_file( $grp, $_[0] );
+    $root   = $grp->{root};
+    $this   = $grp->{currentNode};
+    return $result;
 }
 
 =item C<LastFileNo($win?)>
@@ -4101,12 +4238,12 @@ Return the index of the last file in the current filelist.
 =cut
 
 sub LastFileNo {
-  shift if @_ and !ref($_[0]);
-  my $win = ref($_[0]) ? $_[0] : $grp;
-  if ($win) {
-    return $win->last_file_no();
-  }
-  return;
+    shift if @_ and !ref( $_[0] );
+    my $win = ref( $_[0] ) ? $_[0] : $grp;
+    if ($win) {
+        return $win->last_file_no();
+    }
+    return;
 }
 
 =item C<CurrentFileNo($win?)>
@@ -4116,12 +4253,12 @@ Return the index of the current file in the current filelist.
 =cut
 
 sub CurrentFileNo {
-  shift if @_ and !ref($_[0]);
-  my $win = ref($_[0]) ? $_[0] : $grp;
-  if ($win) {
-    return $win->current_file_no();
-  }
-  return;
+    shift if @_ and !ref( $_[0] );
+    my $win = ref( $_[0] ) ? $_[0] : $grp;
+    if ($win) {
+        return $win->current_file_no();
+    }
+    return;
 }
 
 =item C<SaveAndNextFile()>
@@ -4131,10 +4268,10 @@ Save the current file and open the next file in the current file-list.
 =cut
 
 sub SaveAndNextFile {
-  if (GetFileSaveStatus() || $FileNotSaved) {
-    return unless Save();
-  }
-  NextFile();
+    if ( GetFileSaveStatus() || $FileNotSaved ) {
+        return unless Save();
+    }
+    NextFile();
 }
 
 =item C<NextFile()>
@@ -4144,18 +4281,19 @@ Goto next file in the file-list.
 =cut
 
 sub NextFile {
-  my $result;
-  if ($FileNotSaved ne '?' and $FileNotSaved) {
-    SetFileSaveStatus(1);
-  }
-  if ($result=TrEd::Filelist::Navigation::next_file($grp)) {
-    $root=$grp->{root};
-    $this=$grp->{currentNode} || $root;
-    $FileNotSaved=GetFileSaveStatus();
-  } else {
-    $FileNotSaved=0 if $FileNotSaved eq '?';
-  }
-  return $result;
+    my $result;
+    if ( $FileNotSaved ne '?' and $FileNotSaved ) {
+        SetFileSaveStatus(1);
+    }
+    if ( $result = TrEd::Filelist::Navigation::next_file($grp) ) {
+        $root         = $grp->{root};
+        $this         = $grp->{currentNode} || $root;
+        $FileNotSaved = GetFileSaveStatus();
+    }
+    else {
+        $FileNotSaved = 0 if $FileNotSaved eq '?';
+    }
+    return $result;
 }
 
 =item C<SaveAndPrevFile()>
@@ -4166,10 +4304,10 @@ file-list.
 =cut
 
 sub SaveAndPrevFile {
-  if (GetFileSaveStatus() || $FileNotSaved) {
-    return unless Save();
-  }
-  PrevFile();
+    if ( GetFileSaveStatus() || $FileNotSaved ) {
+        return unless Save();
+    }
+    PrevFile();
 }
 
 =item C<PrevFile()>
@@ -4179,18 +4317,19 @@ Goto previous file in the file-list.
 =cut
 
 sub PrevFile {
-  my $result;
-  if ($FileNotSaved ne '?' and $FileNotSaved) {
-    SetFileSaveStatus(1);
-  }
-  if ($result=TrEd::Filelist::Navigation::prev_file($grp)) {
-    $root=$grp->{root};
-    $this=$grp->{currentNode} || $root;
-    $FileNotSaved=GetFileSaveStatus();
-  } else {
-    $FileNotSaved=0 if $FileNotSaved eq '?';
-  }
-  return $result;
+    my $result;
+    if ( $FileNotSaved ne '?' and $FileNotSaved ) {
+        SetFileSaveStatus(1);
+    }
+    if ( $result = TrEd::Filelist::Navigation::prev_file($grp) ) {
+        $root         = $grp->{root};
+        $this         = $grp->{currentNode} || $root;
+        $FileNotSaved = GetFileSaveStatus();
+    }
+    else {
+        $FileNotSaved = 0 if $FileNotSaved eq '?';
+    }
+    return $result;
 }
 
 =back
@@ -4207,6 +4346,7 @@ sub PrevFile {
 =cut
 
 *ResourcePaths = \&Treex::PML::ResourcePaths;
+
 # old name:
 *ResourcePath = \&Treex::PML::ResourcePaths;
 
@@ -4218,6 +4358,7 @@ the existing values of ResourcePath).
 =cut
 
 *SetResourcePaths = \&Treex::PML::SetResourcePaths;
+
 # old name
 *SetResourcePath = \&Treex::PML::SetResourcePaths;
 
@@ -4229,9 +4370,9 @@ searched last).
 =cut
 
 *AddResourcePath = \&Treex::PML::AddResourcePath;
+
 # old name
 *AddToResourcePath = \&Treex::PML::AddResourcePath;
-
 
 =item C<AddToResourcePathAsFirst(dirs)>
 
@@ -4250,6 +4391,7 @@ paths must exactly match those listed in the resource path).
 =cut
 
 *RemoveResourcePath = \Treex::PML::RemoveResourcePath;
+
 #old name
 *RemoveFromResourcePath = \Treex::PML::RemoveResourcePath;
 
@@ -4289,20 +4431,21 @@ chomp() is applied to the returned array or scalar.
 =cut
 
 sub SlurpURI {
-  my ($filename, $encoding, $chomp)=@_;
-  my $fh = Treex::PML::IO::open_uri($filename,$encoding);
-  my $ret;
-  my $wantarray = wantarray;
-  if ($wantarray) {
-    $ret = [ <$fh> ];
-    chomp(@$ret) if $chomp;
-  } else {
-    local $/;
-    $ret = <$fh>;
-    chomp $ret if $chomp;
-  }
-  Treex::PML::IO::close_uri($fh);
-  return $wantarray ? @$ret : $ret;
+    my ( $filename, $encoding, $chomp ) = @_;
+    my $fh = Treex::PML::IO::open_uri( $filename, $encoding );
+    my $ret;
+    my $wantarray = wantarray;
+    if ($wantarray) {
+        $ret = [<$fh>];
+        chomp(@$ret) if $chomp;
+    }
+    else {
+        local $/;
+        $ret = <$fh>;
+        chomp $ret if $chomp;
+    }
+    Treex::PML::IO::close_uri($fh);
+    return $wantarray ? @$ret : $ret;
 }
 
 =item C<writeln(string?,...)>
@@ -4311,8 +4454,7 @@ Print the arguments to standard output appending a new-line if missing.
 
 =cut
 
-sub writeln { $::stdout->print(@_, $_[$#_]=~/\n$/ ? () : "\n") }
-
+sub writeln { $::stdout->print( @_, $_[$#_] =~ /\n$/ ? () : "\n" ) }
 
 =item C<stdout(string?,...)>
 
@@ -4330,7 +4472,7 @@ filehandle.  Otherwise call print the arguments to standard output.
 
 =cut
 
-sub stderr { @_ ? $::stderr && $::stderr->print(@_) : $::stderr}
+sub stderr { @_ ? $::stderr && $::stderr->print(@_) : $::stderr }
 
 =item C<tmpFileName()>
 
@@ -4339,8 +4481,8 @@ Returns a temporary filename..
 =cut
 
 sub tmpFileName {
-  require POSIX;
-  return POSIX::tmpnam();
+    require POSIX;
+    return POSIX::tmpnam();
 }
 
 =item C<DirPart($path)>
@@ -4350,9 +4492,7 @@ Returns directory part of a given path (including volume).
 =cut
 
 sub DirPart {
-  return File::Spec->catpath(
-    (File::Spec->splitpath($_[0]))[0,1]
-  );
+    return File::Spec->catpath( ( File::Spec->splitpath( $_[0] ) )[ 0, 1 ] );
 }
 
 =item C<FilePart($path)>
@@ -4362,7 +4502,7 @@ Returns file-name part of a given path.
 =cut
 
 sub FilePart {
-  return( (File::Spec->splitpath($_[0]))[2] );
+    return ( ( File::Spec->splitpath( $_[0] ) )[2] );
 }
 
 =item C<CallerPath()>
@@ -4372,7 +4512,7 @@ Return path of the perl module or macro-file that invoked this macro.
 =cut
 
 sub CallerPath {
-  return( (caller)[1] );
+    return ( (caller)[1] );
 }
 
 =item C<CallerDir($rel_path?)>
@@ -4386,10 +4526,9 @@ is computed based on the caller's directory and returned.
 =cut
 
 sub CallerDir {
-  return
-    @_>0
-      ? File::Spec->rel2abs($_[0], DirPart( (caller)[1] ))
-      : DirPart( (caller)[1] );
+    return @_ > 0
+        ? File::Spec->rel2abs( $_[0], DirPart( (caller)[1] ) )
+        : DirPart( (caller)[1] );
 }
 
 =item C<FindMacroDir($rel_dir)>
@@ -4400,18 +4539,20 @@ macros and returns an absolute path to the first directory that matches.
 =cut
 
 sub FindMacroDir {
-  my ($dir)=@_;
-  confess( "Usage: FindMacroDir(rel_dir)" ) unless defined $dir and length $dir;
-  Encode::_utf8_off($dir); # make sure it does not carry an UTF8 flag!
-  for my $macro_dir ($libDir, @TrEd::Macros::macro_include_paths) {
-    my $candidate = File::Spec->catdir($macro_dir, 'contrib', $dir);
-    if (-d $candidate) {
-      return $candidate
+    my ($dir) = @_;
+    confess("Usage: FindMacroDir(rel_dir)")
+        unless defined $dir and length $dir;
+    Encode::_utf8_off($dir);    # make sure it does not carry an UTF8 flag!
+    for my $macro_dir ( $libDir, @TrEd::Macros::macro_include_paths ) {
+        my $candidate = File::Spec->catdir( $macro_dir, 'contrib', $dir );
+        if ( -d $candidate ) {
+            return $candidate;
+        }
     }
-  }
-  confess( "FindMacroDir: didn't find subdirectory '$dir' in macro paths: $libDir @TrEd::Macros::macro_include_paths\n" );
+    confess(
+        "FindMacroDir: didn't find subdirectory '$dir' in macro paths: $libDir @TrEd::Macros::macro_include_paths\n"
+    );
 }
-
 
 =back
 
@@ -4483,25 +4624,30 @@ Set to 1 for colour output.
 =cut
 
 sub PrintDialog {
-  my (%opts)=@_;
-  if (GUI()) {
-    local $main::insideEval = 0;
-    local $grp->{currentNode} = $this;
-    local $grp->{root} = $root;
+    my (%opts) = @_;
+    if ( GUI() ) {
+        local $main::insideEval   = 0;
+        local $grp->{currentNode} = $this;
+        local $grp->{root}        = $root;
 
-    foreach (qw(-command -filename -psFile -toFile -format -noRotate -sentenceInfo
-                -imageMagickResolution -fileExtension -fileInfo -colors)) {
-      if (exists($opts{$_})) {
-	my $o=$_; $o=~s/^-//;
-	$o='psFile' if $o eq 'filename';
-	$grp->{framegroup}->{"print".ucfirst($o)} = $opts{$_}
-      }
-      main::printThis($grp->{framegroup});
+        foreach (
+            qw(-command -filename -psFile -toFile -format -noRotate -sentenceInfo
+            -imageMagickResolution -fileExtension -fileInfo -colors)
+            )
+        {
+            if ( exists( $opts{$_} ) ) {
+                my $o = $_;
+                $o =~ s/^-//;
+                $o = 'psFile' if $o eq 'filename';
+                $grp->{framegroup}->{ "print" . ucfirst($o) } = $opts{$_};
+            }
+            main::printThis( $grp->{framegroup} );
+        }
     }
-  } else {
-    die "Cannot call PrintDialog from non-GUI version TrEd\n";
-  }
-  return 1;
+    else {
+        die "Cannot call PrintDialog from non-GUI version TrEd\n";
+    }
+    return 1;
 }
 
 =item C<Print(-option =E<gt> value,...)>
@@ -4636,66 +4782,79 @@ indicator.
 =cut
 
 sub Print {
-  my (%opts)=@_;
+    my (%opts) = @_;
 
-  if (GUI()) {
-    my $gui=$grp->{framegroup};
-    local $main::insideEval = 0;
-    local $grp->{currentNode} = $this;
-    local $grp->{root} = $root;
-    local $grp->{treeNo} = $grp->{treeNo};
-    local $grp->{Nodes} = $grp->{Nodes};
+    if ( GUI() ) {
+        my $gui = $grp->{framegroup};
+        local $main::insideEval   = 0;
+        local $grp->{currentNode} = $this;
+        local $grp->{root}        = $root;
+        local $grp->{treeNo}      = $grp->{treeNo};
+        local $grp->{Nodes}       = $grp->{Nodes};
 
-    $opts{-range} = CurrentTreeNumber()+1 unless defined($opts{-range}) and length($opts{-range});
-    foreach (qw(command toFile format noRotate sentenceInfo
-                imageMagickResolution colors)) {
-      unless (exists($opts{"-$_"})) {
-	$opts{"-$_"} = $gui->{"print".ucfirst($_)};
-      }
-    }
+        $opts{-range} = CurrentTreeNumber() + 1
+            unless defined( $opts{-range} )
+                and length( $opts{-range} );
+        foreach (
+            qw(command toFile format noRotate sentenceInfo
+            imageMagickResolution colors)
+            )
+        {
+            unless ( exists( $opts{"-$_"} ) ) {
+                $opts{"-$_"} = $gui->{ "print" . ucfirst($_) };
+            }
+        }
 
-    # apply default options
-    my $def = $TrEd::Config::printOptions;
-    if ($def) {
-      foreach my $opt (keys %$def) {
-	my $name = $TrEd::Config::defaultPrintConfig{$opt}[0];
-	if ($name and !exists($opts{$name}) and exists($def->{$opt})) {
-	  $opts{$name}=$def->{$opt};
-	}
-      }
-    } else {
-      $def = {};
-    }
+        # apply default options
+        my $def = $TrEd::Config::printOptions;
+        if ($def) {
+            foreach my $opt ( keys %$def ) {
+                my $name = $TrEd::Config::defaultPrintConfig{$opt}[0];
+                if (    $name
+                    and !exists( $opts{$name} )
+                    and exists( $def->{$opt} ) )
+                {
+                    $opts{$name} = $def->{$opt};
+                }
+            }
+        }
+        else {
+            $def = {};
+        }
 
-    if ($opts{-format} eq 'PDF' and ! $opts{-ttFont}) {
-      $gui->{ttfonts} ||= TrEd::Print::get_ttf_fonts({try_fontconfig=>1},
-						     map {TrEd::Config::tilde_expand($_)} split /,/,
-						     $def->{ttFontPath});
-      my $fn  = delete($opts{ttFontName}) || $TrEd::Config::printOptions->{ttFont};
-      $opts{ttFont} = $gui->{ttfonts}->{$fn};
+        if ( $opts{-format} eq 'PDF' and !$opts{-ttFont} ) {
+            $gui->{ttfonts} ||= TrEd::Print::get_ttf_fonts(
+                { try_fontconfig => 1 },
+                map { TrEd::Config::tilde_expand($_) } split /,/,
+                $def->{ttFontPath}
+            );
+            my $fn = delete( $opts{ttFontName} )
+                || $TrEd::Config::printOptions->{ttFont};
+            $opts{ttFont} = $gui->{ttfonts}->{$fn};
+        }
+        if ( !$opts{-styleSheetObject} ) {
+            my $stylesheet = $opts{-stylesheet} || $grp->{stylesheet};
+            if ( $stylesheet ne STYLESHEET_FROM_FILE() ) {
+                $opts{-styleSheetObject} = $gui->{stylesheets}->{$stylesheet};
+            }
+        }
+        $opts{-treeViewOpts} ||= $TrEd::Config::treeViewOpts;
+        $opts{-toplevel} = ToplevelFrame() unless exists $opts{-toplevel};
+        $opts{-fsfile}  ||= CurrentFile();
+        $opts{-convert} ||= $TrEd::Config::imageMagickConvert;
+        return TrEd::Print::Print(
+            {   -context        => $grp,
+                -onGetRootStyle => \&main::onGetRootStyle,
+                -onGetNodeStyle => \&main::onGetNodeStyle,
+                -onRedrawDone   => \&main::onRedrawDone,
+                -onGetNodes     => \&main::printGetNodesCallback,
+                %opts,
+            }
+        );
     }
-    if (!$opts{-styleSheetObject}) {
-      my $stylesheet = $opts{-stylesheet} || $grp->{stylesheet};
-      if ($stylesheet ne STYLESHEET_FROM_FILE()) {
-	$opts{-styleSheetObject}=$gui->{stylesheets}->{$stylesheet};
-      }
+    else {
+        die "Cannot call PrintDialog from non-GUI version TrEd\n";
     }
-    $opts{-treeViewOpts} ||= $TrEd::Config::treeViewOpts;
-    $opts{-toplevel} = ToplevelFrame() unless exists $opts{-toplevel};
-    $opts{-fsfile}     ||= CurrentFile();
-    $opts{-convert} ||= $TrEd::Config::imageMagickConvert;
-    return 
-      TrEd::Print::Print({
-      -context => $grp,
-      -onGetRootStyle => \&main::onGetRootStyle,
-      -onGetNodeStyle => \&main::onGetNodeStyle,
-      -onRedrawDone => \&main::onRedrawDone,
-      -onGetNodes => \&main::printGetNodesCallback,
-      %opts,
-    });
-  } else {
-    die "Cannot call PrintDialog from non-GUI version TrEd\n";
-  }
 }
 
 =back
@@ -4723,21 +4882,25 @@ ended normally.
 =cut
 
 {
-  package TredMacro::Error;
 
-  # A simple class for reporting structured errors, currently only used by
-  # quit() to silently die. 
-  # In general, it can be used to pass data to the outer context.
+    package TredMacro::Error;
 
-  use overload q{""} => sub{ shift->message }; 
-  sub new { my $class=shift; bless [@_], $class };
-  sub message { q{}.shift->[0] };
-  sub throw { my $self = shift; ref($self) ? die $self : die $self->new(@_) }
+    # A simple class for reporting structured errors, currently only used by
+    # quit() to silently die.
+    # In general, it can be used to pass data to the outer context.
+
+    use overload q{""} => sub { shift->message };
+    sub new { my $class = shift; bless [@_], $class }
+    sub message { q{} . shift->[0] }
+    sub throw {
+        my $self = shift;
+        ref($self) ? die $self : die $self->new(@_);
+    }
 
 }
 
 sub quit {
-  TredMacro::Error->throw(q{});
+    TredMacro::Error->throw(q{});
 }
 
 =back
@@ -4764,57 +4927,70 @@ C<$NodeClipboard>.
 =cut
 
 sub _import {
-  # If specified without parameter, exports everything but
-  # names already defined in caller package
-  # If parameters are given, exports only names specified by the parameters
-  # and few variables that every TredMacro *must* share.
 
-  no strict qw(refs);
-  my $pkg=shift;
-  my $caller=shift;
-  my $type;
-  my @exports = @_;
-#  use Data::Dumper;
-#  print Dumper(\@exports);
-  foreach my $k (@exports) {
-    next if $k =~ /::$/; # do not export packages themselves
-    unless ($k =~ s/^(\W)//) {
-      *{"${caller}::$k"} = \&{"${pkg}::$k"} unless exists (&{"${caller}::$k"});
-       next;
+    # If specified without parameter, exports everything but
+    # names already defined in caller package
+    # If parameters are given, exports only names specified by the parameters
+    # and few variables that every TredMacro *must* share.
+
+    no strict qw(refs);
+    my $pkg    = shift;
+    my $caller = shift;
+    my $type;
+    my @exports = @_;
+
+    #  use Data::Dumper;
+    #  print Dumper(\@exports);
+    foreach my $k (@exports) {
+        next if $k =~ /::$/;    # do not export packages themselves
+        unless ( $k =~ s/^(\W)// ) {
+            *{"${caller}::$k"} = \&{"${pkg}::$k"}
+                unless exists( &{"${caller}::$k"} );
+            next;
+        }
+        $type = $1;
+        if ( $type eq '&' ) {
+            *{"${caller}::$k"} = \&{"${pkg}::$k"};
+        }
+        elsif ( $type eq '$' ) {
+            *{"${caller}::$k"} = \${"${pkg}::$k"};
+        }
+        elsif ( $type eq '@' ) {
+            *{"${caller}::$k"} = \@{"${pkg}::$k"};
+        }
+        elsif ( $type eq '%' ) {
+            *{"${caller}::$k"} = \%{"${pkg}::$k"};
+        }
+        elsif ( $type eq '*' ) {
+            *{"${caller}::$k"} = \*{"${pkg}::$k"};
+        }
+        else {
+
+            #      do { warn("Cannot export symbol: $type $pkg $k") };
+        }
     }
-    $type = $1;
-    if ($type eq '&') {
-      *{"${caller}::$k"} = \&{"${pkg}::$k"};
-    } elsif ($type eq '$') {
-      *{"${caller}::$k"} = \${"${pkg}::$k"};
-    } elsif ($type eq '@') {
-      *{"${caller}::$k"} = \@{"${pkg}::$k"};
-    } elsif ($type eq '%') {
-      *{"${caller}::$k"} = \%{"${pkg}::$k"};
-    } elsif ($type eq '*') {
-      *{"${caller}::$k"} = \*{"${pkg}::$k"};
-    } else {
-#      do { warn("Cannot export symbol: $type $pkg $k") };
-    }
-  }
-};
+}
 
 sub import {
-  # If specified without parameter, exports everything but
-  # names already defined in caller package
-  # If parameters are given, exports only names specified by the parameters
-  # and few variables that every TredMacro *must* share.
-  no strict qw(refs);
-  my $pkg=shift;
-#  print "TredMacro imported from " . caller() ."\n";
-  _import($pkg,scalar(caller),($#_>=0 ? @_ : grep {$_ ne 'BEGIN'} keys %{"${pkg}::"}),@FORCE_EXPORT,@EXPORT )
-};
+
+    # If specified without parameter, exports everything but
+    # names already defined in caller package
+    # If parameters are given, exports only names specified by the parameters
+    # and few variables that every TredMacro *must* share.
+    no strict qw(refs);
+    my $pkg = shift;
+
+    #  print "TredMacro imported from " . caller() ."\n";
+    _import( $pkg, scalar(caller),
+        ( $#_ >= 0 ? @_ : grep { $_ ne 'BEGIN' } keys %{"${pkg}::"} ),
+        @FORCE_EXPORT, @EXPORT );
+}
 
 sub import_only {
-  # exports only names specified by the parameters
-  _import(shift,scalar(caller),@_);
-};
 
+    # exports only names specified by the parameters
+    _import( shift, scalar(caller), @_ );
+}
 
 =back
 
@@ -4863,121 +5039,128 @@ C<foreach ($node-E<gt>findnodes(q{//ACT/PAT[starts-with(@tag,"N") or .="ano"]}))
 =cut
 
 sub SetupXPath {
-  my %handlers = @_;
+    my %handlers = @_;
 
-  unless (exists $handlers{pos}) {
-    my $attr=FS()->sentord() || FS()->order();
-    $handlers{pos} = sub { $_[0]->{$attr} } ;
-  }
-  unless (exists $handlers{value}) {
-    my $val=FS()->value();
-    $handlers{value} = sub { $_[0]->{$val} } ;
-  }
+    unless ( exists $handlers{pos} ) {
+        my $attr = FS()->sentord() || FS()->order();
+        $handlers{pos} = sub { $_[0]->{$attr} };
+    }
+    unless ( exists $handlers{value} ) {
+        my $val = FS()->value();
+        $handlers{value} = sub { $_[0]->{$val} };
+    }
 
-  *Treex::PML::Node::getElementById = $handlers{id} if $handlers{id};
-  *Treex::PML::Node::get_global_pos = $handlers{pos} if $handlers{pos};
-  *Treex::PML::Node::getAttributes = $handlers{attributes} if $handlers{attributes};
-  *Treex::PML::Node::getName = $handlers{name} if $handlers{name};
-  *Treex::PML::Node::getLocalName = $handlers{name} if $handlers{name};
-  *Treex::PML::Node::getValue = $handlers{value} if $handlers{value};
-  *Treex::PML::Node::string_value = $handlers{value} if $handlers{value};
+    *Treex::PML::Node::getElementById = $handlers{id}  if $handlers{id};
+    *Treex::PML::Node::get_global_pos = $handlers{pos} if $handlers{pos};
+    *Treex::PML::Node::getAttributes = $handlers{attributes}
+        if $handlers{attributes};
+    *Treex::PML::Node::getName      = $handlers{name}  if $handlers{name};
+    *Treex::PML::Node::getLocalName = $handlers{name}  if $handlers{name};
+    *Treex::PML::Node::getValue     = $handlers{value} if $handlers{value};
+    *Treex::PML::Node::string_value = $handlers{value} if $handlers{value};
 
-  *Treex::PML::Node::getParentNode = $handlers{parent} if $handlers{parent};
-  *Treex::PML::Node::getChildNodes = $handlers{children} if $handlers{children};
-  *Treex::PML::Node::getPreviousSibling = $handlers{lbrother} if $handlers{lbrother};
-  *Treex::PML::Node::getNextSibling = $handlers{rbrother} if $handlers{rbrother};
+    *Treex::PML::Node::getParentNode = $handlers{parent} if $handlers{parent};
+    *Treex::PML::Node::getChildNodes = $handlers{children}
+        if $handlers{children};
+    *Treex::PML::Node::getPreviousSibling = $handlers{lbrother}
+        if $handlers{lbrother};
+    *Treex::PML::Node::getNextSibling = $handlers{rbrother}
+        if $handlers{rbrother};
 }
 
-
-sub noop { 1 }
+sub noop {1}
 
 ##############################
 # Toolbars
 
 #ifdef TRED
 sub NewUserToolbar {
-  my ($name,$opts)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  my $user_toolbar = TrEd::Toolbar::User::Manager::create_new_user_toolbar($grp->{framegroup},$name,$opts);
-  return $user_toolbar->get_user_toolbar() if defined $user_toolbar;
-  return;
+    my ( $name, $opts ) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    my $user_toolbar = TrEd::Toolbar::User::Manager::create_new_user_toolbar(
+        $grp->{framegroup}, $name, $opts );
+    return $user_toolbar->get_user_toolbar() if defined $user_toolbar;
+    return;
 }
 
 sub GetUserToolbar {
-  my ($name)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
-  return $user_toolbar->get_user_toolbar() if defined $user_toolbar;
-  return;
-  
+    my ($name) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
+    return $user_toolbar->get_user_toolbar() if defined $user_toolbar;
+    return;
+
 }
 
 sub RemoveUserToolbar {
-  my ($name)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  return TrEd::Toolbar::User::Manager::destroy_user_toolbar($grp->{framegroup},$name);
+    my ($name) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    return TrEd::Toolbar::User::Manager::destroy_user_toolbar(
+        $grp->{framegroup}, $name );
 }
 
 sub DestroyUserToolbar {
-  my ($name)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  my $tb =  TrEd::Toolbar::User::Manager::destroy_user_toolbar($grp->{framegroup},$name);
-  $tb->destroy if $tb;
-  return;
+    my ($name) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    my $tb = TrEd::Toolbar::User::Manager::destroy_user_toolbar(
+        $grp->{framegroup}, $name );
+    $tb->destroy if $tb;
+    return;
 }
 
 sub HideUserToolbar {
-  my ($name)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
-  return $user_toolbar->hide() if defined $user_toolbar;
-  return;
+    my ($name) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
+    return $user_toolbar->hide() if defined $user_toolbar;
+    return;
 }
 
 sub ShowUserToolbar {
-  my ($name)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
-  return $user_toolbar->show() if defined $user_toolbar;
-  return;
+    my ($name) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
+    return $user_toolbar->show() if defined $user_toolbar;
+    return;
 }
 
 sub EnableUserToolbar {
-  my ($name)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  my $tb =  GetUserToolbar($name);
-  if ($tb) {
-    for my $w (main::get_widget_descendants($tb)) {
-      eval { $w->configure(-state => 'normal') }
+    my ($name) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    my $tb = GetUserToolbar($name);
+    if ($tb) {
+        for my $w ( main::get_widget_descendants($tb) ) {
+            eval { $w->configure( -state => 'normal' ) };
+        }
+        return $tb;
     }
-    return $tb;
-  }
-  return 0;
+    return 0;
 }
 
 sub DisableUserToolbar {
-  my ($name)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  my $tb =  GetUserToolbar($name);
-  if ($tb) {
-    for my $w (main::get_widget_descendants($tb)) {
-      eval { $w->configure(-state => 'disabled') }
+    my ($name) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    my $tb = GetUserToolbar($name);
+    if ($tb) {
+        for my $w ( main::get_widget_descendants($tb) ) {
+            eval { $w->configure( -state => 'disabled' ) };
+        }
+        return $tb;
     }
-    return $tb;
-  }
-  return 0;
+    return 0;
 }
 
 sub UserToolbarVisible {
-  my ($name)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
-  return $user_toolbar->visible();
+    my ($name) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    my $user_toolbar = TrEd::Toolbar::User::Manager::get_user_toolbar($name);
+    return $user_toolbar->visible();
 }
+
 sub AttachTooltip {
-  my ($widget, $message)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  $grp->{framegroup}{Balloon}->attach($widget, -balloonmsg=> $message);
+    my ( $widget, $message ) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    $grp->{framegroup}{Balloon}->attach( $widget, -balloonmsg => $message );
 }
 
 #endif
@@ -4985,78 +5168,92 @@ sub AttachTooltip {
 ##################################
 # MinorModes
 
-
 sub DeclareMinorMode {
-#ifdef TRED
-  my ($name,$opts)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  croak "The 1st argument to DeclareMinorMode must be a context name!" unless (defined($name) and length($name) and !ref($name));
-  croak "The 2nd argument to DeclareMinorMode must be a hash reference!" unless ref($opts) eq 'HASH';
+
+    #ifdef TRED
+    my ( $name, $opts ) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    croak "The 1st argument to DeclareMinorMode must be a context name!"
+        unless ( defined($name) and length($name) and !ref($name) );
+    croak "The 2nd argument to DeclareMinorMode must be a hash reference!"
+        unless ref($opts) eq 'HASH';
+
 #  croak "Too soon to call  DeclareMinorMode" unless ref($grp) and ref($grp->{framegroup});
-  TrEd::MinorModes::declare_minor_mode($grp, $name, $opts);
-#endif
+    TrEd::MinorModes::declare_minor_mode( $grp, $name, $opts );
+
+    #endif
 }
 
 sub EnableMinorMode {
-#ifdef TRED
-  my ($name, $win)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  TrEd::MinorModes::enable_minor_mode($win || $grp, $name);
-#endif
+
+    #ifdef TRED
+    my ( $name, $win ) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    TrEd::MinorModes::enable_minor_mode( $win || $grp, $name );
+
+    #endif
 }
 
 sub DisableMinorMode {
-#ifdef TRED
-  my ($name,$win)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  TrEd::MinorModes::disable_minor_mode($win || $grp,$name);
-#endif
+
+    #ifdef TRED
+    my ( $name, $win ) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    TrEd::MinorModes::disable_minor_mode( $win || $grp, $name );
+
+    #endif
 }
 
 sub ListEnabledMinorModes {
-#ifdef TRED
-  my ($win)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  $win||=$grp;
-  return ref($win->{minorModes}) ? @{$win->{minorModes}} : ();
-#endif
+
+    #ifdef TRED
+    my ($win) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    $win ||= $grp;
+    return ref( $win->{minorModes} ) ? @{ $win->{minorModes} } : ();
+
+    #endif
 }
 
 sub IsMinorModeEnabled {
-#ifdef TRED
-  my ($name,$win)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  $win||=$grp;
-  return 0 unless ref($win->{minorModes});
-  for my $c (@{$win->{minorModes}}) {
-    return 1 if $c eq $name;
-  }
-  return 0;
-#endif
+
+    #ifdef TRED
+    my ( $name, $win ) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    $win ||= $grp;
+    return 0 unless ref( $win->{minorModes} );
+    for my $c ( @{ $win->{minorModes} } ) {
+        return 1 if $c eq $name;
+    }
+    return 0;
+
+    #endif
 }
 
 sub SetMinorModeData {
-#ifdef TRED
-  my ($name,$key,$value,$win)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  $win||=$grp;
-  return $win->{minorModeData}{$name}{$key}=$value;
-#endif
+
+    #ifdef TRED
+    my ( $name, $key, $value, $win ) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    $win ||= $grp;
+    return $win->{minorModeData}{$name}{$key} = $value;
+
+    #endif
 }
 
 sub GetMinorModeData {
-#ifdef TRED
-  my ($name,$key,$win)=@_;
-  return if !TrEd::Macros::is_defined('TRED');
-  $win||=$grp;
-  return $win->{minorModeData}{$name}{$key};
-#endif
-}
 
+    #ifdef TRED
+    my ( $name, $key, $win ) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    $win ||= $grp;
+    return $win->{minorModeData}{$name}{$key};
+
+    #endif
+}
 
 =back
 
 =cut
-
 
 1;

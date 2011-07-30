@@ -7,6 +7,8 @@ use TrEd::MinMax;
 require TrEd::File;
 TrEd::File->import(qw{absolutize});
 
+use TrEd::Config qw{@config_recent_files};
+
 use Readonly;
 
 Readonly my $MAX_RECENTFILES => 9;
@@ -17,7 +19,7 @@ my @recent_files;
 # Usage         : add_file($grp, $file_name)
 # Purpose       : Add file with name $file_name to list of recent files and update menu
 #                 accordingly
-# Returns       : Undef/empty list 
+# Returns       : Undef/empty list
 # Parameters    : hash ref $grp     -- reference to hash containing TrEd options
 #                 string $file_name -- name of the file that will be added to recent files list
 # Throws        : No exception
@@ -50,11 +52,8 @@ sub recent_files {
 }
 
 sub init_recent_files {
-    my ($confs_ref) = @_;
-    foreach my $index ( 0 .. $MAX_RECENTFILES ) {
-        $recent_files[$index] = $confs_ref->{"recentfile$index"};
-    }
-    @recent_files = grep {$_} @recent_files;
+    @recent_files = @TrEd::Config::config_recent_files;
+    return;
 }
 
 1;

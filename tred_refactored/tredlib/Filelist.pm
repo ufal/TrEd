@@ -1,4 +1,5 @@
 package Filelist;
+
 # -*- cperl -*-
 
 # Author: Petr Pajas
@@ -13,8 +14,8 @@ use warnings;
 use Exporter;
 
 use base qw(Exporter);
-our $VERSION = "0.2";
-our @EXPORT = qw();
+our $VERSION   = "0.2";
+our @EXPORT    = qw();
 our @EXPORT_OK = qw();
 
 use Carp;
@@ -37,21 +38,19 @@ Readonly my $NOT_FOUND => -1;
 #                 string $filename  -- file name of the playlist
 # Throws        : no exceptions
 sub new {
-  my ($self, $name, $filename) = @_;
-  my $class = ref($self) || $self;
-  my $new =
-    {
-     name => $name,
-     filename => $filename,
-     list => [],
-     files => [],
-     current => undef,
-     load => undef,
+    my ( $self, $name, $filename ) = @_;
+    my $class = ref($self) || $self;
+    my $new = {
+        name     => $name,
+        filename => $filename,
+        list     => [],
+        files    => [],
+        current  => undef,
+        load     => undef,
     };
-  bless $new, $class;
-  return $new;
+    bless $new, $class;
+    return $new;
 }
-
 
 #######################################################################################
 # Usage         : $file_list->name()
@@ -61,11 +60,11 @@ sub new {
 # Parameters    : no
 # Throws        : no exceptions
 sub name {
-  my ($self) = @_;
-  return if not ref $self;
-  eval { $self->_load_name() };
-  
-  return $self->{name};
+    my ($self) = @_;
+    return if not ref $self;
+    eval { $self->_load_name() };
+
+    return $self->{name};
 }
 
 #######################################################################################
@@ -76,24 +75,25 @@ sub name {
 # Parameters    : string $new_name -- new name for filelist
 # Throws        : no exceptions
 sub rename {
-  my ($self, $new_name) = @_;
-  return if not ref $self;
-  return $self->{name} = $new_name;
+    my ( $self, $new_name ) = @_;
+    return if not ref $self;
+    return $self->{name} = $new_name;
 }
-
 
 #######################################################################################
 # Usage         : $file_list->filename([$new_filename])
 # Purpose       : Return/change file name of the file-list (path to the file where the
 #                 filelist is (or is to be) saved.
-# Returns       : Filename of the filelist (new one if it is a setter). 
+# Returns       : Filename of the filelist (new one if it is a setter).
 #                 Undef if not called on Filelist object.
 # Parameters    : string $new_filename -- new filename for filelist
 # Throws        : no exceptions
 sub filename {
-  my ($self, $new_name) = @_;
-  return if !ref $self;
-  return defined($new_name) ? $self->{filename} = $new_name : $self->{filename};
+    my ( $self, $new_name ) = @_;
+    return if !ref $self;
+    return defined($new_name)
+        ? $self->{filename} = $new_name
+        : $self->{filename};
 }
 
 #######################################################################################
@@ -104,9 +104,10 @@ sub filename {
 #                 string $dir_separator -- directory separator for current platform
 # Throws        : no exceptions
 sub _filelist_path_without_dir_sep {
-  my ($file_path, $dir_separator) = @_;
-  return if !defined $file_path;
-  return (index($file_path, $dir_separator) >= 0 || index($file_path, q{/}) >= 0);
+    my ( $file_path, $dir_separator ) = @_;
+    return if !defined $file_path;
+    return (   index( $file_path, $dir_separator ) >= 0
+            || index( $file_path, q{/} ) >= 0 );
 }
 
 #######################################################################################
@@ -119,23 +120,24 @@ sub _filelist_path_without_dir_sep {
 #                 to be placed in the current directory and './' or '.\' is returned.
 # See also      : filename()
 sub dirname {
-  my ($self) = @_;
-  my $dir_separator;
-  if ($^O eq 'MSWin32') {
-    $dir_separator = qq{\\}; # how filenames and directories are separated
-  }
-  else {
-    $dir_separator = q{/};
-  }
-  my $filename = $self->filename();
-  my $last_separator_pos 
-    = defined $filename ? TrEd::MinMax::max2(rindex($filename, $dir_separator), rindex($filename, q{/})) + 1
-    :                     0
-    ;
-    
-  return 
-    (_filelist_path_without_dir_sep($filename, $dir_separator)) ? substr($filename, 0, $last_separator_pos) 
-                                                                : ".$dir_separator";
+    my ($self) = @_;
+    my $dir_separator;
+    if ( $^O eq 'MSWin32' ) {
+        $dir_separator = qq{\\}; # how filenames and directories are separated
+    }
+    else {
+        $dir_separator = q{/};
+    }
+    my $filename = $self->filename();
+    my $last_separator_pos
+        = defined $filename
+        ? TrEd::MinMax::max2( rindex( $filename, $dir_separator ),
+        rindex( $filename, q{/} ) ) + 1
+        : 0;
+
+    return ( _filelist_path_without_dir_sep( $filename, $dir_separator ) )
+        ? substr( $filename, 0, $last_separator_pos )
+        : ".$dir_separator";
 }
 
 #######################################################################################
@@ -144,50 +146,55 @@ sub dirname {
 # Returns       : True if filelist's filename is defined and empty, false otherwise
 # Parameters    : no
 # Throws        : no exceptions
-# Comments      : 
-# See also      : 
+# Comments      :
+# See also      :
 sub _filename_not_empty {
-  my ($self) = @_;
-  return (defined ($self->filename()) and $self->filename() ne q{});
+    my ($self) = @_;
+    return ( defined( $self->filename() ) and $self->filename() ne q{} );
 }
 
 #######################################################################################
 # Usage         : $filelist->save()
 # Purpose       : Write the list of patterns to a file whose filename is obtained via
 #                 the filename method
-# Returns       : 1 if successful, undef if not called on a reference or if there is no 
+# Returns       : 1 if successful, undef if not called on a reference or if there is no
 #                 need to save the filelist
 # Parameters    : no
 # Throws        : Warns if the $filename file could not be opened for writing
 # Comments      : If no filename is given, filelist is written to standard output.
-#                 Filelist's name goes on the first line of new file, list of 
+#                 Filelist's name goes on the first line of new file, list of
 #                 files/positions follows, every item on its own line
 # See also      : load()
 sub save {
-  my ($self) = @_;
-  return if not ref $self;
-  my $fh;
-  # no need to save - not changed (filelist is prepared for lazy loading,
-  # but wasn't loaded yet)
-  if (defined($self->filename()) and defined($self->{load}) and 
-      $self->{load} eq $self->filename()) {
-    return;
-  }
+    my ($self) = @_;
+    return if not ref $self;
+    my $fh;
 
-  if ($self->_filename_not_empty()) {
-    open $fh, ">", $self->filename() or
-      warn "Couldn't save filelist to '" . $self->filename() . "': $!\n";
-  }
-  else {
-    $fh = \*STDOUT;
-  }
-  
-  print $fh encode('UTF-8', $self->{name}),"\n";
-  print $fh join("\n", $self->list()),"\n";
-  if ($self->_filename_not_empty()) {
-    close $fh;
-  }
-  return 1;
+    # no need to save - not changed (filelist is prepared for lazy loading,
+    # but wasn't loaded yet)
+    if (    defined( $self->filename() )
+        and defined( $self->{load} )
+        and $self->{load} eq $self->filename() )
+    {
+        return;
+    }
+
+    if ( $self->_filename_not_empty() ) {
+        open $fh, ">", $self->filename()
+            or warn "Couldn't save filelist to '"
+            . $self->filename()
+            . "': $!\n";
+    }
+    else {
+        $fh = \*STDOUT;
+    }
+
+    print $fh encode( 'UTF-8', $self->{name} ), "\n";
+    print $fh join( "\n", $self->list() ), "\n";
+    if ( $self->_filename_not_empty() ) {
+        close $fh;
+    }
+    return 1;
 }
 
 #######################################################################################
@@ -199,33 +206,34 @@ sub save {
 # Comments      : Removes empty lines, duplicate filenames, but does not remove duplicate patterns
 # See also      : load()
 sub _lazy_load {
-  my ($self) = @_;
-  return if not defined $self->{load};
-  open my $fh, "<", $self->{load}
-      or croak("Cannot open $self->{load}: $!\n");
+    my ($self) = @_;
+    return if not defined $self->{load};
+    open my $fh, "<", $self->{load}
+        or croak("Cannot open $self->{load}: $!\n");
 
-  undef $self->{load};
-  
-  my $fl_name = decode('UTF-8',scalar(<$fh>));
-  $self->{name} ||= $fl_name;
-  
-  @{ $self->list_ref() } = <$fh>;
-  close $fh
-    or croak("Cannot open $self->{load}: $!\n");
-  
-  # remove newlines from filelist name
-  $self->{name} =~ s/[\r\n]+$//;
-  # and from file names
-  foreach my $file (@{ $self->list_ref() }) {
-    $file =~ s/[\r\n]+$//;
-  }
-  
-  # remove empty lines
-  @{ $self->list_ref() } = grep { $_ ne q{} } @{ $self->list_ref() };
-  
-  # expand glob patterns, if any...
-  $self->expand();
-  return 1;
+    undef $self->{load};
+
+    my $fl_name = decode( 'UTF-8', scalar(<$fh>) );
+    $self->{name} ||= $fl_name;
+
+    @{ $self->list_ref() } = <$fh>;
+    close $fh
+        or croak("Cannot open $self->{load}: $!\n");
+
+    # remove newlines from filelist name
+    $self->{name} =~ s/[\r\n]+$//;
+
+    # and from file names
+    foreach my $file ( @{ $self->list_ref() } ) {
+        $file =~ s/[\r\n]+$//;
+    }
+
+    # remove empty lines
+    @{ $self->list_ref() } = grep { $_ ne q{} } @{ $self->list_ref() };
+
+    # expand glob patterns, if any...
+    $self->expand();
+    return 1;
 }
 
 #######################################################################################
@@ -238,18 +246,18 @@ sub _lazy_load {
 # See also      : name(), rename()
 # Tested by other public functions, no test on its own
 sub _load_name {
-  my ($self) = @_;
-  return if (!defined $self->{load} || defined $self->{name});
-  if (open my $fh, "<", $self->{load}) {
-    $self->{name} = decode('UTF-8', scalar(<$fh>));
-    $self->{name} =~ s/[\r\n]+$//;
-    close $fh
-      or croak("Cannot close $self->{load}: $!\n");
-    return 1;
-  }
-  else {
-    croak("Cannot open $self->{load}: $!\n");
-  }
+    my ($self) = @_;
+    return if ( !defined $self->{load} || defined $self->{name} );
+    if ( open my $fh, "<", $self->{load} ) {
+        $self->{name} = decode( 'UTF-8', scalar(<$fh>) );
+        $self->{name} =~ s/[\r\n]+$//;
+        close $fh
+            or croak("Cannot close $self->{load}: $!\n");
+        return 1;
+    }
+    else {
+        croak("Cannot open $self->{load}: $!\n");
+    }
 }
 
 #######################################################################################
@@ -259,23 +267,24 @@ sub _load_name {
 # Returns       : 1 if load was successful, undef/empty list otherwise
 # Parameters    : no
 # Throws        : no exceptions
-# Comments      : Implementaion is actually lazy, so the filelist is loaded when it is 
+# Comments      : Implementaion is actually lazy, so the filelist is loaded when it is
 #                 needed (when list(), files() or similar methods are invoked)
 #TODO: support stdin?
 sub load {
-  my ($self) = @_;
-  return if not ref $self;
-  if ($self->_filename_not_empty()) {
-    $self->{load} = $self->filename();
-    # don't rename filelist if it was given a name
-    # undef $self->{name};
-    $self->_load_name();
-    return 1;
-  }
-  else {
-    @{ $self->list_ref() } = ();
-    return 1;
-  }
+    my ($self) = @_;
+    return if not ref $self;
+    if ( $self->_filename_not_empty() ) {
+        $self->{load} = $self->filename();
+
+        # don't rename filelist if it was given a name
+        # undef $self->{name};
+        $self->_load_name();
+        return 1;
+    }
+    else {
+        @{ $self->list_ref() } = ();
+        return 1;
+    }
 }
 
 #######################################################################################
@@ -287,15 +296,14 @@ sub load {
 # Comments      : The feature of current file is completely user-driven
 # See also      : set_current()
 sub current {
-  my ($self) = @_;
-  if (ref $self) {
-    return $self->{current};
-  }
-  else {
-    return;
-  }
+    my ($self) = @_;
+    if ( ref $self ) {
+        return $self->{current};
+    }
+    else {
+        return;
+    }
 }
-
 
 #######################################################################################
 # Usage         : $filelist->set_current($filename)
@@ -307,12 +315,11 @@ sub current {
 #                 The feature of current file is completely user-driven.
 # See also      : current()
 sub set_current {
-  my ($self, $filename) = @_;
-  return if not ref $self;
-  $self->{current} = $filename;
-  return $filename;
+    my ( $self, $filename ) = @_;
+    return if not ref $self;
+    $self->{current} = $filename;
+    return $filename;
 }
-
 
 #######################################################################################
 # Usage         : $filelist->files_ref()
@@ -323,16 +330,15 @@ sub set_current {
 # Parameters    : no
 # Throws        : no exceptions
 # Comments      : If the file list contains glob pattern, it is expanded and all the files
-#                 are returned. Invokes lazy loading if the list is not already loaded 
+#                 are returned. Invokes lazy loading if the list is not already loaded
 #                 (opening & reading from filelist)
 # See also      : files()
 sub files_ref {
-  my $self = shift;
-  return if not ref $self;
-  $self->_lazy_load();
-  return $self->{files};
+    my $self = shift;
+    return if not ref $self;
+    $self->_lazy_load();
+    return $self->{files};
 }
-
 
 #######################################################################################
 # Usage         : $filelist->files()
@@ -341,33 +347,32 @@ sub files_ref {
 # Parameters    : no
 # Throws        : no exceptions
 # Comments      : If the file list contains glob pattern, it is expanded and all the files
-#                 are returned. Invokes lazy loading if the list is not already loaded 
+#                 are returned. Invokes lazy loading if the list is not already loaded
 #                 (opening & reading from filelist)
 # See also      : files_ref()
 sub files {
-  my $self = shift;
-  return if not ref $self;
-  return map { $_->[0] } @{ $self->files_ref() };
+    my $self = shift;
+    return if not ref $self;
+    return map { $_->[0] } @{ $self->files_ref() };
 }
 
 #######################################################################################
 # Usage         : $filelist->list_ref()
-# Purpose       : Return a reference to the filelist's item list 
+# Purpose       : Return a reference to the filelist's item list
 # Returns       : Reference to the internal pattern list
 # Parameters    : no
 # Throws        : no exceptions
-# Comments      : If the file list contains glob pattern, it is NOT expanded and it is 
-#                 considered one item/pattern. 
-#                 Invokes lazy loading if the list is not already loaded 
-#                 (opening & reading from filelist) 
+# Comments      : If the file list contains glob pattern, it is NOT expanded and it is
+#                 considered one item/pattern.
+#                 Invokes lazy loading if the list is not already loaded
+#                 (opening & reading from filelist)
 # See also      : list()
 sub list_ref {
-  my $self = shift;
-  return if not ref $self;
-  $self->_lazy_load();
-  return $self->{list};
+    my $self = shift;
+    return if not ref $self;
+    $self->_lazy_load();
+    return $self->{list};
 }
-
 
 #######################################################################################
 # Usage         : $filelist->list()
@@ -375,15 +380,15 @@ sub list_ref {
 # Returns       : List of all items in the file list
 # Parameters    : no
 # Throws        : no exceptions
-# Comments      : If the file list contains glob pattern, it is NOT expanded and it is 
-#                 considered one item/pattern. 
-#                 Invokes lazy loading if the list is not already loaded 
-#                 (opening & reading from filelist) 
+# Comments      : If the file list contains glob pattern, it is NOT expanded and it is
+#                 considered one item/pattern.
+#                 Invokes lazy loading if the list is not already loaded
+#                 (opening & reading from filelist)
 # See also      : list_ref()
 sub list {
-  my $self = shift;
-  return if not ref $self;
-  return @{$self->list_ref()};
+    my $self = shift;
+    return if not ref $self;
+    return @{ $self->list_ref() };
 }
 
 #######################################################################################
@@ -392,14 +397,14 @@ sub list {
 # Returns       : Number of files in filelist (including globbed ones)
 # Parameters    : no
 # Throws        : no exceptions
-# Comments      : If filelist contains regular file names, number of file names will be 
-#                 returned. If it contains a glob pattern like 'sample_?.a.gz', 
+# Comments      : If filelist contains regular file names, number of file names will be
+#                 returned. If it contains a glob pattern like 'sample_?.a.gz',
 #                 it is expanded and real number of files is returned
 # See also      : count()
 sub file_count {
-  my $self = shift;
-  return if not ref $self;
-  return scalar(@{$self->files_ref()});
+    my $self = shift;
+    return if not ref $self;
+    return scalar( @{ $self->files_ref() } );
 }
 
 #######################################################################################
@@ -408,14 +413,14 @@ sub file_count {
 # Returns       : Number of items in the filelist
 # Parameters    : no
 # Throws        : no exceptions
-# Comments      : If filelist contains regular file names, number of file names will be 
+# Comments      : If filelist contains regular file names, number of file names will be
 #                 returned. If it contains a glob pattern like 'sample_?.a.gz', this pattern
 #                 is counted as +1, no matter how many files match this pattern.
 # See also      : file_count()
 sub count {
-  my $self = shift;
-  return if not ref $self;
-  return $#{$self->list_ref()} + 1;
+    my $self = shift;
+    return if not ref $self;
+    return $#{ $self->list_ref() } + 1;
 }
 
 #######################################################################################
@@ -429,60 +434,61 @@ sub count {
 #                 to be placed in the current directory and './' or '.\' is returned.
 # See also      : filename()
 sub expand {
-  my $self = shift;
-  return if not ref $self;
-  my $files_ref = $self->files_ref();
-  my $list_ref = $self->list_ref();
-  @{$files_ref} = ();
-  
-  # change directory to filelist's dir
-  my $cwd = cwd();
-  chdir($self->dirname());
-  
-  # expand items in filelist
-  foreach my $i (0..$self->count()-1) {
-    my $f = $list_ref->[$i];
-    # add one file or a list of files, if $f is a pattern
-    # not sure, though, why $f can not start with some numbers followed by '://'
-    # and what does it mean, if it does
-    push @{$files_ref},
-      ($f =~ m/[\[\{\*\?]/ and $f !~ m{^[[:alnum:]]+://}) ? (map { [$_, $i] } glob($f)) 
-                                                          : [$f, $i];
-  }
-  
-  # change directory back
-  chdir($cwd);
-  
-  my %saw;
-  # remove duplicates
-  @{$files_ref} = grep 
-                    { ref($_) && $_->[0] ne q{} && !$saw{$_->[0]}++ } 
-                    @{$files_ref};
-  return 1;
+    my $self = shift;
+    return if not ref $self;
+    my $files_ref = $self->files_ref();
+    my $list_ref  = $self->list_ref();
+    @{$files_ref} = ();
+
+    # change directory to filelist's dir
+    my $cwd = cwd();
+    chdir( $self->dirname() );
+
+    # expand items in filelist
+    foreach my $i ( 0 .. $self->count() - 1 ) {
+        my $f = $list_ref->[$i];
+
+  # add one file or a list of files, if $f is a pattern
+  # not sure, though, why $f can not start with some numbers followed by '://'
+  # and what does it mean, if it does
+        push @{$files_ref},
+            ( $f =~ m/[\[\{\*\?]/ and $f !~ m{^[[:alnum:]]+://} )
+            ? ( map { [ $_, $i ] } glob($f) )
+            : [ $f, $i ];
+    }
+
+    # change directory back
+    chdir($cwd);
+
+    my %saw;
+
+    # remove duplicates
+    @{$files_ref} = grep { ref($_) && $_->[0] ne q{} && !$saw{ $_->[0] }++ }
+        @{$files_ref};
+    return 1;
 }
 
 #######################################################################################
 # Usage         : $filelist->file_at($n)
 # Purpose       : Return the n-th file name in the list
-# Returns       : Name of the file on the n-th position in the filelist, undef if no such 
+# Returns       : Name of the file on the n-th position in the filelist, undef if no such
 #                 file exists
 # Parameters    : scalar $n -- ordinal number of filename to return
 # Throws        : no exceptions
 # Comments      : Supports negative indices (in the same fashion as perl arrays)
 # See also      : files(), files_ref()
 sub file_at {
-  my ($self, $index) = @_;
-  return if not ref $self;
-  return if $self->file_count() <= $index;
-  return if not ref $self->files_ref()->[$index];
-  return $self->files_ref()->[$index]->[0];
+    my ( $self, $index ) = @_;
+    return if not ref $self;
+    return if $self->file_count() <= $index;
+    return if not ref $self->files_ref()->[$index];
+    return $self->files_ref()->[$index]->[0];
 }
-
 
 #######################################################################################
 # Usage         : $filelist->position([$file])
 # Purpose       : Find the position of $file (or current file) in the filelist
-# Returns       : Position of the file in the filelist, -1 if the filename was not found 
+# Returns       : Position of the file in the filelist, -1 if the filename was not found
 #                 in the filelist
 # Parameters    : string/Treex::PML::Document $file -- file name as a string or file as a Treex::PML::Document object
 # Throws        : no exceptions
@@ -492,44 +498,47 @@ sub file_at {
 #                 return index of current file.
 # See also      : file_at(), file_pattern_index(), loose_position_of_file()
 sub position {
-  my ($self, $fsfile) = @_;
-  return if not ref $self;
-  if (not defined $fsfile) {
-    $fsfile = $self->current();
-  }
-  my @files = $self->files();
-  # if argument is a Treex::PML::Document, find out its filename
-  my $fname = ref $fsfile     ? $fsfile->filename() 
-            : defined $fsfile ? $fsfile
-            :                   q{}
-            ;
-                              
-  my $basedir = $self->dirname();
-  my $relfname = $fname;
-  
-  # if basedir is at the beginning of the filename, 
-  # make the rest of the string relative filename
-  if (index($fname, $basedir) == 0) {
-    $relfname = substr($fname, length($basedir));
-  }
-  # linear search through filenames in filelist
-  for my $i (0..$self->file_count()-1) {
-    return $i if ($fname eq $files[$i] or $relfname eq $files[$i]);
-  }
-  # no such file found
-  return $NOT_FOUND;
+    my ( $self, $fsfile ) = @_;
+    return if not ref $self;
+    if ( not defined $fsfile ) {
+        $fsfile = $self->current();
+    }
+    my @files = $self->files();
+
+    # if argument is a Treex::PML::Document, find out its filename
+    my $fname
+        = ref $fsfile     ? $fsfile->filename()
+        : defined $fsfile ? $fsfile
+        :                   q{};
+
+    my $basedir  = $self->dirname();
+    my $relfname = $fname;
+
+    # if basedir is at the beginning of the filename,
+    # make the rest of the string relative filename
+    if ( index( $fname, $basedir ) == 0 ) {
+        $relfname = substr( $fname, length($basedir) );
+    }
+
+    # linear search through filenames in filelist
+    for my $i ( 0 .. $self->file_count() - 1 ) {
+        return $i if ( $fname eq $files[$i] or $relfname eq $files[$i] );
+    }
+
+    # no such file found
+    return $NOT_FOUND;
 }
 
 #######################################################################################
 # Usage         : $filelist->loose_position_of_file($fsfile)
-# Purpose       : Find the position of file $fsfile in filelist even if the name 
+# Purpose       : Find the position of file $fsfile in filelist even if the name
 #                 of the file contains suffix or if relative portion of file name matches
-# Returns       : Position of $fsfile in the filelist. 
-#                 -1 if file was not found 
+# Returns       : Position of $fsfile in the filelist.
+#                 -1 if file was not found
 # Parameters    : string/Treex::PML::Document ref $fsfile -- name of fsfile or the object itself
 # Throws        : no exception
 # Comments      : The relative path is constructed from the position of current filelist.
-#                 E.g. if the filename of the filelist is 'my_filelists/trees.fl', 
+#                 E.g. if the filename of the filelist is 'my_filelists/trees.fl',
 #                 and $fsfile is 'my_filelists/analytical_trees.tgz#123', then it should be found
 #                 if 'analytical_trees.tgz' is part of trees.fl filelist.
 # See Also      : position()
@@ -537,11 +546,11 @@ sub loose_position_of_file {
     my ( $self, $fsfile ) = @_;
 
     # _dump_filelists("looseFilePositionInFilelist", \@filelists);
-    return if (!ref $self);
-    
+    return if ( !ref $self );
+
     my $pos = $self->position($fsfile);
     return $pos if $pos >= 0;
-    
+
     my $fname = ref $fsfile ? $fsfile->filename() : $fsfile;
     ($fname) = TrEd::Utils::parse_file_suffix($fname);
     my $files    = $self->files_ref();
@@ -560,33 +569,32 @@ sub loose_position_of_file {
 #######################################################################################
 # Usage         : $filelist->file_pattern_index($n)
 # Purpose       : Return the index of the pattern which has generated the n'th file
-# Returns       : Index of the filelist item which has generated the n'th file, 
+# Returns       : Index of the filelist item which has generated the n'th file,
 #                 -1 if the index of file does not exist or it is negative
 # Parameters    : scalar $n -- index of the file whose pattern index function searches for
 # Throws        : no exceptions
 # Comments      : Does not support negative indices.
 # See also      : position(), file_at()
-# Previous implementation was kind of flawed, because it created empty element in files_ref 
+# Previous implementation was kind of flawed, because it created empty element in files_ref
 # data structure if asked for $n bigger than number of files
 sub file_pattern_index {
-  my ($self, $index) = @_;
-  return if not ref $self;
-  if ($index < 0) {
-    return $NOT_FOUND;
-  }
-  if (exists $self->files_ref()->[$index]) {
-    return $self->files_ref()->[$index]->[1];
-  }
-  else {
-    return $NOT_FOUND;
-  }
+    my ( $self, $index ) = @_;
+    return if not ref $self;
+    if ( $index < 0 ) {
+        return $NOT_FOUND;
+    }
+    if ( exists $self->files_ref()->[$index] ) {
+        return $self->files_ref()->[$index]->[1];
+    }
+    else {
+        return $NOT_FOUND;
+    }
 }
-
 
 #######################################################################################
 # Usage         : $filelist->file_pattern($n)
 # Purpose       : Return the pattern which has generated the n-th file
-# Returns       : List item/pattern which has generated the n-th file, undef if $n is 
+# Returns       : List item/pattern which has generated the n-th file, undef if $n is
 #                 out of bounds
 # Parameters    : scalar $n -- index of the file whose pattern function searches for
 # Throws        : no exceptions
@@ -595,15 +603,15 @@ sub file_pattern_index {
 # Previous implementation was kind of flawed, because it returned the last pattern from filelist
 # if the file with index $n did not exist
 sub file_pattern {
-  my ($self, $index) = @_;
-  return if not ref $self;
-  my $pattern_index = $self->file_pattern_index($index);
-  if ($pattern_index == $NOT_FOUND) {
-    return;
-  }
-  else {
-    return $self->list_ref()->[$pattern_index];
-  }
+    my ( $self, $index ) = @_;
+    return if not ref $self;
+    my $pattern_index = $self->file_pattern_index($index);
+    if ( $pattern_index == $NOT_FOUND ) {
+        return;
+    }
+    else {
+        return $self->list_ref()->[$pattern_index];
+    }
 }
 
 #######################################################################################
@@ -617,28 +625,28 @@ sub file_pattern {
 #                 are simply added at the end of the list.
 # See also      : add_arrayref(), remove()
 sub add {
-  my ($self, $position, @patterns) = @_;
-  return if not ref $self;
+    my ( $self, $position, @patterns ) = @_;
+    return if not ref $self;
 
-  # never add elements already present here or in files
-  # and add each element once only
-  
-  my $list_ref = $self->list_ref();
-  my %saw;
-  foreach my $pattern (@{$list_ref}) {
-    $saw{$pattern} = 1;
-  }
+    # never add elements already present here or in files
+    # and add each element once only
 
-  # non-empty non-duplicate patterns
-  my @filtered_patterns = grep { !($saw{$_}++) } grep { defined($_) && $_ ne q{} } @patterns;
+    my $list_ref = $self->list_ref();
+    my %saw;
+    foreach my $pattern ( @{$list_ref} ) {
+        $saw{$pattern} = 1;
+    }
 
-  # insert into array @{$list_ref} at position $position and don't remove anything
-  splice @{$list_ref}, $position, 0, @filtered_patterns;
-  
-  $self->expand();
-  return 1;
+    # non-empty non-duplicate patterns
+    my @filtered_patterns = grep { !( $saw{$_}++ ) }
+        grep { defined($_) && $_ ne q{} } @patterns;
+
+# insert into array @{$list_ref} at position $position and don't remove anything
+    splice @{$list_ref}, $position, 0, @filtered_patterns;
+
+    $self->expand();
+    return 1;
 }
-
 
 #######################################################################################
 # Usage         : $filelist->add_arrayref($position, $arr_ref)
@@ -648,14 +656,13 @@ sub add {
 # Parameters    : scalar $position   -- position on which new patterns will be inserted
 #                 array_ref $arr_ref -- reference to array of patterns
 # Throws        : no exceptions
-# Comments      : 
+# Comments      :
 # See also      : add()
 sub add_arrayref {
-  my ($self, $position, $patterns_ref)=@_;
-  return if not ref $self;
-  return $self->add($position, @{$patterns_ref});
+    my ( $self, $position, $patterns_ref ) = @_;
+    return if not ref $self;
+    return $self->add( $position, @{$patterns_ref} );
 }
-
 
 #######################################################################################
 # Usage         : $filelist->remove(@patterns)
@@ -666,18 +673,20 @@ sub add_arrayref {
 # Comments      : If filelist contains duplicit entries, they are filtered out.
 # See also      : add()
 sub remove {
-  my ($self, @patterns_to_remove) = @_;
-  # Don't do anything if there are no files to remove
-  return if (!ref $self);
-  
-  @patterns_to_remove = grep { defined $_ } @patterns_to_remove;
-  return if (!scalar @patterns_to_remove);
-  
-  my %remove = map { $_ => 1 } @patterns_to_remove;
-  @{ $self->list_ref() } = grep { !$remove{$_}++ } @{ $self->list_ref() }; #remove and uniq
+    my ( $self, @patterns_to_remove ) = @_;
 
-  $self->expand();
-  return 1;
+    # Don't do anything if there are no files to remove
+    return if ( !ref $self );
+
+    @patterns_to_remove = grep { defined $_ } @patterns_to_remove;
+    return if ( !scalar @patterns_to_remove );
+
+    my %remove = map { $_ => 1 } @patterns_to_remove;
+    @{ $self->list_ref() }
+        = grep { !$remove{$_}++ } @{ $self->list_ref() };    #remove and uniq
+
+    $self->expand();
+    return 1;
 }
 
 #######################################################################################
@@ -688,13 +697,12 @@ sub remove {
 # Throws        : no exceptions
 # Comments      : Empties internal structures for list of patterns and files
 sub clear {
-  my ($self) = shift;
-  return if not ref $self;
-  @{ $self->list_ref() } = ();
-  $self->expand();
-  return 1;
+    my ($self) = shift;
+    return if not ref $self;
+    @{ $self->list_ref() } = ();
+    $self->expand();
+    return 1;
 }
-
 
 #######################################################################################
 # Usage         : $filelist->find_pattern($pattern)
@@ -703,45 +711,61 @@ sub clear {
 #                 on Filelist object.
 # Parameters    : string $pattern -- pattern which is searched for in file list
 # Throws        : no exceptions
-# Comments      : 
+# Comments      :
 # See also      : file_at(), file_pattern(), file_pattern_index()
 sub find_pattern {
-  my ($self,$pattern)=@_;
-  return if not ref $self;
-  for my $i (0..$self->count()) {
-    return $i if $self->list_ref->[$i] eq $pattern;
-  }
-  return $NOT_FOUND;
+    my ( $self, $pattern ) = @_;
+    return if not ref $self;
+    for my $i ( 0 .. $self->count() ) {
+        return $i if $self->list_ref->[$i] eq $pattern;
+    }
+    return $NOT_FOUND;
 }
 
 #TODO: test, doc
 # was: main: renameFileInFilelist
 sub rename_file {
-  my ($self, $old_file, $filename, $position)=@_;
-  # TRY UPDATING THE CURRENT FILELIST:
-  #  if position is undefined - update all
-  #  if defined, update only given position
-  return unless ref($self) and UNIVERSAL::can($self,'list_ref') and UNIVERSAL::can($self,'files_ref');
-  my $pattern_list = $self->list_ref;
-  my $rel_name = File::Spec->abs2rel($filename, $self->filename);
-  # my %fixed;
-  for my $i (defined ($position) ? $position : 0..($self->file_count()-1)) {
-    my $fn = $self->file_at($i);
-    my ($f, $suffix) = TrEd::Utils::parse_file_suffix($fn);
-    if (Treex::PML::IO::is_same_file(TrEd::Filelist::Navigation::_filelist_full_filename($self,$f),$old_file)) {
-      my $pattern_no = $self->file_pattern_index($i);
-      my $pattern = $pattern_list->[$pattern_no];
-      my $new_filename =  (Treex::PML::_is_absolute($f) ?
-	  $filename.$suffix : $rel_name.$suffix);
-      $self->files_ref->[$i][0] = $new_filename;
-      if ($pattern eq $fn) {
-	# direct filename - easy: change pattern
-	$pattern_list->[$pattern_no] = $new_filename;
-      }
-    }
-  }
-}
+    my ( $self, $old_file, $filename, $position ) = @_;
 
+    # TRY UPDATING THE CURRENT FILELIST:
+    #  if position is undefined - update all
+    #  if defined, update only given position
+    return
+        unless ref($self)
+            and UNIVERSAL::can( $self, 'list_ref' )
+            and UNIVERSAL::can( $self, 'files_ref' );
+    my $pattern_list = $self->list_ref;
+    my $rel_name = File::Spec->abs2rel( $filename, $self->filename );
+
+    # my %fixed;
+    for my $i (
+        defined($position) ? $position : 0 .. ( $self->file_count() - 1 ) )
+    {
+        my $fn = $self->file_at($i);
+        my ( $f, $suffix ) = TrEd::Utils::parse_file_suffix($fn);
+        if (Treex::PML::IO::is_same_file(
+                TrEd::Filelist::Navigation::_filelist_full_filename(
+                    $self, $f
+                ),
+                $old_file
+            )
+            )
+        {
+            my $pattern_no = $self->file_pattern_index($i);
+            my $pattern    = $pattern_list->[$pattern_no];
+            my $new_filename
+                = ( Treex::PML::_is_absolute($f)
+                ? $filename . $suffix
+                : $rel_name . $suffix );
+            $self->files_ref->[$i][0] = $new_filename;
+            if ( $pattern eq $fn ) {
+
+                # direct filename - easy: change pattern
+                $pattern_list->[$pattern_no] = $new_filename;
+            }
+        }
+    }
+}
 
 1;
 
@@ -750,58 +774,58 @@ __END__
 =head1 NAME
 
 
-Filelist - Class handling file lists manipulations -- creating, loading from file, saving to file, 
-adding and removing patterns. 
+Filelist - Class handling file lists manipulations -- creating, loading from file, saving to file,
+adding and removing patterns.
 
 
 =head1 VERSION
 
-This documentation refers to 
+This documentation refers to
 Filelist version 0.2.
 
 
 =head1 SYNOPSIS
 
   use Filelist;
-  
+
   my $fl = Filelist->new('my filelist', '/home/john/filelist.fl');
-  
+
   $fl->load();
-  
+
   # find out what are the patterns and files in filelist
   my @patterns = $fl->list();
   my @files = $fl->files();
-  
+
   # equivalents with references and more info
   my $patterns_ref = $fl->list_ref();
   my $files_ref = $fl->files_ref();
-  
+
   # count of patterns and files in filelist
   my $pattern_count = $fl->count();
   my $files_count = $fl->file_count();
-  
+
   # rename filelist and ask for the name
   $fl->rename('my filelist 2');
-  my $new_name = $fl->name(); 
-  
+  my $new_name = $fl->name();
+
   # change the filelist's file name and ask for it
   $fl->filename('new_filename.fl');
-  my $new_filename = $fl->filename(); 
-  
+  my $new_filename = $fl->filename();
+
   # save filelist under the new name
   $fl->save();
-  
+
   # add more patterns at position 24 to filelist
   my @new_patterns = qw{ file1 file2 file_? };
   $fl->add(24, @new_patterns);
   $fl->add_arrayref(24, \@new_patterns);
-  
+
   # search for pattern's index
   my $pos = $fl->find_pattern('file1');
-  
+
   # search for pattern, which generated specified file
   my $pattern = $fl->file_pattern('file_9');
-  
+
   # search for pattern, which generated file no 35
   my $pat_idx = $fl->file_pattern_index(35);
 
@@ -809,7 +833,7 @@ Filelist version 0.2.
 
 Filelist class allows creating objects which represent TrEd's file lists.
 
-Filelist consists of its name on the first line followed by any number of files, each file on one line. 
+Filelist consists of its name on the first line followed by any number of files, each file on one line.
 Filelist can also contain patterns for the glob function, which are expanded when the file list is being
 loaded.
 
@@ -817,17 +841,17 @@ If file list contains relative file names, files are searched relative to the pa
 
 This class supports two concepts: list of patterns/filelist items and list of files. If a filelist contains
 only one pattern that represents 10 files, then list() function returns just that one pattern, while files()
-function returns a list of filenames which match beforementioned pattern. 
+function returns a list of filenames which match beforementioned pattern.
 
 
-Filelist class supports lazy loading of filelists. load() method marks file to be loaded when needed and exits. 
+Filelist class supports lazy loading of filelists. load() method marks file to be loaded when needed and exits.
 Filelist is then loaded when it is needed, i.e. when any of the functions needs to work with the list.
 
 
 
 =head1 SUBROUTINES/METHODS
 
-=over 4 
+=over 4
 
 
 
@@ -913,7 +937,7 @@ filelist is (or is to be) saved.
 
 =item Returns
 
-Filename of the filelist (new one if it is a setter). 
+Filename of the filelist (new one if it is a setter).
 Undef if not called on Filelist object.
 
 =back
@@ -1003,7 +1027,7 @@ the filename method
 =item Comments
 
 If no filename is given, filelist is written to standard output.
-Filelist's name goes on the first line of new file, list of 
+Filelist's name goes on the first line of new file, list of
 files/positions follows, every item on its own line
 
 =item See Also
@@ -1012,7 +1036,7 @@ L<load>,
 
 =item Returns
 
-1 if successful, undef if not called on object or if there is no 
+1 if successful, undef if not called on object or if there is no
 need to save the filelist
 
 =back
@@ -1085,7 +1109,7 @@ filename method
 
 =item Comments
 
-Implementaion is actually lazy, so the filelist is loaded when it is 
+Implementaion is actually lazy, so the filelist is loaded when it is
 needed (when list(), files() or similar methods are invoked)
 
 
@@ -1164,7 +1188,7 @@ Return a reference to internal list of file names
 =item Comments
 
 If the file list contains glob pattern, it is expanded and all the files
-are returned. Invokes lazy loading if the list is not already loaded 
+are returned. Invokes lazy loading if the list is not already loaded
 (opening & reading from filelist)
 
 =item See Also
@@ -1194,7 +1218,7 @@ Return a list of all file names in the list
 =item Comments
 
 If the file list contains glob pattern, it is expanded and all the files
-are returned. Invokes lazy loading if the list is not already loaded 
+are returned. Invokes lazy loading if the list is not already loaded
 (opening & reading from filelist)
 
 =item See Also
@@ -1214,17 +1238,17 @@ List of all file names in the list
 
 =item Purpose
 
-Return a reference to the filelist's item list 
+Return a reference to the filelist's item list
 
 =item Parameters
 
 
 =item Comments
 
-If the file list contains glob pattern, it is NOT expanded and it is 
-considered one item/pattern. 
-Invokes lazy loading if the list is not already loaded 
-(opening & reading from filelist) 
+If the file list contains glob pattern, it is NOT expanded and it is
+considered one item/pattern.
+Invokes lazy loading if the list is not already loaded
+(opening & reading from filelist)
 
 =item See Also
 
@@ -1250,10 +1274,10 @@ Return a list of all patterns in the file list
 
 =item Comments
 
-If the file list contains glob pattern, it is NOT expanded and it is 
-considered one item/pattern. 
-Invokes lazy loading if the list is not already loaded 
-(opening & reading from filelist) 
+If the file list contains glob pattern, it is NOT expanded and it is
+considered one item/pattern.
+Invokes lazy loading if the list is not already loaded
+(opening & reading from filelist)
 
 =item See Also
 
@@ -1279,8 +1303,8 @@ Return the total number of all files in the list
 
 =item Comments
 
-If filelist contains regular file names, number of file names will be 
-returned. If it contains a glob pattern like 'sample_?.a.gz', 
+If filelist contains regular file names, number of file names will be
+returned. If it contains a glob pattern like 'sample_?.a.gz',
 it is expanded and real number of files is returned
 
 =item See Also
@@ -1307,7 +1331,7 @@ Return the number of all files/patterns in the list
 
 =item Comments
 
-If filelist contains regular file names, number of file names will be 
+If filelist contains regular file names, number of file names will be
 returned. If it contains a glob pattern like 'sample_?.a.gz', this pattern
 is counted as +1, no matter how many files match this pattern.
 
@@ -1373,7 +1397,7 @@ L<files_ref>,
 
 =item Returns
 
-Name of the file on the n-th position in the filelist, undef if no such 
+Name of the file on the n-th position in the filelist, undef if no such
 file exists
 
 =back
@@ -1405,7 +1429,7 @@ L<file_pattern_index>,
 
 =item Returns
 
-Position of the file in the filelist, -1 if the filename was not found 
+Position of the file in the filelist, -1 if the filename was not found
 in the filelist
 
 =back
@@ -1434,7 +1458,7 @@ L<file_at>,
 
 =item Returns
 
-Index of the filelist item which has generated the n'th file, 
+Index of the filelist item which has generated the n'th file,
 -1 if the index of file does not exist or it is negative
 
 =back
@@ -1462,7 +1486,7 @@ L<file_pattern_index>,
 
 =item Returns
 
-List item/pattern which has generated the n-th file, undef if $n is 
+List item/pattern which has generated the n-th file, undef if $n is
 out of bounds
 
 =back
@@ -1621,13 +1645,13 @@ Carp, File::Glob, Cwd, Encode, TrEd::MinMax, Readonly
 
 =head1 INCOMPATIBILITIES
 
-Name of rename function collides with built-in. 
-The name of function dirname can also collide, TrEd::File contains subroutine with the same name. 
+Name of rename function collides with built-in.
+The name of function dirname can also collide, TrEd::File contains subroutine with the same name.
 
 =head1 BUGS AND LIMITATIONS
 
 There are no known bugs in this module.
-Please report problems to 
+Please report problems to
 Zdenek Zabokrtsky <zabokrtsky@ufal.ms.mff.cuni.cz>
 
 Patches are welcome.
@@ -1637,9 +1661,9 @@ Patches are welcome.
 
 Petr Pajas <pajas@matfyz.cz>
 
-Copyright (c) 
+Copyright (c)
 2010 Petr Pajas <pajas@matfyz.cz>
-2011 Peter Fabian (documentation & tests). 
+2011 Peter Fabian (documentation & tests).
 All rights reserved.
 
 

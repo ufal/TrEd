@@ -4,13 +4,11 @@ package TrEd::MinorMode::Move_Nodes_Freely;
 use strict;
 use warnings;
 
-
 require TrEd::ExtensionsAPI;
 TredMacro->import();
 
 require TrEd::Macros;
-
-
+require TrEd::MinorModes;
 
 =head1 move_nodes_freely.inc
 
@@ -75,62 +73,85 @@ e.g. Storable.
 =cut
 
 my %move_nodes_freely = (
-  node => 'Shift',
-  subtree => 'Control',
+    node    => 'Shift',
+    subtree => 'Control',
 );
 
 sub node_release_hook {
-  my ($node,$parent,$mod,$e)=@_;
-  my @apply_to;
-  my $what;
-  if ($mod eq $move_nodes_freely{node}) {
-    $what = 'node';
-    @apply_to=($node);
-  } elsif ($mod eq $move_nodes_freely{subtree}) {
-    $what = 'subtree';
-    @apply_to=($node,$node->descendants);
-  } else {
-    return;
-  }
-  my ($x,$y) = ($e->x, $e->y);
-  my $grp = TrEd::Macros::get_macro_variable('grp');
-# grp should be imported from TredMacro...
-  my $tv = $grp->treeView;
-  my $canvas = $tv->realcanvas;
-  $x = $canvas->canvasx($x);
-  $y = $canvas->canvasy($y);
-  my $scale_factor=$tv->scale_factor();
-  my $xdelta = ($x-$tv->get_node_pinfo($node,"XPOS"))/$scale_factor;
-  my $ydelta = ($y-$tv->get_node_pinfo($node,"YPOS"))/$scale_factor;
-  for my $n (@apply_to) {
-    $n->{'.xadj'} += $xdelta;
-    $n->{'.yadj'} += $ydelta;
-  }
-  if (@apply_to) {
-    Redraw_FSFile_Tree();
-    ChangingFile(1);
-  }
-  return $what;
+    my ( $node, $parent, $mod, $e ) = @_;
+    my @apply_to;
+    my $what;
+    if ( $mod eq $move_nodes_freely{node} ) {
+        $what     = 'node';
+        @apply_to = ($node);
+    }
+    elsif ( $mod eq $move_nodes_freely{subtree} ) {
+        $what = 'subtree';
+        @apply_to = ( $node, $node->descendants );
+    }
+    else {
+        return;
+    }
+    my ( $x, $y ) = ( $e->x, $e->y );
+    my $grp = TrEd::Macros::get_macro_variable('grp');
+
+    # grp should be imported from TredMacro...
+    my $tv     = $grp->treeView;
+    my $canvas = $tv->realcanvas;
+    $x = $canvas->canvasx($x);
+    $y = $canvas->canvasy($y);
+    my $scale_factor = $tv->scale_factor();
+    my $xdelta
+        = ( $x - $tv->get_node_pinfo( $node, "XPOS" ) ) / $scale_factor;
+    my $ydelta
+        = ( $y - $tv->get_node_pinfo( $node, "YPOS" ) ) / $scale_factor;
+
+    for my $n (@apply_to) {
+        $n->{'.xadj'} += $xdelta;
+        $n->{'.yadj'} += $ydelta;
+    }
+    if (@apply_to) {
+        Redraw_FSFile_Tree();
+        ChangingFile(1);
+    }
+    return $what;
 }
 
 sub init_minor_mode {
-
+    my ($grp) = @_;
     $move_nodes_freely{subtree} = 'Alt';
-    
-    
-    DeclareMinorMode('Move_Nodes_Freely' => {
-      abbrev => 'move',
-      post_hooks => {
-        node_release_hook => \&node_release_hook,
-        node_style_hook => sub {
-          my ($node,$styles)=@_;
-          AddStyle($styles,'Node',-xadj => $node->{'.xadj'}||0);
-          AddStyle($styles,'Node',-yadj => $node->{'.yadj'}||0);
-        },
-      },
-    });
+
+    return if !TrEd::Macros::is_defined('TRED');
+    TrEd::MinorModes::declare_minor_mode( $grp, 'Move_Nodes_Freely' => {
+            abbrev     => 'move',
+            post_hooks => {
+                node_release_hook => \&node_release_hook,
+                node_style_hook   => sub {
+                    my ( $node, $styles ) = @_;
+                    AddStyle( $styles, 'Node',
+                        -xadj => $node->{'.xadj'} || 0 );
+                    AddStyle( $styles, 'Node',
+                        -yadj => $node->{'.yadj'} || 0 );
+                },
+            },
+        } );
+
+#    DeclareMinorMode(
+#        'Move_Nodes_Freely' => {
+#            abbrev     => 'move',
+#            post_hooks => {
+#                node_release_hook => \&node_release_hook,
+#                node_style_hook   => sub {
+#                    my ( $node, $styles ) = @_;
+#                    AddStyle( $styles, 'Node',
+#                        -xadj => $node->{'.xadj'} || 0 );
+#                    AddStyle( $styles, 'Node',
+#                        -yadj => $node->{'.yadj'} || 0 );
+#                },
+#            },
+#        }
+#    );
 
 }
-
 
 1;

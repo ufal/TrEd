@@ -67,7 +67,7 @@ sub find_subwidget {
     my $ww = find_subwidget($_,$name);
     return $ww if $ww;
   }
-  return undef;
+  return;
 }
 
 sub Populate {
@@ -138,7 +138,7 @@ sub InitObject {
 	       -foreground=>'#800000',
 	       -background => $colors->{struct},
 	     ],
-    constant => ['text', 
+    constant => ['text',
 		 -foreground=>'black',
 		 -background => $colors->{constant},
 	       ],
@@ -163,7 +163,7 @@ sub InitObject {
     invalid_cdata => ['text', -foreground=>'black',
 		      -background => 'pink',
 		     ],
-    disabled_choice => ['text', 
+    disabled_choice => ['text',
 			-foreground=>$colors->{disabled_fg},
 			-background=>$colors->{disabled_bg},
 		      ],
@@ -176,7 +176,7 @@ sub InitObject {
 			       -background=>$colors->{disabled_bg},
 			      ],
    );
-   
+
   $w->{userdata}{itemstyles} = {
     map {
       my $styles = $styles{$_};
@@ -233,7 +233,7 @@ sub _entry_validate {
 	   $self->do_callback('validate',1,$txt,$apath);
 	 } and $mdecl->validate_object($txt)
      )
-      or 
+      or
       ($txt eq q{} and !$required)) {
     $e->configure(-background => 'white');
     $e->configure(-disabledforeground => $colors{disabled_bg});
@@ -300,7 +300,7 @@ sub _edit_entry {
   return if $clear_only;
   my $data = $self->info('data' => $path);
   my $mdecl = $data->{type};
-  if ($data != PML_ALT_DECL and 
+  if ($data != PML_ALT_DECL and
 	ref($mdecl) and $mdecl->get_decl_type == PML_ALT_DECL) {
     $mdecl = $mdecl->get_content_decl;
   }
@@ -415,11 +415,11 @@ sub _create_entry {
 		       $w->UpDown('next')},$hlist]);
   $e->bind('<Tab>',[$hlist,'MoveFocus','next']);
   $e->bind('<<LeftTab>>',[$hlist,'MoveFocus','prev']);
-  $e->bind($e,'<Escape>',[sub { 
+  $e->bind($e,'<Escape>',[sub {
 		     my $w=$_[1];
 		     $w->focus;
 		     $w->select_entry($w->{userdata}{current_widget_path}); Tk->break; },$hlist]);
-  $e->bind($e,'<Return>',[sub { 
+  $e->bind($e,'<Return>',[sub {
 		     my $w=$_[1];
 		     $w->focus;
 		     my $path = $w->{userdata}{current_widget_path};
@@ -486,7 +486,7 @@ sub _create_combo {
       $subw->bind($subw,'<Escape>',[sub {
 				      shift;
 				      my ($w,$hlist)=@_;
-				      $w->setSelectedIndex($w->{index_on_focus}) 
+				      $w->setSelectedIndex($w->{index_on_focus})
 					if $w->cget('-validate') =~ /match/;
 				      $hlist->focus;
 				      $hlist->select_entry($hlist->{userdata}{current_widget_path});
@@ -597,7 +597,7 @@ sub ClassInit {
     $mw->bind($class,'<'.$_.'>', 'NoOp');
   }
   for my $modif (qw(Alt Meta Control)) {
-    $mw->bind($class,'<'.$modif.'-'.$_.'>' ,'NoOp') 
+    $mw->bind($class,'<'.$modif.'-'.$_.'>' ,'NoOp')
       for qw(KeyPress Up Down Return);
   }
 
@@ -770,7 +770,7 @@ sub up_or_down {
 
   # FIXME: we loose orig_value here!!!
   # we should probably copy the entry and its offsprings instead
-  
+
   $hlist->dump_child($path, $val, 1);
   $val = (values %$val)[0];
 
@@ -1027,14 +1027,14 @@ sub add_buttons {
   my $pdecl_type = ref($ptype) ? $ptype->get_decl_type : undef;
 
   return unless (
-    (ref($mtype) && 
+    (ref($mtype) &&
      ($mtype->get_decl_type == PML_LIST_DECL      ||
       $mtype->get_decl_type == PML_ALT_DECL       ||
       $mtype->get_decl_type == PML_SEQUENCE_DECL  ||
       $mtype->get_decl_type == PML_STRUCTURE_DECL ||
       $mtype->get_decl_type == PML_CONTAINER_DECL))
       or
-    (ref($ptype) && 
+    (ref($ptype) &&
      ($ptype->get_decl_type == PML_LIST_DECL      ||
       $ptype->get_decl_type == PML_ALT_DECL       ||
       $ptype->get_decl_type == PML_SEQUENCE_DECL)));
@@ -1073,7 +1073,7 @@ sub add_buttons {
 				     ($hlist->info(children => $path)<1 ? 'normal' : 'disabled')
 				       : 'normal'),
 				(@elements == 1 )
-				  ? 
+				  ?
 				    ( -command => [$hlist,'add_to_sequence',$path,$elements[0]] )
 				      :
 					(
@@ -1090,7 +1090,7 @@ sub add_buttons {
       } elsif ($decl_type == PML_ALT_DECL) {
 	# add alt buttons
 	$hlist->mini_button($f,'star',$path,
-			    { 
+			    {
 			      -background => ($decl->is_flat ? $hlist->{colors}{alt_flat} : $hlist->{colors}{alt}),
 			      -balloonmsg => 'Add an alternative (Ctrl-*)',
 			      -command => [$hlist,'add_to_alt',$path],
@@ -1261,14 +1261,14 @@ sub add_sequence_member {
 sub next_sibling {
   my ($hlist,$path,$where)=@_;
   $where ||= 'next';
-  return undef unless $hlist->info(exists => $path);
+  return if !$hlist->info(exists => $path);
   my $next = $hlist->info($where => $path);
   while ($next ne "" and
 	   $hlist->info(parent => $next) ne
 	   $hlist->info(parent => $path)) {
     $next = $hlist->info($where => $next);
   }
-  return undef if
+  return if
     $next ne "" and
       $hlist->info(parent => $next) ne
 	$hlist->info(parent => $path);
@@ -1279,7 +1279,7 @@ sub next_sibling {
 sub add_member {
   die "Usage: \$edit->add_member({arg => value,...})" if @_ != 2;
   my ($hlist,$args)=@_;
-  
+
   my ($base_path,$member,$attr_val,$attr_name,$allow_empty,$entry_opts,$required,$label)=
     @$args{qw(path type data name allow_empty entry_opts required label)};
   if ($hlist->{userdata}{hide_empty}) {
@@ -1292,7 +1292,7 @@ sub add_member {
   	$hlist->{userdata}{item_max_length_text} = $attr_val;
   	$hlist->{userdata}{item_max_length} = length($attr_val);
   }
-  
+
   my ($mdecl, $mdecl_type);
   $label = $attr_name if $label eq "";
   if (!ref($member) and $member =~ /^#/) {
@@ -1326,9 +1326,9 @@ sub add_member {
   $path='/' if $path eq ''; # work around
   $hlist->add($path,-data => $data, $entry_opts ? @$entry_opts : ());
   $hlist->itemCreate($path,0,-itemtype => 'text',
-		     -text => 
+		     -text =>
 		       ($label =~ /^\[\d+\]$/) ? '  ' : '  '.$label,
-		     -style => 
+		     -style =>
 		       $hlist->{userdata}{itemstyles}{
 			 $required ? 'required' : 'default'
 		       }
@@ -1446,7 +1446,7 @@ sub add_member {
       my $list_no=0;
       $hlist->itemConfigure($path,0,-style => $hlist->{userdata}{itemstyles}{list});
       $hlist->itemCreate($path,1,-itemtype => 'text',
-			 -text => 
+			 -text =>
 			   $mdecl->is_ordered ?
 			     'Ordered list' : 'Unordered list',
 			 -style => $hlist->{userdata}{itemstyles}{list});
@@ -1504,7 +1504,7 @@ sub add_member {
   } elsif ($mdecl_type == PML_ALT_DECL) {
     my $alt_no=0;
     my $is_flat = $mdecl->is_flat;
-    $hlist->itemConfigure($path,0,-style => 
+    $hlist->itemConfigure($path,0,-style =>
 			    ($is_flat ? $hlist->{userdata}{itemstyles}{alt_flat} : $hlist->{userdata}{itemstyles}{alt}));
     $hlist->itemCreate($path,1,-itemtype => 'text',
 		       -style => ($is_flat ?
@@ -1632,7 +1632,7 @@ sub add_members {
     $hlist->add_member({
       path => $base_path,
       type => $type,
-      data => $node->{'#content'}, 
+      data => $node->{'#content'},
       name => '#content'
      });
   }
@@ -1713,18 +1713,18 @@ sub get_custom_value_ordering {
 
 # Set the value column size to max
 sub adjust_size {
-  my ($w,$manual)=@_;  
+  my ($w,$manual)=@_;
   $w->parent->update;
   $w->update;
-  
+
   my $new_col1_width = $w->width - 4 - $w->columnWidth(0) - $w->columnWidth($w->cget('-columns') - 1);
-  
-  # potreboval by som najst najdlhsi zo zobrazenych textov a podla jeho dlzky upravit sirku stlpca... 
+
+  # potreboval by som najst najdlhsi zo zobrazenych textov a podla jeho dlzky upravit sirku stlpca...
   my $default_style = $w->{'userdata'}{'itemstyles'}{'default'};
   my $font = $default_style->cget(-font);
   my $longest_attr_val = $w->{userdata}{item_max_length_text};
   my $hor_space = $w->fontMeasure($font, $longest_attr_val) + 10;
-  
+
   # does the user want to wrap lines in side panel and editing window?
   if($w->{userdata}{option}{side_panel_wrap} == 1){
     my @itemstyles_to_change=qw(required default list sequence struct constant choice cdata invalid_cdata disabled_choice disabled_cdata disabled_invalid_cdata);
@@ -1835,7 +1835,7 @@ sub dump_child {
       :
       ($use_orig_value && UNIVERSAL::DOES::does($data->{orig_value},'Treex::PML::Container')
 	? $data->{orig_value} :
-	  ($data->{role} eq '#NODE' ? 
+	  ($data->{role} eq '#NODE' ?
 	     Treex::PML::Factory->createTypedNode($data->{type}) : Treex::PML::Factory->createContainer()));
 
     # fixme: probably we want to clear the Struct/Container ???
@@ -2124,7 +2124,7 @@ sub add_search_field {
 	     }
 	   }
 	   }
-	 return undef;
+	 return;
 	 },$self]
      );
   $qs->Tk::pack('configure',qw(-side right -expand 1 -fill x));
@@ -2141,7 +2141,7 @@ sub add_search_field {
     $w->configure(-textvariable => \$self->{userdata}{current_path});
   });
   $qs->bind('<Return>',[$self,'focus_entry']);
-  $qs->bind('<Escape>',[sub { 
+  $qs->bind('<Escape>',[sub {
 			  my $w=$_[1];
 			  $w->focus;
 			  Tk->break; },$self]);
@@ -2157,7 +2157,7 @@ sub Tk::Widget::TrEdNodeEditDlg {
   use Tk::BindButtons;
   use Tk::DialogReturn;
 
-  croak "TrEdNodeEditDlg: the 1st (and only) argument must be a hash reference" 
+  croak "TrEdNodeEditDlg: the 1st (and only) argument must be a hash reference"
     unless ref $opts eq 'HASH';
   my $mw = $opts->{mainwindow} || $w->toplevel;
   croak "Missing or invalid 'mainwindow' option" unless ref $mw;
@@ -2283,7 +2283,7 @@ sub Tk::Widget::TrEdNodeEditDlg {
     my @log;
     if (length $attr_path) {
       my $v = $val->{$attr_name}; # the actual value
-      if ($is_required or 
+      if ($is_required or
 	  (defined $v and (ref $v or length $v))) {
 	$data_type->validate_object($v,
 				    { path => $attr_path,
@@ -2359,11 +2359,11 @@ sub set_data {
   unless (defined $data_type) {
     croak("Unknown attribute '$attr_path' on type '$base_type'");
   }
-  
+
   # reset longest attr_val-ues for determining the width of column 1
   $edit->{userdata}{item_max_length_text} = "";
   $edit->{userdata}{item_max_length} = 0;
-  
+
   my $schema = $base_type->get_schema;
   $edit->set_schema($schema);
   my $attr_name = $attr_path;
@@ -2383,7 +2383,7 @@ sub set_data {
       path => '',
       type => $data_type,
       data => Treex::PML::Instance::get_data($obj,$attr_path)||undef,
-      name => $attr_name, 
+      name => $attr_name,
       allow_empty => $allow_empty{$attr_name}||0,
         # expanding all sub-structures could break validity (!)
       required => $is_required,
