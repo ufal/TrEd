@@ -18,7 +18,7 @@ require Filelist;
 BEGIN {
     if ( exists &Tk::MainLoop ) {
         # it is not very good that TrEd::File loads this Tk and GUI stuff :/
-        # dialogs for asking for user choices, 
+        # dialogs for asking for user choices,
         require TrEd::Query::List;
         require TrEd::Query::User;
     }
@@ -31,7 +31,7 @@ our $dir_separator = q{/}; # default
 
 if ($^O eq "MSWin32") {
     $dir_separator = "\\"; # how filenames and directories are separated
-} 
+}
 else {
     $dir_separator = q{/};
 }
@@ -91,11 +91,11 @@ sub init_backends {
     @backends = (
         'FS',
         Treex::PML::ImportBackends(
-            defined $TrEd::Config::ioBackends 
-                ? split( /,/, $TrEd::Config::ioBackends) 
+            defined $TrEd::Config::ioBackends
+                ? split( /,/, $TrEd::Config::ioBackends)
                 : (),
-            defined $cmdline_backends 
-                ? split( /,/, $cmdline_backends) 
+            defined $cmdline_backends
+                ? split( /,/, $cmdline_backends)
                 : (),
             qw{NTRED
                 Storable
@@ -117,7 +117,7 @@ sub init_backends {
 # Returns       : List of strings -- loaded backend names
 # Parameters    : no
 # Throws        : No exception
-# Comments      : 
+# Comments      :
 # See Also      : add_backend(), remove_backend()
 sub get_backends {
     return @backends;
@@ -129,14 +129,14 @@ sub get_backends {
 # Purpose       : Add $class to list of returned backends if backend $before was found,
 #                 otherwise return only $before
 # Returns       : A list containing one or two elements. If $before is equal to $backend
-#                 (or $backend . 'Backend'), function returns two elements -- $class and 
+#                 (or $backend . 'Backend'), function returns two elements -- $class and
 #                 $backend. Otherwise only $backend is returned.
 # Parameters    : scalar $class  -- Name of the first backend
 #                 scalar $before -- Name of the backend, before whom the $class is inserted
 #                 scalar_ref $found_ref -- Reference to indicator telling if $before was found
 #                 scalar $backend -- Name of the current backend
 # Throws        : No exception
-# Comments      : As a side effect, $found_ref is set to 1 if $backend equals to $before. 
+# Comments      : As a side effect, $found_ref is set to 1 if $backend equals to $before.
 #                 If $found_ref is set to 1, the $class is not prepended any more.
 # See Also      : add_backend()
 sub _insert_if_before_exists {
@@ -146,8 +146,8 @@ sub _insert_if_before_exists {
         ${$found_ref} = 1;
         return ($class, $backend);
     }
-    else { 
-        return ($backend); 
+    else {
+        return ($backend);
     }
 }
 
@@ -159,7 +159,7 @@ sub _insert_if_before_exists {
 # Parameters    : scalar $class -- Name of the added backend
 #                 scalar $before -- Name of the backend before which the $class backend is added
 # Throws        : Carp if $before is specified but not found in the list of loaded backends
-#                 Side note: this function does not call Treex::PML::ImportBackends, so it can 
+#                 Side note: this function does not call Treex::PML::ImportBackends, so it can
 #                 add backend that does not actually exist.
 # See Also      : remove_backend(), get_backends()
 sub add_backend {
@@ -212,13 +212,13 @@ sub get_openfiles {
 # Parameters    : hash_ref $status1_ref -- reference to first hash containing status information
 #                 hash_ref $status2_ref -- reference to second hash containing status information
 # Throws        : No exception
-# Comments      : Status information hash should contain these keys: 
+# Comments      : Status information hash should contain these keys:
 #                   ok       -- numeric value
 #                   warnings -- reference to array of warnings
-#                   error    -- string 
+#                   error    -- string
 #                   report   -- string
-#                 Merging means that 'ok' value will be constructed by logical and from the two 
-#                 statuses, second 'warnings' arrays will be appended after the first one and 
+#                 Merging means that 'ok' value will be constructed by logical and from the two
+#                 statuses, second 'warnings' arrays will be appended after the first one and
 #                 string items will be concatenated (if not empty)
 # See Also      : _new_status()
 sub _merge_status {
@@ -278,7 +278,7 @@ sub _new_status {
 # Purpose       : Reload file or open it if it is not open
 # Returns       : Undef/empty list
 # Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
-#                 string $file_name -- name of the file to reload 
+#                 string $file_name -- name of the file to reload
 # Throws        : No exception
 # Comments      : This function is a part of USR2 signal handler
 # See Also      : main::handleUSR2Signal()
@@ -310,13 +310,13 @@ sub reload_on_usr2 {
 # Returns       : List of Treex::PML::Document objects which represent related documents
 # Parameters    : Treex::PML::Document ref $fsfile -- ref to file whose related files are searched for
 # Throws        : No exception
-# Comments      : 
+# Comments      :
 # See Also      : get_secondary_files(), get_primary_files()
 sub _related_files {
     my ($fsfile) = @_;
-    return get_secondary_files($fsfile), 
+    return get_secondary_files($fsfile),
             # these are relatedSuperDocuments:
-            get_primary_files($fsfile); 
+            get_primary_files($fsfile);
 }
 
 #######################################################################################
@@ -336,7 +336,7 @@ sub _fix_keep_option {
             print STDERR "got -keep_related flag for open $file_name:\n";
             print STDERR map { $_->filename() . "\n" } _related_files($fsfile);
         }
-        if ($fsfile 
+        if ($fsfile
             && first { $_->filename() eq $file_name } _related_files($fsfile)) {
                 $opts_ref->{-keep} = 1;
                 if ($TrEd::Config::tredDebug) {
@@ -361,7 +361,7 @@ sub _is_among_primary_files {
     my ($file_name, $fsfile) = @_;
     if (!defined $fsfile) {
         return;
-    } 
+    }
     return TrEd::MinMax::first {
             Treex::PML::IO::is_same_filename( $_->filename(), $file_name );
             }
@@ -371,11 +371,11 @@ sub _is_among_primary_files {
 # zislo by sa premenovat, lebo to aj otvara subor, nie len checkuje recovery
 sub _check_for_recovery {
     my ($file_name, $grp, $win, $fsfile, $lockinfo, $opts_ref) = @_;
-    
-    # $grp->{noOpenFileError} can be set by TrEd::Filelist::Navigation::next_or_prev_file, 
+
+    # $grp->{noOpenFileError} can be set by TrEd::Filelist::Navigation::next_or_prev_file,
     # but I'm not sure what is it good for.. something with autosaving...?
-    my $no_err = $grp->{noOpenFileError};  
-    
+    my $no_err = $grp->{noOpenFileError};
+
     my $recover  = 'No';
     my $autosave = main::autosave_filename($file_name);
     if ( !$no_err && defined $autosave && -r $autosave ) {
@@ -477,7 +477,7 @@ sub _check_for_recovery {
                 or undef $fsfile;
         }
     }
-    
+
     # don't make this an else for the above if: something might have changed in
    # the above block
     if ( $status->{ok} == 0 ) {
@@ -498,16 +498,16 @@ sub _check_for_recovery {
     elsif ( $status->{ok} < 1 ) {
         error_message( $win, $status->{report}, 'warn' );
     }
-    
+
     return ($fsfile, $status);
 }
 
 sub _should_save_to_recent_files {
     my ($fsfile, $opts_ref) = @_;
-    return (! ($opts_ref->{-norecent} 
+    return (! ($opts_ref->{-norecent}
                 || $fsfile && $fsfile->appData('norecent')
                )
-            );        
+            );
 }
 
 #######################################################################################
@@ -516,9 +516,9 @@ sub _should_save_to_recent_files {
 # Returns       : Status hash reference
 # Parameters    : hash_ref $grp_or_win -- reference to hash containing TrEd options or TrEd::Windows
 #                 string $file_name    -- name of the file to open
-#                 hash %options        -- hash of options 
+#                 hash %options        -- hash of options
 # Throws        : No exception
-# Comments      : Recognized options: 
+# Comments      : Recognized options:
 #                   -nohook       -- 1/0 -- switch to forbid hooks: open_file_hook, guess_context_hook,
 #                                           file_resumed_hook, file_resumed_hook
 #                   -keep         -- 1/0 -- keep file in memory until they are explicitly closed
@@ -526,18 +526,18 @@ sub _should_save_to_recent_files {
 #                   -preload      -- 1/0 --
 #                   -noredraw     -- 1/0 -- forbid redrawing after open
 #                   -norecent     -- 1/0 -- don't add opened file into recent files list
-#                   -justheader   -- 1/0 -- don't update canvas, don't create lockfile,  
+#                   -justheader   -- 1/0 -- don't update canvas, don't create lockfile,
 #                 Hooks run: open_file_hook, possibly also guess_context_hook, file_opened_hook
-#                 (only in this function, other functions called from this function can trigger 
+#                 (only in this function, other functions called from this function can trigger
 #                  other hooks)
-# See Also      : 
+# See Also      :
 sub open_file {
     my ( $grp_or_win, $raw_file_name, %opts ) = @_;
     my ( $grp, $win ) = main::grp_win($grp_or_win);
     if (!$opts{-nohook}) {
         # extension can take over our open file subroutine
-        my $open_file_hook_res = main::doEvalHook( $win, "open_file_hook", 
-                                                   $raw_file_name, {%opts} ); 
+        my $open_file_hook_res = main::doEvalHook( $win, "open_file_hook",
+                                                   $raw_file_name, {%opts} );
         if ( defined $open_file_hook_res && $open_file_hook_res eq 'stop' ) {
             # not sure what status we should return
             return
@@ -546,7 +546,7 @@ sub open_file {
                 : $win->{FSFile};
         }
     }
-    
+
     my $fsfile = $win->{FSFile};
 
     my ( $file_name, $suffix ) = TrEd::Utils::parse_file_suffix($raw_file_name);
@@ -554,7 +554,7 @@ sub open_file {
 
     $opts{-keep} ||= $grp->{keepfiles};
     _fix_keep_option($fsfile, $file_name, \%opts);
-    
+
     if (!$main::insideEval) {
         $win->toplevel->Busy( -recurse => 1 );
     }
@@ -604,10 +604,10 @@ sub open_file {
             $opts{-keep} = $answer;
         }
     }
-    
+
     if (!$opts{-preload}) {
-        my $keep_postponed = $opts{-keep} 
-                            || ( defined $fsfile && $fsfile->appData('noautoclose')); 
+        my $keep_postponed = $opts{-keep}
+                            || ( defined $fsfile && $fsfile->appData('noautoclose'));
         closeFile($win, -no_update      => 1,
                         -keep_postponed => $keep_postponed);
     }
@@ -660,11 +660,11 @@ sub open_file {
     # Check autosave file (also loads file & secondary files files or sth...)
     my $status;
     ($fsfile, $status) = _check_for_recovery($file_name, $grp, $win, $fsfile, $lockinfo, \%opts);
-    
+
     if (!$opts{-preload}) {
         $win->set_current_file( $fsfile ) ; # window->set_file?
     }
-    
+
     if ($fsfile) {
         if ( $opts{-justheader} ) {
             $file_name = sprintf( '%03d', $new_file_no++ ) . "_new_" . filename($file_name);
@@ -698,7 +698,7 @@ sub open_file {
         }
     }
     else {
-        if ( defined $main::init_macro_context   
+        if ( defined $main::init_macro_context
              && $main::init_macro_context ne $EMPTY_STR
              && $win->{macroContext} ne $main::init_macro_context )
         {
@@ -738,7 +738,7 @@ sub open_file {
 # Purpose       : Reload file or open it if it is not open
 # Returns       : Undef/empty list
 # Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
-#                 string $file_name -- name of the file to reload 
+#                 string $file_name -- name of the file to reload
 # Throws        : No exception
 # Comments      : This function is a part of USR2 signal handler
 # See Also      : main::handleUSR2Signal()
@@ -748,7 +748,7 @@ sub open_file {
 sub openStandaloneFile {
     my ( $grp_or_win, $file ) = @_;
     my ( $grp,        $win )  = main::grp_win($grp_or_win);
-    if ( $grp->{appenddefault} ) {
+    if ( $grp->{append_files_to_default_fl} ) {
         my $ret = open_file(@_);
         if ($ret) {
             my $fl = TrEd::ManageFilelists::selectFilelistNoUpdate( $grp,
@@ -774,14 +774,14 @@ sub openStandaloneFile {
 
 #######################################################################################
 # Usage         : closeFile($win, %opts)
-# Purpose       : 
-# Returns       : Undef/empty list if no file was closed (either because there is no file to 
+# Purpose       :
+# Returns       : Undef/empty list if no file was closed (either because there is no file to
 #                 close, or the user cancelled the operation)
 #                 1 if the file was closed successfully
-# Parameters    : ... 
+# Parameters    : ...
 # Throws        : No exception
-# Comments      : 
-# See Also      : 
+# Comments      :
+# See Also      :
 sub closeFile {
     my ( $win, %opts ) = @_;
 
@@ -794,8 +794,8 @@ sub closeFile {
     }
     if ($fsfile) {
         main::__debug( "Closing ", $fsfile->filename(),
-            "; keep postponed: " 
-            . defined $opts{-keep_postponed} ? $opts{-keep_postponed} : 'no' 
+            "; keep postponed: "
+            . defined $opts{-keep_postponed} ? $opts{-keep_postponed} : 'no'
             . "\n" );
         main::doEvalHook( $win, "file_close_hook", $fsfile, \%opts );
         $fsfile->currentTreeNo( $win->{treeNo} );
@@ -924,7 +924,7 @@ sub closeFile {
 # Purpose       : Reload file or open it if it is not open
 # Returns       : Undef/empty list
 # Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
-#                 string $file_name -- name of the file to reload 
+#                 string $file_name -- name of the file to reload
 # Throws        : No exception
 # Comments      : This function is a part of USR2 signal handler
 # See Also      : main::handleUSR2Signal()
@@ -970,9 +970,9 @@ sub reloadFile {
 
 #######################################################################################
 # Usage         : load_file($grp, $file_name, $backends)
-# Purpose       : Create Treex::PML::Document object representing file $file_name 
+# Purpose       : Create Treex::PML::Document object representing file $file_name
 # Returns       : In scalar context reference to created Treex::PML::Document is returned.
-#                 In list context, a list with two elements is returned. First element is 
+#                 In list context, a list with two elements is returned. First element is
 #                 reference to created Treex::PML::Documet, second one is status
 # Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
 #                 string $file_name -- name of the file to open and load
@@ -1042,7 +1042,7 @@ sub load_file {
 # Purpose       : Reload file or open it if it is not open
 # Returns       : Undef/empty list
 # Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
-#                 string $file_name -- name of the file to reload 
+#                 string $file_name -- name of the file to reload
 # Throws        : No exception
 # Comments      : This function is a part of USR2 signal handler
 # See Also      : main::handleUSR2Signal()
@@ -1092,7 +1092,7 @@ sub openSecondaryFiles {
 # Purpose       : Reload file or open it if it is not open
 # Returns       : Undef/empty list
 # Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
-#                 string $file_name -- name of the file to reload 
+#                 string $file_name -- name of the file to reload
 # Throws        : No exception
 # Comments      : This function is a part of USR2 signal handler
 # See Also      : main::handleUSR2Signal()
@@ -1149,7 +1149,7 @@ sub closeAllFiles {
 # Purpose       : Reload file or open it if it is not open
 # Returns       : Undef/empty list
 # Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
-#                 string $file_name -- name of the file to reload 
+#                 string $file_name -- name of the file to reload
 # Throws        : No exception
 # Comments      : This function is a part of USR2 signal handler
 # See Also      : main::handleUSR2Signal()
@@ -1232,7 +1232,7 @@ sub saveFile {
 
     my $refs_to_save = {};
     my $file_save_hook_res = main::doEvalHook( $win, "file_save_hook", $f )
-                             || $EMPTY_STR; 
+                             || $EMPTY_STR;
     if (  !askSaveReferences( $win, $fsfile, $refs_to_save, $f )
         or $file_save_hook_res eq 'stop' )
     {
@@ -1255,7 +1255,7 @@ sub saveFile {
 
         # called from within the eval so all errors and warnings
         # are shown as warnings on the output
-        $stop = main::doEvalHook( $win, "after_save_hook", $f, $result ) 
+        $stop = main::doEvalHook( $win, "after_save_hook", $f, $result )
                 || $EMPTY_STR;
     }
     $fsfile->changeAppData( 'refs_save', undef );
@@ -1318,7 +1318,7 @@ sub saveFile {
 # Purpose       : Reload file or open it if it is not open
 # Returns       : Undef/empty list
 # Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
-#                 string $file_name -- name of the file to reload 
+#                 string $file_name -- name of the file to reload
 # Throws        : No exception
 # Comments      : This function is a part of USR2 signal handler
 # See Also      : main::handleUSR2Signal()
@@ -1674,12 +1674,12 @@ sub _change_filename {
     );
     if ( $file ne $EMPTY_STR ) {
         my $index = $l->index('active');
-    
+
         my %selected
             = map { $_ => 1 }
             grep { $l->selectionIncludes($_) }
             ( 0 .. $l->size - 1 );
-        
+
         $l->insert( $index, $file . " [" . $rest );
         $l->delete('active');
         $l->activate($index);
@@ -1704,13 +1704,13 @@ use Readonly;
 # Usage         : askSaveReferences($win, $fsfile, $result, $filename)
 # Purpose       : Ask the user to choose which of the modified referenced files should be saved
 # Returns       : 1 if there are no references to save
-#                 
+#
 # Parameters    : hash_ref $grp     -- reference to hash containing TrEd options
 #                 string $file_name -- name of the file to reload
 # Throws        : No exception
 # Comments      : # result je vystupny hash... C-like predavanie vystupu...
-# See Also      : 
-sub askSaveReferences { 
+# See Also      :
+sub askSaveReferences {
     my ( $win_ref, $fsfile, $result, $filename ) = @_;
     if ( !defined $filename ) {
         $filename = $fsfile->filename();
@@ -1732,10 +1732,10 @@ sub askSaveReferences {
                 and ref $fsfile->appData('ref')
                 and $r = $fsfile->appData('ref')->{$refid} )
             {
-                push @refs, [ $href . " [$refid, $name]", 
-                              $r, 
-                              $refid, 
-                              $name 
+                push @refs, [ $href . " [$refid, $name]",
+                              $r,
+                              $refid,
+                              $name
                             ];
             }
         }
@@ -1760,10 +1760,10 @@ sub askSaveReferences {
                         $name  = $refs[$i][3] . q{/} . $name;
                         if ($r2) {
                             push @refs,
-                                [ $href . " [$refid, $name]", 
-                                  $r2, 
-                                  $refid, 
-                                  $name 
+                                [ $href . " [$refid, $name]",
+                                  $r2,
+                                  $refid,
+                                  $name
                                 ];
                         }
                     }
@@ -1805,14 +1805,14 @@ sub askSaveReferences {
 # Usage         : ask_save_file($win_ref, $keepbutton, $cancelbutton, $fsfile)
 # Purpose       : Ask user whether the current file should be saved and save it
 #                 if it is told so
-# Returns       : 0 if there is no file to save or the file has already been saved or the 
+# Returns       : 0 if there is no file to save or the file has already been saved or the
 #                   save was successful
 #                 1 if the user chooses to keep the file open
 #                 -1 if the user chooses to cancel the operation or something prevented file from saving
 # Parameters    : TrEd::Window ref $win_ref -- ref to TrEd::Window
 #                 scalar $keepbutton -- if set to true value, allows user to keep the file
 #                 scalar $cancelbutton -- if set to true value, allows user to cancel the operation
-#                 Treex::PML::Document ref $fsfile -- ref to file that we are asking the user about (optional) 
+#                 Treex::PML::Document ref $fsfile -- ref to file that we are asking the user about (optional)
 # Throws        : No exception
 # Comments      : If no $fsfile is specified, the file from Window $win_ref is considered.
 # See Also      : saveFile(), TrEd::Query::User::new_query()
@@ -1832,15 +1832,15 @@ sub ask_save_file {
         -bitmap  => 'question',
         -title   => "Should I save the file?",
         -buttons => [
-            'Yes', 
+            'Yes',
             'No',
-            $keepbutton ? 'Keep' : (), 
+            $keepbutton ? 'Keep' : (),
             $cancelbutton ? 'Cancel' : ()
         ]
     );
     if ( $answer eq 'Yes' ) {
-        return saveFile( $win_ref, $fsfile ) == -1 
-                ? $SAVING_CANCELLED_OR_UNSUCCESSFUL 
+        return saveFile( $win_ref, $fsfile ) == -1
+                ? $SAVING_CANCELLED_OR_UNSUCCESSFUL
                 : 0;
     }
     elsif ( $answer eq 'Keep' ) {
@@ -1860,17 +1860,17 @@ sub ask_save_file {
 # Parameters    : hash_ref $grp_ref -- reference to hash containing TrEd options
 #                 scalar $cancelbutton -- if set to true, displays cancel button for the user
 # Throws        : no exception
-# Comments      : 
+# Comments      :
 # See Also      : ask_save_file()
 # was main::askSaveFiles
 sub ask_save_files_and_close {
     my ( $grp_ref, $cancelbutton ) = @_;
-    
+
     # put focused window in front of other windows in $grp_ref->{treeWindows} array
     @{ $grp_ref->{treeWindows} }
         = grep { $_ ne $grp_ref->{focusedWindow} } @{ $grp_ref->{treeWindows} };
     unshift @{ $grp_ref->{treeWindows} }, $grp_ref->{focusedWindow};
-    
+
     my $win;
     my %asked;
     # ask for every file shown in opened windows
@@ -1882,7 +1882,7 @@ sub ask_save_files_and_close {
             closeFile( $win, -no_update => 1, -all_windows => 1 );
         }
     }
-    
+
     # take care of the rest of opened files
     for my $fsfile ( grep { !$asked{$_} && ref $_ && $_->notSaved() }
         @openfiles )
@@ -1904,14 +1904,14 @@ sub ask_save_files_and_close {
 
 #######################################################################################
 # Usage         : resume_file($win_ref, $fsfile, $keep)
-# Purpose       : Resume already opened file 
+# Purpose       : Resume already opened file
 # Returns       : Undef/empty list
 # Parameters    : TrEd::Window ref $win_ref        -- ref to TrEd::Window object in which the file is going to be resumed
 #                 Treex::PML::Document ref $fsfile -- a relative path to a file
 #                 scalar $keep -- indicator whether the currently opened file should be kept open (optional)
 # Throws        : no exception
-# Comments      : If file has already been opened and fsfile object has been created, 
-#                 the file is resumed instead of opened in a regular way. 
+# Comments      : If file has already been opened and fsfile object has been created,
+#                 the file is resumed instead of opened in a regular way.
 #                 This subroutine is a part of this resume operation, which takes care of
 #                 switching context, stylesheet, setting fsfile for TrEd::Window and
 #                 updating the state of 'save' button on TrEd's toolbar.
@@ -2113,9 +2113,9 @@ sub filename {
 # Returns       : Undef/empty list
 # Parameters    : Treex::PML::Document ref $fsfile -- ref to file to initialize
 # Throws        : No exception
-# Comments      : Initialize the undo information and information about related files, 
+# Comments      : Initialize the undo information and information about related files,
 #                 if they are not already set
-# See Also      : 
+# See Also      :
 # was main::initAppData
 sub init_app_data {
     my ($fsfile) = @_;
@@ -2130,8 +2130,8 @@ sub init_app_data {
     if ( !ref $fsfile->appData('fs-part-of') ) {
         $fsfile->changeAppData('fs-part-of', []);
     }
-    
-    # init 'ref' hash which stores information 
+
+    # init 'ref' hash which stores information
     # about loaded secondary files
     if ( !ref $fsfile->appData('ref') ) {
         $fsfile->changeAppData('ref', {});
@@ -2145,11 +2145,11 @@ sub init_app_data {
 # Purpose       : Close current opened file in window specified by $grp_or_win
 # Returns       : Undef/empty list if the operation was cancelled by the user
 #                 1 if the file was closed
-# Parameters    : hash_ref $grp_or_win -- ref to hash of TrEd's options or to 
+# Parameters    : hash_ref $grp_or_win -- ref to hash of TrEd's options or to
 # Throws        : No exception
-# Comments      : Initialize the undo information and information about related files, 
+# Comments      : Initialize the undo information and information about related files,
 #                 if they are not already set
-# See Also      : 
+# See Also      :
 # was main::closeFileInWindow
 sub close_file_in_window {
   my ($grp_or_win)=@_;
@@ -2174,42 +2174,42 @@ TrEd::File -- file handling routines -- opening, saving, (re)loading files in Tr
 
 =head1 VERSION
 
-This documentation refers to 
+This documentation refers to
 TrEd::File version 0.1.
 
 
 =head1 SYNOPSIS
 
   use TrEd::File;
-  
-  
-  
+
+
+
   # FSFile metainfo retrieval
-  
+
   my @secondary_files         = TrEd::File::get_secondary_files($fsfile);
   my @secondary_files_recurs  = TrEd::File::get_secondary_files_recursively($fsfile);
-  
-  
+
+
   # Find ref to related Treex::PML::Documents loaded by Treex::PML::Document->loadRelatedDocuments()
   my $id = $secondary_files[0]->[0];
   my $fsfile_2 = $fsfile->referenceObjectHash()->{$id};
-  
+
   my @primary_files         = TrEd::File::get_primary_files($fsfile_2);
   my @primary_files_recurs  = TrEd::File::get_primary_files_recursively($fsfile_2);
-  
-  
-  
+
+
+
   my $path = "/etc/X11/xorg.conf";
   my $dir = TrEd::File::dirname($path);
   my $dir = TrEd::File::filename($path);
-    
+
 =head1 DESCRIPTION
 
 This package provides basic open file dialog for TrEd.
 
 =head1 SUBROUTINES/METHODS
 
-=over 4 
+=over 4
 
 
 
@@ -2228,7 +2228,7 @@ Find out the name of the directory of $path
 
 =item Comments
 
-If $path does not contain any slash (fw or bw), dot and directory separator is returned, i. e. 
+If $path does not contain any slash (fw or bw), dot and directory separator is returned, i. e.
 
 "./" on Unices, ".\" on Win32
 
@@ -2285,7 +2285,7 @@ Empty string if $path is not defined.
 
 =head1 DIAGNOSTICS
 
-Carps if the Tk's open file dialog returns file name in UTF-8 
+Carps if the Tk's open file dialog returns file name in UTF-8
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
@@ -2300,7 +2300,7 @@ Carps if the Tk's open file dialog returns file name in UTF-8
 =head1 BUGS AND LIMITATIONS
 
 There are no known bugs in this module.
-Please report problems to 
+Please report problems to
 Zdenek Zabokrtsky <zabokrtsky@ufal.ms.mff.cuni.cz>
 
 Patches are welcome.
@@ -2310,9 +2310,9 @@ Patches are welcome.
 
 Petr Pajas <pajas@matfyz.cz>
 
-Copyright (c) 
+Copyright (c)
 2010 Petr Pajas <pajas@matfyz.cz>
-2011 Peter Fabian (documentation & tests). 
+2011 Peter Fabian (documentation & tests).
 All rights reserved.
 
 

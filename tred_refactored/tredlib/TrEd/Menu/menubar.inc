@@ -182,7 +182,7 @@ return sub {
             'Checkbutton',
             'Add Files To Default File List',
             {   '-underline' => 0,
-                '-variable'  => \$grp->{appenddefault}
+                '-variable'  => \$grp->{append_files_to_default_fl}
             },
             undef
         ],

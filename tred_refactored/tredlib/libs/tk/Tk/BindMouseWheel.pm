@@ -21,7 +21,6 @@ sub Tk::Widget::BindMouseWheelVert {
         @tags,
         "<$modifier" . 'MouseWheel>',
         [   sub {
-                print "vert: $_[1]\n";
                 $_[1]->yview( 'scroll', -( $_[2] / 120 ) * $scrolling_step, 'units' );
             },
             $w,
@@ -84,7 +83,6 @@ sub Tk::Widget::BindMouseWheelHoriz {
     $w->bind(
         "<$modifier" . 'MouseWheel>',
         [   sub {
-            print "horiz: $_[0]\n"; 
             $_[0]->xview( 'scroll', -( $_[1] / 120 ) * $scrolling_step, 'units' ) },
             Tk::Ev('D')
         ]
@@ -93,7 +91,6 @@ sub Tk::Widget::BindMouseWheelHoriz {
         $w->bind(
             "<$modifier" . '4>',
             sub {
-                print "horiz: $_[0]\n";
                 if (!$Tk::strictMotif) {
                     $_[0]->xview( 'scroll', -$scrolling_step, 'units' );
                 }
@@ -102,7 +99,6 @@ sub Tk::Widget::BindMouseWheelHoriz {
         $w->bind(
             "<$modifier" . '5>',
             sub {
-                print "horiz: $_[0]\n";
                 if (!$Tk::strictMotif) {
                     $_[0]->xview( 'scroll', $scrolling_step, 'units' );
                 }
