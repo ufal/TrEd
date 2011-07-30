@@ -22,7 +22,7 @@ function usage {
     cat <<-__USAGE
 	Usage:
 	  ${0##*/} [-jB btred ] [-js packet-size] [-jn job-name]
-            [-jS sleep-interval] [-jt lrc-tmp-dir] [-jw work-dir] [-jq] [-jo sge-option=value]
+            [-jS sleep-interval] [-jt lrc-tmp-dir] [-jw work-dir] [-jq] [-jo sge-option=value]*
             [-jp sge-priority] { -l file-list | file... }
             -jb btred-options...
 	Defaults:
@@ -90,7 +90,7 @@ while ((${#@})) ; do
         l) filelist=$value ;;
         t) tmp=$value ;;
         w) work=$value ;;
-        o) value=${value/=/ }; sge_options+=($value) ;;
+        o) value=${value/=/ \'}; sge_options+=($value\') ;;
         p) sge_priority=$value ;;
         b) break ;; # following options go to btred
     esac
