@@ -2,7 +2,7 @@ package Tk::TextSearchLine;
 # pajas@ufal.mff.cuni.cz          02 led 2008
 
 use 5.008;
-use strict; 
+use strict;
 use warnings;
 use Carp;
 use Tk;
@@ -39,7 +39,7 @@ sub Tk::Text::TextSearchLine {
 	   $text->tagAdd('match',$new, $new.' + '.length($value).' chars');
 	   return 1;
 	 } else {
-	   return undef;
+	   return;
 	 }
        },$text],
      %opts
@@ -94,7 +94,7 @@ Tk::TextSearchLine - Perl extension for blah blah blah
 
 =head1 DESCRIPTION
 
-Stub documentation for Tk::TextSearchLine, 
+Stub documentation for Tk::TextSearchLine,
 created by template.el.
 
 It looks like the author of the extension was negligent

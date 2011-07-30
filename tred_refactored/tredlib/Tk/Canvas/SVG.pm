@@ -164,7 +164,7 @@ sub color2gray {
   my ($color)=@_;
   unless (ref($color)) {
     if (!defined($color)) {
-      return undef;
+      return;
     } elsif ($color =~ /^#(..)(..)(..)/) {
       $color = [map hex,$1,$2,$3];
     } elsif (exists($Tk::rgb::rgb{$color})) {
@@ -610,7 +610,7 @@ SCRIPT
 #  my $w = $opts{-width} || $self->{Media}[2];
 #  my $h = $opts{-height} || $self->{Media}[3];
 #  my $i;
-  
+
   #find group visualisation lines and stipple patterns used
   my (%group_tags, %stipples);
   foreach my $item ($canvas->find('withtag','group_line')) {
@@ -1055,7 +1055,7 @@ body {
 	  var svg_document =
 	      container.contentDocument
 	      ? container.contentDocument
-	      : container.contentWindow 
+	      : container.contentWindow
 	      ? container.contentWindow.document
 	      : null;
 	  return svg_document ? svg_document.documentElement : null;
@@ -1090,7 +1090,7 @@ body {
       }
       function update_object_data (oobject) {
 	 if (oobject == null) return;
-	 var nobject = oobject.ownerDocument.createElement(oobject.nodeName); 
+	 var nobject = oobject.ownerDocument.createElement(oobject.nodeName);
 	 var a = ['class','style','type','width','height'];
 	 for (var i=0; i<a.length; i++) {
 	     var v = oobject.getAttribute(a[i]);
@@ -1165,7 +1165,7 @@ body {
         fit_window();
       }
 
-      // findPosX and findPosY by Peter-Paul Koch & Alex Tingle. 
+      // findPosX and findPosY by Peter-Paul Koch & Alex Tingle.
       function findPosX(obj) {
         var curleft = 0;
 	if(obj.offsetParent)

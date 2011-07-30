@@ -63,7 +63,7 @@ sub switch_filelist {
     return if ( !$fl );
 
     # set current filelist
-    $current_filelist = $fl; 
+    $current_filelist = $fl;
 
     # update filelist views
     update_view( $grp, $fl );
@@ -73,14 +73,14 @@ sub switch_filelist {
 
 #######################################################################################
 # Usage         : _return_binding($w, $grp, $filelist_ref)
-# Purpose       : Handle the return key press in filelist dialog -- switch to specified 
+# Purpose       : Handle the return key press in filelist dialog -- switch to specified
 #                 filelist or create/rename existing filelist
 # Returns       : Undef\empty string
 # Parameters    : Tk::Widget $w -- widget which called this callback
 #                 hash_ref $grp -- reference to hash containing TrEd options
 #                 scalar_ref $filelist_ref -- ref to name of filelist to change
 # Throws        : no exception
-# Comments      : As a side effect, the name referenced by $filelist_ref is changed 
+# Comments      : As a side effect, the name referenced by $filelist_ref is changed
 #                 according to user's choice (represented by selected item on the widget)
 # See Also      : switch_filelist()
 sub _return_binding {
@@ -661,7 +661,7 @@ sub feedHListWithFilelist {
 
 sub getFilelistLinePosition {
     my ( $fl, $line ) = @_;
-    return undef unless ref($fl);
+    return if !ref $fl;
     my ( $p, $f ) = split /\t/, $line;
     return Treex::PML::Index( $fl->list_ref, $p );
 }

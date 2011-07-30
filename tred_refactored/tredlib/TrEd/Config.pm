@@ -108,6 +108,10 @@ BEGIN {
         $noCheckLocks
         $config_file
         %vertical_key_arrow_map
+        @config_recent_files
+        $cmdline_config_file
+        @config_filelists
+        $documentation_dir
     );
     @EXPORT_OK
         = qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
@@ -119,6 +123,11 @@ BEGIN {
     } || sub { };
 
 }
+
+require File::Spec;
+require Treex::PML;
+
+
 use vars (@EXPORT);
 
 ($userlogin)
@@ -271,6 +280,10 @@ $printOptions = {};
     Down  => 'Right',
 );
 
+my $MAX_RECENTFILES = 9;
+
+$documentation_dir = 'http://ufal.mff.cuni.cz/~pajas/tred';
+
 ######################################################################################
 # Usage         : set_default_config_file_search_list()
 # Purpose       : Set @config_file_search_list values to common places where
@@ -282,7 +295,6 @@ $printOptions = {};
 #                 TREDHOME environment variable and relative to the original perl script's
 #                 directory: under subdirectory tredlib, ../lib/tredlib, ../lib/tred
 # See Also      : $FindBin::RealBin
-#TODO: can't this be done on load/construction/compilation of the module?
 sub set_default_config_file_search_list {
     require FindBin;
     @config_file_search_list = (
@@ -337,7 +349,7 @@ sub parse_config_line {
     [a-zA-Z_]+[a-zA-Z_0-9]*
   }x;
     my $single_quot_value_re = qr {
-    '(?:[^\\']|\\.)*' # we want the regexp to be able to match escaped single quotes and backslashes in string and use it, 
+    '(?:[^\\']|\\.)*' # we want the regexp to be able to match escaped single quotes and backslashes in string and use it,
                       # so |'" \'sth_else| or |'abc\'\'| does not match
                       # but |'" \'sth_else'| or |'abcd\''| matches and it extracts |" \'sth_else| and |abcd\'|, respectively
                       # be careful, though: |'abcd\\''| matches, but the last quote is not extracted: |abcd\\|
@@ -411,14 +423,14 @@ sub read_config {
     my $config_found = 0;
     $config_file = undef;
 
-    foreach $f ( @_, @config_file_search_list ) {
+    foreach my $f ( @_, @config_file_search_list ) {
         my $fh;
-        if ( defined($f) and open( $fh, '<', $f ) ) {
+        if ( defined $f && open $fh, '<', $f ) {
             print STDERR "Config file: $f\n" unless $quiet;
             while (<$fh>) {
                 parse_config_line( $_, \%confs );
             }
-            close($fh);
+            close $fh;
             $config_found = 1;
             $config_file  = $f;
             last;
@@ -427,7 +439,7 @@ sub read_config {
     if ( !$config_found ) {
         print STDERR
             "Warning: Cannot open any file in:\n",
-            join( ":", @config_file_search_list ),
+            join( q{:}, @config_file_search_list ),
             "\n" . "         Using configuration defaults!\n"
             unless $quiet;
     }
@@ -607,7 +619,7 @@ sub _set_treeViewOpts {
 sub _set_fonts {
     my ($confs_ref) = @_;
     my $fontenc = _set_font_encoding();
-
+    
     if ( exists( $confs_ref->{'font'} ) ) {
         $font = $confs_ref->{'font'};
 
@@ -699,17 +711,17 @@ sub _set_resource_path {
             )
         );
 
-        # if there is a delimiter at the beginning of the string, 
+        # if there is a delimiter at the beginning of the string,
         # prepend default resource path ($def_res_path)
-        # side note:  By default, empty leading fields are preserved, 
+        # side note:  By default, empty leading fields are preserved,
         # and empty trailing ones are deleted, so it is
-        # actually not possible for the $resourcePathSplit 
+        # actually not possible for the $resourcePathSplit
         # to be at the end of $path
         if ( $path =~ /^\Q$resourcePathSplit\E/ ) {
             $path = $def_res_path . $path;
         }
         elsif ( $path =~ /\Q$resourcePathSplit\E$/ ) {
-            # if there is a delimiter at the end of the string, 
+            # if there is a delimiter at the end of the string,
             # append default resource path ($def_res_path)
             $path .= $def_res_path;
         }
@@ -718,7 +730,7 @@ sub _set_resource_path {
         $r = $path;
     }
     else {
-        # there is no resource path in configuration hash, 
+        # there is no resource path in configuration hash,
         # just use default resource path
         $r = $def_res_path;
     }
@@ -779,11 +791,11 @@ sub _set_print_options {
         else {
             $psFontAFMFile = $psFontFile;
 
-            # change extension of the psFontFile to .afm and 
+            # change extension of the psFontFile to .afm and
             # test whether it exists
             $psFontAFMFile =~ s/\.[^.]+$/.afm/;
 
-            # if not, try to search for afm font file 
+            # if not, try to search for afm font file
             # in afm subdirectory (relative to psFontFile)
             if ( !( -f $psFontAFMFile ) ) {
                 $psFontAFMFile =~ s!/([^/]+)$!/afm/$1!;
@@ -817,7 +829,7 @@ sub _set_print_options {
             else {
 
                 # use fontconfig here?
-                if ( open( my $fc, '/etc/fonts/fonts.conf' ) ) {
+                if ( open my $fc, '<', '/etc/fonts/fonts.conf' ) {
                     my $line;
                     while ( $line = <$fc> ) {
 
@@ -845,7 +857,7 @@ sub _set_print_options {
                     );
                 }
             }
-            $ttFontPath = join( ",", map( tilde_expand($_), @fontpath ) );
+            $ttFontPath = join( q{,}, map { tilde_expand($_) } @fontpath );
         }
         $printOptions->{ttFontPath} = $ttFontPath;
     }
@@ -889,7 +901,7 @@ sub _set_extensions {
 # Returns       : nothing
 # Parameters    : hash_ref @confs_ref -- hash with configuration options
 # Throws        : nothing
-# Comments      : Also runs $set_user_config($confs_ref) function.
+# Comments      : Does not call $set_user_config($confs_ref) function any more!
 # See Also      : apply_config(), read_config()
 sub set_config {
     my ($confs_ref) = @_;
@@ -1042,8 +1054,7 @@ sub set_config {
         $Treex::PML::IO::gzip = "$libDir/../bin/gzip";
     }
     $Treex::PML::IO::gzip_opts = val_or_def( $confs_ref, "gzipopts", "-c" );
-    $Treex::PML::IO::zcat
-        = val_or_def( $confs_ref, "zcat", find_exe("zcat") );
+    $Treex::PML::IO::zcat      = val_or_def( $confs_ref, "zcat", find_exe("zcat") );
     $Treex::PML::IO::zcat_opts = val_or_def( $confs_ref, "zcatopts",  undef );
     $Treex::PML::IO::ssh       = val_or_def( $confs_ref, "ssh",       undef );
     $Treex::PML::IO::ssh_opts  = val_or_def( $confs_ref, "sshopts",   undef );
@@ -1118,9 +1129,14 @@ sub set_config {
 
     # ADD NEW OPTIONS HERE
 
-    if ( ref($set_user_config) ) {
-        &$set_user_config($confs_ref);
-    }
+#    if ( ref($set_user_config) ) {
+#        &$set_user_config($confs_ref);
+#    }
+
+
+    init_recent_files($confs_ref);
+
+    init_filelist_list($confs_ref);
 
     # let this be the very last line
 
@@ -1135,6 +1151,205 @@ sub set_config {
     return;
 }
 
+sub init_filelist_list {
+    my ($confs_ref) = @_;
+    foreach my $filelist_id ( sort { substr( $a, 8 ) <=> substr( $b, 8 ) }
+                           grep /^filelist[0-9]+/,
+                           keys %{$confs_ref} ) 
+    {
+        push @config_filelists, $confs_ref->{$filelist_id};
+    }
+    return;
+}
+
+sub init_recent_files {
+    my ($confs_ref) = @_;
+    foreach my $index ( 0 .. $MAX_RECENTFILES ) {
+        $config_recent_files[$index] = $confs_ref->{"recentfile$index"};
+    }
+    @config_recent_files = grep {$_} @config_recent_files;
+}
+
+# config
+sub get_config_from_file {
+    my @conf;
+    if ( open( my $fh, "<", $config_file ) ) {
+        @conf = <$fh>;
+        close($fh);
+        return \@conf;
+    }
+    else {
+        return;
+    }
+}
+
+# was main::saveRuntimeConfig
+sub save_runtime_config {
+    my ( $grp, $update ) = @_;
+
+    # Save configuration
+    print STDERR "Saving some configuration options.\n"
+        if $tredDebug;
+    my $config = get_config_from_file() || [];
+    update_runtime_config( $grp, $config, $update );
+    save_config( $grp, $config, $main::opt_q );
+}
+
+sub update_runtime_config {
+    my ( $grp, $conf, $update ) = @_;
+    # we don't want these to load at the very beginning of TrEd startup
+    require TrEd::ManageFilelists;
+    require TrEd::Bookmarks;
+    require TrEd::RecentFiles;
+
+
+    $update ||= {};
+    my $comment = ';; Options changed by TrEd on every close (DO NOT EDIT)';
+    my $ommit
+        = "canvasheight|canvaswidth|recentfile[0-9]+|geometry|showsidepanel|lastaction|filelist[0-9]+";
+    my $update_comment = delete $update->{';'};
+    for ( keys %$update ) {
+        $ommit .= qq(|$_);
+    }
+    @{$conf} = grep { !/^\s*(?:\Q$comment\E|(?:$ommit)\s*=)/i } @{$conf};
+    @{$conf} = grep { !/^\s*;*\s*\Q$update_comment\E/i } @{$conf}
+        if defined $update_comment;
+    pop @{$conf} while @{$conf} and $conf->[-1] =~ /^\s*$/;
+
+    push @{$conf}, "\n", ";; " . $update_comment . "\n" if $update_comment;
+    push @{$conf}, ( map { qq($_\t=\t) . $update->{$_} . "\n" } keys %$update );
+
+    push @{$conf}, "\n", $comment . "\n";
+
+    #  $geometry=~s/^[0-9]+x[0-9]+//;
+    if ( TrEd::Bookmarks::get_last_action() ) {
+        my $s = TrEd::Bookmarks::get_last_action();
+        $s =~ s/\\/\\\\/g;
+        push @{$conf}, "LastAction\t=\t" . $s . "\n";
+    }
+    if ( $grp->{top} ) {
+        eval {
+            $geometry = $grp->{top}->geometry();
+            print "geometry is $geometry\n"
+                if $tredDebug;
+            if ( $^O eq "MSWin32" and $grp->{top}->state() eq 'zoomed' ) {
+                $geometry =~ s/\+[-0-9]+\+[-0-9]+/+-3+-3/;
+            }
+        };
+    }
+    do {
+        my $s;
+        my @recentFiles = TrEd::RecentFiles::recent_files();
+        push @{$conf},
+            "Geometry\t=\t" . $TrEd::Config::geometry . "\n",
+            "ShowSidePanel\t=\t" . $TrEd::Config::showSidePanel . "\n",
+            "CanvasHeight\t=\t" . $TrEd::Config::defCHeight . "\n",
+            "CanvasWidth\t=\t" . $TrEd::Config::defCWidth . "\n", map {
+            $s = $recentFiles[$_];
+            $s =~ s/\\/\\\\/g;
+            "RecentFile$_\t=\t$s\n"
+            } 0 .. $#recentFiles;
+
+        TrEd::ManageFilelists::update_runtimeconfig_filelists( $s, $conf );
+
+    };
+    chomp $conf->[-1];
+}
+
+
+
+# config
+#!!! treti parameter -- quiet
+sub save_config {
+    my ( $win, $config, $quiet ) = @_;
+    require TrEd::Error::Message;
+    my $top;
+    if ( ref($win) =~ /^Tk::/ ) {
+        $top = $win->toplevel;
+    }
+    else {
+        $top = $win->{top};
+    }
+    my ($default_trc)
+        = File::Spec->catfile( $libDir, 'tredrc' );
+    if ( Treex::PML::IO::is_same_file( $config_file, $default_trc ) ) {
+        $config_file = File::Spec->catfile( $ENV{HOME}, '.tredrc' );
+    }
+    my $exists = -e $config_file ? 1 : 0;
+    if ( !$exists || ( -f $config_file && -w $config_file ) ) {
+        my $renamed = q{};
+        if ($exists) {
+            $renamed = rename $config_file, "${config_file}~";
+        }
+        if ( open my $fh, '>', "$config_file" ) {
+            if (!$quiet) {
+                print STDERR "Saving tred configuration to: $config_file\n";
+            }
+            print $fh (@{$config});
+            close $fh;
+            return;
+        }
+        elsif ($renamed) {
+            rename "${config_file}~", $config_file;
+        }
+    }
+
+    # otherwise something went wrong
+    {
+        my $lasterr = main::conv_from_locale($!);
+        my ($trc) = File::Spec->catfile( $ENV{HOME}, '.tredrc' );
+        if (!Treex::PML::IO::is_same_file( $config_file, $trc )
+            and (
+                (   defined $top
+                    and $top->messageBox(
+                        -icon => 'warning',
+                        -message =>
+                            "Cannot write configuration to $config_file: $lasterr\n\n"
+                            . "Shell I try to save it to ~/.tredrc?\n",
+                        -title => 'Configuration cannot be saved',
+                        -type  => 'YesNo',
+
+                       # -default=> 'Yes' # problem: Windows 'yes', UNIX 'Yes'
+                    ) =~ m(yes)i
+                )
+                or (    !defined $top
+                     && !-f $trc
+                     && !defined $cmdline_config_file )
+            )
+            )
+        {
+            my $renamed = rename $trc, "${trc}~";
+            if ( open my $fh, '>',  $trc ) {
+                print STDERR "SAVING CONFIG TO: $trc\n";
+                print $fh (@$config);
+                print STDERR "done\n";
+                close $fh;
+                $config_file = $trc;
+            }
+            else {
+                if ($renamed) {
+                    rename( "${trc}~", $trc );
+                }
+                TrEd::Error::Message::error_message(
+                    $top,
+                    "Cannot write to \"$trc\": $lasterr!\n"
+                        . "\nConfiguration could not be saved!\nCheck file and directory permissions.",
+                    1
+                );
+            }
+        }
+        else {
+            TrEd::Error::Message::error_message(
+                $top,
+                "Cannot write to \"$config_file\": $lasterr!\n"
+                    . "\nConfiguration could not be saved!\nCheck file and directory permissions.",
+                1
+            );
+        }
+    }
+}
+
+
 1;
 
 __END__
@@ -1142,63 +1357,63 @@ __END__
 =head1 NAME
 
 
-TrEd::Config - TrEd's configuration file loader and parser  
+TrEd::Config - TrEd's configuration file loader and parser
 
 
 =head1 VERSION
 
-This documentation refers to 
+This documentation refers to
 TrEd::Config version 0.2.
 
 
 =head1 SYNOPSIS
 
   use TrEd::Config;
-  
+
   # $default_option = 'default_value'
   my $default_option = TrEd::Config::val_or_def($configuration_hash_ref, 'buttonsrelief', 'default_value');
-  
+
   # set value in cofiguration hash
   my %confs = (
     "buttonrelief"  => 'other_value',
   );
-  
+
   # use configuration hash in helper function
   # $option = 'other_value'
   my $option = TrEd::Config::val_or_def($configuration_hash_ref, "buttonsrelief", 'default value');
-  
+
   my $home = TrEd::Config::tilde_expand("~");
-  
+
   # apply alternative options right now
   my @alternative_options = (
     "width = 50",
     "height = 100",
   );
   TrEd::Config::apply_config(@alternative_options);
-  
+
   my $line = "width = 50";
   my $config_ref = {};
   TrEd::Config::parse_config_line($line, $config_ref);
-  # $config_ref now contains new key-value pair: 'width' => 50  
-  
+  # $config_ref now contains new key-value pair: 'width' => 50
+
   # set standard paths where TrEd's config is usually found
   TrEd::Config::set_default_config_file_search_list();
-  
+
   # read first existing configuration file from list and load all the options into memory
   my @config_paths = qw(/home/john/.tred.d/tredrc /home/john/.tredrc);
   TrEd::Config::read_config(@config_paths);
-  
+
   # set all the configuration values from $confs_ref
   TrEd::Config::set_config($confs_ref);
-  
-  
+
+
 =head1 DESCRIPTION
 
 This module contains basic functions for reading and parsing configuration files in simple format
 
   option_name = "option value"
 
-Comments are created by putting # or ; characters at the beginning of the line. 
+Comments are created by putting # or ; characters at the beginning of the line.
 
 By default, it exports *a lot of* variables, here is the list:
   @config_file_search_list
@@ -1286,10 +1501,10 @@ By default, it exports *a lot of* variables, here is the list:
   %defaultPrintConfig
   %c_fonts
   $sidePanelWrap
- 
+
 =head1 SUBROUTINES/METHODS
 
-=over 4 
+=over 4
 
 
 =item * C<TrEd::Config::set_default_config_file_search_list()>
@@ -1298,7 +1513,7 @@ By default, it exports *a lot of* variables, here is the list:
 
 =item Purpose
 
-Set @config_file_search_list values to common places where 
+Set @config_file_search_list values to common places where
 
 tredrc cofiguration file (tredrc) is usually found
 
@@ -1307,9 +1522,9 @@ tredrc cofiguration file (tredrc) is usually found
 
 =item Comments
 
-Requires FindBin. Tredrc paths are set to HOME environment variable, 
+Requires FindBin. Tredrc paths are set to HOME environment variable,
 
-TREDHOME environment variable and relative to the original perl script's 
+TREDHOME environment variable and relative to the original perl script's
 directory: under subdirectory tredlib, ../lib/tredlib, ../lib/tred
 
 =item See Also
@@ -1352,7 +1567,7 @@ String after the substitution
 
 =item Purpose
 
-Parse each line of the config file to extract key and value pair and 
+Parse each line of the config file to extract key and value pair and
 
 save it into hash $confs_ref
 
@@ -1393,10 +1608,10 @@ Read configuration values from file and save it to %confs hash
 
 =item Comments
 
-Tries to open config file, first from list supported by argument, if it does not succeed, 
+Tries to open config file, first from list supported by argument, if it does not succeed,
 
 function tries to open files from @config_file_search_list. If any of these files is opened
-successfully, the configuration is then read to memory from this file. 
+successfully, the configuration is then read to memory from this file.
 
 =item See Also
 
@@ -1482,10 +1697,10 @@ Parse options from command line switch -O and save them in $confs_ref
 
 =item Comments
 
-Uses array reference $override_options, where the command line options are 
+Uses array reference $override_options, where the command line options are
 
 stored. The syntax of -O argument is specified in tred manual, in short these options
-are supported: 
+are supported:
 * name=value    -- set option 'name' to 'value'
 * nameX=value   -- treat the option as a list delimited by the delimiter X and prepend the value to the list.
 * nameX+=value  -- treat the option as a list delimited by the delimiter X and append the value to the list.
@@ -1493,7 +1708,7 @@ are supported:
 Only the following characters can be used as a delimiter:
 ; : , & | / + - \s \t SPACE
 Can be combined, i.e. -O "extensionRepos\\s"-=http://foo/bar -O "extensionRepos\\s"+=http://foo/bar
-first removes any occurrence of the URL http://foo/bar from the white-space separated list of extensionRepos and then appends the URL to the end of the list. 
+first removes any occurrence of the URL http://foo/bar from the white-space separated list of extensionRepos and then appends the URL to the end of the list.
 
 =item See Also
 
@@ -1522,7 +1737,7 @@ Set various options in treeViewOpts hash
 
 =item Comments
 
-Tries to set all options found in treeViewOpts from $confs_ref. 
+Tries to set all options found in treeViewOpts from $confs_ref.
 
 In addition, sets these options: currentNodeHeight, -Width, nodeHeight, -Width,
 customColor..., font and backgroundImage
@@ -1555,10 +1770,10 @@ Set font family, size and encoding
 
 =item Comments
 
-If font is set in $confs_ref, it is used. Otherwise Arial is picked as a default font 
+If font is set in $confs_ref, it is used. Otherwise Arial is picked as a default font
 
 on Windows and Helvetica on other OSes.
-Function also sets vlinefont, guifont and 
+Function also sets vlinefont, guifont and
 guifont_small/small_bold/heading/fixed/default/bold/italic fonts.
 
 =item See Also
@@ -1588,7 +1803,7 @@ Choose font encoding according to Tk version and TrEd::Convert::outputenc
 
 =item Comments
 
-If $TrEd::Convert::outputenc is set, it is used, otherwise iso8859-2 is used 
+If $TrEd::Convert::outputenc is set, it is used, otherwise iso8859-2 is used
 
 with Tk versions older than 804, iso10646-1 for newer versions
 
@@ -1621,7 +1836,7 @@ Add resource paths from configuration hash and default resource path to $Treex::
 
 =item Comments
 
-HOME environment variable should be set before running this function, on Windows, 
+HOME environment variable should be set before running this function, on Windows,
 
 one can run TrEd::Utils::find_win_home() to set HOME variable for this purpose
 Default resource path is constructed from $def_share_path
@@ -1655,12 +1870,12 @@ Set print options from $defaultPrintConfig, try to find ps, AFM font file and pa
 
 =item Comments
 
-Prefers using options in $confs_ref. If the option is not defined there, uses 
+Prefers using options in $confs_ref. If the option is not defined there, uses
 
 default option set in %defaultPrintConfig
-psFontFile and psFontAFMFile are looked for in directories found in $printOptions, 
-if they do not exist there, they are looked up in $libDir. If this fails, too, 
-default paths for font files supplied with TrEd are used.  
+psFontFile and psFontAFMFile are looked for in directories found in $printOptions,
+if they do not exist there, they are looked up in $libDir. If this fails, too,
+default paths for font files supplied with TrEd are used.
 TTF font directory is determined from the registry on Windows, from /etc/fonts/fonts.conf otherwise
 
 =item See Also
@@ -1691,9 +1906,9 @@ Set variables which are related to TrEd extensions
 
 =item Comments
 
-Takes care of setting $extensionsDir, $extensionsRepos and $preinstalledExtensionsDir variables. 
+Takes care of setting $extensionsDir, $extensionsRepos and $preinstalledExtensionsDir variables.
 
-Tries to set these variables from $confs_ref, if there is no value in the $confs_ref hash, 
+Tries to set these variables from $confs_ref, if there is no value in the $confs_ref hash,
 function uses default values
 
 =item See Also
@@ -1762,7 +1977,7 @@ File::Spec, Cwd, FindBin, Win32::Registry on Windows
 =head1 BUGS AND LIMITATIONS
 
 There are no known bugs in this module.
-Please report problems to 
+Please report problems to
 Zdenek Zabokrtsky <zabokrtsky@ufal.ms.mff.cuni.cz>
 
 Patches are welcome.
@@ -1772,9 +1987,9 @@ Patches are welcome.
 
 Petr Pajas <pajas@matfyz.cz>
 
-Copyright (c) 
+Copyright (c)
 2010 Petr Pajas <pajas@matfyz.cz>
-2011 Peter Fabian (documentation & tests). 
+2011 Peter Fabian (documentation & tests).
 All rights reserved.
 
 

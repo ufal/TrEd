@@ -85,7 +85,6 @@ sub go_to_file {
     return $status;
 }
 
-
 #######################################################################################
 # Usage         : _filelist_full_filename($file_list_ref, $file_name)
 # Purpose       : Resolve path to file $file_name relatively to location of $file_list
@@ -103,6 +102,7 @@ sub next_or_prev_file {
     my $op = $grp->{noOpenFileError};
     $grp->{noOpenFileError} = 1;
     my $filename;
+
     # desired position
     my $pos = $win->{currentFileNo} + $delta;
     if ( $real && $win->{FSFile} ) {
@@ -226,7 +226,6 @@ sub prev_file {
     return next_or_prev_file( $grp_or_win, -1, $no_recent );
 }
 
-
 #######################################################################################
 # Usage         : _filelist_full_filename($file_list_ref, $file_name)
 # Purpose       : Resolve path to file $file_name relatively to location of $file_list
@@ -238,14 +237,15 @@ sub prev_file {
 # See Also      :
 # was main::tieNextFile
 sub tie_next_file {
-  my ($grp,$win) = main::grp_win(shift);
-  if ($grp->{tieWindows}) {
-    foreach my $w (@{$grp->{treeWindows}}) {
-      next_file($w) if ($w->{FSFile});
+    my ( $grp, $win ) = main::grp_win(shift);
+    if ( $grp->{tieWindows} ) {
+        foreach my $w ( @{ $grp->{treeWindows} } ) {
+            next_file($w) if ( $w->{FSFile} );
+        }
     }
-  } else {
-    next_file($win) if ($win->{FSFile});
-  }
+    else {
+        next_file($win) if ( $win->{FSFile} );
+    }
 }
 
 #######################################################################################
@@ -259,14 +259,15 @@ sub tie_next_file {
 # See Also      :
 # was main::tiePrevFile
 sub tie_prev_file {
-  my ($grp,$win) = main::grp_win(shift);
-  if ($grp->{tieWindows}) {
-    foreach my $w (@{$grp->{treeWindows}}) {
-      prev_file($w) if ($w->{FSFile});
+    my ( $grp, $win ) = main::grp_win(shift);
+    if ( $grp->{tieWindows} ) {
+        foreach my $w ( @{ $grp->{treeWindows} } ) {
+            prev_file($w) if ( $w->{FSFile} );
+        }
     }
-  } else {
-    prev_file($win) if ($win->{FSFile});
-  }
+    else {
+        prev_file($win) if ( $win->{FSFile} );
+    }
 }
 
 #######################################################################################
@@ -280,15 +281,15 @@ sub tie_prev_file {
 # See Also      :
 # was main::tieGotoFile
 sub tie_go_to_file {
-  my ($grp,$win) = main::grp_win(shift);
-  if ($grp->{tieWindows}) {
-    foreach my $w (@{$grp->{treeWindows}}) {
-      go_to_file($w,@_) if ($w->{FSFile});
+    my ( $grp, $win ) = main::grp_win(shift);
+    if ( $grp->{tieWindows} ) {
+        foreach my $w ( @{ $grp->{treeWindows} } ) {
+            go_to_file( $w, @_ ) if ( $w->{FSFile} );
+        }
     }
-  } else {
-    go_to_file($win,@_) if ($win->{FSFile});
-  }
+    else {
+        go_to_file( $win, @_ ) if ( $win->{FSFile} );
+    }
 }
-
 
 1;

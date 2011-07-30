@@ -233,19 +233,19 @@ sub get_value_line {
     if ($fsfile) {
         $vl = main::doEvalHook( $win, "get_value_line_hook", $fsfile, $no,
             $type );
-        if ( defined($vl) ) {
-            if ( ref($vl) ) {
+        if ( defined $vl ) {
+            if ( ref $vl ) {
                 unless ($tags) {
 
-                    # important: encode inside - required by arabic, 
+                    # important: encode inside - required by arabic,
                     # otherwise the text gets remixed
                     $vl = join $EMPTY_STR,
-                        map { TrEd::Convert::encode( $_->[0] ) } @$vl;
+                        map { TrEd::Convert::encode( $_->[0] ) } @{$vl};
                 }
                 else {
                     $vl = [
                         map { $_->[0] = TrEd::Convert::encode( $_->[0] ); $_ }
-                        grep { $_->[0] ne $EMPTY_STR } @$vl
+                        grep { $_->[0] ne $EMPTY_STR } @{$vl}
                     ];
                 }
             }

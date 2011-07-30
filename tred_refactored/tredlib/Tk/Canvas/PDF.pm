@@ -147,7 +147,7 @@ sub color2gray {
   my ($color)=@_;
   unless (ref($color)) {
     if (!defined($color)) {
-      return undef;
+      return;
     } elsif ($color =~ /^#(..)(..)(..)/) {
       $color = [map hex,$1,$2,$3];
     } elsif (exists($Tk::rgb::rgb{$color})) {

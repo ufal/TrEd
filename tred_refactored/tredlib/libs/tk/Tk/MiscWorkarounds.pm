@@ -1,5 +1,6 @@
 package Tk::MiscWorkarounds;
-# pajas@ufal.mff.cuni.cz          04 bøe 2010
+
+# pajas@ufal.mff.cuni.cz          04 bÅ™e 2010
 
 use 5.008;
 use strict;
@@ -11,38 +12,76 @@ use Tk::Wm;
 use Tk::Menu;
 
 sub apply_workarounds {
-  my ($mw)=@_;
-  if ($^O eq 'MSWin32') {
-    # a workaround for focus being lost after popup menu usage on Win32
-    $mw->bind('Tk::Menu', '<<MenuSelect>>', sub { if ($Tk::popup) { $Tk::popup->Unpost; } });
-  }
-  return $mw;
+    my ($mw) = @_;
+    if ( $^O eq 'MSWin32' ) {
+
+        # a workaround for focus being lost after popup menu usage on Win32
+        $mw->bind(
+            'Tk::Menu',
+            '<<MenuSelect>>',
+            sub {
+                if ($Tk::popup) { $Tk::popup->Unpost; }
+            }
+        );
+
+        # a workaround for dialog buttons showing only partial labels in Windows
+        require Tk::DialogBox;
+        {
+            my $old = \&Tk::Widget::DialogBox;
+            *Tk::Widget::DialogBox = sub {
+                my $d = &$old;
+                if ($d) {
+                    for my $w ( grep $_->isa('Tk::Button'), $d->Subwidget ) {
+                        $w->configure( -padx => 7, -pady => 2, -width => 0 );
+                    }
+                }
+                return $d;
+            };
+        }
+        require Tk::Dialog;
+        {
+            my $old = \&Tk::Widget::Dialog;
+            *Tk::Widget::Dialog = sub {
+                my $d = &$old;
+                if ($d) {
+                    for my $w ( grep $_->isa('Tk::Button'), $d->Subwidget ) {
+                        $w->configure( -padx => 7, -pady => 2, -width => 0 );
+                    }
+                }
+                return $d;
+            };
+        }
+
+    }
+    return $mw;
 }
 
 # work around a bug in Tk
-if (defined $Tk::encodeFallback and $Tk::encodeFallback == Encode::FB_PERLQQ() and
-    Encode::FB_PERLQQ() != Encode::PERLQQ()) {
-  $Tk::encodeFallback    = Encode::PERLQQ();
+if (    defined $Tk::encodeFallback
+    and $Tk::encodeFallback == Encode::FB_PERLQQ()
+    and Encode::FB_PERLQQ() != Encode::PERLQQ() )
+{
+    $Tk::encodeFallback = Encode::PERLQQ();
 }
 
 {
-  package Tk::Wm;
 
-  # overwriting the original Tk::Wm::Post:
-  sub Post {
-    my ($w,$X,$Y)= @_;
-    $X= int($X);
-    $Y= int($Y);
-    $w->positionfrom('user');
-    # $w->geometry("+$X+$Y");
-    $w->MoveToplevelWindow($X,$Y);
-    $w->deiconify;
-    ## This causes the "slowness":
-    # $w->raise;
-  }
+    package Tk::Wm;
+
+    # overwriting the original Tk::Wm::Post:
+    sub Post {
+        my ( $w, $X, $Y ) = @_;
+        $X = int($X);
+        $Y = int($Y);
+        $w->positionfrom('user');
+
+        # $w->geometry("+$X+$Y");
+        $w->MoveToplevelWindow( $X, $Y );
+        $w->deiconify;
+        ## This causes the "slowness":
+        # $w->raise;
+    }
 }
-
-
 
 1;
 __END__

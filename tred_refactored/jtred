@@ -1,14 +1,14 @@
 #!/bin/bash
 # Author: Jan Stepanek
 
-version='1.2.1'
+version='1.2'
 
 if [ -z "$SGE_ROOT" ] || [ ! -d "$SGE_ROOT" ] ; then
     echo "SGE_ROOT is not set, this machine does not seem to be a SGE cluster queue manager!" >&2
     exit 66
 fi
 
-btred='/net/data/ufalhome/common/exec/runbtred'
+btred='/f/common/exec/runbtred'
 pack_size=15
 job_name=$USER-$$
 tmp=/tmp
@@ -47,7 +47,7 @@ trap '
   rm -rf "$outdir"
   rm -rf "$errdir"
   rmdir "$work"
-  exit 
+  exit
   ' INT TERM KILL
 
 # show usage if no parameters given
@@ -81,7 +81,7 @@ while ((${#@})) ; do
         shift
         value=$1
     fi
-    case $option in 
+    case $option in
         B) btred=$value ;;
         s) pack_size=$((value)) ;;
         n) job_name=$value ;;
@@ -155,7 +155,7 @@ renice 10 $$ | mute
         done < "$filelist"
    fi # list all files from filelist
     ) | \
-        xargs -d'\n' -n$pack_size echo 'hostname >&2 ; renice 10 $$>/dev/null;. /net/work/projects/perl_repo/admin/bin/setup_platform;'"'$btred'" "${btred_flags[@]}" | \
+        xargs -d'\n' -n$pack_size echo 'renice 10 $$>/dev/null;. /home/pajas/bin/setup_platform;'"'$btred'" "${btred_flags[@]}" | \
         split -a4 -l1 - "$tmp"/"$job_name".$$.
 # give $pack_size files to one line, prepend command and split into scripts
 

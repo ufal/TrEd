@@ -1,30 +1,30 @@
 package Tk::JComboBox_0_02;
 
 ## Quick Acknowledgement: This code started out as Graham Barr's
-## MenuEntry. I liked MenuEntry and thought it had lots of 
+## MenuEntry. I liked MenuEntry and thought it had lots of
 ## promise. So I decided to add to it. The more I added (and
 ## subtracted), the less it looked like like MenuEntry until it
 ## got to the point where calling it MenuEntry no longer made
 ## sense. Thank you Graham for provided the fertile soil from
 ## which JComboBox grew. - RCS
 
-## By the way, this version of JComboBox.pm is Copyright (c) 
-## 2001 Rob Seegel <RobSeegel@aol.com>. All rights reserved. 
+## By the way, this version of JComboBox.pm is Copyright (c)
+## 2001 Rob Seegel <RobSeegel@aol.com>. All rights reserved.
 ## This program is free software; you can redistribute
-## it and/or modify it under the same terms as Perl itself. 
+## it and/or modify it under the same terms as Perl itself.
 
 ## Perl 5.005 requires quotes of some kind around the
 ## _JCBListItem, otherwise it will generate an error so they
 ## are there for backwards compatibility
 
-## This struct below meant to represent the contents displayed 
-## in the pulldown list. Name is the text which is displayed, 
-## value is for text which could be offered as an alternative 
-## to the displayed text. It is bit of overkill having a 
-## structure for these two values, however, I look at as an 
-## open-ended solution which could be easily extended if each 
-## list element gained other properties (separate images, 
-## bitmaps, and formatting - future enhancements.) - RCS 
+## This struct below meant to represent the contents displayed
+## in the pulldown list. Name is the text which is displayed,
+## value is for text which could be offered as an alternative
+## to the displayed text. It is bit of overkill having a
+## structure for these two values, however, I look at as an
+## open-ended solution which could be easily extended if each
+## list element gained other properties (separate images,
+## bitmaps, and formatting - future enhancements.) - RCS
 
 use Class::Struct;
 struct '_JCBListItem_0_02' => [
@@ -86,7 +86,7 @@ sub Populate { # print STDERR "SUB: Populate\n";
   $cw->{_selIndex} = undef;
   $cw->{_entryWidth} = 0;
 
-  my $sf = $cw->Component( 
+  my $sf = $cw->Component(
     Frame => 'Frame',
     -bd => 0,
     -highlightthickness => 0
@@ -132,7 +132,7 @@ sub Populate { # print STDERR "SUB: Populate\n";
   $e->bind('<Up>',            [$cw => 'EntryUpDown', '-1']);
   $e->bind('<Down>',          [$cw => 'EntryUpDown', '1']);
   $e->bind('<ButtonPress-1>', [$cw => 'NonSelect']);
-  
+
   ## ReadOnly Entry
   my $roe = $sf->Label(
     -anchor => 'w',
@@ -140,7 +140,7 @@ sub Populate { # print STDERR "SUB: Populate\n";
     -borderwidth => 0,
     -highlightthickness => 0
   );
-  $cw->Advertise(RO_Entry => $roe);   
+  $cw->Advertise(RO_Entry => $roe);
   $roe->bind('<ButtonPress-1>',   [$cw => 'ButtonDown']);
   $roe->bind('<ButtonRelease-1>', [$cw => 'ButtonUp']);
   $roe->bind('<Leave>',           [$cw => 'ButtonUp']);
@@ -154,7 +154,7 @@ sub Populate { # print STDERR "SUB: Populate\n";
     $c->overrideredirect(1);
     $c->withdraw;
 
- 
+
    my $sl = $c->ScrlListbox(
       -scrollbars => 'oe',
       -selectmode => "browse",
@@ -177,17 +177,17 @@ sub Populate { # print STDERR "SUB: Populate\n";
       -background       => [qw/SELF background  Background/, Tk::NORMAL_BG],
       -buttonbg         => [{-bg => [@buttons, $roe]}],
       -buttonbitmap     => [{-bitmap => [@buttons]}, undef, undef, $BITMAP],
-      -buttonborderwidth     
+      -buttonborderwidth
                         => [{-borderwidth => $eb}, undef, undef, 2],
       -buttonimage      => [{-image =>  [@buttons]}],
-      -buttonrelief     => [{-relief => $eb}, undef, undef, 'raised'], 
+      -buttonrelief     => [{-relief => $eb}, undef, undef, 'raised'],
       -borderwidth      => [qw/SELF borderWidth BorderWidth 2/],
       -choices          => [qw/METHOD/],
       -font             => [[$e, $roe, $sl], qw/font Font/, undef],
       -gap              => [qw/PASSIVE/, undef, undef, $gap],
-      -highlightthickness => 
+      -highlightthickness =>
         [qw/SELF highlightThickness HighlightThickness 2/],
-      -listbackground   => [{-bg => [$e, $sl, $cw, $sf, 'SELF']}, 
+      -listbackground   => [{-bg => [$e, $sl, $cw, $sf, 'SELF']},
                         qw/listBackground ListBackground/, undef],
       -listhighlight    => [qw/METHOD/, undef, undef, 1],
       -maxrows          => [qw/PASSIVE    maxRows MaxRows/, 10],
@@ -231,7 +231,7 @@ sub Populate { # print STDERR "SUB: Populate\n";
 
 sub choices { # print STDERR "SUB: choices\n";
   my ($cw, $listAR) = @_;
- 
+
   return if (!$listAR || ref($listAR) ne "ARRAY");
 
   if ($cw->getItemCount > 0) {
@@ -276,7 +276,7 @@ sub listhighlight { # print STDERR "SUB: listhighlight\n";
   } elsif ($val =~ /^(false|no|0)$/i) {
     $lb->bind('<Motion>',          sub {});
     $lb->bind('<Leave>',           sub {});
-    $lb->bind('<Enter>',           sub {});      
+    $lb->bind('<Enter>',           sub {});
   } else {
     croak "Invalid value $val submitted for -listhighlighting." .
           "Only Boolean values are allowed";
@@ -289,7 +289,7 @@ sub mode { # print STDERR "SUB: mode\n";
   my ($cw, $mode) = @_;
 
   return ($cw->{Configure}->{-mode}) unless $mode;
- 
+
   ## Remove Current Entry and Button
   my $sf = $cw->Subwidget('Frame');
   foreach ($sf->gridSlaves) {
@@ -318,9 +318,9 @@ sub mode { # print STDERR "SUB: mode\n";
   }
 
   $sf->gridPropagate(1);
-  $sf->gridRowconfigure(0, -weight => 1);  
-  $sf->gridColumnconfigure(0, -weight => 1); 
-#  $sf->gridColumnconfigure(1, -weight => 1); 
+  $sf->gridRowconfigure(0, -weight => 1);
+  $sf->gridColumnconfigure(0, -weight => 1);
+#  $sf->gridColumnconfigure(1, -weight => 1);
 }
 
 sub validate { # print STDERR "SUB: validate\n";
@@ -328,43 +328,43 @@ sub validate { # print STDERR "SUB: validate\n";
 
   return $cw->{Configure}{-validate} unless $mode;
   $mode = lc($mode);
-  croak "Invalid validate value: $mode" 
+  croak "Invalid validate value: $mode"
     if ($mode !~ /^(none|focus|focusin|focusout|key|match|cs-match|all)$/);
 
   my $e = $cw->Subwidget('ED_Entry');
-  if ($mode eq 'match')  {  
+  if ($mode eq 'match')  {
     $e->configure(-validate => 'key');
   } elsif ($mode eq 'cs-match') {
     $e->configure(-validate => 'key');
   } else {
     $e->configure(-validate => $mode);
   }
-}  
- 
+}
+
 #######################################################
-## JComboBox - Public methods   
+## JComboBox - Public methods
 #######################################################
 
 sub addItem { # print STDERR "SUB: addItem\n";
-  shift->insertItemAt('end', @_) 
+  shift->insertItemAt('end', @_)
 };
 
 sub clearSelection { # print STDERR "SUB: clearSelection\n";
   my $cw = shift;
   $cw->Subwidget('Listbox')->selectionClear(0, 'end');
   $cw->{_selIndex} = undef;
- 
+
   my $e = $cw->Subwidget('ED_Entry');
   my $state = $cw->cget('-state');
   if ($state  eq  'disabled') {
     $e->configure(-state => 'normal');
-  }    
+  }
   $cw->Subwidget('RO_Entry')->configure(-text => "");
   $cw->Subwidget('ED_Entry')->delete(0, 'end');
-  $e->configure(-state => $state);  
+  $e->configure(-state => $state);
 }
 
-sub getItemIndex { # print STDERR "SUB: getItemIndex\n"; 
+sub getItemIndex { # print STDERR "SUB: getItemIndex\n";
   my ($cw, $item, %args) = @_;
 
   my $mode = lc($args{-mode}) || "exact";
@@ -377,24 +377,24 @@ sub getItemIndex { # print STDERR "SUB: getItemIndex\n";
   my $type = lc($args{-type}) || "name";
   croak "Invalid value for -type in getItemIndex (valid: name|value)"
     if ($type !~ /^(name|value)$/);
-   
+
   foreach my $i (0 .. ($cw->getItemCount - 1)) {
     my $field;
     if    ($type eq 'value') { $field = $cw->getItemValueAt($i) }
     elsif ($type eq 'name')  { $field = $cw->{_list}->[$i]->name }
- 
+
     if    ($mode eq 'usecase')    { return $i if ($field =~ /^\Q$item\E/)  }
     elsif ($mode eq 'ignorecase') { return $i if ($field =~ /^\Q$item\E/i) }
     elsif ($mode eq 'exact')      { return $i if ($field eq $item)     }
   }
-  return undef;
+  return;
 }
 
-sub getItemCount { # print STDERR "SUB: getItemCount\n"; 
-  return scalar(@{$_[0]->{_list}}) 
+sub getItemCount { # print STDERR "SUB: getItemCount\n";
+  return scalar(@{$_[0]->{_list}})
 }
 
-sub getSelectedIndex { # print STDERR "SUB: getSelectedIndex\n"; 
+sub getSelectedIndex { # print STDERR "SUB: getSelectedIndex\n";
    my $cw = shift;
    my $index = $cw->{_selIndex};
    if (!defined($index) || $cw->cget('-mode') ne 'editable') {
@@ -402,30 +402,30 @@ sub getSelectedIndex { # print STDERR "SUB: getSelectedIndex\n";
    }
    my $item = $cw->{_list}->[$index];
    my $val = $cw->Subwidget('ED_Entry')->get;
-   return $index 
+   return $index
      if $item->name eq $val;
-   return undef;
+   return;
 }
 
-sub getSelectedValue { # print STDERR "SUB: getSelectedValue\n"; 
+sub getSelectedValue { # print STDERR "SUB: getSelectedValue\n";
   my $cw = shift;
   my $index = $cw->getSelectedIndex;
   if (!defined($index)) {
     return $cw->Subwidget('ED_Entry')->get;
-  } 
+  }
   return $cw->getItemValueAt($index);
 }
 
 sub getItemNameAt { # print STDERR "SUB: getItemNameAt\n";
   my ($cw, $index) = @_;
-  return undef if (!defined($index));
+  return if (!defined($index));
   $index = $cw->index($index);
   return $cw->{_list}->[$index]->name;
 }
 
-sub getItemValueAt { # print STDERR "SUB: getItemValueAt\n"; 
+sub getItemValueAt { # print STDERR "SUB: getItemValueAt\n";
   my ($cw, $index) = @_;
-  return undef if (!defined($index));
+  return if (!defined($index));
 
   $index = $cw->index($index);
   my $item = $cw->{_list}->[$index];
@@ -435,7 +435,7 @@ sub getItemValueAt { # print STDERR "SUB: getItemValueAt\n";
   return $item->name;
 }
 
-sub hidePopup { # print STDERR "SUB: hidePopup\n"; 
+sub hidePopup { # print STDERR "SUB: hidePopup\n";
     my ($cw) = @_;
     my $tl = $cw->Subwidget('Popup');
 
@@ -445,11 +445,11 @@ sub hidePopup { # print STDERR "SUB: hidePopup\n";
     }
 }
 
-sub index { # print STDERR "SUB: index\n"; 
+sub index { # print STDERR "SUB: index\n";
   my ($cw, $index) = @_;
   my $lb = $cw->Subwidget('Listbox');
 
-  if ($index eq 'selected') { 
+  if ($index eq 'selected') {
     $index = $cw->getSelectedIndex;
 
   } elsif ($index =~ /\D/)  {
@@ -457,16 +457,16 @@ sub index { # print STDERR "SUB: index\n";
 
   } else {
     my $count = $cw->getItemCount;
-   
+
     if ($index < 0 || $index >= $count) {
       carp "Index: $index is out of array bounds";
-      return undef;
+      return;
     }
   }
   return $index;
 }
-   
-sub insertItemAt { # print STDERR "SUB: insertItemAt\n"; 
+
+sub insertItemAt { # print STDERR "SUB: insertItemAt\n";
   my ($cw, $i, $name, %args) = @_;
 
   if (!defined($name)) {
@@ -497,7 +497,7 @@ sub insertItemAt { # print STDERR "SUB: insertItemAt\n";
     splice(@$listAR, $index, 0, ($item, splice(@$listAR, $index)));
     $cw->{_list} = $listAR;
   }
- 
+
   ## Set Entry as selected if option is set
   my $sel = $args{-selected};
   if ($sel && $sel =~ /yes|true|1/i) {
@@ -505,9 +505,9 @@ sub insertItemAt { # print STDERR "SUB: insertItemAt\n";
   }
 
   $cw->_updateWidth('add', $name);
-}    
+}
 
-sub removeAllItems { # print STDERR "SUB: removeAllItems\n"; 
+sub removeAllItems { # print STDERR "SUB: removeAllItems\n";
   my $cw = shift;
   $cw->{_selIndex} = undef;
   $cw->{_entryWidth} = 0;
@@ -518,7 +518,7 @@ sub removeAllItems { # print STDERR "SUB: removeAllItems\n";
 }
 
 
-sub removeItemAt { # print STDERR "SUB: removeItemAt\n"; 
+sub removeItemAt { # print STDERR "SUB: removeItemAt\n";
   my ($cw, $index) = @_;
   $index = $cw->index($index);
   if ($index == $cw->getSelectedIndex) {
@@ -527,29 +527,29 @@ sub removeItemAt { # print STDERR "SUB: removeItemAt\n";
     $cw->Subwidget('Listbox')->selectionClear(0, 'end');
   }
   my $listAR = $cw->{_list};
-  splice(@$listAR, $index, 1);  
-    
+  splice(@$listAR, $index, 1);
+
   $cw->{_list} = $listAR;
-  $cw->Subwidget('Listbox')->delete($index); 
+  $cw->Subwidget('Listbox')->delete($index);
   $cw->_updateWidth('delete');
 
 }
 
 sub setSelected { # print STDERR "SUB: setSelected\n";
-  my ($cw, $str, %args) = @_; 
+  my ($cw, $str, %args) = @_;
   my $index = $cw->getItemIndex($str, %args);
   $cw->setSelectedIndex($index) if defined($index);
   return 1 if defined($index);
   return 0;
 }
 
-sub setSelectedIndex { # print STDERR "SUB: setSelectedIndex\n"; 
+sub setSelectedIndex { # print STDERR "SUB: setSelectedIndex\n";
   my ($cw, $index) = @_;
 
   return if ($cw->cget('-state') =~ /disabled/);
   my $lb = $cw->Subwidget('Listbox');
   $index = $cw->index($index);
-  return if (!defined($index));  
+  return if (!defined($index));
 
   $cw->{_selIndex} = $index;
 
@@ -561,13 +561,13 @@ sub setSelectedIndex { # print STDERR "SUB: setSelectedIndex\n";
   } else {
     $lb->selectionSet($index);
   }
- 
+
   my $sel = $lb->get($index);
   my $e = $cw->Subwidget('ED_Entry');
   my $state = $cw->cget('-state');
   if ($state  eq  'disabled') {
     $e->configure(-state => 'normal');
-  }    
+  }
   my $mode = $cw->cget('-validate');
   if ($mode =~ /match/) {
     $cw->configure(-validate => 'none');
@@ -595,12 +595,12 @@ sub see { # print STDERR "SUB: see\n";
   my ($cw, $index) = @_;
   $index = $cw->index($index);
   my $lb = $cw->Subwidget('Listbox');
-  $cw->showPopup 
+  $cw->showPopup
     if (!$cw->popupIsVisible);
   $lb->see($index);
 }
 
-sub showPopup { # print STDERR "SUB: showPopup\n"; 
+sub showPopup { # print STDERR "SUB: showPopup\n";
   my $cw = shift;
   my $tl = $cw->Subwidget('Popup');
 
@@ -666,10 +666,10 @@ sub showPopup { # print STDERR "SUB: showPopup\n";
 
 
 #######################################################
-## JComboBox - Private methods and Event Handlers 
+## JComboBox - Private methods and Event Handlers
 #######################################################
 
-sub _updateWidth { # print STDERR "SUB: _updateWidth\n"; 
+sub _updateWidth { # print STDERR "SUB: _updateWidth\n";
   my ($cw, $action, $name) = @_;
 
   my $edEntry = $cw->Subwidget('ED_Entry');
@@ -706,7 +706,7 @@ sub AutoScan { # print STDERR "SUB: AutoScan\n";
   my $Ev = $lb->XEvent;
   $lb->AutoScan($Ev->x, $Ev->y);
 }
-  
+
 sub ButtonDown { # print STDERR "SUB: ButtonDown\n";
   my ($cw) = shift;
 
@@ -749,7 +749,7 @@ sub ButtonUp { # print STDERR "SUB: ButtonUp\n";
   } elsif ($mode =~ /^editable/i) {
     $button = $cw->Subwidget('ED_Button');
   }
-  if ($cw->{_tmpRelief}) { 
+  if ($cw->{_tmpRelief}) {
     $button->configure(-relief => $cw->{_tmpRelief});
     $cw->{_tmpRelief} = undef;
     $cw->{_buttonPressed} = undef;
@@ -779,11 +779,11 @@ sub NonSelect { # print STDERR "SUB: NonSelect\n";
   }
 
 }
-    
-sub SelectEntry { # print STDERR "SUB: SelectEntry\n"; 
+
+sub SelectEntry { # print STDERR "SUB: SelectEntry\n";
   my ($cw, $index) = @_;
 
-  if ($cw->Subwidget('Popup')->ismapped) { 
+  if ($cw->Subwidget('Popup')->ismapped) {
       $cw->setSelectedIndex($index);
   }
   $cw->hidePopup;
@@ -803,7 +803,7 @@ sub ValidateCmd { # print STDERR "SUB: ValidateCmd\n";
   ## Always allow deletes (unless unallowed in user specified)
   my $mode = $cw->cget('-validate');
   my $lb = $cw->Subwidget('Listbox');
- 
+
   if ($str eq "") {
     $lb->selectionClear(0, 'end');
     return 1;
@@ -813,7 +813,7 @@ sub ValidateCmd { # print STDERR "SUB: ValidateCmd\n";
     return 0 unless  (defined($index));
     $lb->selectionClear(0, 'end');
     $lb->selectionSet($index);
-    $cw->showPopup 
+    $cw->showPopup
       if (!$cw->popupIsVisible);
     $lb->see($index);
 
@@ -822,12 +822,12 @@ sub ValidateCmd { # print STDERR "SUB: ValidateCmd\n";
     return 0 unless (defined($index));
     $lb->selectionClear(0, 'end');
     $lb->selectionSet($index);
-    $cw->showPopup 
-	if (!$cw->popupIsVisible); 
+    $cw->showPopup
+	if (!$cw->popupIsVisible);
     $lb->see($index);
   }
   return 1;
-} 
+}
 
 sub EntryEnter { # print STDERR "SUB: EntryEnter\n";
   my $cw = shift;
@@ -876,19 +876,19 @@ sub CurSelection { # print STDERR "SUB: CurSelection\n";
     my $str =  $cw->Subwidget('ED_Entry')->get;
     return $cw->getItemIndex($str);
   } else {
-    return undef;
-  } 
+    return;
+  }
 }
 
 # PP: get current value from the fixed list
-sub GetSelected { 
+sub GetSelected {
   my $cw = shift;
   my $sel = $cw->CurSelection;
   my $lb = $cw->Subwidget('Listbox');
   if (defined($sel)) {
     $lb->get($sel);
   } else {
-    return undef;
+    return;
   }
 }
 
