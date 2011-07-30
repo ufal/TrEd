@@ -162,8 +162,6 @@ renice 10 $$ | mute
 
 # run scripts
 for script in "$tmp"/"$job_name".$$.???? ; do
-    echo qsub -S /bin/bash -cwd -V -p $sge_priority -o "$outdir"/"${script##*/}".o -e "$errdir"/"${script##*/}".e "$script" ${sge_options[@]} >&2
-
     qsub -S /bin/bash -cwd -V -p $sge_priority -o "$outdir"/"${script##*/}".o -e "$errdir"/"${script##*/}".e "$script" ${sge_options[@]}| mute
     sleep $sleep;
 done;
