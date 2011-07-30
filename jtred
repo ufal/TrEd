@@ -90,7 +90,7 @@ while ((${#@})) ; do
         l) filelist=$value ;;
         t) tmp=$value ;;
         w) work=$value ;;
-        o) value=${value/=/ \'}; sge_options+=($value\') ;;
+        o) value=${value/=/ }; sge_options+=($value) ;;
         p) sge_priority=$value ;;
         b) break ;; # following options go to btred
     esac
@@ -162,7 +162,8 @@ renice 10 $$ | mute
 
 # run scripts
 for script in "$tmp"/"$job_name".$$.???? ; do
-    qsub -S /bin/bash -cwd -V -p $sge_priority -o "$outdir"/"${script##*/}".o -e "$errdir"/"${script##*/}".e "$script" ${sge_options[@]}| mute
+    qsub -S /bin/bash -cwd -V -p $sge_priority -o "$outdir"/"${script##*/}".o -e "$errdir"/"${script##*/}".e "${sge_options[@]}" "$script" \
+        | mute
     sleep $sleep;
 done;
 
