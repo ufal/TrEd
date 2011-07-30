@@ -34,8 +34,8 @@ BEGIN {
     use vars qw($VERSION);
     $VERSION = "0.2";
     if ( $] >= 5.008 ) {
-        eval {
-            require  Encode ();
+        eval <<'EOF';
+            use Encode ();
 
             #######################################################################################
             # Usage         : new($encoding_1, $encoding_2)
@@ -88,12 +88,11 @@ BEGIN {
               }
               return $string;
             }
-        }
+EOF
     }
     else {
-        eval {
-            require Text::Iconv;
-            Text::Iconv->import;
+        eval <<'EOF';
+            use Text::Iconv;
 
             #######################################################################################
             # Usage         : new($encoding_1, $encoding_2)
@@ -138,7 +137,7 @@ BEGIN {
               my $res= $self->[0]->convert($string);
               return $res;
             }
-        }
+EOF
     }
 }
 
