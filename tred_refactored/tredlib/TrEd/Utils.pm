@@ -35,7 +35,7 @@ our %EXPORT_TAGS = (
             find_win_home
             applyFileSuffix
             parse_file_suffix
-            getNodeByNo
+            get_node_by_no
             set_fh_encoding
 
             uniq
@@ -100,7 +100,8 @@ sub fetch_from_win32_reg {
     );
     my $query = ( $registry . $delimiter . $key . $delimiter );
 
-# if subkey is not defined, we have to use one more delimiter to let the module know, we want the default value
+    # if subkey is not defined, we have to use one more delimiter 
+    # to let the module know, we want the default value
     if ( defined($subkey) ) {
         $query .= $subkey;
     }
@@ -113,16 +114,15 @@ sub fetch_from_win32_reg {
     # array_ref->[1] == type
     my $value_array_ref = $reg_ref->{$query};
     if ( defined $value_array_ref ) {
-
-        # print "key was found.\n";
+        # key was found
     }
     else {
-
-        # print "key not found.\n";
+        # key was not found
         return;
     }
 
-# to be coherent with the old version, which returns decimal instead of hexadecimal value
+    # to be coherent with the old version,
+    # which returns decimal instead of hexadecimal value
     return ( $value_array_ref->[1] == REG_DWORD() )
         ? hex( $value_array_ref->[0] )
         : $value_array_ref->[0];
@@ -271,9 +271,8 @@ sub _find_tree_no {
     return $n;
 }
 
-#TODO: could be renamed to use _, but it is used in Vallex extension
 #######################################################################################
-# Usage         : applyFileSuffix($win, $goto)
+# Usage         : apply_file_suffix($win, $goto)
 # Purpose       : Set current tree and node positions to positions described by
 #                 $goto suffix in file displayed in $win window
 # Returns       : 1 if the new position was found and set, 0 otherwise
@@ -290,7 +289,7 @@ sub _find_tree_no {
 #
 #                 Sets $win->{treeNo} and $win->{currentNode} if appropriate.
 # See Also      : parse_file_suffix()
-sub applyFileSuffix {
+sub apply_file_suffix {
     my ( $win, $goto ) = @_;
     return if ( !defined $win );
     my $fsfile = $win->{FSFile};
@@ -359,7 +358,7 @@ sub applyFileSuffix {
 
     # new: we're the dot in .[0-9]+ (TM)
     if ( $goto =~ /\.([0-9]+)$/ ) {
-        my $root = getNodeByNo( $win, $1 );
+        my $root = get_node_by_no( $win, $1 );
         if ($root) {
             $win->{currentNode} = $root;
             return 1;
@@ -388,8 +387,22 @@ sub applyFileSuffix {
     # hey, caller, you should redraw after this!
 }
 
+
+#######################################################################################
+# Usage         : applyFileSuffix($win, $goto)
+# Purpose       : Wrapper for apply_file_suffix function
+# Returns       : 1 if the new position was found and set, 0 otherwise
+# Parameters    : TrEd::Window $win -- reference to TrEd::Window object
+#                 string $goto      -- suffix of the file (or a position in the file)
+# Throws        : no exceptions
+# Comments      : since pdt vallex extension use this function, it has to stay here for now
+# See Also      : parse_file_suffix()
+sub applyFileSuffix {
+    return apply_file_suffix(@_);
+}
+
 #TODO: this does not belong here!
-sub getNodeByNo {
+sub get_node_by_no {
     my ( $win, $no ) = @_;
     my $root = $win->{FSFile}->treeList->[ $win->{treeNo} ];
     my $i    = $no;

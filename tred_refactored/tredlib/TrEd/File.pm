@@ -587,6 +587,8 @@ sub update_main {
 #                 Hooks run: open_file_hook, possibly also guess_context_hook, file_opened_hook
 #                 (only in this function, other functions called from this function can trigger
 #                  other hooks)
+#                 This function supports suffixes after the $file_name, which means that 
+#                 it can activate certain node in specified tree according to file's suffix
 # See Also      : close_file()
 sub open_file {
     my ( $grp_or_win, $raw_file_name, %opts ) = @_;
