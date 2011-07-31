@@ -556,15 +556,13 @@ sub bookmarkToFilelistDialog {
 }
 
 #######################################################################################
-# Usage         : unbind_key($context, $key, $delete)
-# Purpose       : Discard binding for key $key in specified $context (if $delete is true, delete it, otherwise set bound macro to undef)
-# Returns       : The result of delete function or undef/empty list, depending on the context
-# Parameters    : string $context -- context in which the binding is being deleted
-#                 string $key     -- key or key combination, e.g. 'Ctrl+x'
-#                 bool $delete    -- if set to true, binding is deleted, otherwise the macro is just set to undef
+# Usage         : create_filelists($cmdline_filelists)
+# Purpose       : Create filelists during TrEd's start up: spcified on command line,
+#                 bookmark filelist and standard filelists
+# Returns       : Undef/empty list
+# Parameters    : string $cmdline_filelists -- filelists specified on the command line
 # Throws        : no exception
-# Comments      : ...
-# See Also      : bind_key(), get_binding_for_key(), get_bindings_for_macro()
+# See Also      : create_ext_filelist(), create_cmdline_filelists(), load_std_filelists()
 # was main::createCmdLineFilelists
 sub create_filelists {
     my ($cmdline_filelists) = @_;
@@ -586,6 +584,7 @@ sub create_filelists {
     create_cmdline_filelists($cmdline_filelists);
     TrEd::Bookmarks::create_bookmarks_filelist();
     load_std_filelists();
+    return;
 }
 
 #######################################################################################

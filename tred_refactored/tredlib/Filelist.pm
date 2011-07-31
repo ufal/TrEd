@@ -1634,13 +1634,22 @@ on Filelist object.
 
 =head1 DIAGNOSTICS
 
+Croaks "Cannot open filelist" or "Cannot close filelist" if these operations fail.
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
+No configuration or environment settings needed.
 
 =head1 DEPENDENCIES
 
-Carp, File::Glob, Cwd, Encode, TrEd::MinMax, Readonly
+TrEd modules:
+TrEd::Utils, TrEd::MinMax
+
+Standard Perl modules:
+Carp, File::Glob, Cwd, Encode,
+
+CPAN modules:
+Readonly
 
 
 =head1 INCOMPATIBILITIES

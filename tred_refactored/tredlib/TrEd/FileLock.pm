@@ -20,8 +20,9 @@ BEGIN {
 
     if ( exists &Tk::MainLoop ) {
 
-      # it is not very good that TrEd::FileLock loads this Tk and GUI stuff :/
+      # it is not very good that TrEd::FileLock loads this Tk and GUI stuff,
       # dialogs for asking for user choices,
+      # at least do not load it if no GUI exists
         require TrEd::Query::User;
     }
 }
@@ -30,8 +31,6 @@ use TrEd::Config qw{$noLockProto $userlogin $tredDebug $lockFiles};
 use TrEd::Utils qw{$EMPTY_STR};
 use Treex::PML;
 use Carp;
-
-# funkcie vytiahnute z main namespace-u
 
 ######################################################################################
 # Usage         : set_lock($filename)
@@ -279,14 +278,14 @@ sub _check_lock_only_mem_lock {
 
 ######################################################################################
 # Usage         : check_lock($fsfile, $file_name)
-# Purpose       : Check whether file is locked and if it was locked by us and the lock
+# Purpose       : Check whether file is locked and if it was locked by us
 #                 or the file was modified since we created the lock
 # Returns       : 15 possible string outcomes
 # Parameters    : Treex::PML::Document $fsfile  -- file object (not obligatory)
 #                 string $file_name             -- name of the file whose lock to check
 # Throws        : nothing
 # Comments      : Complex and difficult to understand, diagram should be drawn here,
-#                 but it's quite difficult to draw it here..
+#                 but it's quite difficult to draw it here in ASCII
 # See Also      : set_lock(), read_lock()
 # was main::checkLock
 sub check_lock {
