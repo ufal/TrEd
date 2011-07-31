@@ -3746,7 +3746,7 @@ Open secondary files for a given L<Treex::PML::Document|http://search.cpan.org/~
 
 sub OpenSecondaryFiles {
     my ($fsfile) = @_;
-    my $status = TrEd::File::openSecondaryFiles( $grp, $fsfile );
+    my $status = TrEd::File::open_secondary_files( $grp, $fsfile );
     unless ( $status->{ok} ) {
         die( $status->{error} );
     }
@@ -3760,7 +3760,7 @@ Close and reload current fsfile.
 =cut
 
 sub ReloadCurrentFile {
-    my $ret = TrEd::File::reloadFile($grp);
+    my $ret = TrEd::File::reload_file($grp);
     if ( exists( $grp->{framegroup} ) ) {    # why?
         $root = $grp->{root};
         $this = $grp->{currentNode};
@@ -3794,7 +3794,7 @@ sub CloseFile {
     croak("Not a Treex::PML::Document object!\n")
         if defined($file)
             and !UNIVERSAL::DOES::does( $file, 'Treex::PML::Document' );
-    TrEd::File::closeFile( $grp, $file );
+    TrEd::File::close_file( $grp, $file );
     $Redraw = 'all';
 }
 
@@ -3821,7 +3821,7 @@ Save the current L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/
 =cut
 
 sub Save {
-    my $ret = ( TrEd::File::saveFile($grp) == 1 );
+    my $ret = ( TrEd::File::save_file($grp) == 1 );
     $FileNotSaved   = GetFileSaveStatus();
     $forceFileSaved = !$FileNotSaved;
     return $ret;
@@ -3884,7 +3884,7 @@ sub SaveAs {
     my $update_filelist = $opts->{update_filelist} || 'ask';
 
     my $ret = (
-        TrEd::File::doSaveFileAs(
+        TrEd::File::do_save_file_as(
             $grp,     $fsfile,      $filename,
             $backend, $update_refs, $update_filelist
             ) == 1

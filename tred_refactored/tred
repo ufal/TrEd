@@ -276,7 +276,9 @@ EOL
 ############################################################
 }
 
-#TODO: pdt20 and pmltq extensions use this variable :/
+Readonly my $MILISEC_PER_MIN => 60000;
+
+# pdt20 and pmltq extensions use this variable
 *openfiles = \@TrEd::File::openfiles;
 
 if ($opt_v) {
@@ -935,7 +937,7 @@ sub ApplyGlobalConfig {
     update_treeviews($grp);
     $grp->{top}->afterCancel( $grp->{autoSaveCallback} );
     $grp->{autoSaveCallback}
-        = $grp->{top}->repeat( $autoSave * 60000, [ \&autoSaveAll, $grp ] )
+        = $grp->{top}->repeat( $autoSave * $MILISEC_PER_MIN, [ \&autoSaveAll, $grp ] )
         if $autoSave > 0;
 }
 
@@ -1095,7 +1097,7 @@ sub findToplevelFileFor {
     }
 }
 
-# sub closeFile
+# sub close_file
 
 # UI, Error
 sub plainErrorMessage {
@@ -1201,7 +1203,7 @@ sub postponed_update_menu {
             -label     => "$i.  " . $opened_file->filename(),
             -underline => 0,
             -command   => [
-                \&TrEd::File::openStandaloneFile, $grp,
+                \&TrEd::File::open_standalone_file, $grp,
                 $opened_file->filename(), -keep => 1
             ]
         );
@@ -1396,14 +1398,14 @@ sub updateHelpMenu {
     }
 }
 
-# sub newFileFromCurrent
+# sub new_file_from_current
 
-#sub openStandaloneFile
+#sub open_standalone_file
 
-# sub reloadFile
+# sub reload_file
 # wrapper for PADT extension
 sub reloadFile {
-    return TrEd::File::reloadFile(@_);
+    return TrEd::File::reload_file(@_);
 }
 
 # sub _new_status
@@ -1421,7 +1423,7 @@ sub lockOpenFile {
     return TrEd::FileLock::lock_open_file( $win, $fsfile );
 }
 
-# sub openSecondaryFiles
+# sub open_secondary_files
 
 #######################################################################################
 # Usage         : unhide_current_node($win)
@@ -1493,7 +1495,7 @@ sub autoSaveAll {
     $top->Unbusy() unless $insideEval;
 }
 
-# sub saveFile
+# sub save_file
 
 # node
 sub isShown {    # test if node is shown (always 1 if $showHidden)
@@ -1716,7 +1718,7 @@ sub get_nodes_fsfile_tree {
 sub get_nodes_stylesheet {
     my ( $grp, $stylesheet ) = @_;
     return if $insideEval;
-    foreach ( stylesheetUsingWindows( $grp, $stylesheet ) ) {
+    foreach ( windows_using_stylesheet( $grp, $stylesheet ) ) {
         $_->get_nodes();
     }
     return;
@@ -2578,7 +2580,7 @@ sub removeWindow {
         @{$windows} = grep { $_ ne $win } @{$windows};
         $grp->{rmsplitButton}->configure( -state => 'disabled' )
             if $grp->{rmsplitButton} and @{$windows} <= 1;
-        TrEd::File::closeFile( $win, -no_update => 1, -keep_postponed => 1 );
+        TrEd::File::close_file( $win, -no_update => 1, -keep_postponed => 1 );
         my $brother = $win->canvas_destroy();
         if ( $win == $grp->{focusedWindow} ) {
             delete $grp->{focusedWindow};
@@ -3079,7 +3081,7 @@ sub populate_recent_files_menu {
             -label     => "$i.  $recent_file",
             -underline => 0,
             -command =>
-                [ \&TrEd::File::openStandaloneFile, $grp_ref, $recent_file ]
+                [ \&TrEd::File::open_standalone_file, $grp_ref, $recent_file ]
         );
         $i++;
     }
@@ -3133,7 +3135,7 @@ sub create_toolbar_buttons {
         -image       => icon( $tred_ref, "filesave" ),
         -state       => 'disabled',
         -borderwidth => $buttonBorderWidth,
-        -command     => [ \&TrEd::File::saveFile, $tred_ref ]
+        -command     => [ \&TrEd::File::save_file, $tred_ref ]
     )->pack( -side => 'left' );
 
     $tred_ref->{Balloon}->attach( $tred_ref->{saveButton},
@@ -3146,7 +3148,7 @@ sub create_toolbar_buttons {
         -relief      => $buttonsRelief,
         -image       => icon( $tred_ref, "reload" ),
         -borderwidth => $buttonBorderWidth,
-        -command     => [ \&TrEd::File::reloadFile, $tred_ref ]
+        -command     => [ \&TrEd::File::reload_file, $tred_ref ]
     )->pack( -side => 'left' );
 
     $tred_ref->{Balloon}->attach( $tred_ref->{reloadButton},
@@ -3445,61 +3447,8 @@ sub create_value_line_subframe {
     return;
 }
 
-sub startMain {
-    my $node;
-    my $parent;
-    my %tred
-        ; # gathers TrEd window global data, also referred to as $grp, the 'frame group'
-          # since we thought that in the future we'll support multiple windows
-          # and windows are called frames in the emacs terminlology
-
-    my $top;
-    if ($opt_W) {
-        $top = Tk::MainWindow->new( -use => $opt_W );
-    }
-    else {
-        $top = Tk::MainWindow->new();
-    }
-    Tk::MiscWorkarounds::apply_workarounds($top);
-    $tred{top} = $top;
-
-    $Treex::PML::IO::lwp_user_agent
-        = TrEd::UserAgent->new( $top, keep_alive => 1 );
-
-    if ( $^O eq 'MSWin32' ) {
-
-        # a workaround for focus being lost after popup menu usage on Win32
-
-      # a workaround for dialog buttons showing only partial labels in Windows
-        require Tk::DialogBox;
-        {
-            my $old = \&Tk::Widget::DialogBox;
-            *Tk::Widget::DialogBox = sub {
-                my $d = &$old;
-                if ($d) {
-                    for my $w ( grep $_->isa('Tk::Button'), $d->Subwidget ) {
-                        $w->configure( -padx => 7, -pady => 2, -width => 0 );
-                    }
-                }
-                return $d;
-            };
-        }
-        require Tk::Dialog;
-        {
-            my $old = \&Tk::Widget::Dialog;
-            *Tk::Widget::Dialog = sub {
-                my $d = &$old;
-                if ($d) {
-                    for my $w ( grep $_->isa('Tk::Button'), $d->Subwidget ) {
-                        $w->configure( -padx => 7, -pady => 2, -width => 0 );
-                    }
-                }
-                return $d;
-            };
-        }
-
-    }
-
+sub set_default_widget_options {
+    my ($top) = @_;
     for (
         qw(ROText Text TextUndo Entry LabEntry HistEntry SimpleHistEntry
         Listbox HList CodeText)
@@ -3522,56 +3471,41 @@ sub startMain {
         $top->optionAdd( "\*Scrollbar.borderWidth",        "1" );
         $top->optionAdd( "\*Scrollbar.troughColor",        "gray80" );
     }
+    return;
+}
 
-    {
+# make sure button flashes are visible
+sub set_button_flashes {
+    my ($top) = @_;
+    my $bg = $top->optionGet( 'Button.background', 'Background' );
+    my $abg = $top->optionGet( 'Button.activeBackground',
+        'ActiveBackground' );
+    my $H     = '[a-z0-9]{2}';
+    my $level = 7;
+    if ( ( $bg eq $abg ) and $abg =~ /^\#($H)($H)($H)$/ogi ) {
+        my ( $r, $g, $b ) = map {hex} $1, $2, $3;
+        if ( !TrEd::MinMax::first { $_ >= 255 - $level } ( $r, $g, $b ) ) {
 
-        # make sure button flashes are visible
-        my $bg = $top->optionGet( 'Button.background', 'Background' );
-        my $abg = $top->optionGet( 'Button.activeBackground',
-            'ActiveBackground' );
-        my $H     = '[a-z0-9]{2}';
-        my $level = 7;
-        if ( ( $bg eq $abg ) and $abg =~ /^\#($H)($H)($H)$/ogi ) {
-            my ( $r, $g, $b ) = map {hex} $1, $2, $3;
-            if ( !TrEd::MinMax::first { $_ >= 255 - $level } ( $r, $g, $b ) ) {
-
-                # lighten
-                for ( $r, $g, $b ) {
-                    $_ += $level;
-                }
+            # lighten
+            for ( $r, $g, $b ) {
+                $_ += $level;
             }
-            else {
-
-                # darken
-                $_ -= $level for $r, $g, $b;
-            }
-            $abg = '#' . join q{},
-                map { sprintf( '%02x', TrEd::MinMax::min( abs($_), 255 ) ) }
-                $r, $g, $b;
-            $top->optionAdd( '*Button.activeBackground', $abg );
         }
+        else {
+
+            # darken
+            $_ -= $level for $r, $g, $b;
+        }
+        $abg = '#' . join q{},
+            map { sprintf( '%02x', TrEd::MinMax::min( abs($_), 255 ) ) }
+            $r, $g, $b;
+        $top->optionAdd( '*Button.activeBackground', $abg );
     }
+    return;
+}
 
-    if ($TrEd::Convert::support_unicode) {
-        $top->useinputmethods(1);
-    }
-    my $preparedExtensions = TrEd::Extensions::prepare_extensions($opt_m)
-        ;    #<- sets up new stylesheet, resources, macor paths
-    TrEd::Stylesheet::load_stylesheets( \%tred );
-
-    Readonly my $milisec_per_min => 60000;
-
-    if ( $autoSave > 0 ) {
-        $tred{autoSaveCallback} = $top->repeat( $autoSave * $milisec_per_min,
-            [ \&autoSaveAll, \%tred ] );
-    }
-
-    $tred{folderImage} = icon( \%tred, 'folder' );
-    $tred{fileImage}   = icon( \%tred, 'document' );
-    TrEd::Bookmarks::set_last_action($TrEd::Config::lastAction);
-    $tred{selectedContext} = $init_macro_context || 'TredMacro';
-    $tred{buildTGTSfromCSTS} = $opt_R;
-
+sub set_geometry {
+    my ($top) = @_;
     if (  !defined $opt_G
         && defined $TrEd::Config::geometry
         && length $TrEd::Config::geometry )
@@ -3590,282 +3524,16 @@ sub startMain {
         $top->sizefrom('program');
         $top->geometry($TrEd::Config::geometry);
     }
-    prepareFonts( \%tred );
-    $tred{treeWindows}   = [];
-    $tred{focusedWindow} = new_TrEd_Window( \%tred );
-    my $canvas = $tred{focusedWindow}->canvas();
-    $canvas->configure(@focused_win_opts);
+    return;
+}
 
-    print STDERR "Main window created.\n" if $tredDebug;
+sub set_up_signal_handling {
+    my ($tred_ref) = @_;
 
-    if ( -f $TrEd::Config::appIcon ) {
-        print STDERR "adding icon-image.\n" if $tredDebug;
-        $top->iconimage( $top->Pixmap( -file => "$TrEd::Config::appIcon" ) );
-        print STDERR "done.\n" if $tredDebug;
-    }
+    # otherwise SIGINT would wait till next focus
+    my $top = $tred_ref->{top};
+    $top->repeat( 1000, sub {1} );
 
-    #  $top->focusFollowsMouse;
-    addBindTags( $top, 'my' );
-
-    print STDERR "Asking wm for exit-hook.\n" if $tredDebug;
-
-    $top->protocol( 'WM_DELETE_WINDOW' => [ \&quit, \%tred ] );
-
-    print STDERR "Exit hook created.\n" if $tredDebug;
-
-    $tred{Balloon} = $top->Balloon(
-        -initwait        => $toolbarBalloonInitWait,
-        -balloonposition => 'mouse',
-        -state           => 'balloon',
-    );
-    $tred{Balloon}->Subwidget('message')
-        ->configure( -foreground => $toolbarBalloonForeground );
-    $tred{Balloon}
-        ->Tk::Toplevel::configure( -background => $toolbarBalloonBackground );
-    $tred{Toolbar} = $top->Frame;
-
-    print STDERR "Creating menubar.\n" if $tredDebug;
-
-    # make old calls work
-    require Tk::Menu::Item;
-    *Tk::Menu::Item::entryconfigure = sub {
-        my ( $menu, $name, %args ) = @_;
-        my $m = $menu->menu;
-        $m->entryconfigure( $m->index($name), %args );
-    };
-
-    # We need to pack in an optionmenu, so we cannot use menubar on windows
-    # and cannot use Toplevel->configure(-menu) on other systems
-    my $main_menu = $tred{main_menu}
-        = TrEd::Menu->new( _load_menus( \%tred ) );
-    my $menubar;
-    if ( $^O eq 'MSWin32' ) {
-        $menubar = $tred{Menubar} = $tred{MenubarFrame}
-            = $tred{main_menu}->create_menu_frame( $top, 'MENUBAR',
-            { -relief => $menubarRelief } );
-    }
-    else {
-        $tred{MenubarFrame} = $top->Frame();
-        $menubar = $tred{Menubar}
-            = $tred{main_menu}
-            ->create_menubar( $tred{MenubarFrame}, 'MENUBAR',
-            { -relief => $menubarRelief } );
-        $menubar->pack(qw/-fill x -expand 1 -side left/);
-    }
-    $tred{MenubarFrame}->pack(qw/-fill x/);
-    $menubar->bind( 'Tk::Menu', '<Tab>',       [ 'NextEntry', 1 ] );
-    $menubar->bind( 'Tk::Menu', '<<LeftTab>>', [ 'NextEntry', -1 ] );
-    $top->Frame(qw/-relief sunken -height 2 -borderwidth 2/)
-        ->pack(qw/-fill x/);
-    addBindTags( $menubar, 'my' );
-    {
-        my %map = (
-            FileMenu                => 'MENUBAR:FILE',
-            RecentFileMenu          => 'MENUBAR:FILE:RECENT',
-            NodeMenu                => 'MENUBAR:NODE',
-            NodeMenu                => 'MENUBAR:NODE',
-            TreeMenu                => 'MENUBAR:TREE',
-            ViewMenu                => 'MENUBAR:VIEW',
-            ToolsMenu               => 'MENUBAR:MACROS',
-            UserMenu                => 'MENUBAR:MACROS:ALL_MODES',
-            CurrentContextMacroMenu => 'MENUBAR:MACROS:CURRENT_MODE',
-            MinorModesMainMenu      => 'MENUBAR:VIEW:TOGGLE_MINOR_MODES',
-            SetupMenu               => 'MENUBAR:SETUP',
-            HelpMenu                => 'MENUBAR:HELP',
-            SessionMenu             => 'MENUBAR:FILE:FILE_LISTS',
-            BookmarkMenu            => 'MENUBAR:FILE:BOOKMARKS',
-            PostponedFileMenu       => 'MENUBAR:FILE:KEPT_IN_MEMORY',
-            BookmarksFileMenu => 'MENUBAR:FILE:BOOKMARKS:GO_TO_BOOKMARK',
-        );
-        my ( $k, $v ) = @_;    #TODO: ???? @_?!
-        while ( ( $k, $v ) = each %map ) {
-            $tred{$k} = $main_menu->lookup_menu_item($v);
-        }
-
-        my @recent_files = TrEd::RecentFiles::recent_files();
-        populate_recent_files_menu( \%tred, \@recent_files );
-
-    }
-    $tred{templateMatchMethod} = $TrEd::Config::defaultTemplateMatchMethod;
-    $tred{macroListOrder}      = $TrEd::Config::defaultMacroListOrder;
-
-    if ( !exists $TrEd::Macros::keyBindings{ $tred{selectedContext} } ) {
-        $tred{selectedContext} = 'TredMacro';
-    }
-
-    $tred{ContextsMenu}
-        = TrEd::Menu::Context->new( $tred{MenubarFrame}, \%tred );
-    $tred{ContextsMenuLabel} = $tred{MenubarFrame}->Label(
-        -text      => 'Mode:',
-        -font      => 'C_small',
-        -underline => 1
-    )->pack(qw/-side right/);
-    $tred{Balloon}->attach( $tred{ContextsMenu}->get_menu(),
-        -balloonmsg => "Annotation Mode" );
-
-    addBindTags( $tred{Toolbar}, 'my' );
-
-    TrEd::Bookmarks::update_bookmarks( \%tred );
-
-    $tred{vLineFrame}     = $top->Frame();
-    $tred{valueLine}      = TrEd::ValueLine->new( $tred{vLineFrame}, \%tred );
-    $tred{vLineSeparator} = $top->Adjuster();
-
-    my $bf = $tred{bottomFrame} = $top->Frame;
-    if ($displayStatusLine) {
-        my $sl = $tred{statusLine} = TrEd::StatusLine->new( $bf, \%tred );
-
-    }
-    {
-        $tred{minorModesMenu} = $bf->Menubutton(
-            -image     => icon( \%tred, 'puzzle' ),
-            -direction => 'above'
-        )->pack( -side => 'left', -expand => 'no' );
-        my $menu = $tred{minorModesMenu}->menu(qw/-tearoff 0/);
-        $tred{minorModesMenu}->configure( -menu => $menu );
-        $tred{minorModesLabelFrame} = $bf->Frame()
-            ->pack( -side => 'left', -expand => 'no', -padx => 5 );
-        $tred{minorModesLabels} = {};
-        $tred{Balloon}->attach( $tred{minorModesMenu},
-            -balloonmsg =>
-                "Enable/disable additional features\n(a.k.a. minor modes)" );
-    }
-    {
-        $tred{canvasScale} = 0;
-        $tred{canvasScaleLabel} = $bf->Label( -text => 'Scale: 100%' )
-            ->pack( -side => 'left', -expand => 'no' );
-        my $slider = $tred{canvasScaleWidget} = $bf->Scale(
-            -from         => -2,
-            -to           => 2,
-            -font         => 'C_small',
-            -length       => 100,
-            -sliderlength => 20,
-            -width        => 10,
-            -showvalue    => 0,
-            -resolution   => 0.1,
-            -borderwidth  => 1,
-            -variable     => \$tred{canvasScale},
-            -command      => [
-                sub {
-                    my ( $grp, $step ) = @_;
-                    $grp->{focusedWindow}->treeView->scale( $step,
-                        $grp->{focusedWindow}->{currentNode} );
-                    updateScaleFactor($grp);
-                },
-                \%tred
-            ],
-            -orient => 'horizontal'
-        )->pack( -side => 'left', -expand => 'no' );
-        $slider->bindtags(
-            [ $slider, ref($slider), $slider->toplevel, 'all' ] );
-        $slider->bind( $slider, '<3>', sub { $slider->set(0); Tk->break; } );
-    }
-
-    create_toolbar_buttons( \%tred );
-
-    create_stylesheet_menu( \%tred );
-
-    $tred{UserToolbarSep}
-        = $top->Frame(qw/-relief sunken -height 2 -borderwidth 2/);
-    $tred{UserToolbars} = $top->Frame();
-    addBindTags( $tred{UserToolbars}, 'my' );
-
-    create_value_line_subframe( \%tred );
-
-    $tred{bodyPane} = $top->Panedwindow();
-    $tred{bottomFrame}->pack(qw/-pady 2 -side bottom -fill x -expand no/);
-    $tred{bodyPane}->pack(qw/-fill both -expand yes/);
-    $tred{windowFrame} = $tred{bodyPane}->Pane();
-    $tred{bodyPane}->add( $tred{windowFrame} );
-
-    $tred{focusedWindow}->frame_widget( $canvas, [], [qw/-side left/] )->pack(
-        qw/-expand yes -fill both/,
-        -in   => $tred{windowFrame},
-        -side => 'right'
-    );
-
-    # frame canvas here
-
-    #  $tred{sLineFrame}->pack(qw/-fill x -expand yes/);
-
-    $tred{focusedWindow}->canvas->focus;
-
-    print STDERR "GUI prepared.\n" if $tredDebug;
-    $top->update;
-
-    # check if TrEd has been updated
-    my $version_file = File::Spec->catfile( $tred_d, 'last_version' );
-    my $ver;
-    if ( open my $fh, '<', $version_file ) {
-        $ver = <$fh>;
-        close $fh;
-        chomp $ver;
-    }
-    if ( open my $fh, '>', $version_file ) {
-        print $fh $VERSION, "\n";
-        close $fh;
-    }
-    else {
-        warn "Could not write version information to $version_file: $!\n";
-        $ver = $VERSION;    # do not bother the user in this case
-    }
-    if ( !$TrEd::Config::skipStartupVersionCheck
-        && ( !$ver || $ver ne $VERSION ) )
-    {
-        if (TrEd::Query::User::new_query(
-                $top, "TrEd was "
-                    . ( $ver ? "upgraded" : "installed or upgraded" )
-                    . " recently.\n\n"
-                    . "Do you want to check for new extensions or updates?",
-                -title   => "TrEd Upgraded",
-                -buttons => [ "Manage Extensions", "Later" ]
-            ) =~ /Manage/
-            )
-        {
-            manage_extensions( \%tred, 0 );
-            $preparedExtensions
-                = TrEd::Extensions::prepare_extensions($opt_m);
-        }
-    }
-
-    $top->Busy( -recurse => 1 );
-    eval {
-        loadMacros( \%tred, { preparedExtensions => $preparedExtensions } );
-    };
-    TrEd::Error::Message::error_message( $top, $@ ) if $@;
-    print STDERR
-        "Resource path: $Treex::PML::resourcePath\n";    # unless $opt_q;
-    print "Starting in context $tred{focusedWindow}->{macroContext}\n"
-        if $tredDebug;
-    doEvalHook( $tred{focusedWindow}, "initialize_bindings_hook" );
-
-    TrEd::Menu::Macro::update_macro_menus( \%tred );
-    TrEd::MinorModes::update_minor_modes( \%tred );
-    $tred{StylesheetMenu}->update( \%tred );
-    updatePostponed( \%tred );
-    updateHelpMenu( \%tred, { preparedExtensions => $preparedExtensions } );
-
-    if ( doEvalHook( $tred{focusedWindow}, "init_hook" ) eq 'stop' ) {
-        $top->Unbusy;
-        print STDERR "Stopped by init_hook\n";
-        exit_tred();
-    }
-
-    # STYLESHEET_FROM_FILE is from TrEd::Stylesheet
-    my $stylesheet = $opt_s || STYLESHEET_FROM_FILE();
-    $tred{selectedStylesheet} = $stylesheet;
-    $tred{focusedWindow}->apply_stylesheet($stylesheet);
-
-    toggleSidePanel( \%tred );
-    if ($opt_split_window) {
-        my $dir = $opt_split_window > 0 ? 'vert' : 'horiz';
-        for ( my $i = 1; $i < abs($opt_split_window); $i++ ) {
-            splitWindow( \%tred, $dir );
-        }
-        focusCanvas( $tred{treeWindows}->[0]->canvas, \%tred );
-    }
-    $top->repeat( 1000, sub {1} )
-        ;    # otherwise SIGINT would wait till next focus
     $SIG{PIPE} = sub {
         print STDERR "Caught signal SIGPIPE: $!\n";
     };
@@ -3897,49 +3565,18 @@ sub startMain {
         }
         else {
             print STDERR "Caught SIGINT, closing all files without saving\n";
-            TrEd::File::closeAllFiles( \%tred );
+            TrEd::File::close_all_files( $tred_ref );
             print STDERR "Good bye!\n";
             $top->destroy;
             exit_tred(1);
         }
     };
+    return;
+}
 
-    if (   TrEd::ManageFilelists::find_filelist('Default')->count == 0
-        && TrEd::ManageFilelists::find_filelist('CmdLine-1') )
-    {
-        print STDERR "Selecting CmdLine-1 filelist." if $tredDebug;
-        TrEd::ManageFilelists::selectFilelist( \%tred, 'CmdLine-1' );
-    }
-    else {
-        print STDERR "Selecting Default filelist." if $tredDebug;
-        TrEd::ManageFilelists::selectFilelist( \%tred, 'Default' );
-    }
-    if ($opt_split_window) {
-        create_split_windows( $opt_split_window, $opt_filelist, \%tred );
-
-    }
-
-    $tred{appenddefault}
-        = 1;    #($tred{focusedWindow}{currentFilelist}->count()>0);
-
-    # run start_hook
-    if ( doEvalHook( $tred{focusedWindow}, "start_hook" ) eq 'stop' ) {
-        $top->Unbusy;
-        print STDERR "Stopped by start_hook\n";
-        exit_tred();
-    }
-
-    # Starting ------------------------------------------
-    $top->Unbusy;
-    $top->focus if ( $^O eq 'MSWin32' );
-    if ( defined $opt_e and length $opt_e ) {
-        my $macro = eval "package $tred{selectedContext}; sub{ $opt_e }";
-        die $@ if $@;
-        doEvalMacro( $tred{focusedWindow}, $macro );
-    }
-
-##### <<<<<< bindings
-
+sub set_up_menubindigs {
+    my ($tred_ref, $menubar) = @_;
+    my $top = $tred_ref->{top};
     print STDERR "Binding keystrokes...\n" if $tredDebug;
     $menubar->bind(
         '<Escape>',
@@ -3964,7 +3601,7 @@ sub startMain {
                     }
                 }
             },
-            \%tred
+            $tred_ref
         ]
     );
     foreach my $prefix ( 'Alt', 'Meta', 'Mod4' ) {
@@ -3995,13 +3632,13 @@ sub startMain {
                         Tk->break;
                     }
                 },
-                \%tred,
+                $tred_ref,
                 uc($prefix) . '+'
             ]
         );
     }
 
-    #TODO: bindings to Menu::Context?
+    #TODO: move bindings to Menu::Context?
     foreach my $prefix ( 'Alt', 'Meta', 'Mod4' ) {
         $top->bind(
             'my',
@@ -4024,13 +3661,13 @@ sub startMain {
                         Tk->break;
                     }
                 },
-                \%tred,
+                $tred_ref,
                 uc($prefix) . '+'
             ]
         );
     }
 
-    #TODO: bindings to Menu::Stylesheet?
+    #TODO: move bindings to Menu::Stylesheet?
     foreach my $prefix ( 'Alt', 'Meta', 'Mod4' ) {
         $top->bind(
             'my',
@@ -4053,21 +3690,413 @@ sub startMain {
                         Tk->break;
                     }
                 },
-                \%tred,
+                $tred_ref,
                 uc($prefix) . '+'
             ]
         );
     }
-##### <<<<<< binding
+    return;
+}
+
+sub version_during_last_startup {
+    my $version_file = File::Spec->catfile( $tred_d, 'last_version' );
+    my $ver = q{};
+    if ( open my $fh, '<', $version_file ) {
+        $ver = <$fh>;
+        close $fh;
+        chomp $ver;
+    }
+    if ( open my $fh, '>', $version_file ) {
+        print $fh $VERSION, "\n";
+        close $fh;
+    }
+    else {
+        warn "Could not write version information to $version_file: $!\n";
+        $ver = $VERSION;    # do not bother the user in this case
+    }
+    return $ver;
+}
+
+sub load_extensions {
+    my ($tred_ref, $preparedExtensions) = @_;
+    my $top = $tred_ref->{top};
+    # check if TrEd has been updated
+    my $ver = version_during_last_startup();
+
+    if ( !$TrEd::Config::skipStartupVersionCheck
+        && ( !$ver || $ver ne $VERSION ) )
+    {
+        if (TrEd::Query::User::new_query(
+                $top, "TrEd was "
+                    . ( $ver ? "upgraded" : "installed or upgraded" )
+                    . " recently.\n\n"
+                    . "Do you want to check for new extensions or updates?",
+                -title   => "TrEd Upgraded",
+                -buttons => [ "Manage Extensions", "Later" ]
+            ) =~ /Manage/
+            )
+        {
+            manage_extensions( $tred_ref, 0 );
+            $preparedExtensions
+                = TrEd::Extensions::prepare_extensions($opt_m);
+        }
+    }
+
+    $top->Busy( -recurse => 1 );
+    eval {
+        loadMacros( $tred_ref, { preparedExtensions => $preparedExtensions } );
+    };
+    TrEd::Error::Message::error_message( $top, $@ ) if $@;
+    print STDERR
+        "Resource path: $Treex::PML::resourcePath\n";    # unless $opt_q;
+    print 'Starting in context ' . $tred_ref->{focusedWindow}->{macroContext} . "\n"
+        if $tredDebug;
+    return $preparedExtensions;
+}
+
+sub create_minor_modes_menu {
+    my ($tred_ref, $bottom_frame) = @_;
+    $tred_ref->{minorModesMenu} = $bottom_frame->Menubutton(
+        -image     => icon( $tred_ref, 'puzzle' ),
+        -direction => 'above'
+    )->pack( -side => 'left', -expand => 'no' );
+    my $menu = $tred_ref->{minorModesMenu}->menu(qw/-tearoff 0/);
+    $tred_ref->{minorModesMenu}->configure( -menu => $menu );
+    $tred_ref->{minorModesLabelFrame} = $bottom_frame->Frame()
+        ->pack( -side => 'left', -expand => 'no', -padx => 5 );
+    $tred_ref->{minorModesLabels} = {};
+    $tred_ref->{Balloon}->attach( $tred_ref->{minorModesMenu},
+        -balloonmsg =>
+            "Enable/disable additional features\n(a.k.a. minor modes)" );
+    return;
+}
+
+sub create_canvas_scale {
+    my ($tred_ref, $bottom_frame) = @_;
+    $tred_ref->{canvasScale} = 0;
+    $tred_ref->{canvasScaleLabel} 
+        = $bottom_frame->Label( -text => 'Scale: 100%' )
+        ->pack( -side => 'left', -expand => 'no' );
+    my $slider = $tred_ref->{canvasScaleWidget} = $bottom_frame->Scale(
+        -from         => -2,
+        -to           => 2,
+        -font         => 'C_small',
+        -length       => 100,
+        -sliderlength => 20,
+        -width        => 10,
+        -showvalue    => 0,
+        -resolution   => 0.1,
+        -borderwidth  => 1,
+        -variable     => \$tred_ref->{canvasScale},
+        -command      => [
+            sub {
+                my ( $grp, $step ) = @_;
+                $grp->{focusedWindow}->treeView->scale( $step,
+                    $grp->{focusedWindow}->{currentNode} );
+                updateScaleFactor($grp);
+            },
+            $tred_ref
+        ],
+        -orient => 'horizontal'
+    )->pack( -side => 'left', -expand => 'no' );
+    $slider->bindtags(
+        [ $slider, ref $slider, $slider->toplevel, 'all' ] );
+    $slider->bind( $slider, '<3>', sub { $slider->set(0); Tk->break; } );
+    return;
+}
+
+sub prepare_gui {
+    my ($tred_ref) = @_;
+
+    my $top;
+    if ($opt_W) {
+        $top = Tk::MainWindow->new( -use => $opt_W );
+    }
+    else {
+        $top = Tk::MainWindow->new();
+    }
+    Tk::MiscWorkarounds::apply_workarounds($top);
+    $tred_ref->{top} = $top;
+
+    $Treex::PML::IO::lwp_user_agent
+        = TrEd::UserAgent->new( $top, keep_alive => 1 );
+
+    set_default_widget_options($top);
+
+    set_button_flashes($top);
+
+    if ($TrEd::Convert::support_unicode) {
+        $top->useinputmethods(1);
+    }
+
+    # sets up new stylesheet, resources, macor paths
+    my $preparedExtensions = TrEd::Extensions::prepare_extensions($opt_m);
+
+    TrEd::Stylesheet::load_stylesheets( $tred_ref );
+
+
+    if ( $autoSave > 0 ) {
+        $tred_ref->{autoSaveCallback} = $top->repeat( $autoSave * $MILISEC_PER_MIN,
+            [ \&autoSaveAll, $tred_ref ] );
+    }
+
+    $tred_ref->{folderImage} = icon( $tred_ref, 'folder' );
+    $tred_ref->{fileImage}   = icon( $tred_ref, 'document' );
+
+    TrEd::Bookmarks::set_last_action($TrEd::Config::lastAction);
+
+    $tred_ref->{selectedContext} = $init_macro_context || 'TredMacro';
+    $tred_ref->{buildTGTSfromCSTS} = $opt_R;
+
+    set_geometry($top);
+
+    prepareFonts( $tred_ref );
+    $tred_ref->{treeWindows}   = [];
+    $tred_ref->{focusedWindow} = new_TrEd_Window( $tred_ref );
+    my $canvas = $tred_ref->{focusedWindow}->canvas();
+    $canvas->configure(@focused_win_opts);
+
+    print STDERR "Main window created.\n" if $tredDebug;
+
+    if ( -f $TrEd::Config::appIcon ) {
+        print STDERR "adding icon-image.\n" if $tredDebug;
+        $top->iconimage( $top->Pixmap( -file => "$TrEd::Config::appIcon" ) );
+        print STDERR "done.\n" if $tredDebug;
+    }
+
+    #  $top->focusFollowsMouse;
+    addBindTags( $top, 'my' );
+
+    print STDERR "Asking wm for exit-hook.\n" if $tredDebug;
+
+    $top->protocol( 'WM_DELETE_WINDOW' => [ \&quit, $tred_ref ] );
+
+    print STDERR "Exit hook created.\n" if $tredDebug;
+
+    $tred_ref->{Balloon} = $top->Balloon(
+        -initwait        => $toolbarBalloonInitWait,
+        -balloonposition => 'mouse',
+        -state           => 'balloon',
+    );
+    $tred_ref->{Balloon}->Subwidget('message')
+        ->configure( -foreground => $toolbarBalloonForeground );
+    $tred_ref->{Balloon}
+        ->Tk::Toplevel::configure( -background => $toolbarBalloonBackground );
+    $tred_ref->{Toolbar} = $top->Frame;
+
+    print STDERR "Creating menubar.\n" if $tredDebug;
+
+    # make old calls work
+    require Tk::Menu::Item;
+    *Tk::Menu::Item::entryconfigure = sub {
+        my ( $menu, $name, %args ) = @_;
+        my $m = $menu->menu;
+        $m->entryconfigure( $m->index($name), %args );
+    };
+
+    # We need to pack in an optionmenu, so we cannot use menubar on windows
+    # and cannot use Toplevel->configure(-menu) on other systems
+    my $main_menu = $tred_ref->{main_menu}
+        = TrEd::Menu->new( _load_menus( $tred_ref ) );
+    my $menubar;
+    if ( $^O eq 'MSWin32' ) {
+        $menubar = $tred_ref->{Menubar} = $tred_ref->{MenubarFrame}
+            = $tred_ref->{main_menu}->create_menu_frame( $top, 'MENUBAR',
+            { -relief => $menubarRelief } );
+    }
+    else {
+        $tred_ref->{MenubarFrame} = $top->Frame();
+        $menubar = $tred_ref->{Menubar}
+            = $tred_ref->{main_menu}
+            ->create_menubar( $tred_ref->{MenubarFrame}, 'MENUBAR',
+            { -relief => $menubarRelief } );
+        $menubar->pack(qw/-fill x -expand 1 -side left/);
+    }
+    $tred_ref->{MenubarFrame}->pack(qw/-fill x/);
+    $menubar->bind( 'Tk::Menu', '<Tab>',       [ 'NextEntry', 1 ] );
+    $menubar->bind( 'Tk::Menu', '<<LeftTab>>', [ 'NextEntry', -1 ] );
+    $top->Frame(qw/-relief sunken -height 2 -borderwidth 2/)
+        ->pack(qw/-fill x/);
+    addBindTags( $menubar, 'my' );
+    {
+        my %map = (
+            FileMenu                => 'MENUBAR:FILE',
+            RecentFileMenu          => 'MENUBAR:FILE:RECENT',
+            NodeMenu                => 'MENUBAR:NODE',
+            NodeMenu                => 'MENUBAR:NODE',
+            TreeMenu                => 'MENUBAR:TREE',
+            ViewMenu                => 'MENUBAR:VIEW',
+            ToolsMenu               => 'MENUBAR:MACROS',
+            UserMenu                => 'MENUBAR:MACROS:ALL_MODES',
+            CurrentContextMacroMenu => 'MENUBAR:MACROS:CURRENT_MODE',
+            MinorModesMainMenu      => 'MENUBAR:VIEW:TOGGLE_MINOR_MODES',
+            SetupMenu               => 'MENUBAR:SETUP',
+            HelpMenu                => 'MENUBAR:HELP',
+            SessionMenu             => 'MENUBAR:FILE:FILE_LISTS',
+            BookmarkMenu            => 'MENUBAR:FILE:BOOKMARKS',
+            PostponedFileMenu       => 'MENUBAR:FILE:KEPT_IN_MEMORY',
+            BookmarksFileMenu => 'MENUBAR:FILE:BOOKMARKS:GO_TO_BOOKMARK',
+        );
+        my ( $k, $v ) = @_;    #TODO: ???? @_?!
+        while ( ( $k, $v ) = each %map ) {
+            $tred_ref->{$k} = $main_menu->lookup_menu_item($v);
+        }
+        my @recent_files = TrEd::RecentFiles::recent_files();
+        populate_recent_files_menu( $tred_ref, \@recent_files );
+    }
+
+    $tred_ref->{templateMatchMethod} = $TrEd::Config::defaultTemplateMatchMethod;
+    $tred_ref->{macroListOrder}      = $TrEd::Config::defaultMacroListOrder;
+
+    if ( !exists $TrEd::Macros::keyBindings{ $tred_ref->{selectedContext} } ) {
+        $tred_ref->{selectedContext} = 'TredMacro';
+    }
+
+    $tred_ref->{ContextsMenu}
+        = TrEd::Menu::Context->new( $tred_ref->{MenubarFrame}, $tred_ref );
+    $tred_ref->{ContextsMenuLabel} = $tred_ref->{MenubarFrame}->Label(
+        -text      => 'Mode:',
+        -font      => 'C_small',
+        -underline => 1
+    )->pack(qw/-side right/);
+    $tred_ref->{Balloon}->attach( $tred_ref->{ContextsMenu}->get_menu(),
+        -balloonmsg => "Annotation Mode" );
+
+    addBindTags( $tred_ref->{Toolbar}, 'my' );
+
+    TrEd::Bookmarks::update_bookmarks( $tred_ref );
+
+    $tred_ref->{vLineFrame}     = $top->Frame();
+    $tred_ref->{valueLine}      = TrEd::ValueLine->new( $tred_ref->{vLineFrame}, $tred_ref );
+    $tred_ref->{vLineSeparator} = $top->Adjuster();
+
+    my $bf = $tred_ref->{bottomFrame} = $top->Frame;
+    if ($displayStatusLine) {
+        my $sl = $tred_ref->{statusLine} = TrEd::StatusLine->new( $bf, $tred_ref );
+
+    }
+
+    create_minor_modes_menu($tred_ref, $bf);
+    create_canvas_scale($tred_ref, $bf);
+
+    create_toolbar_buttons( $tred_ref );
+
+    create_stylesheet_menu( $tred_ref );
+
+    $tred_ref->{UserToolbarSep}
+        = $top->Frame(qw/-relief sunken -height 2 -borderwidth 2/);
+    $tred_ref->{UserToolbars} = $top->Frame();
+    addBindTags( $tred_ref->{UserToolbars}, 'my' );
+
+    create_value_line_subframe( $tred_ref );
+
+    $tred_ref->{bodyPane} = $top->Panedwindow();
+    $tred_ref->{bottomFrame}->pack(qw/-pady 2 -side bottom -fill x -expand no/);
+    $tred_ref->{bodyPane}->pack(qw/-fill both -expand yes/);
+    $tred_ref->{windowFrame} = $tred_ref->{bodyPane}->Pane();
+    $tred_ref->{bodyPane}->add( $tred_ref->{windowFrame} );
+
+    $tred_ref->{focusedWindow}->frame_widget( $canvas, [], [qw/-side left/] )->pack(
+        qw/-expand yes -fill both/,
+        -in   => $tred_ref->{windowFrame},
+        -side => 'right'
+    );
+
+    # frame canvas here
+
+    #  $tred_ref->{sLineFrame}->pack(qw/-fill x -expand yes/);
+
+    $tred_ref->{focusedWindow}->canvas->focus;
+    return $preparedExtensions;
+}
+
+sub startMain {
+    my $node;
+    my $parent;
+    my %tred
+        ; # gathers TrEd window global data, also referred to as $grp, the 'frame group'
+          # since we thought that in the future we'll support multiple windows
+          # and windows are called frames in the emacs terminlology
+    my $preparedExtensions = prepare_gui(\%tred);
+    my $top = $tred{top};
+    my $menubar = $tred{Menubar};
+
+    print STDERR "GUI prepared.\n" if $tredDebug;
+    $top->update;
+
+    $preparedExtensions = load_extensions(\%tred, $preparedExtensions);
+
+    doEvalHook( $tred{focusedWindow}, "initialize_bindings_hook" );
+
+    TrEd::Menu::Macro::update_macro_menus( \%tred );
+    TrEd::MinorModes::update_minor_modes( \%tred );
+    $tred{StylesheetMenu}->update( \%tred );
+    updatePostponed( \%tred );
+    updateHelpMenu( \%tred, { preparedExtensions => $preparedExtensions } );
+
+    if ( doEvalHook( $tred{focusedWindow}, "init_hook" ) eq 'stop' ) {
+        $top->Unbusy;
+        print STDERR "Stopped by init_hook\n";
+        exit_tred();
+    }
+
+    # STYLESHEET_FROM_FILE is from TrEd::Stylesheet
+    my $stylesheet = $opt_s || STYLESHEET_FROM_FILE();
+    $tred{selectedStylesheet} = $stylesheet;
+    $tred{focusedWindow}->apply_stylesheet($stylesheet);
+
+    toggleSidePanel( \%tred );
+    if ($opt_split_window) {
+        my $dir = $opt_split_window > 0 ? 'vert' : 'horiz';
+        for ( my $i = 1; $i < abs($opt_split_window); $i++ ) {
+            splitWindow( \%tred, $dir );
+        }
+        focusCanvas( $tred{treeWindows}->[0]->canvas, \%tred );
+    }
+
+    set_up_signal_handling(\%tred);
+
+    if (   TrEd::ManageFilelists::find_filelist('Default')->count == 0
+        && TrEd::ManageFilelists::find_filelist('CmdLine-1') )
+    {
+        print STDERR "Selecting CmdLine-1 filelist." if $tredDebug;
+        TrEd::ManageFilelists::selectFilelist( \%tred, 'CmdLine-1' );
+    }
+    else {
+        print STDERR "Selecting Default filelist." if $tredDebug;
+        TrEd::ManageFilelists::selectFilelist( \%tred, 'Default' );
+    }
+
+    if ($opt_split_window) {
+        create_split_windows( $opt_split_window, $opt_filelist, \%tred );
+
+    }
+
+    # by default TrEd adds files to default filelist
+    $tred{append_files_to_default_fl} = 1;
+
+    # run start_hook
+    if ( doEvalHook( $tred{focusedWindow}, "start_hook" ) eq 'stop' ) {
+        $top->Unbusy;
+        print STDERR "Stopped by start_hook\n";
+        exit_tred();
+    }
+
+    # Starting ------------------------------------------
+    $top->Unbusy;
+    $top->focus if ( $^O eq 'MSWin32' );
+    if ( defined $opt_e and length $opt_e ) {
+        my $macro = eval "package $tred{selectedContext}; sub{ $opt_e }";
+        die $@ if $@;
+        doEvalMacro( $tred{focusedWindow}, $macro );
+    }
+
+    set_up_menubindigs(\%tred, $menubar);
+
     # this can not be moved up above loading macros because then
     # some bindings won't work... (don't ask me why)
     $tred{default_binding} = TrEd::Binding::Default->new( \%tred );
     $tred{default_binding}->setup_default_bindings();
-
-    #  $top->bind('my','<Control-x><KeyPress>'=>
-    #			[sub { evalMacro(@_); Tk->break; }, \%tred, 'CTRL-X+' ]);
-
-    #  $top->bind('all','<Tab>',undef);
 
     # New Busy window bindings
     $top->Tk::bind( 'Busy', '<Escape>', [ \&_search_busy, \%tred ] );
@@ -4081,8 +4110,6 @@ sub startMain {
     $top->Tk::bind( 'Busy', '<Any-Motion>', [ \&Tk::Widget::_busy => 0 ] );
     $top->bind( 'Tk::Listbox', '<KeyPress>', \&list_isearch );
 
-    #TrEd::Bindings::setup_default_bindings(\%tred);
-
     print STDERR "done.\nStarting main loop.\n" if $tredDebug;
     print STDERR "Ready.\n" unless $opt_q;
     $SIG{USR2} = sub {
@@ -4093,7 +4120,7 @@ if (0){
     # model 2
     TrEd::ManageFilelists::selectFilelist(\%tred, 'PDT 2.0 a-layer sample');
     TrEd::MinorModes::toggle_minor_mode(\%tred,'Show_Neighboring_Trees');
-    
+
     for my $i (1..24) {
         my $time = 1_000+800*$i;
         my $timer = $top->after($time, sub{ $tred{focusedWindow}{treeNo} = $i; _do_goto_tree($tred{focusedWindow}) } );
@@ -4101,19 +4128,19 @@ if (0){
             $timer = $top->after($time + 100*$n, sub{ currentNext( $tred{focusedWindow}) } );
         }
     }
-    
+
     my $startin = 26_000;
-    
+
     for my $i (1..20) {
         my $time = $startin + 500*$i;
         my $timer = $top->after($time, sub{ currentLeftWholeLevel(\%tred); } );
-    
+
     }
-    
+
     $startin = 52_000;
-    
+
     my $timer = $top->after($startin, sub{ TrEd::Filelist::Navigation::tie_next_file(\%tred) } );
-    
+
     for my $i (1..24) {
         my $time = $startin + 800*$i;
         my $timer = $top->after($time, sub{ $tred{focusedWindow}{treeNo} = $i; _do_goto_tree($tred{focusedWindow}) } );
@@ -4152,7 +4179,7 @@ sub handleUSR2Signal {
             unlink $cmd_file || warn("WARN: Failed to unlink $cmd_file\n");
             my @cmd = split( "\0", $cmd );
             if ( ( $cmd[0] || '' ) eq 'open' and @cmd == 2 ) {
-                TrEd::File::openStandaloneFile( $grp, $cmd[1] );
+                TrEd::File::open_standalone_file( $grp, $cmd[1] );
                 return;
             }
             elsif ( ( $cmd[0] || '' ) eq 'reload' and @cmd == 2 ) {
@@ -4322,7 +4349,7 @@ sub newFileFromTemplate {
         'browse', $choices, [ $choices->[0] ],
     );
     if ( ref($ret) and @$ret ) {
-        return TrEd::File::openStandaloneFile(
+        return TrEd::File::open_standalone_file(
             $grp,
             $templates[ $ret->[0] ][1],
             -justheader => 1
@@ -4334,13 +4361,13 @@ sub newFileFromTemplate {
 # sub fileDialog
 # sub urlDialog
 
-# sub askSaveReferences
-# sub saveFileAs
-# sub doSaveFileAs
+# sub ask_save_references
+# sub save_file_as
+# sub do_save_file_as
 
 # sub renameFileInFilelist
 
-# sub closeAllFiles
+# sub close_all_files
 
 # sub askSaveFile
 
@@ -4444,7 +4471,8 @@ sub selectStylesheet {
 }
 
 # stylesheet
-sub stylesheetUsingWindows {
+# was stylesheetUsingWindows
+sub windows_using_stylesheet {
     my ( $grp, $stylesheet ) = @_;
     return grep { $_->{stylesheet} eq $stylesheet } @{ $grp->{treeWindows} };
 }
@@ -4922,7 +4950,7 @@ sub findTemplated {
             # if the initial file and the current file
             # are different, open the secondary files now
             my $status
-                = TrEd::File::openSecondaryFiles( $win, $fsfile, undef );
+                = TrEd::File::open_secondary_files( $win, $fsfile, undef );
             unless ( $status->{ok} ) {
                 $win->toplevel->ErrorReport(
                     -title => "Error: open failed",
@@ -5471,7 +5499,7 @@ sub redraw_fsfile {
 
 sub redraw_stylesheet {
     my ( $grp, $stylesheet ) = @_;
-    foreach my $win ( stylesheetUsingWindows( $grp, $stylesheet ) ) {
+    foreach my $win ( windows_using_stylesheet( $grp, $stylesheet ) ) {
         $win->apply_stylesheet($stylesheet);
         $win->redraw();
     }
@@ -6725,7 +6753,7 @@ sub manage_extensions {
     my ( $grp, $do_reload ) = @_;
     my $reload_macros;
     my $repos = [ split /\s+/, $extensionRepos ];
-    TrEd::Extensions::manage_extensions_2(
+    TrEd::Extensions::manage_extensions_dialog(
         $grp,
         {   repositories  => $repos,
             reload_macros => \$reload_macros,

@@ -44,7 +44,7 @@ BEGIN {
                 get_preinstalled_extension_list
                 get_extension_template_paths
                 get_extension_subpaths
-                manage_extensions_2
+                manage_extensions_dialog
                 )
         ]
     );
@@ -263,8 +263,8 @@ sub _resolve_missing_dependency {
     my $short_name         = $args_ref->{short_name};
     my $repo               = $args_ref->{repo};
     my $dialog_box         = $args_ref->{dialog_box};
-    
-    
+
+
     my $req_name = $required_extension->{name};
     my $min      = $required_extension->{min_version} || q{};
     my $max      = $required_extension->{max_version} || q{};
@@ -346,7 +346,7 @@ sub _add_required_exts {
     my %seen;
 
     # this can be a little tricky: if any of those three expressions
-    # is false, $require would be false/0. However, if all of them 
+    # is false, $require would be false/0. However, if all of them
     # are true, last one is used as the value for $require
     my $require
         = $meta_data_ref
@@ -367,7 +367,7 @@ sub _add_required_exts {
                 if ( $installed_req_ver
                 && _version_ok( $installed_req_ver, $required_extension ) );
 
-            # If we are here, required extension is not installed 
+            # If we are here, required extension is not installed
             # or it's not up-to-date
             my $repo = $meta_data_ref->{repository}
                 && $meta_data_ref->{repository}{href};
@@ -405,8 +405,8 @@ sub _add_required_exts {
             push @{ $requires{$uri} }, $req_uri;
             # and fill also %required_by hash
             _fill_required_by($uri);
-            
-            # Add dependent extension to $extensions_list_ref, 
+
+            # Add dependent extension to $extensions_list_ref,
             # if URI of the required extension is not already listed
             # in the list
             if (   !exists $seen{$req_uri}
@@ -496,7 +496,7 @@ PKG:
             _update_progressbar($opts_ref);
         }
 
-        # if extension is found in repository and it is not installed 
+        # if extension is found in repository and it is not installed
         # or there is a newer version in repository, increment $i
         if ( _ext_not_installed_or_actual( $meta_data_ref, $installed_ver ) )
         {
@@ -504,7 +504,7 @@ PKG:
         }
         else {
 
-            # remove the extensions from the list, 
+            # remove the extensions from the list,
             # if it is installed & up to date
             splice @list_of_extensions, $i, 1;
 
@@ -573,7 +573,7 @@ sub _list_of_installed_extensions {
                 scalar( @{$ext_list_ref} + @{$pre_installed_ext_list} ),
         );
     }
-    
+
     %{$pre_installed_ref} = map { $_ => 1; } @{$pre_installed_ext_list};
     for my $name ( @{$ext_list_ref}, @{$pre_installed_ext_list} ) {
 
@@ -594,7 +594,7 @@ sub _list_of_installed_extensions {
 
         my $require
             = $meta_data_ref
-            && ref $meta_data_ref->{require} 
+            && ref $meta_data_ref->{require}
             && $meta_data_ref->{require};
         if ($require) {
             $requires{$name}
@@ -764,8 +764,8 @@ sub _required_perl_modules {
         }
         if ( length $req || !defined $available_version ) {
             $requires_modules
-                .= "\n\t" 
-                . $requirements->{name} . q{ } 
+                .= "\n\t"
+                . $requirements->{name} . q{ }
                 . $req . q{ }
                 . (
                 defined($available_version)
@@ -876,7 +876,7 @@ sub _dependencies_of_req_exts {
 
     # for each extension from URI list
     for my $name ( @{$ext_list_ref} ) {
-        
+
         # if there is a dependency (TrEd version, Perl or Perl module)
         # missing for the extension $name, go to next one
         next if $uninstallable_ref->{$name};
@@ -891,7 +891,7 @@ sub _dependencies_of_req_exts {
             my $required_ext = shift @queue;
             if ( $uninstallable_ref->{$required_ext} ) {
 
-                # required extension requires different TrEd version, 
+                # required extension requires different TrEd version,
                 # Perl version or some Perl modules,
                 # -> mark dependent extension as uninstallable
                 if ( $uninstallable_ref->{$name} ) {
@@ -901,8 +901,8 @@ sub _dependencies_of_req_exts {
                     . short_name($required_ext);
             }
 
-            # put requirements of required extension into queue 
-            # to process them later (BFS - like, since we use push 
+            # put requirements of required extension into queue
+            # to process them later (BFS - like, since we use push
             # (to the end of array) & shift(from the beginning))
             my @more
                 = grep { !exists( $seen{$_} ) } @{ $requires{$required_ext} };
@@ -1792,14 +1792,14 @@ sub _populate_extension_pane {
     my %enable = ();
     my %extension_data = ();
     my %pre_installed = ();
-    
+
     %requires = ();
     %required_by = ();
 
     # construct extensions list with required/(pre-)installed extensions
-    # If the user chooses to install or upgrade extensions, 
+    # If the user chooses to install or upgrade extensions,
     # $ext_list_ref would be a list of URIs of extensions.
-    # 
+    #
     # Otherwise, $ext_list_ref would be a list of names of extensions.
     # Following functions should be ready for such schizophrenic behaviour.
     # The same applies to %requires, %required_by, %extension_data hashes,
@@ -1812,13 +1812,13 @@ sub _populate_extension_pane {
             dialog_box         => $dialog_box,
         }
     );
-   
-    # find required TrEd version, Perl version and module requirements 
+
+    # find required TrEd version, Perl version and module requirements
     #of all the extensions from URI list
     my $uninstallable_ref
         = _find_uninstallable_exts( $ext_list_ref, \%extension_data );
 
-    # test required extensions for unsatisfied(-able) 
+    # test required extensions for unsatisfied(-able)
     # dependencies, modify uninstallable_ref accordingly
     _dependencies_of_req_exts( $ext_list_ref, $uninstallable_ref );
 
@@ -1991,7 +1991,7 @@ sub _update_install_new_button {
         repositories  => $opts_ref->{repositories}
     };
 
-    if ( manage_extensions_2( $tred, $opts_to_pass ) eq $INSTALL ) {
+    if ( manage_extensions_dialog( $tred, $opts_to_pass ) eq $INSTALL ) {
         $enable_ref = _populate_extension_pane( $tred, $manage_ext_dialog,
             $opts_ref );
         if ( ref( $opts_ref->{reload_macros} ) ) {
@@ -2004,7 +2004,7 @@ sub _update_install_new_button {
 }
 
 #######################################################################################
-# Usage         : manage_extensions_2($tred, $opts_ref)
+# Usage         : manage_extensions_dialog($tred, $opts_ref)
 # Purpose       : Create dialog box with listed extensions which allows user to install,
 #                 update, remove, enable and disable extensions
 # Returns       : Result of Tk::DialogBox::Show() function, i.e. name of the Button invoked,
@@ -2017,7 +2017,7 @@ sub _update_install_new_button {
 #                 with extensions.
 # See Also      : manage_repositories(), install_extensions(), Tk::DialogBox::Show()
 #TODO: len preboha prosim nezabudni premenovat tuto funkciu, lebo ti to otrepem o hlavu ja sam
-sub manage_extensions_2 {
+sub manage_extensions_dialog {
     my ( $tred, $opts_ref ) = @_;
     $opts_ref ||= {};
 
@@ -2027,10 +2027,10 @@ sub manage_extensions_2 {
     my $REPOSITORIES = 'Edit Repositories';
     my $INSTALL      = 'Install Selected';
 
-    # if $opts_ref->{install} is true, set title to 
+    # if $opts_ref->{install} is true, set title to
     # 'Install New Extensions', otherwise use 'Manage Extensions'
-    # if $opts_ref->{install} is true, only install button is created, 
-    # otherwise, also upgrade, download new and repositories buttons 
+    # if $opts_ref->{install} is true, only install button is created,
+    # otherwise, also upgrade, download new and repositories buttons
     # are created (Close button is always created)
     my $dialog_title
         = $opts_ref->{only_upgrades} ? 'Update Extensions'
@@ -2259,7 +2259,7 @@ sub update_extensions_list {
             "Configuring extenson failed: cannot write extension list $extension_list_file: $!"
             );
         foreach my $extension_name (@list) {
-            # ext name is valid name and 
+            # ext name is valid name and
             # it is one of the names specified by sub argument
             if ( $extension_name =~ m/^!?(\S+)\s*$/ && exists $names{$1} )
             {
@@ -2489,7 +2489,7 @@ sub install_extensions {
     }
 
     # Update extension list file
-    open my $fh, '>', $extension_list_file 
+    open my $fh, '>', $extension_list_file
         or croak(
         "Installation failed: cannot write to extension list $extension_list_file: $!"
         );
@@ -2681,7 +2681,7 @@ sub init_extensions {
     # perl include paths
     @includes{@INC} = ();
 
-    # add each extension's resources, macros, stylesheets 
+    # add each extension's resources, macros, stylesheets
     # and libs to appropriate paths used by TrEd
     for my $name ( grep { !/^!/ } @{$list} ) {
         my $dir = File::Spec->catdir( $extension_dir, $name, 'resources' );
@@ -2738,7 +2738,7 @@ sub get_preinstalled_extension_list {
     # delete extensions that should be ignored / not listed
     delete @preinst{ map { /^!?(\S+)/ ? $1 : $_ } @{$except} };
 
-    # filter only those extensions that exist in hash 
+    # filter only those extensions that exist in hash
     # (i.e. those that are not commented out, nor ignored)
     @{$pre_installed_dir_exts}
         = grep { exists( $preinst{$_} ) } @{$pre_installed_dir_exts};
@@ -2970,20 +2970,20 @@ sub compare_module_versions {
 #                 hash_ref $disabled_ref -- ref to hash of explicitly disabled extensions
 #                 string $macro_file_cmdline -- the string from -m switch on command line
 # Throws        : no exception
-# Comments      : If any macro is specified on the command line, the extensions are 
+# Comments      : If any macro is specified on the command line, the extensions are
 #                 disabled by default. Specifying enabled extensions on command line
-#                 has however, higher priority. 
+#                 has however, higher priority.
 # See Also      : prepare_extensions()
 sub _check_extensions_cmdline_opts {
     my ($extension_name, $enabled_ref, $disabled_ref, $macro_file_cmdline) = @_;
-    # ext name starts with '!' ~ is disabled 
+    # ext name starts with '!' ~ is disabled
     if ($extension_name =~ m/^!(.*)/) {
 
-        if (exists $enabled_ref->{'*'} && !exists $disabled_ref->{$1} 
-            || exists $enabled_ref->{$1}) 
+        if (exists $enabled_ref->{'*'} && !exists $disabled_ref->{$1}
+            || exists $enabled_ref->{$1})
         {
             # user forced enable all && did not disable this extension
-            # => make extension enabled            
+            # => make extension enabled
             return $1;
         }
         else {
@@ -2993,31 +2993,31 @@ sub _check_extensions_cmdline_opts {
     }
     else {
         # if a macro is specified on the command line
-        # treat the extension as if it was disabled 
+        # treat the extension as if it was disabled
         # in extension list file
         if ($macro_file_cmdline) {
-            if ( exists $enabled_ref->{'*'} 
-                    && !exists $disabled_ref->{$extension_name} 
-                 || exists $enabled_ref->{$extension_name} ) 
-            { 
+            if ( exists $enabled_ref->{'*'}
+                    && !exists $disabled_ref->{$extension_name}
+                 || exists $enabled_ref->{$extension_name} )
+            {
                 return $extension_name;
             }
-            else { 
+            else {
                 return '!'.$extension_name;
             }
-        } 
+        }
         else {
-            if (exists $disabled_ref->{'*'} 
-                    && !exists $enabled_ref->{$extension_name} 
-                || exists $disabled_ref->{$extension_name} ) 
-            { 
-                # all extensions are disables 
+            if (exists $disabled_ref->{'*'}
+                    && !exists $enabled_ref->{$extension_name}
+                || exists $disabled_ref->{$extension_name} )
+            {
+                # all extensions are disables
                 #  and this one is not explicitly enabled
                 # or this extension is explicitly disabled
                 # => disable extension
                 return q{!} . $extension_name;
             }
-            else { 
+            else {
                 # otherwise just keep the extension enabled
                 return $extension_name;
             }
@@ -3029,12 +3029,12 @@ sub _check_extensions_cmdline_opts {
 #######################################################################################
 # Usage         : prepare_extensions($macro_file_cmdline)
 # Purpose       : Prepare all the installed extensions for use
-# Returns       : Reference to array which contains two array references: first one 
-#                 is a reference to array of installed extensions, second one is a ref 
+# Returns       : Reference to array which contains two array references: first one
+#                 is a reference to array of installed extensions, second one is a ref
 #                 to array of preinstalled extensions
-# Parameters    : scalar $macro_file_cmdline -- command line argument -- macro file to read 
+# Parameters    : scalar $macro_file_cmdline -- command line argument -- macro file to read
 # Throws        : carp if required extension could not be found
-# Comments      : Also reflects command-line arguments which can enable and disable 
+# Comments      : Also reflects command-line arguments which can enable and disable
 #                 loading of extensions
 # See Also      : init_extensions()
 sub prepare_extensions {
@@ -3091,56 +3091,56 @@ TrEd::Extensions - GUI & code for managing Extensions and repositories
 
 =head1 VERSION
 
-This documentation refers to 
+This documentation refers to
 TrEd::Extensions version 0.2.
 
 
 =head1 SYNOPSIS
 
   use TrEd::Extensions;
-  
+
   my $ext_directory = TrEd::Extensions::get_extensions_dir();
-  
+
   my @extension_list = qw{
     extension_one
     extension_two
   };
   my $ext_path = "/home/john/.tred.d/extensions";
-  
+
   TrEd::Extensions::init_extensions(\@extension_list, $ext_path);
-  
+
   my $repo_URI = "http://tred.com/extensions/";
   my $ext_in_repo = TrEd::Extensions::get_extension_list($repo_URI); # returns ref to array
-  
-  
+
+
   my @macro_paths = TrEd::Extensions::get_extension_macro_paths(\@extension_list, $ext_path);
   my @sample_data_paths = TrEd::Extensions::get_extension_sample_data_paths(\@extension_list, $ext_path);
   my @doc_paths = TrEd::Extensions::get_extension_doc_paths(\@extension_list, $ext_path);
   my @template_paths = TrEd::Extensions::get_extension_template_paths(\@extension_list, $ext_path);
-  
+
   my $preinstalled_ext_dir = TrEd::Extensions::get_preinstalled_extensions_dir();
   my $preinstalled_extensions = TrEd::Extensions::get_preinstalled_extension_list(); # ref to array
-  
+
   my $subpath = "macros";
   my @subpaths = TrEd::Extensions::get_extension_subpaths(\@extension_list, $ext_path, $subpath);
-  
+
   my $opts = {
     repositories => $repos,
     reload_macros => \$reload_macros,
   }
   # fires up the GUI installer
-  TrEd::Extensions::manage_extensions_2($tred, $opts);
-  
-  
+  TrEd::Extensions::manage_extensions_dialog($tred, $opts);
+
+
 
 =head1 DESCRIPTION
 
-Package for managing TrEd's extensions -- installation, removing, enabling and disabling. 
-Uses Tk to create GUI to perform these changes. 
+Package for managing TrEd's extensions -- installation, removing, enabling and disabling.
+Uses Tk to create GUI to perform these changes.
 
 =head1 SUBROUTINES/METHODS
 
-=over 4 
+=over 4
 
 
 =item * C<TrEd::Extensions::short_name($pkg_name)>
@@ -4324,7 +4324,7 @@ Undef/empty list
 =back
 
 
-=item * C<TrEd::Extensions::manage_extensions_2($tred, $opts_ref)>
+=item * C<TrEd::Extensions::manage_extensions_dialog($tred, $opts_ref)>
 
 =over 6
 
@@ -5086,9 +5086,9 @@ or disabled according to command line options and extensions file
 
 =item Comments
 
-If any macro is specified on the command line, the extensions are 
+If any macro is specified on the command line, the extensions are
 disabled by default. Specifying enabled extensions on command line
-has however, higher priority. 
+has however, higher priority.
 
 =item See Also
 
@@ -5112,11 +5112,11 @@ Prepare all the installed extensions for use
 
 =item Parameters
 
-  C<$macro_file_cmdline> -- scalar $macro_file_cmdline -- command line argument -- macro file to read 
+  C<$macro_file_cmdline> -- scalar $macro_file_cmdline -- command line argument -- macro file to read
 
 =item Comments
 
-Also reflects command-line arguments which can enable and disable 
+Also reflects command-line arguments which can enable and disable
 loading of extensions
 
 =item See Also
@@ -5125,8 +5125,8 @@ L<init_extensions>,
 
 =item Returns
 
-Reference to array which contains two array references: first one 
-is a reference to array of installed extensions, second one is a ref 
+Reference to array which contains two array references: first one
+is a reference to array of installed extensions, second one is a ref
 to array of preinstalled extensions
 
 =back
@@ -5142,46 +5142,46 @@ to array of preinstalled extensions
 =head1 DIAGNOSTICS
 
 
-Croaks in update_extensions_list sub 
+Croaks in update_extensions_list sub
 if extensions list file could not be found/opened/written into:
     "Configuring extension failed: cannot read/write/open/close extension list ..."
 
 
-Croaks in _load_extension_file 
+Croaks in _load_extension_file
 if extensions list file could not be opened:
     "Installation failed: cannot read extension list
 
-Croaks in install_extensions 
+Croaks in install_extensions
 if $urls_ref is not reference to array, if extension list file
 could not be opened or if extension directory could not be created:
     "Usage: install_extensions(\@urls, \%opts)}"
     "Installation failed: cannot create/write/close extension directory $extension_dir: $!"
-     
-Croaks in uninstall_extension 
+
+Croaks in uninstall_extension
 if extension list could not be opened for reading or writing:
     "Uninstall failed: cannot read/close/write extension list $extension_list_file: $!"
 
 
-Carps in _set_extension_icon 
+Carps in _set_extension_icon
 if the icon could not be loaded: the error message itself.
 
-Carps in get_extension_list sub 
+Carps in get_extension_list sub
 if extension directory list (extensions.lst) could not be opened.
 
-Carps in init_extensions sub 
+Carps in init_extensions sub
 if the first argument is a reference, but not array reference:
     "Usage: init_extensions( [ extension_name(s)... ] )"
-        
 
-Carps in get_extension_subpaths sub 
+
+Carps in get_extension_subpaths sub
 if $list is a reference, but not a ref to array:
     "Usage: get_extension_subpaths( [ extension_name(s)... ], extension_dir, rel_path )".
 
-Carps in get_extension_meta_data sub 
+Carps in get_extension_meta_data sub
 if Treex::PML::Instance::load() fails: the error message itself.
 
 
-Carps in prepare_extensions sub 
+Carps in prepare_extensions sub
 if required extension is missing:
     "WARNING: extension $required not found!"
 
@@ -5194,29 +5194,29 @@ Path to TrEd's custom Tk libs (Tk::DialogReturn, Tk::QueryDIalog) has to be pres
 =head1 DEPENDENCIES
 
 TrEd modules:
-TrEd::Version, 
+TrEd::Version,
 TrEd::MinMax,
-Tk::DialogReturn, 
-Tk::ErrorReport, 
-Tk::QueryDialog, 
-Tk::BindButtons, 
+Tk::DialogReturn,
+Tk::ErrorReport,
+Tk::QueryDialog,
+Tk::BindButtons,
 
 CPAN modules:
-Archive::Zip, 
+Archive::Zip,
 L<Treex::PML|http://search.cpan.org/~zaba/Treex-PML/>,
-URI, 
-URI::file, 
-CPAN, 
+URI,
+URI::file,
+CPAN,
 Tk
 
 Standard Perl modules:
 Carp,
-Exporter, 
+Exporter,
 ExtUtils::MM,
-File::Glob, 
+File::Glob,
 File::Path,
-File::Spec,  
-Scalar::Util, 
+File::Spec,
+Scalar::Util,
 
 =head1 INCOMPATIBILITIES
 
@@ -5225,7 +5225,7 @@ No know incompatibilities.
 =head1 BUGS AND LIMITATIONS
 
 There are no known bugs in this module.
-Please report problems to 
+Please report problems to
 Zdenek Zabokrtsky <zabokrtsky@ufal.ms.mff.cuni.cz>
 
 Patches are welcome.
@@ -5235,9 +5235,9 @@ Patches are welcome.
 
 Petr Pajas <pajas@matfyz.cz>
 
-Copyright (c) 
+Copyright (c)
 2010 Petr Pajas <pajas@matfyz.cz>
-2011 Peter Fabian (documentation & tests). 
+2011 Peter Fabian (documentation & tests).
 All rights reserved.
 
 

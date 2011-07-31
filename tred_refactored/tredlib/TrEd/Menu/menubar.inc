@@ -94,7 +94,7 @@ return sub {
             'Button',
             'Place of Last Action',
             {   '-command' => [
-                    \&TrEd::File::openStandaloneFile, $grp,
+                    \&TrEd::File::open_standalone_file, $grp,
                     TrEd::Bookmarks::get_last_action()
                 ],
                 '-state' => (
@@ -113,7 +113,7 @@ return sub {
                             if TrEd::File::ask_save_file(
                                     $grp->{focusedWindow}, 0, 1 )
                                 == $TrEd::File::SAVING_CANCELLED_OR_UNSUCCESSFUL;
-                        TrEd::File::closeFile( $grp->{focusedWindow},
+                        TrEd::File::close_file( $grp->{focusedWindow},
                             -all_windows => 1 );
                     },
                     $grp
@@ -144,7 +144,7 @@ return sub {
                             if TrEd::File::ask_save_file(
                                     $grp->{focusedWindow}, 0, 1 )
                                 == $TrEd::File::SAVING_CANCELLED_OR_UNSUCCESSFUL;
-                        TrEd::File::closeFile( $grp->{focusedWindow},
+                        TrEd::File::close_file( $grp->{focusedWindow},
                             -all_windows => 1 );
                     },
                     $grp
@@ -299,7 +299,7 @@ return sub {
         'MENUBAR:FILE:NEW:BASED_ON_CURRENT_FILE' => [
             'Button',
             'Based on Current File ...',
-            {   '-command'   => [ \&TrEd::File::newFileFromCurrent, $grp, 1 ],
+            {   '-command'   => [ \&TrEd::File::new_file_from_current, $grp, 1 ],
                 '-underline' => 5
             },
             undef
@@ -332,7 +332,7 @@ return sub {
         'MENUBAR:FILE:RELOAD' => [
             'Button',
             'Reload',
-            {   '-command'   => [ \&TrEd::File::reloadFile, $grp ],
+            {   '-command'   => [ \&TrEd::File::reload_file, $grp ],
                 '-underline' => 1
             },
             undef
@@ -358,7 +358,7 @@ return sub {
         'MENUBAR:FILE:SAVE' => [
             'Button', 'Save',
             {   '-command' => [
-                    sub { TrEd::File::saveFile( $_[0]->{focusedWindow} ); },
+                    sub { TrEd::File::save_file( $_[0]->{focusedWindow} ); },
                     $grp
                 ],
                 '-underline' => 0
@@ -369,7 +369,7 @@ return sub {
             'Button',
             'Save As ...',
             {   '-command' => [
-                    sub { TrEd::File::saveFileAs( $_[0]->{focusedWindow} ); },
+                    sub { TrEd::File::save_file_as( $_[0]->{focusedWindow} ); },
                     $grp
                 ],
                 '-underline' => 5

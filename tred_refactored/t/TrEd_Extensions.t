@@ -36,7 +36,7 @@ BEGIN {
     get_preinstalled_extension_list
     get_extension_template_paths
     get_extension_subpaths
-    manage_extensions_2
+    manage_extensions_dialog
   );
   use_ok($module_name, @exported_subs);
 }
@@ -45,7 +45,7 @@ our @exported_subs;
 can_ok(__PACKAGE__, @exported_subs);
 
 
-  
+
 my @private_subs = qw(
   short_name
   _repo_extensions_uri_list
@@ -120,7 +120,7 @@ EOF
 Readonly my $GENERIC_TITLE => 'Test extension:';
 
 $Treex::PML::resourcePath = $FindBin::Bin . '/../resources';
-$TrEd::Config::libDir = "tredlib";  
+$TrEd::Config::libDir = "tredlib";
 TrEd::Config::set_config();
 
 
@@ -135,13 +135,13 @@ sub test_short_name {
     $pkg_name = bless {};
     is(TrEd::Extensions::short_name($pkg_name), $pkg_name,
         "short_name: non-URI blessed reference -> shortname");
-    
+
     # $pkg_name is not blessed, just a string
     $pkg_name = $url;
     TrEd::Extensions::short_name($pkg_name);
     is(TrEd::Extensions::short_name($pkg_name), $pkg_name,
         "short_name: string -> shortname");
-    
+
 }
 
 sub test_get_extensions_dir {
@@ -157,17 +157,17 @@ sub test_get_extension_list {
     my $repo = $FindBin::Bin;
     is_deeply(TrEd::Extensions::get_extension_list($repo), [],
         "get_extension_list(): return empty array ref if the list of extensions does not exist in specified repository");
-    
+
     my $ext_dir_backup = $TrEd::Config::extensionsDir;
     $TrEd::Config::extensionsDir = $FindBin::Bin;
     is(TrEd::Extensions::get_extension_list(), undef,
         "get_extension_list(): return undef if the list of extensions does not exist in default repository");
-    
+
     $TrEd::Config::extensionsDir = $ext_dir_backup;
-    
+
     # second test -- list of extensions found 'automatically'
     # in extension directory
-    
+
     _test_sub_returning_extension_list({
         sub_name            => 'get_extension_list',
         sub_ref             => \&TrEd::Extensions::get_extension_list,
@@ -176,10 +176,10 @@ sub test_get_extension_list {
         expected_result_ref => $installed_exts_ref,
         returns_reference   => 1,
     });
-    
+
     # third test -- list of extensions from specified directory
     # -- from repository
-    
+
     _test_sub_returning_extension_list({
         sub_name            => 'get_extension_list',
         sub_ref             => \&TrEd::Extensions::get_extension_list,
@@ -195,15 +195,15 @@ sub _compare_arrays {
     my ($array_1_ref, $array_2_ref) = @_;
     my $desired_n = scalar @{$array_1_ref};
     my $n = 0;
-    
+
     #print "comparing ";
     #print Dumper($array_1_ref);
     #print Dumper($array_2_ref);
-        
+
     foreach my $el_1 (@{$array_1_ref}) {
         foreach my $el_2 (@{$array_2_ref}) {
             if (ref $el_2 && ref $el_1) {
-                my $other_n = scalar @{$el_1}; 
+                my $other_n = scalar @{$el_1};
                 if (_compare_arrays($el_1, $el_2, $other_n) eq 'equal') {
                     $n++;
                     #print "subarrays equal\n";
@@ -224,7 +224,7 @@ sub _compare_arrays {
     }
     else {
         #print "arrays NOT equal\n";
-        return 'not';    
+        return 'not';
     }
 }
 
@@ -236,8 +236,8 @@ sub _test_sub_returning_extension_list {
     my $message             = $args_ref->{message};
     my $expected_result_ref = $args_ref->{expected_result_ref};
     my $returns_reference   = $args_ref->{returns_reference};
-    
-    
+
+
     my @got_extensions;
     if (!defined $sub_args) {
         @got_extensions = sort $returns_reference ? @{$sub_ref->()}
@@ -251,7 +251,7 @@ sub _test_sub_returning_extension_list {
     my @expected_extensions = sort @{$expected_result_ref};
     #print Dumper(\@got_extensions);
     #print Dumper(\@expected_extensions);
-    is(_compare_arrays(\@got_extensions, \@expected_extensions), 'equal', 
+    is(_compare_arrays(\@got_extensions, \@expected_extensions), 'equal',
        "$sub_name: $message");
 }
 
@@ -259,12 +259,12 @@ sub test__repo_extensions_uri_list {
     my ($repo, $installed_extensions_ref, $exts_in_repo) = @_;
     # test one -- no repository specified
     my @got_extensions = TrEd::Extensions::_repo_extensions_uri_list();
-    is_deeply(\@got_extensions, [], 
+    is_deeply(\@got_extensions, [],
         "_repo_extensions_uri_list: return empty list if there is no repository specified");
-    
-    
+
+
     # test two -- repository specified
-    
+
     # create expected result
     my @accepted_extensions = map { /^!(.*)/ ? $1 : $_; } @{$exts_in_repo};
     my @expected_result;
@@ -276,7 +276,7 @@ sub test__repo_extensions_uri_list {
         ];
         push @expected_result, $new_item;
     }
-    
+
     _test_sub_returning_extension_list({
         sub_name            => '_repo_extensions_uri_list',
         sub_ref             => \&TrEd::Extensions::_repo_extensions_uri_list,
@@ -285,18 +285,18 @@ sub test__repo_extensions_uri_list {
         expected_result_ref => \@expected_result,
         returns_reference   => 0,
     });
-    
+
     # test three -- some of the extensions are already installed,
     # tell the function it is so..
     my %installed_extensions;
-    @installed_extensions{@{$installed_extensions_ref}} 
+    @installed_extensions{@{$installed_extensions_ref}}
         = (1) x @{$installed_extensions_ref};
     my $opts_ref = {
         repositories    => [$repo],
         installed       => \%installed_extensions,
         only_upgrades   => 1,
     };
-    
+
     # create expected result
     @accepted_extensions = @{$installed_extensions_ref};
     @expected_result = ();
@@ -308,7 +308,7 @@ sub test__repo_extensions_uri_list {
         ];
         push @expected_result, $new_item;
     };
-    
+
     _test_sub_returning_extension_list({
         sub_name            => '_repo_extensions_uri_list',
         sub_ref             => \&TrEd::Extensions::_repo_extensions_uri_list,
@@ -329,7 +329,7 @@ sub test_cmp_revisions {
         "cmp_revisions: return undef if at least one of the revisions is not defined");
     is(TrEd::Extensions::cmp_revisions($rev_1, undef), undef,
         "cmp_revisions: return undef if at least one of the revisions is not defined");
-        
+
     # test two -- one digit revision parts
     is(TrEd::Extensions::cmp_revisions($rev_1, $rev_2), -1,
         "cmp_revisions: return -1 if the first one ($rev_1) is smaller than $rev_2");
@@ -337,7 +337,7 @@ sub test_cmp_revisions {
         "cmp_revisions: return 1 if the first one ($rev_2) is greater than $rev_1");
     is(TrEd::Extensions::cmp_revisions($rev_2, $rev_2), 0,
         "cmp_revisions: return 0 if the revisions are equal ($rev_2)");
-    
+
     # test three -- one vs more digits
     $rev_1 = '1.256';
     $rev_2 = '1.1024';
@@ -350,19 +350,19 @@ sub test_cmp_revisions {
 }
 
 sub test__version_ok {
-    
+
     # test one -- standard interval
     my $required_ver_ref = {
         min_version => '1.0',
         max_version => '1.5',
     };
-    
+
     ok(!TrEd::Extensions::_version_ok('0.95', $required_ver_ref), "_version_ok: my version too low");
     ok(TrEd::Extensions::_version_ok('1.0', $required_ver_ref), "_version_ok: my version is on the lower boundary");
     ok(TrEd::Extensions::_version_ok('1.2', $required_ver_ref), "_version_ok: my version is in the middle of the interval");
     ok(TrEd::Extensions::_version_ok('1.5', $required_ver_ref), "_version_ok: my version is on the upper boundary");
     ok(!TrEd::Extensions::_version_ok('1.6', $required_ver_ref), "_version_ok: my version is bigger than allowed");
-    
+
     # test two -- no lower boundary
     $required_ver_ref = {
         max_version => '1.5',
@@ -370,7 +370,7 @@ sub test__version_ok {
     ok(TrEd::Extensions::_version_ok('0', $required_ver_ref), "_version_ok: my version is less than upper boundary");
     ok(TrEd::Extensions::_version_ok('1.5', $required_ver_ref), "_version_ok: my version is on the upper boundary");
     ok(!TrEd::Extensions::_version_ok('1.6', $required_ver_ref), "_version_ok: my version is bigger than allowed");
-    
+
     # test two -- no upper boundary
     $required_ver_ref = {
         min_version => '1.0',
@@ -378,11 +378,11 @@ sub test__version_ok {
     ok(!TrEd::Extensions::_version_ok('0', $required_ver_ref), "_version_ok: my version too low");
     ok(TrEd::Extensions::_version_ok('1.0', $required_ver_ref), "_version_ok: my version is on the lower boundary");
     ok(TrEd::Extensions::_version_ok('1.25', $required_ver_ref), "_version_ok: my version is greater than requred min");
-    
+
     # test 3 -- no limits
     ok(TrEd::Extensions::_version_ok('0', {}), "_version_ok: without limits -- version allowed");
     ok(TrEd::Extensions::_version_ok('15.00', {}), "_version_ok: without limits -- version allowed");
-    
+
 }
 
 
@@ -395,18 +395,18 @@ sub _create_ext_list {
     print $ext_list join "\n", @files;
     close $ext_list
         or return;
-    return 1; 
+    return 1;
 }
 
 sub _delete_ext_list {
-    return unlink $TrEd::Config::extensionsDir . 'extensions.lst';    
+    return unlink $TrEd::Config::extensionsDir . 'extensions.lst';
 }
 
 sub _create_ext_metafile {
     my ($extension_name, $required_exts_ref, $tred_min_version, $ext_version, $perl_module_deps_ref, $ext_dir, $ext_repo) = @_;
     my $meta_file_name = $ext_dir . '/package.xml';
     my $meta_file;
-    if (!open $meta_file, '>', $meta_file_name) { 
+    if (!open $meta_file, '>', $meta_file_name) {
         carp("Could not create meta xml file for extension $extension_name");
         return;
     }
@@ -424,7 +424,7 @@ sub _create_ext_metafile {
                      '    </description>', "\n";
     if (defined $required_exts_ref || defined $tred_min_version) {
         print $meta_file '    <require>', "\n";
-        # dependencies on extensions 
+        # dependencies on extensions
         if (defined $required_exts_ref) {
             foreach my $required_ext (@{$required_exts_ref}) {
                 print $meta_file '        <extension name="' . $required_ext . '"/>', "\n";
@@ -448,32 +448,32 @@ sub _create_ext_metafile {
         or carp("Could not close meta xml file for extension $extension_name")
 }
 
-# Create playground for extensions -- 'extensions' directory, several subdirectories for 
-# extensions, their meta-information files and extension list file in 'extensions' directory 
+# Create playground for extensions -- 'extensions' directory, several subdirectories for
+# extensions, their meta-information files and extension list file in 'extensions' directory
 sub _create_dummy_extensions {
     my ($extensions_ref, $extension_list_ref, $ext_repository, $preinstalled_exts_ref) = @_;
-    
+
     # the ext dir is created during installation, leave it to the install procedure
-    
+
     if (!mkdir $ext_repository) {
         carp("Extensions repository directory could not be created, can't run tests!");
         return;
     }
-    
+
     my $preinst_ext_dir = $TrEd::Config::preinstalledExtensionsDir;
     if (!mkdir $preinst_ext_dir) {
         carp("Preinstalled extensions directory could not be created, can't run tests!");
         return;
     }
-    
+
     # create preinstalled extensions
     foreach my $extension_name (keys %{$preinstalled_exts_ref}) {
         my $current_extension = $preinstalled_exts_ref->{$extension_name};
         my $ext_dir = $preinst_ext_dir . $extension_name;
         if (mkdir $ext_dir) {
             # dir created
-            _create_ext_metafile($extension_name, 
-                                 $current_extension->{required_exts}, 
+            _create_ext_metafile($extension_name,
+                                 $current_extension->{required_exts},
                                  $current_extension->{min_tred_version},
                                  $current_extension->{ext_version},
                                  [], # perl module dependencies
@@ -495,7 +495,7 @@ sub _create_dummy_extensions {
         carp("List of extensions could not be created, tests won't return accurate results");
         return;
     }
-    
+
     # create extensions' repository
     foreach my $extension_name (keys %{$extensions_ref}) {
         my $current_extension = $extensions_ref->{$extension_name};
@@ -503,8 +503,8 @@ sub _create_dummy_extensions {
         my $ext_dir = $ext_repository . $extension_name;
         if (mkdir $ext_dir) {
             # dir created
-            _create_ext_metafile($extension_name, 
-                                 $current_extension->{required_exts}, 
+            _create_ext_metafile($extension_name,
+                                 $current_extension->{required_exts},
                                  $current_extension->{min_tred_version},
                                  $current_extension->{ext_version},
                                  $current_extension->{perl_module_deps},
@@ -520,7 +520,7 @@ sub _create_dummy_extensions {
             my $status = $zip->writeToFileNamed($ext_repository . '/' . $extension_name . '.zip');
             if ($status != Archive::Zip::AZ_OK) {
                 croak("Could not write extensions package: $extension_name");
-            } 
+            }
         }
         else {
             carp("Directory $extension_name could not be created, tests won't return accurate results");
@@ -545,7 +545,7 @@ sub _cleanup_dummy_extensions {
 # check meta-data in local extension storage
 sub test_get_extension_meta_data_per_ext {
     my ($extension_name, $extension_ref) = @_;
-    my $extensions_dir = $TrEd::Config::extensionsDir; 
+    my $extensions_dir = $TrEd::Config::extensionsDir;
     my $data = TrEd::Extensions::get_extension_meta_data($extension_name, $extensions_dir);
     if (!defined $data) {
         croak("Meta-data retrieval not successful");
@@ -556,13 +556,13 @@ sub test_get_extension_meta_data_per_ext {
         "get_extension_meta_data: check extension's name ($extension_name)");
     is($data->get_member('title'), "$GENERIC_TITLE $extension_name",
         "get_extension_meta_data: check extension's title ($extension_name)");
-    
+
     # test requirements of each extension
     my $require_struct = $data->get_member('require');
     if (!defined $require_struct) {
         return;
     };
-    
+
     my @required_elements = $require_struct->elements();
     foreach my $element (@required_elements) {
 
@@ -570,16 +570,16 @@ sub test_get_extension_meta_data_per_ext {
 
         if ($element->name() eq 'extension') {
             my $required_ext = $container->get_attribute('name');
-            # try to find required extension from meta-data among 
+            # try to find required extension from meta-data among
             # required extensions from config hash
-            my $required_ext_listed 
-                = List::Util::first { $_ eq $required_ext } 
-                                    @{$extension_ref->{required_exts}}; 
+            my $required_ext_listed
+                = List::Util::first { $_ eq $required_ext }
+                                    @{$extension_ref->{required_exts}};
             ok($required_ext_listed,
                "get_extension_meta_data: check required extension ($extension_name requires $required_ext)");
         }
         elsif ($element->name() eq 'tred') {
-            is($container->get_attribute('min_version'), 
+            is($container->get_attribute('min_version'),
                $extension_ref->{min_tred_version},
                "get_extension_meta_data: check required version of TrEd ($extension_name)");
         }
@@ -590,37 +590,37 @@ sub test_get_extension_meta_data_per_ext {
 # check meta-data of all installed extensions
 sub test_get_extension_meta_data {
     my ($extensions_ref, $installed_extensions_ref) = @_;
-    
+
     foreach my $extension_name (@{$installed_extensions_ref}) {
-        test_get_extension_meta_data_per_ext($extension_name, 
+        test_get_extension_meta_data_per_ext($extension_name,
             $extensions_ref->{$extension_name});
     }
 }
 
 sub test__ext_not_installed_or_actual {
-    
-    
-    my $meta_data_ref = TrEd::Extensions::get_extension_meta_data('example_ext-2', 
+
+
+    my $meta_data_ref = TrEd::Extensions::get_extension_meta_data('example_ext-2',
         $TrEd::Config::extensionsDir);
-    
+
     my $installed_version = '1.00';
     ok(!TrEd::Extensions::_ext_not_installed_or_actual(undef, $installed_version),
         "_ext_not_installed_or_actual: undefined meta data");
-        
+
     # in repo = 1.01, installed 1.00 => not up to date
     ok(TrEd::Extensions::_ext_not_installed_or_actual($meta_data_ref, $installed_version),
         "_ext_not_installed_or_actual: extension not up to date");
-    
+
     # in repo = 1.01, installed = 1.01 => up to date
     $installed_version = '1.01';
     ok(!TrEd::Extensions::_ext_not_installed_or_actual($meta_data_ref, $installed_version),
         "_ext_not_installed_or_actual: extension is up to date");
-    
+
     # in repo = 1.01, installed = 1.02 => even better than up to date
     $installed_version = '1.02';
     ok(!TrEd::Extensions::_ext_not_installed_or_actual($meta_data_ref, $installed_version),
         "_ext_not_installed_or_actual: installed extension newer than repository version");
-    
+
     # in repo = 1.01, installed = undef => not installed
     ok(TrEd::Extensions::_ext_not_installed_or_actual($meta_data_ref, undef),
         "_ext_not_installed_or_actual: extension not installed");
@@ -629,18 +629,18 @@ sub test__ext_not_installed_or_actual {
 
 sub test__uri_list_with_required_exts {
     my ($extensions_ref, $dialog_box, $ext_repo, $installed_exts_ref, $preinstalled_exts_ref) = @_;
-    
-    #  
+
+    #
     my @all_installed_exts = (@{$installed_exts_ref}, @{$preinstalled_exts_ref});
     my %installed_extensions = map { $_ => $extensions_ref->{$_}{ext_version} }
                                    @all_installed_exts;
-    
+
     my $opts_ref = {
         install => 1,
         repositories => [$ext_repo],
         installed   => \%installed_extensions,
     };
-    
+
     my %extension_data;
 
     my $uri_list_ref = TrEd::Extensions::_uri_list_with_required_exts(
@@ -650,13 +650,13 @@ sub test__uri_list_with_required_exts {
             }
         );
     my @got_uri_list = sort @{$uri_list_ref};
-    
-    my @all_extensions = keys %{$extensions_ref};    
+
+    my @all_extensions = keys %{$extensions_ref};
     my @not_installed_exts = _remove_from_array(\@all_extensions, \@all_installed_exts);
     my @required_ext_uris = sort map { "file://$ext_repo/" . $_  }
                                      @not_installed_exts;
-                                     
-    is_deeply(\@got_uri_list, \@required_ext_uris, 
+
+    is_deeply(\@got_uri_list, \@required_ext_uris,
         "_uri_list_with_required_exts: return uri list of required extensions");
     # maybe later add tests for %extension_data
 }
@@ -665,17 +665,17 @@ sub test__uri_list_with_required_exts {
 sub _init_ext_clean_up_paths {
     my ($clean_up_ext_names_ref) = @_;
     foreach my $ext_name (@{$clean_up_ext_names_ref}) {
-        my @new_stylesheet_paths 
+        my @new_stylesheet_paths
             = grep { $_ !~ m/$ext_name/ }
                    TrEd::Stylesheet::stylesheet_paths();
         TrEd::Stylesheet::_replace_stylesheet_paths(@new_stylesheet_paths);
-        
+
         @INC = grep { $_ !~ m/$ext_name/ }
                     @INC;
-        @TrEd::Macros::macro_include_paths 
+        @TrEd::Macros::macro_include_paths
             = grep { $_ !~ m/$ext_name/ }
                    @TrEd::Macros::macro_include_paths;
-        my @filtered_resource_paths 
+        my @filtered_resource_paths
             = grep { $_ !~ m/$ext_name/ }
                    Treex::PML::ResourcePaths();
         Treex::PML::SetResourcePaths(@filtered_resource_paths);
@@ -684,16 +684,16 @@ sub _init_ext_clean_up_paths {
 
 sub _test_init_extensions_modified_paths {
     my ($installed_ext_list, $extensions_ref, $fn_name) = @_;
-    
+
     my @paths_to_clean_up = ();
-    
+
     foreach my $ext_name (@{$installed_ext_list}) {
         my $current_ext = $extensions_ref->{$ext_name};
         if ($current_ext->{create_subfolders}) {
-            my $stylesheet_dir_present  
-                = List::Util::first { $_ =~ m!$ext_name/stylesheets! } 
+            my $stylesheet_dir_present
+                = List::Util::first { $_ =~ m!$ext_name/stylesheets! }
                                     TrEd::Stylesheet::stylesheet_paths();
-            my $resources_dir_present 
+            my $resources_dir_present
                 = List::Util::first { $_ =~ m!$ext_name/resources! }
                                     Treex::PML::ResourcePaths();
             my $include_dir_present
@@ -704,7 +704,7 @@ sub _test_init_extensions_modified_paths {
                                     @TrEd::Macros::macro_include_paths;
             # remember that we need to clean it up to perform other tests
             push @paths_to_clean_up, $ext_name;
-            
+
             # and now test it
             ok($stylesheet_dir_present, "$fn_name: stylesheet dir found for $ext_name");
             ok($resources_dir_present,  "$fn_name: resources dir found for $ext_name");
@@ -720,10 +720,10 @@ sub _test_init_extensions_not_modified_paths {
     foreach my $ext_name (keys %{$extensions_ref}) {
         my $current_ext = $extensions_ref->{$ext_name};
 
-        my $stylesheet_dir_present  
-            = List::Util::first { $_ =~ m!$ext_name/stylesheets! } 
+        my $stylesheet_dir_present
+            = List::Util::first { $_ =~ m!$ext_name/stylesheets! }
                                 TrEd::Stylesheet::stylesheet_paths();
-        my $resources_dir_present 
+        my $resources_dir_present
             = List::Util::first { $_ =~ m!$ext_name/resources! }
                                 Treex::PML::ResourcePaths();
         my $include_dir_present
@@ -732,7 +732,7 @@ sub _test_init_extensions_not_modified_paths {
         my $macro_dir_present
             = List::Util::first { $_ =~ m!$ext_name! }
                                 @TrEd::Macros::macro_include_paths;
-        
+
         # and now test it
         is($stylesheet_dir_present, undef,
             "init_extensions: stylesheet dir not modified for $ext_name");
@@ -740,16 +740,16 @@ sub _test_init_extensions_not_modified_paths {
             "init_extensions: resources dir not modified for $ext_name");
         is($include_dir_present, undef,
             "init_extensions: include dir not modified for $ext_name");
-        is($macro_dir_present, undef,   
+        is($macro_dir_present, undef,
             "init_extensions: macro dir not modified for $ext_name");
     }
 }
 
 sub _test_init_extensions_wrapper {
     my ($extensions_ref, $ext_list, $extension_dir) = @_;
-    
+
     my @paths_to_clean_up = ();
-    
+
     # run init_extensions
     if (!defined $ext_list && !defined $extension_dir) {
         TrEd::Extensions::init_extensions();
@@ -757,78 +757,78 @@ sub _test_init_extensions_wrapper {
     else {
         TrEd::Extensions::init_extensions($ext_list, $extension_dir);
     }
-    
+
     # test its effects
     eval {
-        @paths_to_clean_up 
+        @paths_to_clean_up
             = _test_init_extensions_modified_paths($ext_list, $extensions_ref, 'init_extensions');
     };
-    
+
     # clean up the clobbered paths
     _init_ext_clean_up_paths(\@paths_to_clean_up);
-    
+
 }
 
 sub test_init_extensions {
     my ($extensions_ref, $installed_extensions_ref) = @_;
-    
+
     note("init_extensions: wrong reference as an argument:");
-    TrEd::Extensions::init_extensions({}); 
+    TrEd::Extensions::init_extensions({});
     _test_init_extensions_not_modified_paths($extensions_ref);
-    
+
     my @ext_list = @{$installed_extensions_ref};
     my $extension_dir = $TrEd::Config::extensionsDir;
-    
+
     note("init_extensions: no arguments:");
     _test_init_extensions_wrapper($extensions_ref, undef, undef);
     note("init_extensions: only list of extensions specified:");
     _test_init_extensions_wrapper($extensions_ref, \@ext_list, undef);
     note("init_extensions: all arguments specified:");
     _test_init_extensions_wrapper($extensions_ref, \@ext_list, $extension_dir);
-    
+
     note("init_extensions: wrong reference as an argument:");
-    TrEd::Extensions::init_extensions(undef, $extension_dir); 
+    TrEd::Extensions::init_extensions(undef, $extension_dir);
     _test_init_extensions_not_modified_paths($extensions_ref);
-    
-    
+
+
 }
 
 sub test_install_extensions {
     my ($extensions_to_install_ref, $ext_repo, $extensions_ref) = @_;
-    
+
     # first, try to supply invalid argument
     my $urls_ref = {};
     my $opts_ref;
     dies_ok( sub {TrEd::Extensions::install_extensions($urls_ref, $opts_ref); },
         "install_extensions: first argument is a reference, but other type than expected");
-    
+
     $urls_ref = [];
     is(TrEd::Extensions::install_extensions($urls_ref, $opts_ref), undef,
         "install_extensions: return undef if not extensions should be installed");
-    
+
     # quiet installation so we don't need user interaction
     $opts_ref = {
         quiet   => 1,
-    };    
-    
+    };
+
     my @list_of_uris = map { $ext_repo . $_ }
                            @{$extensions_to_install_ref};
-    
+
     is(TrEd::Extensions::install_extensions(\@list_of_uris, $opts_ref), 1,
         "install_extensions: install requested extensions");
-    
+
     # test that the directories and files are really where they should be...
     ok(-d $TrEd::Config::extensionsDir, "install_extensions: directory for extensions created");
     foreach my $extension_name (@{$extensions_to_install_ref}) {
-        ok(-d $TrEd::Config::extensionsDir . $extension_name, 
+        ok(-d $TrEd::Config::extensionsDir . $extension_name,
             "install_extensions: directory for $extension_name created");
-        ok(-f $TrEd::Config::extensionsDir . $extension_name . '/package.xml', 
+        ok(-f $TrEd::Config::extensionsDir . $extension_name . '/package.xml',
             "install_extensions: meta file for $extension_name created");
         # check also that subfolders exist
         if (exists $extensions_ref->{$extension_name}->{create_subfolders}) {
             my @subfolders = @{$extensions_ref->{$extension_name}->{create_subfolders}};
             foreach my $subfolder (@subfolders) {
-                ok(-d $TrEd::Config::extensionsDir . $extension_name . "/$subfolder", 
+                ok(-d $TrEd::Config::extensionsDir . $extension_name . "/$subfolder",
                     "install_extensions: $subfolder subdirectory for $extension_name created");
             }
         }
@@ -842,32 +842,32 @@ sub test_get_preinstalled_extensions_dir {
 
 sub test_get_preinstalled_extension_list {
     my ($preinstalled_exts_ref) = @_;
-    
+
     my @preinstalled_exts = sort @{TrEd::Extensions::get_preinstalled_extension_list()};
     my @expected_exts = sort keys %{$preinstalled_exts_ref};
-    
-    is_deeply(\@preinstalled_exts, \@expected_exts, 
+
+    is_deeply(\@preinstalled_exts, \@expected_exts,
         "get_preinstalled_extension_list: find all preinstalled extensions");
-        
+
     my $except = ['preinstalled_ext_2'];
     @preinstalled_exts = sort @{TrEd::Extensions::get_preinstalled_extension_list($except)};
 
     my @all_preinstalled_exts = keys %{$preinstalled_exts_ref};
     @expected_exts = _remove_from_array(\@all_preinstalled_exts, $except);
 
-    is_deeply(\@preinstalled_exts, \@expected_exts, 
+    is_deeply(\@preinstalled_exts, \@expected_exts,
         "get_preinstalled_extension_list: find preinstalled extensions, except specified ones");
 }
 
 sub test__list_of_installed_extensions {
     my ($extensions_ref, $preinstalled_exts_ref, $installed_exts_ref) = @_;
-    
+
     my $opts_ref = {};
-    
+
     my %extension_data = ();
     my %pre_installed = ();
     my %enable = ();
-    
+
     my $uri_list_ref = TrEd::Extensions::_list_of_installed_extensions(
             {   extension_data_ref => \%extension_data,
                 opts_ref           => $opts_ref,
@@ -877,10 +877,10 @@ sub test__list_of_installed_extensions {
         );
     my @got_uri_list = sort @{$uri_list_ref};
     my @expected_uri_list = sort (@{$installed_exts_ref}, keys %{$preinstalled_exts_ref});
-    
-    is_deeply(\@got_uri_list, \@expected_uri_list, 
+
+    is_deeply(\@got_uri_list, \@expected_uri_list,
         "_list_of_installed_extensions: return all installed and preinstalled extensions");
-    
+
 }
 
 
@@ -892,28 +892,28 @@ sub test__list_of_installed_extensions {
 #                 array_ref $ext_list -- list of names of extensions that should be prepared
 #                 hash_ref $extensions_ref -- ref to hash of initial extensions' options
 #                 array_ref $expected_prepared_exts_ref -- the expected return value for prepare_extensions sub
-# Comments      : 
+# Comments      :
 # See Also      : test_prepare_extensions(), _test_init_extensions_modified_paths(), _init_ext_clean_up_paths()
 sub _test_prepare_extensions_wrapper {
     my ($macro_file_cmdline, $ext_list, $extensions_ref, $expected_prepared_exts_ref) = @_;
-    
+
     my @paths_to_clean_up = ();
-    
+
     eval {
-        
+
         # run prepare_extensions
         my @prepared_extensions = @{TrEd::Extensions::prepare_extensions($macro_file_cmdline)};
         my @expected_result = @{$expected_prepared_exts_ref};
-        
-        is(_compare_arrays(\@prepared_extensions, \@expected_result), 'equal', 
+
+        is(_compare_arrays(\@prepared_extensions, \@expected_result), 'equal',
             "prepare_extensions: prepared extensions returned correctly");
-        
+
         # test its effects
-    
-        @paths_to_clean_up 
+
+        @paths_to_clean_up
             = _test_init_extensions_modified_paths($ext_list, $extensions_ref, 'prepare_extensions');
     };
-    
+
     # clean up the clobbered paths
     _init_ext_clean_up_paths(\@paths_to_clean_up);
     return;
@@ -932,11 +932,11 @@ sub _remove_from_array {
 # test the prepare_extensions subroutine
 sub test_prepare_extensions {
     my ($extensions_ref, $installed_exts_ref, $preinstalled_exts_ref, $disabled_exts_ref) = @_;
-    
+
     my $extension_dir = $TrEd::Config::extensionsDir;
-    
+
     my @expected_extensions = ();
-    
+
     # either the macro file was specified on the command line or not
     foreach my $macro_file_cmdline ('macro.mak', undef) {
         ### a) -- all enabled, just one disabled on the cmd line
@@ -946,17 +946,17 @@ sub test_prepare_extensions {
 
         # here, the extension disabled in ext.lst is enabled, do not remove it
         my @expected_extensions = _remove_from_array(
-                    [@{$installed_exts_ref}, @{$preinstalled_exts_ref}], 
+                    [@{$installed_exts_ref}, @{$preinstalled_exts_ref}],
                     ['preinstalled_ext_2']);
-        
-        my @expected_ret_val = ($installed_exts_ref,  
+
+        my @expected_ret_val = ($installed_exts_ref,
                                 ['preinstalled_ext_1', '!preinstalled_ext_2']);
-        
-        _test_prepare_extensions_wrapper($macro_file_cmdline, 
-                                         \@expected_extensions, 
+
+        _test_prepare_extensions_wrapper($macro_file_cmdline,
+                                         \@expected_extensions,
                                          $extensions_ref,
                                          \@expected_ret_val);
-    
+
         ### b) -- all disabled, just one enabled on the cmd line
         $TrEd::Extensions::enable_extensions = 'preinstalled_ext_2';
         $TrEd::Extensions::disable_extensions = '*';
@@ -964,59 +964,59 @@ sub test_prepare_extensions {
         @expected_extensions = qw {preinstalled_ext_2};
         # all but one are disabled
         my @disabled_extensions = _remove_from_array(
-                    [@{$installed_exts_ref}, @{$preinstalled_exts_ref}], 
+                    [@{$installed_exts_ref}, @{$preinstalled_exts_ref}],
                     ['preinstalled_ext_2']);
         # prepend all disabled with '!' sign (if '!' is not already there)
-        @expected_ret_val = ([map { /^!.*/ ? $_ : "!$_" } @{$installed_exts_ref}], 
+        @expected_ret_val = ([map { /^!.*/ ? $_ : "!$_" } @{$installed_exts_ref}],
                              ['!preinstalled_ext_1', 'preinstalled_ext_2']);
-        
-        _test_prepare_extensions_wrapper($macro_file_cmdline, 
-                                         \@expected_extensions, 
+
+        _test_prepare_extensions_wrapper($macro_file_cmdline,
+                                         \@expected_extensions,
                                          $extensions_ref,
                                          \@expected_ret_val);
-        
+
         ### c) -- no enabled/disabled specified on the cmd line
         $TrEd::Extensions::enable_extensions = q{};
         $TrEd::Extensions::disable_extensions = q{};
         # ext_list: installed + preinstalled
         @expected_extensions = (@{$installed_exts_ref}, @{$preinstalled_exts_ref});
         @expected_extensions = _remove_from_array(\@expected_extensions, $disabled_exts_ref);
-        
-        my @enabled_exts = map { $macro_file_cmdline ? "!$_" : "$_" } 
+
+        my @enabled_exts = map { $macro_file_cmdline ? "!$_" : "$_" }
                            _remove_from_array($installed_exts_ref, $disabled_exts_ref);
         @disabled_extensions = map { "!$_" }
                                    @{$disabled_exts_ref};
-                                   
+
         @expected_ret_val = ([ @enabled_exts, @disabled_extensions ],
-                             [ map { $macro_file_cmdline ? "!$_" : "$_" } @{$preinstalled_exts_ref} ]); 
-        
-        _test_prepare_extensions_wrapper($macro_file_cmdline, 
-                     $macro_file_cmdline ? [] : \@expected_extensions, 
+                             [ map { $macro_file_cmdline ? "!$_" : "$_" } @{$preinstalled_exts_ref} ]);
+
+        _test_prepare_extensions_wrapper($macro_file_cmdline,
+                     $macro_file_cmdline ? [] : \@expected_extensions,
                      $extensions_ref,
                      \@expected_ret_val);
 
     }
-        
-    
+
+
 }
 
 # disable extensions listed in $disabled_exts_ref
 sub test_update_extensions_list {
     my ($disable_exts_ref, $installed_exts_ref) = @_;
     foreach my $extension_to_disable (@{$disable_exts_ref}) {
-        TrEd::Extensions::update_extensions_list( $extension_to_disable, 
-                                                  0, 
+        TrEd::Extensions::update_extensions_list( $extension_to_disable,
+                                                  0,
                                                   $TrEd::Config::extensionsDir
                                                 );
     }
-    
+
     my @installed_extensions = sort @{TrEd::Extensions::get_extension_list()};
-    
-    my @expected_exts = (_remove_from_array($installed_exts_ref, $disable_exts_ref), 
+
+    my @expected_exts = (_remove_from_array($installed_exts_ref, $disable_exts_ref),
                          map { "!$_" } @{$disable_exts_ref});
     @expected_exts = sort @expected_exts;
-    is_deeply(\@installed_extensions, \@expected_exts, 
-        "update_extensions_list: extension disabled correctly");                   
+    is_deeply(\@installed_extensions, \@expected_exts,
+        "update_extensions_list: extension disabled correctly");
 
 }
 
@@ -1026,12 +1026,12 @@ sub test_uninstall_extension {
     my $opts_ref = {
         quiet => 1,
     };
-    
+
     foreach my $extension_name (@{$ext_to_remove_ref}) {
         note("Uninstall extension $extension_name");
         TrEd::Extensions::uninstall_extension( $extension_name, $opts_ref );
         # test that directory was removed
-        ok(!-d $TrEd::Config::extensionsDir . $extension_name, 
+        ok(!-d $TrEd::Config::extensionsDir . $extension_name,
             "uninstall_extension: directory for $extension_name does not exist any more");
         # and also that removed extension is no longer listed in extensions list
         my $ext_in_ext_list = List::Util::first { $_ =~ $extension_name }
@@ -1039,33 +1039,33 @@ sub test_uninstall_extension {
         is($ext_in_ext_list, undef,
             "uninstall_extension: $extension_name is no longer listed in the list of extensions");
     }
-    
+
 }
 
 sub _check_uninstallable_hash {
     my ($expected_error_msg_for_ref, $uninstallable_ref, $fn_name) = @_;
-    
+
     my @uninstallable_keys = keys %{$uninstallable_ref};
-    
+
     foreach my $required_key (keys %{$expected_error_msg_for_ref}) {
         my $uninstallable_key = List::Util::first { $_ =~ $required_key }
                                                   @uninstallable_keys;
         my @required_patterns = @{$expected_error_msg_for_ref->{$required_key}};
         foreach my $required_pattern (@required_patterns) {
             my $error_msg = $uninstallable_ref->{$uninstallable_key};
-            like($error_msg, qr/$required_pattern/, 
+            like($error_msg, qr/$required_pattern/,
                 "$fn_name: error message for $required_key contains $required_pattern");
         }
     }
-    is(keys %{$uninstallable_ref}, keys %{$expected_error_msg_for_ref}, 
+    is(keys %{$uninstallable_ref}, keys %{$expected_error_msg_for_ref},
         "$fn_name: all patterns found, nothing left");
 }
 
 sub test_dependencies_perl_module {
     my ($ext_repository) = @_;
-    
+
     note("Test finding dependencies: Perl module which is not installed/does not exist");
-    
+
     my %enable = ();
     my %extension_data = ();
     my %pre_installed = ();
@@ -1073,7 +1073,7 @@ sub test_dependencies_perl_module {
         install => 1,
         repositories => [$ext_repository],
     };
-    
+
     my $ext_list_ref = TrEd::Extensions::_create_ext_list(
             {   pre_installed_ref  => \%pre_installed,
                 extension_data_ref => \%extension_data,
@@ -1081,7 +1081,7 @@ sub test_dependencies_perl_module {
                 opts_ref           => $opts_ref,
             }
         );
-    
+
     # make example_ext_2 uninstallable -- dependent on perl module that does not exist
     my @module_dep = (
         'perl_module',
@@ -1090,9 +1090,9 @@ sub test_dependencies_perl_module {
             'name'      => 'Module::Does::Not::Exist',
         }
     );
-    push @{$extension_data{'file://' . $ext_repository . '/example_ext-2'}{'require'}[0]}, 
+    push @{$extension_data{'file://' . $ext_repository . '/example_ext-2'}{'require'}[0]},
          \@module_dep;
-    
+
     my $uninstallable_ref
             = TrEd::Extensions::_find_uninstallable_exts( $ext_list_ref, \%extension_data );
     my %expected_error_msg_for = (
@@ -1100,8 +1100,8 @@ sub test_dependencies_perl_module {
     );
     _check_uninstallable_hash(\%expected_error_msg_for, $uninstallable_ref, '_find_uninstallable_exts');
 
-    
-    
+
+
     TrEd::Extensions::_dependencies_of_req_exts( $ext_list_ref, $uninstallable_ref );
     %expected_error_msg_for = (
         'example_ext-2'         => ['Module::Does::Not::Exist', 'Requires Perl Modules'],
@@ -1109,14 +1109,14 @@ sub test_dependencies_perl_module {
         'example_ext_1'         => ['Depends on uninstallable', 'example_ext-2'],
         'example_ext_3'         => ['Depends on uninstallable', 'example_ext_1', 'example_ext-2'],
     );
-    _check_uninstallable_hash(\%expected_error_msg_for, $uninstallable_ref, '_dependencies_of_req_exts');  
+    _check_uninstallable_hash(\%expected_error_msg_for, $uninstallable_ref, '_dependencies_of_req_exts');
 }
 
 sub test_dependencies_tred_version {
     my ($ext_repository) = @_;
-    
+
     note("Test finding dependencies: min TrEd version");
-    
+
     my %enable = ();
     my %extension_data = ();
     my %pre_installed = ();
@@ -1124,7 +1124,7 @@ sub test_dependencies_tred_version {
         install => 1,
         repositories => [$ext_repository],
     };
-    
+
     my $ext_list_ref = TrEd::Extensions::_create_ext_list(
             {   pre_installed_ref  => \%pre_installed,
                 extension_data_ref => \%extension_data,
@@ -1132,7 +1132,7 @@ sub test_dependencies_tred_version {
                 opts_ref           => $opts_ref,
             }
         );
-    
+
     # make example_ext_2 uninstallable -- dependent on tred version that does not exist
     my $min_version = '100.0'; #460kB should be enough for everyone!
     $extension_data{'file://' . $ext_repository . '/example_ext-2'}{'require'}[0][0][1]{min_version} = $min_version;
@@ -1149,8 +1149,8 @@ sub test_dependencies_tred_version {
     );
     _check_uninstallable_hash(\%expected_error_msg_for, $uninstallable_ref, '_find_uninstallable_exts');
 
-    
-    
+
+
     TrEd::Extensions::_dependencies_of_req_exts( $ext_list_ref, $uninstallable_ref );
     %expected_error_msg_for = (
         'example_ext-2'         => ['Requires TrEd at least', $min_version],
@@ -1158,7 +1158,7 @@ sub test_dependencies_tred_version {
         'example_ext_1'         => ['Depends on uninstallable', 'example_ext-2'],
         'example_ext_3'         => ['Depends on uninstallable', 'example_ext_1', 'example_ext-2'],
     );
-    _check_uninstallable_hash(\%expected_error_msg_for, $uninstallable_ref, '_dependencies_of_req_exts');  
+    _check_uninstallable_hash(\%expected_error_msg_for, $uninstallable_ref, '_dependencies_of_req_exts');
 }
 
 
@@ -1173,57 +1173,57 @@ sub _test_get_extension_generic_paths {
     my ($got_paths_ref, $expected_list_ref, $fn_name, $subpath) = @_;
 
     my @got_paths = sort @{$got_paths_ref};
-    my @expected_list = sort 
-                        map { $TrEd::Config::extensionsDir . $_ . "/$subpath" } 
+    my @expected_list = sort
+                        map { $TrEd::Config::extensionsDir . $_ . "/$subpath" }
                         @{$expected_list_ref};
-    is_deeply(\@got_paths, \@expected_list, 
+    is_deeply(\@got_paths, \@expected_list,
         "$fn_name: found correct paths");
 }
 
 sub test_get_extension_sample_data_paths {
     my ($extension_list_ref, $expected_list_ref) = @_;
-    my @sample_paths 
-        = get_extension_sample_data_paths( $extension_list_ref, 
+    my @sample_paths
+        = get_extension_sample_data_paths( $extension_list_ref,
                                            $TrEd::Config::extensionsDir );
-    _test_get_extension_generic_paths(\@sample_paths, 
-                                      $expected_list_ref, 
-                                      'get_extension_sample_data_paths', 
+    _test_get_extension_generic_paths(\@sample_paths,
+                                      $expected_list_ref,
+                                      'get_extension_sample_data_paths',
                                       'sample');
 }
 
 
 sub test_get_extension_doc_paths {
     my ($extension_list_ref, $expected_list_ref) = @_;
-    my @sample_paths 
-        = get_extension_doc_paths( $extension_list_ref, 
+    my @sample_paths
+        = get_extension_doc_paths( $extension_list_ref,
                                    $TrEd::Config::extensionsDir );
-    _test_get_extension_generic_paths(\@sample_paths, 
-                                      $expected_list_ref, 
-                                      'get_extension_doc_paths', 
+    _test_get_extension_generic_paths(\@sample_paths,
+                                      $expected_list_ref,
+                                      'get_extension_doc_paths',
                                       'documentation');
 }
 
 sub test_get_extension_template_paths {
     my ($extension_list_ref, $expected_list_ref) = @_;
-    my @sample_paths 
-        = get_extension_template_paths( $extension_list_ref, 
+    my @sample_paths
+        = get_extension_template_paths( $extension_list_ref,
                                         $TrEd::Config::extensionsDir );
-    _test_get_extension_generic_paths(\@sample_paths, 
-                                      $expected_list_ref, 
-                                      'get_extension_template_paths', 
+    _test_get_extension_generic_paths(\@sample_paths,
+                                      $expected_list_ref,
+                                      'get_extension_template_paths',
                                       'templates');
 }
 
 sub test_get_extension_macro_paths {
     my ($extension_list_ref, $expected_list_ref) = @_;
-    open my $dummy_file, '>', 
+    open my $dummy_file, '>',
         $TrEd::Config::extensionsDir . 'example_ext_3/contrib/contrib.mac';
-    my @sample_paths 
-        = get_extension_macro_paths( $extension_list_ref, 
+    my @sample_paths
+        = get_extension_macro_paths( $extension_list_ref,
                                      $TrEd::Config::extensionsDir );
-    _test_get_extension_generic_paths(\@sample_paths, 
-                                      ['example_ext_3'], 
-                                      'get_extension_macro_paths', 
+    _test_get_extension_generic_paths(\@sample_paths,
+                                      ['example_ext_3'],
+                                      'get_extension_macro_paths',
                                       'contrib/contrib.mac');
 }
 #################
@@ -1236,8 +1236,8 @@ eval {
 
     $TrEd::Config::extensionsDir = $FindBin::Bin . '/extensions/';
     $TrEd::Config::preinstalledExtensionsDir = $FindBin::Bin . '/preinstalled_extensions/';
-    
-    
+
+
     my %preinstalled_exts = (
         'preinstalled_ext_1' => {
                                 required_exts       => ['example_ext_1', 'example_ext-2'],
@@ -1260,8 +1260,8 @@ eval {
                                                         ],
                             },
     );
-    
-    
+
+
     # extensions in repository
     my %extensions = (
             'example_ext_1' => {
@@ -1305,54 +1305,54 @@ eval {
                                 },
             %preinstalled_exts,
         );
-    
-    
+
+
     my @installed_extensions = (
         'example_ext_1',
         'example_ext-2',
         'example_ext_3',
     );
-    
+
     my @ext_list_extensions = qw{
             example_ext_1
             !example_ext-2
-            example_ext_3  
+            example_ext_3
             example_ext_4
             preinstalled_ext_1
             preinstalled_ext_2
         };
-    
+
     $ext_repository = $FindBin::Bin . '/extensions_repo/';
-    
-    
-    
+
+
+
     note("Creating testing extension directory");
     if (!_create_dummy_extensions(\%extensions, \@ext_list_extensions, $ext_repository, \%preinstalled_exts)){
         done_testing();
         _cleanup_dummy_extensions();
         exit(0);
     }
-    
+
     note("Try to install extensions");
     test_install_extensions(\@installed_extensions, $ext_repository, \%extensions);
-    
+
     test_short_name();
-    
+
     test_get_extensions_dir();
-    
+
     test_get_extension_list($ext_repository, \@installed_extensions, \@ext_list_extensions);
-    
+
     test__repo_extensions_uri_list($ext_repository, \@installed_extensions, \@ext_list_extensions);
-    
+
     test_cmp_revisions();
-    
+
     test__version_ok();
-    
-    
+
+
     test_get_extension_meta_data(\%extensions, \@installed_extensions);
-    
+
     test__ext_not_installed_or_actual();
-    
+
     # this is somehow problematic because it might need user interaction
     # or automatic GUI test system
     my $mw = Tk::MainWindow->new();
@@ -1361,35 +1361,35 @@ eval {
         );
     my @preinstalled_exts = keys %preinstalled_exts;
     test__uri_list_with_required_exts(\%extensions, $dialog_box, $ext_repository, \@installed_extensions, \@preinstalled_exts);
-    
+
     test_init_extensions(\%extensions, \@installed_extensions);
-    
+
     test_get_preinstalled_extensions_dir();
-    
+
     test_get_preinstalled_extension_list(\%preinstalled_exts);
-    
+
     test__list_of_installed_extensions(\%extensions, \%preinstalled_exts, \@installed_extensions);
-    
+
     # disable this extension(s)
     my @disabled_exts = qw{example_ext-2};
-    
+
     test_update_extensions_list(\@disabled_exts, \@installed_extensions);
-    
+
     test_prepare_extensions(\%extensions, \@installed_extensions, \@preinstalled_exts, \@disabled_exts);
-    
+
     test_uninstall_extension(\@disabled_exts);
-    
+
     # make some extensions uninstallable for various reasons
     test_dependencies_perl_module($ext_repository);
     test_dependencies_tred_version($ext_repository);
     test_dependencies_unknown_ext($ext_repository);
-    
+
     test_get_extension_sample_data_paths(\@installed_extensions, ['example_ext_1', 'example_ext_3']);
     test_get_extension_doc_paths(\@installed_extensions, ['example_ext_1']);
     test_get_extension_template_paths(\@installed_extensions, ['example_ext_1']);
     test_get_extension_macro_paths(\@installed_extensions);
 
-}; 
+};
 
 if ($@) {
     carp("\n!!Not all tests run because of following error occured: $@") ;

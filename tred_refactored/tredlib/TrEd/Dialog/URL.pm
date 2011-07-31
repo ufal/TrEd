@@ -74,7 +74,7 @@ sub create_dialog {
         $grp->{lastURL}, 1, $grp->{urlHist}, undef, $opts );
     if ( defined $file && $file ne $EMPTY_STR ) {
         $grp->{lastURL} = $file;
-        return TrEd::File::openStandaloneFile( $grp, $file,
+        return TrEd::File::open_standalone_file( $grp, $file,
             -justheader => $header_only );
     }
     return 0;
