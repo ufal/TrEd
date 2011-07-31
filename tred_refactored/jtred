@@ -1,14 +1,14 @@
 #!/bin/bash
 # Author: Jan Stepanek
 
-version='1.2'
+version='1.2.1'
 
 if [ -z "$SGE_ROOT" ] || [ ! -d "$SGE_ROOT" ] ; then
     echo "SGE_ROOT is not set, this machine does not seem to be a SGE cluster queue manager!" >&2
     exit 66
 fi
 
-btred='/f/common/exec/runbtred'
+btred='/net/data/ufalhome/common/exec/runbtred'
 pack_size=15
 job_name=$USER-$$
 tmp=/tmp
@@ -22,18 +22,19 @@ function usage {
     cat <<-__USAGE
 	Usage:
 	  ${0##*/} [-jB btred ] [-js packet-size] [-jn job-name]
-            [-jS sleep-interval] [-jt lrc-tmp-dir] [-jw work-dir] [-jq]
-            [-jp sge_priority] { -l file-list | file... }
+            [-jS sleep-interval] [-jt lrc-tmp-dir] [-jw work-dir] [-jq] [-jo sge-option=value]*
+            [-jp sge-priority] { -l file-list | file... }
             -jb btred-options...
 	Defaults:
-          btred           $btred
-          packet-size     $pack_size
-          job-name        $job_name
-          sleep-interval  $sleep
-          tmp-dir         $tmp
-          sge_priority    $sge_priority
-          work-dir        $work
-          -jq shows only btred messages.
+	    btred           $btred
+	    packet-size     $pack_size
+	    job-name        $job_name
+	    sleep-interval  $sleep
+	    tmp-dir         $tmp
+	    sge-priority    $sge_priority
+	    work-dir        $work
+	  -jq shows only btred messages.
+	  -jo is great for -q='*@*&!overloaded-host'
 	Do not enter any files nor file-lists after -jb.
 	Do not use wildcards in filelists.
 	__USAGE
@@ -47,7 +48,7 @@ trap '
   rm -rf "$outdir"
   rm -rf "$errdir"
   rmdir "$work"
-  exit
+  exit 
   ' INT TERM KILL
 
 # show usage if no parameters given
@@ -61,7 +62,7 @@ quiet=0
 file_i=0 # index to file array
 while ((${#@})) ; do
     option=''
-    if [[ ! ${1:0:3} =~ ^-(j[BsnSltwbpq]|l) ]] ; then
+    if [[ ! ${1:0:3} =~ ^-(j[BsnSltwbopq]|l) ]] ; then
         file[$((file_i++))]=$1 # not an option, thus a file
     elif [[ $1 == -jq ]] ; then
         quiet=1
@@ -81,7 +82,7 @@ while ((${#@})) ; do
         shift
         value=$1
     fi
-    case $option in
+    case $option in 
         B) btred=$value ;;
         s) pack_size=$((value)) ;;
         n) job_name=$value ;;
@@ -89,12 +90,12 @@ while ((${#@})) ; do
         l) filelist=$value ;;
         t) tmp=$value ;;
         w) work=$value ;;
+        o) value=${value/=/ }; sge_options+=($value) ;;
         p) sge_priority=$value ;;
         b) break ;; # following options go to btred
     esac
     shift
 done
-
 
 # check whether we can proceed
 if  (( ! $file_i )) && [[ ! -f $filelist || -z $filelist || ! -r $filelist ]] ; then
@@ -155,13 +156,14 @@ renice 10 $$ | mute
         done < "$filelist"
    fi # list all files from filelist
     ) | \
-        xargs -d'\n' -n$pack_size echo 'renice 10 $$>/dev/null;. /home/pajas/bin/setup_platform;'"'$btred'" "${btred_flags[@]}" | \
+        xargs -d'\n' -n$pack_size echo 'hostname >&2 ; renice 10 $$>/dev/null;. /net/work/projects/perl_repo/admin/bin/setup_platform;'"'$btred'" "${btred_flags[@]}" | \
         split -a4 -l1 - "$tmp"/"$job_name".$$.
 # give $pack_size files to one line, prepend command and split into scripts
 
 # run scripts
 for script in "$tmp"/"$job_name".$$.???? ; do
-    qsub -S /bin/bash -cwd -V -p $sge_priority -o "$outdir"/"${script##*/}".o -e "$errdir"/"${script##*/}".e "$script" | mute
+    qsub -S /bin/bash -cwd -V -p $sge_priority -o "$outdir"/"${script##*/}".o -e "$errdir"/"${script##*/}".e "${sge_options[@]}" "$script" \
+        | mute
     sleep $sleep;
 done;
 
