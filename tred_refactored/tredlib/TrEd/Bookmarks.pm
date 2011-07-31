@@ -20,7 +20,7 @@ my $last_action_bookmark = q{};
 # Returns       : Stringified identification of place of last action
 # Parameters    : no
 # Throws        : no exception
-# See Also      : set_last_action(), actual_position() 
+# See Also      : set_last_action(), actual_position()
 sub get_last_action {
     return $last_action_bookmark;
 }
@@ -31,9 +31,9 @@ sub get_last_action {
 # Returns       : Undef/empty list
 # Parameters    : scalar $new_action_bookmark -- stringified identification of place of last action
 # Throws        : no exception
-# Comments      : For TrEd to understand the bookmark, its format should be 
+# Comments      : For TrEd to understand the bookmark, its format should be
 #                 "fileName##treeNumber", optionally followed by ".nodeNumber"
-# See Also      : get_last_action(), actual_position() 
+# See Also      : get_last_action(), actual_position()
 sub set_last_action {
     my ($new_action_bookmark) = @_;
     $last_action_bookmark = $new_action_bookmark;
@@ -76,12 +76,12 @@ sub create_bookmarks_filelist {
 
 #######################################################################################
 # Usage         : actual_position($grp)
-# Purpose       : Return identification of actual position 
+# Purpose       : Return identification of actual position
 # Returns       : String identification of actual position that can be used as bookmark
 # Parameters    : hash_ref $grp -- reference to hash containing TrEd options
 # Throws        : no exception
 # Comments      : The actual position is the highlighted tree/node in focused window
-# was main::bookmarkThis 
+# was main::bookmarkThis
 #TODO: toto je asi skor pre node ako pre bookmarks?
 # hm, lenze aky node...
 sub actual_position {
@@ -104,7 +104,7 @@ sub actual_position {
 #                 no other filelsit is specified
 # Returns       : Undef/empty list
 # Parameters    : hash_ref $grp -- reference to hash containing TrEd options
-#                 string $to_filelist -- name of the filelist to which the bookmark will be added (optional) 
+#                 string $to_filelist -- name of the filelist to which the bookmark will be added (optional)
 # Throws        : no exception
 # Comments      : Also updates the bookmarks menu
 # See Also      : TrEd::ManageFilelists::insertToFilelist()
@@ -126,7 +126,7 @@ sub bookmark_actual_position {
 
 #######################################################################################
 # Usage         : last_action_bookmark($grp, $bookmark)
-# Purpose       : Set the last action bookmark to $bookmark or to actual position, if 
+# Purpose       : Set the last action bookmark to $bookmark or to actual position, if
 #                 $bookmark is not defined
 # Returns       : Undef/empty list
 # Parameters    : hash_ref $grp -- reference to hash containing TrEd options
@@ -163,13 +163,13 @@ sub update_bookmarks {
         if ($tredDebug) {
             print STDERR "Updating bookmark menu\n";
         }
-        
+
         # delete old menu items
         $menu->delete( 0, 'end' );
         foreach my $menu_bookmark ( $menu->children() ) {
             $menu_bookmark->destroy();
         }
-        
+
         # fetch bookmarks filelist
         my $i  = 0;
         my $bookmark_filelist = bookmark_filelist();
@@ -183,7 +183,7 @@ sub update_bookmarks {
             $menu->command(
                 -label     => "$i.  " . $bookmark,
                 -underline => 0,
-                -command   => [ \&TrEd::File::openStandaloneFile, $grp, $bookmark ]
+                -command   => [ \&TrEd::File::open_standalone_file, $grp, $bookmark ]
             );
             $i++;
         }
@@ -195,7 +195,7 @@ sub update_bookmarks {
 
 1;
 
-__END__ 
+__END__
 
 =head1 NAME
 
@@ -205,23 +205,23 @@ TrEd::Bookmarks
 
 =head1 VERSION
 
-This documentation refers to 
+This documentation refers to
 TrEd::Bookmarks version 0.2.
 
 
 =head1 SYNOPSIS
 
   use TrEd::Bookmarks;
-  
-  
-  
+
+
+
 =head1 DESCRIPTION
 
 Basic functions for reversing string direction (LTR to RTL) with respect to numbers etc.
 
 =head1 SUBROUTINES/METHODS
 
-=over 4 
+=over 4
 
 
 
@@ -249,7 +249,7 @@ No known incompatibilities.
 =head1 BUGS AND LIMITATIONS
 
 There are no known bugs in this module.
-Please report problems to 
+Please report problems to
 Zdenek Zabokrtsky <zabokrtsky@ufal.ms.mff.cuni.cz>
 
 Patches are welcome.
@@ -259,9 +259,9 @@ Patches are welcome.
 
 Otakar Smrz <otakar.smrz@mff.cuni.cz>
 
-Copyright (c) 
+Copyright (c)
 2004 Otakar Smrz <otakar.smrz@mff.cuni.cz>
-2011 Peter Fabian (documentation & tests). 
+2011 Peter Fabian (documentation & tests).
 All rights reserved.
 
 

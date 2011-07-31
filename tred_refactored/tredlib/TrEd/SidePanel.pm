@@ -260,7 +260,7 @@ sub init_browse_filesystem {
             return if $fsel->ChDir();
             my ($file) = $fsel->getSelectedFiles();    # from Tk::MyFileSelect
             if ( defined($file) and length($file) ) {
-                TrEd::File::openStandaloneFile( $grp, $file );
+                TrEd::File::open_standalone_file( $grp, $file );
             }
         },
         $grp,

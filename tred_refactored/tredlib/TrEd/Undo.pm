@@ -31,7 +31,7 @@ sub undo_type_id {
         return $UNDO_TYPE{$undo_type};
     }
     else {
-        croak("Unknown undo type");
+        croak('Unknown undo type');
     }
 }
 
@@ -40,6 +40,7 @@ sub prepare_undo {
     return if !$TrEd::Config::maxUndo;
     my $fsfile = $win->{FSFile};
     return if !defined $fsfile;
+
     $what ||= $UNDO_TYPE{UNDO_DISPLAYED_TREES};
     my $snapshot;
     if ( $what == $UNDO_TYPE{UNDO_ACTIVE_NODE} ) {
@@ -47,7 +48,7 @@ sub prepare_undo {
     }
     elsif ( $what == $UNDO_TYPE{UNDO_ACTIVE_ROOT} ) {
         $data = $win->{currentNode};
-        return unless ref $data;
+        return if not ref $data;
         $data = $data->root;
     }
     elsif ( $what == $UNDO_TYPE{UNDO_CURRENT_TREE} ) {
@@ -63,7 +64,6 @@ sub prepare_undo {
         @n{ @{$n} } = ();
 
         # the following should be a bit faster than uniq map $_->root, @$n
-        #TODO: fuj fuj, map block into sub
         $data = [
             uniq map {
                 my $p = $_->parent;
@@ -72,7 +72,7 @@ sub prepare_undo {
         ];
     }
     elsif ( $what == $UNDO_TYPE{UNDO_DATA_AND_TREE_ORDER} ) {
-        if ( ref($data) ) {
+        if ( ref $data ) {
             $snapshot = [
                 Data::Snapshot::make_data_snapshot($data),
                 [ @{ $fsfile->treeList } ]
@@ -84,7 +84,7 @@ sub prepare_undo {
         }
     }
     elsif ( $what == $UNDO_TYPE{UNDO_CURRENT_TREE_AND_TREE_ORDER} ) {
-        return if !ref( $win->{root} );
+        return if not ref $win->{root};
         $snapshot = [
             Data::Snapshot::make_data_snapshot( $win->{root} ),
             [ @{ $fsfile->treeList } ]
@@ -92,7 +92,7 @@ sub prepare_undo {
     }
     elsif ( $what == $UNDO_TYPE{UNDO_ACTIVE_ROOT_AND_TREE_ORDER} ) {
         my $n = $win->{currentNode};
-        return unless ref $n;
+        return if not ref $n;
         $snapshot = [
             Data::Snapshot::make_data_snapshot( $n->root ),
             [ @{ $fsfile->treeList } ]
@@ -103,14 +103,12 @@ sub prepare_undo {
         # $data = $data;
     }
     else {
-
-        #TODO: in tred.def, would it work..?
         TrEd::Error::Message::error_message( $win,
             "Unknown undo type: $what\n" );
         return;
     }
-    if ( !defined $snapshot ) {
-        return unless ref $data;
+    if ( not defined $snapshot ) {
+        return if not ref $data;
         $snapshot = [ Data::Snapshot::make_data_snapshot($data), $data ];
     }
     return [
@@ -126,7 +124,7 @@ sub prepare_redo {
     my ( $win, $undo ) = @_;
     my $type    = $undo->[0];
     my $message = $undo->[4];
-    return prepare_undo( $win, $message ) unless $type eq 'Snapshot';
+    return prepare_undo( $win, $message ) if $type ne 'Snapshot';
     my $what     = $undo->[5];
     my $snapshot = $undo->[2];
     $what ||= $UNDO_TYPE{UNDO_DISPLAYED_TREES};
@@ -161,13 +159,14 @@ sub prepare_redo {
 # undo
 sub save_undo {
     my ( $win, $undo ) = @_;
-    return unless $maxUndo;
-    return unless ref $undo;
+    return if not $maxUndo;
+    return if not ref $undo;
     my $fsfile = $undo->[0];
     $undo = $undo->[1];
-    return unless ref $fsfile and ref $undo;
-    print "Saving undo: $undo->[4] for file " . $fsfile->filename() . "\n"
-        if $tredDebug;
+    return if not (ref $fsfile and ref $undo);
+    if ($tredDebug) {
+        print "Saving undo: $undo->[4] for file " . $fsfile->filename() . "\n";
+    }
 
     if ( $fsfile != $win->{FSFile} ) {
         warn(
@@ -178,12 +177,12 @@ sub save_undo {
     TrEd::File::init_app_data($fsfile);
 
     my $stack = $fsfile->appData('undostack');
-    splice @$stack, $fsfile->appData('undo') + 1;    # remove redo
-    push @$stack, $undo;
-    if ( $maxUndo > 0 and @$stack > $maxUndo ) {
-        splice @$stack, 0, ( @$stack - $maxUndo );
+    splice @{$stack}, $fsfile->appData('undo') + 1;    # remove redo
+    push @{$stack}, $undo;
+    if ( $maxUndo > 0 and @{$stack} > $maxUndo ) {
+        splice @{$stack}, 0, ( @{$stack} - $maxUndo );
         print STDERR "Undo-stack: overflow, removing ",
-            ( @$stack - $maxUndo ), " items\n"
+            ( @{$stack} - $maxUndo ), " items\n"
             if $tredDebug;
     }
     $fsfile->changeAppData( 'undo', $#$stack );
@@ -199,7 +198,7 @@ sub re_do {
     my $fsfile = $win->{FSFile};
     return unless $fsfile;
     my $stack = $fsfile->appData('undostack');
-    return unless ( @$stack > $fsfile->appData('undo') + 2 );
+    return unless ( @{$stack} > $fsfile->appData('undo') + 2 );
     print STDERR "Redo: ", $fsfile->appData('undo') + 2, "/$#$stack\n"
         if $tredDebug;
     $fsfile->changeAppData( 'undo', $fsfile->appData('undo') + 2 );
@@ -217,7 +216,7 @@ sub undo {
     my $stackpos = $fsfile->appData('undo');
     return
         unless ( ref($stack)
-        and ( @$stack > 0 )
+        and ( @{$stack} > 0 )
         and ( $stackpos >= 0 )
         and ( $stackpos <= $#$stack ) );
     my $undo = $stack->[$stackpos];
@@ -298,10 +297,10 @@ sub undo {
         }
         if ( $#$stack == $stackpos ) {
             if ($redo) {
-                pop @$stack;
+                pop @{$stack};
             }
             else {
-                push @$stack, $new_undo->[1];
+                push @{$stack}, $new_undo->[1];
             }
         }
         print STDERR "Undo: ", $stackpos . "/$#$stack\n" if $tredDebug;
@@ -319,6 +318,7 @@ sub undo {
     else {
         TrEd::Error::Message::error_message( $win, "Corrupted undo stack!" );
     }
+    return;
 }
 
 # undo
@@ -330,14 +330,14 @@ sub reset_undo_status {
     my $undomessage = $EMPTY_STR;
     my $redomessage = $EMPTY_STR;
 
-    if ( $maxUndo != 0 and ref($fsfile) ) {
+    if ( $maxUndo != 0 and ref $fsfile ) {
         my $stack    = $fsfile->appData('undostack');
         my $stackpos = $fsfile->appData('undo');
         print STDERR "UNDO_STACK: $stackpos/", $#$stack + 1, "\n"
             if $tredDebug;
-        $undostatus = ( ref($stack) && ( @$stack > 0 ) );
-        $redostatus = ( $undostatus && ( @$stack > $stackpos + 2 ) );
-        $undostatus &&= ( ( $stackpos >= 0 ) && ( $stackpos <= $#$stack ) );
+        $undostatus = ( ref $stack && ( @{$stack} > 0 ) );
+        $redostatus = ( $undostatus && ( @{$stack} > $stackpos + 2 ) );
+        $undostatus &&= ( ( $stackpos >= 0 ) && ( $stackpos <= $#{$stack} ) );
         $undomessage = ": " . $stack->[$stackpos]->[4]       if ($undostatus);
         $redomessage = ": " . $stack->[ $stackpos + 1 ]->[4] if ($redostatus);
     }
@@ -357,6 +357,7 @@ sub reset_undo_status {
         $grp->{Balloon}->attach( $grp->{redoButton},
             -balloonmsg => 'Redo' . $redomessage );
     }
+    return;
 }
 
 1;

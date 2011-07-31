@@ -11,9 +11,6 @@ use Treex::PML;
 use TrEd::File;
 use TrEd::ManageFilelists;
 
-#TODO: win->{filelist} mozno daj semkaj... aj ked neviem, ci ich nie je viac pre kazde window a tym padom asi pod window to dat?
-# alebo ten model uplatnit a potom mat aj s btredom pokoj?
-
 # was main::filelistFullFileName
 sub filelist_full_filename {
     my ( $win, $fn ) = @_;
@@ -56,31 +53,36 @@ sub _filelist_full_filename {
 }
 
 #######################################################################################
-# Usage         : _filelist_full_filename($file_list_ref, $file_name)
-# Purpose       : Resolve path to file $file_name relatively to location of $file_list
-# Returns       : Scalar -- resolved path of file
+# Usage         : go_to_file($grp_or_win, $file_no, $no_recent, $no_redraw)
+# Purpose       : Open file with number $file_no from current filelist and set this 
+#                 file as current file
+# Returns       : Status hash of opening operation, for details, see TrEd::File documentation
 # Parameters    : Filelist $file_list -- Filelist object
 #                 string $file_name   -- name of the file list?? really?
 # Throws        : no exceptions
-# Comments      :
-# See Also      :
+# Comments      : Updates filelist views, too.
+#                 Calls 'goto_file_hook', which may interrupt the operation,
+#                 if it returns 'stop'
+# See Also      : TrEd::File::open_file, update_filelist_views()
 # was main::gotoFile
 sub go_to_file {
-    my ( $grp_or_win, $fn, $no_recent, $no_redraw ) = @_;
+    my ( $grp_or_win, $file_no, $no_recent, $no_redraw ) = @_;
     my ( $grp, $win ) = main::grp_win($grp_or_win);
     return unless $win->{currentFilelist};
-    my $goto_file_hook_res = main::doEvalHook( $win, "goto_file_hook", $fn );
+    my $goto_file_hook_res = main::doEvalHook( $win, "goto_file_hook", $file_no );
     return 0 if defined $goto_file_hook_res && $goto_file_hook_res eq 'stop';
-    return 0 if ( $fn >= $win->{currentFilelist}->file_count() || $fn < 0 );
+    return 0 if ( $file_no >= $win->{currentFilelist}->file_count() || $file_no < 0 );
     my $last_no = $win->{currentFileNo};
-    $win->{currentFileNo} = $fn;
+    $win->{currentFileNo} = $file_no;
     my ( $fs, $status ) = TrEd::File::open_file(
-        $win, filelist_full_filename( $win, $fn ),
+        $win, filelist_full_filename( $win, $file_no ),
         -norecent     => $no_recent,
         -noredraw     => $no_redraw,
         -keep_related => 1
     );
-    $win->{currentFileNo} = $last_no unless $status;
+    if (not $status) {
+        $win->{currentFileNo} = $last_no;
+    }
     main::update_filelist_views( $grp, $win->{currentFilelist}, 0 );
     return $status;
 }
@@ -122,7 +124,7 @@ sub next_or_prev_file {
     my $result = go_to_file( $win, $pos, $no_recent );
     my $quiet = 0;
     my $response;
-    while ( ref($result) and $result->{ok} == 0 ) {
+    while ( ref $result and $result->{ok} == 0 ) {
         my $trees = $win->{FSFile} ? $win->{FSFile}->lastTreeNo + 1 : 0;
         unless ($quiet) {
             $response = $win->toplevel->ErrorReport(
@@ -139,7 +141,9 @@ sub next_or_prev_file {
                 ]
             );
             last if ( $response eq "Cancel" );
-            $quiet = 1 if ( $response eq "Skip broken files" );
+            if ( $response eq "Skip broken files" ) {
+                $quiet = 1;
+            }
         }
         if ( $response eq 'Remove from filelist' ) {
             my $f = filelist_full_filename( $win, $pos );
@@ -240,11 +244,15 @@ sub tie_next_file {
     my ( $grp, $win ) = main::grp_win(shift);
     if ( $grp->{tieWindows} ) {
         foreach my $w ( @{ $grp->{treeWindows} } ) {
-            next_file($w) if ( $w->{FSFile} );
+            if ( $w->{FSFile} ) {
+                next_file($w);
+            }
         }
     }
     else {
-        next_file($win) if ( $win->{FSFile} );
+        if ( $win->{FSFile} ) {
+            next_file($win);
+        }
     }
 }
 
@@ -262,11 +270,15 @@ sub tie_prev_file {
     my ( $grp, $win ) = main::grp_win(shift);
     if ( $grp->{tieWindows} ) {
         foreach my $w ( @{ $grp->{treeWindows} } ) {
-            prev_file($w) if ( $w->{FSFile} );
+            if ( $w->{FSFile} ) {
+                prev_file($w);
+            }
         }
     }
     else {
-        prev_file($win) if ( $win->{FSFile} );
+        if ( $win->{FSFile} ) {
+            prev_file($win);
+        }
     }
 }
 
@@ -284,11 +296,15 @@ sub tie_go_to_file {
     my ( $grp, $win ) = main::grp_win(shift);
     if ( $grp->{tieWindows} ) {
         foreach my $w ( @{ $grp->{treeWindows} } ) {
-            go_to_file( $w, @_ ) if ( $w->{FSFile} );
+            if ( $w->{FSFile} ) {
+                go_to_file( $w, @_ );
+            }
         }
     }
     else {
-        go_to_file( $win, @_ ) if ( $win->{FSFile} );
+        if ( $win->{FSFile} ) {
+            go_to_file( $win, @_ );
+        }
     }
 }
 

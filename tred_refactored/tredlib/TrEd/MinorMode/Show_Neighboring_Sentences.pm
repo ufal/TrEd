@@ -53,7 +53,7 @@ sub get_config {
 
 sub _get_value_line_hook {
     my ( $fsfile, $no, $type ) = @_;
-    print ".........................value line hook in show neighb sent\n";
+#    print ".........................value line hook in show neighb sent\n";
     return if ($type ne 'value_line');
     # it is really a grp_ref, probably, so it can be changed...
     my $grp = TrEd::Macros::get_macro_variable('grp');
@@ -65,9 +65,9 @@ sub _get_value_line_hook {
     elsif ( !ref $_[-1] ) {
         $_[-1] = [ [ $_[-1] ] ];
     }
-    use Data::Dumper;
-    $Data::Dumper::Maxdepth = 2;
-    print Dumper(\@_);
+#    use Data::Dumper;
+#    $Data::Dumper::Maxdepth = 2;
+#    print Dumper(\@_);
     my $vl = $_[-1];
     # put '-->' at the beginning of the array @{$vl} and newline at the end
     unshift @{$vl}, [ '--> ', $fsfile->tree($no) ];
@@ -99,9 +99,9 @@ sub _get_value_line_hook {
 }
 
 sub _value_line_doubleclick_hook {
-    use Data::Dumper;
-    $Data::Dumper::Maxdepth = 2;
-    print Dumper(\@_);
+#    use Data::Dumper;
+#    $Data::Dumper::Maxdepth = 2;
+#    print Dumper(\@_);
 
     my $res = $_[-1];
     if (defined $res && $res eq 'stop') {

@@ -11,7 +11,7 @@ use File::Spec;
 use TrEd::Utils qw{$EMPTY_STR};
 use TrEd::Config qw{$tredDebug @config_filelists};
 require TrEd::File;
-TrEd::File->import(qw{closeFile absolutize filename});
+TrEd::File->import(qw{close_file absolutize filename});
 
 use Treex::PML qw{&Index};
 use Treex::PML::IO;
@@ -703,7 +703,7 @@ sub selectFilelist {
     my $fl = selectFilelistNoUpdate( $win, $list_name );
     if ( $fl and !$opts->{no_open} ) {
         if ( $win->{currentFileNo} >= $fl->file_count() ) {
-            TrEd::File::closeFile($win);
+            TrEd::File::close_file($win);
         }
         else {
 

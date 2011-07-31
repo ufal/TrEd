@@ -615,6 +615,937 @@ sub _redirect_stderr {
     return $old;
 }
 
+sub start_server {
+    my ($grp, $context) = @_;
+    $SIG{USR1} = sub { };
+
+    # ----------------------------------------
+    # SERVER MODE
+    # ----------------------------------------
+    require IO::Socket::INET;
+    require TrEd::Cipher;
+
+    # Start btred server
+    preloadFiles( $grp, \@files );
+
+    my $control = '@-NTRED-@-PROTOCOL-@'
+        ;    # @@@ marks the beginning of control lines
+
+    my $key = readline(*STDIN);
+
+    #    close STDIN;
+    if ( $key =~ /^\Q$control\E SESSION-KEY=([0-9A-Z]+)$/ ) {
+        $key = TrEd::Cipher::hex_to_block($1);
+        /(.)/;    # clean-up :-)
+    }
+    else {
+        die "Was expecting the session key!\n";
+    }
+
+    my $port = $start_server;
+    my $max_port = ( $port =~ s/-([0-9]+)$// ? $1 : undef );
+    use Sys::Hostname;
+    chomp( $host = hostname() ) unless defined $host;    #$ENV{HOSTNAME};
+    my $server;
+    while (1) {
+        $server = new IO::Socket::INET(
+            LocalHost => $host,
+            LocalPort => $port,
+            Proto     => 'tcp',
+            Listen    => 5,
+            Reuse     => 1,
+        );
+        last if $server or !defined($max_port) or $port >= $max_port;
+        $port++;
+    }
+    die "Cannot open socket at $host:$port: $!\n" unless $server;
+
+    if ($host_port_file) {
+        open my $fh, '>', $host_port_file;
+        print $fh "HOST=$host PORT=$port\n";
+        close $fh;
+    }
+
+    _msg("Waiting for hub on $host:$port\n");
+
+    $allow_host =~ s/\s//g;
+
+    # resolve peer IP
+    if ($allow_host) {
+        ($allow_host)
+            = ( `LC_ALL=C host "$allow_host"` =~ / has address (.*)$/ )
+            if ( $allow_host =~ /[^:.0-9]/ );
+        _msg("Awaiting connection from $allow_host\n");
+    }
+    my ( $hub, $peer );
+    do {
+        {
+            $hub  = $server->accept();
+            $peer = $hub->peerhost();
+            if ( $hub and $allow_host and $peer ne $allow_host ) {
+                _msg("Denying connection to peer $peer!\n");
+                $hub->close();
+                undef $hub;
+            }
+            elsif ( $hub
+                and TrEd::Cipher::Authentify( $key, $hub, $control )
+                != 1 )
+            {
+                $hub->close();
+                undef $hub;
+            }
+        }
+    } while ( !$hub );
+    _msg("Connection to the hub on $peer established.\n");
+    my $request_no = 0;
+    _msg("Waiting for a request from the hub...\n\n");
+    $hub->autoflush(1);
+    while (1) {
+        _set_encoding( $hub, ':utf8', "socket to hub" );
+        my $state = 'default';
+        my $request;
+        my %request;
+        my $server_no = undef;
+
+        # --- reading request from hub ---
+        while (<$hub>) {
+            if (/^\Q$control\E SERVER_NO=([0-9]+)/) {
+                $server_no = $1;
+            }
+            elsif (/^\Q$control\E REQUEST_TYPE=(.*)/) {
+                $request_no++;
+                _msg("Receiving request $request_no: $1\n");
+                %request               = ();    # clear
+                $request{REQUEST_TYPE} = $1;
+                $request               = "";
+            }
+            elsif (/^\Q$control\E MD5_SIGNATURE (.*)$/) {
+                $request{SIGNATURE} = $1;
+            }
+            elsif (/^\Q$control\E STATE=(.*)/) {
+                $state = $1;
+                $request .= $_;
+                $request{ "STATE_" . $state } .= "";
+                if (    $state eq 'FSFile'
+                    and $request{REQUEST_TYPE} eq 'UPLOAD' )
+                {
+                    _set_encoding( $hub, undef, "socket to hub" );
+                }
+            }
+            elsif ( !/^\Q$control\E/ ) {
+                $request .= $_;
+                $request{ "STATE_" . $state } .= $_;
+            }
+            elsif (/\Q$control\E END_OF_REQUEST/) {
+                $state = 'END_OF_REQUEST';
+                last;
+            }
+        }
+        for (
+            qw(ENCODING Strip-suffix Strip-prefix Prefix Suffix REGEXP_FILES)
+            )
+        {
+            if ( exists $request{ "STATE_" . $_ } ) {
+                $request{ "STATE_" . $_ } =~ s/[\n\r]+$//;
+            }
+        }
+        ( $state eq 'END_OF_REQUEST' )
+            || die "Broken request '$request{REQUEST_TYPE}'!\n";
+        _msg "Request received from the hub: $request{REQUEST_TYPE}\n";
+
+        _msg("Verifying request signature...\n");
+        if ( $request{SIGNATURE} ne sign_md5( $key, $request ) ) {
+            $hub->print("$control SERVER_RESPONSE_STDERR\n");
+            $hub->print("UNAUTHORIZED REQUEST: MD5 SIGNATURE FAILED\n");
+            $hub->print( "Signatures:\n$request{SIGNATURE}\n"
+                    . sign_md5( $key, $request )
+                    . "\n" );
+            _end_response( $control, $hub );
+        }
+        else {
+
+            # --- performing the request on the trees ----
+            _msg("Performing the hub request...\n");
+            $NO_HOOKS = 1;
+            if ( $request{REQUEST_TYPE} eq 'LOAD_FILES' ) {
+                local $no_secondary
+                    = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
+                local $allow_no_trees
+                    = $request{STATE_ALLOW_NO_TREES}
+                    ? 1
+                    : $allow_no_trees;
+
+                my @new = split /\n/, $request{STATE_FILELIST};
+                push @files, @new;
+
+                eval {
+                    preloadFiles( $grp, \@new, $hub );
+                    die $@ if $@;
+                };
+                if ($@) {
+                    $hub->print("$@\n");
+                }
+                else {
+                    $hub->print("OK\n");
+                }
+                _end_response( $control, $hub );
+            }
+            elsif ( $request{REQUEST_TYPE} eq 'BENCHMARK' ) {
+                $hub->print( _benchmark(), ",", _threads(), "\n" )
+                    ;    # benchmark,threads
+                _end_response( $control, $hub );
+            }
+            elsif ( $request{REQUEST_TYPE} eq 'EVAL_CODE' ) {
+                $NO_HOOKS = 0;
+                _msg("Initializing safe compartment...\n") if $safe;
+
+                # create temporary file to store macro output
+                my $macro_stdout = IO::File->new_tmpfile();
+                my $macro_stderr = IO::File->new_tmpfile();
+
+                my $old_stdout = _redirect_stdout($macro_stdout);
+                my $old_stderr = _redirect_stderr($macro_stderr);
+
+                local $term_encoding = $request{STATE_ENCODING}
+                    if ( $request{STATE_ENCODING} );
+                local $strip_prefix = $request{"STATE_Strip-prefix"}
+                    if exists $request{"STATE_Strip-prefix"};
+                local $strip_suffix = $request{"STATE_Strip-suffix"}
+                    if exists $request{"STATE_Strip-suffix"};
+                local $add_prefix = $request{"STATE_Prefix"}
+                    if exists $request{"STATE_Prefix"};
+                local $append_suffix = $request{"STATE_Suffix"}
+                    if exists $request{"STATE_Suffix"};
+
+                _set_encoding( \*STDOUT, $term_encoding );
+                _set_encoding( \*STDERR, $term_encoding );
+
+                # initialize Safe compartment
+
+                init_tredmacro($grp);
+
+                # script command-line arguments
+                if ( exists( $request{STATE_ARGS} ) ) {
+                    no strict qw(refs);
+                    @{ macro_variable('ARGV') } = split "\n",
+                        $request{STATE_ARGS};
+                    @{ macro_variable('::ARGV') }
+                        = @{ macro_variable('ARGV') };
+                }
+                else {
+                    no strict qw(refs);
+                    @{ macro_variable('ARGV') }   = ();
+                    @{ macro_variable('::ARGV') } = ();
+                }
+
+                #STDOUT->autoflush(1);
+                # load macro
+                _msg "COMPILING MACRO\n";
+                chomp( $request{STATE_CONTEXT} );
+                $context = $request{STATE_CONTEXT} || 'TredMacro';
+                $context = 'TredMacro' if $context eq 'main';
+                $SIG{USR1} = sub { die "BTRED: $host: User break!\n" };
+                $grp->{macroContext} = $context;
+
+                set_macro_variable( 'NTRED_SERVER_NO' => $server_no );
+                doEvalMacro( $grp,
+                          "package $context;\n"
+                        . "#line 1 \"$request{REQUEST_TYPE}\"\n"
+                        . $request{STATE_MACRO} );
+
+                # execute hooks and the code of the query
+
+                $hub->print("$control SERVER_RESPONSE_STDERR\n");
+                $hub->print("$@\n") if $@;
+                if ( !$@ and keys( %{ $grp->{preloaded} } ) ) {
+                    my $stop = doEvalHook( $grp, "start_hook" );
+                    $stop = doEvalHook( $grp, "preload_hook" )
+                        if ( !$@ and $stop ne 'stop' );
+                    $hub->print("$@\n") if $@;
+                    if ( !$@ and $stop ne 'stop' ) {
+                        _msg "RUNNING CODE: $request{STATE_CODE}\n";
+                        my $status
+                            = gotoFile( $grp, 0, -hook_can_stop => 1 );
+                        my $t0     = new Benchmark;
+                        my $regexp = $request{STATE_REGEXP_FILES};
+                        if ( exists $request{STATE_FILELIST} ) {
+                            my @fl = grep {
+                                !defined($regexp)
+                                    or $_ =~ $regexp
+                            } split /\n/, $request{STATE_FILELIST};
+                            foreach my $file (@fl) {
+
+                                # normalize urls
+                                my $goto;
+                                $goto = $1
+                                    if $file
+                                        =~ s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
+                                if ( exists $grp->{preloaded}{$file} ) {
+                                    $status = openFile(
+                                        $grp,
+                                        $file . $goto,
+                                        -hook_can_stop => 1
+                                    );
+                                    last if $@;
+                                    if ($status) {
+                                        doEvalMacro( $grp,
+                                            "package $context;"
+                                                . $request{STATE_CODE} );
+                                        last if $@;
+                                    }
+                                }
+                            }
+                        }
+                        else {
+                            unless ( $status > 0 ) {
+                                $status = nextFileSkipBad( $grp,
+                                    -hook_can_stop => 1 );
+                            }
+                            if ( $status > 0 ) {
+                                do {
+                                    {
+                                        if ( !defined($regexp)
+                                            or $grp->{FSFile}
+                                            and $grp->{FSFile}->filename
+                                            =~ $regexp )
+                                        {
+                                            doEvalMacro( $grp,
+                                                "package $context;"
+                                                    . $request{STATE_CODE}
+                                            );
+                                        }
+                                    }
+                                    } while (
+                                    !$@
+                                    and nextFileSkipBad( $grp,
+                                        -hook_can_stop => 1 )
+                                    and !$@
+                                    );
+                            }
+                        }
+                        $hub->print("$@\n") if $@;
+                        _msg($@) if $@;
+                        undef $@;
+                        closeFile($grp);
+                        $hub->print("$@\n") if $@;
+                        _msg($@) if $@;
+                        undef $@;
+                        doEvalHook( $grp, "exit_hook" );
+                        $hub->print("$@\n") if $@;
+                        _msg($@) if $@;
+                        undef $@;
+                        my $t1 = new Benchmark;
+                        my $time = timediff( $t1, $t0 )
+                            if ( $t1 and $t0 );
+                        $hub->print( "BTRED: $host: Total Time: ",
+                            timestr($time), "\n" )
+                            if $time ne "" and not $request{STATE_QUIET};
+                        _msg( "Total Time: ", timestr($time), "\n" );
+                    }
+                }
+                $SIG{USR1} = sub { };
+                $hub->print(
+                    "No files to process at btred server $host:$port\n")
+                    if ( !keys( %{ $grp->{preloaded} } ) );
+                cleanup_tredmacro(
+                    $grp,
+                    split(
+                        /\n/,
+                        "package $context;\n"
+                            . $request{STATE_MACRO} . "\n"
+                            . $request{STATE_CODE}
+                    )
+                );
+
+                # send macro's error output from tmp file to client
+                _revert_redirect_stderr($old_stderr);
+                _set_encoding( $macro_stderr, $term_encoding );
+                _copy_output( $macro_stderr, $hub );
+                $macro_stderr->close;
+
+                $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+
+                # send macro's output from tmp file to client
+                _revert_redirect_stdout($old_stdout);
+                _set_encoding( $macro_stdout, $term_encoding );
+                _copy_output( $macro_stdout, $hub );
+                $macro_stdout->close;
+
+                _end_response( $control, $hub );
+                _msg(
+                    "The processing of request $request_no completely finished.\n"
+                );
+            }
+            elsif ( $request{REQUEST_TYPE} eq 'QUIT' ) {
+                _msg "Quitting on client's request\n";
+                $hub->print("OK\n");
+                _end_response( $control, $hub );
+                exit 0;
+            }
+            elsif ( $request{REQUEST_TYPE} eq 'RELOAD' ) {
+                local $no_secondary
+                    = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
+                local $allow_no_trees
+                    = $request{STATE_ALLOW_NO_TREES}
+                    ? 1
+                    : $allow_no_trees;
+                my $regexp = $request{STATE_REGEXP_FILES};
+                if ( exists $request{STATE_FILELIST} ) {
+                    _msg "Reloading files at client's request\n";
+                    my @fl = grep {
+                        ( !defined($regexp) or $_ =~ $regexp )
+                            and ref( $grp->{preloaded}->{$_} )
+                    } split /\n/, $request{STATE_FILELIST};
+                    foreach my $file (@fl) {
+                        closePreloadedFile( $grp, $file );
+                    }
+                    eval {
+                        preloadFiles( $grp, \@fl, $hub );
+                        die $@ if $@;
+                    };
+                }
+                elsif ( defined($regexp) ) {
+                    _msg
+                        "Reloading files matching /$regexp/ at client's request\n";
+                    my @fl = grep {
+                        ( !defined($regexp) or $_ =~ $regexp )
+                            and ref( $grp->{preloaded}->{$_} )
+                    } keys %{ $grp->{preloaded} };
+                    foreach my $file (@fl) {
+                        closePreloadedFile( $grp, $file );
+                    }
+                    eval {
+                        preloadFiles( $grp, \@fl, $hub );
+                        die $@ if $@;
+                    };
+                }
+                else {
+                    _msg "Reloading all open files at client's request\n";
+                    closeAllPreloaded($grp);
+                    eval {
+                        preloadFiles( $grp, \@files, $hub );
+                        die $@ if $@;
+                    };
+                }
+                if ($@) {
+                    $hub->print("$@\n");
+                }
+                else {
+                    $hub->print("OK\n");
+                }
+                _end_response( $control, $hub );
+            }
+            elsif ( $request{REQUEST_TYPE} eq 'RELOAD_CHANGED' ) {
+                local $no_secondary
+                    = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
+                local $allow_no_trees
+                    = $request{STATE_ALLOW_NO_TREES}
+                    ? 1
+                    : $allow_no_trees;
+                _msg "Reloading changed files at client's request\n";
+                my @changed = grep {
+                    ref( $grp->{preloaded}->{$_} )
+                        and fileOrSecondariesNotSaved( $grp,
+                        $grp->{preloaded}->{$_} )
+                } @files;
+                foreach my $file (@changed) {
+                    closePreloadedFile( $grp, $file );
+                }
+                eval {
+                    preloadFiles( $grp, \@changed, $hub );
+                    die $@ if $@;
+                };
+                if ($@) {
+                    $hub->print("$@\n");
+                }
+                else {
+                    $hub->print("OK\n");
+                }
+                _end_response( $control, $hub );
+            }
+            elsif ( $request{REQUEST_TYPE} eq 'RELOAD_MACROS' ) {
+                my ( $f, $d, $e ) = map $request{$_},
+                    qw(STATE_Filename STATE_DISABLE_EXTENSIONS STATE_ENABLE_EXTENSIONS);
+                defined && s/[\n\r]+$// for ( $f, $d, $e );
+
+                # chomp $f;
+                $macroFile                            = $f if $f;
+                $TrEd::Extensions::enable_extensions  = $e;
+                $TrEd::Extensions::disable_extensions = $d;
+                _msg
+                    "Reloading macros from $macroFile libdir=$libDir at client's request\n";
+                %TrEd::Macros::defines = ( BTRED => 1 );   # reset defines
+                eval { loadMacros(); };
+
+                #	  _msg(@TrEd::Macros::macros);
+                if ($@) {
+                    $hub->print("$@\n");
+                }
+                else {
+                    $hub->print("OK\n");
+                }
+                _end_response( $control, $hub );
+            }
+            elsif ( $request{REQUEST_TYPE} eq 'COUNT' ) {
+                _msg "Counting all open files at client's request\n";
+                $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+                $hub->print( "$host:$port has ",
+                    scalar(@files), " files\n" );
+                _end_response( $control, $hub );
+            }
+            elsif ( $request{REQUEST_TYPE} eq 'LIST_EXTENSIONS' ) {
+                _msg "Listing extensions on client's request\n";
+                $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+                prepareExtensions( { list_to => $hub } );
+                _end_response( $control, $hub );
+            }
+            elsif ( $request{REQUEST_TYPE} eq 'LIST' ) {
+                local $no_secondary
+                    = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
+                _msg "Listing all open files at client's request\n";
+                $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+                my $regexp = $request{STATE_REGEXP_FILES};
+                if ( exists $request{STATE_FILELIST} ) {
+                    my @f = grep {
+                        ( !defined($regexp) or $_ =~ $regexp )
+                            and ref( $grp->{preloaded}->{$_} )
+                    } split /\n/, $request{STATE_FILELIST};
+                    $hub->print( join( "\n", @f ), "\n" ) if @f;
+                }
+                else {
+                    my @f = grep { !defined($regexp) or $_ =~ $regexp }
+                        @files;
+                    $hub->print( join( "\n", @f ), "\n" ) if @f;
+                }
+                _end_response( $control, $hub );
+            }
+            elsif ( $request{REQUEST_TYPE} eq 'LIST_SECONDARY' ) {
+                _msg "Listing secondary files at client's request\n";
+                $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+                if ( ref( $grp->{secondary} ) ) {
+                    my $regexp = $request{STATE_REGEXP_FILES};
+                    if ( exists $request{STATE_FILELIST} ) {
+                        my @f = grep {
+                            $_ =~ $regexp
+                                and ref( $grp->{secondary}->{$_} )
+                        } split /\n/, $request{STATE_FILELIST};
+                        $hub->print( join( "\n", @f ), "\n" ) if @f;
+                    }
+                    else {
+                        my @f
+                            = sort
+                            grep { !defined($regexp) or $_ =~ $regexp }
+                            keys %{ $grp->{secondary} };
+                        $hub->print( join( "\n", @f ), "\n" ) if @f;
+                    }
+                }
+                _end_response( $control, $hub );
+            }
+            elsif ( $request{REQUEST_TYPE} eq 'LIST_CHANGED' ) {
+                local $no_secondary
+                    = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
+                _msg "Listing all open files at client's request\n";
+                $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+                $hub->print(
+                    map { $_ . "\n" } grep {
+                        ref( $grp->{preloaded}->{$_} )
+                            and fileOrSecondariesNotSaved( $grp,
+                            $grp->{preloaded}->{$_} )
+                        } @files
+                );
+                _end_response( $control, $hub );
+            }
+            elsif ( $request{REQUEST_TYPE} eq 'DUMP' ) {
+                $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+                _msg "Dump request for $request{STATE_default}\n";
+
+     # 	  if ($request{STATE_format} =~ /^Data::Dumper\s*/) {
+     # 	    use Data::Dumper;
+     # 	    my @dump;
+     # 	    foreach my $f (grep /\S/,split /\n/,$request{STATE_default}) {
+     # 	      next unless ($f);
+     # 	      $f=~s{^ntred://}{};
+     # 	      $f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
+     # 	      next unless openFile($grp,$f,-justpreloaded => 1,
+     # 				   -secondary => !$no_secondary);
+     # 	      _msg "Dumping the tree $f at client's request\n";
+     # 	      my $fsfile = $grp->{FSFile};
+     # 	      push @dump, [$fsfile->FS,
+     # 			   $f=_has_suffix($f) ? [$grp->{root}] : $fsfile->treeList,
+     # 			   [$fsfile->tail],
+     # 			   $fsfile->[13],
+     # 			   [$fsfile->patterns],
+     # 			   $fsfile->hint];
+     # 	    }
+     # 	    $hub->print(Data::Dumper->new([\@dump],
+     # 					  ['dump']
+     # 					 )->Indent(0)->Purity(1)->Dump);
+     # 	    $hub->print("\n");
+     # 	  } elsif ($request{STATE_format} =~ /^Storable-Base64\s*/) {
+                use Storable;
+                use MIME::Base64;
+                my @dump;
+                my @save_req;
+                foreach my $f ( grep /\S/, split /\n/,
+                    $request{STATE_default} )
+                {
+                    next unless ($f);
+                    chomp($f);
+                    $f =~ s{^ntred://}{};
+                    $f =~ s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
+                    next
+                        unless openFile(
+                                $grp, $f,
+                                -justpreloaded => 1,
+                                -secondary     => !$no_secondary
+                        );
+                    my $fsfile = $grp->{FSFile};
+                    next unless ref($fsfile);
+                    _msg
+                        "Dumping the tree $f at client's request ($fsfile)\n";
+                    my $req = $fsfile->metaData('fs-require');
+
+                    if ( ref($req) ) {
+                        push @save_req, [ $fsfile, $req ];
+                        if ($no_secondary) {
+                            $fsfile->changeMetaData( 'fs-require',
+                                undef );
+                        }
+                        else {
+                            $fsfile->changeMetaData(
+                                'fs-require',
+                                [   map {
+                                        [   $_->[0],
+                                            "ntred://"
+                                                . Treex::PML::ResolvePath(
+                                                $fsfile->filename, $_->[1]
+                                                )
+                                        ]
+                                        } @$req
+                                ]
+                            );
+                        }
+                    }
+                    push @dump,
+                        [
+                        $fsfile->FS,
+                        $f
+                            = _has_suffix($f)
+                        ? [ $grp->{root} ]
+                        : $fsfile->treeList,
+                        [ $fsfile->tail ],
+                        $fsfile->[13],
+                        [ $fsfile->patterns ],
+                        $fsfile->hint,
+                        $Treex::PML::API_VERSION
+                        ];
+                }
+                if (@dump) {
+                    eval {
+                        $hub->print(
+                            encode_base64( Storable::nfreeze( \@dump ) )
+                        );
+                    };
+                    $hub->print("\n");
+                    if ($@) {
+                        $hub->print("$control SERVER_RESPONSE_STDERR\n");
+                        $hub->print("$@\n");
+                    }
+                }
+                foreach my $saved (@save_req) {
+                    $saved->[0]
+                        ->changeMetaData( 'fs-require', $saved->[1] );
+                }
+                _end_response( $control, $hub );
+            }
+            elsif ( $request{REQUEST_TYPE} eq 'UPLOAD' ) {
+                $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+                my $f = $request{STATE_Filename};
+
+                # chomp $f;
+                $f =~ s/[\n\r]+$//;
+                _msg "Uploading $f at client's request\n";
+                $f =~ s{^ntred://}{};
+                $f =~ s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
+                if ( $] >= 5.008 ) {
+                    require Encode;
+                    $request{STATE_FSFile} = Encode::decode(
+                        $TrEd::Convert::inputenc,
+                        $request{STATE_FSFile}
+                    );
+                }
+                if ($f
+                    and openFile(
+                        $grp, $f,
+                        -justpreloaded => 1,
+                        -secondary     => 1
+                    )
+                    and ref( $grp->{FSFile} )
+                    )
+                {
+                    _msg "Uploading $f at client's request\n";
+
+                    my $fs_files = Storable::thaw(
+                        decode_base64( $request{STATE_FSFile} ) );
+                    my $restore = ref($fs_files) ? $fs_files->[0] : undef;
+                    if ( ref($restore) ) {
+                        my $fs = $grp->{FSFile};
+                        $fs->changeFS( $restore->[0] );
+                        $fs->changeTail( @{ $restore->[2] } );
+                        my $req = $fs->metaData('fs-require');
+                        $fs->[13] = $restore->[3];    #metaData
+                        $fs->changeMetaData( 'fs-require', $req );
+                        $fs->changePatterns( @{ $restore->[4] } );
+                        $fs->changeHint( $restore->[5] );
+                        $fs->FS->renew_specials();
+
+                        # TODO: maybe clean $fs->appData->{'id-hash'}
+                        if ( _has_suffix($f) ) {
+
+                            # change only one tree
+                            _msg "Update tree $grp->{treeNo} ($f)\n";
+
+                       # in this case, all other trees remain, but
+                       # since we chainged the schema, we must also change
+                       # their node-types....
+                       # we try to use type names in order to do that
+                            my $trees = $fs->treeList();
+                            my $prev  = $trees->[ $grp->{treeNo} ];
+                            $prev->destroy() if ref($prev);
+                            my $schema = $fs->metaData('schema');
+                            if ( ref($schema) ) {
+
+                                # file uses a schema!
+                                my %types;
+                                foreach my $type ( $schema->node_types ) {
+                                    $types{ $type->get_decl_path } = $type
+                                        if ref($type);
+                                }
+                                if ( keys(%types) ) {
+                                    for (
+                                        my $i = 0;
+                                        $i < @{$trees};
+                                        $i++
+                                        )
+                                    {
+                                        unless ( $i == $grp->{treeNo} ) {
+
+                       # for every node in the tree change its schema type
+                                            my $node = $trees->[$i];
+                                            while ($node) {
+                                                my $type = $node->type;
+                                                next unless $type;
+                                                my $path = $type
+                                                    ->get_decl_path;
+                                                if (exists $types{$path} )
+                                                {
+                                                    $node->set_type(
+                                                        $types{$path} );
+                                                }
+                                            }
+                                            continue {
+                                                $node = $node->following;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            $trees->[ $grp->{treeNo} ]
+                                = $restore->[1]->[0];
+                        }
+                        else {
+                            _msg "Updated whole file ($f)\n";
+
+                            # change the whole file
+                            $_->destroy for ( $fs->trees );
+                            $fs->changeTrees( @{ $restore->[1] } );
+                        }
+                        $fs->notSaved(1);
+                    }
+                    else {
+                        _msg "read failed\n";
+                    }
+                    closeFile($grp);
+                }
+                _end_response( $control, $hub );
+            }
+            elsif ($request{REQUEST_TYPE} eq 'SAVE'
+                or $request{REQUEST_TYPE} eq 'SAVE_CHANGED' )
+            {
+                local $no_secondary
+                    = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
+                for (qw(Format Strip-suffix Strip-prefix Prefix Suffix)) {
+                    if ( exists $request{ "STATE_" . $_ } ) {
+                        $request{ "STATE_" . $_ } =~ s/[\n\r]+$//;
+                    }
+                }
+
+                # create temporary file to store std output
+                my $macro_stdout = IO::File->new_tmpfile();
+                my $old_stdout   = _redirect_stdout($macro_stdout);
+                do {
+                    local $backend = $bkmap{ $request{STATE_Format} }
+                        if exists $request{STATE_Format};
+                    local $strip_prefix = $request{"STATE_Strip-prefix"}
+                        if exists $request{"STATE_Strip-prefix"};
+                    local $strip_suffix = $request{"STATE_Strip-suffix"}
+                        if exists $request{"STATE_Strip-suffix"};
+                    local $add_prefix = $request{"STATE_Prefix"}
+                        if exists $request{"STATE_Prefix"};
+                    local $append_suffix = $request{"STATE_Suffix"}
+                        if exists $request{"STATE_Suffix"};
+                    local $reffiles_to_save = $request{"STATE_Knit"}
+                        if exists $request{"STATE_Knit"};
+
+                    my %fl;
+                    my $listed = 0;
+                    if ( exists $request{STATE_FILELIST} ) {
+                        $listed = 1;
+                        %fl
+                            = map { $_ => 1 }
+                            grep { ref( $grp->{preloaded}->{$_} ) }
+                            split /\n/, $request{STATE_FILELIST};
+                    }
+                    my $regexp = $request{STATE_REGEXP_FILES};
+                    eval {
+                        gotoFile( $grp, 0 );
+                        die $@ if $@;
+                        do {
+                            {
+                                my $fsfile   = $grp->{FSFile};
+                                my $filename = $fsfile->filename;
+                                next unless ref($fsfile);
+                                if ((   !defined($regexp)
+                                        or $filename =~ $regexp
+                                    )
+                                    and ( !$listed or $fl{$filename} )
+                                    )
+                                {
+                                    if ( $request{REQUEST_TYPE} eq 'SAVE'
+                                        or $fsfile->notSaved() )
+                                    {
+                                        my ( $out, $error )
+                                            = saveFile($grp);
+                                        if ( !defined($error) ) {
+                                            $macro_stdout->print(
+                                                "Saved ",
+                                                $filename,
+                                                " as $out\n"
+                                            );
+                                        }
+                                        else {
+                                            $macro_stdout->print(
+                                                "ERROR SAVING",
+                                                $filename,
+                                                ": $error\n"
+                                            );
+                                        }
+                                    }
+                                    unless ($no_secondary) {
+                                        foreach my $secondary (
+                                            secondaryDocumentsTo(
+                                                $grp, $fsfile
+                                            )
+                                            )
+                                        {
+                                            if ( $request{REQUEST_TYPE} eq
+                                                'SAVE'
+                                                or $secondary->notSaved()
+                                                )
+                                            {
+
+                           # TODO: we should probably go recursion here...
+                           # (secondary files of secondary files...)
+                                                my ( $out, $error )
+                                                    = saveFile( $grp,
+                                                    $secondary );
+                                                if ( !defined($error) ) {
+                                                    $macro_stdout->print(
+                                                        "Saved secondary file ",
+                                                        $secondary
+                                                            ->filename,
+                                                        " as $out\n"
+                                                    );
+                                                }
+                                                else {
+                                                    $macro_stdout->print(
+                                                        "ERROR SAVING SECONDARY FILE ",
+                                                        $secondary
+                                                            ->filename,
+                                                        ": $error\n"
+                                                    );
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                die $@ if $@;
+                            }
+                        } while ( nextFile($grp) );
+                        die $@ if $@;
+                    };
+                };
+                $hub->print("$control SERVER_RESPONSE_STDERR\n");
+                $hub->print("$@\n") if $@;
+                $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+                _copy_output( $macro_stdout, $hub );
+                $macro_stdout->close;
+                _revert_redirect_stdout($old_stdout);
+                _end_response( $control, $hub );
+            }
+            elsif ( $request{REQUEST_TYPE} eq 'CLOSE' ) {
+                my %fl;
+                my $listed = 0;
+                if ( exists $request{STATE_FILELIST} ) {
+                    _msg
+                        "Closing some open of files at client's request\n";
+                    $listed = 1;
+                    %fl
+                        = map { $_ => 1 }
+                        grep { ref( $grp->{preloaded}->{$_} ) }
+                        split /\n/, $request{STATE_FILELIST};
+                }
+                else {
+                    _msg "Closing all open files at client's request\n";
+                }
+                my $regexp = $request{STATE_REGEXP_FILES};
+                eval {
+                    gotoFile( $grp, 0 );
+                    die $@ if $@;
+                    do {
+                        {
+                            next unless ref( $grp->{FSFile} );
+                            if ((   !defined($regexp)
+                                    or $grp->{'FSFile'}->filename
+                                    =~ $regexp
+                                )
+                                and ( !$listed
+                                    or $fl{ $grp->{'FSFile'}->filename } )
+                                )
+                            {
+                                closeFile($grp);
+                            }
+                            die $@ if $@;
+                        }
+                    } while ( nextFile($grp) );
+                    die $@ if $@;
+                };
+                closeAllPreloaded($grp);
+                @files = ();
+                $hub->print("OK\n");
+                _end_response( $control, $hub );
+            }
+            else {
+                $hub->print(
+                    "ERROR: UNKNOWN REQUEST TYPE $request{REQUEST_TYPE}\n"
+                );
+                _end_response( $control, $hub );
+            }
+            _msg("Waiting for a new request from the hub...\n\n");
+        }
+    }
+}
+
 #toto je hlavne maso!!
 sub startMain {
     my $grp = {
@@ -634,933 +1565,7 @@ sub startMain {
     $TrEd::Macros::on_error = sub { _msg( $_[1] ) };
 
     if ($start_server) {
-        $SIG{USR1} = sub { };
-
-        # ----------------------------------------
-        # SERVER MODE
-        # ----------------------------------------
-        require IO::Socket::INET;
-        require TrEd::Cipher;
-
-        # Start btred server
-        preloadFiles( $grp, \@files );
-
-        my $control = '@-NTRED-@-PROTOCOL-@'
-            ;    # @@@ marks the beginning of control lines
-
-        my $key = readline(*STDIN);
-
-        #    close STDIN;
-        if ( $key =~ /^\Q$control\E SESSION-KEY=([0-9A-Z]+)$/ ) {
-            $key = TrEd::Cipher::hex_to_block($1);
-            /(.)/;    # clean-up :-)
-        }
-        else {
-            die "Was expecting the session key!\n";
-        }
-
-        my $port = $start_server;
-        my $max_port = ( $port =~ s/-([0-9]+)$// ? $1 : undef );
-        use Sys::Hostname;
-        chomp( $host = hostname() ) unless defined $host;    #$ENV{HOSTNAME};
-        my $server;
-        while (1) {
-            $server = new IO::Socket::INET(
-                LocalHost => $host,
-                LocalPort => $port,
-                Proto     => 'tcp',
-                Listen    => 5,
-                Reuse     => 1,
-            );
-            last if $server or !defined($max_port) or $port >= $max_port;
-            $port++;
-        }
-        die "Cannot open socket at $host:$port: $!\n" unless $server;
-
-        if ($host_port_file) {
-            open my $fh, '>', $host_port_file;
-            print $fh "HOST=$host PORT=$port\n";
-            close $fh;
-        }
-
-        _msg("Waiting for hub on $host:$port\n");
-
-        $allow_host =~ s/\s//g;
-
-        # resolve peer IP
-        if ($allow_host) {
-            ($allow_host)
-                = ( `LC_ALL=C host "$allow_host"` =~ / has address (.*)$/ )
-                if ( $allow_host =~ /[^:.0-9]/ );
-            _msg("Awaiting connection from $allow_host\n");
-        }
-        my ( $hub, $peer );
-        do {
-            {
-                $hub  = $server->accept();
-                $peer = $hub->peerhost();
-                if ( $hub and $allow_host and $peer ne $allow_host ) {
-                    _msg("Denying connection to peer $peer!\n");
-                    $hub->close();
-                    undef $hub;
-                }
-                elsif ( $hub
-                    and TrEd::Cipher::Authentify( $key, $hub, $control )
-                    != 1 )
-                {
-                    $hub->close();
-                    undef $hub;
-                }
-            }
-        } while ( !$hub );
-        _msg("Connection to the hub on $peer established.\n");
-        my $request_no = 0;
-        _msg("Waiting for a request from the hub...\n\n");
-        $hub->autoflush(1);
-        while (1) {
-            _set_encoding( $hub, ':utf8', "socket to hub" );
-            my $state = 'default';
-            my $request;
-            my %request;
-            my $server_no = undef;
-
-            # --- reading request from hub ---
-            while (<$hub>) {
-                if (/^\Q$control\E SERVER_NO=([0-9]+)/) {
-                    $server_no = $1;
-                }
-                elsif (/^\Q$control\E REQUEST_TYPE=(.*)/) {
-                    $request_no++;
-                    _msg("Receiving request $request_no: $1\n");
-                    %request               = ();    # clear
-                    $request{REQUEST_TYPE} = $1;
-                    $request               = "";
-                }
-                elsif (/^\Q$control\E MD5_SIGNATURE (.*)$/) {
-                    $request{SIGNATURE} = $1;
-                }
-                elsif (/^\Q$control\E STATE=(.*)/) {
-                    $state = $1;
-                    $request .= $_;
-                    $request{ "STATE_" . $state } .= "";
-                    if (    $state eq 'FSFile'
-                        and $request{REQUEST_TYPE} eq 'UPLOAD' )
-                    {
-                        _set_encoding( $hub, undef, "socket to hub" );
-                    }
-                }
-                elsif ( !/^\Q$control\E/ ) {
-                    $request .= $_;
-                    $request{ "STATE_" . $state } .= $_;
-                }
-                elsif (/\Q$control\E END_OF_REQUEST/) {
-                    $state = 'END_OF_REQUEST';
-                    last;
-                }
-            }
-            for (
-                qw(ENCODING Strip-suffix Strip-prefix Prefix Suffix REGEXP_FILES)
-                )
-            {
-                if ( exists $request{ "STATE_" . $_ } ) {
-                    $request{ "STATE_" . $_ } =~ s/[\n\r]+$//;
-                }
-            }
-            ( $state eq 'END_OF_REQUEST' )
-                || die "Broken request '$request{REQUEST_TYPE}'!\n";
-            _msg "Request received from the hub: $request{REQUEST_TYPE}\n";
-
-            _msg("Verifying request signature...\n");
-            if ( $request{SIGNATURE} ne sign_md5( $key, $request ) ) {
-                $hub->print("$control SERVER_RESPONSE_STDERR\n");
-                $hub->print("UNAUTHORIZED REQUEST: MD5 SIGNATURE FAILED\n");
-                $hub->print( "Signatures:\n$request{SIGNATURE}\n"
-                        . sign_md5( $key, $request )
-                        . "\n" );
-                _end_response( $control, $hub );
-            }
-            else {
-
-                # --- performing the request on the trees ----
-                _msg("Performing the hub request...\n");
-                $NO_HOOKS = 1;
-                if ( $request{REQUEST_TYPE} eq 'LOAD_FILES' ) {
-                    local $no_secondary
-                        = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
-                    local $allow_no_trees
-                        = $request{STATE_ALLOW_NO_TREES}
-                        ? 1
-                        : $allow_no_trees;
-
-                    my @new = split /\n/, $request{STATE_FILELIST};
-                    push @files, @new;
-
-                    eval {
-                        preloadFiles( $grp, \@new, $hub );
-                        die $@ if $@;
-                    };
-                    if ($@) {
-                        $hub->print("$@\n");
-                    }
-                    else {
-                        $hub->print("OK\n");
-                    }
-                    _end_response( $control, $hub );
-                }
-                elsif ( $request{REQUEST_TYPE} eq 'BENCHMARK' ) {
-                    $hub->print( _benchmark(), ",", _threads(), "\n" )
-                        ;    # benchmark,threads
-                    _end_response( $control, $hub );
-                }
-                elsif ( $request{REQUEST_TYPE} eq 'EVAL_CODE' ) {
-                    $NO_HOOKS = 0;
-                    _msg("Initializing safe compartment...\n") if $safe;
-
-                    # create temporary file to store macro output
-                    my $macro_stdout = IO::File->new_tmpfile();
-                    my $macro_stderr = IO::File->new_tmpfile();
-
-                    my $old_stdout = _redirect_stdout($macro_stdout);
-                    my $old_stderr = _redirect_stderr($macro_stderr);
-
-                    local $term_encoding = $request{STATE_ENCODING}
-                        if ( $request{STATE_ENCODING} );
-                    local $strip_prefix = $request{"STATE_Strip-prefix"}
-                        if exists $request{"STATE_Strip-prefix"};
-                    local $strip_suffix = $request{"STATE_Strip-suffix"}
-                        if exists $request{"STATE_Strip-suffix"};
-                    local $add_prefix = $request{"STATE_Prefix"}
-                        if exists $request{"STATE_Prefix"};
-                    local $append_suffix = $request{"STATE_Suffix"}
-                        if exists $request{"STATE_Suffix"};
-
-                    _set_encoding( \*STDOUT, $term_encoding );
-                    _set_encoding( \*STDERR, $term_encoding );
-
-                    # initialize Safe compartment
-
-                    init_tredmacro($grp);
-
-                    # script command-line arguments
-                    if ( exists( $request{STATE_ARGS} ) ) {
-                        no strict qw(refs);
-                        @{ macro_variable('ARGV') } = split "\n",
-                            $request{STATE_ARGS};
-                        @{ macro_variable('::ARGV') }
-                            = @{ macro_variable('ARGV') };
-                    }
-                    else {
-                        no strict qw(refs);
-                        @{ macro_variable('ARGV') }   = ();
-                        @{ macro_variable('::ARGV') } = ();
-                    }
-
-                    #STDOUT->autoflush(1);
-                    # load macro
-                    _msg "COMPILING MACRO\n";
-                    chomp( $request{STATE_CONTEXT} );
-                    $context = $request{STATE_CONTEXT} || 'TredMacro';
-                    $context = 'TredMacro' if $context eq 'main';
-                    $SIG{USR1} = sub { die "BTRED: $host: User break!\n" };
-                    $grp->{macroContext} = $context;
-
-                    set_macro_variable( 'NTRED_SERVER_NO' => $server_no );
-                    doEvalMacro( $grp,
-                              "package $context;\n"
-                            . "#line 1 \"$request{REQUEST_TYPE}\"\n"
-                            . $request{STATE_MACRO} );
-
-                    # execute hooks and the code of the query
-
-                    $hub->print("$control SERVER_RESPONSE_STDERR\n");
-                    $hub->print("$@\n") if $@;
-                    if ( !$@ and keys( %{ $grp->{preloaded} } ) ) {
-                        my $stop = doEvalHook( $grp, "start_hook" );
-                        $stop = doEvalHook( $grp, "preload_hook" )
-                            if ( !$@ and $stop ne 'stop' );
-                        $hub->print("$@\n") if $@;
-                        if ( !$@ and $stop ne 'stop' ) {
-                            _msg "RUNNING CODE: $request{STATE_CODE}\n";
-                            my $status
-                                = gotoFile( $grp, 0, -hook_can_stop => 1 );
-                            my $t0     = new Benchmark;
-                            my $regexp = $request{STATE_REGEXP_FILES};
-                            if ( exists $request{STATE_FILELIST} ) {
-                                my @fl = grep {
-                                    !defined($regexp)
-                                        or $_ =~ $regexp
-                                } split /\n/, $request{STATE_FILELIST};
-                                foreach my $file (@fl) {
-
-                                    # normalize urls
-                                    my $goto;
-                                    $goto = $1
-                                        if $file
-                                            =~ s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
-                                    if ( exists $grp->{preloaded}{$file} ) {
-                                        $status = openFile(
-                                            $grp,
-                                            $file . $goto,
-                                            -hook_can_stop => 1
-                                        );
-                                        last if $@;
-                                        if ($status) {
-                                            doEvalMacro( $grp,
-                                                "package $context;"
-                                                    . $request{STATE_CODE} );
-                                            last if $@;
-                                        }
-                                    }
-                                }
-                            }
-                            else {
-                                unless ( $status > 0 ) {
-                                    $status = nextFileSkipBad( $grp,
-                                        -hook_can_stop => 1 );
-                                }
-                                if ( $status > 0 ) {
-                                    do {
-                                        {
-                                            if ( !defined($regexp)
-                                                or $grp->{FSFile}
-                                                and $grp->{FSFile}->filename
-                                                =~ $regexp )
-                                            {
-                                                doEvalMacro( $grp,
-                                                    "package $context;"
-                                                        . $request{STATE_CODE}
-                                                );
-                                            }
-                                        }
-                                        } while (
-                                        !$@
-                                        and nextFileSkipBad( $grp,
-                                            -hook_can_stop => 1 )
-                                        and !$@
-                                        );
-                                }
-                            }
-                            $hub->print("$@\n") if $@;
-                            _msg($@) if $@;
-                            undef $@;
-                            closeFile($grp);
-                            $hub->print("$@\n") if $@;
-                            _msg($@) if $@;
-                            undef $@;
-                            doEvalHook( $grp, "exit_hook" );
-                            $hub->print("$@\n") if $@;
-                            _msg($@) if $@;
-                            undef $@;
-                            my $t1 = new Benchmark;
-                            my $time = timediff( $t1, $t0 )
-                                if ( $t1 and $t0 );
-                            $hub->print( "BTRED: $host: Total Time: ",
-                                timestr($time), "\n" )
-                                if $time ne "" and not $request{STATE_QUIET};
-                            _msg( "Total Time: ", timestr($time), "\n" );
-                        }
-                    }
-                    $SIG{USR1} = sub { };
-                    $hub->print(
-                        "No files to process at btred server $host:$port\n")
-                        if ( !keys( %{ $grp->{preloaded} } ) );
-                    cleanup_tredmacro(
-                        $grp,
-                        split(
-                            /\n/,
-                            "package $context;\n"
-                                . $request{STATE_MACRO} . "\n"
-                                . $request{STATE_CODE}
-                        )
-                    );
-
-                    # send macro's error output from tmp file to client
-                    _revert_redirect_stderr($old_stderr);
-                    _set_encoding( $macro_stderr, $term_encoding );
-                    _copy_output( $macro_stderr, $hub );
-                    $macro_stderr->close;
-
-                    $hub->print("$control SERVER_RESPONSE_STDOUT\n");
-
-                    # send macro's output from tmp file to client
-                    _revert_redirect_stdout($old_stdout);
-                    _set_encoding( $macro_stdout, $term_encoding );
-                    _copy_output( $macro_stdout, $hub );
-                    $macro_stdout->close;
-
-                    _end_response( $control, $hub );
-                    _msg(
-                        "The processing of request $request_no completely finished.\n"
-                    );
-                }
-                elsif ( $request{REQUEST_TYPE} eq 'QUIT' ) {
-                    _msg "Quitting on client's request\n";
-                    $hub->print("OK\n");
-                    _end_response( $control, $hub );
-                    exit 0;
-                }
-                elsif ( $request{REQUEST_TYPE} eq 'RELOAD' ) {
-                    local $no_secondary
-                        = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
-                    local $allow_no_trees
-                        = $request{STATE_ALLOW_NO_TREES}
-                        ? 1
-                        : $allow_no_trees;
-                    my $regexp = $request{STATE_REGEXP_FILES};
-                    if ( exists $request{STATE_FILELIST} ) {
-                        _msg "Reloading files at client's request\n";
-                        my @fl = grep {
-                            ( !defined($regexp) or $_ =~ $regexp )
-                                and ref( $grp->{preloaded}->{$_} )
-                        } split /\n/, $request{STATE_FILELIST};
-                        foreach my $file (@fl) {
-                            closePreloadedFile( $grp, $file );
-                        }
-                        eval {
-                            preloadFiles( $grp, \@fl, $hub );
-                            die $@ if $@;
-                        };
-                    }
-                    elsif ( defined($regexp) ) {
-                        _msg
-                            "Reloading files matching /$regexp/ at client's request\n";
-                        my @fl = grep {
-                            ( !defined($regexp) or $_ =~ $regexp )
-                                and ref( $grp->{preloaded}->{$_} )
-                        } keys %{ $grp->{preloaded} };
-                        foreach my $file (@fl) {
-                            closePreloadedFile( $grp, $file );
-                        }
-                        eval {
-                            preloadFiles( $grp, \@fl, $hub );
-                            die $@ if $@;
-                        };
-                    }
-                    else {
-                        _msg "Reloading all open files at client's request\n";
-                        closeAllPreloaded($grp);
-                        eval {
-                            preloadFiles( $grp, \@files, $hub );
-                            die $@ if $@;
-                        };
-                    }
-                    if ($@) {
-                        $hub->print("$@\n");
-                    }
-                    else {
-                        $hub->print("OK\n");
-                    }
-                    _end_response( $control, $hub );
-                }
-                elsif ( $request{REQUEST_TYPE} eq 'RELOAD_CHANGED' ) {
-                    local $no_secondary
-                        = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
-                    local $allow_no_trees
-                        = $request{STATE_ALLOW_NO_TREES}
-                        ? 1
-                        : $allow_no_trees;
-                    _msg "Reloading changed files at client's request\n";
-                    my @changed = grep {
-                        ref( $grp->{preloaded}->{$_} )
-                            and fileOrSecondariesNotSaved( $grp,
-                            $grp->{preloaded}->{$_} )
-                    } @files;
-                    foreach my $file (@changed) {
-                        closePreloadedFile( $grp, $file );
-                    }
-                    eval {
-                        preloadFiles( $grp, \@changed, $hub );
-                        die $@ if $@;
-                    };
-                    if ($@) {
-                        $hub->print("$@\n");
-                    }
-                    else {
-                        $hub->print("OK\n");
-                    }
-                    _end_response( $control, $hub );
-                }
-                elsif ( $request{REQUEST_TYPE} eq 'RELOAD_MACROS' ) {
-                    my ( $f, $d, $e ) = map $request{$_},
-                        qw(STATE_Filename STATE_DISABLE_EXTENSIONS STATE_ENABLE_EXTENSIONS);
-                    defined && s/[\n\r]+$// for ( $f, $d, $e );
-
-                    # chomp $f;
-                    $macroFile                            = $f if $f;
-                    $TrEd::Extensions::enable_extensions  = $e;
-                    $TrEd::Extensions::disable_extensions = $d;
-                    _msg
-                        "Reloading macros from $macroFile libdir=$libDir at client's request\n";
-                    %TrEd::Macros::defines = ( BTRED => 1 );   # reset defines
-                    eval { loadMacros(); };
-
-                    #	  _msg(@TrEd::Macros::macros);
-                    if ($@) {
-                        $hub->print("$@\n");
-                    }
-                    else {
-                        $hub->print("OK\n");
-                    }
-                    _end_response( $control, $hub );
-                }
-                elsif ( $request{REQUEST_TYPE} eq 'COUNT' ) {
-                    _msg "Counting all open files at client's request\n";
-                    $hub->print("$control SERVER_RESPONSE_STDOUT\n");
-                    $hub->print( "$host:$port has ",
-                        scalar(@files), " files\n" );
-                    _end_response( $control, $hub );
-                }
-                elsif ( $request{REQUEST_TYPE} eq 'LIST_EXTENSIONS' ) {
-                    _msg "Listing extensions on client's request\n";
-                    $hub->print("$control SERVER_RESPONSE_STDOUT\n");
-                    prepareExtensions( { list_to => $hub } );
-                    _end_response( $control, $hub );
-                }
-                elsif ( $request{REQUEST_TYPE} eq 'LIST' ) {
-                    local $no_secondary
-                        = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
-                    _msg "Listing all open files at client's request\n";
-                    $hub->print("$control SERVER_RESPONSE_STDOUT\n");
-                    my $regexp = $request{STATE_REGEXP_FILES};
-                    if ( exists $request{STATE_FILELIST} ) {
-                        my @f = grep {
-                            ( !defined($regexp) or $_ =~ $regexp )
-                                and ref( $grp->{preloaded}->{$_} )
-                        } split /\n/, $request{STATE_FILELIST};
-                        $hub->print( join( "\n", @f ), "\n" ) if @f;
-                    }
-                    else {
-                        my @f = grep { !defined($regexp) or $_ =~ $regexp }
-                            @files;
-                        $hub->print( join( "\n", @f ), "\n" ) if @f;
-                    }
-                    _end_response( $control, $hub );
-                }
-                elsif ( $request{REQUEST_TYPE} eq 'LIST_SECONDARY' ) {
-                    _msg "Listing secondary files at client's request\n";
-                    $hub->print("$control SERVER_RESPONSE_STDOUT\n");
-                    if ( ref( $grp->{secondary} ) ) {
-                        my $regexp = $request{STATE_REGEXP_FILES};
-                        if ( exists $request{STATE_FILELIST} ) {
-                            my @f = grep {
-                                $_ =~ $regexp
-                                    and ref( $grp->{secondary}->{$_} )
-                            } split /\n/, $request{STATE_FILELIST};
-                            $hub->print( join( "\n", @f ), "\n" ) if @f;
-                        }
-                        else {
-                            my @f
-                                = sort
-                                grep { !defined($regexp) or $_ =~ $regexp }
-                                keys %{ $grp->{secondary} };
-                            $hub->print( join( "\n", @f ), "\n" ) if @f;
-                        }
-                    }
-                    _end_response( $control, $hub );
-                }
-                elsif ( $request{REQUEST_TYPE} eq 'LIST_CHANGED' ) {
-                    local $no_secondary
-                        = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
-                    _msg "Listing all open files at client's request\n";
-                    $hub->print("$control SERVER_RESPONSE_STDOUT\n");
-                    $hub->print(
-                        map { $_ . "\n" } grep {
-                            ref( $grp->{preloaded}->{$_} )
-                                and fileOrSecondariesNotSaved( $grp,
-                                $grp->{preloaded}->{$_} )
-                            } @files
-                    );
-                    _end_response( $control, $hub );
-                }
-                elsif ( $request{REQUEST_TYPE} eq 'DUMP' ) {
-                    $hub->print("$control SERVER_RESPONSE_STDOUT\n");
-                    _msg "Dump request for $request{STATE_default}\n";
-
-         # 	  if ($request{STATE_format} =~ /^Data::Dumper\s*/) {
-         # 	    use Data::Dumper;
-         # 	    my @dump;
-         # 	    foreach my $f (grep /\S/,split /\n/,$request{STATE_default}) {
-         # 	      next unless ($f);
-         # 	      $f=~s{^ntred://}{};
-         # 	      $f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
-         # 	      next unless openFile($grp,$f,-justpreloaded => 1,
-         # 				   -secondary => !$no_secondary);
-         # 	      _msg "Dumping the tree $f at client's request\n";
-         # 	      my $fsfile = $grp->{FSFile};
-         # 	      push @dump, [$fsfile->FS,
-         # 			   $f=_has_suffix($f) ? [$grp->{root}] : $fsfile->treeList,
-         # 			   [$fsfile->tail],
-         # 			   $fsfile->[13],
-         # 			   [$fsfile->patterns],
-         # 			   $fsfile->hint];
-         # 	    }
-         # 	    $hub->print(Data::Dumper->new([\@dump],
-         # 					  ['dump']
-         # 					 )->Indent(0)->Purity(1)->Dump);
-         # 	    $hub->print("\n");
-         # 	  } elsif ($request{STATE_format} =~ /^Storable-Base64\s*/) {
-                    use Storable;
-                    use MIME::Base64;
-                    my @dump;
-                    my @save_req;
-                    foreach my $f ( grep /\S/, split /\n/,
-                        $request{STATE_default} )
-                    {
-                        next unless ($f);
-                        chomp($f);
-                        $f =~ s{^ntred://}{};
-                        $f =~ s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
-                        next
-                            unless openFile(
-                                    $grp, $f,
-                                    -justpreloaded => 1,
-                                    -secondary     => !$no_secondary
-                            );
-                        my $fsfile = $grp->{FSFile};
-                        next unless ref($fsfile);
-                        _msg
-                            "Dumping the tree $f at client's request ($fsfile)\n";
-                        my $req = $fsfile->metaData('fs-require');
-
-                        if ( ref($req) ) {
-                            push @save_req, [ $fsfile, $req ];
-                            if ($no_secondary) {
-                                $fsfile->changeMetaData( 'fs-require',
-                                    undef );
-                            }
-                            else {
-                                $fsfile->changeMetaData(
-                                    'fs-require',
-                                    [   map {
-                                            [   $_->[0],
-                                                "ntred://"
-                                                    . Treex::PML::ResolvePath(
-                                                    $fsfile->filename, $_->[1]
-                                                    )
-                                            ]
-                                            } @$req
-                                    ]
-                                );
-                            }
-                        }
-                        push @dump,
-                            [
-                            $fsfile->FS,
-                            $f
-                                = _has_suffix($f)
-                            ? [ $grp->{root} ]
-                            : $fsfile->treeList,
-                            [ $fsfile->tail ],
-                            $fsfile->[13],
-                            [ $fsfile->patterns ],
-                            $fsfile->hint,
-                            $Treex::PML::API_VERSION
-                            ];
-                    }
-                    if (@dump) {
-                        eval {
-                            $hub->print(
-                                encode_base64( Storable::nfreeze( \@dump ) )
-                            );
-                        };
-                        $hub->print("\n");
-                        if ($@) {
-                            $hub->print("$control SERVER_RESPONSE_STDERR\n");
-                            $hub->print("$@\n");
-                        }
-                    }
-                    foreach my $saved (@save_req) {
-                        $saved->[0]
-                            ->changeMetaData( 'fs-require', $saved->[1] );
-                    }
-                    _end_response( $control, $hub );
-                }
-                elsif ( $request{REQUEST_TYPE} eq 'UPLOAD' ) {
-                    $hub->print("$control SERVER_RESPONSE_STDOUT\n");
-                    my $f = $request{STATE_Filename};
-
-                    # chomp $f;
-                    $f =~ s/[\n\r]+$//;
-                    _msg "Uploading $f at client's request\n";
-                    $f =~ s{^ntred://}{};
-                    $f =~ s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
-                    if ( $] >= 5.008 ) {
-                        require Encode;
-                        $request{STATE_FSFile} = Encode::decode(
-                            $TrEd::Convert::inputenc,
-                            $request{STATE_FSFile}
-                        );
-                    }
-                    if ($f
-                        and openFile(
-                            $grp, $f,
-                            -justpreloaded => 1,
-                            -secondary     => 1
-                        )
-                        and ref( $grp->{FSFile} )
-                        )
-                    {
-                        _msg "Uploading $f at client's request\n";
-
-                        my $fs_files = Storable::thaw(
-                            decode_base64( $request{STATE_FSFile} ) );
-                        my $restore = ref($fs_files) ? $fs_files->[0] : undef;
-                        if ( ref($restore) ) {
-                            my $fs = $grp->{FSFile};
-                            $fs->changeFS( $restore->[0] );
-                            $fs->changeTail( @{ $restore->[2] } );
-                            my $req = $fs->metaData('fs-require');
-                            $fs->[13] = $restore->[3];    #metaData
-                            $fs->changeMetaData( 'fs-require', $req );
-                            $fs->changePatterns( @{ $restore->[4] } );
-                            $fs->changeHint( $restore->[5] );
-                            $fs->FS->renew_specials();
-
-                            # TODO: maybe clean $fs->appData->{'id-hash'}
-                            if ( _has_suffix($f) ) {
-
-                                # change only one tree
-                                _msg "Update tree $grp->{treeNo} ($f)\n";
-
-                           # in this case, all other trees remain, but
-                           # since we chainged the schema, we must also change
-                           # their node-types....
-                           # we try to use type names in order to do that
-                                my $trees = $fs->treeList();
-                                my $prev  = $trees->[ $grp->{treeNo} ];
-                                $prev->destroy() if ref($prev);
-                                my $schema = $fs->metaData('schema');
-                                if ( ref($schema) ) {
-
-                                    # file uses a schema!
-                                    my %types;
-                                    foreach my $type ( $schema->node_types ) {
-                                        $types{ $type->get_decl_path } = $type
-                                            if ref($type);
-                                    }
-                                    if ( keys(%types) ) {
-                                        for (
-                                            my $i = 0;
-                                            $i < @{$trees};
-                                            $i++
-                                            )
-                                        {
-                                            unless ( $i == $grp->{treeNo} ) {
-
-                           # for every node in the tree change its schema type
-                                                my $node = $trees->[$i];
-                                                while ($node) {
-                                                    my $type = $node->type;
-                                                    next unless $type;
-                                                    my $path = $type
-                                                        ->get_decl_path;
-                                                    if (exists $types{$path} )
-                                                    {
-                                                        $node->set_type(
-                                                            $types{$path} );
-                                                    }
-                                                }
-                                                continue {
-                                                    $node = $node->following;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                $trees->[ $grp->{treeNo} ]
-                                    = $restore->[1]->[0];
-                            }
-                            else {
-                                _msg "Updated whole file ($f)\n";
-
-                                # change the whole file
-                                $_->destroy for ( $fs->trees );
-                                $fs->changeTrees( @{ $restore->[1] } );
-                            }
-                            $fs->notSaved(1);
-                        }
-                        else {
-                            _msg "read failed\n";
-                        }
-                        closeFile($grp);
-                    }
-                    _end_response( $control, $hub );
-                }
-                elsif ($request{REQUEST_TYPE} eq 'SAVE'
-                    or $request{REQUEST_TYPE} eq 'SAVE_CHANGED' )
-                {
-                    local $no_secondary
-                        = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
-                    for (qw(Format Strip-suffix Strip-prefix Prefix Suffix)) {
-                        if ( exists $request{ "STATE_" . $_ } ) {
-                            $request{ "STATE_" . $_ } =~ s/[\n\r]+$//;
-                        }
-                    }
-
-                    # create temporary file to store std output
-                    my $macro_stdout = IO::File->new_tmpfile();
-                    my $old_stdout   = _redirect_stdout($macro_stdout);
-                    do {
-                        local $backend = $bkmap{ $request{STATE_Format} }
-                            if exists $request{STATE_Format};
-                        local $strip_prefix = $request{"STATE_Strip-prefix"}
-                            if exists $request{"STATE_Strip-prefix"};
-                        local $strip_suffix = $request{"STATE_Strip-suffix"}
-                            if exists $request{"STATE_Strip-suffix"};
-                        local $add_prefix = $request{"STATE_Prefix"}
-                            if exists $request{"STATE_Prefix"};
-                        local $append_suffix = $request{"STATE_Suffix"}
-                            if exists $request{"STATE_Suffix"};
-                        local $reffiles_to_save = $request{"STATE_Knit"}
-                            if exists $request{"STATE_Knit"};
-
-                        my %fl;
-                        my $listed = 0;
-                        if ( exists $request{STATE_FILELIST} ) {
-                            $listed = 1;
-                            %fl
-                                = map { $_ => 1 }
-                                grep { ref( $grp->{preloaded}->{$_} ) }
-                                split /\n/, $request{STATE_FILELIST};
-                        }
-                        my $regexp = $request{STATE_REGEXP_FILES};
-                        eval {
-                            gotoFile( $grp, 0 );
-                            die $@ if $@;
-                            do {
-                                {
-                                    my $fsfile   = $grp->{FSFile};
-                                    my $filename = $fsfile->filename;
-                                    next unless ref($fsfile);
-                                    if ((   !defined($regexp)
-                                            or $filename =~ $regexp
-                                        )
-                                        and ( !$listed or $fl{$filename} )
-                                        )
-                                    {
-                                        if ( $request{REQUEST_TYPE} eq 'SAVE'
-                                            or $fsfile->notSaved() )
-                                        {
-                                            my ( $out, $error )
-                                                = saveFile($grp);
-                                            if ( !defined($error) ) {
-                                                $macro_stdout->print(
-                                                    "Saved ",
-                                                    $filename,
-                                                    " as $out\n"
-                                                );
-                                            }
-                                            else {
-                                                $macro_stdout->print(
-                                                    "ERROR SAVING",
-                                                    $filename,
-                                                    ": $error\n"
-                                                );
-                                            }
-                                        }
-                                        unless ($no_secondary) {
-                                            foreach my $secondary (
-                                                secondaryDocumentsTo(
-                                                    $grp, $fsfile
-                                                )
-                                                )
-                                            {
-                                                if ( $request{REQUEST_TYPE} eq
-                                                    'SAVE'
-                                                    or $secondary->notSaved()
-                                                    )
-                                                {
-
-                               # TODO: we should probably go recursion here...
-                               # (secondary files of secondary files...)
-                                                    my ( $out, $error )
-                                                        = saveFile( $grp,
-                                                        $secondary );
-                                                    if ( !defined($error) ) {
-                                                        $macro_stdout->print(
-                                                            "Saved secondary file ",
-                                                            $secondary
-                                                                ->filename,
-                                                            " as $out\n"
-                                                        );
-                                                    }
-                                                    else {
-                                                        $macro_stdout->print(
-                                                            "ERROR SAVING SECONDARY FILE ",
-                                                            $secondary
-                                                                ->filename,
-                                                            ": $error\n"
-                                                        );
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    die $@ if $@;
-                                }
-                            } while ( nextFile($grp) );
-                            die $@ if $@;
-                        };
-                    };
-                    $hub->print("$control SERVER_RESPONSE_STDERR\n");
-                    $hub->print("$@\n") if $@;
-                    $hub->print("$control SERVER_RESPONSE_STDOUT\n");
-                    _copy_output( $macro_stdout, $hub );
-                    $macro_stdout->close;
-                    _revert_redirect_stdout($old_stdout);
-                    _end_response( $control, $hub );
-                }
-                elsif ( $request{REQUEST_TYPE} eq 'CLOSE' ) {
-                    my %fl;
-                    my $listed = 0;
-                    if ( exists $request{STATE_FILELIST} ) {
-                        _msg
-                            "Closing some open of files at client's request\n";
-                        $listed = 1;
-                        %fl
-                            = map { $_ => 1 }
-                            grep { ref( $grp->{preloaded}->{$_} ) }
-                            split /\n/, $request{STATE_FILELIST};
-                    }
-                    else {
-                        _msg "Closing all open files at client's request\n";
-                    }
-                    my $regexp = $request{STATE_REGEXP_FILES};
-                    eval {
-                        gotoFile( $grp, 0 );
-                        die $@ if $@;
-                        do {
-                            {
-                                next unless ref( $grp->{FSFile} );
-                                if ((   !defined($regexp)
-                                        or $grp->{'FSFile'}->filename
-                                        =~ $regexp
-                                    )
-                                    and ( !$listed
-                                        or $fl{ $grp->{'FSFile'}->filename } )
-                                    )
-                                {
-                                    closeFile($grp);
-                                }
-                                die $@ if $@;
-                            }
-                        } while ( nextFile($grp) );
-                        die $@ if $@;
-                    };
-                    closeAllPreloaded($grp);
-                    @files = ();
-                    $hub->print("OK\n");
-                    _end_response( $control, $hub );
-                }
-                else {
-                    $hub->print(
-                        "ERROR: UNKNOWN REQUEST TYPE $request{REQUEST_TYPE}\n"
-                    );
-                    _end_response( $control, $hub );
-                }
-                _msg("Waiting for a new request from the hub...\n\n");
-            }
-        }
+        start_server($grp, $context);
     }
     else {
 

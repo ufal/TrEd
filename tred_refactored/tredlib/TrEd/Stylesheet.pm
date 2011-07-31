@@ -405,7 +405,7 @@ sub set_stylesheet_patterns {
     my $grp = $win->{framegroup};
     my ( $hint, $context, $patterns );
     if ( ref($text) ) {
-        ( $hint, $context, $patterns ) = @$text;
+        ( $hint, $context, $patterns ) = @{$text};
     }
     else {
         ( $hint, $context, $patterns ) = split_patterns($text);
@@ -578,7 +578,7 @@ sub delete_stylesheet {
     my ( $grp, $stylesheet ) = @_;
     remove_stylesheet_file( $grp, $default_stylesheet_path, $stylesheet );
     $grp->{StylesheetMenu}->update($grp);
-    foreach my $win ( stylesheetUsingWindows( $grp, $stylesheet ) ) {
+    foreach my $win ( main::windows_using_stylesheet( $grp, $stylesheet ) ) {
         if ( $grp->{focusedWindow} == $win ) {
             $grp->{selectedStylesheet} = STYLESHEET_FROM_FILE();
         }

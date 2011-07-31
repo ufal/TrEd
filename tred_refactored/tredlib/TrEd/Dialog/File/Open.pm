@@ -22,8 +22,8 @@ use Carp;
 #                 ["Text file", [qw{.txt .log .rtf .me}]]
 sub _extensions_from_filetypes {
     my ($filetypes_ref) = @_;
-    return ref( $filetypes_ref ) ? join " ", map { "*" . $_ } 
-                                             map { @{ $_->[1] } } 
+    return ref( $filetypes_ref ) ? join " ", map { "*" . $_ }
+                                             map { @{ $_->[1] } }
                                              @{ $filetypes_ref }
                                  : "*";
 }
@@ -73,13 +73,13 @@ sub get_open_filename {
 # Usage         : show_dialog($grp, $header_only)
 # Purpose       : Create open file dialog
 # Returns       : If file name is empty or not specified by get_open_filename function,
-#                 returns 0. 
-#TODO: doplnit podla toho, co vracia openStandaloneFile
+#                 returns 0.
+#TODO: doplnit podla toho, co vracia open_standalone_file
 # Parameters    : hash_ref $grp  -- reference to TrEd's hash of options and variables
-#                 ? $header_only -- variable passed to openStandaloneFile function
+#                 ? $header_only -- variable passed to open_standalone_file function
 # Throws        : no exception
-# Comments      : 
-# See Also      : TrEd::File::openStandaloneFile(), get_open_filename()
+# Comments      :
+# See Also      : TrEd::File::open_standalone_file(), get_open_filename()
 sub show_dialog {
     my ($grp, $header_only) = @_;
     my $file;
@@ -94,7 +94,7 @@ sub show_dialog {
         ( (defined $dir && -d $dir) ? ( -initialdir => $dir ) : () )
     );
     if ( defined $file && $file ne $EMPTY_STR ) {
-        return TrEd::File::openStandaloneFile( $grp, $file,
+        return TrEd::File::open_standalone_file( $grp, $file,
             -justheader => $header_only );
     }
     return 0;
@@ -113,22 +113,22 @@ TrEd::Dialog::File::Open -- simple open file dialog
 
 =head1 VERSION
 
-This documentation refers to 
+This documentation refers to
 TrEd::Dialog::File::Open version 0.1.
 
 
 =head1 SYNOPSIS
 
   use TrEd::Dialog::File::Open;
-  
-    
+
+
 =head1 DESCRIPTION
 
 This package provides basic open file dialog for TrEd.
 
 =head1 SUBROUTINES/METHODS
 
-=over 4 
+=over 4
 
 
 
@@ -138,7 +138,7 @@ This package provides basic open file dialog for TrEd.
 
 =head1 DIAGNOSTICS
 
-Carps if the Tk's open file dialog returns file name in UTF-8 
+Carps if the Tk's open file dialog returns file name in UTF-8
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
@@ -153,7 +153,7 @@ Carps if the Tk's open file dialog returns file name in UTF-8
 =head1 BUGS AND LIMITATIONS
 
 There are no known bugs in this module.
-Please report problems to 
+Please report problems to
 Zdenek Zabokrtsky <zabokrtsky@ufal.ms.mff.cuni.cz>
 
 Patches are welcome.
@@ -163,9 +163,9 @@ Patches are welcome.
 
 Petr Pajas <pajas@matfyz.cz>
 
-Copyright (c) 
+Copyright (c)
 2010 Petr Pajas <pajas@matfyz.cz>
-2011 Peter Fabian (documentation & tests). 
+2011 Peter Fabian (documentation & tests).
 All rights reserved.
 
 
