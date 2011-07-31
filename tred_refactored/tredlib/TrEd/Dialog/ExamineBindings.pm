@@ -12,7 +12,7 @@ sub examineEvent {
     my $bindings = shift;
     my $grp      = $_[0];
     my ( $macro, $key, $eA, $eK, $by_event_hook, $rotated )
-        = main::resolveEvent( $w, @_ );
+        = main::resolve_event( $w, @_ );
     $key ||= $EMPTY_STR;
     if ( $eA eq $eK ) {
         $key .= " [$eA]" if ( $eA ne $key );

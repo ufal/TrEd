@@ -17,7 +17,7 @@ require TrEd::Dialog::EditAttributes;
 
 my %context_override_binding;
 
-#TODO: do nejakeho TrEd::Config::View alebo do TrEd::Config?
+#TODO: consider moving to TrEd::Config::View or to TrEd::Config?
 # Default bindings for TrEd's MainWindow and Toolbar
 my %default_binding = (
     '<Tab>' => [
@@ -29,9 +29,9 @@ my %default_binding = (
         'top',
     ],
     '<Shift-ISO_Left_Tab>' => [
-        sub { 
-            main::currentPrev( $_[1]->{focusedWindow} ); 
-            Tk->break; 
+        sub {
+            main::currentPrev( $_[1]->{focusedWindow} );
+            Tk->break;
         },
         'select previous node',
     ],
@@ -40,8 +40,8 @@ my %default_binding = (
         'select previous node',
     ],
     '<period>' => [
-        sub { 
-            main::onIdleNextTree( $_[1]->{focusedWindow} ); 
+        sub {
+            main::onIdleNextTree( $_[1]->{focusedWindow} );
         },
         'go to next tree',
     ],
@@ -212,14 +212,14 @@ Readonly our $DEFAULT_CONTEXT => q{*};
 # Usage         : TrEd::Binding::Default->new($grp_ref)
 # Purpose       : Create default binding object
 # Returns       : Blessed reference to TrEd::Binding::Default object
-# Parameters    : string $grp_ref -- reference to hash contining TrEd's configuration
-# Throws        : Croaks if $grp_ref is not a reference 
+# Parameters    : hash_ref $grp_ref -- reference to hash contining TrEd's configuration
+# Throws        : Croaks if $grp_ref is not a reference
 sub new {
     my ($class, $grp_ref) = @_;
     if (!ref $grp_ref) {
         croak("Default binding constructor needs reference toTrEd hash");
-    }    
-      
+    }
+
     my $obj = {
 #        vertical_key_arrow_map      => \%vertical_key_arrow_map,
 #        context_override_binding    => \%context_override_binding,
@@ -247,7 +247,7 @@ sub _resolve_default_binding {
     my $binding = (
         defined $context && $context_override_binding{$context}
             && ( $context_override_binding{$context}{$key}
-                || $context_override_binding{$context}{$key2} 
+                || $context_override_binding{$context}{$key2}
                )
         )
         || $default_binding{$key}
@@ -272,7 +272,7 @@ sub _run_binding {
     my $grp_ref = $default_binding->{grp_ref};
     #TODO: sth like TrEd::Context->current_context() would be nicer, but we need $grp anyway...
     my $context = $grp_ref->{focusedWindow}->{macroContext};
-    
+
     my $binding = $default_binding->_resolve_default_binding( $context, $key );
     if ( ref( $binding->[0] ) eq 'CODE' ) {
         $binding->[0]->( $mw, $grp_ref, $key, @args );
@@ -285,30 +285,30 @@ sub _run_binding {
 
 #######################################################################################
 # Usage         : $default_binding->change_binding($context, $key, $new_binding)
-# Purpose       : Change the default binding for key $key in context $context to 
+# Purpose       : Change the default binding for key $key in context $context to
 #                 $new_binding
 # Returns       : Reference to array which contains configuration of previous binding
 # Parameters    : string $context        -- name of the context
 #                 string $key            -- string representation of key
 #                 array_ref $new_binding -- specification of new binding
 # Throws        : croaks if the $new_binding is not a valid binding
-# Comments      : The new binding can be specified in an array reference with 
-#                 two elements: 
+# Comments      : The new binding can be specified in an array reference with
+#                 two elements:
 #                   1. a) code reference
-#                      b) array reference (as used for Tk callbacks). 
-#                         In this case, new Tk::Callback is created automatically for 
+#                      b) array reference (as used for Tk callbacks).
+#                         In this case, new Tk::Callback is created automatically for
 #                         the user.
-#                   2. string description of performed action 
+#                   2. string description of performed action
 #                 To change default binding, string '*' can be used as context name
 # See Also      : get_binding(), default_binding()
 #sub change_default_binding
 sub change_binding {
     my ( $self, $context, $key, $new_binding ) = @_;
-    
+
     if (!binding_valid($new_binding)) {
         croak "Invalid binding for context $context, key <$key> , must be [code, description]!";
     }
-    
+
     my $binding;
     if ( $context && $context eq $DEFAULT_CONTEXT ) {
         $binding = $default_binding{"<$key>"}
@@ -316,10 +316,10 @@ sub change_binding {
         return if ! $binding;
     }
     else {
-        $binding 
+        $binding
             = $context_override_binding{$context}{"<KeyPress-$key>"}
-            || ( 
-                 $context_override_binding{$context}{"<$key>"} ||= [] 
+            || (
+                 $context_override_binding{$context}{"<$key>"} ||= []
                );
     }
     my $prev_binding = [ @{$binding}[ 0, 1 ] ];
@@ -338,13 +338,14 @@ sub change_binding {
 #######################################################################################
 # Usage         : $default_bindings->get_binding($grp_ref, $context, $key)
 # Purpose       : Find default binding for key $key in context $context
-# Returns       : Reference to (possibly empty) array which contains two elements: 
+# Returns       : Reference to (possibly empty) array which contains two elements:
 #                   1. code ref (a callback) for specified key and context
 #                   2. description of performed action
-# Parameters    : string $context -- name of the context
-#                 string $key     -- string description of key used to invoke callback 
+# Parameters    : hash_ref $grp_ref -- reference to hash contining TrEd's configuration
+#                 string $context -- name of the context
+#                 string $key     -- string description of key used to invoke callback
 # Throws        : no exception
-# Comments      : 
+# Comments      :
 # See Also      : change_binding(), _run_binding()
 # was main::get_default_binding
 sub get_binding {
@@ -352,7 +353,7 @@ sub get_binding {
     return [] if (!defined $key);
     my $binding;
     if ( $context && $context eq $DEFAULT_CONTEXT ) {
-        $binding = $default_binding{"<KeyPress-$key>"} 
+        $binding = $default_binding{"<KeyPress-$key>"}
                || $default_binding{"<$key>"};
     }
     elsif ( $context && $context_override_binding{$context} ) {
@@ -388,18 +389,18 @@ sub setup_default_bindings {
             $EMPTY_STR
         ]
     );
-    
-    
+
+
     my @modifiers = qw(Shift Control Meta Alt Control-Shift Control-Alt
-        Control-Meta Alt-Shift Meta-Shift); 
-    
+        Control-Meta Alt-Shift Meta-Shift);
+
     my @events = qw(KeyPress Right Left Up Down
             Return comma period Next Prior greater less);
-            
+
     foreach my $modifier (@modifiers) {
         foreach my $event (@events) {
             if ( "$modifier-$event" ne "Alt-KeyPress"
-                && "$modifier-$event" ne "Meta-KeyPress" ) 
+                && "$modifier-$event" ne "Meta-KeyPress" )
             {
                 $self->{grp_ref}->{top}->bind(
                     'my',
@@ -432,7 +433,7 @@ sub setup_default_bindings {
 #                   "<key-pressed>" => [
 #                                           sub {},
 #                                           "action description",
-#                                           "name_of_affected_widget" -- optional 
+#                                           "name_of_affected_widget" -- optional
 #                                       ]
 # See Also      : get_binding(), change_binding()
 sub get_default_bindings {
@@ -450,7 +451,7 @@ sub get_default_bindings {
 #                   "<key-pressed>" => [
 #                                           sub {},
 #                                           "action description",
-#                                           "name_of_affected_widget" -- optional 
+#                                           "name_of_affected_widget" -- optional
 #                                       ]
 # See Also      : get_binding(), change_binding()
 sub get_context_bindings {
@@ -461,7 +462,7 @@ sub get_context_bindings {
 
 #######################################################################################
 # Usage         : binding_valid($binding_ref)
-# Purpose       : Test whether the $binding_ref is a valid binding for purposes of 
+# Purpose       : Test whether the $binding_ref is a valid binding for purposes of
 #                 TrEd's bindings functionality
 # Returns       : 1 if $binding_ref can be used as argument of change_binding() subroutine,
 #                 0 otherwise
@@ -476,9 +477,9 @@ sub binding_valid {
         if (ref $binding_ref->[0] eq 'CODE') {
             return 1;
         }
-        elsif (ref $binding_ref->[0] eq 'ARRAY' 
+        elsif (ref $binding_ref->[0] eq 'ARRAY'
                 && scalar grep { ref eq 'CODE' } @{$binding_ref->[0]}[0,1]) {
-            return 1;        
+            return 1;
         }
         elsif (ref $binding_ref->[0] eq 'Tk::Callback'){
             return 1;
@@ -494,7 +495,7 @@ sub binding_valid {
 
 #######################################################################################
 # Usage         : normalize_key($key_code)
-# Purpose       : Normalize the key code to use it in Tk binding 
+# Purpose       : Normalize the key code to use it in Tk binding
 # Returns       : Standardized version of string representation of keycode
 # Parameters    : scalar $key_code -- key code/combination to normalize
 # Throws        : no exception
@@ -521,7 +522,7 @@ TrEd::Binding::Default - Setting, changing and resolving TrEd's default key bind
 
 =head1 VERSION
 
-This documentation refers to 
+This documentation refers to
 TrEd::Binding::Default version 0.1.
 
 
@@ -531,40 +532,342 @@ TrEd::Binding::Default version 0.1.
 
 =head1 DESCRIPTION
 
-The key bindings in TrEd's GUI use the bindings system provided by Tk library. 
-To manage the bindings, this module has been created. 
-The bindings configuration is stored in two hashes. The first one stores default bindings 
-and it is used for special context called "*", (which means these bindings applies to all contexts). 
+The key bindings in TrEd's GUI use the bindings system provided by Tk library.
+To manage the bindings, this module has been created.
+The bindings configuration is stored in two hashes. The first one stores default bindings
+and it is used for special context called "*", (which means these bindings applies to all contexts).
 
-Besides the default beindings, there also exist context specific bindings which are stored 
-separately in the second hash (named %context_override_binding). These specific bindings 
-is usually set by extensions. 
+Besides the default beindings, there also exist context specific bindings which are stored
+separately in the second hash (named %context_override_binding). These specific bindings
+is usually set by extensions.
 
 The extensions can set up new bindings by calling Bind function from Extensions API
-(see also the documentation for TredMacro). 
+(see also the documentation for TredMacro).
 
 The hashes used to store the bindings have following structure:
 
-The key of the hash is the identification of the key used to invoke the action, 
+The key of the hash is the identification of the key used to invoke the action,
 e.g. <Tab>', '<Shift-ISO_Left_Tab>', '<period>', '<Shift-Home>', etc.
 
-The value of the hash is a reference to array, which contains 2 or 3 elements, the last one 
+The value of the hash is a reference to array, which contains 2 or 3 elements, the last one
 is optional.
 The 1st element is a code reference, i.e. the action invoked by the key (key combination)
 The 2nd element is a name of the action.
-The 3rd element is a name of the widget, to which the binding applies. It has to be one of the 
-widgets stored in $grp_ref (e.g. 'Toolbar' for $grp_ref->{Toolbar}, etc.), 
-since the binding is created by calling the bind subroutine on this Tk object. 
+The 3rd element is a name of the widget, to which the binding applies. It has to be one of the
+widgets stored in $grp_ref (e.g. 'Toolbar' for $grp_ref->{Toolbar}, etc.),
+since the binding is created by calling the bind subroutine on this Tk object.
 
 The hash used to store context specific information has one more level which divides
 the bindings in specific contexts.
 
-Bindtag 'my' is used for all the bindings in this file. For further information about 
+Bindtag 'my' is used for all the bindings in this file. For further information about
 binding tags, see Tk::callback documentation.
 
 =head1 SUBROUTINES/METHODS
 
-=over 4 
+=over 4
+
+
+
+=item * C<TrEd::Binding::Default->new($grp_ref)>
+
+=over 6
+
+=item Purpose
+
+Create default binding object
+
+=item Parameters
+
+  C<$grp_ref> -- hash_ref $grp_ref -- reference to hash contining TrEd's configuration
+
+
+
+=item Returns
+
+Blessed reference to TrEd::Binding::Default object
+
+=back
+
+
+=item * C<$default_binding->_resolve_default_binding($context, $key)>
+
+=over 6
+
+=item Purpose
+
+Resolve default binding for key $key in context $context
+
+=item Parameters
+
+  C<$context> -- string $context --  name of the context
+  C<$key> -- string $key     -- string representation of key
+
+=item Comments
+
+For the specification of returned array ref see documentation for
+change_binding subroutine
+
+=item See Also
+
+L<_run_binding>,
+
+=item Returns
+
+Reference to array which specifies the binding
+
+=back
+
+
+=item * C<TrEd::Filelist::Navigation::TrEd::Binding::Default::_run_binding($mw, $default_binding, $key, @args)>
+
+=over 6
+
+=item Purpose
+
+Run binding for key $key in current context
+
+=item Parameters
+
+  C<$mw> -- Tk::Widget ref $mw -- reference to Tk::Widget to which the binding is attached
+  C<$default_binding> -- TrEd::Binding::Default ref $default_binding -- default binding object
+  C<$key> -- string $key        -- string representation of key event
+  C<@args> -- list @args         -- extra arguments to pass to callback
+
+=item Comments
+
+This obscure order of parameters is used because it is a Tk callback
+
+=item See Also
+
+L<_resolve_default_binding>,
+L<get_binding>,
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<$default_binding->change_binding($context, $key, $new_binding)>
+
+=over 6
+
+=item Purpose
+
+Change the default binding for key $key in context $context to
+$new_binding
+
+=item Parameters
+
+  C<$context> -- string $context        -- name of the context
+  C<$key> -- string $key            -- string representation of key
+  C<$new_binding> -- array_ref $new_binding -- specification of new binding
+
+=item Comments
+
+The new binding can be specified in an array reference with
+two elements:
+1. a) code reference
+b) array reference (as used for Tk callbacks).
+In this case, new Tk::Callback is created automatically for
+the user.
+2. string description of performed action
+To change default binding, string '*' can be used as context name
+
+=item See Also
+
+L<get_binding>,
+L<default_binding>,
+
+=item Returns
+
+Reference to array which contains configuration of previous binding
+
+=back
+
+
+=item * C<$default_bindings->get_binding($grp_ref, $context, $key)>
+
+=over 6
+
+=item Purpose
+
+Find default binding for key $key in context $context
+
+=item Parameters
+
+  C<$grp_ref> -- hash_ref $grp_ref -- reference to hash contining TrEd's configuration
+  C<$context> -- string $context -- name of the context
+  C<$key> -- string $key     -- string description of key used to invoke callback
+
+
+=item See Also
+
+L<change_binding>,
+L<_run_binding>,
+
+=item Returns
+
+Reference to (possibly empty) array which contains two elements:
+1. code ref (a callback) for specified key and context
+2. description of performed action
+
+=back
+
+
+=item * C<$default_binding->setup_default_bindings()>
+
+=over 6
+
+=item Purpose
+
+Create default bindings for TrEd using 'my' bindtag
+
+=item Parameters
+
+
+=item Comments
+
+The default bindings are stored in an multi-dimensional array in this
+source code file.
+
+=item See Also
+
+L<get_binding>,
+L<change_binding>,
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<$default_binding->get_default_bindings()>
+
+=over 6
+
+=item Purpose
+
+Return reference to hash of default bindings
+
+=item Parameters
+
+
+=item Comments
+
+The format of returned bindings hash is as follows:
+"<key-pressed>" => [
+sub {},
+"action description",
+"name_of_affected_widget" -- optional
+]
+
+=item See Also
+
+L<get_binding>,
+L<change_binding>,
+
+=item Returns
+
+Reference to hash of default bindings
+
+=back
+
+
+=item * C<$default_binding->get_context_bindings($context)>
+
+=over 6
+
+=item Purpose
+
+Return reference to hash of bindings for specified $context
+
+=item Parameters
+
+  C<$context> -- string $context -- name of the context
+
+=item Comments
+
+The format of returned bindings hash is as follows:
+"<key-pressed>" => [
+sub {},
+"action description",
+"name_of_affected_widget" -- optional
+]
+
+=item See Also
+
+L<get_binding>,
+L<change_binding>,
+
+=item Returns
+
+Reference to hash of context-specific bindings
+
+=back
+
+
+=item * C<TrEd::Filelist::Navigation::binding_valid($binding_ref)>
+
+=over 6
+
+=item Purpose
+
+Test whether the $binding_ref is a valid binding for purposes of
+TrEd's bindings functionality
+
+=item Parameters
+
+  C<$binding_ref> -- array_ref $binding_ref -- binding specification
+
+=item Comments
+
+For correct binding format, see documentation for change_binding() subroutine
+
+=item See Also
+
+L<get_binding>,
+L<change_binding>,
+
+=item Returns
+
+1 if $binding_ref can be used as argument of change_binding() subroutine,
+0 otherwise
+
+=back
+
+
+=item * C<TrEd::Filelist::Navigation::normalize_key($key_code)>
+
+=over 6
+
+=item Purpose
+
+Normalize the key code to use it in Tk binding
+
+=item Parameters
+
+  C<$key_code> -- scalar $key_code -- key code/combination to normalize
+
+=item Comments
+
+Normalize means, to change + to -, Control to CTRL and all the characters
+are changed to upper case
+
+=item See Also
+
+L<TrEd::Macros::_normalize_key>,
+
+=item Returns
+
+Standardized version of string representation of keycode
+
+=back
+
+
 
 
 
@@ -574,7 +877,7 @@ binding tags, see Tk::callback documentation.
 =head1 DIAGNOSTICS
 
 Croaks "Default binding constructor needs reference toTrEd hash" if the constructor's argument is not a reference
-Croaks "Invalid binding for context $context, key <$key> , must be [code, description]!" if the binding given to 
+Croaks "Invalid binding for context $context, key <$key> , must be [code, description]!" if the binding given to
 change_binding subroutine can not be used properly.
 
 =head1 CONFIGURATION AND ENVIRONMENT
@@ -582,14 +885,14 @@ change_binding subroutine can not be used properly.
 This module does not require special configuration or enviroment settings.
 
 For the binding to work properly, one needs to create at least a Tk::MainWindow
-object and also the Tk::Toolbar in the MainWindow object. 
+object and also the Tk::Toolbar in the MainWindow object.
 
-The default bindtags used for these widgets use tag 'my', therefore one needs to 
+The default bindtags used for these widgets use tag 'my', therefore one needs to
 prepend tag 'my' to bindtags for MainWindow and Toolbar.
 
-The current context in the callbacks is found out by looking up 
-$tred{focusedWindow}{macroContext} hash value. This value should be set 
-before running the callbacks.  
+The current context in the callbacks is found out by looking up
+$tred{focusedWindow}{macroContext} hash value. This value should be set
+before running the callbacks.
 
 =head1 DEPENDENCIES
 
@@ -611,7 +914,7 @@ No known incompatibilities.
 =head1 BUGS AND LIMITATIONS
 
 There are no known bugs in this module.
-Please report problems to 
+Please report problems to
 Zdenek Zabokrtsky <zabokrtsky@ufal.ms.mff.cuni.cz>
 
 Patches are welcome.
@@ -621,9 +924,9 @@ Patches are welcome.
 
 Petr Pajas <pajas@matfyz.cz>
 
-Copyright (c) 
+Copyright (c)
 2010 Petr Pajas <pajas@matfyz.cz>
-2011 Peter Fabian (documentation & tests). 
+2011 Peter Fabian (documentation & tests).
 All rights reserved.
 
 
