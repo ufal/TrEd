@@ -279,8 +279,7 @@ $printOptions = {};
     Up    => 'Left',
     Down  => 'Right',
 );
-
-my $MAX_RECENTFILES = 9;
+our $MAX_RECENTFILES = 9;
 
 $documentation_dir = 'http://ufal.mff.cuni.cz/~pajas/tred';
 
@@ -658,8 +657,9 @@ sub _set_fonts {
 # Returns       : Font encoding
 # Parameters    :
 # Throws        : nothing
-# Comments      : If $TrEd::Convert::outputenc is set, it is used, otherwise iso8859-2 is used
-#                 with Tk versions older than 804, iso10646-1 for newer versions
+# Comments      : If $TrEd::Convert::outputenc is set, it is used, otherwise iso-8859-2 is used
+#                 with Tk versions older than 804, iso-10646-1 
+#                 (aka Universal Character Set) for newer versions
 # See Also      : set_config(), _set_font_encoding()
 sub _set_font_encoding {
     my $fontenc = $TrEd::Convert::outputenc
@@ -844,7 +844,8 @@ sub _set_print_options {
                     }
                 }
 
-# Use some default paths if no paths were found using fontconfig configuration file
+                # Use some default paths if no paths were 
+                # found using fontconfig configuration file
                 if ( !(@fontpath) ) {
                     @fontpath = (
                         "$ENV{HOME}/.fonts/",
@@ -888,7 +889,7 @@ sub _set_extensions {
         'http://ufal.mff.cuni.cz/~pajas/tred/extensions' );
 
     $preinstalledExtensionsDir
-        = length( $confs_ref->{preinstalledextensionsdir} )
+        = length $confs_ref->{preinstalledextensionsdir}
         ? tilde_expand( $confs_ref->{preinstalledextensionsdir} )
         : $def_share_path =~ m{/share/tred$} ? $def_share_path . '-extensions'
         :   File::Spec->catdir( $def_share_path, 'tred-extensions' );
@@ -1129,11 +1130,6 @@ sub set_config {
 
     # ADD NEW OPTIONS HERE
 
-#    if ( ref($set_user_config) ) {
-#        &$set_user_config($confs_ref);
-#    }
-
-
     init_recent_files($confs_ref);
 
     init_filelist_list($confs_ref);
@@ -1258,8 +1254,7 @@ sub update_runtime_config {
 
 
 
-# config
-#!!! treti parameter -- quiet
+# save configuration to tredrc file
 sub save_config {
     my ( $win, $config, $quiet ) = @_;
     require TrEd::Error::Message;
@@ -1968,7 +1963,12 @@ nothing
 
 =head1 DEPENDENCIES
 
-File::Spec, Cwd, FindBin, Win32::Registry on Windows
+Standard Perl modules:
+File::Spec, Cwd, FindBin, 
+
+
+TrEd modules:
+TrEd::ManageFilelists, TrEd::Bookmarks, TrEd::RecentFiles
 
 =head1 INCOMPATIBILITIES
 

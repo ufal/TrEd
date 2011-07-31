@@ -49,8 +49,9 @@ BEGIN {
         if ( !defined $outputenc ) {
             # if text will be unreadable under some special circumstances
             # maybe set outputenc back to iso-8859-2
-            #$outputenc="iso-8859-2";
-            $outputenc="iso-10646-1";
+            # still not sure which one is better
+            # $outputenc="iso-10646-1";
+            $outputenc="iso-8859-2";
         }
     }
     
@@ -108,7 +109,7 @@ sub encode {
             # otherwise Perl 5.12 warns that
             # 'Replacement list is longer than search list'
             # This warning appears because the length of variables differ,
-            # not the actual replacement strings have different length
+            # not that the actual replacement strings have different length
 
             # This warning could also be fixed by renaming shorter variable
             # to match the length of name of the longer one, i.e.

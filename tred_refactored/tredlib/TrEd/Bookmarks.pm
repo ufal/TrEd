@@ -82,8 +82,6 @@ sub create_bookmarks_filelist {
 # Throws        : no exception
 # Comments      : The actual position is the highlighted tree/node in focused window
 # was main::bookmarkThis
-#TODO: toto je asi skor pre node ako pre bookmarks?
-# hm, lenze aky node...
 sub actual_position {
     my ($grp) = @_;
     my $f     = undef;
@@ -200,7 +198,7 @@ __END__
 =head1 NAME
 
 
-TrEd::Bookmarks
+TrEd::Bookmarks -- support for bookmarking positions in files for TrEd
 
 
 =head1 VERSION
@@ -213,15 +211,233 @@ TrEd::Bookmarks version 0.2.
 
   use TrEd::Bookmarks;
 
+  # the hash reference from main TrEd program
+  my $grp = \%tred;
 
+  # create bookmarks filelist
+  create_bookmarks_filelist();
+
+  # bookmarks to standard bookmark filelist
+  bookmark_actual_position($grp);
+
+  # bookmarks to specified filelist
+  bookmark_actual_position($grp, $to_filelist);
+
+  # bookmarks the place of last action
+  last_action_bookmark($grp);
 
 =head1 DESCRIPTION
 
-Basic functions for reversing string direction (LTR to RTL) with respect to numbers etc.
+This package adds support for creating bookmarks and remembering the last position where some action has happened in TrEd.
 
 =head1 SUBROUTINES/METHODS
 
 =over 4
+
+
+
+=item * C<TrEd::Filelist::Navigation::get_last_action()>
+
+=over 6
+
+=item Purpose
+
+Find the last spot of modification/action in TrEd
+
+=item Parameters
+
+
+
+=item See Also
+
+L<set_last_action>,
+L<actual_position>,
+
+=item Returns
+
+Stringified identification of place of last action
+
+=back
+
+
+=item * C<TrEd::Filelist::Navigation::set_last_action($new_action_bookmark)>
+
+=over 6
+
+=item Purpose
+
+Set the last action bookmark in TrEd
+
+=item Parameters
+
+  C<$new_action_bookmark> -- scalar $new_action_bookmark -- stringified identification of place of last action
+
+=item Comments
+
+For TrEd to understand the bookmark, its format should be
+"fileName##treeNumber", optionally followed by ".nodeNumber"
+
+=item See Also
+
+L<get_last_action>,
+L<actual_position>,
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Filelist::Navigation::bookmark_filelist()>
+
+=over 6
+
+=item Purpose
+
+Return bookmarks filelist object
+
+=item Parameters
+
+
+
+=item See Also
+
+L<TrEd::ManageFilelists::find_filelist>,
+
+=item Returns
+
+Filelist object which represents bookmarks or undef if this filelist does not exist
+
+=back
+
+
+=item * C<TrEd::Filelist::Navigation::create_bookmarks_filelist()>
+
+=over 6
+
+=item Purpose
+
+Create bookmarks filelist
+
+=item Parameters
+
+
+
+=item See Also
+
+L<bookmark_filelist>,
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Filelist::Navigation::actual_position($grp)>
+
+=over 6
+
+=item Purpose
+
+Return identification of actual position
+
+=item Parameters
+
+  C<$grp> -- hash_ref $grp -- reference to hash containing TrEd options
+
+=item Comments
+
+The actual position is the highlighted tree/node in focused window
+
+
+=item Returns
+
+String identification of actual position that can be used as bookmark
+
+=back
+
+
+=item * C<TrEd::Filelist::Navigation::bookmark_actual_position($grp, $to_filelist)>
+
+=over 6
+
+=item Purpose
+
+Add new bookmark to filelist $to_filelist, or to bookmarks filelist, if
+no other filelsit is specified
+
+=item Parameters
+
+  C<$grp> -- hash_ref $grp -- reference to hash containing TrEd options
+  C<$to_filelist> -- string $to_filelist -- name of the filelist to which the bookmark will be added (optional)
+
+=item Comments
+
+Also updates the bookmarks menu
+
+=item See Also
+
+L<TrEd::ManageFilelists::insertToFilelist>,
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Filelist::Navigation::last_action_bookmark($grp, $bookmark)>
+
+=over 6
+
+=item Purpose
+
+Set the last action bookmark to $bookmark or to actual position, if
+$bookmark is not defined
+
+=item Parameters
+
+  C<$grp> -- hash_ref $grp -- reference to hash containing TrEd options
+  C<$bookmark> -- string $bookmark -- string identification of bookmarked spot
+
+
+=item See Also
+
+L<set_last_action>,
+L<bookmark_actual_position>,
+
+=item Returns
+
+Undef/empty list
+
+=back
+
+
+=item * C<TrEd::Filelist::Navigation::update_bookmarks($grp)>
+
+=over 6
+
+=item Purpose
+
+Updates bookmarks file menu
+
+=item Parameters
+
+  C<$grp> -- hash_ref $grp -- reference to hash containing TrEd options
+
+=item Comments
+
+Does nothing if $grp->{noUpdatePostponed} is set.
+
+
+=item Returns
+
+Undef/empty list
+
+=back
+
 
 
 
@@ -240,7 +456,12 @@ This module does not require special configuration or enviroment settings.
 
 =head1 DEPENDENCIES
 
+TrEd modules:
+TrEd::ManageFilelists, 
+TrEd::Config, 
+TrEd::Window::TreeBasics,
 
+No CPAN or Perl modules
 
 =head1 INCOMPATIBILITIES
 

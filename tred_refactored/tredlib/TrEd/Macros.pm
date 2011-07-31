@@ -209,8 +209,8 @@ sub unbind_macro {
                 delete $bindings_ref->{$key};
             }
             else {
-                $bindings_ref->{$key} = undef
-                    ;    # we do not delete so that we may override TrEdMacro
+                # we do not delete so that we may override TrEdMacro
+                $bindings_ref->{$key} = undef;
             }
         }
     }
@@ -239,10 +239,11 @@ sub get_bindings_for_macro {
                 push( @ret, $key );
             }
             else {
-
-# if called in scalar context, the internal hash iterator stops somewhere in the middle of
-# the hash %keyBindings (if it finds the $macro, of course) and other functions calling each()
-# would not work properly, because they all share the hash's internal iterator, thus we need to reset it
+                # if called in scalar context, the internal hash iterator stops 
+                # somewhere in the middle of the hash %keyBindings 
+                # (if it finds the $macro, of course) and other functions calling each()
+                # would not work properly, because they all share 
+                # the hash's internal iterator, thus we need to reset it
                 keys %{$bindings_ref};
                 return $key;
             }
@@ -312,7 +313,6 @@ sub copy_key_bindings {
 #                 But more interestingly, undef is the second element in anon array, whose first element is
 #                 the $macro
 # See Also      : remove_from_menu()
-#TODO: Why do we use the array_ref???
 sub add_to_menu {
     my ( $context, $label, $macro ) = @_;
     if ( defined $label and length $label ) {
@@ -390,10 +390,11 @@ sub get_menus_for_macro {
                 push @ret, $key;
             }
             else {
-
-# if called in scalar context, the internal hash iterator stops somewhere in the middle of
-# the hash %menuBindings (if it finds the $macro, of course) and other functions calling each()
-# would not work properly, because they all share the hash's internal iterator, thus we need to reset it
+                # if called in scalar context, the internal hash iterator 
+                # stops somewhere in the middle of the hash %menuBindings
+                # (if it finds the $macro, of course) and other functions 
+                # calling each() would not work properly, because they all 
+                # share the hash's internal iterator, thus we need to reset it
                 keys %{$bindings_ref};
                 return $key;
             }
@@ -937,14 +938,14 @@ sub initialize_macros {
 
             # dirty hack to support ->isa in safe compartment
             $macros =~ s{(\n\s*package\s+(\S+?)\s*;)}
-      {
-        exists($packages{$2}) ? $1 : do { $packages{$2} = 1 ;
-                                          $1.'sub isa {
-                                                        for(@ISA){
-                                                          return 1 if $_ eq $_[1]}
-                                                        }'
-                                        }
-      }ge;
+                          {
+                            exists($packages{$2}) ? $1 : do { $packages{$2} = 1 ;
+                                                              $1.'sub isa {
+                                                                            for(@ISA){
+                                                                              return 1 if $_ eq $_[1]}
+                                                                            }'
+                                                            }
+                          }ge;
             $macrosEvaluated = 1;
             {
                 no strict;
@@ -1102,17 +1103,18 @@ sub do_eval_macro {
     initialize_macros($win);
     return if $@;
 
-    if ( !ref($macro)
-        and $macro
-        =~ /^\s*([_[:alpha:]][_[:alnum:]]*)-[>]([_[:alpha:]][_[:alnum:]]*)$/ )
-    {
-        my ( $context, $call ) = ( $1, $2 );
-        if ( context_isa( $context, 'TrEd::Context' ) ) {
-
-            # experimental new-style calling convention
-            $macro = $context . '->global->' . $call;
-        }
-    }
+    # not used yet
+#    if ( !ref $macro
+#        and $macro
+#        =~ /^\s*([_[:alpha:]][_[:alnum:]]*)-[>]([_[:alpha:]][_[:alnum:]]*)$/ )
+#    {
+#        my ( $context, $call ) = ( $1, $2 );
+#        if ( context_isa( $context, 'TrEd::Context' ) ) {
+#
+#            # experimental new-style calling convention
+#            $macro = $context . '->global->' . $call;
+#        }
+#    }
     print STDERR "Running $macro\n" if $macroDebug;
     if ( defined $safeCompartment ) {
         set_macro_variable( 'grp', $win );
@@ -1258,7 +1260,7 @@ sub do_eval_hook {
     return $result;
 }
 
-## addition: untested, not documented yet
+#TODO: tests, documentation
 # macro
 sub findMacroDescription {
     my ( $grp_or_win, $macro ) = @_;

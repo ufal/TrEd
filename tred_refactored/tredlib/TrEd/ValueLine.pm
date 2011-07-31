@@ -1,6 +1,5 @@
 package TrEd::ValueLine;
 
-# value line je tak trocha nesikovne nazvany ten riadok, kde sa zobrazuje veta hore nad zobrazenim stromov...
 
 use strict;
 use warnings;
@@ -284,3 +283,172 @@ sub update {
 }
 
 1;
+
+#TODO: edit pod
+
+__END__
+
+
+=head1 NAME
+
+
+TrEd::ArabicRemix
+
+
+=head1 VERSION
+
+This documentation refers to
+TrEd::ArabicRemix version 0.2.
+
+
+=head1 SYNOPSIS
+
+  use TrEd::ArabicRemix;
+
+  my $char = "\x{064B}";
+  my $dir = TrEd::ArabicRemix::direction($char); # -1
+
+  $char = "a";
+  $dir = TrEd::ArabicRemix::direction($char); # 1
+
+  my $str = "\x{064B}\x{062E}\x{0631}0123";
+  my $remixed = TrEd::ArabicRemix::remix($str);
+
+  my $dont_reverse = 0;
+  my $remixed_dir = TrEd::ArabicRemix::remixdir($str, $dont_reverse);
+
+=head1 DESCRIPTION
+
+Basic functions for reversing string direction (LTR to RTL) with respect to numbers etc.
+
+=head1 SUBROUTINES/METHODS
+
+=over 4
+
+
+=item * C<TrEd::ArabicRemix::remix($arabic_string, [$ignored_param])>
+
+=over 6
+
+=item Purpose
+
+Not sure
+
+=item Parameters
+
+  C<$arabic_string> -- scalar $arabic_string   -- string to remix
+  C<[$ignored_param]> -- [scalar $ignored_param  -- not used, however it's part of the prototype]
+
+=item Comments
+
+Prototyped function.
+Splits the string using various arabic character classes, then take all the even
+elements of resulting array and split them into subarrays. Reverse all the odd elements of
+each subarray, then reverse the subarray.
+
+
+=item Returns
+
+Remixed arabic string
+
+=back
+
+
+=item * C<TrEd::ArabicRemix::direction($string)>
+
+=over 6
+
+=item Purpose
+
+Find out the direction of the $string
+
+=item Parameters
+
+  C<$string> -- scalar $string -- string to be examined
+
+
+
+=item Returns
+
+If the $string contains latin characters, numbers or arabic numbers, function returns 1.
+Otherwise, if the string containst some arabic characters, function returns -1.
+Otherwise function returns 0.
+
+=back
+
+
+=item * C<TrEd::ArabicRemix::remixdir($string, [$dont_reverse])>
+
+=over 6
+
+=item Purpose
+
+Change the string from left-to-right to right-to-left orientation
+
+=item Parameters
+
+  C<$string> -- scalar $string        -- string to remix
+  C<[$dont_reverse]> -- scalar $dont_reverse  -- if set to 1, parts of string are not reversed
+
+=item Comments
+
+Reverse string, but keep latin parts in the same order, e.g. 1 2 _arabic_letter_1 _arabic_letter_2
+becomes _arabic_letter_2 _arabic_letter_1 1 2. If $dont_reverse is set to 1,
+1 2 _arabic_letter_1 _arabic_letter_2 becomes _arabic_letter_1 _arabic_letter_2 1 2
+
+=item See Also
+
+L<direction>,
+
+=item Returns
+
+Reversed string
+
+=back
+
+
+
+=back
+
+
+=head1 DIAGNOSTICS
+
+No diagnostic messages.
+
+=head1 CONFIGURATION AND ENVIRONMENT
+
+This module does not require special configuration or enviroment settings.
+
+=head1 DEPENDENCIES
+
+No dependencies.
+
+=head1 INCOMPATIBILITIES
+
+No known incompatibilities.
+
+=head1 BUGS AND LIMITATIONS
+
+There are no known bugs in this module.
+Please report problems to
+Zdenek Zabokrtsky <zabokrtsky@ufal.ms.mff.cuni.cz>
+
+Patches are welcome.
+
+
+=head1 AUTHOR
+
+Otakar Smrz <otakar.smrz@mff.cuni.cz>
+
+Copyright (c)
+2004 Otakar Smrz <otakar.smrz@mff.cuni.cz>
+2011 Peter Fabian (documentation & tests).
+All rights reserved.
+
+
+This software is distributed under GPL - The General Public Licence.
+Full text of the GPL can be found in the LICENSE file distributed with
+this program and also on-line at http://www.gnu.org/copyleft/gpl.html .
+
+=cut
+

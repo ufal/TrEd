@@ -9,9 +9,6 @@ TrEd::File->import(qw{absolutize});
 
 use TrEd::Config qw{@config_recent_files};
 
-use Readonly;
-
-Readonly my $MAX_RECENTFILES => 9;
 
 my @recent_files;
 
@@ -33,7 +30,7 @@ sub add_file {
         @recent_files = grep { $_ ne $file_name } @recent_files;
         unshift @recent_files, $file_name;
     }
-    my $max_index = TrEd::MinMax::min( $#recent_files, $MAX_RECENTFILES );
+    my $max_index = TrEd::MinMax::min( $#recent_files, $TrEd::Config::MAX_RECENTFILES );
     @recent_files = @recent_files[ 0 .. $max_index ];
 
     #TODO: toto mozno delegovat niekam

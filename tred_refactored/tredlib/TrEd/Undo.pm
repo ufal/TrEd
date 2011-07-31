@@ -35,6 +35,26 @@ sub undo_type_id {
     }
 }
 
+#######################################################################################
+# Usage         : prepare_undo($win, $message, $what, $data)
+# Purpose       : Prepare undo stack data of type $what for window $win
+# Returns       : Undo stack frame
+# Parameters    : TrEd::Window ref $win -- ref to focused window
+#                 string $message     -- message to be stored inside the undo frame
+#                 scalar $what    -- type of undo operation, see %UNDO_TYPE
+#                 anything $data -- data to be stored in the undo frame
+# Throws        : no exception
+# Comments      : The undo stack frame is a reference to array with two elements:
+#                 first one is a ref to currently active Treex::PML::Document object,
+#                 second one is a reference to array.
+#                 this array contains 6 elements:
+#                   0. 'Snapshot' string
+#                   1. number of current tree in focused window
+#                   2. snapshot created by Data::Snapshot package
+#                   3. reference to current node in focused window
+#                   4. message from $message argument
+#                   5. type of undo operation
+# See Also      : bind_key(), get_binding_for_key(), get_bindings_for_macro()
 sub prepare_undo {
     my ( $win, $message, $what, $data ) = @_;
     return if !$TrEd::Config::maxUndo;
@@ -99,7 +119,6 @@ sub prepare_undo {
         ];
     }
     elsif ( $what == $UNDO_TYPE{UNDO_DATA} ) {
-
         # $data = $data;
     }
     else {
@@ -181,51 +200,53 @@ sub save_undo {
     push @{$stack}, $undo;
     if ( $maxUndo > 0 and @{$stack} > $maxUndo ) {
         splice @{$stack}, 0, ( @{$stack} - $maxUndo );
-        print STDERR "Undo-stack: overflow, removing ",
+        print STDERR 'Undo-stack: overflow, removing ',
             ( @{$stack} - $maxUndo ), " items\n"
             if $tredDebug;
     }
     $fsfile->changeAppData( 'undo', $#$stack );
     reset_undo_status($win);
-    print STDERR "Undo-stack: $#$stack items\n" if $tredDebug;
+    print STDERR "Undo-stack: $#{$stack} items\n" if $tredDebug;
 }
 
 # redo
 sub re_do {
     my ($grp_or_win) = @_;
     my $win = main::cast_to_win($grp_or_win);
-    return unless $maxUndo;
+    return if not $maxUndo;
     my $fsfile = $win->{FSFile};
-    return unless $fsfile;
+    return if not $fsfile;
     my $stack = $fsfile->appData('undostack');
     return unless ( @{$stack} > $fsfile->appData('undo') + 2 );
-    print STDERR "Redo: ", $fsfile->appData('undo') + 2, "/$#$stack\n"
-        if $tredDebug;
+    if ($tredDebug) {
+        print STDERR 'Redo: ', $fsfile->appData('undo') + 2, "/$#{$stack}\n";
+    }
     $fsfile->changeAppData( 'undo', $fsfile->appData('undo') + 2 );
-    undo( $win, 1 );
+    return undo( $win, 1 );
 }
 
 # undo
 sub undo {
     my ( $grp_or_win, $redo ) = @_;
     my $win = main::cast_to_win($grp_or_win);
-    return unless $maxUndo;
+    return if not $maxUndo;
     my $fsfile = $win->{FSFile};
-    return unless $fsfile;
+    return if not $fsfile;
     my $stack    = $fsfile->appData('undostack');
     my $stackpos = $fsfile->appData('undo');
     return
-        unless ( ref($stack)
+        unless ( ref $stack
         and ( @{$stack} > 0 )
         and ( $stackpos >= 0 )
-        and ( $stackpos <= $#$stack ) );
+        and ( $stackpos <= $#{$stack} ) );
     my $undo = $stack->[$stackpos];
 
     if ($undo) {
         my $new_undo;
         my $type = $undo->[0];
-        $new_undo = prepare_redo( $win, $undo )
-            if ( !$redo and $#$stack == $stackpos );
+        if ( !$redo && $#{$stack} == $stackpos ) {
+            $new_undo = prepare_redo( $win, $undo );
+        }
         my $treeNo   = $undo->[1];
         my $snapshot = $undo->[2];
         if ( $type eq 'Snapshot' ) {
@@ -236,46 +257,56 @@ sub undo {
                 or $what == $UNDO_TYPE{UNDO_DATA} )
             {
                 Data::Snapshot::restore_data_from_snapshot( $snapshot->[0] );
-
                 # nothing to do
             }
             elsif ( $what == $UNDO_TYPE{UNDO_CURRENT_TREE} ) {
                 my $prev = $fsfile->treeList->[$treeNo];
-                $prev->destroy() if ref($prev);
+                if (ref $prev) {
+                    $prev->destroy();
+                }
                 $fsfile->treeList->[$treeNo]
                     = Data::Snapshot::restore_data_from_snapshot(
                     $snapshot->[0] );
             }
             elsif ( $what == $UNDO_TYPE{UNDO_TREE_ORDER} ) {
-                @{ $fsfile->treeList } = @$snapshot;
+                @{ $fsfile->treeList } = @{$snapshot};
             }
-            elsif ( $what == $UNDO_TYPE{UNDO_CURRENT_TREE_AND_TREE_ORDER} ) {
-
-                #	my $prev = $fsfile->treeList->[$treeNo];
-                #	$prev->destroy if ref($prev);
-                #	$prev=
-                Data::Snapshot::restore_data_from_snapshot( $snapshot->[0] );
-                my %r;
-                @r{ @{ $snapshot->[1] } } = ();
-                for ( @{ $fsfile->treeList } ) {
-                    $_->destroy
-                        if
-                        eval { ref($_) and !$_->parent and !exists( $r{$_} ) };
-                }
-                @{ $fsfile->treeList } = @{ $snapshot->[1] };
-
-                # $fsfile->treeList->[$treeNo]=$prev;
-            }
+            # this code does the same thing as the next branch, but since it 
+            # contains some code that is commented out, maybe it will be 
+            # useful in the future, if it has to be restored
+#            elsif ( $what == $UNDO_TYPE{UNDO_CURRENT_TREE_AND_TREE_ORDER} ) {
+#                # my $prev = $fsfile->treeList->[$treeNo];
+#                # $prev->destroy if ref($prev);
+#                # $prev=
+#                Data::Snapshot::restore_data_from_snapshot( $snapshot->[0] );
+#                my %r;
+#                @r{ @{ $snapshot->[1] } } = ();
+#                for ( @{ $fsfile->treeList } ) {
+#                    if (
+#                        eval { ref $_ && !$_->parent && !exists( $r{$_} ) }
+#                        ) 
+#                    {
+#                        $_->destroy();
+#                    }
+#                }
+#                @{ $fsfile->treeList } = @{ $snapshot->[1] };
+#
+#                # $fsfile->treeList->[$treeNo]=$prev;
+#            }
             elsif ($what == $UNDO_TYPE{UNDO_ACTIVE_ROOT_AND_TREE_ORDER}
-                or $what == $UNDO_TYPE{UNDO_DATA_AND_TREE_ORDER} )
+                or $what == $UNDO_TYPE{UNDO_DATA_AND_TREE_ORDER}
+                or $what == $UNDO_TYPE{UNDO_CURRENT_TREE_AND_TREE_ORDER})
             {
                 Data::Snapshot::restore_data_from_snapshot( $snapshot->[0] );
                 my %r;
                 @r{ @{ $snapshot->[1] } } = ();
                 for ( @{ $fsfile->treeList } ) {
-                    $_->destroy
-                        if
-                        eval { ref($_) and !$_->parent and !exists( $r{$_} ) };
+                    if (
+                        eval { ref $_ && !$_->parent && !exists( $r{$_} ) }
+                        )
+                    {
+                        $_->destroy;
+                    }
                 }
                 @{ $fsfile->treeList } = @{ $snapshot->[1] };
             }
@@ -286,16 +317,20 @@ sub undo {
         }
         elsif ( $type eq 'FS' ) {
             my $prev = $fsfile->treeList->[$treeNo];
-            $prev->destroy if ref($prev);
+            if (ref $prev) {
+                $prev->destroy;
+            }
             $fsfile->treeList->[$treeNo]
                 = $fsfile->FS->parseFSTree($snapshot);
         }
         elsif ( $type eq 'Storable' ) {
             my $prev = $fsfile->treeList->[$treeNo];
-            $prev->destroy if ref($prev);
+            if (ref $prev) {
+                $prev->destroy();
+            }
             $fsfile->treeList->[$treeNo] = Storable::thaw($snapshot);
         }
-        if ( $#$stack == $stackpos ) {
+        if ( $#{$stack} == $stackpos ) {
             if ($redo) {
                 pop @{$stack};
             }
@@ -303,20 +338,22 @@ sub undo {
                 push @{$stack}, $new_undo->[1];
             }
         }
-        print STDERR "Undo: ", $stackpos . "/$#$stack\n" if $tredDebug;
+        if ($tredDebug) {
+            print STDERR 'Undo: ', $stackpos . "/$#$stack\n";
+        }
         $fsfile->changeAppData( 'undo', $fsfile->appData('undo') - 1 );
         reset_undo_status($win);
         $fsfile->notSaved(1);
         $win->{treeNo} = $treeNo;
         main::get_nodes_fsfile_tree( $win->{framegroup}, $fsfile, $treeNo );
         $win->{currentNode}
-            = ref( $undo->[3] ) ? $undo->[3] : $win->{Nodes}[ $undo->[3] ];
+            = ref $undo->[3] ? $undo->[3] : $win->{Nodes}[ $undo->[3] ];
         $win->ensure_current_is_displayed();
         main::redraw_fsfile_tree( $win->{framegroup}, $fsfile, $treeNo );
         main::centerTo( $win, $win->{currentNode} );
     }
     else {
-        TrEd::Error::Message::error_message( $win, "Corrupted undo stack!" );
+        TrEd::Error::Message::error_message( $win, 'Corrupted undo stack!' );
     }
     return;
 }
@@ -333,13 +370,18 @@ sub reset_undo_status {
     if ( $maxUndo != 0 and ref $fsfile ) {
         my $stack    = $fsfile->appData('undostack');
         my $stackpos = $fsfile->appData('undo');
-        print STDERR "UNDO_STACK: $stackpos/", $#$stack + 1, "\n"
-            if $tredDebug;
+        if ($tredDebug) {
+            print STDERR "UNDO_STACK: $stackpos/", $#{$stack} + 1, "\n";
+        }
         $undostatus = ( ref $stack && ( @{$stack} > 0 ) );
         $redostatus = ( $undostatus && ( @{$stack} > $stackpos + 2 ) );
         $undostatus &&= ( ( $stackpos >= 0 ) && ( $stackpos <= $#{$stack} ) );
-        $undomessage = ": " . $stack->[$stackpos]->[4]       if ($undostatus);
-        $redomessage = ": " . $stack->[ $stackpos + 1 ]->[4] if ($redostatus);
+        if ($undostatus) {
+            $undomessage = ': ' . $stack->[$stackpos]->[4];
+        }
+        if ($redostatus) {
+            $redomessage = ': ' . $stack->[ $stackpos + 1 ]->[4];
+        }
     }
     else {
         $undostatus = 0;
