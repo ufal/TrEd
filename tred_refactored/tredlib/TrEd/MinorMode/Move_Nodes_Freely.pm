@@ -4,7 +4,7 @@ package TrEd::MinorMode::Move_Nodes_Freely;
 use strict;
 use warnings;
 
-require TrEd::ExtensionsAPI;
+require TrEd::MacroAPI::Default; # loads TredMacro
 TredMacro->import();
 
 require TrEd::Macros;

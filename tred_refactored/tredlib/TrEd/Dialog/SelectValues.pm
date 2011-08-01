@@ -9,7 +9,7 @@ use Tk;
 require TrEd::Query::String;
 
 # was main::selectValuesDialog
-sub create_dialog {
+sub show_dialog {
     my ( $grp, $attr, $vals, $selected, $may_add, $lastFocus, $force ) = @_;
     print "select values...\n\n";
     my $a;

@@ -7,7 +7,7 @@ use Tk;
 
 # a simple dialog with one big text entry
 # UI, Dialog
-sub create_dialog {
+sub show_dialog {
     my ( $grp_or_win, $dialog_opts, $label1_opts, $label2_opts, $text_opts,
         $msg, $bind )
         = @_;

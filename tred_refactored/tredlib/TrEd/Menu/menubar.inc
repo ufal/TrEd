@@ -56,7 +56,7 @@ return sub {
             'Properties',
             {   -underline => 6,
                 -command =>
-                    [ \&TrEd::Dialog::FileProperties::create_dialog, $grp ],
+                    [ \&TrEd::Dialog::FileProperties::show_dialog, $grp ],
             }
         ],
         'MENUBAR:FILE:BOOKMARKS' => [
@@ -190,7 +190,7 @@ return sub {
             'Button',
             'Manage File Lists ...',
             {   '-command' =>
-                    [ \&TrEd::Dialog::Filelist::create_dialog, $grp ],
+                    [ \&TrEd::Dialog::Filelist::show_dialog, $grp ],
                 '-underline' => 0
             },
             undef
@@ -324,7 +324,7 @@ return sub {
         'MENUBAR:FILE:OPEN_URL' => [
             'Button',
             'Open URL ...',
-            {   '-command'   => [ \&TrEd::Dialog::URL::create_dialog, $grp ],
+            {   '-command'   => [ \&TrEd::Dialog::URL::show_dialog, $grp ],
                 '-underline' => 5
             },
             undef
@@ -649,7 +649,7 @@ return sub {
             'Button',
             'Examine Key Bindings ...',
             {   '-command' =>
-                    [ \&TrEd::Dialog::ExamineBindings::create_dialog, $grp ],
+                    [ \&TrEd::Dialog::ExamineBindings::show_dialog, $grp ],
                 '-underline' => 0
             },
             undef
@@ -658,7 +658,7 @@ return sub {
             'Button',
             'List Of Macros ...',
             {   '-command' =>
-                    [ \&TrEd::Dialog::MacroList::create_dialog, $grp ],
+                    [ \&TrEd::Dialog::MacroList::show_dialog, $grp ],
                 '-underline' => 0
             },
             undef
@@ -715,7 +715,7 @@ return sub {
                     sub {
                         my ($grp) = @_;
                         if ( $grp->{focusedWindow}->{currentNode} ) {
-                            TrEd::Dialog::EditAttributes::create_dialog(
+                            TrEd::Dialog::EditAttributes::show_dialog(
                                 $grp->{focusedWindow},
                                 $grp->{focusedWindow}->{currentNode} );
                         }
@@ -733,7 +733,7 @@ return sub {
                     sub {
                         my ($grp) = @_;
                         if ( $grp->{focusedWindow}->{currentNode} ) {
-                            TrEd::Dialog::FindNode::findNodeDialog($grp);
+                            TrEd::Dialog::FindNode::show_dialog($grp);
                         }
                     },
                     $grp
@@ -1212,7 +1212,7 @@ return sub {
             'Button',
             'Copy Trees ...',
             {   '-command' =>
-                    [ \&TrEd::Dialog::CopyTrees::create_dialog, $grp ],
+                    [ \&TrEd::Dialog::CopyTrees::show_dialog, $grp ],
                 '-underline' => 1
             },
             undef

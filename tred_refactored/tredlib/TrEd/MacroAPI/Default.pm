@@ -350,7 +350,7 @@ use TrEd::Stylesheet;
 
 # can't 'use', circular ref
 use TrEd::Macros;
-use TrEd::Mac;         # instead of tred.mac
+use TrEd::MacroAPI::Extended;         # instead of tred.mac
 use TrEd::NtredMak;    # instead of contrib/ntred/contrib.mac and ntred.mak,
 
 # The following is a workaround for a nasty bug of Class::Std in case somebody wants to use it

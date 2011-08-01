@@ -4,7 +4,7 @@ package TrEd::MinorMode::Show_Neighboring_Trees;
 use strict;
 use warnings;
 
-use TrEd::ExtensionsAPI;
+use TrEd::MacroAPI::Default; #loads TredMacro
 TredMacro->import();
 
 require TrEd::MinorModes;

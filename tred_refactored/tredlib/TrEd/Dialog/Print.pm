@@ -13,7 +13,7 @@ require TrEd::Dialog::FocusFix;
 
 # print, UI, dialog
 #TODO: rename to create_dialog?
-sub printDialog {
+sub show_dialog {
     my ($grp) = @_;
     my $win = $grp->{focusedWindow};
     return unless $win->{FSFile};

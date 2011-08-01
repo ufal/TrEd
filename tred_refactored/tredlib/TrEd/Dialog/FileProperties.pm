@@ -7,7 +7,7 @@ use TrEd::Config qw{$sortAttrValues $sidePanelWrap};
 
 # dialog
 # was main::editFilePropertiesDialog
-sub create_dialog {
+sub show_dialog {
     my ($grp_or_win) = @_;
     my ( $grp, $win ) = main::grp_win($grp_or_win);
     my $top    = $grp->{top};

@@ -13,7 +13,7 @@ use TrEd::HTML::Simple;
 use Tk;
 
 # macro, menu, UI
-sub create_dialog {
+sub show_dialog {
     my ($grp) = @_;
     my $context = $grp->{focusedWindow}->{macroContext};
     if ( $grp->{Macrolist} ) {

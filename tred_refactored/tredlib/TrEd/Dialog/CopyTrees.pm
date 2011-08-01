@@ -12,7 +12,7 @@ require TrEd::Dialog::FocusFix;
 require TrEd::View::Sentence;
 
 # was main::copyTreesDialog
-sub create_dialog {
+sub show_dialog {
     my ($grp) = @_;
     return unless $grp->{focusedWindow}->{FSFile};
     my ( $Entry, @Entry ) = main::get_entry_type();

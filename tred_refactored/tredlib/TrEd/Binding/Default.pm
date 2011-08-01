@@ -74,7 +74,7 @@ my %default_binding = (
     ],
     '<KeyPress-Return>' => [
         sub {
-            TrEd::Dialog::EditAttributes::create_dialog( $_[1]->{focusedWindow},
+            TrEd::Dialog::EditAttributes::show_dialog( $_[1]->{focusedWindow},
                 $_[1]->{focusedWindow}->{currentNode} );
             Tk->break();
         },

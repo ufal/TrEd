@@ -4,7 +4,7 @@ package TrEd::MinorMode::Show_Neighboring_Sentences;
 use strict;
 use warnings;
 
-require TrEd::ExtensionsAPI;
+require TrEd::MacroAPI::Default; # loads TredMacro
 TredMacro->import();
 
 require TrEd::Macros;

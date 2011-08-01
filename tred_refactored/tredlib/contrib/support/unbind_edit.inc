@@ -18,7 +18,7 @@ Extensions can also use TredMacro::UnbindTreeEdit($context) function.
 
 =cut
 
-require TrEd::ExtensionsAPI;
-# CurrentContext would not work here, because the current context would be 
+require TrEd::MacroAPI::Default;
+# CurrentContext would not work here, because the current context would be
 # TredMacro, we need to pass the name of package that called this function
 TredMacro::UnbindTreeEdit(__PACKAGE__);
