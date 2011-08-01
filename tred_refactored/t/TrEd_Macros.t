@@ -15,7 +15,7 @@ use utf8;
 use TrEd::Config;
 use TrEd::Utils;
 # to make summarization work in safe compartment
-use Devel::Cover;
+#use Devel::Cover;
 
 BEGIN {
   my $module_name = 'TrEd::Macros';
@@ -1032,8 +1032,9 @@ sub test_running_macros {
       "do_eval_macro(): eval macro using new calling convention, test return value of the macro");
   }
 
-  is(TrEd::Macros::do_eval_hook($grp, "tred_context_descendant", "repeater_hook", 10), 10,
-    "do_eval_hook(): hook is run using new calling convention & returns value correctly");
+  # this code has been commented out/removed for now, maybe resurect test in the future...
+  # is(TrEd::Macros::do_eval_hook($grp, "tred_context_descendant", "repeater_hook", 10), 10,
+  #  "do_eval_hook(): hook is run using new calling convention & returns value correctly");
 
   @TrEd::Macros::macros = ();
   @TrEd::Macros::keyBindings = ();
