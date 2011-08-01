@@ -49,7 +49,7 @@ my @private_subs = qw(
     _related_files
     _fix_keep_option
     _is_among_primary_files
-    _check_for_recovery
+    _check_for_recovery_and_open
     _should_save_to_recent_files
     open_file
     open_standalone_file
