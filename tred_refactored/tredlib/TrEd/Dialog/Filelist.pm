@@ -292,7 +292,7 @@ sub _create_fl {
 }
 
 # was main::filelistDialog {
-sub create_dialog {
+sub show_dialog {
     use Tk::LabFrame;
     my ( $grp, $modal ) = @_;
     my $win = $grp->{focusedWindow};

@@ -11,7 +11,7 @@ my $scrolling_step = 3;
 
 sub Tk::Widget::BindMouseWheelVert {
     my ( $w, $modifier, @tags ) = @_;
-    if (defined $modifier) {
+    if ($modifier) {
         $modifier .= q{-};
     }
     else {
@@ -74,7 +74,7 @@ sub Tk::Widget::BindMouseWheelVert {
 
 sub Tk::Widget::BindMouseWheelHoriz {
     my ( $w, $modifier ) = @_;
-    if (defined $modifier) {
+    if ($modifier) {
         $modifier .= q{-};
     }
     else {

@@ -170,7 +170,7 @@ sub dialog_schema {
 }
 
 # was main::editAttrsDialog
-sub create_dialog {
+sub show_dialog {
     my ( $win, $node ) = @_;
     my $edit_node_hook_res
         = main::doEvalHook( $win, "do_edit_node_hook", $node );

@@ -101,7 +101,7 @@ sub show_dialog {
 }
 
 1;
-#TODO: dokumentacia
+
 __END__
 
 

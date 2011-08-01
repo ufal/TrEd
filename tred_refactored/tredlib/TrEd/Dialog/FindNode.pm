@@ -15,8 +15,8 @@ require TrEd::Dialog::FocusFix;
 my %searchTemplate = ();
 
 #sub findNodeDialog
-#TODO: vycentrovat najdeny node?
-sub findNodeDialog {
+#TODO: center to found node?
+sub show_dialog {
     my ($grp) = @_;
 
     my $template = \%searchTemplate;
@@ -189,7 +189,7 @@ sub findNodeDialog {
         -command => [
             sub {
                 my ($grp) = @_;
-                my $name = TrEd::Dialog::Filelist::create_dialog( $grp, 1 );
+                my $name = TrEd::Dialog::Filelist::show_dialog( $grp, 1 );
                 $om->options(
                     [   '[Current file only]',
                         sort map { $_->name } @filelists

@@ -12,7 +12,7 @@ use List::Util qw{max};
 require TrEd::Query::String;
 
 # was main::urlDialog
-sub create_dialog {
+sub show_dialog {
     my ( $grp, $header_only ) = @_;
     if ( not( defined $grp->{lastURL} )
         and defined( $grp->{focusedWindow}->{FSFile} ) )

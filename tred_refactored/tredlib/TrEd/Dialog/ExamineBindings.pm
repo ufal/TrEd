@@ -54,7 +54,7 @@ sub examineEvent {
 }
 
 # sub examineBindingsDialog
-sub create_dialog {
+sub show_dialog {
     my ($grp)      = @_;
     my $bindings   = 'None';
     my $dialog_box = $grp->{top}->DialogBox(
