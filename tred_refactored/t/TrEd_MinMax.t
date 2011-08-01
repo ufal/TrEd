@@ -36,28 +36,28 @@ my @list_str = (qw(one two three aaron), $str_a, $str_b);
 
 is(min2($num_a, $num_b), $num_a,
    "min2(): find smaller number");
-    
+
 is(min2($num_str_a, $num_str_b), $num_str_b,
    "min2(): comparing strings containing numbers");
 
 is(max2($num_a, $num_b), $num_b,
    "max2(): find bigger number");
-    
+
 is(max2($num_str_a, $num_str_b), $num_str_b,
    "max2(): comparing strings containing numbers");
-    
+
 is(min(@list), $num_a,
     "min(): find minimal value in the list");
-    
+
 is(max(@list), $num_b,
     "min(): find maximal value in the list");
-    
+
 is(sum(@list), 1 + 2 + $num_a + 3 + 4 + $num_b + 5 + 210,
     "sum(): summing all the items in the list");
 
 is(minstr(@list_str), $str_a,
     "minstr(): find the first string in the lexicographical ordering from the list");
-    
+
 is(maxstr(@list_str), $str_b,
     "maxstr(): find the last string in the lexicographical ordering from the list");
 
@@ -68,7 +68,7 @@ is($first_satisfying, $str_a,
 $first_satisfying = first { $_ eq "not_exist" } @list_str;
 ok(!defined($first_satisfying), "first(): return undef if nothing satisfies give condition");
 
-    
+
 my $subtract_all = reduce { $_[0] - $_[1] } @list;
 my $correct_subtraction = 1 - 2 - $num_a - 3 - 4 - $num_b - 5 - 210;
 is($subtract_all, $correct_subtraction,
@@ -77,14 +77,5 @@ is($subtract_all, $correct_subtraction,
 my $one_element_list_reduce = reduce { $_[0] - $_[1] } (1);
 is($one_element_list_reduce, 1,
     "reduce(): return the only element, if the list length is 1");
-
-##############################
-####### Test shuffle()
-##############################
-my @array_1 = (1, 2, 3, 4, 5);
-my @array_2 = shuffle(@array_1);
-my @array_2_sorted = sort {$a <=> $b} @array_1;
-
-is_deeply(\@array_2_sorted, \@array_1, "shuffle(): All the elements are present in the result");
 
 done_testing();
