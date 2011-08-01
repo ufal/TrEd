@@ -143,32 +143,6 @@ sub first (&@) {
     return;
 }
 
-#######################################################################################
-# Usage         : shuffle(@list)
-# Purpose       : Shuffle elements of the list in a (pseudo)random way
-# Returns       : Randomly shuffled list
-# Parameters    : list @list
-# Throws        : no exceptions
-# Comments      : Prototyped function; afaik never actually used in the code
-# See also      : map, rand perl functions
-sub shuffle (@) {
-
-    # create an array of references to items in the list
-    my @a = \(@_);
-    my $n;
-    my $i = scalar(@_);
-
-# on every 'iteration' we virtually shortens the list;
-# we choose a random number from the range [0, length_of_shortened_list]
-# we return the item in the list on the position chosen by a random pick
-# and then we assign a reference of the last item in the (shortened) list
-# to the position chosen by a random pick, i.e. we replace the item we returned
-# with the one from the end of the list to not lose it when we shorten the list
-    return map {
-        $n = rand( $i-- );
-        ( ${ $a[$n] }, $a[$n] = $a[$i] )[0];
-    } @_;
-}
 
 #TODO: documentation & tests
 # sorts first by number of initial underscores, then alphabetically;
@@ -213,8 +187,6 @@ TrEd::MinMax version 0.2.
   my $max_str = maxstr(@str_list); # $max_str = 'zz'
 
   my $first_ok = first { $_ =~ /a.*z/ } @str_list; # $first_ok = 'abz'
-
-  my @shuffled = shuffle(@str_list) # @shuffled contains shuffled @str_list
 
 
 =head1 DESCRIPTION
@@ -394,28 +366,6 @@ The last string in lexicographical order from the I<@list>
 
 =back
 
-
-=item * C<TrEd::MinMax::shuffle(@list)>
-
-=over 6
-
-=item Purpose
-
-Shuffle elements of the I<@list> in a (pseudo)random way.
-
-=item Parameters
-
-C<@list> -- a list
-
-=item Description
-
-Prototyped function.
-
-=item Returns
-
-Randomly shuffled I<@list>
-
-=back
 
 
 =item * C<TrEd::MinMax::sum(@list)>
