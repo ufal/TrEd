@@ -619,37 +619,27 @@ sub print_trees {
 	  }
 	}
 
-	if ($rotate) {
-	  $P->draw_canvas($c,
-			  -width => $width,
-			  -height => $height,
-			  -grayscale => !$printColors,
-			  -scale => [$scale,$scale],
-			  -rotate => -90,
-			  -translate => [$hMargin+
-					 ($pagewidth-$height*$scale)/2,
-					 $vMargin+
-					 ($pageheight+$width*$scale)/2],
-			  -balloon => $treeView->get_CanvasBalloon,
-			  @opts,
-			 );
-	} else {
-	  $P->draw_canvas($c,
-			  -width => $width,
-			  -height => $height,
-			  -grayscale => !$printColors,
-			  # -rotate => -90,
-			  -scale => [$scale,$scale],
-			  -translate => [$hMargin+
+        my %final_opts = (
+                          -width => $width,
+                          -height => $height,
+                          -grayscale => !$printColors,
+                          -scale => [$scale,$scale],
+                          -translate => [$hMargin+
 					 ($pagewidth-$width*$scale)/2,
 					 $vMargin+
 					 ($pageheight-$height*$scale)/2],
-			  -balloon => $treeView->get_CanvasBalloon,
-			  @opts,
-			 );
-	}
-###	last; # only one page for now
+                          -balloon => $treeView->get_CanvasBalloon,
+                         );
+        if ($rotate) {
+          $final_opts{-rotate} = -90;
+          $final_opts{-translate} = [ $hMargin
+                                      + ($pagewidth-$height*$scale)/2,
+                                      $vMargin
+                                      + ($pageheight+$width*$scale)/2];
+        }
+        $P->draw_canvas($c, %final_opts, @opts);
       }
+
       if ($toSVG) {
 	_msg("saving SVG to $fil\n");
       } else {
