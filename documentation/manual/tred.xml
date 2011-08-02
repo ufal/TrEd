@@ -8675,7 +8675,7 @@ sub CreateImages {
 	    </row><row id="node_style_hook">
 	      <entry><literal>node_style_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>syles</replaceable></literal></para><para>This hook is called for every node of a tree every time
+	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>styles</replaceable></literal></para><para>This hook is called for every node of a tree every time
 		the tree is being drawn. It may be used to provide
 		additional styling information on top of
 		the information provided by a current stylesheet.
@@ -8767,7 +8767,7 @@ sub CreateImages {
 	    </row><row id="root_style_hook">
 	      <entry><literal>root_style_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>root-node</replaceable>,<replaceable>syles</replaceable></literal></para><para>This hook is executed once every time
+	      <entry><para>Arguments: <literal role="params"><replaceable>root-node</replaceable>,<replaceable>styles</replaceable></literal></para><para>This hook is executed once every time
 		the tree is being drawn before
 		the content of a currently selected stylesheet
 		is applied and before <literal>node_style_hook</literal>
