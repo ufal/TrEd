@@ -34,10 +34,12 @@ $rb=~s{/$}{};
 my $version_file = File::Spec->rel2abs('../tredlib/TrEd/Version.pm',$rb);
 
 die "Did not find $version_file!" if !-f $version_file;
-
+# You'd better pass an arg to set this or this may fail in the future
 my $REPO = shift || 'https://svn.ms.mff.cuni.cz/svn/TrEd_refactored/tred_refactored/';
 
-my $VER='1.9.'.`svn info "$REPO" |grep "^Revision:" |cut -f2 -d:`;
+my $svn_version = `svn info "$REPO" |grep "^Revision:" |cut -f2 -d:`;
+my $updated_version = 90_000 + $svn_version;
+my $VER = $updated_version;
 chomp $VER;
 $VER=~s/\s+//g;
 
