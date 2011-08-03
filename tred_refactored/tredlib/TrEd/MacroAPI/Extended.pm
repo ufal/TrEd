@@ -17,7 +17,8 @@ BEGIN {
 use strict;
 use warnings;
 
-use TrEd::Macros;
+require TrEd::Macros;
+require Treex::PML;
 use vars qw{$libDir $grp $root $this $_NoSuchTree $Redraw $stderr $stdout
     $forceFileSaved $FileChanged $FileNotSaved $NodeClipboard $nodeClipboard @AUTO_CONTEXT_GUESSING};
 
@@ -897,6 +898,7 @@ sub init_tredmacro_bindings {
         'Next node linearly' );
     TrEd::Macros::bind_macro( 'GotoPrevNodeLin', 'Ctrl+less',
         'Prev node linearly' );
+    return;
 }
 
 TrEd::Macros::set_current_binding_contexts('TredMacro');

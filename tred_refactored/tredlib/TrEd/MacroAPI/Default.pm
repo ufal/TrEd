@@ -5,8 +5,7 @@
 package TredMacro;
 
 use strict;
-
-#use warnings;
+use warnings;
 
 use Exporter;
 use Treex::PML;
@@ -17,6 +16,7 @@ use TrEd::MinMax qw(first max maxstr min minstr reduce sum);
 use base qw(Exporter);
 use Carp;
 use vars qw(@FORCE_EXPORT @EXPORT);
+require Encode;
 
 # should they be exported?
 #        can
@@ -338,20 +338,20 @@ BEGIN {
 use vars @FORCE_EXPORT;
 
 # new ones
-use TrEd::Window::TreeBasics;
-use TrEd::Error::Message;
+require TrEd::Window::TreeBasics;
+require TrEd::Error::Message;
 
-use TrEd::File;
-use TrEd::Utils;
-use TrEd::Config;
-use TrEd::Convert;
-use TrEd::MinorModes;
-use TrEd::Stylesheet;
+require TrEd::File;
+require TrEd::Utils;
+require TrEd::Config;
+require TrEd::Convert;
+require TrEd::MinorModes;
+require TrEd::Stylesheet;
 
 # can't 'use', circular ref
-use TrEd::Macros;
-use TrEd::MacroAPI::Extended;         # instead of tred.mac
-use TrEd::NtredMak;    # instead of contrib/ntred/contrib.mac and ntred.mak,
+require TrEd::Macros;
+require TrEd::MacroAPI::Extended;         # instead of tred.mac
+require TrEd::NtredMak;    # instead of contrib/ntred/contrib.mac and ntred.mak,
 
 # The following is a workaround for a nasty bug of Class::Std in case somebody wants to use it
 sub isa {
@@ -450,7 +450,6 @@ The number of the first tree for this function is 1.
 =cut
 
 sub GotoTree {
-
     #  $FileNotSaved=0 if ($FileNotSaved eq '?');
     my $to = shift() - 1;
     my $result = TrEd::Window::TreeBasics::go_to_tree( $grp, $to );
@@ -468,7 +467,6 @@ The number of the first tree for this function is 1.
 =cut
 
 sub TieGotoTree {
-
     #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
     my $to = shift() - 1;
     my $result = main::tieGotoTree( $grp, $to );
@@ -485,7 +483,6 @@ Display the next tree in all tied windows.
 =cut
 
 sub TieNextTree {
-
     #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
     my $result = main::tieNextTree($grp);
     $root   = $grp->{root};
@@ -501,7 +498,6 @@ Display the previous tree in all tied windows.
 =cut
 
 sub TiePrevTree {
-
     #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
     my $result = main::tiePrevTree($grp);
     $root   = $grp->{root};
@@ -517,7 +513,6 @@ Display the next tree in the current file.
 =cut
 
 sub NextTree {
-
     #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
     my $result = TrEd::Window::TreeBasics::next_tree($grp);
     $root        = $grp->{root};
@@ -533,7 +528,6 @@ Display the previous tree in the current file.
 =cut
 
 sub PrevTree {
-
     #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
     my $result = TrEd::Window::TreeBasics::prev_tree($grp);
     $root        = $grp->{root};
@@ -1506,8 +1500,8 @@ function does not perform any node-type validity checks.
 =cut
 
 sub PasteValues {
-    foreach $_ ( keys(%ValuesClipboard) ) {
-        $this->{$_} = $ValuesClipboard{$_};
+    foreach my $key ( keys(%ValuesClipboard) ) {
+        $this->{$key} = $ValuesClipboard{$key};
     }
 }
 
@@ -2206,7 +2200,7 @@ a TrEd::Window object representing the currently focused window.
 =cut
 
 sub GUI {
-    return ( ref($grp) eq 'TrEd::Window' ) ? $grp : undef;
+    return ( ref $grp eq 'TrEd::Window' ) ? $grp : undef;
 }
 
 =item C<CloseGUI()>
@@ -4015,7 +4009,7 @@ sub GetFileList {
     return if !TrEd::Macros::is_defined('TRED');
     return unless defined $name;
     my @filelists = TrEd::ManageFilelists::get_filelists();
-    return first { $_->name eq $name } @filelists;
+    return TrEd::MinMax::first { $_->name eq $name } @filelists;
 }
 
 #endif
@@ -4980,10 +4974,11 @@ sub import {
     no strict qw(refs);
     my $pkg = shift;
 
-    #  print "TredMacro imported from " . caller() ."\n";
+     print "TredMacro imported from " . caller() ."\n";
     _import( $pkg, scalar(caller),
         ( $#_ >= 0 ? @_ : grep { $_ ne 'BEGIN' } keys %{"${pkg}::"} ),
-        @FORCE_EXPORT, @EXPORT );
+        @FORCE_EXPORT, 
+        @EXPORT );
 }
 
 sub import_only {

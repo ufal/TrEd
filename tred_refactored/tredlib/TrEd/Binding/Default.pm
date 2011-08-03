@@ -274,10 +274,10 @@ sub _run_binding {
     my $context = $grp_ref->{focusedWindow}->{macroContext};
 
     my $binding = $default_binding->_resolve_default_binding( $context, $key );
-    if ( ref( $binding->[0] ) eq 'CODE' ) {
+    if ( ref $binding->[0] eq 'CODE' ) {
         $binding->[0]->( $mw, $grp_ref, $key, @args );
     }
-    elsif ( ref( $binding->[0] ) eq 'Tk::Callback' ) {
+    elsif ( ref $binding->[0] eq 'Tk::Callback' ) {
         $binding->[0]->Call( $mw, $grp_ref, $key, @args );
     }
     return;

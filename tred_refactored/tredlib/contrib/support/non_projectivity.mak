@@ -5,7 +5,6 @@
 package NonProjectivity;
 
 use strict;
-use warnings;
 
 BEGIN { import TredMacro; }
 

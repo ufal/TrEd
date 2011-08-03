@@ -8,6 +8,7 @@ package TrEd::Config;
 #
 
 use strict;
+use warnings;
 use File::Spec;
 use Cwd;
 
@@ -287,7 +288,7 @@ $documentation_dir = 'http://ufal.mff.cuni.cz/~pajas/tred';
 # Usage         : set_default_config_file_search_list()
 # Purpose       : Set @config_file_search_list values to common places where
 #                 tredrc cofiguration file (tredrc) is usually found
-# Returns       : nothing
+# Returns       : Undef/empty string
 # Parameters    : no
 # Throws        : nothing
 # Comments      : Requires FindBin. Tredrc paths are set to HOME environment variable,
@@ -306,6 +307,7 @@ sub set_default_config_file_search_list {
             File::Spec->catfile( $FindBin::RealBin, '..', 'lib', 'tred' ),
         )
     );
+    return;
 }
 
 ######################################################################################
@@ -331,7 +333,7 @@ sub tilde_expand {
 # Usage         : parse_config_line($line, $confs_ref)
 # Purpose       : Parse each line of the config file to extract key and value pair and
 #                 save it into hash $confs_ref
-# Returns       : nothing
+# Returns       : Undef/empty string
 # Parameters    : string $line        -- line to be parsed
 #                 hash_ref $confs_ref -- hash of configuration key-value pairs
 # Throws        : nothing
@@ -402,6 +404,7 @@ sub parse_config_line {
             }
         }
     }
+    return;
 }
 
 #####################################################################################
@@ -558,24 +561,25 @@ sub _set_treeViewOpts {
     my ($confs_ref) = @_;
     ## set treeViewOpts
     for my $opt (@treeViewOpts) {
-        if ( exists( $confs_ref->{ lc($opt) } ) ) {
-            $treeViewOpts->{$opt} = $confs_ref->{ lc($opt) };
+        if ( exists $confs_ref->{ lc $opt } ) {
+            $treeViewOpts->{$opt} = $confs_ref->{ lc $opt };
         }
     }
 
     # treeViewOpts: set currentNodeWidht & -Height
     for my $opt (qw(Height Width)) {
-        if (   !exists( $treeViewOpts->{ 'currentNode' . $opt } )
-            and exists( $treeViewOpts->{ 'node' . $opt } ) )
+        if (  !exists( $treeViewOpts->{ 'currentNode' . $opt } )
+            && exists( $treeViewOpts->{ 'node' . $opt } ) )
         {
             $treeViewOpts->{ 'currentNode' . $opt }
                 = $treeViewOpts->{ 'node' . $opt } + 2;    # Hm, why +2?
         }
     }
 
-# treeViewOpts: set customColors
-# and user- settings
-#TODO: find out whether userConf is somehow connected with the treeViewOpts, maybe put it back into set_config()
+    # treeViewOpts: set customColors
+    # and user- settings
+    #TODO: find out whether userConf is somehow connected 
+    # with the treeViewOpts, maybe put it back into set_config()
     foreach my $key ( keys %$confs_ref ) {
         if ( $key =~ m/^customcolor(.*)$/ ) {
             $treeViewOpts->{customColors}->{$1} = $confs_ref->{$key};
@@ -590,16 +594,16 @@ sub _set_treeViewOpts {
 
     # Background image
     my $bg_image = $confs_ref->{backgroundimage};
-    if ( defined $bg_image && $bg_image ne ""
-        and !-f $bg_image
-        and -f $libDir . "/" . $bg_image )
+    if ( defined $bg_image && $bg_image ne q{}
+        && !-f $bg_image
+        && -f $libDir . '/' . $bg_image )
     {
         $treeViewOpts->{backgroundImage}
-            = $libDir . "/" . $bg_image;
+            = $libDir . '/' . $bg_image;
     }
     else {
         $treeViewOpts->{backgroundImage}
-            = val_or_def( $confs_ref, "backgroundimage", undef );
+            = val_or_def( $confs_ref, 'backgroundimage', undef );
     }
     return;
 }
@@ -618,7 +622,7 @@ sub _set_treeViewOpts {
 sub _set_fonts {
     my ($confs_ref) = @_;
     my $fontenc = _set_font_encoding();
-    
+
     if ( exists( $confs_ref->{'font'} ) ) {
         $font = $confs_ref->{'font'};
 
@@ -641,12 +645,12 @@ sub _set_fonts {
 
     # print "USING FONT $font\n";
 
-    $vLineFont = val_or_def( $confs_ref, "vlinefont", $font );
-    $guiFont   = val_or_def( $confs_ref, "guifont",   undef );
+    $vLineFont = val_or_def( $confs_ref, 'vlinefont', $font );
+    $guiFont   = val_or_def( $confs_ref, 'guifont',   undef );
 
     # set up various gui fonts
     for my $name (qw(small small_bold heading fixed default bold italic)) {
-        $c_fonts{$name} = val_or_def( $confs_ref, "guifont_" . $name, undef );
+        $c_fonts{$name} = val_or_def( $confs_ref, 'guifont_' . $name, undef );
     }
     return;
 }
@@ -664,8 +668,8 @@ sub _set_fonts {
 sub _set_font_encoding {
     my $fontenc = $TrEd::Convert::outputenc
         || ( ( defined($Tk::VERSION) and $Tk::VERSION < 804 )
-        ? "iso-8859-2"
-        : "iso-10646-1" );
+        ? 'iso-8859-2'
+        : 'iso-10646-1' );
     $fontenc =~ s/^iso-/iso/;
     return $fontenc;
 }
@@ -685,7 +689,7 @@ sub _set_resource_path {
     my ( $confs_ref, $def_share_path ) = @_;
 
     # resource path delimiter
-    my $resourcePathSplit = ( $^O eq "MSWin32" ) ? ',' : ':';
+    my $resourcePathSplit = ( $^O eq 'MSWin32' ) ? ',' : ':';
 
     # construct default resource path
     my $def_res_path
@@ -772,7 +776,7 @@ sub _set_print_options {
             }
         }
         else {
-            if ( !defined($Tk::VERSION) or $Tk::VERSION >= 804 ) {
+            if ( !defined($Tk::VERSION) || $Tk::VERSION >= 804 ) {
                 $psFontFile = "$libDir/fonts/n019003l.pfa";
             }
             else {
@@ -817,7 +821,7 @@ sub _set_print_options {
             my @fontpath;
 
             # Read paths from registry on Windows
-            if ( $^O eq "MSWin32" ) {
+            if ( $^O eq 'MSWin32' ) {
                 my %shf;
                 require TrEd::Utils;
                 my $ShellFolders
@@ -879,7 +883,8 @@ sub _set_print_options {
 sub _set_extensions {
     my ( $confs_ref, $def_share_path ) = @_;
     my $conf_extension_dir
-        = length( $confs_ref->{extensionsdir} )
+        = defined $confs_ref->{extensionsdir} 
+          && length $confs_ref->{extensionsdir}
         ? $confs_ref->{extensionsdir}
         : '~/.tred.d/extensions';
     $extensionsDir = File::Spec->rel2abs( tilde_expand($conf_extension_dir),
@@ -889,7 +894,8 @@ sub _set_extensions {
         'http://ufal.mff.cuni.cz/~pajas/tred/extensions' );
 
     $preinstalledExtensionsDir
-        = length $confs_ref->{preinstalledextensionsdir}
+        =  defined $confs_ref->{preinstalledextensionsdir}
+           && length $confs_ref->{preinstalledextensionsdir}
         ? tilde_expand( $confs_ref->{preinstalledextensionsdir} )
         : $def_share_path =~ m{/share/tred$} ? $def_share_path . '-extensions'
         :   File::Spec->catdir( $def_share_path, 'tred-extensions' );
@@ -911,70 +917,70 @@ sub set_config {
     _parse_cmdline_options($confs_ref);
 
     $appName
-        = val_or_def( $confs_ref, "appname", "TrEd ver. " . $main::VERSION );
+        = val_or_def( $confs_ref, 'appname', 'TrEd ver. ' . $main::VERSION );
     if ( !exists( $ENV{PML_COMPILE} ) ) {
-        $ENV{PML_COMPILE} = val_or_def( $confs_ref, "pml_compile", 0 );
+        $ENV{PML_COMPILE} = val_or_def( $confs_ref, 'pml_compile', 0 );
     }
 
-    $buttonsRelief     = val_or_def( $confs_ref, "buttonsrelief", 'flat' );
-    $menubarRelief     = val_or_def( $confs_ref, "menubarrelief", 'flat' );
-    $buttonBorderWidth = val_or_def( $confs_ref, "buttonsborder", 2 );
-    $canvasBalloonInitWait = val_or_def( $confs_ref, "hintwait", 1000 );
+    $buttonsRelief     = val_or_def( $confs_ref, 'buttonsrelief', 'flat' );
+    $menubarRelief     = val_or_def( $confs_ref, 'menubarrelief', 'flat' );
+    $buttonBorderWidth = val_or_def( $confs_ref, 'buttonsborder', 2 );
+    $canvasBalloonInitWait = val_or_def( $confs_ref, 'hintwait', 1000 );
     $canvasBalloonForeground
-        = val_or_def( $confs_ref, "hintforeground", 'black' );
+        = val_or_def( $confs_ref, 'hintforeground', 'black' );
     $canvasBalloonBackground
-        = val_or_def( $confs_ref, "hintbackground", '#fff3b0' );
+        = val_or_def( $confs_ref, 'hintbackground', '#fff3b0' );
     $toolbarBalloonInitWait
-        = val_or_def( $confs_ref, "toolbarhintwait", 450 );
+        = val_or_def( $confs_ref, 'toolbarhintwait', 450 );
     $toolbarBalloonForeground
-        = val_or_def( $confs_ref, "toolbarhintforeground", 'black' );
+        = val_or_def( $confs_ref, 'toolbarhintforeground', 'black' );
     $toolbarBalloonBackground
-        = val_or_def( $confs_ref, "toolbarhintbackground", '#fff3b0' );
+        = val_or_def( $confs_ref, 'toolbarhintbackground', '#fff3b0' );
 
-    $activeTextColor = val_or_def( $confs_ref, "activetextcolor", 'blue' );
+    $activeTextColor = val_or_def( $confs_ref, 'activetextcolor', 'blue' );
     $stippleInactiveWindows
-        = val_or_def( $confs_ref, "stippleinactivewindows", 1 );
+        = val_or_def( $confs_ref, 'stippleinactivewindows', 1 );
 
     $highlightWindowColor
-        = val_or_def( $confs_ref, "highlightwindowcolor", 'black' );
+        = val_or_def( $confs_ref, 'highlightwindowcolor', 'black' );
     $highlightWindowWidth
-        = val_or_def( $confs_ref, "highlightwindowwidth", 3 );
+        = val_or_def( $confs_ref, 'highlightwindowwidth', 3 );
 
-    $valueLineHeight = val_or_def( $confs_ref, "vlineheight",
+    $valueLineHeight = val_or_def( $confs_ref, 'vlineheight',
         defined($valueLineHeight) ? $valueLineHeight : 2 );
-    $valueLineAlign = val_or_def( $confs_ref, "vlinealign",
+    $valueLineAlign = val_or_def( $confs_ref, 'vlinealign',
         defined($valueLineAlign) ? $valueLineAlign : 'left' );
-    $valueLineWrap = val_or_def( $confs_ref, "vlinewrap",
+    $valueLineWrap = val_or_def( $confs_ref, 'vlinewrap',
         defined($valueLineWrap) ? $valueLineWrap : 'word' );
-    $valueLineReverseLines = val_or_def( $confs_ref, "vlinereverselines",
+    $valueLineReverseLines = val_or_def( $confs_ref, 'vlinereverselines',
         defined($valueLineReverseLines) ? $valueLineReverseLines : 0 );
     $valueLineFocusForeground = val_or_def(
         $confs_ref,
-        "vlinefocusforeground",
+        'vlinefocusforeground',
         defined($valueLineFocusForeground)
         ? $valueLineFocusForeground
         : 'black'
     );
-    $valueLineForeground = val_or_def( $confs_ref, "vlineforeground",
+    $valueLineForeground = val_or_def( $confs_ref, 'vlineforeground',
         defined($valueLineForeground) ? $valueLineForeground : 'black' );
     $valueLineFocusBackground = val_or_def(
         $confs_ref,
-        "vlinefocusbackground",
+        'vlinefocusbackground',
         defined($valueLineFocusBackground)
         ? $valueLineFocusBackground
         : 'yellow'
     );
-    $valueLineBackground = val_or_def( $confs_ref, "vlinebackground",
+    $valueLineBackground = val_or_def( $confs_ref, 'vlinebackground',
         defined($valueLineBackground) ? $valueLineBackground : 'white' );
 
     # Set encoding and text orientation
-    $TrEd::Convert::inputenc = val_or_def( $confs_ref, "defaultfileencoding",
+    $TrEd::Convert::inputenc = val_or_def( $confs_ref, 'defaultfileencoding',
         $TrEd::Convert::inputenc );
     $TrEd::Convert::outputenc
-        = val_or_def( $confs_ref, "defaultdisplayencoding",
+        = val_or_def( $confs_ref, 'defaultdisplayencoding',
         $TrEd::Convert::outputenc );
     $TrEd::Convert::lefttoright
-        = val_or_def( $confs_ref, "displaynonasciilefttoright",
+        = val_or_def( $confs_ref, 'displaynonasciilefttoright',
         $TrEd::Convert::lefttoright );
 
     # Set font and its encoding
@@ -984,7 +990,7 @@ sub set_config {
     if ( $confs_ref->{perllib} ) {
         foreach my $perllib ( split /\:/, $confs_ref->{perllib} ) {
             $perllib = tilde_expand($perllib);
-            if ( !( grep( $_ eq $perllib, @INC ) ) ) {
+            if ( !( grep { $_ eq $perllib} @INC ) ) {
                 unshift( @INC, $perllib );
             }
         }
@@ -993,7 +999,7 @@ sub set_config {
         $libDir = tilde_expand( $confs_ref->{libdir} );
     }
     if ($libDir) {
-        if ( !( grep( $_ eq $libDir, @INC ) ) ) {
+        if ( !( grep { $_ eq $libDir } @INC ) ) {
             unshift( @INC, $libDir );
         }
     }
@@ -1032,38 +1038,38 @@ sub set_config {
         ? tilde_expand( $confs_ref->{defaultmacrofile} )
         : "$libDir/tred.def";
     $default_macro_encoding
-        = val_or_def( $confs_ref, "defaultmacroencoding", 'utf8' );
-    $sortAttrs      = val_or_def( $confs_ref, "sortattributes",      1 );
-    $sortAttrValues = val_or_def( $confs_ref, "sortattributevalues", 1 );
+        = val_or_def( $confs_ref, 'defaultmacroencoding', 'utf8' );
+    $sortAttrs      = val_or_def( $confs_ref, 'sortattributes',      1 );
+    $sortAttrValues = val_or_def( $confs_ref, 'sortattributevalues', 1 );
 
     _set_print_options();
 
-    $createMacroMenu = val_or_def( $confs_ref, "createmacromenu", 0 );
-    $maxMenuLines    = val_or_def( $confs_ref, "maxmenulines",    20 );
-    $useCzechLocales = val_or_def( $confs_ref, "useczechlocales", 0 );
-    $useLocales      = val_or_def( $confs_ref, "uselocales",      0 );
-    $Tk::strictMotif = val_or_def( $confs_ref, "strictmotif",     0 );
+    $createMacroMenu = val_or_def( $confs_ref, 'createmacromenu', 0 );
+    $maxMenuLines    = val_or_def( $confs_ref, 'maxmenulines',    20 );
+    $useCzechLocales = val_or_def( $confs_ref, 'useczechlocales', 0 );
+    $useLocales      = val_or_def( $confs_ref, 'uselocales',      0 );
+    $Tk::strictMotif = val_or_def( $confs_ref, 'strictmotif',     0 );
     $imageMagickConvert
-        = val_or_def( $confs_ref, "imagemagickconvert", 'convert' );
-    $NoConvertWarning = val_or_def( $confs_ref, "noconvertwarning", 0 );
+        = val_or_def( $confs_ref, 'imagemagickconvert', 'convert' );
+    $NoConvertWarning = val_or_def( $confs_ref, 'noconvertwarning', 0 );
 
     $Treex::PML::IO::reject_proto
         = val_or_def( $confs_ref, 'rejectprotocols', '^(pop3?s?|imaps?)\$' );
     $Treex::PML::IO::gzip
-        = val_or_def( $confs_ref, "gzip", find_exe("gzip") );
+        = val_or_def( $confs_ref, 'gzip', find_exe("gzip") );
     if ( !$Treex::PML::IO::gzip and -x "$libDir/../gzip" ) {
         $Treex::PML::IO::gzip = "$libDir/../bin/gzip";
     }
-    $Treex::PML::IO::gzip_opts = val_or_def( $confs_ref, "gzipopts", "-c" );
-    $Treex::PML::IO::zcat      = val_or_def( $confs_ref, "zcat", find_exe("zcat") );
-    $Treex::PML::IO::zcat_opts = val_or_def( $confs_ref, "zcatopts",  undef );
-    $Treex::PML::IO::ssh       = val_or_def( $confs_ref, "ssh",       undef );
-    $Treex::PML::IO::ssh_opts  = val_or_def( $confs_ref, "sshopts",   undef );
-    $Treex::PML::IO::kioclient = val_or_def( $confs_ref, "kioclient", undef );
+    $Treex::PML::IO::gzip_opts = val_or_def( $confs_ref, 'gzipopts', '-c' );
+    $Treex::PML::IO::zcat      = val_or_def( $confs_ref, 'zcat', find_exe('zcat') );
+    $Treex::PML::IO::zcat_opts = val_or_def( $confs_ref, 'zcatopts',  undef );
+    $Treex::PML::IO::ssh       = val_or_def( $confs_ref, 'ssh',       undef );
+    $Treex::PML::IO::ssh_opts  = val_or_def( $confs_ref, 'sshopts',   undef );
+    $Treex::PML::IO::kioclient = val_or_def( $confs_ref, 'kioclient', undef );
     $Treex::PML::IO::kioclient_opts
-        = val_or_def( $confs_ref, "kioclientopts", undef );
-    $Treex::PML::IO::curl      = val_or_def( $confs_ref, "curl",     undef );
-    $Treex::PML::IO::curl_opts = val_or_def( $confs_ref, "curlopts", undef );
+        = val_or_def( $confs_ref, 'kioclientopts', undef );
+    $Treex::PML::IO::curl      = val_or_def( $confs_ref, 'curl',     undef );
+    $Treex::PML::IO::curl_opts = val_or_def( $confs_ref, 'curlopts', undef );
 
     if ( !$Treex::PML::IO::zcat ) {
         if ($Treex::PML::IO::gzip) {
@@ -1074,59 +1080,59 @@ sub set_config {
             $Treex::PML::IO::zcat = "$libDir/../bin/zcat";
         }
     }
-    $cstsToFs = val_or_def( $confs_ref, "cststofs", undef );
-    $fsToCsts = val_or_def( $confs_ref, "fstocsts", undef );
+    $cstsToFs = val_or_def( $confs_ref, 'cststofs', undef );
+    $fsToCsts = val_or_def( $confs_ref, 'fstocsts', undef );
 
-    $sgmls = val_or_def( $confs_ref, "sgmls", "nsgmls" );
+    $sgmls = val_or_def( $confs_ref, 'sgmls', 'nsgmls' );
     $sgmlsopts
-        = val_or_def( $confs_ref, "sgmlsopts", "-i preserve.gen.entities" );
-    $cstsdoctype = val_or_def( $confs_ref, "cstsdoctype", undef );
+        = val_or_def( $confs_ref, 'sgmlsopts', '-i preserve.gen.entities' );
+    $cstsdoctype = val_or_def( $confs_ref, 'cstsdoctype', undef );
     $cstsparsecommand
-        = val_or_def( $confs_ref, "cstsparsercommand", "\%s \%o \%d \%f" );
+        = val_or_def( $confs_ref, 'cstsparsercommand', "\%s \%o \%d \%f" );
 
     $Treex::PML::Backends::CSTS::sgmls         = $sgmls;
     $Treex::PML::Backends::CSTS::sgmlsopts     = $sgmlsopts;
     $Treex::PML::Backends::CSTS::doctype       = $cstsdoctype;
     $Treex::PML::Backends::CSTS::sgmls_command = $cstsparsecommand;
 
-    $keyboardDebug = val_or_def( $confs_ref, "keyboarddebug", 0 );
-    $hookDebug     = val_or_def( $confs_ref, "hookdebug",     0 );
-    $macroDebug    = val_or_def( $confs_ref, "macrodebug",    0 );
-    $tredDebug     = val_or_def( $confs_ref, "treddebug",     $tredDebug );
+    $keyboardDebug = val_or_def( $confs_ref, 'keyboarddebug', 0 );
+    $hookDebug     = val_or_def( $confs_ref, 'hookdebug',     0 );
+    $macroDebug    = val_or_def( $confs_ref, 'macrodebug',    0 );
+    $tredDebug     = val_or_def( $confs_ref, 'treddebug',     $tredDebug );
     $Treex::PML::Debug
-        = val_or_def( $confs_ref, "backenddebug", $Treex::PML::Debug );
+        = val_or_def( $confs_ref, 'backenddebug', $Treex::PML::Debug );
     $defaultTemplateMatchMethod
-        = val_or_def( $confs_ref, "searchmethod", 'R' );
-    $defaultMacroListOrder = val_or_def( $confs_ref, "macrolistorder", 'M' );
-    $defCWidth     = val_or_def( $confs_ref, "canvaswidth",   '18c' );
-    $defCHeight    = val_or_def( $confs_ref, "canvasheight",  '12c' );
-    $geometry      = val_or_def( $confs_ref, "geometry",      undef );
-    $showSidePanel = val_or_def( $confs_ref, "showsidepanel", undef );
-    $maxDisplayedValues = val_or_def( $confs_ref, "maxdisplayedvalues", 25 );
+        = val_or_def( $confs_ref, 'searchmethod', 'R' );
+    $defaultMacroListOrder = val_or_def( $confs_ref, 'macrolistorder', 'M' );
+    $defCWidth     = val_or_def( $confs_ref, 'canvaswidth',   '18c' );
+    $defCHeight    = val_or_def( $confs_ref, 'canvasheight',  '12c' );
+    $geometry      = val_or_def( $confs_ref, 'geometry',      undef );
+    $showSidePanel = val_or_def( $confs_ref, 'showsidepanel', undef );
+    $maxDisplayedValues = val_or_def( $confs_ref, 'maxdisplayedvalues', 25 );
     $maxDisplayedAttributes
-        = val_or_def( $confs_ref, "maxdisplayedattributes", 20 );
-    $lastAction = val_or_def( $confs_ref, "lastaction", undef );
+        = val_or_def( $confs_ref, 'maxdisplayedattributes', 20 );
+    $lastAction = val_or_def( $confs_ref, 'lastaction', undef );
 
-    $maxUndo = val_or_def( $confs_ref, "maxundo", 30 );
+    $maxUndo = val_or_def( $confs_ref, 'maxundo', 30 );
     $reloadKeepsPatterns
-        = val_or_def( $confs_ref, "reloadpreservespatterns", 1 );
-    $autoSave          = val_or_def( $confs_ref, "autosave",          5 );
-    $displayStatusLine = val_or_def( $confs_ref, "displaystatusline", 1 );
+        = val_or_def( $confs_ref, 'reloadpreservespatterns', 1 );
+    $autoSave          = val_or_def( $confs_ref, 'autosave',          5 );
+    $displayStatusLine = val_or_def( $confs_ref, 'displaystatusline', 1 );
     $openFilenameCommand
-        = val_or_def( $confs_ref, "openfilenamecommand", undef );
+        = val_or_def( $confs_ref, 'openfilenamecommand', undef );
     $saveFilenameCommand
-        = val_or_def( $confs_ref, "savefilenamecommand", undef );
+        = val_or_def( $confs_ref, 'savefilenamecommand', undef );
     $lockFiles = val_or_def( $confs_ref, "lockfiles", 1 );
     $noLockProto
-        = val_or_def( $confs_ref, "nolockprotocols", '^(https?|zip|tar)$' );
-    $ioBackends  = val_or_def( $confs_ref, "iobackends",  undef );
-    $htmlBrowser = val_or_def( $confs_ref, "htmlbrowser", undef );
+        = val_or_def( $confs_ref, 'nolockprotocols', '^(https?|zip|tar)$' );
+    $ioBackends  = val_or_def( $confs_ref, 'iobackends',  undef );
+    $htmlBrowser = val_or_def( $confs_ref, 'htmlbrowser', undef );
 
     $skipStartupVersionCheck
-        = val_or_def( $confs_ref, "skipstartupversioncheck", undef );
-    $enableTearOff = val_or_def( $confs_ref, "enabletearoff", 0 );
+        = val_or_def( $confs_ref, 'skipstartupversioncheck', undef );
+    $enableTearOff = val_or_def( $confs_ref, 'enabletearoff', 0 );
 
-    $sidePanelWrap = val_or_def( $confs_ref, "sidepanelwrap", 0 );
+    $sidePanelWrap = val_or_def( $confs_ref, 'sidepanelwrap', 0 );
 
     # ADD NEW OPTIONS HERE
 
@@ -1150,7 +1156,7 @@ sub set_config {
 sub init_filelist_list {
     my ($confs_ref) = @_;
     foreach my $filelist_id ( sort { substr( $a, 8 ) <=> substr( $b, 8 ) }
-                           grep /^filelist[0-9]+/,
+                           grep { /^filelist[0-9]+/ }
                            keys %{$confs_ref} ) 
     {
         push @config_filelists, $confs_ref->{$filelist_id};
@@ -1184,8 +1190,9 @@ sub save_runtime_config {
     my ( $grp, $update ) = @_;
 
     # Save configuration
-    print STDERR "Saving some configuration options.\n"
-        if $tredDebug;
+    if ($tredDebug) {
+        print STDERR "Saving some configuration options.\n";
+    }
     my $config = get_config_from_file() || [];
     update_runtime_config( $grp, $config, $update );
     save_config( $grp, $config, $main::opt_q );
@@ -1202,7 +1209,7 @@ sub update_runtime_config {
     $update ||= {};
     my $comment = ';; Options changed by TrEd on every close (DO NOT EDIT)';
     my $ommit
-        = "canvasheight|canvaswidth|recentfile[0-9]+|geometry|showsidepanel|lastaction|filelist[0-9]+";
+        = 'canvasheight|canvaswidth|recentfile[0-9]+|geometry|showsidepanel|lastaction|filelist[0-9]+';
     my $update_comment = delete $update->{';'};
     for ( keys %$update ) {
         $ommit .= qq(|$_);
@@ -1226,9 +1233,10 @@ sub update_runtime_config {
     if ( $grp->{top} ) {
         eval {
             $geometry = $grp->{top}->geometry();
-            print "geometry is $geometry\n"
-                if $tredDebug;
-            if ( $^O eq "MSWin32" and $grp->{top}->state() eq 'zoomed' ) {
+            if ($tredDebug) {
+                print "geometry is $geometry\n";
+            }
+            if ( $^O eq 'MSWin32' and $grp->{top}->state() eq 'zoomed' ) {
                 $geometry =~ s/\+[-0-9]+\+[-0-9]+/+-3+-3/;
             }
         };
@@ -1328,7 +1336,8 @@ sub save_config {
                 TrEd::Error::Message::error_message(
                     $top,
                     "Cannot write to \"$trc\": $lasterr!\n"
-                        . "\nConfiguration could not be saved!\nCheck file and directory permissions.",
+                        . "\nConfiguration could not be saved!\n"
+                        . 'Check file and directory permissions.', 
                     1
                 );
             }
@@ -1337,11 +1346,13 @@ sub save_config {
             TrEd::Error::Message::error_message(
                 $top,
                 "Cannot write to \"$config_file\": $lasterr!\n"
-                    . "\nConfiguration could not be saved!\nCheck file and directory permissions.",
+                    . "\nConfiguration could not be saved!\n" 
+                    . 'Check file and directory permissions.',
                 1
             );
         }
     }
+    return;
 }
 
 

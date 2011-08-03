@@ -1,6 +1,9 @@
 # -*- cperl -*-
 package TrEd::NodeGroups;
 
+use strict;
+use warnings;
+
 =head1 node_groups.mak
 
 TrEd::NodeGroups - macros for visualizing groups of nodes
@@ -330,7 +333,7 @@ sub draw_group {
     my %stipples        = ( %normal_stipples, %dense_stipples );
     my @normal_stipples = sort( keys(%normal_stipples) );
     my @dense_stipples  = sort( keys(%dense_stipples) );
-    my @stipples        = @normal_stipples, @dense_stipples;
+    my @stipples        = (@normal_stipples, @dense_stipples);
 
     sub define_stipples {
         my $c = shift;

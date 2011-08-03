@@ -509,7 +509,7 @@ sub _check_for_recovery_and_open {
             if $lockinfo and $lockinfo !~ /^locked/;
     }
     elsif ( $status->{ok} < 1 ) {
-        error_message( $win, $status->{report}, 'warn' );
+        TrEd::Error::Message::error_message( $win, $status->{report}, 'warn' );
     }
 
     return ($fsfile, $status);

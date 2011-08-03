@@ -11,6 +11,7 @@
 ##############################################################################
 
 use strict;
+use warnings;
 use 5.008;
 
 BEGIN {
@@ -373,8 +374,9 @@ if ( defined $opt_m ) {
 # don't die on error in Treex::PML::Instance::Reader, just warn...
 $Treex::PML::Instance::Reader::STRICT = 0;
 
+my $cmdline_stylesheets = defined $opt_S ? $opt_S : q{};
 TrEd::Stylesheet::init_stylesheet_paths(
-    [ split( $Treex::PML::resourcePathSplit, $opt_S, -1 ) ] );
+    [ split( $Treex::PML::resourcePathSplit, $cmdline_stylesheets, -1 ) ] );
 
 # well, setter would be nicer..
 $Treex::PML::resourcePath = join( $Treex::PML::resourcePathSplit,
@@ -580,7 +582,7 @@ if ($opt_R) {
     Csts2fs::setupTR();
 }
 
-if ( $opt_X ne EMPTY ) {
+if ( defined $opt_X && $opt_X ne EMPTY ) {
     Csts2fs::setupSpec( split ',', $opt_X, -1 );
     Fs2csts::setupSpec( split ',', $opt_X, -1 );
 }
@@ -1140,7 +1142,7 @@ sub _deleteMenu {
 # sub textDialog
 #TODO: wrapper for extensions..
 sub textDialog {
-    return TrEd::Dialog::Text::create_dialog(@_);
+    return TrEd::Dialog::Text::show_dialog(@_);
 }
 
 # sub userQuery
@@ -1821,7 +1823,7 @@ sub warn55PrintConvert {
 # sub savePrintConfig
 
 # print
-#TODO: to TrEd::Print?
+#TODO: move to TrEd::Print?
 sub printThis {
     my ($grp) = @_;
     my $win = $grp->{focusedWindow};
@@ -1833,16 +1835,16 @@ sub printThis {
     #  my $canvas=$dlg->Scrolled('Canvas');
 
     my $canvas = $grp->{top}->Canvas();
-    my ( $one_per_file, $range, $print_opts );
+    my ( $one_per_file, $print_opts );
     my $err;
     do {
         {
             $err = 0;
-            $print_opts = TrEd::Dialog::Print::printDialog($grp) || return;
+            $print_opts = TrEd::Dialog::Print::show_dialog($grp) || return;
             my $one_per_file = delete $print_opts->{-onePerFile};
-            if ($print_opts->{-format} eq 'PDF'
-                and (  !$grp->{ttfonts}
-                    or !$grp->{ttfonts}->{ $printOptions->{ttFont} } )
+            if ( $print_opts->{-format} eq 'PDF'
+                 && (  !$grp->{ttfonts}
+                    || !$grp->{ttfonts}->{ $printOptions->{ttFont} } )
                 )
             {
                 plainErrorMessage( $win,
@@ -1925,6 +1927,7 @@ sub printThis {
     #  ShowDialog($dlg);
 
     $canvas->destroy();
+    return;
 }
 
 # sub getWindowPatterns
@@ -1948,7 +1951,9 @@ sub switchStylesheet {
         if ( !defined($stylesheet) ) {
             $stylesheet = $prevstylesheet;
         }
-        elsif ( grep /^\Q$stylesheet\E$/i, keys %{ $grp->{stylesheets} } ) {
+        elsif ( grep { /^\Q$stylesheet\E$/i } 
+                keys %{ $grp->{stylesheets} } ) 
+        {
             TrEd::Error::Message::error_message( $win,
                 "Stylesheet named '$stylesheet' already exists!\n", 1 );
             $stylesheet = $prevstylesheet;
@@ -1988,13 +1993,9 @@ sub switchStylesheet {
         }
     }
     else {
-        return 0
-            if (
-            doEvalHook(
-                $win,            "pre_switch_stylesheet_hook",
-                $prevstylesheet, $stylesheet
-            ) eq 'stop'
-            );
+        my $hook_result = doEvalHook( $win, "pre_switch_stylesheet_hook",
+                                      $prevstylesheet, $stylesheet);
+        return 0 if (defined $hook_result && $hook_result eq 'stop');
         $win->apply_stylesheet($stylesheet);
         doEvalHook( $win, "switch_stylesheet_hook", $prevstylesheet,
             $stylesheet );
@@ -2059,32 +2060,33 @@ sub switchContext {
             $win->redraw();
         }
     }
+    return;
 }
 
 # hook
 sub onGetNodeStyle {
     my ( $treeview, $node, $styles, $win ) = @_;
-    doEvalHook( $win, "node_style_hook", $node, $styles );
+    return doEvalHook( $win, "node_style_hook", $node, $styles );
 }
 
 # hook
 sub onGetRootStyle {
     my ( $treeview, $node, $styles, $opts, $win ) = @_;
-    doEvalHook( $win, "root_style_hook", $node, $styles, $opts );
+    return doEvalHook( $win, "root_style_hook", $node, $styles, $opts );
 }
 
 # hook
 sub onRedrawDone {
     my ( $treeview, $win ) = @_;
-    doEvalHook( $win, "after_redraw_hook", $treeview );
+    return doEvalHook( $win, "after_redraw_hook", $treeview );
 }
 
 # hook
 sub onGetNodes {
     my ( $treeview, $fsfile, $tree_no, $current, $win ) = @_;
     $win->{got_nodes}++;
-    doEvalHook( $win, "get_nodelist_hook", $fsfile, $tree_no, $current,
-        $treeview->get_showHidden() );
+    return doEvalHook( $win, "get_nodelist_hook", $fsfile, $tree_no, 
+        $current, $treeview->get_showHidden() );
 }
 
 sub printGetNodesCallback {    # called from print_trees
@@ -2119,6 +2121,7 @@ sub onTreeChange {
 
     centerTo( $win, $win->{currentNode} );
     $grp->{top}->idletasks;
+    return;
 }
 
 # hook
@@ -2133,6 +2136,7 @@ sub onNodeChange {
     get_nodes_fsfile_tree( $win->{framegroup}, $win->{FSFile},
         $win->{treeNo} );
     redraw_fsfile_tree( $win->{framegroup}, $win->{FSFile}, $win->{treeNo} );
+    return;
 }
 
 # hook
@@ -2358,7 +2362,7 @@ sub new_TrEd_Window {
     $win->{stylesheet} = STYLESHEET_FROM_FILE();
     my $windows     = $grp->{treeWindows};
     my $focused_win = $grp->{focusedWindow};
-    if ($focused_win) {
+    if ($focused_win) { # insert new window after focused window
         @{$windows}
             = map { ( $_ == $focused_win ) ? ( $_, $win ) : $_ } @{$windows};
     }
@@ -2366,7 +2370,7 @@ sub new_TrEd_Window {
         push @{$windows}, $win;
     }
     $grp->{rmsplitButton}
-        ->configure( -state => @$windows > 1 ? 'normal' : 'disabled' )
+        ->configure( -state => @{$windows} > 1 ? 'normal' : 'disabled' )
         if $grp->{rmsplitButton};
     return $win;
 }
@@ -3069,6 +3073,7 @@ sub create_split_windows {
     }
     focusCanvas( $tred_ref->{treeWindows}->[0]->canvas, $tred_ref );
     $tred_ref->{tieWindows} = 1;
+    return;
 }
 
 sub populate_recent_files_menu {
@@ -3085,6 +3090,7 @@ sub populate_recent_files_menu {
         );
         $i++;
     }
+    return;
 }
 
 sub create_toolbar_buttons {
@@ -3262,7 +3268,7 @@ sub create_toolbar_buttons {
         -command     => [
             sub {
                 my ($grp) = @_;
-                TrEd::Dialog::FindNode::findNodeDialog($grp)
+                TrEd::Dialog::FindNode::show_dialog($grp)
                     if ( $grp->{focusedWindow}->{currentNode} );
             },
             $tred_ref
@@ -3373,7 +3379,6 @@ sub create_toolbar_buttons {
 
     ##########################
     return;
-
 }
 
 sub create_stylesheet_menu {
@@ -4034,7 +4039,8 @@ sub startMain {
     updatePostponed( \%tred );
     updateHelpMenu( \%tred, { preparedExtensions => $preparedExtensions } );
 
-    if ( doEvalHook( $tred{focusedWindow}, "init_hook" ) eq 'stop' ) {
+    my $hook_result = doEvalHook( $tred{focusedWindow}, "init_hook" ); 
+    if ( defined $hook_result && $hook_result eq 'stop' ) {
         $top->Unbusy;
         print STDERR "Stopped by init_hook\n";
         exit_tred();
@@ -4076,7 +4082,8 @@ sub startMain {
     $tred{append_files_to_default_fl} = 1;
 
     # run start_hook
-    if ( doEvalHook( $tred{focusedWindow}, "start_hook" ) eq 'stop' ) {
+    $hook_result = doEvalHook( $tred{focusedWindow}, "start_hook" );
+    if ( defined $hook_result && $hook_result eq 'stop' ) {
         $top->Unbusy;
         print STDERR "Stopped by start_hook\n";
         exit_tred();
@@ -4163,6 +4170,7 @@ if (0){
     $top = undef;
     $tred{top} = undef;
     print STDERR "Done.\n" if $tredDebug;
+    return;
 }
 
 # SIGUSR2 (afterIdle) signal handler:
@@ -4198,7 +4206,7 @@ sub handleUSR2Signal {
             );
         }
     }
-
+    return;
     #plainErrorMessage($grp,"USR2 Signal Caught");
 }
 
@@ -4229,7 +4237,7 @@ sub makeCurrentNodeRoot {
     my $root    = $node->root;
     return if $root == $node;
 
-    unless ( $node->test_child_type($root) ) {
+    if ( !$node->test_child_type($root) ) {
         my $res = TrEd::Query::User::new_query(
             $win, "WARNING:\n\n"
                 . "Normally, this operation cuts the subtree of the current node,\n"
@@ -4245,7 +4253,9 @@ sub makeCurrentNodeRoot {
             -buttons => [ 'Paste anyway', 'Discard root', 'Cancel' ]
         );
         return if $res eq 'Cancel';
-        $discard = 1 if $res =~ /Discard/;
+        if ($res =~ /Discard/) {
+            $discard = 1;
+        }
     }
     print STDERR "undo_type_id = |"
         . TrEd::Undo::undo_type_id('UNDO_ACTIVE_ROOT_AND_TREE_ORDER') . "|\n";
@@ -4257,7 +4267,7 @@ sub makeCurrentNodeRoot {
             TrEd::Undo::undo_type_id('UNDO_ACTIVE_ROOT_AND_TREE_ORDER')
         )
     );
-    TrEd::Window::TreeBasics::make_root( $win, $node, $discard );
+    return TrEd::Window::TreeBasics::make_root( $win, $node, $discard );
 }
 
 sub quit {
@@ -4269,6 +4279,7 @@ sub quit {
     TrEd::Config::save_runtime_config($grp);
     $grp->{top}->destroy;
     $grp->{top} = undef;
+    return;
 }
 
 sub _do_goto_tree {
@@ -4277,6 +4288,7 @@ sub _do_goto_tree {
     $win->{treeNo} = -1;    # this is to force getNodes & redraw
     TrEd::Window::TreeBasics::go_to_tree( $win, $no );
     $win->{framegroup}->{IdleTask} = undef;
+    return;
 }
 
 # hook
@@ -4293,6 +4305,7 @@ sub onIdleNextTree {
             = $win->toplevel->afterIdle( [ \&_do_goto_tree, $win ] );
     }
     Tk->break;
+    return;
 }
 
 # hook
@@ -4309,6 +4322,7 @@ sub onIdlePrevTree {
             = $win->toplevel->afterIdle( [ \&_do_goto_tree, $win ] );
     }
     Tk->break;
+    return;
 }
 
 # wrapper for vallex and remote control
@@ -4322,7 +4336,7 @@ sub RepeatedShowDialog {
 }
 
 # file, template
-#TODO: -->File
+#TODO: consider moving to TrEd::File
 sub newFileFromTemplate {
     my ($grp) = @_;
     my @templates;
@@ -4330,8 +4344,9 @@ sub newFileFromTemplate {
     foreach my $ext (@$extensions) {
         my ($dir) = get_extension_template_paths( [$ext] );
         if ( defined($dir) ) {
-            push @templates, map [ $ext, $_ ], grep !/~$|\.lock$/,
-                glob( File::Spec->catfile( $dir, '*' ) );
+            push @templates, map { [ $ext, $_ ] }
+                             grep { !/~$|\.lock$/ }
+                             glob( File::Spec->catfile( $dir, '*' ) );
         }
     }
     if ( !@templates ) {
@@ -4343,7 +4358,7 @@ sub newFileFromTemplate {
         );
         return;
     }
-    my $choices = [ map filename( $_->[1] ) . " ($_->[0])", @templates ];
+    my $choices = [ map { filename( $_->[1] ) . " ($_->[0])" } @templates ];
     my $ret = TrEd::Query::List::new_query(
         $grp->{top}, 'Select a template',
         'browse', $choices, [ $choices->[0] ],
@@ -4415,6 +4430,7 @@ sub autoSelectContext {
     else {
         switchContext( $win, 'TredMacro' );
     }
+    return;
 }
 
 # context
@@ -4450,9 +4466,10 @@ sub selectContext {
     TrEd::Query::List::new_query( $grp->{top}, 'Select Mode', 'browse',
         [ get_allowed_contexts($win) ], $selection )
         || return;
-    if (@$selection) {
+    if (@{$selection}) {
         switchContext( $grp->{focusedWindow}, $selection->[0] );
     }
+    return;
 }
 
 # stylesheet
@@ -4464,10 +4481,11 @@ sub selectStylesheet {
     TrEd::Query::List::new_query( $grp->{top}, 'Select Mode', 'browse',
         $grp->{StylesheetMenu}->get_menu_list($grp), $selection )
         || return;
-    if (@$selection) {
+    if (@{$selection}) {
         $grp->{selectedStylesheet} = $selection->[0];
         switchStylesheet( $grp, $selection->[0] );
     }
+    return;
 }
 
 # stylesheet
@@ -4482,7 +4500,7 @@ sub windows_using_stylesheet {
 # sub selectValuesDialog
 # wrapper for pdt15_obsolete extension
 sub selectValuesDialog {
-    return TrEd::Dialog::SelectValues::create_dialog(@_);
+    return TrEd::Dialog::SelectValues::show_dialog(@_);
 }
 
 # sentence view
@@ -4517,7 +4535,7 @@ sub editListAttr {
 
     #print "splitted to ", join ('-',@selected),"\n";
 
-    if (TrEd::Dialog::SelectValues::create_dialog(
+    if (TrEd::Dialog::SelectValues::show_dialog(
             $win->{framegroup}, $attr, \@vals, \@selected, 0, $d
         )
         )
@@ -4532,7 +4550,7 @@ sub editAmbiguousAttr {
     my @vals = map { encode($_) } split /\|/, $value;
     my @selected = @vals;
 
-    if (TrEd::Dialog::SelectValues::create_dialog(
+    if (TrEd::Dialog::SelectValues::show_dialog(
             $win->{framegroup}, $attr, \@vals,
             \@selected,         1,     $win->toplevel
         )
@@ -4550,6 +4568,7 @@ sub focusxEditDn {
         $e->{ $atord->[ $i + 1 ] }->focus;
     }
     Tk->break;
+    return;
 }
 
 sub focusxEditUp {
@@ -4559,6 +4578,7 @@ sub focusxEditUp {
         $e->{ $atord->[ $i - 1 ] }->focus;
     }
     Tk->break;
+    return;
 }
 
 sub focusxFind {
@@ -4576,6 +4596,7 @@ sub focusxFind {
             }
         }
     }
+    return;
 }
 
 # node
@@ -4620,13 +4641,14 @@ sub determineNodeType {
 #sub editAttrsDialog
 # wrapper for ElixirFM
 sub editAttrsDialog {
-    return TrEd::Dialog::EditAttributes::create_dialog(@_);
+    return TrEd::Dialog::EditAttributes::show_dialog(@_);
 }
 
 sub disable_scrollbar_focus {
     my ($scrolled) = @_;
     $scrolled->Subwidget('xscrollbar')->configure(qw(-takefocus 0));
     $scrolled->Subwidget('yscrollbar')->configure(qw(-takefocus 0));
+    return;
 }
 
 # macros, UI
@@ -4689,7 +4711,7 @@ sub showMacrosAsHtml {
     print $html "</body>\n";
     print $html "</html>\n";
     close($html);
-    open_url_in_browser($html_file);
+    return open_url_in_browser($html_file);
 }
 
 sub help_topic {
@@ -4702,6 +4724,7 @@ sub help_topic {
         plainErrorMessage( $top,
             "Cannot map '$section' to a documentation page." );
     }
+    return;
 }
 
 sub open_url_in_browser {
@@ -4776,9 +4799,8 @@ sub open_url_in_browser {
         elsif ( $ENV{BROWSER} ne EMPTY and which( $ENV{BROWSER} ) ne EMPTY ) {
             $htmlBrowser = $ENV{BROWSER};
         }
-        elsif ( $htmlBrowser
-            = TrEd::MinMax::first { which($_) ne EMPTY }
-            qw(firefox mozilla netscape opera htmlview) )
+        elsif ( $htmlBrowser = TrEd::MinMax::first { which($_) ne EMPTY }
+                                qw(firefox mozilla netscape opera htmlview) )
         {
 
             # already assigned
@@ -4814,7 +4836,10 @@ sub _search_busy {
     print STDERR $grp->{focusedWindow}->{currentFileNo} . "stopped by user\n"
         if ($tredDebug);
     $grp->{stopSearch} = 1;
-    Tk->break unless $no_break;
+    if (!$no_break) {
+        Tk->break;
+    }
+    return;
 }
 
 #####################################
@@ -4850,6 +4875,7 @@ sub _quick_update {
     elsif ( $grp->{searchGrabWindow_active} == 2 ) {
         $g->update();
     }
+    return;
 }
 
 sub _createSearchGrabWindow {
@@ -4880,6 +4906,7 @@ sub _createSearchGrabWindow {
         $grp->{searchGrabWindow_time}   = 0;
         $grp->{searchGrabWindow_active} = 1;
     }
+    return;
 }
 
 sub _closeSearchGrabWindow {
@@ -4894,6 +4921,7 @@ sub _closeSearchGrabWindow {
         $g->withdraw;
     }
     $grp->{top}->Unbusy();
+    return;
 }
 
 ######################################
@@ -4925,9 +4953,8 @@ sub findTemplated {
 
     _createSearchGrabWindow($grp);
     my $result;
-    if (    !$no_secondary
-        and !$grp->{searchAlwaysSecondary}
-        and $grp->{searchFilelist} )
+    if ( !$no_secondary && !$grp->{searchAlwaysSecondary}
+         && $grp->{searchFilelist} )
     {
 
         # avoid opening secondary files
@@ -4936,7 +4963,7 @@ sub findTemplated {
         $no_secondary = 1;
         my @locks = ( $noCheckLocks, $lockFiles );
         $TrEd::Config::noCheckLocks = 1;
-        $lockFiles                  = 0;
+        $lockFiles = 0;
 
         eval { $result = $callback->( $grp, $cont ) };
         $no_secondary = 0;
@@ -5060,7 +5087,7 @@ sub nextNodeInSearchFilelist {
     _quick_update($grp);
 
     # wait for Escape
-    while ( !$grp->{stopSearch} and $result and !$win->{currentNode} ) {
+    while ( !$grp->{stopSearch} && $result && !$win->{currentNode} ) {
         $result = TrEd::Filelist::Navigation::next_or_prev_file( $grp, 1, 1,
             $traverse eq 'all' ? 1 : 0 );
 
@@ -5146,12 +5173,12 @@ sub prevNodeInSearchFilelist {
 
     if ( $traverse ne 'node' ) {
         $node = HPrev( $win, $node );
-        if ( !$node and $$tree != 0 and $traverse eq 'all' ) {
+        if ( !$node && $$tree != 0 && $traverse eq 'all' ) {
             $node = lastSubtreeNode(
                 $win->{FSFile}->treeList->[ ( --$$tree ) ] );
             $node = HPrev( $win, $node ) unless ( isShown( $win, $node ) );
         }
-        return $node if $node or !$haveSearchFL;
+        return $node if $node || !$haveSearchFL;
     }
 
     # this realises filelist search
@@ -5164,8 +5191,8 @@ sub prevNodeInSearchFilelist {
     # wait for Escape
     _quick_update($grp);
     while ( $result
-        and !$grp->{stopSearch}
-        and !$win->{FSFile} || $win->{FSFile}->lastTreeNo < 0 )
+            && !$grp->{stopSearch}
+            && (!$win->{FSFile} || $win->{FSFile}->lastTreeNo < 0) )
     {
         $result = TrEd::Filelist::Navigation::next_or_prev_file( $grp, -1, 1,
             $traverse eq 'all' ? 1 : 0 );
@@ -5176,7 +5203,7 @@ sub prevNodeInSearchFilelist {
 
     $win->{noRedraw} = $no_redraw;
 
-    if ( $result and !$grp->{stopSearch} ) {
+    if ( $result && !$grp->{stopSearch} ) {
         if ( $traverse eq 'all' ) {
             $$tree = $win->{FSFile}->lastTreeNo;
             $win->{currentNode}
@@ -5240,7 +5267,7 @@ sub node_doubleclick_modif {
     my $win  = findCanvasWindow( $grp, $w );
     my $tv   = $win->treeView;
     my $node = $tv->get_obj_pinfo( $tv->find_item( 'withtag', 'current' ) );
-    doEvalHookWithUndo( $win, "node_doubleclick_hook", $node, $mod,
+    return doEvalHookWithUndo( $win, "node_doubleclick_hook", $node, $mod,
         $w->XEvent );
 }
 
@@ -5249,7 +5276,8 @@ sub node_click_modif {
     my $win  = findCanvasWindow( $grp, $w );
     my $tv   = $win->treeView;
     my $node = $tv->get_obj_pinfo( $tv->find_item( 'withtag', 'current' ) );
-    doEvalHookWithUndo( $win, "node_click_hook", $node, $mod, $w->XEvent );
+    return doEvalHookWithUndo( $win, "node_click_hook", $node, $mod, 
+        $w->XEvent );
 }
 
 sub node_motion_modif {
@@ -5257,7 +5285,8 @@ sub node_motion_modif {
     my $win  = findCanvasWindow( $grp, $w );
     my $tv   = $win->treeView;
     my $node = $tv->get_obj_pinfo( $tv->find_item( 'withtag', 'current' ) );
-    doEvalHookWithUndo( $win, "node_motion_hook", $node, $mod, $w->XEvent );
+    return doEvalHookWithUndo( $win, "node_motion_hook", $node, $mod, 
+        $w->XEvent );
 }
 
 sub text_doubleclick_modif {
@@ -5272,8 +5301,8 @@ sub text_doubleclick_modif {
     TrEd::Window::TreeBasics::set_current( $win, $node );
     $attr = $tv->get_gen_pinfo("attr") || {};
 
-    doEvalHookWithUndo( $win, "text_doubleclick_hook", $node, $attr->{$t},
-        $mod, $w->XEvent );
+    return doEvalHookWithUndo( $win, "text_doubleclick_hook", $node, 
+        $attr->{$t}, $mod, $w->XEvent );
 }
 
 sub text_click_modif {
@@ -5289,8 +5318,8 @@ sub text_click_modif {
     $win->ensure_current_is_displayed();
     $attr = $tv->get_gen_pinfo("attr") || {};
 
-    doEvalHookWithUndo( $win, "text_click_hook", $node, $attr->{$t}, $mod,
-        $w->XEvent );
+    return doEvalHookWithUndo( $win, "text_click_hook", $node, $attr->{$t}, 
+        $mod, $w->XEvent );
 }
 
 sub line_click {
@@ -5305,8 +5334,8 @@ sub line_click {
     $win->ensure_current_is_displayed();
     my $tag = $tv->get_gen_pinfo("tag") || {};
 
-    doEvalHookWithUndo( $win, "line_click_hook", $node, $tag->{$t}, $button,
-        $double, $modif, $w->XEvent );
+    return doEvalHookWithUndo( $win, "line_click_hook", $node, $tag->{$t}, 
+        $button, $double, $modif, $w->XEvent );
 }
 
 sub editAttrs {
@@ -5316,8 +5345,9 @@ sub editAttrs {
     my $win  = findCanvasWindow( $grp, $w );
     my $tv   = $win->treeView;
     my $node = $tv->get_obj_pinfo( $tv->find_item( 'withtag', 'current' ) );
-    TrEd::Dialog::EditAttributes::create_dialog( $win, $node );
+    TrEd::Dialog::EditAttributes::show_dialog( $win, $node );
     $win->ensure_current_is_displayed();
+    return;
 }
 
 sub editAttr {
@@ -5332,7 +5362,7 @@ sub editAttr {
     TrEd::Window::TreeBasics::set_current( $win, $node );
     $win->ensure_current_is_displayed();
     my $attr = $tv->get_gen_pinfo("attr") || {};
-    doEditAttr( $win, $node, $attr->{$t} ) if defined $attr->{$t};
+    return doEditAttr( $win, $node, $attr->{$t} ) if defined $attr->{$t};
 }
 
 sub doEditAttr {
@@ -5341,10 +5371,10 @@ sub doEditAttr {
     my $result = doEvalHook( $win, 'do_edit_attr_hook', $attr, $node );
     return 0 if $result eq 'stop';
 
-    return TrEd::Dialog::EditAttributes::dialog_schema( $win, $node, $attr,
-        $as_type, $focus )
-        if ( ref($as_type)
-        or ref( $node->type ) || $win->{FSFile}->schema() );
+    if ( ref($as_type) || ref( $node->type ) || $win->{FSFile}->schema() ) {
+        return TrEd::Dialog::EditAttributes::dialog_schema( $win, $node,
+                    $attr, $as_type, $focus );
+    }
 
     my ( $Entry, @Eopts ) = get_entry_type();
     my $newvalue;
@@ -5490,7 +5520,7 @@ sub redraw_win {
 
 sub redraw_fsfile {
     my ( $grp, $fsfile ) = @_;
-    return if $insideEval or !$fsfile;
+    return if ($insideEval || !$fsfile);
     foreach ( fsfileDisplayingWindows( $grp, $fsfile ) ) {
         $_->redraw();
     }
@@ -5508,7 +5538,7 @@ sub redraw_stylesheet {
 
 sub redraw_fsfile_tree {
     my ( $grp, $fsfile, $tree_no ) = @_;
-    return if $insideEval or !$fsfile;
+    return if ($insideEval || !$fsfile);
     foreach ( grep { $_->{treeNo} == $tree_no }
         fsfileDisplayingWindows( $grp, $fsfile ) )
     {
@@ -5531,6 +5561,7 @@ sub follow_mouse {
     my $win = findCanvasWindow( $grp, $w );
     my ( $x, $y ) = ( $e->x, $e->y );
     scrollCanvasToXY( $w, $win, $x, $y );
+    return;
 }
 
 sub follow_mouse_press {
@@ -5538,12 +5569,14 @@ sub follow_mouse_press {
     my $win = findCanvasWindow( $grp, $w );
     my $e = $w->XEvent;
     initScrollOrigin( $w, $win, $e->x, $e->y );
+    return;
 }
 
 sub initScrollOrigin {
     my ( $w, $win, $X, $Y ) = @_;
     $win->treeView->store_gen_pinfo( 'scroll_origin',
         [ $X, $Y, $w->canvasx($X), $w->canvasy($Y) ] );
+    return;
 }
 
 #
@@ -5631,6 +5664,7 @@ sub currentLeft {
         TrEd::Window::TreeBasics::set_current( $win, $node );
         centerTo( $win, $win->{currentNode} );
     }
+    return;
 }
 
 sub currentRight {
@@ -5644,6 +5678,7 @@ sub currentRight {
         TrEd::Window::TreeBasics::set_current( $win, $node );
         centerTo( $win, $win->{currentNode} );
     }
+    return;
 }
 
 sub currentRightLin {
@@ -5658,6 +5693,7 @@ sub currentRightLin {
         TrEd::Window::TreeBasics::set_current( $win, $node );
         centerTo( $win, $win->{currentNode} );
     }
+    return;
 }
 
 sub currentLeftLin {
@@ -5672,6 +5708,7 @@ sub currentLeftLin {
         TrEd::Window::TreeBasics::set_current( $win, $node );
         centerTo( $win, $win->{currentNode} );
     }
+    return;
 }
 
 sub currentRightWholeLevel {
@@ -5726,6 +5763,7 @@ sub currentDown {
         TrEd::Window::TreeBasics::set_current( $win, $node );
         centerTo( $win, $win->{currentNode} );
     }
+    return;
 }
 
 sub currentUp {
@@ -5733,13 +5771,14 @@ sub currentUp {
     my $win   = $grp->{focusedWindow};
     my $node  = $win->{currentNode};
     $node = $node && $node->parent;
-    while ( $node and !$win->treeView->node_is_displayed($node) ) {
+    while ( $node && !$win->treeView->node_is_displayed($node) ) {
         $node = $node->parent;
     }
     if ($node) {
         TrEd::Window::TreeBasics::set_current( $win, $node );
         centerTo( $win, $win->{currentNode} );
     }
+    return;
 }
 
 #######################################################################################
@@ -5788,11 +5827,11 @@ sub centerTo {
 }
 
 sub doEvalHookWithUndo {
-    _evalHook( 1, @_ );
+    return _evalHook( 1, @_ );
 }
 
 sub doEvalHook {
-    _evalHook( 0, @_ );
+    return _evalHook( 0, @_ );
 }
 
 sub _evalHook {
@@ -5823,7 +5862,7 @@ sub _evalHook {
         );
         $context = $win->{macroContext} || 'TredMacro';
         $minor_modes = $win->{minorModes};
-        if ( ref($minor_modes) ) {
+        if ( ref $minor_modes ) {
             my $pre_hooks = $grp->{minorPreHooks}{$hook};
             for my $minor (@{$minor_modes}) {
                 my $pre_hook = $pre_hooks->{$minor};
@@ -5851,7 +5890,7 @@ sub _evalHook {
                 print STDERR
                     "running post-hook $hook for $minor : $post_hook\n"
                     if $hookDebug;
-                    #toto este poriesit peto...!!
+                    #a bug in show neighboring sentences after macros are reloaded, resolve...
 #                use Data::Dumper;
 #                $Data::Dumper::Maxdepth = 1;
 #                $Data::Dumper::Deparse = 1;
@@ -5904,9 +5943,8 @@ sub _evalHook {
 sub doEvalMacro {
     my ( $win, $macro ) = ( shift, shift );
     return unless $macro;    # and $win->{currentNode};
-    return
-        if ( !defined $win )
-        ;    # we wouldn't be able to run functions like $win->toplevel, etc..
+    # we wouldn't be able to run functions like $win->toplevel, etc..
+    return if ( !defined $win );
     my $bookmark = TrEd::Bookmarks::actual_position( $win->{framegroup} );
     $win->toplevel->Busy( -recurse => 1 );
     $insideEval = 1;
@@ -5921,7 +5959,7 @@ sub doEvalMacro {
     );
 
     my $result = do_eval_macro( $win, $macro );
-    my $current_win = get_macro_variable("grp");
+    my $current_win = get_macro_variable('grp');
     if ( $win != $current_win
         and ( blessed($current_win) and $current_win->isa('TrEd::Window') ) )
     {
@@ -6060,7 +6098,7 @@ sub resolveKey {
     return;
 }
 
-sub resolveEvent {
+sub resolve_event {
     my ( $w, $grp, $prefix ) = @_;
     my $key;
     my $e       = $w->XEvent;
@@ -6121,7 +6159,7 @@ sub evalMacro {
     my ( $w, $grp, $prefix ) = @_;
     my $win = $grp->{focusedWindow};
 
-    my ( $macro, $key ) = resolveEvent( $w, $grp, $prefix );
+    my ( $macro, $key ) = resolve_event( $w, $grp, $prefix );
     if ( defined $macro ) {
         if ($tredDebug) {
             $grp->{statusLine}->set_text("$key, $macro");
@@ -6238,6 +6276,7 @@ sub currentNext {
         TrEd::Window::TreeBasics::set_current( $win, $next );
         centerTo( $win, $win->{currentNode} );
     }
+    return;
 }
 
 # node?
@@ -6248,6 +6287,7 @@ sub currentPrev {
         TrEd::Window::TreeBasics::set_current( $win, $prev );
         centerTo( $win, $win->{currentNode} );
     }
+    return;
 }
 
 # node
@@ -6259,7 +6299,7 @@ sub node_select {
     my ( $x, $y ) = ( $e->x, $e->y );
     my ($canvas_obj) = $tv->find_item( 'withtag', 'current' );
     my $node = $tv->get_obj_pinfo($canvas_obj);
-    TrEd::Window::TreeBasics::set_current( $win, $node );
+    return TrEd::Window::TreeBasics::set_current( $win, $node );
 }
 
 # node
@@ -6297,7 +6337,8 @@ sub node_select {
         $w->addtag( 'selected', 'withtag', $canvas_obj );
         $w->raise('selected');
         $w->raise("text[$node]");
-    }    # end plot_down
+        return;
+    }    # end node_down
 
     # node
     sub node_move {
@@ -6353,18 +6394,19 @@ sub node_select {
             $w->addtag( 'nearest', 'withtag', $nearest );
             $w->itemconfigure( $nearest, -fill => $tv->get_nearestNodeColor );
         }
-    }    # end plot_move
+        return;
+    }    # end node_move
 }
 
 # node
 sub node_release {
     my ( $w, $grp, $button ) = @_;
     my $win = findCanvasWindow( $grp, $w );
-    return unless $win->{FSFile};
+    return if !$win->{FSFile};
 
     my $tv = $win->treeView;
     my ($sel) = $tv->find_item( 'withtag', 'selected' );
-    return unless $sel;
+    return if !$sel;
 
     my $e = $w->XEvent;
     my ( $x, $y ) = ( $e->x, $e->y );
@@ -6437,7 +6479,10 @@ sub node_release {
         # print lower;
         $w->lower( $sel, 'point' );
     }
-    else { $win->redraw(); }
+    else { 
+        $win->redraw(); 
+    }
+    return;
 }
 
 # node
@@ -6445,7 +6490,7 @@ sub node_release_modif {
     my ( $w, $grp, $mod ) = @_;
     my $win = findCanvasWindow( $grp, $w );
     my $tv = $win->treeView;
-    return unless $win->{FSFile};
+    return if !$win->{FSFile};
     my $e = $w->XEvent;
     my ( $x, $y ) = ( $e->x, $e->y );
     my $parent;
@@ -6461,12 +6506,12 @@ sub node_release_modif {
             $parent = $tv->get_obj_pinfo($p);
             $w->itemconfigure( $tv->get_node_pinfo( $parent, "Oval" ),
                 nodeOptions( $win, $parent ) );
-            doEvalHookWithUndo( $win, "node_release_hook", $node, $parent,
+            doEvalHookWithUndo( $win, 'node_release_hook', $node, $parent,
                 $mod, $e );
         }
         else {
-            doEvalHookWithUndo( $win, "node_release_hook", $node, undef, $mod,
-                $e );
+            doEvalHookWithUndo( $win, 'node_release_hook', $node, undef, 
+                $mod, $e );
         }
 
         # try to detect that the tree was redrawn
@@ -6478,11 +6523,14 @@ sub node_release_modif {
                 $tv->node_coords( $node, $win->{currentNode} ) );
         }
     }
-    else { redraw_fsfile_tree( $grp, $win->{FSFile}, $win->{treeNo} ); }
+    else { 
+        redraw_fsfile_tree( $grp, $win->{FSFile}, $win->{treeNo} ); 
+    }
+    return;
 }
 
 #sub prepare_undo
-#TODO: only for extensions/macros -- temporary solution
+#wrapper only for extensions/macros (vallex)
 sub prepare_undo {
     return TrEd::Undo::prepare_undo(@_);
 }
@@ -6521,6 +6569,7 @@ sub resetTreePosStatus {
         $win->{framegroup}->{prevButton}
             ->configure( -state => ( $prevstatus ? 'normal' : 'disabled' ) );
     }
+    return;
 }
 
 sub list_isearch {
@@ -6547,6 +6596,7 @@ sub list_isearch {
             }
         }
     }
+    return;
 }
 
 # macro
@@ -6596,9 +6646,11 @@ sub cleanup_tredmacro {
     # workaround to reinit TredMacro namespace,
     # since the functions can be overridden by extensions,
     # we have to reinit default behaviour
-    delete $INC{'TrEd/ExtensionsAPI.pm'};
-    delete $INC{'TrEd/Mac.pm'};
+    delete $INC{'TrEd/MacroAPI/Default.pm'};
+    delete $INC{'TrEd/MacroAPI/Extended.pm'};
     delete $INC{'TrEd/NtredMak.pm'};
+    return;
+
 #    use Data::Dumper;
 #    print Dumper(\%INC);
 
@@ -6622,25 +6674,21 @@ sub cleanup_tredmacro {
 #sub prepareExtensions
 
 # macros
-#TODO: skor load_extensions
+#TODO: uz skor load_extensions
 sub loadMacros {
     my ( $grp, $opts ) = @_;
     $opts ||= {};
 
-    #use Data::Dumper;
+    # this used to read macro tred.mac (and tred.def), now only init
+    TrEd::Macros::read_macros($macroFile,$libDir);
 
-    #  test_tredmacro();
+    require TrEd::MacroAPI::Default;    #this loads TredMacro API
+    # we need it for loading minor modes... not any more
 
-    TrEd::Macros::read_macros($macroFile,$libDir);    # this used to read macro tred.mac (and tred.def), now only init
-
-    require TrEd::ExtensionsAPI;    #this loads TredMacro API
-                                    # not sure why, we don't need it here...
-
-    # we need it for loading minor modes...
-    TredMacro->import;
     TredMacro::init_tredmacro_bindings();
 
-# set minor modes and this stuff, can't do it at compile time, since there is no grp...
+    # set minor modes and this stuff, can't do it at compile time, 
+    # since there is no grp yet
     TrEd::Macros::set_macro_variable( 'grp', $grp->{focusedWindow} );
 
     # minor modes
@@ -6654,7 +6702,6 @@ sub loadMacros {
     TrEd::MinorMode::Show_Neighboring_Trees::init_minor_mode($grp);
 
     #print 'before loading macros: ' . Dumper(\%TredMacro::);
-
     my $preinst_dir = get_preinstalled_extensions_dir();
 
     my ( $extensions, $pre_installed );
@@ -6697,7 +6744,7 @@ sub loadMacros {
             push @TrEd::Macros::macros, qq(\n} # end of "$ext_contrib"\n);
         }
     }
-    print STDERR " ... done\n" if !$opt_q and !$tredDebug;
+    print STDERR " ... done\n" if !$opt_q && !$tredDebug;
     if ($opt_I) {
         print STDERR ("Reading additional macros from $opt_I...")
             unless $opt_q;
@@ -6707,14 +6754,18 @@ sub loadMacros {
         push @TrEd::Macros::macros, qq(\n} # end of "$opt_I"\n);
         print STDERR "done.\n" unless $opt_q;
     }
-
-    #test_tredmacro();
+    return;
 }
 
 # macros
 sub reloadMacros {
     my ( $grp, $opts ) = @_;
     doEvalHook( $grp->{focusedWindow}, 'reload_macros_hook' );
+    my $win = $grp->{focusedWindow};
+
+    my $activated_minor_modes = $grp->{focusedWindow}->{minorModes};
+
+    delete $win->{minorModes};
     delete $grp->{minorModes};
     delete $grp->{minorPreHooks};
     delete $grp->{minorPostHooks};
@@ -6724,13 +6775,7 @@ sub reloadMacros {
     #  %TrEd::Macros::menuBindings=();
     TrEd::TreeView->clear_code_caches;
 
-    #use Data::Dumper;
-
-    #  print 'before: ' . Dumper(\%TredMacro::);
-
     cleanup_tredmacro($grp);
-
-    #  print 'after cleaning: ' . Dumper(\%TredMacro::);
 
     TrEd::Toolbar::User::Manager::reset_user_toolbars($grp);
 
@@ -6740,12 +6785,18 @@ sub reloadMacros {
 
     TrEd::Menu::Macro::update_macro_menus($grp);
     TrEd::List::Macros::update_view($grp);
+
+    foreach my $minor_mode (@{$activated_minor_modes}) {
+        TrEd::MinorModes::toggle_minor_mode($grp, $minor_mode);
+    }
+
     get_nodes_all($grp);
     redraw_all($grp);
 
     # maybe we should update filelists here, 
     # because some filelists may disappear/appear
     # during installation/removing of extensions
+    return;
 }
 
 # extensions, should it be moved to TrEd::Extensions..?
@@ -6781,6 +6832,7 @@ sub manage_extensions {
         # reload macros
         reloadMacros( $grp, { preparedExtensions => $preparedExtensions } );
     }
+    return;
 }
 
 __END__
@@ -6845,7 +6897,7 @@ per line). Files specified in a file-list are processed prior to files
 specified on the command-line. If file-list is a file with .fl
 extension, then the first line may contain a file-list name (as in
 TrEd). Moreover, unlike in other file-lists, filenames in .fl
-file-lists are asssumed to be relative to the file-list file location.
+file-lists are assumed to be relative to the file-list file location.
 
 =item B<--macro-file|-m> filename
 
@@ -6952,7 +7004,7 @@ Embed main window into window with the given window ID.
 
 =item B<--no-geometry|-G>
 
-Do not initially resize window to its last geomtery.
+Do not initially resize window to its last geometry.
 
 =item B<--extra-backends|-B> backend
 
@@ -7004,7 +7056,7 @@ Build tectogrammatic trees from CSTS files.
 CSTS format is "many in one"; there may be more tree structures in one
 file.  This option can be used to specify which tree structure should
 be used.  Provide a comma separated list consisting of names of node
-atributes corresponding to CSTS elements that contain the necessary
+attributes corresponding to CSTS elements that contain the necessary
 information to build a tree out of a CSTS file. The first attribute
 should be an attribute containing the index of the governing node; the
 second one is optional and specifies the ordering attribute; the third

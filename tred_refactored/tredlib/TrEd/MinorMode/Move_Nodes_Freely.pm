@@ -119,9 +119,11 @@ sub node_release_hook {
 
 sub init_minor_mode {
     my ($grp) = @_;
+    return if !TrEd::Macros::is_defined('TRED');
+    TredMacro->import;
+
     $move_nodes_freely{subtree} = 'Alt';
 
-    return if !TrEd::Macros::is_defined('TRED');
     TrEd::MinorModes::declare_minor_mode( $grp, 'Move_Nodes_Freely' => {
             abbrev     => 'move',
             post_hooks => {

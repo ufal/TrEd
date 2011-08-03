@@ -2158,7 +2158,7 @@ sub applyFileSuffix {
 
     # new: we're the dot in .[0-9]+ (TM)
     if ( $goto =~ /\.([0-9]+)$/ ) {
-        my $node = getNodeByNo( $grp, $1 );
+        my $node = get_node_by_no( $grp, $1 );
 
         if ($node) {
             $grp->{currentNode} = $node;
@@ -2781,7 +2781,7 @@ sub loadMacros {
     #_msg("Reading macros from $macroFile...\n") unless $quiet;
     read_macros($macroFile, $libDir);    # read macros
 
-    require TrEd::ExtensionsAPI;    #this loads TredMacro API
+    require TrEd::MacroAPI::Default;#this loads TredMacro API
                                     # not sure why, we don't need it here...
                                     #TredMacro->import;
     TredMacro::init_tredmacro_bindings();

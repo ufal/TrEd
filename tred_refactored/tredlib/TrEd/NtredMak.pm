@@ -4,8 +4,8 @@ package TredMacro;
 use strict;
 use warnings;
 
-use TrEd::Macros;
-use TrEd::ManageFilelists;
+require TrEd::Macros;
+require TrEd::ManageFilelists;
 
 #binding-context TredMacro
 TrEd::Macros::set_current_binding_contexts('TredMacro');

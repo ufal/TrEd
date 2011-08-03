@@ -98,10 +98,10 @@ sub encode {
         }
     }
     elsif ( $] >= 5.008 ) {
-        eval {
+        eval "
             use Encode ();
             $str = Encode::encode($outputenc, $str);
-        };
+        ";
     }
     else {
         if ( $inputenc ne $outputenc ) {
@@ -149,10 +149,10 @@ sub decode {
         return $str;
     }
     elsif ( $] >= 5.008 ) {
-        eval {
+        eval "
             use Encode ();
             $str = Encode::decode($outputenc, $str);
-        };
+        ";
         return $str;
     }
     elsif ( $inputenc eq $outputenc ) {

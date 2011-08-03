@@ -4,12 +4,13 @@ package TrEd::MinorMode::Show_Neighboring_Trees;
 use strict;
 use warnings;
 
-use TrEd::MacroAPI::Default; #loads TredMacro
-TredMacro->import();
+require TrEd::MacroAPI::Default; #loads TredMacro
+TredMacro->import(@TredMacro::FORCE_EXPORT);
 
+use TrEd::MinMax;
 require TrEd::MinorModes;
 
-my $cfg = QuickPML(
+my $cfg = TredMacro::QuickPML(
     cfg => [
         'structure',
         context_before      => 'nonNegativeInteger',
@@ -36,7 +37,7 @@ sub edit_configuration {
             no_sort      => 1,
         }
     );
-    ChangingFile(0);
+    TredMacro::ChangingFile(0);
 }
 
 sub configure {
@@ -55,11 +56,11 @@ sub get_config {
 sub _current_node_change_hook {
     my ($node) = @_;
     my $config = get_config();
-    return unless $config->{follow_current_node} eq 'yes';
+    return if $config->{follow_current_node} ne 'yes';
     my $r    = $node->root;
     my $root = TrEd::Macros::get_macro_variable('root');
     return if $r == $root;    # same tree
-    my @trees = GetTrees();
+    my @trees = TredMacro::GetTrees();
     for my $i ( 0 .. $#trees ) {
 
         if ( $trees[$i] == $r ) {
@@ -75,11 +76,11 @@ sub _current_node_change_hook {
                 $c->yviewCoord($y)
             );
 
-            GotoTree( $i + 1 );
+            TredMacro::GotoTree( $i + 1 );
 
             #$this = $node;
             TrEd::Macros::set_macro_variable( 'this', $node );
-            Redraw();
+            TredMacro::Redraw();
 
             # adjust view so that the node appears
             # on the exact same place
@@ -98,7 +99,7 @@ my $vertical;
 
 sub _node_style_hook {
     my ( $node, $styles ) = @_;
-    AddStyle( $styles, 'Node', -segment => $segment{$node} . '/0' )
+    TredMacro::AddStyle( $styles, 'Node', -segment => $segment{$node} . '/0' )
         if $vertical;
 }
 
@@ -115,7 +116,7 @@ sub _get_nodelist_hook {
     #TODO: nema byt || UNIVERSAL::can( 'TredMacro', 'get_nodelist_hook' ); ???
     # my $sub = UNIVERSAL::can( CurrentContext(), 'get_nodelist_hook' )
     #     || UNIVERSAL::can( 'TredMacro', 'get_value_line_hook' );
-    my $sub = UNIVERSAL::can( CurrentContext(), 'get_nodelist_hook' )
+    my $sub = UNIVERSAL::can( TredMacro::CurrentContext(), 'get_nodelist_hook' )
            || UNIVERSAL::can( 'TredMacro', 'get_nodelist_hook' );
     my $schema = FS();
     my $attr   = q{};
@@ -163,6 +164,7 @@ sub _get_nodelist_hook {
 sub init_minor_mode {
     my ($grp) = @_;
     return if !TrEd::Macros::is_defined('TRED');
+    TredMacro->import(@TredMacro::FORCE_EXPORT);
     TrEd::MinorModes::declare_minor_mode( $grp, 'Show_Neighboring_Trees' => {
             abbrev     => 'neigh_trees',
             configure  => \&edit_configuration,
