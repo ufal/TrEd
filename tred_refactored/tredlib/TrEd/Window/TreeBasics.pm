@@ -400,7 +400,7 @@ sub set_current {
 sub tree_is_vertical {
     my ($grp) = @_;
     my $win = $grp->{focusedWindow};
-    return unless $win;
+    return if not $win;
     return $win->treeView->get_verticalTree;
 }
 

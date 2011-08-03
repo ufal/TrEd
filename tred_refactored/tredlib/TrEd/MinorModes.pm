@@ -37,7 +37,7 @@ sub declare_minor_mode {
             for my $binding ( @{ $opts->{$type} } ) {
                 my $key   = $binding->{key};
                 my $macro = $binding->{command};
-                if ( defined($key) and defined($macro) ) {
+                if ( defined $key and defined $macro ) {
                     $grp->{$store}{$name}{$key} = $macro;
                 }
             }
@@ -70,7 +70,7 @@ sub enable_minor_mode {
 sub disable_minor_mode {
     my ( $grp_or_win, $name ) = @_;
     my ( $grp,        $win )  = main::grp_win($grp_or_win);
-    if ( ref( $win->{minorModes} ) ) {
+    if ( ref $win->{minorModes} ) {
         @{ $win->{minorModes} }
             = grep { $_ ne $name } @{ $win->{minorModes} };
     }
@@ -82,7 +82,7 @@ sub disable_minor_mode {
 sub toggle_minor_mode {
     my ( $grp_or_win, $name ) = @_;
     my ( $grp,        $win )  = main::grp_win($grp_or_win);
-    if ( ref( $win->{minorModes} ) ) {
+    if ( ref $win->{minorModes} ) {
         if ( TrEd::MinMax::first { $_ eq $name } @{ $win->{minorModes} } ) {
             disable_minor_mode( $grp_or_win, $name );
         }

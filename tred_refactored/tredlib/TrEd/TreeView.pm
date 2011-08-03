@@ -17,7 +17,7 @@ BEGIN {
 
     use TrEd::Convert;
     import TrEd::Convert;
-    use TrEd::File;
+    use TrEd::File qw{filename}; 
 
     use constant NoHash => {};
 
@@ -215,36 +215,36 @@ sub set_patterns {
         ; # clear cached value so that the following call knows it should regenerate it
     $self->{pattern_lists} = $self->get_pattern_lists();
 }
-
+# patterns can be either set by stylesheet, or they can be read from fsfile->patterns(), they are parsed afterwards by parse_pattern(), so we got an array of tuples (pattern_type, pattern); 
 sub get_pattern_lists {
     my ( $self, $fsfile ) = @_;
-    my $patterns = $self->patterns;
-    if ( $patterns && $self->{pattern_lists} ) {
+    my $patterns = $self->patterns();
+    if ( $patterns && $self->{pattern_lists} ) { # if pattern_lists is already filled, return it
         return $self->{pattern_lists};
     }
     my (@node_patterns, @edge_patterns, @style_patterns,
         @patterns,      @label_patterns
     );
-    my @patterns
+    @patterns
         = map { [ $self->parse_pattern($_) ] } $patterns ? @{$patterns}
         : $fsfile ? $fsfile->patterns() 
         :           ();
-    @label_patterns = map { $_->[1] } grep { $_->[0] eq 'label' } @patterns;
-    @style_patterns = map { $_->[1] } grep { $_->[0] eq 'style' } @patterns;
-    @patterns = grep { $_->[0] eq 'node' or $_->[0] eq 'edge' } @patterns;
-    @node_patterns = map { $_->[1] } grep { $_->[0] eq 'node' } @patterns;
-    @edge_patterns = map { $_->[1] } grep { $_->[0] eq 'edge' } @patterns;
+    @label_patterns = map { $_->[1] } grep { $_->[0] eq 'label' } @patterns; #filter label patterns
+    @style_patterns = map { $_->[1] } grep { $_->[0] eq 'style' } @patterns; # filter style patterns
+    @patterns = grep { $_->[0] eq 'node' or $_->[0] eq 'edge' } @patterns; # filter only edge and node patterns, others are discarded
+    @node_patterns = map { $_->[1] } grep { $_->[0] eq 'node' } @patterns; # filter node patterns
+    @edge_patterns = map { $_->[1] } grep { $_->[0] eq 'edge' } @patterns; # filter edge patterns
     my $pl = [
         \@node_patterns, \@edge_patterns, \@style_patterns,
         \@patterns,      \@label_patterns
     ];
 
     if ($patterns) {
-        $self->{pattern_lists} = $pl;
+        $self->{pattern_lists} = $pl; # save result in pattern_lists
     }
-    return $pl;
+    return $pl; #reference to array which contains references to arrays of patterns
 }
-
+# return our patterns (affected by stylesheet, can be changed via window->apply_stylesheeet)
 sub patterns {
     my $self = shift;
     return if !ref $self;
@@ -254,7 +254,7 @@ sub patterns {
 sub set_hint {
     my ( $self, $hint ) = @_;
     die "Hint is not scalar-ref"
-        if ( defined($hint) and !ref($hint) eq 'SCALAR' );
+        if ( defined $hint && !ref $hint eq 'SCALAR' );
     $self->{hint} = $hint;
 }
 
@@ -268,10 +268,10 @@ sub canvas {
     return unless ref($self);
     return $self->{canvas};
 }
-
+# return the real canvas to draw on... and cache it under our realcanvas hash key, creates Subwidget scrolled if our canvas is not isa(Tk::Canvas)
 sub realcanvas {
     my $self = shift;
-    return unless ref($self);
+    return if not ref $self;
     return (
         $self->{realcanvas} ||= (
               $self->{canvas}->isa("Tk::Canvas")
@@ -393,7 +393,7 @@ sub reset_scale {
     $self->{font_size}   = undef;
     $self->{scaled_font} = undef;
 }
-
+# clears information about node, style, style hash, gen_info, oinfo?
 sub clear_pinfo {
     my $self = shift;
     return if !ref $self;
@@ -402,7 +402,7 @@ sub clear_pinfo {
     %{ $self->{style_hash_info} } = ();
     %{ $self->{gen_info} }        = ();
     %{ $self->{oinfo} }           = ();
-
+    return;
     #  %{$self->{iinfo}}=();
 }
 
@@ -832,43 +832,45 @@ sub balance_node_order {
     }
     return _bno( \@level0, 0, $#level0, $node_info );
 }
-
+# for node $node compute level on which it is in the tree, return it and write it into $node_info->{$node}{"Level"}; if a parent exists, ref to it is stored in $node_info->{$parent}{'E'}
 sub compute_level {
     my ( $self, $node, $Opts, $skipHiddenLevels ) = @_;
     my $node_info = $self->{node_info};
-    my $level     = $node_info->{$node}{"Level"};
+    my $level     = $node_info->{$node}{'Level'};
     if ( defined $level ) {
         return $level;
     }
     $level = 0;
     my $style  = $self->{style_info}{$node};
     my $parent = $style->{'Node'}{'-parent'};
-    $parent = $node_info->{$parent}{"E"} if $parent;
+    if ($parent) {
+        $parent = $node_info->{$parent}{'E'};
+    }
     $parent ||= $node->parent;
     if ($parent) {
         my $plevel
             = $self->compute_level( $parent, $Opts, $skipHiddenLevels );
         if ($skipHiddenLevels) {
             $level = $plevel;
-            if ( $node_info->{$parent}{"E"} ) {
-                $node_info->{$node}{"P"} = $parent;
+            if ( $node_info->{$parent}{'E'} ) {
+                $node_info->{$node}{'P'} = $parent;
                 $level++;
             }
             else {
-                $node_info->{$node}{"P"} = $node_info->{$parent}{"P"};
+                $node_info->{$node}{'P'} = $node_info->{$parent}{'P'};
             }
             $level += $style->{'Node'}{'-rellevel'}
-                if $node_info->{$node}{"E"};
+                if $node_info->{$node}{'E'};
         }
         else {
-            $node_info->{$node}{"P"} = $parent;
+            $node_info->{$node}{'P'} = $parent;
             $level = $plevel + 1 + $style->{'Node'}{'-rellevel'};
         }
     }
     else {
         $level += $style->{'Node'}{'-rellevel'};
     }
-    $node_info->{$node}{"Level"} = $level;
+    $node_info->{$node}{'Level'} = $level;
     return $level;
 }
 
@@ -1036,7 +1038,7 @@ sub recalculate_positions_vert {
 
 sub recalculate_positions {
     my ( $self, $fsfile, $nodes, $Opts, $grp ) = @_;
-    return unless ref($self);
+    return if !ref $self;
     my $node_info   = $self->{node_info};
     my $gen_info    = $self->{gen_info};
     my $baseXPos    = $Opts->{baseXPos} || $self->get_baseXPos;
@@ -1117,8 +1119,9 @@ sub recalculate_positions {
     #   }
     if ( exists( $Opts->{ballance} ) ) {
         print STDERR "Use 'balance' instead of misspelled 'ballance'!\n";
-        $Opts->{balance} = $Opts->{ballance}
-            unless ( exists( $Opts->{balance} ) );
+        if ( !exists( $Opts->{balance} ) ) {
+            $Opts->{balance} = $Opts->{ballance};
+        }
     }
     my $balance
         = exists( $Opts->{balance} )
@@ -1138,12 +1141,15 @@ sub recalculate_positions {
     ];
 
     foreach $node ( @{$nodes} ) {
-        $node_info->{$node}{"E"} = $node;
+        $node_info->{$node}{'E'} = $node;
     }
     my $style_info = $self->{style_info};
-    foreach $node ( @{$nodes} ) {
+    #!!!ended here
+    foreach my $node ( @{$nodes} ) {
         my $level = $self->compute_level( $node, $Opts, $skipHiddenLevels );
-        $maxlevel = int($level) if $maxlevel < int($level);
+        if ( $maxlevel < int $level ) {
+            $maxlevel = int($level);
+        }
 
         my ( $n_nonempty, $e_nonempty );
         my $style              = $style_info->{$node};
@@ -1161,16 +1167,24 @@ sub recalculate_positions {
                     = $self->getTextWidthAndHeight(
                     $self->prepare_text( $node, $pat, $grp ) );
                 $NI->{"X[$i]"} = $m;
-                $edgeLabelWidth = $m if $m > $edgeLabelWidth;
-                $e_nonempty += $h if ( !$skip_empty_elabels or $m > 0 );
+                if ( $m > $edgeLabelWidth ) {
+                    $edgeLabelWidth = $m;
+                }
+                if ( !$skip_empty_elabels || $m > 0 ) {
+                    $e_nonempty += $h;
+                }
             }
             elsif ( $pat_style eq "node" ) {
                 ( $m, $h )
                     = $self->getTextWidthAndHeight(
                     $self->prepare_text( $node, $pat, $grp ) );
                 $NI->{"X[$i]"} = $m;
-                $nodeLabelWidth = $m if $m > $nodeLabelWidth;
-                $n_nonempty += $h if ( !$skip_empty_nlabels or $m > 0 );
+                if ($m > $nodeLabelWidth) {
+                    $nodeLabelWidth = $m;
+                }
+                if ( !$skip_empty_nlabels || $m > 0 ) {
+                    $n_nonempty += $h;
+                }
             }
         }
         $NI->{"NodeLabelWidth"}     = $nodeLabelWidth;
@@ -1729,13 +1743,13 @@ sub parse_coords_spec {
       my $xy=$1;
       my $code=$2;
       if (exists($nodehash->{"$xy$key"})) {
-	int($nodehash->{"$xy$key"})
+    int($nodehash->{"$xy$key"})
       } else {
-	my $c=$code;
-	my $that;
-	my $cached = $COORD_CODE_CACHE{$key};
-	unless (defined $cached) {
-	  $code =~s[\$\{([-_A-Za-z0-9/]+)\}][ \$node->attr('$1') ]g;
+    my $c=$code;
+    my $that;
+    my $cached = $COORD_CODE_CACHE{$key};
+    unless (defined $cached) {
+        $code =~s[\$\{([-_A-Za-z0-9/]+)\}][ \$node->attr('$1') ]g;
 	  $cached = $COORD_CODE_CACHE{$key}=
 	    eval "package TredMacro; sub{ my \$node=\$_[0]; eval { $code } }";
 	}
@@ -1840,10 +1854,10 @@ sub sgn { $_[0] < 0 ? -1 : $_[0] == 0 ? 0 : 1 }
 
 sub callback {
     my $func = shift;
-    if ( ref($func) eq 'ARRAY' ) {
+    if ( ref $func eq 'ARRAY' ) {
         &{ $func->[0] }( @_, @{$func}[ 1 .. $#$func ] );
     }
-    elsif ( ref($func) eq 'CODE' ) {
+    elsif ( ref $func eq 'CODE' ) {
         &$func(@_);
     }
     else {
@@ -1903,7 +1917,7 @@ sub redraw {
     );
 
     my $scale = $self->{scale};
-    $self->reset_scale;
+    $self->reset_scale; #these are refs to arrays of patterns
     my ($node_patterns, $edge_patterns, $style_patterns,
         $patterns,      $label_patterns
     ) = @{ $self->get_pattern_lists($fsfile) };
@@ -1931,9 +1945,9 @@ sub redraw {
     $node = $nodes->[0];
     if ($node) {
         $node = $node->root;
-
+        # add option from stylesheet to rootstyle or opts
         # only for root node if any
-        foreach $style ( $self->get_label_patterns( $fsfile, "rootstyle" ) ) {
+        foreach my $style ( $self->get_label_patterns( $fsfile, "rootstyle" ) ) {
             foreach ( $self->interpolate_text_field( $node, $style, $grp )
                 =~ /\#${block}/g )
             {
@@ -1969,9 +1983,9 @@ sub redraw {
         my ( $k, $val );
         my %NodeStyle;
         while ( my ( $k, $val ) = each %RootStyle ) {
-            $NodeStyle{$k} = {%$val};
+            $NodeStyle{$k} = {%{$val}};
         }
-        foreach $style (@$style_patterns) {
+        foreach $style (@{$style_patterns}) {
             foreach ( $self->interpolate_text_field( $node, $style, $grp )
                 =~ /\#${block}/g )
             {
@@ -1996,25 +2010,27 @@ sub redraw {
         # $nodes = [ grep { !$skip_nodes{$_} } @$nodes ];
 
         # CAUTION: this change propagates up to the caller
-        @$nodes = grep { !$skip_nodes{$_} } @$nodes;
+        @{$nodes} = grep { !$skip_nodes{$_} } @{$nodes};
     }
     my (@segments);
-    for my $node (@$nodes) {
+    for my $node (@{$nodes}) {
         my $segment = $style_info->{$node}{Node}{'-segment'};
-        unless ( defined $segment and length $segment ) {
+        if ( !defined $segment || !length $segment ) {
             $segment = '0/0';
         }
-        my ( $i, $j ) = split( '/', $segment, 2 );
+        my ( $i, $j ) = split( q{/}, $segment, 2 );
         push @{ $segments[$i][$j] }, $node;
     }
 
-    $canvas->configure( -background => $self->get_backgroundColor )
-        if ( defined $self->get_backgroundColor );
+    if ( defined $self->get_backgroundColor ) {
+        $canvas->configure( -background => $self->get_backgroundColor );
+    }
+    # delete all items on canvas except for bgimage
     $canvas->addtag( 'delete', 'all' );
     if ( $canvas->find( 'withtag', 'bgimage' ) ) {
-        $canvas->dtag( 'bgimage', 'delete' );
+        $canvas->dtag( 'bgimage', 'delete' ); # delete tag delete from bgimage
     }
-    $canvas->delete('delete');
+    $canvas->delete('delete'); # delete all the items with tag delete
 
     my $vertical_tree = $self->set_verticalTree(
           $self->get_displayMode ? ( ( $self->get_displayMode + 1 ) / 2 )
@@ -2026,10 +2042,9 @@ sub redraw {
 
     my $lineHeight = $self->getFontHeight() * $lineSpacing;
     my $edge_label_yskip
-        = ( scalar(@$node_patterns) ? $self->get_edgeLabelSkipAbove : 0 );
+        = ( scalar(@{$node_patterns}) ? $self->get_edgeLabelSkipAbove : 0 );
     my $can_dash = ( $Tk::VERSION =~ /\.([0-9]+)$/ and $1 >= 22 );
 
-    #  $objectno=0;
 
     my $skipHiddenLevels = $Opts{skipHiddenLevels}
         || $self->get_skipHiddenLevels;
@@ -2042,7 +2057,9 @@ sub redraw {
     my $drawBoxes     = $self->get_drawBoxes;
     my $drawEdgeBoxes = $self->get_drawEdgeBoxes;
     my $right_to_left = $self->rightToLeft($fsfile);
-    $right_to_left = $self->{reverseNodeOrder} unless defined $right_to_left;
+    if ( !defined $right_to_left ) {
+        $right_to_left = $self->{reverseNodeOrder};
+    }
 
     my ( $baseXPos, $baseYPos ) = (
         $Opts{baseXPos} || $self->get_baseXPos,
@@ -2052,7 +2069,7 @@ sub redraw {
         for my $seg_j ( 0 .. $#{ $segments[$seg_i] } ) {
             $canvas->addtag( 'seg:prev', 'all' );
             $nodes = $segments[$seg_i][$seg_j];
-            next unless ref($nodes) and @$nodes;
+            next if (!ref $nodes || !@{$nodes});
 
             #------------------------------------------------------------
             #}
@@ -2749,7 +2766,7 @@ sub redraw {
             my $fontHeight = $self->getFontHeight() * $lineSpacing;
             $self->{canvasHeight} += $fontHeight;    # add some skip
             if ( $self->get_drawFileInfo ) {
-                my $currentfile = filename( $fsfile->filename );
+                my $currentfile = TrEd::File::filename( $fsfile->filename );
                 my ($ftext);
                 $ftext = "File: $currentfile";
                 if (@$nodes) {
@@ -3233,7 +3250,7 @@ sub get_custom_color {
         return;
     }
 }
-
+# if pattern starts with 'sth:', 'sth' is considered to be the type of pattern, it is removed from the pattern and a tuple (type, pattern) is returned, trailing spaces are removed. otherwise, tuple ('node', pattern) is returned and no trailing spaces are removed
 sub parse_pattern {
     my ( $self, $pattern ) = @_;
     if ( $pattern =~ s/^([a-z]+):\s*// ) {
@@ -3250,16 +3267,16 @@ sub is_pattern_of {
     my ( $self, $style, $pattern ) = @_;
     return ( $self->parse_pattern($pattern) )[0] eq lc($style);
 }
-
+# take our patterns or fsfile patterns and filter only those with label $style, return list of patterns for this label
 sub get_label_patterns {
     my ( $self, $fsfile, $style ) = @_;
     $style = lc($style);
     return map {
-        my ( $a, $b ) = $self->parse_pattern($_);
-        $a eq $style ? $b : ()
-        } $self->patterns ? @{ $self->patterns }
-        : $fsfile         ? $fsfile->patterns()
-        :                   ();
+        my ( $pattern_type, $pattern ) = $self->parse_pattern($_);
+        $pattern_type eq $style ? $pattern : ()
+        } $self->patterns() ? @{ $self->patterns }
+        : $fsfile           ? $fsfile->patterns()
+        :                     ();
 }
 
 =pod
@@ -3275,9 +3292,9 @@ formatting references of the form #{format}.
 
 sub prepare_text {
     my ( $self, $node, $pattern, $grp ) = @_;
-    return "" unless ref($node);
+    return q{} if !ref $node;
     my $msg = $self->interpolate_text_field( $node, $pattern, $grp );
-    return "" unless length $msg;
+    return q{} if !length $msg;
     $msg =~ s/\#${block}//g;
     $msg =~ s/\$${block}/$self->prepare_raw_text_field($node,$1)/eg;
     return encode($msg);
@@ -3293,40 +3310,51 @@ text.
 
 =cut
 
-my $code_match    = qr/(\<\?(?:[^?]|\?[^>])+\?\>)/;
-my $code_match_in = qr/^\<\?((?:[^?]|\?[^>])+)\?\>$/;
+# matches sth like <? '#{customparenthesis}' if $${is_parenthesis} ?>
+my $code_match    = qr/(\<\?(?:[^?]|\?[^>])+\?\>)/; 
+# matches the same, it just has to be all there is in the string
+my $code_match_in = qr/^\<\?((?:[^?]|\?[^>])+)\?\>$/; 
 
+#######################################################################################
+# Usage         : _compile_code($text)
+# Purpose       : Compiled code contained in $text string
+# Returns       : Reference to compiled code
+# Parameters    : scalar $text -- text to compile
+# Throws        : no exceptions
+# Comments      : The code is executed in TredMacro package. Nodes attributes can be 
+#                 accessed using $${attribute} syntax
+# See Also      : interpolate_text_field(), 
 sub _compile_code {
     my ($text) = @_;
     $text
-        =~ s/\$\${([^}]+)}/ TrEd::TreeView::_present_attribute(\$this,'$1')/g;
+        =~ s/\$\${([^}]+)}/ TrEd::TreeView::_present_attribute(\$this,'$1')/g; #subst $${var}
     return eval "package TredMacro; sub{ eval { $text } }";
 }
-
+# we got node object, text (e.g. pattern from stylesheet) and $grp (here we have window), we interpolate text field, ie run the code in <? ?> or just use the text directly
 sub interpolate_text_field {
     my ( $self, $node, $text, $grp_ctxt ) = @_;
-    return unless defined $text and length $text;
-
+    return if (!defined $text || !length $text);
     # make $this, $root, and $grp available for the evaluated expression
     # as in TrEd::Macros
     no strict 'refs';
     my @save
         = ( ${'TredMacro::this'}, ${'TredMacro::root'}, ${'TredMacro::grp'} );
-    my $root;
-    $root = ( $node && $node->root );
+    my $root = ( $node && $node->root() );
+#    $root = ( $node && $node->root );
     ( ${'TredMacro::this'}, ${'TredMacro::root'}, ${'TredMacro::grp'} )
         = ( $node, $root, $grp_ctxt );
+
     my $cached = $PATTERN_CODE_CACHE{$text};
-    unless ( defined $cached ) {
+    if ( !defined $cached ) {
         $cached = $PATTERN_CODE_CACHE{$text} = [
             map { $_ =~ $code_match_in ? _compile_code($1) : $_ }
-                split $code_match,
-            $text
+                split $code_match, $text
         ];
     }
-    $text = join '',
-        map { ref($_) ? $_->() : $_ }
-        @$cached;    # maybe we should reset this,root,grp, etc. every time!
+    # call compiled code if it is a code ref, otherwise just use the saved text
+    # maybe we should reset this,root,grp, etc. every time!
+    $text = join '', map { ref $_ ? $_->() : $_ }
+                         @{$cached};
     ( ${'TredMacro::this'}, ${'TredMacro::root'}, ${'TredMacro::grp'} )
         = @save;     #
     return $text;
@@ -3342,30 +3370,36 @@ in the text with the single-quotted value.
 =cut
 
 sub _quote_quote { my ($q) = @_; $q =~ s/\\/\\\\/g; $q =~ s/'/\\'/g; $q }
-
+# find the value of attribute specified by $path on node $node
 sub _present_attribute {
     my ( $node, $path ) = @_;
     my $val    = $node;
     my $append = "";
     for my $step ( split /\//, $path ) {
-        if (   UNIVERSAL::DOES::does( $val, 'Treex::PML::List' )
-            or UNIVERSAL::DOES::does( $val, 'Treex::PML::Alt' ) )
+        return q{} if (!defined $val);
+        # changed order of conditions, premature optimization is our hobby ;)
+        if ( UNIVERSAL::isa( $val, 'HASH' ) ) {
+            $val = $val->{$step};
+        }
+        elsif (   UNIVERSAL::DOES::does( $val, 'Treex::PML::List' )
+               or UNIVERSAL::DOES::does( $val, 'Treex::PML::Alt' ) )
         {
             if ( $step =~ /^\[(\d+)\]/ ) {
                 $val = $val->[ $1 - 1 ];
             }
             else {
-                $append = "*" if @$val > 1;
+                if (@{$val} > 1) {
+                    $append = "*";
+                }
                 $val = $val->[0];
                 redo;
             }
         }
         elsif ( UNIVERSAL::DOES::does( $val, 'Treex::PML::Seq' ) ) {
             if ( $step =~ /^\[([-+]?\d+)\](.*)/ ) {
-                $val
-                    = $1 > 0 ? $val->elements_list->[ $1 - 1 ]
-                    : $1 < 0 ? $val->elements_list->[$1]
-                    :          undef;                            # element
+                $val = $1 > 0 ? $val->elements_list->[ $1 - 1 ]
+                     : $1 < 0 ? $val->elements_list->[$1]
+                     :          undef;               # element
                 if ( defined $2 and length $2 ) {    # optional name test
                     return if $val->[0] ne $2;       # ERROR
                 }
@@ -3389,15 +3423,9 @@ sub _present_attribute {
                 return;    # ERROR
             }
         }
-        elsif ( UNIVERSAL::isa( $val, 'HASH' ) ) {
-            $val = $val->{$step};
-        }
         elsif ( defined $val ) {
             #warn "Can't follow attribute path '$path' (step '$step')\n";
             return;    # ERROR
-        }
-        else {
-            return '';
         }
     }
     if (   UNIVERSAL::DOES::does( $val, 'Treex::PML::List' )

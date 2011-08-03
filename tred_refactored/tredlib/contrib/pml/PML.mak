@@ -8,7 +8,6 @@
 package PML;
 
 use strict;
-use warnings;
 
 #include "PML.inc"
 

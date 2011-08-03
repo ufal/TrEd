@@ -2172,7 +2172,7 @@ sub Tk::Widget::TrEdNodeEditDlg {
 
   $mw->Busy(-recurse=>1);
   my $d = $opts->{dialog};
-  unless ($d) {
+  if (!$d) {
     $d = $mw->DialogBox(
       -buttons=> $opts->{buttons} || [$ok_button, 'Cancel'],
      );

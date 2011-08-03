@@ -1,8 +1,8 @@
 package TrEd::Macros;
 
 use strict;
+use warnings;
 
-#use warnings;
 use Carp;
 
 use Data::Dumper;
@@ -921,6 +921,7 @@ sub initialize_macros {
                            # which should in this way be made visible
                            # to macros
     my $result    = 2;     #hm? strange init, return value never actually used
+    no warnings;
     if ( not $macrosEvaluated ) {
         my $utf = ($useEncoding) ? "use utf8;\n" : q{};
         my $macros = q{};
@@ -958,7 +959,7 @@ sub initialize_macros {
             ${"TredMacro::grp"} = $win_ref;
             $macrosEvaluated = 1;
 
-            #print "macros: " . $macros . "\n";
+            # print "macros: " . $macros . "\n";
             $result = eval {
                 my $res = eval($macros);
                 die $@ if $@;
@@ -1116,6 +1117,7 @@ sub do_eval_macro {
 #        }
 #    }
     print STDERR "Running $macro\n" if $macroDebug;
+    no warnings; # at least 
     if ( defined $safeCompartment ) {
         set_macro_variable( 'grp', $win );
         my $utf = ($useEncoding) ? "use utf8;\n" : q{};

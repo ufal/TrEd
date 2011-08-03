@@ -197,19 +197,6 @@ instruction in L<http://ufal.mff.cuni.cz/~pajas/tred/ar01s10.html>).
         return;
     }
 
-    #         -originx => 'xn',
-    #         -originy => 'yn',
-    # 	  -deltax => $rotate_dfr_doc,
-    # 	  -deltay => 30,
-    # 	  -target => PML::SearchForNodeById($coref)[0],
-    # 	  -tag => $cortype,
-    # 	  -arrow =>'last',
-    # 	  -arrowshape => '16,18,3',
-    #         -dash => '',
-    # 	  -width => 1,
-    # 	  -smooth => 1,
-    # 	  -fill => CustomColor('arrow_'.$_) },
-
     my @opts
         = qw(-tag -arrow -arrowshape -width -smooth -fill -dash -hint -decoration);
 

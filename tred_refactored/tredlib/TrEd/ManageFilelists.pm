@@ -705,7 +705,6 @@ sub selectFilelist {
             TrEd::File::close_file($win);
         }
         else {
-
             # we use next_file instead of go_to_file so that
             # the user can 'Skip broken files'
             $win->{currentFileNo}--;

@@ -33,7 +33,7 @@ sub DESTROY {
 # was Utils::applyWindowStylesheet
 sub apply_stylesheet {
     my ( $self, $stylesheet ) = @_;
-    return unless $self;
+    return if not $self;
     my $s = $self->{framegroup}->{stylesheets}->{$stylesheet};
     if ( $stylesheet eq TrEd::Stylesheet::STYLESHEET_FROM_FILE() ) {
         $self->{treeView}->set_patterns(undef);
@@ -417,7 +417,7 @@ sub redraw {
     #use Benchmark;
     #my $t0= new Benchmark;
     #for (my $i=0;$i<=50;$i++) {
-    #------------------------------------------------------------
+    #------------------------------------------------------------ # hooks set up
     $TrEd::TreeView::on_get_root_style = [ \&main::onGetRootStyle, $self ];
     $TrEd::TreeView::on_get_node_style = [ \&main::onGetNodeStyle, $self ];
     $TrEd::TreeView::on_redraw_done    = [ \&main::onRedrawDone,   $self ];

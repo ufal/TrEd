@@ -5,7 +5,7 @@ use strict;
 use warnings;
 
 require TrEd::MacroAPI::Default; # loads TredMacro
-TredMacro->import();
+TredMacro->import(@TredMacro::FORCE_EXPORT);
 
 require TrEd::Macros;
 require Treex::PML;
@@ -13,7 +13,7 @@ require TrEd::MinMax;
 
 require TrEd::MinorModes;
 
-my $cfg = QuickPML(
+my $cfg = TredMacro::QuickPML(
     cfg => [
         'structure',
         context_before => 'nonNegativeInteger',
@@ -36,7 +36,7 @@ sub edit_configuration {
             no_sort      => 1,
         }
     );
-    ChangingFile(0);
+    TredMacro::ChangingFile(0);
 }
 
 sub configure {
@@ -112,31 +112,31 @@ sub _value_line_doubleclick_hook {
     if ( !ref $res ) {
         my ( $before, $after )
             = map { $_->{context_before}, $_->{context_after} } get_config();
-        my $fsfile = CurrentFile();
-        print "fsfile 1: $fsfile\n";
+        my $fsfile = TredMacro::CurrentFile();
+        #print "fsfile 1: $fsfile\n";
         my $grp = TrEd::Macros::get_macro_variable('grp');
-        print "grp/win = $grp\n";
-        print "fsfile 2: " . $grp->{FSFile} . "\n";
+        #print "grp/win = $grp\n";
+        #print "fsfile 2: " . $grp->{FSFile} . "\n";
         $fsfile = $grp->{FSFile};
 
-        print "before: $before\n";
-        print "after: $after\n";
+        #print "before: $before\n";
+        #print "after: $after\n";
 
-        my $no     = CurrentTreeNumber();
-        print "no: $no\n";
-        my $first  = max( $no - $before, 0 );
-        my $last   = min( $no + $after, $fsfile->lastTreeNo() );
+        my $no     = TredMacro::CurrentTreeNumber() || 0;
+        #print "no: $no\n";
+        my $first  = TrEd::MinMax::max( $no - $before, 0 );
+        my $last   = TrEd::MinMax::min( $no + $after, $fsfile->lastTreeNo() );
 
         for my $i ( reverse( $first .. $no - 1 ), $no + 1 .. $last ) {
             my $tree = $fsfile->tree($i);
             while ($tree) {
                 if ( exists $tags{"$tree"} ) {
-                    GotoTree( $i + 1 );
+                    TredMacro::GotoTree( $i + 1 );
 
                     #TODO: is this 'this' going to work..?
                     #$this=$tree;
                     TrEd::Macros::set_macro_variable( 'this', $tree );
-                    Redraw();
+                    TredMacro::Redraw();
                     $_[-1] = 'stop';
                 }
                 $tree = $tree->following();
@@ -149,7 +149,7 @@ sub init_minor_mode {
     my ($grp) = @_;
 
     return if !TrEd::Macros::is_defined('TRED');
-
+    TredMacro->import(@TredMacro::FORCE_EXPORT);
     TrEd::MinorModes::declare_minor_mode( $grp, 'Show_Neighboring_Sentences' => {
             abbrev     => 'neigh_sent',
             configure  => \&edit_configuration,
