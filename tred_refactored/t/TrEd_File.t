@@ -829,6 +829,6 @@ is($file, $path,
     TrEd::Config::set_config();
 
     # okay, we're out of previous scope, previous fsfiles should be closed
-    test_open_file();
+    # test_open_file();
 }
 done_testing();

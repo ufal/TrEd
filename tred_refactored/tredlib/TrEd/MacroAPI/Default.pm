@@ -4974,7 +4974,7 @@ sub import {
     no strict qw(refs);
     my $pkg = shift;
 
-     print "TredMacro imported from " . caller() ."\n";
+     #print "TredMacro imported from " . caller() ."\n";
     _import( $pkg, scalar(caller),
         ( $#_ >= 0 ? @_ : grep { $_ ne 'BEGIN' } keys %{"${pkg}::"} ),
         @FORCE_EXPORT, 
