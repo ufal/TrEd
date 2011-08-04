@@ -23,8 +23,8 @@ my $sidepanel = TrEd::SidePanel->new($bodyPane);
 
 #print Dumper($sidepanel);
 #print Dumper(\%TrEd::SidePanel::);
-#  
-#print STDERR "tak jo, no...\n";
+#
+#print STDERR "GUI testing...\n";
 #$sidepanel->widget_names;
 #$sidepanel->widgets;
 #$sidepanel->widget;
