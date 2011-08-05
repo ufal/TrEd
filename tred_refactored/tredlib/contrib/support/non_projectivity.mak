@@ -4,8 +4,6 @@
 
 package NonProjectivity;
 
-use strict;
-
 BEGIN { import TredMacro; }
 
 =pod

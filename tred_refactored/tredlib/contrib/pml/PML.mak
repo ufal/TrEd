@@ -7,7 +7,6 @@
 
 package PML;
 
-use strict;
 
 #include "PML.inc"
 
