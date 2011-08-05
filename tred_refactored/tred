@@ -11,7 +11,7 @@
 ##############################################################################
 
 use strict;
-use warnings;
+#use warnings;
 use 5.008;
 
 BEGIN {
@@ -2022,11 +2022,11 @@ sub switchContext {
     my $grp          = cast_to_grp($win);
     my $prev_context = $win->{macroContext};
     $win->{macroContext} = $context;
-    my $ret = doEvalHook( $win, "allow_switch_context_hook", $prev_context,
+    my $hook_res = doEvalHook( $win, "allow_switch_context_hook", $prev_context,
         $context );
 
     # if context switch is not allowed
-    if ( $ret eq 'stop' ) {
+    if ( defined $hook_res && $hook_res eq 'stop' ) {
         $win->{macroContext} = $prev_context;
         if ( $win->is_focused() ) {
             $grp->{selectedContext} = $prev_context;
@@ -2037,11 +2037,9 @@ sub switchContext {
     $win->{macroContext} = $prev_context;
 
     # should we stop because of pre_switch_stylesheet_hook?
-    return 0
-        if (
-        doEvalHook( $win, "pre_switch_context_hook", $prev_context, $context,
-            $win ) eq 'stop'
-        );
+    my $hook_result = doEvalHook( $win, "pre_switch_context_hook",
+        $prev_context, $context, $win );
+    return 0 if ( defined $hook_result && $hook_result eq 'stop' );
 
     $win->{macroContext} = $context;
     if ( $win->is_focused() ) {
@@ -4123,44 +4121,7 @@ sub startMain {
         $tred{top}->afterIdle( [ \&handleUSR2Signal, \%tred ] );
     };
 
-if (0){
-    # model 2
-    TrEd::ManageFilelists::selectFilelist(\%tred, 'PDT 2.0 a-layer sample');
-    TrEd::MinorModes::toggle_minor_mode(\%tred,'Show_Neighboring_Trees');
 
-    for my $i (1..24) {
-        my $time = 1_000+800*$i;
-        my $timer = $top->after($time, sub{ $tred{focusedWindow}{treeNo} = $i; _do_goto_tree($tred{focusedWindow}) } );
-        for my $n (1..5) {
-            $timer = $top->after($time + 100*$n, sub{ currentNext( $tred{focusedWindow}) } );
-        }
-    }
-
-    my $startin = 26_000;
-
-    for my $i (1..20) {
-        my $time = $startin + 500*$i;
-        my $timer = $top->after($time, sub{ currentLeftWholeLevel(\%tred); } );
-
-    }
-
-    $startin = 52_000;
-
-    my $timer = $top->after($startin, sub{ TrEd::Filelist::Navigation::tie_next_file(\%tred) } );
-
-    for my $i (1..24) {
-        my $time = $startin + 800*$i;
-        my $timer = $top->after($time, sub{ $tred{focusedWindow}{treeNo} = $i; _do_goto_tree($tred{focusedWindow}) } );
-        for my $n (1..5) {
-            $timer = $top->after($time + 100*$n, sub{ currentNext( $tred{focusedWindow}) } );
-        }
-    }
-    $timer = $top->after(85_000, sub{ quit($tred{focusedWindow}) } );
-};
-if (0){
-    # model 1
-    #my $timer = $top->after(500, sub{ quit($tred{focusedWindow}) } );
-};
     MainLoop;
     if ( $tred{top} ) {
         TrEd::Config::save_runtime_config( \%tred );
