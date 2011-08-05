@@ -39,7 +39,7 @@ my $REPO = shift || 'https://svn.ms.mff.cuni.cz/svn/TrEd_refactored/tred_refacto
 
 my $svn_version = `svn info "$REPO" |grep "^Revision:" |cut -f2 -d:`;
 my $updated_version = 90_000 + $svn_version;
-my $VER = $updated_version;
+my $VER = '1.' . $updated_version;
 chomp $VER;
 $VER=~s/\s+//g;
 
