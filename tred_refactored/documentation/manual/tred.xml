@@ -195,8 +195,8 @@
       </para>
       <para>
 	TrEd along with all the required Perl modules and libraries can be installed
-	in one step using an installer script <ulink url="http://ufal.mff.cuni.cz/~pajas/tred/install_tred.bash"><literal>install_tred.bash</literal></ulink>, as follows:
-	<programlisting format="linespecific">$ <userinput>wget <ulink url="http://ufal.mff.cuni.cz/~pajas/tred/install_tred.bash">http://ufal.mff.cuni.cz/~pajas/tred/install_tred.bash</ulink></userinput>
+	in one step using an installer script <ulink url="http://ufal.mff.cuni.cz/tred/install_tred.bash"><literal>install_tred.bash</literal></ulink>, as follows:
+	<programlisting format="linespecific">$ <userinput>wget <ulink url="http://ufal.mff.cuni.cz/tred/install_tred.bash">http://ufal.mff.cuni.cz/tred/install_tred.bash</ulink></userinput>
 $ <userinput>bash install_tred.bash --tred-dir ~/tred</userinput>
 </programlisting>
 	 This installs TrEd under <filename>~/tred</filename> and all missing modules and libraries
@@ -485,7 +485,7 @@ Tk: 804.028
 	      <listitem>
 		<para>ordered list of values of any type except list
 		  (implemented as a Perl array reference of the
-		  <literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/List.pm">Treex::PML::List</ulink></literal> class). Currently
+		  <literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/List.pm">Treex::PML::List</ulink></literal> class). Currently
 		  only supported by PML-backend.
 		</para>
 	      </listitem>
@@ -497,11 +497,11 @@ Tk: 804.028
 	      <listitem>
 		<para>alternative of values of any type except alternative
 		  (implemented as a Perl array reference of the
-		  <literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Alt.pm">Treex::PML::Alt</ulink></literal> class).
+		  <literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Alt.pm">Treex::PML::Alt</ulink></literal> class).
 		  Alternative is very similar to unordered list but as long
 		  as it has only one single value,
 		  it is represented by that value (rather
-		  than a <literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Alt.pm">Treex::PML::Alt</ulink></literal> array reference containing that value).
+		  than a <literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Alt.pm">Treex::PML::Alt</ulink></literal> array reference containing that value).
 		  Alternatives are currently supported by PML-backend.
 		</para>
 	      </listitem>
@@ -2762,12 +2762,12 @@ Tk: 804.028
       and files in FS format) offers support for
       string attributes, enumerated attributes,
       constant attributes,
-      <literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/List.pm">Treex::PML::List</ulink></literal>
-      lists of values of an arbitrary type, <literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Alt.pm">Treex::PML::Alt</ulink></literal>
-      alternatives of values, and <literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Seq.pm">Treex::PML::Seq</ulink></literal> sequences of named elements), and, 
+      <literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/List.pm">Treex::PML::List</ulink></literal>
+      lists of values of an arbitrary type, <literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Alt.pm">Treex::PML::Alt</ulink></literal>
+      alternatives of values, and <literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Seq.pm">Treex::PML::Seq</ulink></literal> sequences of named elements), and, 
       most importantly,  for 
-      <firstterm>hierarchical attributes</firstterm> (<literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Struct.pm">Treex::PML::Struct</ulink></literal>
-      and <literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Container.pm">Treex::PML::Container</ulink></literal>).
+      <firstterm>hierarchical attributes</firstterm> (<literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Struct.pm">Treex::PML::Struct</ulink></literal>
+      and <literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Container.pm">Treex::PML::Container</ulink></literal>).
       Alternatives consisting of <literal>|</literal>-separated lists of strings used by FS format files are supported too.
 
     </para>
@@ -7437,12 +7437,12 @@ sub CreateImages {
       </para>
       <para>All tree nodes in
       <application>TrEd</application> are represented
-      by <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink> Perl objects. These objects are
+      by <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink> Perl objects. These objects are
       basically only hash references where the
       attribute-name/attribute-value information is stored as a
       key/value pair (except that some hash keys are reserved for
       representing the tree structure).  
-      <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink> objects provide several basic
+      <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink> objects provide several basic
       methods, most of which are related to accessing their neighbouring nodes
       (i.e. traversing the tree) and modifying the tree structure
       by means of cut and paste operations.
@@ -7488,25 +7488,25 @@ sub CreateImages {
 	    In such a case, the names, types, and roles of the attributes
 	    can be
 	    obtained from the
-	    <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/FSFormat.pm"><classname>Treex::PML::FSFormat</classname></ulink> object
+	    <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/FSFormat.pm"><classname>Treex::PML::FSFormat</classname></ulink> object
 	    associated with the document (see below).
 	  </para>
 	</note>
 	<para>
 	  The object representation of the data type of a node is returned
 	  by the method <literal>$node->type()</literal>
-	  (see <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink>).
+	  (see <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink>).
 	  It may be either from the class
-	  <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Schema/Struct.pm"><classname>Treex::PML::Schema::Struct</classname></ulink>
+	  <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Schema/Struct.pm"><classname>Treex::PML::Schema::Struct</classname></ulink>
 	  (or derived)
 	  if the node is represented in PML by a structure
 	  or
-	  <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Schema/Container.pm"><classname>Treex::PML::Schema::Container</classname></ulink>
+	  <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Schema/Container.pm"><classname>Treex::PML::Schema::Container</classname></ulink>
 	  (or derived)
 	  if the node is represented in PML by a container.
 	  To get the object representation of the complete PML schema
 	  where the node type is declared
-	  (<ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Schema.pm"><classname>Treex::PML::Schema</classname></ulink>), one 
+	  (<ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Schema.pm"><classname>Treex::PML::Schema</classname></ulink>), one 
 	  may call <literal>$node->type()->schema()</literal>,
 	  provided <literal>$node->type()</literal> is known to be defined.
 	</para>
@@ -7515,7 +7515,7 @@ sub CreateImages {
 	<title>Accessing node attributes</title>
 	<para>
 	  Let <literal>$node</literal> be a
-	  <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink> object, i.e. a node of the
+	  <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink> object, i.e. a node of the
 	  tree. Typically, nodes are attribute-value structures, so the
 	  attribute named <literal><replaceable>attrib</replaceable></literal>
 	  is accessible as <literal>$node-&gt;{<replaceable>attrib</replaceable>}</literal>.
@@ -7528,11 +7528,11 @@ sub CreateImages {
 	  Attribute values may not always be atomic, i.e. numbers or
 	  strings (although for most backends this is the case). They
 	  may also be AVS structures (represented as
-	  <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Struct.pm"><classname>Treex::PML::Struct</classname></ulink> objects, which are
+	  <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Struct.pm"><classname>Treex::PML::Struct</classname></ulink> objects, which are
 	  basically just Perl hashes), lists (represented as Perl ARRAY
-	  references of the <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/List.pm"><classname>Treex::PML::List</classname></ulink> class)
+	  references of the <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/List.pm"><classname>Treex::PML::List</classname></ulink> class)
 	  and alternatives (represented as Perl ARRAY references of
-	  the <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/List.pm"><classname>Treex::PML::List</classname></ulink> class). So let's
+	  the <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/List.pm"><classname>Treex::PML::List</classname></ulink> class). So let's
 	  suppose for a while, that the value of <literal>$node-&gt;{<replaceable>attrib</replaceable>}</literal>
 	  is an AVS structure with attribute
 	  <replaceable>level2-attrib</replaceable> and its value is a
@@ -7598,9 +7598,9 @@ sub CreateImages {
 	<title>Accessing neighboring nodes</title>
 	<para>
 	  There is a few methods provided by every
-	  <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink> reference that can be used
+	  <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink> reference that can be used
 	  to access other nodes in the tree. Each of the methods
-	  returns either a <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink> reference
+	  returns either a <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink> reference
 	  pointing to the requested node, or zero if 
 	  the requested node does not exist. For example, the
 	  following code may be used to make the active node's
@@ -7614,11 +7614,11 @@ sub CreateImages {
 	</para>
 	<para>
 	  The following table describes some
-	  <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink> methods.
-	  For a complete list, refer to the documentation of <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML.pm">Treex::PML.pm</ulink>.
+	  <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink> methods.
+	  For a complete list, refer to the documentation of <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML.pm">Treex::PML.pm</ulink>.
 	</para>
 	<table id="fsnode_methods">
-	  <title><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink> methods</title>
+	  <title><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink> methods</title>
 	  <tgroup cols="2">
 	    <colspec colnum="1" align="left"/>
 	    <colspec colnum="2" align="justify"/>
@@ -7675,7 +7675,7 @@ sub CreateImages {
 		  tree structure. E.g. if the given node has a child,
 		  this child is returned. If the node has no childs
 		  but does have a right brother,
-		  <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink>
+		  <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink>
 		  reference to the right brother is returned.
 		  If no child and no right brother exists for the
 		  given node, the method looks for a right brother
@@ -7684,7 +7684,7 @@ sub CreateImages {
 		  on the returned nodes ensures that all the nodes
 		  in the trees are accessed during the procedure.
 		  If the optional argument <replaceable>top</replaceable>
-		  contains a <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink> reference,
+		  contains a <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink> reference,
 		  the searching is limited to the subtree governed by 
 		  the node of <replaceable>top</replaceable>.
 		</entry>
@@ -7698,7 +7698,7 @@ sub CreateImages {
 		  <literal>following</literal>
 		  method for more detail on the ordering).
 		  If the optional argument <replaceable>top</replaceable>
-		  contains a <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink> reference,
+		  contains a <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink> reference,
 		  the searching is limited to the subtree governed by 
 		  the node of <replaceable>top</replaceable>.
 		</entry>
@@ -7736,11 +7736,11 @@ sub CreateImages {
 	<para>
 	  The current file is accessed via the
 	  <literal>CurrentFile()</literal> reference. This reference
-	  is a pointer to an object of the <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm"><classname>Treex::PML::Document</classname></ulink>
+	  is a pointer to an object of the <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm"><classname>Treex::PML::Document</classname></ulink>
 	  class. The following methods are provided for the class:
 	</para>
 	<table id="fsfile_methods">
-	  <title><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm"><classname>Treex::PML::Document</classname></ulink> class methods</title>
+	  <title><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm"><classname>Treex::PML::Document</classname></ulink> class methods</title>
 	  <tgroup cols="2">
 	    <colspec colnum="1" align="left"/>
 	    <colspec colnum="2" align="justify"/>
@@ -7762,13 +7762,13 @@ sub CreateImages {
 	      <row>
 		<entry><literal>FS</literal></entry>
 		<entry>Return a reference to an associated
-		  <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/FSFormat.pm"><classname>Treex::PML::FSFormat</classname></ulink> object.
+		  <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/FSFormat.pm"><classname>Treex::PML::FSFormat</classname></ulink> object.
 		</entry>
 	      </row>
 	      <row>
 		<entry><literal>trees</literal></entry>
 		<entry>Return a list of all trees (i.e.
-		  a list of <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink>
+		  a list of <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink>
 		  object references pointing to the roots
 		  of the trees).
 		</entry>
@@ -7808,20 +7808,20 @@ sub CreateImages {
 	  </tgroup>
 	</table>
 	<para>
-	  Actually, some other <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm"><classname>Treex::PML::Document</classname></ulink> methods
+	  Actually, some other <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm"><classname>Treex::PML::Document</classname></ulink> methods
 	  exist, but as they are not intended to be used from the
 	  macros directly, there is no reason to describe them here.
 	</para>
 	<para>
 	  The most important of the methods above is the <literal>FS</literal> method which may be used to
-	  access the <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/FSFormat.pm"><classname>Treex::PML::FSFormat</classname></ulink> class object
+	  access the <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/FSFormat.pm"><classname>Treex::PML::FSFormat</classname></ulink> class object
 	  associated with the given file. Similarly as in the case of
-	  <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm"><classname>Treex::PML::Document</classname></ulink> class, only the most importand
-	  methods of the <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/FSFormat.pm"><classname>Treex::PML::FSFormat</classname></ulink> class are
+	  <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm"><classname>Treex::PML::Document</classname></ulink> class, only the most importand
+	  methods of the <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/FSFormat.pm"><classname>Treex::PML::FSFormat</classname></ulink> class are
 	  described here.
 	</para>
 	<table>
-	  <title><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/FSFormat.pm"><classname>Treex::PML::FSFormat</classname></ulink> class methods</title>
+	  <title><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/FSFormat.pm"><classname>Treex::PML::FSFormat</classname></ulink> class methods</title>
 	  <tgroup cols="2">
 	    <colspec colnum="1" align="left"/>
 	    <colspec colnum="2" align="justify"/>
@@ -7869,7 +7869,7 @@ sub CreateImages {
 	      </row>
 	      <row>
 		<entry><literal>isHidden(<replaceable>node</replaceable>)</literal></entry>
-		<entry>Return true if the given <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink>
+		<entry>Return true if the given <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm"><classname>Treex::PML::Node</classname></ulink>
 		<replaceable>node</replaceable> belongs to a hidden subtree.
 		</entry>
 	      </row>
@@ -8037,8 +8037,8 @@ sub CreateImages {
 	Most of these pre-defined macros are just safe wrappers for 
 	<application>TrEd</application> internal function
 	calls. Pre-defined macros and object methods (namely those of
-	<literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm">Treex::PML::Node</ulink></literal>, <literal>Treex::PML::Document</literal> and
-	<ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/FSFormat.pm"><classname>Treex::PML::FSFormat</classname></ulink> should be the only access points
+	<literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm">Treex::PML::Node</ulink></literal>, <literal>Treex::PML::Document</literal> and
+	<ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/FSFormat.pm"><classname>Treex::PML::FSFormat</classname></ulink> should be the only access points
 	used by a macro to interact with <application>TrEd</application>. 
 	All other ways of creeping into <application>TrEd</application>'s
 	internals are dangerous and should be avoided.
@@ -8226,7 +8226,7 @@ sub CreateImages {
 	      and may be used to provide a list of values
 	      to offer to the user using a list box. The hook gets the following
 	      arguments:
-	      an attribute path, the node, the <literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Schema/Decl.pm">Treex::PML::Schema::Decl</ulink></literal> object
+	      an attribute path, the node, the <literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Schema/Decl.pm">Treex::PML::Schema::Decl</ulink></literal> object
 	      corresponding to the attribute type, and
 	      a reference to the <literal>Tk::TrEdNodeEdit</literal>
 	      which is an object derived from <literal>Tk::HList</literal>.
@@ -8243,13 +8243,13 @@ sub CreateImages {
 		for attribute values. The hook gets the following
 		arguments:
 		current value of the attribute,
-		an attribute path, the node, the <literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Schema/Decl.pm">Treex::PML::Schema::Decl</ulink></literal> object
+		an attribute path, the node, the <literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Schema/Decl.pm">Treex::PML::Schema::Decl</ulink></literal> object
 		corresponding to the attribute type, and
 		a reference to the <literal>Tk::TrEdNodeEdit</literal>
 		which is an object derived from <literal>Tk::HList</literal>.
 		The hook must return a non-zero defined value to indicate that the value is valid
 		or 0 to indicate that the value is invalid.
-		If the hook returns undef, the default <literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Schema.pm">Treex::PML::Schema</ulink></literal>-based validation
+		If the hook returns undef, the default <literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Schema.pm">Treex::PML::Schema</ulink></literal>-based validation
 		takes place.
 	      </para></entry>
 	    </row><row id="current_node_change_hook">
@@ -8860,7 +8860,7 @@ sub CreateImages {
 		<literal>Shift</literal>,
 		<literal>Alt</literal>, or
 		<literal>Meta</literal>.
-		  <replaceable>node</replaceable> is the  <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm">Treex::PML::Node</ulink> object
+		  <replaceable>node</replaceable> is the  <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm">Treex::PML::Node</ulink> object
 		  whose attribute was clicked.
 		  <replaceable>attr</replaceable> is name of the
 		  attribute which was clicked.
@@ -9134,7 +9134,7 @@ sub switch_context_hook {
 	was the first format supported by tred, and for a long time also the only one.
 	As a result, some methods of the Perl classes 
 	used by <application>TrEd</application> and defined in the the underlying Perl library
-	<literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm">Treex::PML</ulink></literal>
+	<literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm">Treex::PML</ulink></literal>
 	still bear the name of the format (even though they
 	are now equally used to represent data obtained from any other I/O
 	backend).
@@ -9471,34 +9471,34 @@ sub switch_context_hook {
 	<application>TrEd</application>.
       </para>
       <para>
-	PML schema is represented by a <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Schema.pm"><literal>Treex::PML::Schema</literal></ulink>
+	PML schema is represented by a <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Schema.pm"><literal>Treex::PML::Schema</literal></ulink>
 	object. This object can be retrieved from the current
 	<literal>Treex::PML::Document</literal> using the macro
 	  <literal>MetaData('schema')</literal>.
       </para>
       <para>
 	PML structures are represented as
-	<literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Struct.pm">Treex::PML::Struct</ulink></literal> objects,
+	<literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Struct.pm">Treex::PML::Struct</ulink></literal> objects,
 	and so are PML containers, whose attributes
 	and content value become members of the
-	<literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Struct.pm">Treex::PML::Struct</ulink></literal> object, the content value
+	<literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Struct.pm">Treex::PML::Struct</ulink></literal> object, the content value
 	being represented by a special member named
 	<literal>#content</literal>.  In both cases, if the role is
-	<literal>#NODE</literal>, then <literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm">Treex::PML::Node</ulink></literal>
-	object is used instead of <literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Struct.pm">Treex::PML::Struct</ulink></literal>.
-	PML lists are represented as <literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/List.pm">Treex::PML::List</ulink></literal>
-	objects and PML alternatives as <literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Alt.pm">Treex::PML::Alt</ulink></literal>
-	objects. PML sequences as <literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Seq.pm">Treex::PML::Seq</ulink></literal>
+	<literal>#NODE</literal>, then <literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm">Treex::PML::Node</ulink></literal>
+	object is used instead of <literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Struct.pm">Treex::PML::Struct</ulink></literal>.
+	PML lists are represented as <literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/List.pm">Treex::PML::List</ulink></literal>
+	objects and PML alternatives as <literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Alt.pm">Treex::PML::Alt</ulink></literal>
+	objects. PML sequences as <literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Seq.pm">Treex::PML::Seq</ulink></literal>
 	objects and its elements as
-	<literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Seq/Element.pm">Treex::PML::Seq::Element</ulink></literal> objects.  The only
+	<literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Seq/Element.pm">Treex::PML::Seq::Element</ulink></literal> objects.  The only
 	exceptions are: a PML sequences with the role
 	<literal>#TREES</literal>, which is represented by the list of
 	the trees of the <literal>Treex::PML::Document</literal> object and a PML
 	sequence with role <literal>#CHILDNODES</literal>, which is
 	represented by the child-nodes of the node it belongs to.
 	Elements of these sequences therefore represented by by
-	<literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm">Treex::PML::Node</ulink></literal> (rather than
-	<literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Seq/Element.pm">Treex::PML::Seq::Element</ulink></literal>) objects with a
+	<literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm">Treex::PML::Node</ulink></literal> (rather than
+	<literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Seq/Element.pm">Treex::PML::Seq::Element</ulink></literal>) objects with a
 	dedicated attribute <literal>#name</literal> carrying the
 	element's name.
       </para>
@@ -9535,7 +9535,7 @@ sub switch_context_hook {
 	<literal>readas="pml"</literal>, then the
 	<literal>PML</literal> backend
 	loads the corresponding PML instance
-	as a <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Instance.pm"><literal>Treex::PML::Instance</literal></ulink>
+	as a <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Instance.pm"><literal>Treex::PML::Instance</literal></ulink>
 	object and attaches this object
 	to the application data section of the in-memory
 	representation of the file.
@@ -9598,7 +9598,7 @@ sub switch_context_hook {
 	replaced with the corresponding entities in the referenced PML
 	instance. It is required that all such PML references refer to
 	resources specified in the PML schema either as
-	<literal>readas="dom"</literal> (in which case <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML.pm"><classname>Treex::PML</classname></ulink>
+	<literal>readas="dom"</literal> (in which case <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML.pm"><classname>Treex::PML</classname></ulink>
 	representation of the referred data structure is created and
 	transformed back into DOM only at save) or
 	<literal>readas="pml"</literal> (in which case, after
@@ -9666,7 +9666,7 @@ sub switch_context_hook {
 	      the data format provides another way to determine the
 	      encoding. Most backends do not re-implement this
 	      function, but simply import (i.e. inherit) it from the
-	      base class <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/IO.pm"><classname>Treex::PML::IO</classname></ulink>.
+	      base class <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/IO.pm"><classname>Treex::PML::IO</classname></ulink>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -9680,20 +9680,20 @@ sub switch_context_hook {
 	      This function obtains two arguments: the
 	      <replaceable>$filehandle</replaceable> previously
 	      obtained by a call to backend's <function>open_backend</function>, 
-	      and an empty <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm"><classname>Treex::PML::Document</classname></ulink> object (i.e.
+	      and an empty <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm"><classname>Treex::PML::Document</classname></ulink> object (i.e.
 	      with no trees). It is supposed to parse the data format,
 	      build tree representation of the data (usually using
-	      functions such as <literal><ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm">Treex::PML::Factory</ulink>-&gt;createNode()</literal>,
+	      functions such as <literal><ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm">Treex::PML::Factory</ulink>-&gt;createNode()</literal>,
 	      and <literal><function>$child->paste(</function>(<replaceable>$parent</replaceable>,<replaceable>$ordering_attribute</replaceable>)</literal>
-	      and populate the <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm"><classname>Treex::PML::Document</classname></ulink>
+	      and populate the <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm"><classname>Treex::PML::Document</classname></ulink>
 	      with the resulting trees (e.g. using its
 	      <methodname>changeTrees</methodname> method).
-	      It should also setup <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/FSFormat.pm"><classname>Treex::PML::FSFormat</classname></ulink>
+	      It should also setup <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/FSFormat.pm"><classname>Treex::PML::FSFormat</classname></ulink>
 	      object associated with the
 	      <replaceable>$fsfile</replaceable>
 	      (<literal><replaceable>$fsfile</replaceable>-&gt;FS</literal>).
 	      Any additional information related to the file (but not representable
-	      as trees or <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/FSFormat.pm"><classname>Treex::PML::FSFormat</classname></ulink>) may be attached to the file e.g. using 
+	      as trees or <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/FSFormat.pm"><classname>Treex::PML::FSFormat</classname></ulink>) may be attached to the file e.g. using 
 	      <literal><replaceable>$fsfile</replaceable>-&gt;<methodname>changeMetaData(<replaceable>$key</replaceable>,<replaceable>$value</replaceable>)</methodname></literal>.
 	    </para>
 	  </listitem>
@@ -9704,7 +9704,7 @@ sub switch_context_hook {
 	    <para>
 	      This function is the opposite of
 	      <function>read</function>. By examining the
-	      <ulink url="http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm"><classname>Treex::PML::Document</classname></ulink> object
+	      <ulink url="http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm"><classname>Treex::PML::Document</classname></ulink> object
 	      <replaceable>$fsfile</replaceable>
 	      (especially its trees and meta data),
 	      it should write the corresponding representation
@@ -9891,7 +9891,7 @@ contrib/sample_extension/sample_macros2.mak
 	(e.g. from some directory appearing earlier in the stylesheet directory list),
 	the stylesheet is ignored.
 	If the stylesheet name contains non-ascii or non-alphanumeric characters,
-	they must be <ulink url="http://en.wikipedia.org/wiki/Percent-encoding">http://search.cpan.org/~pajas/Treex-PML/lib/>URI-escaped</ulink>.
+	they must be <ulink url="http://en.wikipedia.org/wiki/Percent-encoding">http://search.cpan.org/dist/Treex-PML/lib/>URI-escaped</ulink>.
 	If the user modifies a stylesheet loaded from an extension,
 	TrEd saves the modified version into the user's private
 	stylesheet directory <filename>~/tred.d/stylesheets</filename>,

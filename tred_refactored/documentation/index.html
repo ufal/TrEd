@@ -6,13 +6,14 @@
     <title>Tree Editor TrEd</title>
     <link href="blue.css" rel="stylesheet" />
     <link rel="alternate" title="TrEd ChangeLog RSS"
-      href="http://ufal.mff.cuni.cz/~pajas/tred/changelog.rss"
+      href="TRED_HOME_URL/changelog.rss"
       type="application/rss+xml" />
   </head>
   <body bgcolor="#FFFFFF">
-    <h1>Tree Editor TrEd</h1>
+    <h1>Tree Editor TrEd 2.0</h1>
     <div class="copyright" id="copyright">
       <p>Copyright (c) 2000-2009 by Petr Pajas</p>
+      <p>Copyright (c) 2010-2011 by Peter Fabian</p>
       <p>
         <small>This is a free software distributed under GPL - The General Public Licence<br />
 	  Full text of the GPL can be found at <a href="http://www.gnu.org/copyleft/gpl.html">http://www.gnu.org/copyleft/gpl.html</a></small>
@@ -26,9 +27,16 @@
 	tectogrammatical annotations in <a href="http://ufal.mff.cuni.cz/pdt/">The Prague Dependency
 	  Treebank</a>, as well as for decision-tree based morphological
 	annotation of <a href="http://ufal.mff.cuni.cz/padt/">The Prague Arabic Dependency Treebank</a>.</p>
-      <p>TrEd runs on the following platforms (see <a href="ar01s02.html">installation instructions</a> for details):</p>
+	<p><emph>TrEd 2.0</emph> is a refactored version of <a href="http://ufal.mff.cuni.cz/~pajas/tred/">original TrEd</a>. 
+	A new installation procedure which takes advantage of popular 
+	<a href="http://nsis.sourceforge.net/Main_Page">Nullsoft Scriptable Install System</a> 
+	for Windows has been created. <br />
+	TrEd 2.0 uses different Perl distribution for Windows: a switch from Active Perl to 
+	<a href="http://strawberryperl.com/">Strawberry Perl</a> has been done. 
+	This allows TrEd to be shipped along with Perl distribution in one package.</p>
+      <p>TrEd runs on the following platforms (see <a href="documentation/ar01s02.html">installation instructions</a> for details):</p>
       <ul>
-        <li>Windows 2000/XP/Vista (TM)</li>
+        <li>Windows 2000/XP/Vista/7 (TM)</li>
         <li>Linux</li>
         <li>BSD, OS X, UNIX, Solaris (TM) and other UNIX-based systems</li>
       </ul>
@@ -36,28 +44,32 @@
 	<h2>TrEd Homepage </h2>
 	<p>For up-to-date information and most current versions of
 	  TrEd, see the <a
-	    href="http://ufal.mff.cuni.cz/~pajas/tred">project
+	    href="TRED_HOME_URL">project
 	    homepage</a>.
 	</p>
       </div>
       <h2 id="documentation">Documentation</h2>
       <ul>
         <li>
-          <a href="ar01-toc.html">TrEd User's Manual</a>
+          <a href="documentation/ar01-toc.html">TrEd User's Manual</a>
         </li>
-        <li>documentation of <a href="http://search.cpan.org/~pajas/Treex-PML/">Treex::PML</a>
+        <li>documentation of <a href="http://search.cpan.org/dist/Treex-PML/">Treex::PML</a>
 	- the fundamental libraries used by the TrEd toolkit</li>
-        <li>documentation of miscelaneous support macros (<a href="contrib.html"><tt>contrib.mak</tt></a>)</li>
-        <li>documentation of some PML related macros (<a href="PML_mak.html"><tt>PML.mak</tt></a>)</li>
-        <li>documentation of macros provided by the PDT 2.0 extension (<a href="pdt20.html"><tt>pdt20</tt></a>)</li>
-        <li><a href="btred.html">manual page of <tt>btred</tt></a> -
+        <li>documentation of miscelaneous support macros (<a href="documentation/contrib.html"><tt>contrib.mak</tt></a>)</li>
+        <li>documentation of some PML related macros (<a href="documentation/PML_mak.html"><tt>PML.mak</tt></a>)</li>
+        <li>documentation of macros provided by the PDT 2.0 extension (<a href="documentation/pdt20.html"><tt>pdt20</tt></a>)</li>
+        
+        <li>
+          <a href="documentation/refactoring/TrEd_refactoring.pdf">TrEd Code Analysis &amp; Refactoring documentation</a>
+        </li>
+        <li><a href="documentation/btred.html">manual page of <tt>btred</tt></a> -
 	  the command-line macro processor of the tree editor TrEd</li>
-        <li><a href="ntred.html">manual page of <tt>ntred</tt></a> - btred
+        <li><a href="documentation/ntred.html">manual page of <tt>ntred</tt></a> - btred
 	  server controller/hub/client</li>
-	<li class="bn_tutorial">an extensive <a href="bn-tutorial.html">tutorial</a> on how to
+	<li class="bn_tutorial">an extensive <a href="documentation/bn-tutorial.html">tutorial</a> on how to
 	  use <tt>btred</tt> and <tt>ntred</tt> tools for batch
 	  processing of PDT 2.0 data.</li>
-        <li>Old <a href="Fslib.html">Fslib</a> documentation and porting guide to <a href="http://search.cpan.org/~pajas/Treex-PML/">Treex::PML</a>.</li> 
+        <li>Old <a href="documentation/Fslib.html">Fslib</a> documentation and porting guide to <a href="http://search.cpan.org/dist/Treex-PML/">Treex::PML</a>.</li> 
         <!-- <li class="btred_tutorial">a brief <a href="btred_tutorial.html">tutorial</a> on how to
 	  use <tt>btred</tt> and <tt>ntred</tt> tools for batch
 	  processing.</li> -->
@@ -125,7 +137,7 @@
 	-->
 	<dt>
           <tt>
-            <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred-installer-perl-included.exe">tred-installer-perl-included.exe</a>
+            <a href="TRED_HOME_URL/tred-installer-perl-included.exe">tred-installer-perl-included.exe</a>
 	    (SIZE_OF:tred-installer-perl-included.exe) - TrEd + Modules + Strawberry Perl
           </tt>
         </dt>
@@ -138,7 +150,7 @@
 	</dd> 
         <dt>
           <tt>
-            <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred-installer.exe">tred-installer.exe</a>
+            <a href="TRED_HOME_URL/tred-installer.exe">tred-installer.exe</a>
 	    (SIZE_OF:tred-installer.exe) - TrEd + Modules
           </tt>
         </dt>
@@ -150,7 +162,7 @@
 	</dd>
         <dt>
           <tt>
-            <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred-portable.7z">tred-portable.7z</a>
+            <a href="TRED_HOME_URL/tred-portable.7z">tred-portable.7z</a>
 	    (SIZE_OF:tred-portable.7z) - TrEd + Modules + Strawberry Perl portable
           </tt>
         </dt>
@@ -178,7 +190,7 @@
       <dl>
         <dt>
           <tt>
-            <a href="http://ufal.mff.cuni.cz/~pajas/tred/install_tred.bash">install_tred.bash</a>
+            <a href="TRED_HOME_URL/install_tred.bash">install_tred.bash</a>
 	    (6KB)
           </tt>
         </dt>
@@ -207,7 +219,7 @@
       <dl>
         <dt>
           <tt>
-            <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred-current.tar.gz">tred-current.tar.gz</a>
+            <a href="TRED_HOME_URL/tred-current.tar.gz">tred-current.tar.gz</a>
 	    (SIZE_OF:tred-current.tar.gz)
           </tt>
         </dt>
@@ -222,7 +234,7 @@
 	</dd>
         <dt>
           <tt>
-            <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred-dep-unix.tar.gz">tred-dep-unix.tar.gz</a>
+            <a href="TRED_HOME_URL/tred-dep-unix.tar.gz">tred-dep-unix.tar.gz</a>
 	    (SIZE_OF:tred-dep-unix.tar.gz)
           </tt>
         </dt>

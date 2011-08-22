@@ -38,8 +38,8 @@ die "Did not find $version_file!" if !-f $version_file;
 my $REPO = shift || 'https://svn.ms.mff.cuni.cz/svn/TrEd_refactored/tred_refactored/';
 
 my $svn_version = `svn info "$REPO" |grep "^Revision:" |cut -f2 -d:`;
-my $updated_version = 90_000 + $svn_version;
-my $VER = '1.' . $updated_version;
+my $updated_version = sprintf("%04d", $svn_version);
+my $VER = '2.' . $updated_version;
 chomp $VER;
 $VER=~s/\s+//g;
 
