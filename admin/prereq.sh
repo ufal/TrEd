@@ -77,7 +77,7 @@ function get_7zExtra {
 }
 
 
-NEEDED_MODULES="Archive::Extract DateTime::Locale parent Class::Load DateTime::TimeZone Class::Singleton Test::Exception DateTime Pod::XML XML::XSH2 XML::RSS File::ShareDir File::Which UNIVERSAL::DOES XML::CompactTree XML::LibXML XML::Writer XML::CompactTree::XS XML::LibXSLT MyCPAN::App::DPAN version";
+NEEDED_MODULES="Archive::Extract DateTime::Locale parent Class::Load DateTime::TimeZone Class::Singleton Test::Exception DateTime Pod::XML XML::XSH2 XML::RSS File::ShareDir File::Which UNIVERSAL::DOES XML::CompactTree XML::LibXML XML::Writer XML::CompactTree::XS XML::LibXSLT MyCPAN::App::DPAN version Pod::Xhtml";
 MODULES_PERL_STR="";
 
 # Check for all needed PERL modules
