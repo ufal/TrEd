@@ -38,7 +38,7 @@ makensis tred-installer-perl-included.nsi && \
 cp "tred-installer-perl-included.exe" "${WWW}/tred-installer-perl-included.exe" && \
 # keep history of released versions in subdir releases
 mkdir -p "${WWW}/releases/windows" 2>/dev/null && \
-cp "tred-installer-perl-included.exe" "${WWW}/releases/windows/tred-installer-perl-included-'${VER}'.exe" && \
+cp "tred-installer-perl-included.exe" "${WWW}/releases/windows/tred-installer-perl-included-${VER}.exe" && \
 
 rm -f perl/$PERL_INSTALLER_DL
 

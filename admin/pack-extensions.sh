@@ -12,6 +12,6 @@ cd ${TRED_EXT_DIR} && ./make && \
 cd ${WWW}/tred/extensions && \
 wget -nv http://ufal.mff.cuni.cz/~pajas/tred/extensions/extension.png && \
 ##TODO pdt20 doc is created in wrong directory, this is a temporary fix
-mv ${WWW}/pdt* ${WWW}/tred/
+mv ${WWW}/pdt* ${WWW}/tred/documentation
 
 echo "Packing TrEd extensions done."

@@ -54,7 +54,7 @@ chmod 664 "${WWW}/${PKG}"
 
 # keep history of released versions in subdir releases
 mkdir -p "${WWW}/releases/unix" 2>/dev/null && \
-cp "${WWW}/${PKG}" "${WWW}/releases/unix/tred-'${VER}'.tar.gz" && \
+cp "${WWW}/${PKG}" "${WWW}/releases/unix/tred-${VER}.tar.gz" && \
  
 
 ###########################
@@ -100,7 +100,7 @@ makensis tred-installer.nsi && \
 cp "tred-installer.exe" "${WWW}/tred-installer.exe" && \
 # keep history of released versions in subdir releases
 mkdir -p "${WWW}/releases/windows" 2>/dev/null && \
-cp "tred-installer.exe" "${WWW}/releases/windows/tred-installer-'${VER}'.exe" && \
+cp "tred-installer.exe" "${WWW}/releases/windows/tred-installer-${VER}.exe" && \
 
 # create NSIS installer for Windows, Strawberry Perl inculded
 ${ADMIN_DIR}/create_installer_with_strawberry_perl.sh ${WWW} && \
