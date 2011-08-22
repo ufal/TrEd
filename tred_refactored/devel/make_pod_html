@@ -21,7 +21,7 @@ pod_dir="${2:-$target_dir/pod}"
 #[ -d "$html_dir" ] || mkdir $html_dir || exit 1
 
 for f in $dir/../[bn]tred \
-         $dir/../tredlib/TrEd/ExtensionsAPI.pm ; do
+         $dir/../tredlib/TrEd/MacroAPI/Default.pm ; do
     n="basename ${f%.pm}"
     n=$(basename "$n")
     pod="$pod_dir/${n//./_}.pod"
