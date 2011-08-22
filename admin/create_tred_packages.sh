@@ -107,6 +107,6 @@ ${ADMIN_DIR}/create_installer_with_strawberry_perl.sh ${WWW} && \
 
 
 # update download sizes on the web-page
-perl -pi~ -e "s{\(SIZE_OF:(.*?)\)}{ my \$file='${WWW}/'.\$1; my (\$size)=split /\\s/,\`du --si \$file\`,2; '('.\$size.')'}eg;" ${WWW}/index.html && \
+perl -pi~ -e "s{\(SIZE_OF:(.*?)\)}{ my \$file='${WWW}/'.\$1; my (\$size)=split /\\s/,\`du --si \$file\`,2; '('.\$size.')'}eg;" ${WWW}/index.html
 
 
