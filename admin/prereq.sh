@@ -91,7 +91,9 @@ done
 perl $MODULES_PERL_STR -e 1 2> /dev/null;
 if [ "$?" -ne "0" ]; 
 then
-	echo "Please install required packages from CPAN";
+	echo "Please install required packages from CPAN.";
+	echo "Note: You might need to configure your CPAN first, install new version of Module::Build and several libraries, namely:"
+	echo "libxml2-dev, libxslt1-dev and zlib1g-dev, libgdbm-dev"
 	exit 1;
 else 
 	echo "All CPAN modules found, OK."
@@ -102,6 +104,14 @@ if [ -x "$SVN_TO_CHANGELOG" ]; then
 	echo "svn2cl found, OK."
 else
 	get_svn2cl
+fi
+
+BIN_7Z=`which 7z`
+if [ -x "$BIN_7Z" ]; then
+	echo "7z found, OK."
+else 
+	echo "Please, install 7z."
+	     exit 1;
 fi
 
 if [ -d "$ADMIN_DIR/7zExtra" ]; then
