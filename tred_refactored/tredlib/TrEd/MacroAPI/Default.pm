@@ -436,7 +436,8 @@ This variable contains a path to TrEd library directory.
 
 =head2 Navigation
 
-Methods of L<Treex::PML::Node|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm> objects should be used for basic navigation within
+Methods of L<Treex::PML::Node|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm> 
+objects should be used for basic navigation within
 trees. Here are described means to navigate from one tree to another
 and a few extra macros for specific navigation in trees.
 
@@ -538,7 +539,7 @@ sub PrevTree {
 
 =item C<GetTrees()>
 
-Return a list of trees in current L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm>. Equivallent to
+Return a list of trees in current L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm>. Equivallent to
 C<<< CurrentFile()->trees >>>.
 
 =cut
@@ -558,7 +559,7 @@ sub GetTrees {
 
 =item C<GetSecondaryFiles($fsfile?)>
 
-Return a list of secondary L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> objects for the given (or current)
+Return a list of secondary L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm> objects for the given (or current)
 file.  A secondary file is a file required by a file to be loaded
 along with it; this is typical for files containing some form of a
 stand-off annotation where one tree is built upon another. Note
@@ -837,7 +838,7 @@ in the deep-first tree ordering.
 
 If C<node> is not given, C<$this> is assumed. Should the node be from a
 different file than the current one, the second argument must specify
-the corresponding L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> object.
+the corresponding L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm> object.
 
 =cut
 
@@ -877,7 +878,7 @@ has an ID, the address is returned in the form filename#ID.
 
 If C<node> is not given, C<$this> is assumed. Should the node be from a
 different file than the current one, the second argument must specify
-the corresponding L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> object.
+the corresponding L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm> object.
 
 =cut
 
@@ -905,7 +906,7 @@ memory of a remote btred server.
 
 If C<node> is not given, C<$this> is assumed. Should the node be from a
 different file than the current one, the second argument must specify
-the corresponding L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> object.
+the corresponding L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm> object.
 
 =cut
 
@@ -1135,7 +1136,7 @@ sub CutNode {
 =item C<NewTree()>
 
 Create a new tree before the current tree. The new tree consists of
-exactly one node. This node is activated and a reference to its L<Treex::PML::Node|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm>
+exactly one node. This node is activated and a reference to its L<Treex::PML::Node|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm>
 object is returned.
 
 =cut
@@ -1150,7 +1151,7 @@ sub NewTree {
 =item C<NewTreeAfter()>
 
 Create a new tree after the current tree. The new tree consists of
-exactly one node. This node is activated and a reference to its L<Treex::PML::Node|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm>
+exactly one node. This node is activated and a reference to its L<Treex::PML::Node|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm>
 object is returned.
 
 =cut
@@ -1412,14 +1413,14 @@ sub DeleteSubtree {
 
 =item C<RemoveTree(n?,fsfile?)>
 
-Removes n-th tree from a given L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> (trees are numbered starting from 0).
-If no L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> is specified, uses the current file (see CurrentFile()).
+Removes n-th tree from a given L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm> (trees are numbered starting from 0).
+If no L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm> is specified, uses the current file (see CurrentFile()).
 
 Calling RemoveTree() without arguments, it is equivalent to
 
   RemoveTree(CurrentTreeNumber(),CurrentFile())
 
-Returns the deleted tree. If you do not reattatch the tree to the L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm>,
+Returns the deleted tree. If you do not reattatch the tree to the L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm>,
 use $tree->destroy method on the returned tree to prevent a memory leak.
 
 =cut
@@ -1459,7 +1460,7 @@ sub DestroyTree {
 
 =item C<DetermineNodeType($node)>
 
-For trees with L<Treex::PML::Schema|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Schema.pm>-based node typing, try to determine the type
+For trees with L<Treex::PML::Schema|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Schema.pm>-based node typing, try to determine the type
 of the node from the type of its parent, and associate the node with
 the type (using $node->set_type). If there are more possibilities, the
 user is asked to choose the correct type.
@@ -1887,14 +1888,14 @@ Return an identical deep copy of a given scalar. Useful for copying
 attribute values (and any value below them), including structured
 attributes, lists or alternatives.
 
-Warning: do not apply this macro to an entire L<Treex::PML::Node|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm> since otherwise
+Warning: do not apply this macro to an entire L<Treex::PML::Node|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm> since otherwise
 you might result with a copy of the complete tree, schema, etc.
 
 =cut
 
 =item C<IsList(value)>
 
-Check that a given value is a list, i.e. L<Treex::PML::List|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/List.pm> object.
+Check that a given value is a list, i.e. L<Treex::PML::List|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/List.pm> object.
 
 =cut
 
@@ -1904,7 +1905,7 @@ sub IsList {
 
 =item C<IsAlt(value)>
 
-Check that a given value is an alternative, i.e. L<Treex::PML::Alt|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Alt.pm> object.
+Check that a given value is an alternative, i.e. L<Treex::PML::Alt|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Alt.pm> object.
 
 =cut
 
@@ -1914,7 +1915,7 @@ sub IsAlt {
 
 =item C<IsSeq(value)>
 
-Check that a given value is a sequence, i.e. L<Treex::PML::Seq|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Seq.pm> object.
+Check that a given value is a sequence, i.e. L<Treex::PML::Seq|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Seq.pm> object.
 
 =cut
 
@@ -1924,7 +1925,7 @@ sub IsSeq {
 
 =item C<List(value,value,...)>
 
-Return a new list (L<Treex::PML::List|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/List.pm> object) populated with given values.
+Return a new list (L<Treex::PML::List|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/List.pm> object) populated with given values.
 
 =cut
 
@@ -1934,7 +1935,7 @@ sub List {
 
 =item C<Alt(value,value,...)>
 
-Return a new alternative (L<Treex::PML::Alt|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Alt.pm> object) populated with given values.
+Return a new alternative (L<Treex::PML::Alt|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Alt.pm> object) populated with given values.
 
 =cut
 
@@ -1944,7 +1945,7 @@ sub Alt {
 
 =item C<AltV(value)>
 
-If the value is an alternative (i.e. a L<Treex::PML::Alt|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Alt.pm> object), return
+If the value is an alternative (i.e. a L<Treex::PML::Alt|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Alt.pm> object), return
 all its values. Otherwise return value.
 
 =cut
@@ -1955,7 +1956,7 @@ sub AltV {
 
 =item C<ListV(value)>
 
-If the value is a list (i.e. a L<Treex::PML::List|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/List.pm> object), return
+If the value is a list (i.e. a L<Treex::PML::List|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/List.pm> object), return
 all its values. Otherwise return empty (Perl) list.
 
 =cut
@@ -1966,8 +1967,8 @@ sub ListV {
 
 =item C<SeqV(value)>
 
-If the value is a sequence (i.e. a L<Treex::PML::Seq|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Seq.pm> object), return all its
-elements (L<Treex::PML::Seq::Element|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Seq/Element.pm> objects). Otherwise return empty (Perl)
+If the value is a sequence (i.e. a L<Treex::PML::Seq|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Seq.pm> object), return all its
+elements (L<Treex::PML::Seq::Element|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Seq/Element.pm> objects). Otherwise return empty (Perl)
 list.
 
 =cut
@@ -1981,9 +1982,9 @@ sub SeqV {
 Add given values as alternatives to the current value of
 C<$node-E<gt>{$attr}>.  If only one value is given and C<$node-E<gt>{$attr}> is
 empty or same as value, the given value is simply assigned to it. If
-C<$node-E<gt>{$attr}> is a L<Treex::PML::Alt|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Alt.pm> object, the new values are simply added
+C<$node-E<gt>{$attr}> is a L<Treex::PML::Alt|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Alt.pm> object, the new values are simply added
 to it. Otherwise, if C<$node-E<gt>{$attr}> is a simple value, C<$node-E<gt>{$attr}>
-is set to a new L<Treex::PML::Alt|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Alt.pm> object containing the original value as
+is set to a new L<Treex::PML::Alt|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Alt.pm> object containing the original value as
 well as the given values.
 
 =cut
@@ -2011,10 +2012,10 @@ sub AddToAlt {
 =item C<AddToList(node,attr,value,value,...)>
 
 Add values to a given attribute. If C<$node-E<gt>attr($attr)> is not defined or
-empty, a new L<Treex::PML::List|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/List.pm> containing given values is created. If
-C<$node-E<gt>attr($attr)> is a L<Treex::PML::List|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/List.pm> object, given values are simply added
+empty, a new L<Treex::PML::List|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/List.pm> containing given values is created. If
+C<$node-E<gt>attr($attr)> is a L<Treex::PML::List|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/List.pm> object, given values are simply added
 to it. Error is issued if C<$node-E<gt>attr($attr)> is defined, non-empty, yet not
-a L<Treex::PML::List|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/List.pm> object.
+a L<Treex::PML::List|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/List.pm> object.
 
 =cut
 
@@ -2038,10 +2039,10 @@ sub AddToList {
 
 Add values to a given attribute, unless already present among the
 current values. If C<$node-E<gt>attr($attr)> is not defined or empty,
-a new L<Treex::PML::List|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/List.pm> containing given values is created. If
-C<$node-E<gt>attr($attr)> is a L<Treex::PML::List|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/List.pm> object, given values are
+a new L<Treex::PML::List|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/List.pm> containing given values is created. If
+C<$node-E<gt>attr($attr)> is a L<Treex::PML::List|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/List.pm> object, given values are
 simply added to it. Error is issued if C<$node-E<gt>attr($attr)> is
-defined, non-empty, yet not a L<Treex::PML::List|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/List.pm> object.
+defined, non-empty, yet not a L<Treex::PML::List|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/List.pm> object.
 
 =cut
 
@@ -2064,10 +2065,10 @@ sub AddToListUniq {
 =item C<AddToSeq(node, attr, name => value, name => value,...)> or C<AddToSeq(node, attr, element, ...)>
 
 Add elements to a given sequence attribute. If C<$node-E<gt>attr($attr)> is not defined or
-empty, a new L<Treex::PML::Seq|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Seq.pm> object containing given name-value pairs (L<Treex::PML::Seq::Element|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Seq/Element.pm> objects) is created. If
-C<$node-E<gt>attr($attr)> is a L<Treex::PML::Seq|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Seq.pm> object, given elements are simply added
+empty, a new L<Treex::PML::Seq|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Seq.pm> object containing given name-value pairs (L<Treex::PML::Seq::Element|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Seq/Element.pm> objects) is created. If
+C<$node-E<gt>attr($attr)> is a L<Treex::PML::Seq|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Seq.pm> object, given elements are simply added
 to it. Error is issued if C<$node-E<gt>attr($attr)> is defined, non-empty, yet not
-a L<Treex::PML::Seq|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Seq.pm> object.
+a L<Treex::PML::Seq|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Seq.pm> object.
 
 =cut
 
@@ -2136,7 +2137,7 @@ sub ListIntersect {
 =item C<ListSubtract(array-ref, array-ref)>
 
 Return elements occuring in the first list but not in the second list.
-In scalar context returns a L<Treex::PML::List|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/List.pm> object (array-ref), in list
+In scalar context returns a L<Treex::PML::List|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/List.pm> object (array-ref), in list
 context returns a list. All duplicities are removed.
 
 =cut
@@ -2151,7 +2152,7 @@ sub ListSubtract($$) {
 =item C<ListUnion(array-ref, array-ref, ...)>
 
 Return union of given lists. In scalar context returns an array-ref,
-in list context returns a L<Treex::PML::List|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/List.pm> object (array-ref). All
+in list context returns a L<Treex::PML::List|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/List.pm> object (array-ref). All
 duplicities are removed.
 
 =cut
@@ -2369,7 +2370,7 @@ sub CloseWindow {
 
 =item C<CurrentFile(win?)>
 
-Return a L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> object representing the file currently open in a given
+Return a L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm> object representing the file currently open in a given
 TrEd window or in the currently focused window if called without
 arguments.
 
@@ -3338,7 +3339,7 @@ sub GetSpecialPattern {
 =item C<SetDisplayAttrs(pattern,...)> - OBSOLETE!!
 
 Setup given patterns as a stylesheet of
-the currently displayed L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm>. This does not include
+the currently displayed L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm>. This does not include
 a hint pattern.
 
 =cut
@@ -3355,7 +3356,7 @@ sub SetDisplayAttrs {
 =item C<SetBalloonPattern(string,...)> - OBSOLETE!!
 
 Use given strings as a C<hint:> pattern for
-the currently displayed L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm>.
+the currently displayed L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm>.
 
 =cut
 
@@ -3370,7 +3371,7 @@ sub SetBalloonPattern {
 
 =item C<GetDisplayAttrs()> - OBSOLETE!!
 
-Get patterns of the currently displayed L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm>'s stylesheet, except
+Get patterns of the currently displayed L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm>'s stylesheet, except
 for a C<hint:> pattern.
 
 =cut
@@ -3387,7 +3388,7 @@ sub GetDisplayAttrs {
 =item C<GetBalloonPattern()> - OBSOLETE!!
 
 Get a C<hint:> pattern of the currently displayed
-L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm>'s stylesheet.
+L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm>'s stylesheet.
 
 =cut
 
@@ -3549,14 +3550,14 @@ sub SwitchContextForWindow {
 
 =head2 Treex::PML::FSFormat API
 
-Here are described for working with L<Treex::PML::FSFormat|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/FSFormat.pm> objects. Beside these
-macros, L<Treex::PML::FSFormat|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/FSFormat.pm> object methods can be used.
+Here are described for working with L<Treex::PML::FSFormat|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/FSFormat.pm> objects. Beside these
+macros, L<Treex::PML::FSFormat|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/FSFormat.pm> object methods can be used.
 
 =over 4
 
 =item C<FS()>
 
-Return L<Treex::PML::FSFormat|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/FSFormat.pm> object associated with the current L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm>.
+Return L<Treex::PML::FSFormat|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/FSFormat.pm> object associated with the current L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm>.
 
 =cut
 
@@ -3682,7 +3683,7 @@ sub UndeclareAttributes {
 
 =head2 Treex::PML::Document I/O API
 
-See also L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> object methods defined in the L<Treex::PML|http://search.cpan.org/~pajas/Treex-PML> module.
+See also L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm> object methods defined in the L<Treex::PML|http://search.cpan.org/dist/Treex-PML> module.
 
 =over 4
 
@@ -3710,13 +3711,13 @@ sub ChangingFile {
 
 =item C<CurrentFile()>
 
-Return a L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> object representing the currently processed file.
+Return a L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm> object representing the currently processed file.
 
 =cut
 
 =item C<Open(filename,flags)>
 
-Open a given L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> in TrEd. Flags is an optional HASH reference
+Open a given L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm> in TrEd. Flags is an optional HASH reference
 that may contain various flags internally used by TrEd.
 
 =cut
@@ -3734,7 +3735,7 @@ sub Open {
 
 =item C<OpenSecondaryFiles($fsfile)>
 
-Open secondary files for a given L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> in TrEd.
+Open secondary files for a given L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm> in TrEd.
 
 =cut
 
@@ -3778,7 +3779,7 @@ sub ResumeFile {
 
 =item C<CloseFile(file?)>
 
-Close a given L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm>.
+Close a given L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm>.
 
 =cut
 
@@ -3794,7 +3795,7 @@ sub CloseFile {
 
 =item C<CloseFileInWindow(window?)>
 
-This macro is for TrEd only. It closes the L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> open in the given or
+This macro is for TrEd only. It closes the L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm> open in the given or
 current window.  If the file is open in other windows, it is kept
 among postponed files. If the file is modified, the user is asked to
 save it.
@@ -3810,7 +3811,7 @@ sub CloseFileInWindow {
 
 =item C<Save()>
 
-Save the current L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm>.
+Save the current L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm>.
 
 =cut
 
@@ -3825,7 +3826,7 @@ sub Save {
 
 NOTE: This macro is currently only available in TrEd.
 
-Save the current L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> under a new filename.
+Save the current L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm> under a new filename.
 Returns 1 if the file was saved successfully.
 
 Options:
@@ -3848,7 +3849,7 @@ save using a given I/O backend
 =item update_refs
 
 update references from other files to this file.  Values can be:
-'ask', 'all', an array of L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> objects; all
+'ask', 'all', an array of L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm> objects; all
 other values mean no update. Default is 'ask'.
 
 =item update_filelist
@@ -3890,7 +3891,7 @@ sub SaveAs {
 
 =item C<GetOpenFiles()>
 
-Return a list of L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> objects currently open in TrEd (including
+Return a list of L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm> objects currently open in TrEd (including
 postponed files).
 
 =cut
@@ -3918,7 +3919,7 @@ sub Backends {
 =item C<AddBackend($classname,$before_backend)>
 
 Register a new I/O backend. Note that the caller is responsible for
-loading the required module (e.g. by calling L<Treex::PML::ImportBackends|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/ImportBackends.pm>());
+loading the required module (e.g. by calling L<Treex::PML::ImportBackends|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/ImportBackends.pm>());
 If $before_backend is defined, the new backend is added before a given
 backend. Otherwise the backend is added as a last backend.
 
@@ -4148,7 +4149,7 @@ sub FileName {
 
 =item C<FileMetaData(key,value?)>
 
-Get or set meta data associated with the current L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm>.  Key is the
+Get or set meta data associated with the current L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm>.  Key is the
 meta data key. If value is omitted, current value associated with the
 key is returned. Otherwise, the given value is associated with the
 key, overwritting any previous value.
@@ -4167,7 +4168,7 @@ sub FileMetaData {
 
 =item C<FileUserData(key,value?)>
 
-Get or set user data associated with the current L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm>.  Key is the
+Get or set user data associated with the current L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm>.  Key is the
 user data key. If value is omitted, current value associated with the
 key is returned. Otherwise, the given value is associated with the
 key, overwritting any previous value.
@@ -4191,7 +4192,7 @@ sub FileUserData {
 =item C<FileAppData(key,value?)>
 
 Get or set application specific data associated with the current
-L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm>.  Key is the appData key. If value is omitted, current value
+L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm>.  Key is the appData key. If value is omitted, current value
 associated with the key is returned. Otherwise, the given value is
 associated with the key, overwritting any previous value.
 
@@ -4603,7 +4604,7 @@ If set to 1, this command prints also the text associated with the
 tree. Instead of 0 or 1, an CODE reference (subroutine) may be passed
 in this parameter. This CODE is then evaluated for every tree to
 produce the desired text. The CODE obtains two arguments: the current
-L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> object and an integer position of the tree (starting from 0).
+L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm> object and an integer position of the tree (starting from 0).
 
 =item C<-fileInfo>
 
@@ -4690,7 +4691,7 @@ If set to 1, this command prints also the text associated with the
 tree. Instead of 0 or 1, a CODE reference (subroutine) may be passed
 in this parameter. This CODE is then evaluated for every tree to
 produce the desired text. The CODE obtains two arguments: the current
-L<Treex::PML::Document|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Document.pm> object and an integer position of the tree (starting from 0).
+L<Treex::PML::Document|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Document.pm> object and an integer position of the tree (starting from 0).
 
 =item C<-fileInfo>
 
@@ -5012,14 +5013,14 @@ C<SetupXPath(
            )>
 
 This macro requires C<XML::XPath> module to be installed.  It adjusts
-L<Treex::PML::Node|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm> API to match XPath model based on a given function mapping.  By
+L<Treex::PML::Node|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm> API to match XPath model based on a given function mapping.  By
 default, 'id' is defined to return nothing, 'pos' returns nodes
 sentence-ordering position (or depth-first-ordering position if sentord
 attribute is not defined), 'attributes' returs a hashref of node's
-attributes (actually a L<Treex::PML::Node|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm> itself), 'name' returns "node", 'value'
+attributes (actually a L<Treex::PML::Node|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm> itself), 'name' returns "node", 'value'
 returns node's value of the special FS value attribute, and
 'children', 'parent', 'lbrother', and 'rbrother' all default to the
-respective L<Treex::PML::Node|http://search.cpan.org/~pajas/Treex-PML/lib/Treex/PML/Node.pm> methods.
+respective L<Treex::PML::Node|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm> methods.
 
 Usage example:
 
