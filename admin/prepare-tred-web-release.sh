@@ -13,9 +13,12 @@ mkdir -p "${WWW}/tred/documentation" && \
 rm -f ${WWW}/tred/documentation/ar01*.html && \
 # copy documentation to $WWW/
 cp -Rf ${TRED_DIST_DIR}/documentation/{*.html,*.css,pics} ${WWW}/tred/documentation && \
+cp -Rf ${TRED_DIST_DIR}/documentation/index.html ${WWW}/tred/ && \
+
 # copy refactoring documentation
 mkdir -p "${WWW}/tred/documentation/refactoring" && \
 cp -f ${TRED_DIST_DIR}/documentation/refactoring/TrEd_refactoring.pdf ${WWW}/tred/documentation/refactoring && \
+
 ##change urls in index.html to point to the directory of that index, should be changed when there is another place for TrEd
 # xsh2 -P ${WWW}/tred/index.html 'nobackups; rm //*[@class="offline"]; map :i { s{^http://ufal.mff.cuni.cz/~pajas/tred/}{./} } //@href;' && \
 xsh2 -P ${WWW}/tred/index.html 'nobackups; rm //*[@class="offline"]; map :i { s{^TRED_HOME_URL}{'${TRED_HOME_URL}'} } //@href;' && \
