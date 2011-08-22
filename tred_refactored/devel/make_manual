@@ -12,7 +12,7 @@ echo "Generating documentation from tred POD"
 $DEVELDIR/pod2db.sh tred > documentation/manual/tred_cmd.xml
 
 echo "Generating documentation from tred.def"
-$DEVELDIR/pod2db.sh tredlib/TrEd/ExtensionsAPI.pm > documentation/manual/tred_def.xml
+$DEVELDIR/pod2db.sh tredlib/TrEd/MacroAPI/Default.pm > documentation/manual/tred_def.xml
 
 DEVELDIR="${DEVELDIR:-$PWD}"
 pushd "$DEVELDIR" >/dev/null
