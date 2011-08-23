@@ -1,5 +1,0 @@
-#!/bin/sh
-
-for s in "$@"; do
-  rsvg-convert -w 22 -h 22 $s > ${s%.svg}.png
-done
