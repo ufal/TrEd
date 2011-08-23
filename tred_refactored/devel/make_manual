@@ -8,6 +8,8 @@ DEVELDIR=`dirname $0`
 
 . "$DEVELDIR/config.sh"
 
+TRED_HOME_URL=$1
+
 echo "Generating documentation from tred POD"
 $DEVELDIR/pod2db.sh tred > documentation/manual/tred_cmd.xml
 
@@ -42,7 +44,7 @@ RUNXSLT="xsltproc --xinclude --stringparam html.stylesheet blue.css"
 
 echo "Generating TrEd manual"
 # change TRED_HOME_URL to URL from config
-perl -pi -e 's/TRED_HOME_URL/'$TRED_HOME_URL'/g' manual/tred.xml
+perl -pi -e "s|TRED_HOME_URL|$TRED_HOME_URL|g" manual/tred.xml
 
 $RUNXSLT --stringparam root.filename tred manual/manual.xsl manual/tred.xml
 
