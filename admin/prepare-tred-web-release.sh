@@ -21,7 +21,7 @@ cp -f ${TRED_DIST_DIR}/documentation/refactoring/TrEd_refactoring.pdf ${WWW}/tre
 
 ##change urls in index.html to point to the directory of that index, should be changed when there is another place for TrEd
 # xsh2 -P ${WWW}/tred/index.html 'nobackups; rm //*[@class="offline"]; map :i { s{^http://ufal.mff.cuni.cz/~pajas/tred/}{./} } //@href;' && \
-xsh2 -P ${WWW}/tred/index.html 'nobackups; rm //*[@class="offline"]; map :i { s{^TRED_HOME_URL}{'${TRED_HOME_URL}'} } //@href;' && \
+xsh2 -P ${WWW}/tred/index.html 'nobackups; rm //*[@class="offline"]; map :i { s{^TRED_HOME_URL/}{} } //@href;' && \
 
 ##ATT if we want ActivePerl ppm packages
 # we need to run win32_ppm/get_packages_tred_58 a get_packages_tred_510.sh before this is run
