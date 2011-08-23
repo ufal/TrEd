@@ -609,7 +609,7 @@ return sub {
             'TrEd Home Page',
             {   '-command' => [
                     \&open_url_in_browser,
-                    'http://ufal.mff.cuni.cz/~pajas/tred/'
+                    'http://ufal.mff.cuni.cz/tred/'
                 ],
                 '-underline' => 0
             },
