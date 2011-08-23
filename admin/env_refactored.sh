@@ -9,7 +9,7 @@ INSTALL_BASE=~/ufal_work/ms.mff.cuni.cz/f_common
 # Local (source) web tree
 WWW=~/ufal_work/ms.mff.cuni.cz/pajas_WWW
 # Remote web tree
-REMOTE_WWW="fabip4am@u-pl10.ms.mff.cuni.cz:/afs/ms/u/f/fabip4am/BIG/tred/" # ufal.mff.cuni.cz:/home/pajas/WWW
+REMOTE_WWW="ufal.mff.cuni.cz:/home/www/html/tred" # ufal.mff.cuni.cz:/home/pajas/WWW
 
 # TrEd project direcotry (from which Makefile is executed)
 PROJECT_DIR=~/ufal_work/ms.mff.cuni.cz/net_work_projects_tred
@@ -18,7 +18,7 @@ PROJECT_DIR=~/ufal_work/ms.mff.cuni.cz/net_work_projects_tred
 LOG=~/ufal_work/ms.mff.cuni.cz/net_work_projects_tred/make_log
 
 # should later be changed to http://ufal.mff.cuni.cz/tred/
-TRED_HOME_URL="http://www.ms.mff.cuni.cz/~fabip4am/big/tred/tred/"
+TRED_HOME_URL="http://ufal.mff.cuni.cz/tred/"
 TRED_EXTENSIONS_URL=""
 
 #########################################################

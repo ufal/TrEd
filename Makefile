@@ -137,7 +137,8 @@ job-test-packages:
 	cd admin && ./job-test-packages.sh
 
 #### Treex::PML section
-new-treex-pml: prereq compile-treex-pml-dist build-treex-pml-ppm install-treex-pml
+# not creatig ppm any more... build-treex-pml-ppm removed from chain
+new-treex-pml: prereq compile-treex-pml-dist install-treex-pml
 
 compile-treex-pml-dist:
 	cd admin && ./compile-treex-pml-dist.sh
