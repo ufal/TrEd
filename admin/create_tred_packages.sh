@@ -85,13 +85,13 @@ cd "${WININST}"
 #Attention: this package is only chceked out from svn, it is not updated automatically!
 # it needs to be built on win32 machine, since we're compiling Tk and other stuff...
 echo "Generate Portable Package for Windows" && \
-# cd $TRED_STRAWBERRYPERL_DIR && \
-# rm -rf "tred-portable.7z" && \
-# rm -f tred-portable && \
-# ln -s ../tred_portable tred-portable && \
-# 7za a -l '-xr!.svn' tred-portable.7z  tred-portable/ && \
-# cp "tred-portable.7z" "${WWW}/tred-portable.7z" && \
-# rm -f tred-portable && \
+cd $TRED_STRAWBERRYPERL_DIR && \
+rm -rf "tred-portable.7z" && \
+rm -f tred-portable && \
+ln -s ../tred_portable tred-portable && \
+7za a -l '-xr!.svn' tred-portable.7z  tred-portable/ && \
+cp "tred-portable.7z" "${WWW}/tred-portable.7z" && \
+rm -f tred-portable && \
 
 # create NSIS installer for Windows, without Strawberry Perl 
 echo "Generate Nullsoft Installer for Windows" && \
