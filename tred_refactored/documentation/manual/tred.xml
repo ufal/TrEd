@@ -147,7 +147,7 @@
 	<title>Step 2: installation of <application>TrEd</application></title>
 	<para>
 	  Download one of the versions of
-	  TrEd installer for Windows from <ulink url="http://www.ms.mff.cuni.cz/~fabip4am/big/tred/tred/">the project's
+	  TrEd installer for Windows from <ulink url="TRED_HOME_URL">the project's
 	  homepage</ulink>.  These packages contains
 	  <application>TrEd</application> as well as all required Perl
 	  modules. You can choose from 3 packages -- one with Strawberry Perl included, one without Strawberry Perl

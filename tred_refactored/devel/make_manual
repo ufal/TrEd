@@ -41,6 +41,9 @@ done
 RUNXSLT="xsltproc --xinclude --stringparam html.stylesheet blue.css"
 
 echo "Generating TrEd manual"
+# change TRED_HOME_URL to URL from config
+perl -pi -e 's/TRED_HOME_URL/'$TRED_HOME_URL'/g' manual/tred.xml
+
 $RUNXSLT --stringparam root.filename tred manual/manual.xsl manual/tred.xml
 
 echo "Generating on-line help map"

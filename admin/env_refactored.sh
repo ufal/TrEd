@@ -17,8 +17,8 @@ PROJECT_DIR=~/ufal_work/ms.mff.cuni.cz/net_work_projects_tred
 # Log for svn checkouts and exports during make
 LOG=~/ufal_work/ms.mff.cuni.cz/net_work_projects_tred/make_log
 
-# should be then changed to http://ufal.mff.cuni.cz/tred/
-TRED_HOME_URL="http://www.ms.mff.cuni.cz/~fabip4am/big/tred/tred"
+# should later be changed to http://ufal.mff.cuni.cz/tred/
+TRED_HOME_URL="http://www.ms.mff.cuni.cz/~fabip4am/big/tred/tred/"
 TRED_EXTENSIONS_URL=""
 
 #########################################################

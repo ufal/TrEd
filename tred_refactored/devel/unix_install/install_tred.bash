@@ -15,9 +15,9 @@ if [ -z "$BASH" ]; then
     exit 1;
 fi
 
-
-tred_url="http://www.ms.mff.cuni.cz/~fabip4am/big/tred/tred/tred-current.tar.gz"
-tred_dep="http://www.ms.mff.cuni.cz/~fabip4am/big/tred/tred/tred-dep-unix.tar.gz"
+# TRED_HOME_URL is rewritten during release to actual URL of TrEd webpage (build-dep-package.sh)
+tred_url="TRED_HOME_URL/tred-current.tar.gz"
+tred_dep="TRED_HOME_URL/tred-dep-unix.tar.gz"
 tred_svn="svn://anonymous@svn.ms.mff.cuni.cz/svn/TrEd_refactored/tred_refactored"
 
 # readlink -f does not work on Mac OSX, so here is a Perl-based workaround:
