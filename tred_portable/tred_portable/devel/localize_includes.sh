@@ -1,1 +1,0 @@
-find . -type f |grep -v CVS|grep -v 'xpm$'|grep -v '~$' | devel/localize_includes.pl
