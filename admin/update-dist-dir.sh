@@ -34,7 +34,7 @@ echo "Creating manual pages and documentation" && \
 # creates documentation/manual/tred_cmd/def.xml
 # creates documentation/man/*
 # creates html files in documentation/
-cd ${TRED_DIST_DIR}.new && devel/make_manual && \
+cd ${TRED_DIST_DIR}.new && devel/make_manual $TRED_HOME_URL && \
 
 echo "Cleaning up" && \
 chmod -R g+rwX ${TRED_DIST_DIR}.new && \
