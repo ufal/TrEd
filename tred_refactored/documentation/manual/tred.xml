@@ -177,20 +177,70 @@
 	but at least 5.8.8 is recommended). 
       </para>
       <para>
+	      During the installation process of <application>TrEd</application>, many CPAN modules are compiled. In order to 
+	      compile them successfully, one needs to have these libraries installed on his system:
+		<itemizedlist>
+			<listitem><simpara><literal>X11 dev package</literal></simpara></listitem>
+			<listitem><simpara><literal>Xft dev package</literal></simpara></listitem>
+			<listitem><simpara><literal>lib fontconfig dev package</literal></simpara></listitem>
+			<listitem><simpara><literal>libpng12 dev package</literal></simpara></listitem>
+			<listitem><simpara><literal>zlib1g dev package</literal></simpara></listitem>
+			<listitem><simpara><literal>libxml2 dev package</literal></simpara></listitem>
+		</itemizedlist>
+		On debian-based systems, these libraries can be installed by running following command:
+		<programlisting format="linespecific">$ <userinput>sudo apt-get install libx11-dev libxft-dev libfontconfig1-dev libpng12-dev zlib1g-dev libxml2-dev</userinput>
+</programlisting>
+	</para>
+	<note>
+ 	    <para>
+	      For various reasons, if TrEd fails to find all the abovementioned library dependencies, 
+	      it fails to run the installation into same tred-dir again. This issue 
+	      will be resolved in a future release. Until then, please, delete the contents of 
+	      the tred-dir you have chosen for installation after TrEd warns you 
+	      about missing dependencies and then start the install_tred.bash --tred-dir
+	      script again.
+ 	    </para>
+ 	  </note>
+      <para>
 	<application>TrEd</application> further requires at least the following Perl
 	modules and their dependencies:
 	<itemizedlist>
-	  <listitem><simpara><literal>File-Temp</literal></simpara></listitem>
-	  <listitem><simpara><literal>File-Which</literal></simpara></listitem>
-	  <listitem><simpara><literal>File-Spec</literal></simpara></listitem>
-	  <listitem><simpara><literal>Text-Iconv</literal></simpara></listitem>
-	  <listitem><simpara><literal>Tie-IxHash</literal></simpara></listitem>
-	  <listitem><simpara><literal>Tk</literal> (for GUI)</simpara></listitem>
-	  <listitem><simpara><literal>Compress-Zlib</literal> (for printing to PDF)</simpara></listitem>
-	  <listitem><simpara><literal>XML-LibXML</literal> (requires <ulink url="http://xmlsoft.org">libxml2</ulink>)</simpara></listitem>
-	  <listitem><simpara><literal>XML-Simple</literal></simpara></listitem>	  
-	  <listitem><simpara><literal>XML-Writer</literal></simpara></listitem>
-	  <listitem><simpara><literal>Archive-Zip</literal></simpara></listitem>
+	  <listitem><simpara><literal>Archive::Zip</literal></simpara></listitem>
+	  <listitem><simpara><literal>Class::Std</literal> (for TectoMT extension)</simpara></listitem>
+	  <listitem><simpara><literal>Class::Inspector</literal></simpara></listitem>
+	  <listitem><simpara><literal>Compress::Raw::Bzip2</literal></simpara></listitem>
+	  <listitem><simpara><literal>Compress::Raw::Zlib</literal></simpara></listitem>
+	  <listitem><simpara><literal>Encode::Locale</literal></simpara></listitem>
+	  <listitem><simpara><literal>File::HomeDir</literal></simpara></listitem>
+	  <listitem><simpara><literal>File::ShareDir</literal></simpara></listitem>
+	  <listitem><simpara><literal>File::Which</literal></simpara></listitem>
+	  <listitem><simpara><literal>Graph</literal></simpara></listitem>
+	  <listitem><simpara><literal>Graph::ChuLiuEdmonds</literal></simpara></listitem>
+	  <listitem><simpara><literal>IO::Compress</literal></simpara></listitem>
+	  <listitem><simpara><literal>IO::String</literal></simpara></listitem>
+	  <listitem><simpara><literal>IO::Zlib</literal></simpara></listitem>
+	  <listitem><simpara><literal>LWP::Simple</literal></simpara></listitem>
+	  <listitem><simpara><literal>LWP::UserAgent</literal></simpara></listitem>
+	  <listitem><simpara><literal>Parse::RecDescent</literal></simpara></listitem>
+	  <listitem><simpara><literal>PDF::API2</literal></simpara></listitem>
+	  <listitem><simpara><literal>PostScript::Font</literal></simpara></listitem>
+	  <listitem><simpara><literal>Readonly</literal></simpara></listitem>
+	  <listitem><simpara><literal>Tk</literal></simpara></listitem>
+	  <listitem><simpara><literal>Tk::CodeText</literal></simpara></listitem>
+	  <listitem><simpara><literal>Tk::HistEntry</literal></simpara></listitem>
+	  <listitem><simpara><literal>Text::Iconv</literal></simpara></listitem>
+	  <listitem><simpara><literal>Treex::PML</literal></simpara></listitem>
+	  <listitem><simpara><literal>UNIVERSAL::DOES</literal></simpara></listitem>
+	  <listitem><simpara><literal>URI</literal></simpara></listitem>
+	  <listitem><simpara><literal>version</literal></simpara></listitem>
+	  <listitem><simpara><literal>XML::CompactTree::XS</literal></simpara></listitem>
+	  <listitem><simpara><literal>XML::LibXML</literal></simpara></listitem>
+	  <listitem><simpara><literal>XML::LibXSLT</literal></simpara></listitem>
+	  <listitem><simpara><literal>XML::NamespaceSupport</literal></simpara></listitem>
+	  <listitem><simpara><literal>XML::SAX</literal></simpara></listitem>
+	  <listitem><simpara><literal>XML::Writer</literal></simpara></listitem>
+	  <listitem><simpara><literal>XML::XPath</literal></simpara></listitem>
+	  
 	</itemizedlist>
       </para>
       <para>
@@ -8735,7 +8785,7 @@ sub CreateImages {
 		  <guimenuitem>Reload Macros</guimenuitem>
 		</menuchoice>).
 		This macro may be used to do clean-up (e.g. cleanly deallocate
-		non-perl resources, break circular dependences, etc.) before TrEd sweeps away
+		non-perl resources, break circular dependencies, etc.) before TrEd sweeps away
 		the memory and code currently occupied and used by macros.</para></entry>
 	    </row><row id="root_style_hook">
 	      <entry><literal>root_style_hook</literal></entry>
