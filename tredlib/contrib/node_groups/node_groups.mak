@@ -154,6 +154,7 @@ sub draw_group {
       map { @$_ } @graph_edges
      );
     @mst = Graph::Kruskal::kruskal();
+    shift @mst unless $mst[0]; # kruskal() returns the array with empty 0th element
   }
   for my $mst_edge (@mst) {
     my $from = $sel[$mst_edge->{from}-1];
