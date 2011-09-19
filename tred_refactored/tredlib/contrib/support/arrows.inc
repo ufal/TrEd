@@ -162,13 +162,13 @@ a tooltip that is displayed when the user hovers mouse over the arrow
 a comma-separated list of tags associated with the arrow on the
 canvas; tags can be used for varius purposes, e.g. to raise or lower
 objects on the Tk::Canvas (see the stackOrder instruction in
-L<http://ufal.mff.cuni.cz/~pajas/tred/ar01s10.html>).
+L<http://ufal.ms.mff.cuni.cz/tred/ar01s10.html>).
 they are also used as classes when exporting to SVG.
 
 =item -decoration
 
 decoration of the arrow (see description of the Line-decoration style
-instruction in L<http://ufal.mff.cuni.cz/~pajas/tred/ar01s10.html>).
+instruction in L<http://ufal.ms.mff.cuni.cz/tred/ar01s10.html>).
 
 =back
 
@@ -202,6 +202,10 @@ instruction in L<http://ufal.mff.cuni.cz/~pajas/tred/ar01s10.html>).
 
     sub DrawArrows {
         my ( $node, $styles, $edges, $opts ) = @_;
+#        use Data::Dumper;
+#        $Data::Dumper::Maxdepth = 1;
+#        print 'grp in draw arrows: ' . Dumper($grp);
+#        print 'this in draw arrows: ' . Dumper($this);
         my $i;
         my %props;
         my $arrows = FileUserData('DrawArrows');

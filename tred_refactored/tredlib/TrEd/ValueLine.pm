@@ -174,6 +174,9 @@ sub _click {
     my $win    = $grp->{focusedWindow};
     my (@tags) = $w->tagNames( $w->index( $Ev->xy ) );
     my $ret;
+#    use Data::Dumper;
+#    $Data::Dumper::Maxdepth = 1;
+#    print Dumper(\@tags);
     if ( $but eq 'Double-1' and $modif eq '' ) {
         main::doEvalHook( $win, "value_line_click_hook", $but, $modif,
             \@tags );

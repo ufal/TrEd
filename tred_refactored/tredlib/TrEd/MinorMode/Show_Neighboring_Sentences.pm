@@ -66,8 +66,10 @@ sub _get_value_line_hook {
         $_[-1] = [ [ $_[-1] ] ];
     }
 #    use Data::Dumper;
-#    $Data::Dumper::Maxdepth = 2;
-#    print Dumper(\@_);
+#    $Data::Dumper::Maxdepth = 1;
+#    print Dumper($grp);
+#    my $this = TrEd::Macros::get_macro_variable('this');
+#    print Dumper($this);
     my $vl = $_[-1];
     # put '-->' at the beginning of the array @{$vl} and newline at the end
     unshift @{$vl}, [ '--> ', $fsfile->tree($no) ];
