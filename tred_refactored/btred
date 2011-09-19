@@ -1516,11 +1516,11 @@ sub start_server {
                         {
                             next unless ref( $grp->{FSFile} );
                             if ((   !defined($regexp)
-                                    or $grp->{'FSFile'}->filename
+                                    || $grp->{'FSFile'}->filename
                                     =~ $regexp
                                 )
-                                and ( !$listed
-                                    or $fl{ $grp->{'FSFile'}->filename } )
+                                && ( !$listed
+                                    || $fl{ $grp->{'FSFile'}->filename } )
                                 )
                             {
                                 closeFile($grp);
@@ -2773,9 +2773,7 @@ sub prepareExtensions {
     return ( $extensions, $pre_installed, $preinst_dir );
 }
 
-#TODO: dtto, duplicita
-#TODO: bude treba upravit pre nove makra!!!
-# cim skor
+
 sub loadMacros {
 
     #_msg("Reading macros from $macroFile...\n") unless $quiet;
@@ -2784,7 +2782,7 @@ sub loadMacros {
     require TrEd::MacroAPI::Default;#this loads TredMacro API
                                     # not sure why, we don't need it here...
                                     #TredMacro->import;
-    TredMacro::init_tredmacro_bindings();
+    #TredMacro::init_tredmacro_bindings();
 
 # set minor modes and this stuff, can't do it at compile time, since there is no grp...
 #    TrEd::Macros::set_macro_variable('grp', $grp->{focusedWindow});
@@ -2813,7 +2811,7 @@ sub loadMacros {
             qq(\n\n=pod\n\n=cut\n\n} # end of "$ext_contrib"\n);
     }
     if ($include_macro) {
-        _msg("Reading additional macros frosam $include_macro...\n")
+        _msg("Reading additional macros from $include_macro...\n")
             unless $quiet;
         push @TrEd::Macros::macros,
             qq(\n#line 0 "$include_macro"\n{\npackage TredMacro;\n);

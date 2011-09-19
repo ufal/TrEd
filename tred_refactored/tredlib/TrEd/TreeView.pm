@@ -3370,8 +3370,61 @@ in the text with the single-quotted value.
 =cut
 
 sub _quote_quote { my ($q) = @_; $q =~ s/\\/\\\\/g; $q =~ s/'/\\'/g; $q }
-# find the value of attribute specified by $path on node $node
+
 sub _present_attribute {
+  my ($node,$path) = @_;
+  my $val = $node;
+  my $append = "";
+  for my $step (split /\//, $path) {
+    if (UNIVERSAL::DOES::does($val, 'Treex::PML::List') or UNIVERSAL::DOES::does($val, 'Treex::PML::Alt')) {
+      if ($step =~ /^\[(\d+)\]/) {
+	$val = $val->[$1-1];
+      } else {
+	$append="*" if @$val > 1;
+	$val = $val->[0];
+	redo;
+      }
+    } elsif (UNIVERSAL::DOES::does($val, 'Treex::PML::Seq')) {
+      if ($step =~ /^\[([-+]?\d+)\](.*)/) {
+	$val =
+	  $1>0 ? $val->elements_list->[$1-1] :
+	  $1<0 ? $val->elements_list->[$1] : undef; # element
+	if (defined $2 and length $2) { # optional name test
+	  return if $val->[0] ne $2; # ERROR
+	}
+	$val = $val->[1]; # value
+      } elsif ($step =~ /^([^\[]+)(?:\[([-+]?\d+)\])?/) {
+	my $i = $2;
+	$val = $val->values($1);
+	if (length $i) {
+	  $val = $i>0 ? $val->[$i-1] :
+	         $i<0 ? $val->[$i] : undef;
+	} else {
+	  $append="*" if @$val > 1;
+	  $val = $val->[0];
+	}
+      } else {
+	return; # ERROR
+      }
+    } elsif (UNIVERSAL::isa($val,'HASH')) {
+      $val = $val->{$step};
+    } elsif (defined($val)) {
+      #warn "Can't follow attribute path '$path' (step '$step')\n";
+      return undef; # ERROR
+    } else {
+      return '';
+    }
+  }
+  if (UNIVERSAL::DOES::does($val, 'Treex::PML::List') or UNIVERSAL::DOES::does($val, 'Treex::PML::Alt')) {
+    $append="*" if @$val > 1;
+    $val = $val->[0];
+  }
+  return $val.$append;
+}
+
+
+# find the value of attribute specified by $path on node $node
+sub _present_attribute__2 {
     my ( $node, $path ) = @_;
     my $val    = $node;
     my $append = "";
