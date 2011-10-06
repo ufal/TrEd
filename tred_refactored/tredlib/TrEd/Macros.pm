@@ -78,7 +78,7 @@ sub define_symbol {
 # See Also      : define_symbol(), is_defined(), delete()
 sub undefine_symbol {
     my ($name) = @_;
-    return delete( $defines{$name} );
+    return delete $defines{$name};
 }
 
 #######################################################################################
@@ -91,7 +91,7 @@ sub undefine_symbol {
 # See Also      : exists(), define_symbol(), undefine_symbol()
 sub is_defined {
     my ($name) = @_;
-    return exists( $defines{$name} );
+    return exists $defines{$name};
 }
 
 #######################################################################################

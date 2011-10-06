@@ -1714,12 +1714,13 @@ sub get_custom_value_ordering {
 # Set the value column size to max
 sub adjust_size {
   my ($w,$manual)=@_;
-  $w->parent->update;
+#  $w->parent->update;
   $w->update;
 
   my $new_col1_width = $w->width - 4 - $w->columnWidth(0) - $w->columnWidth($w->cget('-columns') - 1);
 
-  # potreboval by som najst najdlhsi zo zobrazenych textov a podla jeho dlzky upravit sirku stlpca...
+  # we need to find the longest of displayed texts 
+  # and adjust the width of the column accordingly
   my $default_style = $w->{'userdata'}{'itemstyles'}{'default'};
   my $font = $default_style->cget(-font);
   my $longest_attr_val = $w->{userdata}{item_max_length_text};
@@ -1737,9 +1738,9 @@ sub adjust_size {
     $w->columnWidth(1,$new_col1_width);
   } else {
     if($w->width > $w->columnWidth(0) + $hor_space){
-  	  $w->columnWidth(1,$new_col1_width);
+        $w->columnWidth(1,$new_col1_width);
     } else {
-      $w->columnWidth(1,$hor_space);
+        $w->columnWidth(1,$hor_space);
     }
   }
   $w->update;

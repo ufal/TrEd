@@ -18,8 +18,8 @@ require Filelist;
 BEGIN {
     if ( exists &Tk::MainLoop ) {
         # it is not very good that TrEd::File loads this Tk and GUI stuff,
-        # so we limit it this way until the package is split
-        # dialogs for asking for user choices,
+        # so we limit it this way until the package is split...
+        # Load dialogs for asking for user choices:
         require TrEd::Query::List;
         require TrEd::Query::User;
     }

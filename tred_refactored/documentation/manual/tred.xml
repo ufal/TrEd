@@ -219,12 +219,14 @@
 	  <listitem><simpara><literal>IO::Compress</literal></simpara></listitem>
 	  <listitem><simpara><literal>IO::String</literal></simpara></listitem>
 	  <listitem><simpara><literal>IO::Zlib</literal></simpara></listitem>
+	  <listitem><simpara><literal>JSON</literal></simpara></listitem>
 	  <listitem><simpara><literal>LWP::Simple</literal></simpara></listitem>
 	  <listitem><simpara><literal>LWP::UserAgent</literal></simpara></listitem>
 	  <listitem><simpara><literal>Parse::RecDescent</literal></simpara></listitem>
 	  <listitem><simpara><literal>PDF::API2</literal></simpara></listitem>
 	  <listitem><simpara><literal>PostScript::Font</literal></simpara></listitem>
 	  <listitem><simpara><literal>Readonly</literal></simpara></listitem>
+	  <listitem><simpara><literal>Tie::IxHash</literal></simpara></listitem>
 	  <listitem><simpara><literal>Tk</literal></simpara></listitem>
 	  <listitem><simpara><literal>Tk::CodeText</literal></simpara></listitem>
 	  <listitem><simpara><literal>Tk::HistEntry</literal></simpara></listitem>
@@ -240,7 +242,6 @@
 	  <listitem><simpara><literal>XML::SAX</literal></simpara></listitem>
 	  <listitem><simpara><literal>XML::Writer</literal></simpara></listitem>
 	  <listitem><simpara><literal>XML::XPath</literal></simpara></listitem>
-	  
 	</itemizedlist>
       </para>
       <para>
@@ -933,7 +934,7 @@ Tk: 804.028
     <para>
       Each submenu in
       <application>TrEd</application> has as its first item a tear-off
-      line (<guimenuitem>- - - - -</guimenuitem>)
+      line (<guimenuitem>- - - - -</guimenuitem>)
       which can be used to tear the menu off and place it as a
       separate window anywhere on your desktop.
     </para>
@@ -7118,7 +7119,7 @@ sub CreateImages {
       </para>
       <variablelist>
 	<varlistentry>
-	  <term><literal>#include "<replaceable>filename</replaceable>"</literal></term>
+	  <term><literal>#include "<replaceable>filename</replaceable>"</literal></term>
 	  <listitem>
 	    <para>The <replaceable>filename</replaceable> must be
 	      relative to the directory of the file to which it is
@@ -7127,14 +7128,14 @@ sub CreateImages {
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>#include &lt;<replaceable>filename</replaceable>&gt;</literal></term>
+	  <term><literal>#include &lt;<replaceable>filename</replaceable>&gt;</literal></term>
 	  <listitem>
 	    <para>The <replaceable>filename</replaceable> must
 	      be relative to the TrEd's library directory.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>#include "&lt;<replaceable>wildcard</replaceable>&gt;"</literal></term>
+	  <term><literal>#include "&lt;<replaceable>wildcard</replaceable>&gt;"</literal></term>
 	  <listitem>
 	    <para>Expands <replaceable>wildcard</replaceable> 
 	      relatively to the directory of the file containing the
@@ -7142,7 +7143,7 @@ sub CreateImages {
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>#include <replaceable>filename</replaceable></literal></term>
+	  <term><literal>#include <replaceable>filename</replaceable></literal></term>
 	  <listitem>
 	    <para>
 	      The <replaceable>filename</replaceable> may be
