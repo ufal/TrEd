@@ -40,7 +40,7 @@ sub update_a_filelist_view {
             -style => $fv->{default_style_imagetext} );
         $fv->{last_focused} = undef;
     }
-    my $path = TrEd::ManageFilelists::filelistEntryPath( $fl, $pos );
+    my $path = $fl->entry_path( $pos );
     if ( defined($path) and length($path) and $fv->info( 'exists', $path ) ) {
         if ( $fv->{focused_style_imagetext} ) {
             $fv->itemConfigure( $path, 0,

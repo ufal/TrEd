@@ -35,6 +35,7 @@ my @filelists = ();
 # filelists from extensions
 my %filelist_from_extension = ();
 
+# filelists from .tred.d/filelists folder (filelist's name => 2)
 my %filelist_from_std_location = ();
 
 #######################################################################################
@@ -112,21 +113,21 @@ sub add_filelist {
 }
 
 #######################################################################################
-# Usage         : unbind_key($context, $key, $delete)
-# Purpose       : Discard binding for key $key in specified $context (if $delete is true, delete it, otherwise set bound macro to undef)
-# Returns       : The result of delete function or undef/empty list, depending on the context
-# Parameters    : string $context -- context in which the binding is being deleted
-#                 string $key     -- key or key combination, e.g. 'Ctrl+x'
-#                 bool $delete    -- if set to true, binding is deleted, otherwise the macro is just set to undef
+# Usage         : _user_resolve_filelist_conflict($top, $filelist_filename_new, $filelist_filename_colliding)
+# Purpose       : Allows user to reload filelist, if it is identical filelist or rename filelist that already exists in TrEd
+# Returns       : The result of TrEd::Query::User::new_query function, i.e. the string which represents user's choice
+# Parameters    : Tk::Widget $top -- top widget in TrEd (for creating new dialog)
+#                 string $filelist_filename_new -- file name of filelist that is being added/created
+#                 string $filelist_filename_colliding -- filename of already existing filelist, whose name conflicts with new filelist
 # Throws        : no exception
-# Comments      : ...
-# See Also      : bind_key(), get_binding_for_key(), get_bindings_for_macro()
+# Comments      :
+# See Also      : TrEd::Query::User::new_query()
 sub _user_resolve_filelist_conflict {
-    my ( $top, $file_name_loaded, $file_name_new ) = @_;
-    if ( Treex::PML::IO::is_same_file( $file_name_new, $file_name_loaded ) ) {
+    my ( $top, $filelist_filename_new, $filelist_filename_colliding ) = @_;
+    if ( Treex::PML::IO::is_same_file( $filelist_filename_colliding, $filelist_filename_new ) ) {
         return TrEd::Query::User::new_query(
             $top,
-            "Filelist '" . $file_name_loaded . "' already loaded.\n",
+            "Filelist '" . $filelist_filename_new . "' already loaded.\n",
             -bitmap  => 'question',
             -title   => "Reload filelist?",
             -buttons => [ 'Reload', 'Cancel' ]
@@ -136,9 +137,9 @@ sub _user_resolve_filelist_conflict {
         return TrEd::Query::User::new_query(
             $top,
             "Filelist named '"
-                . $file_name_loaded
+                . $filelist_filename_new
                 . "' is already loaded from\n"
-                . $file_name_new . "\n",
+                . $filelist_filename_colliding . "\n",
             -bitmap  => 'question',
             -title   => "Filelist conflict",
             -buttons => [ 'Replace', 'Change name', 'Cancel' ]
@@ -147,16 +148,21 @@ sub _user_resolve_filelist_conflict {
 }
 
 #######################################################################################
-# Usage         : unbind_key($context, $key, $delete)
+# Usage         : _solve_filelist_conflict($top, $filelist)
 # Purpose       : Ask user what to do if filelist with same name as he/she wants to create
-#                 already exists
-# Returns       : The result of delete function or undef/empty list, depending on the context
-# Parameters    : string $context -- context in which the binding is being deleted
-#                 string $key     -- key or key combination, e.g. 'Ctrl+x'
-#                 bool $delete    -- if set to true, binding is deleted, otherwise the macro is just set to undef
-# Throws        : no exception
-# Comments      : ...
-# See Also      : bind_key(), get_binding_for_key(), get_bindings_for_macro()
+#                 already exists, replace the original filelist by default
+# Returns       : A list of two items: a colliding filelist (if there is any, undef otherwise)
+#                 and indication of continuation for caller function
+# Parameters    : Tk::Widget $top -- top widget in TrEd, determines whether Tk dialogs will be shown
+#                 Filelist $filelist -- filelist object, whose conflicts will be checked for
+# Throws        : Dies with stack backtrace if the name of the filelist $filelist could not be determined
+# Comments      : If $top is defined, user is prompted to resolve conflict (by renaming the new
+#                 filelist or reloading existing one). 
+#                 Otherwise, the original filelist is replaced by the new one.
+#                 If the user cancels the operation or does not support us with a new name, the
+#                 indication for the caller is string 'return', otherwise, a string 'cont'
+#                 is returned as the second element of list.
+# See Also      : _user_resolve_filelist_conflict(), add_new_filelist()
 sub _solve_filelist_conflict {
     my ( $top, $filelist ) = @_;
 
@@ -172,9 +178,10 @@ LOOP:
         # ($l) = grep { $_->name eq $fl->name } @filelists;
         $colliding_filelist
             = TrEd::MinMax::first { $_->name() eq $filelist->name() }
-        @filelists;
-        last
-            if not $colliding_filelist; #don't prompt user if nothing collides
+                                  @filelists;
+        #don't prompt user if nothing collides
+        last if not $colliding_filelist;
+
         if ($top) {
             my $answer = _user_resolve_filelist_conflict( $top,
                 $filelist->filename(), $colliding_filelist->filename() );
@@ -184,7 +191,7 @@ LOOP:
                     = TrEd::Query::String::new_query( $top, "Filelist name",
                     "Name: ", $filelist->name );
                 return ( $colliding_filelist, 'return' )
-                    if ( !defined($new_name) );
+                    if ( !defined $new_name );
                 $filelist->rename($new_name);
                 redo LOOP;
             }
@@ -195,51 +202,23 @@ LOOP:
         }
     }
 
+    # rename filelist if the user chose different name
     if ( $old_name ne $filelist->name() ) {
         if ( !$main::opt_q ) {
             print STDERR 'Saving filelist ' . $filelist->name() . ' to: ',
                 $filelist->filename(), "\n";
         }
-        $filelist->save();    # filelist renamed
+        $filelist->save();
     }
     return ( $colliding_filelist, 'cont' );
 }
 
-#######################################################################################
-# Usage         : unbind_key($context, $key, $delete)
-# Purpose       : Discard binding for key $key in specified $context (if $delete is true, delete it, otherwise set bound macro to undef)
-# Returns       : The result of delete function or undef/empty list, depending on the context
-# Parameters    : string $context -- context in which the binding is being deleted
-#                 string $key     -- key or key combination, e.g. 'Ctrl+x'
-#                 bool $delete    -- if set to true, binding is deleted, otherwise the macro is just set to undef
-# Throws        : no exception
-# Comments      : ...
-# See Also      : bind_key(), get_binding_for_key(), get_bindings_for_macro()
-sub filelistEntryPath {
-    my ( $fl, $index ) = @_;
-    return if ( !ref($fl) );
-
-    my $f = $fl->file_at($index);
-    my $p = $fl->file_pattern($index);
-
-    # some mambo-jumbo to supress complaints about undef
-    return if ( !defined $f );
-
-    # $f is defined now
-    # if $p is not defined, $f ne $p, should return "$p\t$f", so skip $p
-    if ( !defined $p ) {
-        return "\t$f";
-    }
-    return $f eq $p ? $f : "$p\t$f";
-}
 
 #######################################################################################
-# Usage         : unbind_key($context, $key, $delete)
-# Purpose       : Discard binding for key $key in specified $context (if $delete is true, delete it, otherwise set bound macro to undef)
-# Returns       : The result of delete function or undef/empty list, depending on the context
-# Parameters    : string $context -- context in which the binding is being deleted
-#                 string $key     -- key or key combination, e.g. 'Ctrl+x'
-#                 bool $delete    -- if set to true, binding is deleted, otherwise the macro is just set to undef
+# Usage         : selectFilelistDialog($grp)
+# Purpose       : 
+# Returns       : 
+# Parameters    : hash_ref $grp -- reference to hash containing TrEd options
 # Throws        : no exception
 # Comments      : ...
 # See Also      : bind_key(), get_binding_for_key(), get_bindings_for_macro()
@@ -299,8 +278,8 @@ sub loadFilelist {
 }
 
 #######################################################################################
-# Usage         : unbind_key($context, $key, $delete)
-# Purpose       : Discard binding for key $key in specified $context (if $delete is true, delete it, otherwise set bound macro to undef)
+# Usage         : load_std_filelists()
+# Purpose       : Load 'standard' filelists (i.e. filelists placed in .tred.d/filelists folder)
 # Returns       : The result of delete function or undef/empty list, depending on the context
 # Parameters    : string $context -- context in which the binding is being deleted
 #                 string $key     -- key or key combination, e.g. 'Ctrl+x'
@@ -314,31 +293,31 @@ sub load_std_filelists {
     # _dump_filelists("load_std_filelists", \@filelists);
     return unless -d $dir;
     my %name = map { $_->name() => $_ } @filelists;
-    for my $f ( glob( File::Spec->catfile( $dir, '*' ) ) ) {
-        my $name = TrEd::File::filename($f);
+    for my $filelist_filename ( glob( File::Spec->catfile( $dir, '*' ) ) ) {
+        my $name = TrEd::File::filename($filelist_filename);
         $name =~ s/\.fl$//i;    # strip .fl suffix if any
         my $uname
             = Encode::decode( 'UTF-8', URI::Escape::uri_unescape($name) );
         if ( URI::Escape::uri_escape_utf8($uname) ne $name ) {
             my $nf = File::Spec->catfile( $dir,
                 URI::Escape::uri_escape_utf8($uname) );
-            if ( rename $f, $nf ) {    # rename unescaped version if exists
-                $f = $nf;
-                print STDERR "renaming\n $f\n  to\n $nf\n" if $tredDebug;
+            if ( rename $filelist_filename, $nf ) {    # rename unescaped version if exists
+                $filelist_filename = $nf;
+                print STDERR "renaming\n $filelist_filename\n  to\n $nf\n" if $tredDebug;
             }
             else {
-                warn "Failed to rename $f to $nf\n";
+                warn "Failed to rename $filelist_filename to $nf\n";
             }
         }
         $name = $uname;
         if ( exists $name{$name} ) {
             warn(
-                "Ignoring filelist $f, filelist named $name already loaded from ",
+                "Ignoring filelist $filelist_filename, filelist named $name already loaded from ",
                 $name{$name}->filename, "\n"
             );
         }
         else {
-            my $fl = Filelist->new( $name, $f );
+            my $fl = Filelist->new( $name, $filelist_filename );
             if ($fl) {
                 print STDERR "Reading filelist " . $fl->filename . "\n"
                     if $tredDebug;
@@ -350,7 +329,7 @@ sub load_std_filelists {
                     warn $@;
                 }
                 else {
-                    $filelist_from_std_location{$fl} = 2;
+                    $filelist_from_std_location{$fl} = 1;
                 }
             }
         }
@@ -557,8 +536,8 @@ sub bookmarkToFilelistDialog {
 
 #######################################################################################
 # Usage         : create_filelists($cmdline_filelists)
-# Purpose       : Create filelists during TrEd's start up: spcified on command line,
-#                 bookmark filelist and standard filelists
+# Purpose       : Create filelists during TrEd's start up: 'Default' filelist, 
+#                 filelists specified on command line, bookmark filelist and standard filelists
 # Returns       : Undef/empty list
 # Parameters    : string $cmdline_filelists -- filelists specified on the command line
 # Throws        : no exception
@@ -568,16 +547,19 @@ sub create_filelists {
     my ($cmdline_filelists) = @_;
     print STDERR "Creating filelists...\n" if $tredDebug;
 
+    # create 'Default' filelist
     {
         my $default_filelist = new Filelist('Default');
-        $default_filelist->add(
-            0,
-            map {
-                my ( $filename, $suffix )
-                    = TrEd::Utils::parse_file_suffix($_);
-                Treex::PML::IO::make_abs_URI($filename)->as_string . $suffix
-                } @ARGV
-        ) if @ARGV;
+        if (@ARGV) {
+            $default_filelist->add(
+                0,
+                map {
+                    my ( $filename, $suffix )
+                        = TrEd::Utils::parse_file_suffix($_);
+                    Treex::PML::IO::make_abs_URI($filename)->as_string . $suffix
+                    } @ARGV
+            );
+        }
         add_new_filelist( undef, $default_filelist );
     }
 
@@ -588,15 +570,14 @@ sub create_filelists {
 }
 
 #######################################################################################
-# Usage         : unbind_key($context, $key, $delete)
-# Purpose       : Discard binding for key $key in specified $context (if $delete is true, delete it, otherwise set bound macro to undef)
-# Returns       : The result of delete function or undef/empty list, depending on the context
-# Parameters    : string $context -- context in which the binding is being deleted
-#                 string $key     -- key or key combination, e.g. 'Ctrl+x'
-#                 bool $delete    -- if set to true, binding is deleted, otherwise the macro is just set to undef
+# Usage         : create_cmdline_filelists($filelist_str)
+# Purpose       : Create filelists specified on the command line
+# Returns       : Undef/empty list
+# Parameters    : string $filelist_str -- string which contains comma delimited names of filelist files
 # Throws        : no exception
-# Comments      : ...
-# See Also      : bind_key(), get_binding_for_key(), get_bindings_for_macro()
+# Comments      : Filelists created from command line will be named 'CmdLine-#no#' according
+#                 to the order of their appearance on the command line
+# See Also      : create_filelists(), create_bookmarks_filelist()
 # was main::createCmdLineFilelists
 sub create_cmdline_filelists {
     my ($filelist_str) = @_;
@@ -613,6 +594,7 @@ sub create_cmdline_filelists {
         $fl_no++;
     }
     print STDERR "Done...\n" if $tredDebug;
+    return;
 }
 
 #######################################################################################
@@ -648,23 +630,22 @@ sub load_filelists_from_conf {
 # Purpose       : Select filelist $list_name for specified window without updating it
 # Returns       : Undef/empty list if filelist was not found.
 #                 Filelist object if the filelist was found successfully.
-# Parameters    : string $context -- context in which the binding is being deleted
-#                 string $key     -- key or key combination, e.g. 'Ctrl+x'
-#                 bool $delete    -- if set to true, binding is deleted, otherwise the macro is just set to undef
+# Parameters    : hash_ref or TrEd::Window ref $grp_or_win -- reference to hash containing TrEd options or ref to TrEd::Window
+#                 string $list_name       -- 
+#                 bool $no_reset_position -- 
 # Throws        : no exception
 # Comments      : ...
 # See Also      : selectFilelist()
 sub selectFilelistNoUpdate {
     my ( $grp_or_win, $list_name, $no_reset_position ) = @_;
 
-    # _dump_filelists("selectFilelistNoUpdate", \@filelists);
     my ( $grp, $win ) = main::grp_win($grp_or_win);
     my $fl
         = $win->is_focused()
         ? TrEd::Dialog::Filelist::switch_filelist( $grp, $list_name )
         : find_filelist($list_name);
     print "Selecting filelist '$list_name' (found: $fl)\n" if $tredDebug;
-    return if ( !defined($fl) );
+    return if ( !defined $fl );
 
     # little fiddling with condition
     if ( !exists $win->{currentFilelist} || $fl != $win->{currentFilelist} ) {
@@ -685,11 +666,11 @@ sub selectFilelistNoUpdate {
 }
 
 #######################################################################################
-# Usage         : unbind_key($context, $key, $delete)
-# Purpose       : Discard binding for key $key in specified $context (if $delete is true, delete it, otherwise set bound macro to undef)
-# Returns       : The result of delete function or undef/empty list, depending on the context
-# Parameters    : string $context -- context in which the binding is being deleted
-#                 string $key     -- key or key combination, e.g. 'Ctrl+x'
+# Usage         : selectFilelist($grp_or_win, $list_name, $opts)
+# Purpose       : 
+# Returns       : 
+# Parameters    : hash_ref or TrEd::Window ref $grp_or_win -- reference to hash containing TrEd options or ref to TrEd::Window
+#                 string $list_name -- 
 #                 bool $delete    -- if set to true, binding is deleted, otherwise the macro is just set to undef
 # Throws        : no exception
 # Comments      : ...
@@ -867,7 +848,7 @@ sub insertToFilelist {
                 )
                 )
             {
-                my $file = filelistEntryPath( $filelist, $i );
+                my $file = $filelist->entry_path( $i );
                 if ( $filelist_widget->info( 'exists', $file ) ) {
                     $filelist_widget->selectionSet($file);
                 }
@@ -878,28 +859,28 @@ sub insertToFilelist {
 }
 
 #######################################################################################
-# Usage         : unbind_key($context, $key, $delete)
-# Purpose       : Discard binding for key $key in specified $context (if $delete is true, delete it, otherwise set bound macro to undef)
-# Returns       : The result of delete function or undef/empty list, depending on the context
-# Parameters    : string $context -- context in which the binding is being deleted
-#                 string $key     -- key or key combination, e.g. 'Ctrl+x'
-#                 bool $delete    -- if set to true, binding is deleted, otherwise the macro is just set to undef
+# Usage         : removeFilelistsDialog($grp)
+# Purpose       : Create window with a list of deletable filelists and optionally 
+#                 remove some of them on user's request
+# Returns       : Undef/empty list
+# Parameters    : hash_ref $grp -- reference to hash containing TrEd options
 # Throws        : no exception
-# Comments      : ...
-# See Also      : bind_key(), get_binding_for_key(), get_bindings_for_macro()
+# Comments      : Called for menu item File -> File Lists -> Remove File Lists, needs Tk
+# See Also      : TrEd::Query::User::new_query(),
 sub removeFilelistsDialog {
     my ($grp) = @_;
 
-    # _dump_filelists("removeFilelistsDialog", \@filelists);
+    # create list of triples: Filelist, its name and its name lowercased
     my @lists = sort { $a->[1] cmp $b->[1] }
         grep {
-                $_->[1] ne 'Default'
-            and $_->[1] ne $TrEd::Bookmarks::FILELIST_NAME
-            and ( $filelist_from_extension{ $_->[0] } || 0 )
-            != 1
+               $_->[1] ne 'Default'
+            && $_->[1] ne $TrEd::Bookmarks::FILELIST_NAME
+            && ( $filelist_from_extension{ $_->[0] } || 0 ) != 1
         }
-        map { [ $_, $_->name, lc( $_->name ) ] } @filelists;
-    return unless @lists;
+        map { [ $_, $_->name, lc( $_->name ) ] }
+        @filelists;
+
+    return if !@lists;
     my $i         = 'A';
     my $selection = [ $i . '.  ' . $lists[0]->[1] ];
     my $indexes   = TrEd::Query::List::new_query(
@@ -909,8 +890,8 @@ sub removeFilelistsDialog {
     ) || return;
     return
         unless (
-        @$selection
-        and TrEd::Query::User::new_query(
+        @{$selection}
+        && TrEd::Query::User::new_query(
             $grp->{top},
             "Realy remove " . scalar(@$selection) . " file list(s)?\n",
             -bitmap  => 'question',
@@ -918,47 +899,57 @@ sub removeFilelistsDialog {
             -buttons => [ 'Remove', 'Cancel' ]
         ) eq 'Remove'
         );
-    deleteFilelist( $grp, map $_->[0], @lists[@$indexes] );
+    deleteFilelist( $grp, map $_->[0], @lists[@{$indexes}] );
+    return;
 }
 
 #######################################################################################
-# Usage         : add_new_filelist(..)
-# Purpose       : ...
-# Returns       : ..
-# Parameters    : hash_ref $grp
-#                 Filelist ref $fl
-#                 Tk::Widget $top
-# Throws        : ..
-# Comments      : ..
-# See Also      : ..
+# Usage         : add_new_filelist($grp, $fl, $top)
+# Purpose       : Add new filelist $fl, resolve possible conflict in names of filelists
+# Returns       : In case of no collision (and also after renaming new filelist, if it collided),
+#                 the $fl filelist is returned. If a collision in names of the filelists occurs, 
+#                 there are two possible return values, depending on user's choice:
+#                 a) if users cancels the adding, the already existing colliding filelist is returned
+#                 b) if users wishes to replace the already existing colliding filelist,
+#                 colliding filelist is returned, too, but this time it contains all the information
+#                 from the new filelist $fl.
+#                 If $fl is not defined, undef/empty string is returned.
+# Parameters    : hash_ref $grp -- reference to hash containing TrEd options
+#                 Filelist $fl -- filelist to be added
+#                 Tk::Widget $top -- top widget for creating dialogs
+# Throws        : If the name of filelist $fl could not be determined, dies with backtrace (from _solve_filelist_conflict)
+# Comments      : If $grp is defined, changes the filelist in TrEd::Dialog::Filelist and calls 
+#                 postponed update (main::updatePostponed)
+# See Also      : _solve_filelist_conflict(), main::updatePostponed(), TrEd::Dialog::Filelist::switch_filelist()
 # TODO: tests
 # was main::addNewFilelist
 sub add_new_filelist {
     my ( $grp, $fl, $top ) = @_;
 
     # dump_filelists("add_new_filelist", \@filelists);
-    return if ( !defined($fl) || $fl eq $EMPTY_STR );
+    return if ( !defined $fl || $fl eq $EMPTY_STR );
 
-    # returns other filelist with same name, or the original
-    # filelist, if the name is unique
-    my ( $l, $cont ) = _solve_filelist_conflict( $top, $fl );
+    # returns other filelist with same name, undef otherwise
+    my ( $colliding, $cont ) = _solve_filelist_conflict( $top, $fl );
 
+    # user cancelled the operation, return
     if ( $cont eq 'return' ) {
-        return $l;
+        return $colliding;
     }
 
-    if ($l) {
-        @{ $l->list_ref } = $fl->list();
-        $l->filename( $fl->filename() );    # set filename
-        $l->expand();
+    if ($colliding) {
+        # replace information in colliding filelist with info from the new filelist
+        @{ $colliding->list_ref } = $fl->list();
+        $colliding->filename( $fl->filename() );
+        $colliding->expand();
         if ($grp) {
             $TrEd::Dialog::Filelist::current_filelist = undef;
-            TrEd::Dialog::Filelist::switch_filelist( $grp, $l );
+            TrEd::Dialog::Filelist::switch_filelist( $grp, $colliding );
         }
         undef $fl;
-        return $l;
+        return $colliding;
     }
-    if ( not defined( $fl->name() ) or $fl->name() eq $EMPTY_STR ) {
+    if ( !defined $fl->name() or $fl->name() eq $EMPTY_STR ) {
         undef $fl;
         return;
     }
@@ -970,25 +961,43 @@ sub add_new_filelist {
     return $fl;
 }
 
+
+#######################################################################################
+# Usage         : deleteFilelist($grp, @filelists)
+# Purpose       : Remove filelists which are elements of @filelists from TrEd and also from disk
+#                 if they are placed in standard location (~/.tred.d directory)
+# Returns       : Undef/empty list
+# Parameters    : hash_ref $grp -- reference to hash containing TrEd options
+#                 array of Filelists @lists -- filelists to remove
+# Throws        : Carps if @lists contains item which is not a reference.
+# Comments      : Does nothing if there is nothing to delete.
+# See Also      : main::updatePostponed(), TrEd::Dialog::Filelist::switch_filelist()
+# TODO: tests
+# was main::deleteFilelist
 sub deleteFilelist {
     my ( $grp, @lists ) = @_;
 
-    # dump_filelists("deleteFilelist", \@filelists);
+    # filter out Default filelist, Bookmarks filelist and filelists from extensions
     @lists = grep {
-        (   ref($_)
+        (   ref $_
             ? ( ( $filelist_from_extension{$_} || 0 ) != 1 )
-            : do { carp("deleteFilelist: $_ is not a filelist object!"); 0 }
+            : do { carp("deleteFilelist: $_ is not a Filelist object!"); 0 }
             )
             and $_->name !~ /^(Default|Bookmarks)$/
     } @lists;
+    return if !@lists;
+
     my %to_delete;
     @to_delete{@lists} = ();
-    return unless @lists;
+
     print "Removing filelists " . join( ",", map $_->name(), @lists ) . "\n"
         if $tredDebug;
-    @filelists = grep { !exists( $to_delete{$_} ) } @filelists;
+    # remove Filelists which are being deleted from @filelists array
+    @filelists = grep { !exists $to_delete{$_} } @filelists;
+
+    # delete filelist from standard location (~.tred.d/...)
     for my $list (@lists) {
-        if ( ( $filelist_from_extension{$list} || 0 ) == 2 ) {
+        if ( exists $filelist_from_std_location{$list} ) {
             my $fn = $list->filename();
             if ($fn) {
                 print "Deleting filelist file $fn\n" if $tredDebug;
@@ -996,13 +1005,16 @@ sub deleteFilelist {
             }
         }
     }
+
+    # take care of current filelist, if it was deleted, switch to 'Default' one
     if ( defined $TrEd::Dialog::Filelist::current_filelist
         && exists( $to_delete{$TrEd::Dialog::Filelist::current_filelist} ) )
     {
         $TrEd::Dialog::Filelist::current_filelist = undef;
         TrEd::Dialog::Filelist::switch_filelist( $grp, 'Default' );
     }
-    undef @lists;
+
+    # update menu with opened files and filelists
     main::updatePostponed($grp);
     return;
 }

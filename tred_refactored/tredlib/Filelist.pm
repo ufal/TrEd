@@ -615,6 +615,34 @@ sub file_pattern {
 }
 
 #######################################################################################
+# Usage         : $fl->entry_path($index)
+# Purpose       : Return pattern and file which are located at position n in the filelist
+# Returns       : Undef/empty list if there is no file at index $index, string which contains
+#                 pattern and file name delimited by tab is returned otherwise.
+# Parameters    : scalar $index -- index of the filelist entry whose path is returned
+# Throws        : no exception
+# See Also      : file_at(), file_pattern()
+# was filelistEntryPath
+sub entry_path {
+    my ( $self, $index ) = @_;
+    return if ( !ref $self );
+
+    my $file = $self->file_at($index);
+    my $pattern = $self->file_pattern($index);
+
+    # some mambo-jumbo to supress complaints about undef
+    return if ( !defined $file );
+
+    # $file is defined now
+    # if $pattern is not defined, $file is not equal to $pattern, 
+    # we should return "$pattern\t$file", so skip $pattern
+    if ( !defined $pattern ) {
+        return "\t$file";
+    }
+    return $file eq $pattern ? $file : "$pattern\t$file";
+}
+
+#######################################################################################
 # Usage         : $filelist->add($position, @patterns)
 # Purpose       : Insert patterns on the given position in the list and update file list
 # Returns       : 1 if successful, undef/empty list otherwise
@@ -641,7 +669,8 @@ sub add {
     my @filtered_patterns = grep { !( $saw{$_}++ ) }
         grep { defined($_) && $_ ne q{} } @patterns;
 
-# insert into array @{$list_ref} at position $position and don't remove anything
+    # insert into array @{$list_ref} at position $position 
+    # and don't remove anything
     splice @{$list_ref}, $position, 0, @filtered_patterns;
 
     $self->expand();

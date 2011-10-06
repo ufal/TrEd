@@ -30,10 +30,11 @@ our $current_filelist = q{};
 # Parameters    : hash_ref $grp -- reference to hash containing TrEd options
 #                 string $list_name -- name of filelist to switch to
 # Throws        : no exception
-# Comments      : Function can also accept Filelist object as its second argument.
+# Comments      : Function also accepts Filelist object as its second argument.
+#                 This is only a local switch inside the file list Dialog Window,
+#                 it does not affect the current filelist in TrEd (which is handled by 
+#                 TrEd::ManageFilelists::selectFilelist() subroutine)
 # See Also      :
-# this is only a local switch inside the file list dialog window,
-# but returns filelist of a given name as a by-product
 # was main::switchFilelist
 sub switch_filelist {
     my ( $grp, $list_name ) = @_;
@@ -549,11 +550,9 @@ sub show_dialog {
     $midframe->pack(qw/-padx 5 -side left/);
     $rightframe->pack(qw/-padx 5 -side left -expand yes -fill both/);
     $topframe->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
-
-    if ( $grp->{focusedWindow}->{currentFileNo} ) {
-        my $path
-            = TrEd::ManageFilelists::filelistEntryPath( $current_filelist,
-            $grp->{focusedWindow}->{currentFileNo} );
+    my $current_file_no = $grp->{focusedWindow}->{currentFileNo};
+    if ( $current_file_no ) {
+        my $path = $current_filelist->entry_path($current_file_no);
         $t->selectionClear();
         if ( $path ne $EMPTY_STR ) {
             eval {

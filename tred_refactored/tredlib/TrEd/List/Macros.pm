@@ -156,7 +156,15 @@ sub sorted_macro_table {
             $Keys->{$k} ||= $v;
         }
     }
-    my %macro_to_key = reverse %{$Keys};
+    my %macro_to_key; # = reverse %{$Keys}; # this produces warnings for undef values
+    # reverse $Keys hash, ignore undef values
+    foreach my $key_combination (keys %{$Keys}) {
+        if ( defined $Keys->{$key_combination} ) {
+            my $macro = $Keys->{$key_combination};
+            $macro_to_key{$macro} = $key_combination;
+        }
+    }
+
     my %macro_to_menu = map { $Menus->{$_}->[0] => $_ } keys %{$Menus};
 
     my @macroTable
@@ -176,7 +184,7 @@ sub sorted_macro_table {
         push @macroTable, grep { defined( $_->[2] ) }
             map {
             my $macro = $Keys->{$_};
-            exists( $macro_to_menu{$macro} ) ? () : [ undef, $_, $macro ];
+            defined($macro) && exists( $macro_to_menu{$macro} ) ? () : [ undef, $_, $macro ];
             } keys %{$Keys};
     }
     if ( $order_by eq 'K' ) {
