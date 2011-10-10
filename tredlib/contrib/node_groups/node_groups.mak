@@ -1,4 +1,5 @@
 # -*- cperl -*-
+# vim: set ft=perl shiftwidth=2 tabstop=2: 
 package TrEd::NodeGroups;
 
 =head1 node_groups.mak
@@ -164,9 +165,10 @@ sub draw_group {
     } $from,$to;
     my $from_node = $tv->get_obj_pinfo($from->[0]);
     my $to_node = $tv->get_obj_pinfo($to->[0]);
-    my @coords = 
-      (($from_node->parent == $to_node) or 
-	 ($to_node->parent == $from_node)) ?
+    my @coords =
+      (($from_node->parent == $to_node) or
+       ($to_node->parent == $from_node) or
+       ($from_node == $to_node)) ?
 	   (
 	     $from->[1],
 	     $from->[2],
@@ -178,7 +180,6 @@ sub draw_group {
 		$from->[2],
 		$from->[1],
 		$from->[2]-$raise*$scale_factor,
-		$to_node != $from_node ? (
         (
 		  ($from->[2]<$to->[2]) ? (
 		    $to->[1],
@@ -193,7 +194,7 @@ sub draw_group {
 
 		$to->[1],
 		$to->[2],
-	    ):());
+        );
     $c->createLine(
       (map { $_-$xshift*$scale_factor*$group_no } @coords),
       -capstyle=>'round',
