@@ -216,7 +216,7 @@ LOOP:
 
 #######################################################################################
 # Usage         : selectFilelistDialog($grp)
-# Purpose       : 
+# Purpose       : Allow user to select new filelist from a GUI window
 # Returns       : 
 # Parameters    : hash_ref $grp -- reference to hash containing TrEd options
 # Throws        : no exception
