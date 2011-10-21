@@ -1841,7 +1841,7 @@ sub printThis {
         {
             $err = 0;
             $print_opts = TrEd::Dialog::Print::show_dialog($grp) || return;
-            my $one_per_file = delete $print_opts->{-onePerFile};
+            $one_per_file = delete $print_opts->{-onePerFile};
             if ( $print_opts->{-format} eq 'PDF'
                  && (  !$grp->{ttfonts}
                     || !$grp->{ttfonts}->{ $printOptions->{ttFont} } )
