@@ -24,7 +24,7 @@ require TrEd::Print;
 TrEd::Utils::find_win_home();
 
 my %opts =
-    map { 
+    map {
       local $_=$_;
       s/^--/-/;
       $_;
@@ -41,7 +41,7 @@ my $output_dirname = delete $opts{'-out-dir'};
   if (ref($grp) eq 'HASH') {
     bless $grp, 'BTrEd::Print::Window';
   }
-  
+
   package main;
   import TrEd::Utils ':all';
 
@@ -51,6 +51,7 @@ my $output_dirname = delete $opts{'-out-dir'};
   sub __run_hook {
     my $treeview = shift;
     my $win = shift;
+    TredMacro::GotoTree(1 + $win->{treeNo});
     local $win->{treeView} = $treeview;
     my $context = $win->{macroContext} || 'TredMacro';
     my $ret = TrEd::Macros::do_eval_hook($win,$context,@_);
@@ -218,7 +219,7 @@ btred -qm print.btred -j '*' [<btred-options>] -o <print-options> -- <file(s)>
 This script similar functionality as the Print dialog in TrEd.
 
 By default the script creates an A4 PDF file consisting of all trees
-of the current file. 
+of the current file.
 
 The resulting files are named based on the input filename using the
 usual btred file-renaming flags (-r, -s, -p, -a). Unless -a flag is
