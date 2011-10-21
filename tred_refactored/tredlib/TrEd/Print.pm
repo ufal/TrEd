@@ -152,10 +152,9 @@ sub _dirs {
     my $ds = $TrEd::File::dir_separator;
     my @dirs;
     if ( opendir( my $dd, $dir ) ) {
-        @dirs
-            = map { ( "${dir}${ds}$_", _dirs("${dir}${ds}$_") ) }
-            grep  { -d "${dir}${ds}$_" }
-            grep  { !/^\.*$/ } readdir($dd);
+        @dirs = map { ( "${dir}${ds}$_", _dirs("${dir}${ds}$_") ) }
+            grep { -d "${dir}${ds}$_" }
+            grep { !/^\.*$/ } readdir($dd);
         closedir $dd;
     }
     else {
@@ -207,8 +206,7 @@ sub get_ttf_fonts {
             if ( ref $opts->{search_callback} ) {
                 $opts->{search_callback}->( $path, $i++, scalar(@dirs) );
             }
-            push @files,
-                grep { -f $_ }
+            push @files, grep { -f $_ }
                 grep {/\.[to]tf$/i}
                 map { File::Spec->catfile( $path, $_ ) } readdir($dh);
             closedir $dh;
@@ -759,40 +757,25 @@ sub print_trees {
                     }
                 }
 
+                my %final_opts = (
+                    -width     => $width,
+                    -height    => $height,
+                    -grayscale => !$printColors,
+                    -scale     => [ $scale, $scale ],
+                    -translate => [
+                        $hMargin + ( $pagewidth - $width * $scale ) / 2,
+                        $vMargin + ( $pageheight - $height * $scale ) / 2
+                    ],
+                    -balloon => $treeView->get_CanvasBalloon,
+                );
                 if ($rotate) {
-                    $P->draw_canvas(
-                        $c,
-                        -width     => $width,
-                        -height    => $height,
-                        -grayscale => !$printColors,
-                        -scale     => [ $scale, $scale ],
-                        -rotate    => -90,
-                        -translate => [
-                            $hMargin + ( $pagewidth - $height * $scale ) / 2,
-                            $vMargin + ( $pageheight + $width * $scale ) / 2
-                        ],
-                        -balloon => $treeView->get_CanvasBalloon,
-                        @opts,
-                    );
+                    $final_opts{-rotate}    = -90;
+                    $final_opts{-translate} = [
+                        $hMargin + ( $pagewidth - $height * $scale ) / 2,
+                        $vMargin + ( $pageheight + $width * $scale ) / 2
+                    ];
                 }
-                else {
-                    $P->draw_canvas(
-                        $c,
-                        -width     => $width,
-                        -height    => $height,
-                        -grayscale => !$printColors,
-
-                        # -rotate => -90,
-                        -scale     => [ $scale, $scale ],
-                        -translate => [
-                            $hMargin + ( $pagewidth - $width * $scale ) / 2,
-                            $vMargin + ( $pageheight - $height * $scale ) / 2
-                        ],
-                        -balloon => $treeView->get_CanvasBalloon,
-                        @opts,
-                    );
-                }
-###	last; # only one page for now
+                $P->draw_canvas( $c, %final_opts, @opts );
             }
             if ($toSVG) {
                 _msg("saving SVG to $fil\n");
