@@ -52,21 +52,24 @@ sub draw_group {
 
     define_stipples($c);
     my $color = $opts->{color}
-        || ( $opts->{colors}
+        || (
+          $opts->{colors}
         ? $opts->{colors}[ $group_no - 1 ]
-        : $colors[ $group_no - 1 ] );
+        : $colors[ $group_no - 1 ]
+        );
     my $stipples = $opts->{stipples};
     my $stipple  = $opts->{stipple}
-        || ( $stipples
+        || (
+          $stipples
         ? $stipples->[ ( $group_no - 1 ) % @$stipples ]
-        : stipple( $c, $group_no - 1 ) );
+        : stipple( $c, $group_no - 1 )
+        );
     my $xshift = defined $opts->{x_shift} ? $opts->{x_shift} : 0;
     my $raise  = defined $opts->{y_shift} ? $opts->{y_shift} : 20;
     my $group_width
         = defined $opts->{group_line_width} ? $opts->{group_line_width} : 30;
 
-    my @sel
-        = map {
+    my @sel = map {
         my @c = $c->coords($_);
         [ $_, ( $c[0] + $c[2] ) / 2, ( $c[1] + $c[3] ) / 2, @c ]
         } grep {defined}
@@ -174,7 +177,9 @@ sub draw_group {
         }
         Graph::Kruskal::define_edges( map {@$_} @graph_edges );
         @mst = Graph::Kruskal::kruskal();
-        shift @mst unless $mst[0]; # kruskal() returns the array with empty 0th element
+        shift @mst
+            unless $mst[0]
+        ;    # kruskal() returns the array with empty 0th element
     }
     for my $mst_edge (@mst) {
         my $from = $sel[ $mst_edge->{from} - 1 ];
@@ -188,25 +193,22 @@ sub draw_group {
             = (
                    ( $from_node->parent == $to_node )
                 or ( $to_node->parent == $from_node )
-            )
-            ? ( $from->[1], $from->[2], $to->[1], $to->[2], )
+                or ( $from_node == $to_node )
+            ) ? ( $from->[1], $from->[2], $to->[1], $to->[2], )
             : (
             $from->[1],
             $from->[2],
             $from->[1],
             $from->[2] - $raise * $scale_factor,
-            $to_node != $from_node
-            ? ( (     ( $from->[2] < $to->[2] )
-                    ? ( $to->[1], $from->[2] - $raise * $scale_factor, )
-                    : ( $from->[1], $to->[2] - $raise * $scale_factor, )
-                ),
-                $to->[1],
-                $to->[2] - $raise * $scale_factor,
+            (     ( $from->[2] < $to->[2] )
+                ? ( $to->[1], $from->[2] - $raise * $scale_factor, )
+                : ( $from->[1], $to->[2] - $raise * $scale_factor, )
+            ),
+            $to->[1],
+            $to->[2] - $raise * $scale_factor,
 
-                $to->[1],
-                $to->[2],
-                )
-            : ()
+            $to->[1],
+            $to->[2],
             );
         $c->createLine(
             ( map { $_ - $xshift * $scale_factor * $group_no } @coords ),
@@ -334,7 +336,7 @@ sub draw_group {
     my %stipples        = ( %normal_stipples, %dense_stipples );
     my @normal_stipples = sort( keys(%normal_stipples) );
     my @dense_stipples  = sort( keys(%dense_stipples) );
-    my @stipples        = (@normal_stipples, @dense_stipples);
+    my @stipples        = ( @normal_stipples, @dense_stipples );
 
     sub define_stipples {
         my $c = shift;
