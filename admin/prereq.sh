@@ -143,6 +143,14 @@ else
 	echo "Please, install Nullsoft Scriptable Install System >= 2.46."; 
 fi;
 
+XSLTPROC=`which xsltproc`
+if [ -x "$XSLTPROC" ]; then
+	echo "xsltproc found, OK."
+else 
+	echo "Please, install xsltproc."
+	     exit 1;
+fi
+
 ## create or update Treex-PML directory
 if [ -d "$TREEX_PML_DIR" ];then 
 	cd $TREEX_PML_DIR 
