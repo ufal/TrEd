@@ -3419,7 +3419,7 @@ sub _present_attribute {
     $append="*" if @$val > 1;
     $val = $val->[0];
   }
-  return $val.$append;
+  return defined $val ? $val.$append : $append;
 }
 
 

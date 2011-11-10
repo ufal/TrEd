@@ -5919,6 +5919,13 @@ sub doEvalMacro {
         Redraw         => 'file'
     );
 
+    my $undo = TrEd::Undo::prepare_undo(
+                    $win,
+                    TrEd::Macros::findMacroDescription(
+                        $win, $macro,
+                        TrEd::Undo::undo_type_id('UNDO_DISPLAYED_TREES')
+                    )
+                );
     my $result = do_eval_macro( $win, $macro );
     my $current_win = get_macro_variable('grp');
     if ( $win != $current_win
@@ -5939,13 +5946,6 @@ sub doEvalMacro {
         }
         else {
             if ($file_not_saved) {
-                my $undo = TrEd::Undo::prepare_undo(
-                    $win,
-                    TrEd::Macros::findMacroDescription(
-                        $win, $macro,
-                        TrEd::Undo::undo_type_id('UNDO_DISPLAYED_TREES')
-                    )
-                );
                 TrEd::Undo::save_undo( $win, $undo );
                 $win->{FSFile}->notSaved(1);
                 TrEd::Bookmarks::last_action_bookmark( $win->{framegroup},

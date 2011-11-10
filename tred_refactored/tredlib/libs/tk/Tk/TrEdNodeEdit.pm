@@ -1294,7 +1294,7 @@ sub add_member {
   }
 
   my ($mdecl, $mdecl_type);
-  $label = $attr_name if $label eq "";
+  $label = $attr_name if (!defined $label || $label eq "");
   if (!ref($member) and $member =~ /^#/) {
     $mdecl = $member;
   } elsif (ref($member)) {
