@@ -1,9 +1,12 @@
 #!/bin/bash
-# Patches Tk-804.029 package
+# Patches Tk-804.030 package
+# patch for gcc if it contains full path on win32 machine instead of just gcc..
 
+# These were patches for 804.029:
 # Applies two patches, for further information, see
 # win32 64bit patch: 	http://www.mail-archive.com/win32-vanilla@perl.org/msg00249.html, https://rt.cpan.org/Public/Bug/Display.html?id=60707
 # MacOS X libpng patch:	https://rt.cpan.org/Public/Bug/Display.html?id=58011
+
 
 EXTDIR=`dirname $(readlink -fen $0)`
 . "$EXTDIR/../../admin/env.sh"
@@ -29,9 +32,11 @@ cd $DIR_NAME && \
 
 ## this is where actual patching starts
 
-patch -p1 -i ../tk-804.029-64bit-strawberry-win32.patch && \
-patch -p1 -i ../tk-804.029-libpng-macos.patch && \
-patch -p1 -i ../tk-804.029-full-gcc-path-win32.patch && \
+# these are already patched in Tk 804.030
+# patch -p1 -i ../tk-804.029-64bit-strawberry-win32.patch && \
+# patch -p1 -i ../tk-804.029-libpng-macos.patch && \
+# this is a new patch for 804.030
+patch -p1 -i ../Tk-804.030-full-gcc-path-win32.patch && \
 ## end of patching
 
 cd $EXTDIR
@@ -46,7 +51,7 @@ rm $PACKAGE_NAME && \
 if [ -z $DIR_NAME ]; then 
 	echo "Not removing, don't have proper file name";
 else 
-	rm -r "$DIR_NAME/";
+	rm -rf "$DIR_NAME/";
 fi && \
 
 touch "$TRED_DPAN_DIR/dpan/authors/id/D/DP/DPAN/$PACKAGE_NAME.patched" && \
