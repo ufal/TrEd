@@ -28,8 +28,9 @@
 	!insertmacro MUI_PAGE_DIRECTORY
 	; Page 5 -- Choose TrEd components (probably extensions)
 	!insertmacro MUI_PAGE_COMPONENTS
-	; Page 6 -- Install Perl modules from CPAN (or ppd modules)
-	Page custom nsdInstallPerlModules 
+	; Page 6 -- Install Perl modules from CPAN
+	; Page custom nsdInstallPerlModules 
+	; Page cancelled
 	; maybe later -- check and report which modules are not installed
 	; nsdInstallPerlModulesLeave
 	
@@ -52,6 +53,7 @@
 
   
 ;--------------------------------
+
 
 ;; Be careful, all variables in NSIS are global, 
 ;; so things can get pretty messy...
@@ -114,8 +116,6 @@ Var DownLink
 ; Name of Perl installer (both on their servers and locally)
 Var PerlInstallerName
 
-; Window handle (shared)
-Var hwnd
 
 ; working directory for TrEd
 Var tredDataDir
@@ -131,6 +131,22 @@ Var PerlConfigArchname
 ; original PATH environment variable
 Var OriginalPath
 
+; path where strawberry perl is installed
+Var StrawberryDefaultPath
+
+; perl modules installer thread
+Var ThreadRunning
+
+; path to log file for CPAN modules installation
+Var ModulesLogFile
+
+; number of lines in log file
+Var LogFileLineCount
+
+; var holding count of lines in generic line counting function 
+Var CountLines
+
+
 Function .onInit
 	; we don't know yet whether any kind of perl is installed
 	StrCpy $PerlVersionOk "0"
@@ -138,23 +154,27 @@ Function .onInit
 	; save original path env variable
 	ReadEnvStr $OriginalPath "PATH"
 	
+	; default path where strawberry perl is usually installed
+	StrCpy $StrawberryDefaultPath "C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin"
+	
 	; try to find perl executable and version
 	Call testPerl
-	
+	; this is the default version that will be downloaded if the user does not have any perl installed
 	StrCpy $DesiredPerlVersion "5.12"
 	StrCpy $CustomPerlFolder ""
 	; does the user need to configure that?
-	StrCpy $tredDataDir "$LOCALAPPDATA\tred_data"	
+	StrCpy $tredDataDir "$LOCALAPPDATA\tred_data"
 FunctionEnd
-
 
 ; Checks whether Perl exists and its version 
 Function testPerl
 	; set original PATH (if the user changes his decision to go from custom perl path to default one)
-	StrCpy $R0 "$OriginalPath"
+	; prepend default strawberry path if it is installed 
+	; (if Active Perl is installed too, Strawberry should have higher priority)
+	StrCpy $R0 "$StrawberryDefaultPath;$OriginalPath"
 	System::Call 'Kernel32::SetEnvironmentVariableA(t, t) i("PATH", R0).r0'
 	StrCmp $0 0  "" +2
-		MessageBox MB_OK "Can't set environment variable"
+		MessageBox MB_OK "Can't set environment variable, won't be able to find Perl."
 	
 	; In case we use Perl distribution which is not in the PATH
 	${If} $CustomPerlFolder == ""
@@ -165,7 +185,7 @@ Function testPerl
 			; modify PATH variable (for this installer only)
 			ReadEnvStr $R0 "PATH"
 			StrCpy $R0 "$CustomPerlFolder;$R0;"
-			; MessageBox MB_OK "$R0"
+			; MessageBox MB_OK "set path to $R0"
 			System::Call 'Kernel32::SetEnvironmentVariableA(t, t) i("PATH", R0).r0'
 			StrCmp $0 0 "" +2
 				MessageBox MB_OK "Could not set environment variable"
@@ -173,7 +193,7 @@ Function testPerl
 			
 	${EndIf}
 	
-	nsExec::ExecToStack 'perl -e "if($] =~ /5\.012/) {print \$\"5.12\$\"}; if($] =~ /5\.010/) {print \$\"5.10\$\"}; if($] =~ /5\.008/) {print \$\"5.8\$\"};"'
+	nsExec::ExecToStack 'perl -e "if($] =~ /5\.014/) {print \$\"5.14\$\"}; if($] =~ /5\.012/) {print \$\"5.12\$\"}; if($] =~ /5\.010/) {print \$\"5.10\$\"}; if($] =~ /5\.008/) {print \$\"5.8\$\"};"'
 	Pop $RetVal
 	Pop $PerlVersion
 	${If} $RetVal == "0"
@@ -200,7 +220,7 @@ Function testPerl
 	${EndIf}
 	
 	${If} $PerlFlavour == "Active"
-		StrCpy $PerlMsg "Active Perl is no longer supported. Please install Strawberry Perl 5.8, 5.10 or 5.12, or choose a directory which contains Strawberry Perl executable."
+		StrCpy $PerlMsg "Active Perl is no longer supported. Please install Strawberry Perl 5.10 or 5.12, or choose a directory which contains Strawberry Perl executable."
 		Goto done
 	${EndIf}
 	
@@ -215,8 +235,11 @@ Function testPerl
 	${ElseIf} $PerlVersion == "5.12"
 		StrCpy $PerlMsg "$PerlFlavour Perl $PerlVersion found in $PerlPath, OK."
 		StrCpy $PerlVersionOk "1"
+	${ElseIf} $PerlVersion == "5.14"
+		StrCpy $PerlMsg "$PerlFlavour Perl $PerlVersion found in $PerlPath, OK."
+		StrCpy $PerlVersionOk "1"
 	${Else}
-		StrCpy $PerlMsg "Perl version not supported. Please install Strawberry Perl 5.8, 5.10 or 5.12, or choose a directory containing Perl executable."
+		StrCpy $PerlMsg "Perl version not supported. Please install Strawberry Perl 5.10 or 5.12, or choose a directory containing Perl executable."
 	${EndIf}
 	done:
 FunctionEnd

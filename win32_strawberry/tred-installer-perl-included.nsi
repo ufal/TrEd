@@ -60,7 +60,8 @@ Function installStrawberryPerl
 		; expand Path read before ^^ into OriginalPath
 		ExpandEnvStrings $OriginalPath $0
 		
-		StrCpy $R0 "$OriginalPath"
+		;StrCpy $R0 "$OriginalPath"
+		StrCpy $R0 "$StrawberryDefaultPath;$OriginalPath"
 		System::Call 'Kernel32::SetEnvironmentVariableA(t, t) i("PATH", R0).r0'
 		StrCmp $0 0  "" +2
 			MessageBox MB_OK "Can't set environment variable"
