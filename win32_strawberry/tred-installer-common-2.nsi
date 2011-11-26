@@ -102,64 +102,108 @@ Function nsdChoosePerlPageLeave
 	
 FunctionEnd
 
-; Enables or disables Next, Back and Cancel buttons (ie during isntallation of Perl modules)
-Function enableNext
 
-  GetDlgItem $0 $HWNDPARENT 1
-  EnableWindow $0 $R0
-;  GetDlgItem $0 $HWNDPARENT 2
-;  EnableWindow $0 $R0
-  GetDlgItem $0 $HWNDPARENT 3
-  EnableWindow $0 $R0
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
+;; Easily opens files with more options than FileOpen 
+;;   P1 :o: Handle returned 
+;;   P2 :i: File name 
+;;   P3 :i: Access Mode 
+;;         'r'  : Readonly 
+;;         'w'  : Writeonly 
+;;         'rw' : Read+Write 
+;;   P4 :i: Share mode 
+;;         ''    : None 
+;;         'r'   : Readonly 
+;;         'rw'  : Read+Write 
+;;         'rwd' : Read+Write+Delete 
+;;   P5 :i: Create mode 
+;;         ''  : Open existing only 
+;;         'c' : Create if not exist 
+;;         'o' : Create and Overwrite 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
+!define FileOpenEx "!insertmacro _FileOpenEx" 
+!macro _FileOpenEx _Handle_ _File_ _Access_ _Share_ _Create_ 
+   Push "${_Create_}" 
+   Push "${_Share_}" 
+   Push "${_Access_}" 
+   Push "${_File_}" 
+   Call FileOpenEx 
+   Pop ${_Handle_} 
+!macroend 
 
-FunctionEnd
+Function FileOpenEx  ;; $0:File, $1:Access, $2:Sharing, $3:Create 
+   Exch $0 
+   Exch 
+   Exch $1 
+   Exch 2 
+   Exch $2 
+   Exch 3 
+   Exch $3 
 
+   StrCmp "r" $1 0 +3 
+      StrCpy $1 0x80000000  ;; GENERIC_READ 
+      Goto +6 
+   StrCmp "w" $1 0 +3 
+      StrCpy $1 0x40000000  ;; GENERIC_WRITE 
+      Goto +3 
+   StrCmp "rw" $1 0 +3 
+      StrCpy $1 0xC0000000  ;; GENERIC_READ | GENERIC_WRITE 
 
-Function nsdInstallPerlModules 
-	!insertmacro MUI_HEADER_TEXT "Perl modules installation" "Installing TrEd Perl dependencies"
-	nsDialogs::Create 1018
-	Pop $Dialog
+   StrCmp "" $2 0 +3 
+      StrCpy $2 0   ;; FILE_SHARE_NONE 
+      Goto +9 
+   StrCmp "r" $2 0 +3 
+      StrCpy $2 1   ;; FILE_SHARE_READ 
+      Goto +6 
+   StrCmp "rw" $2 0 +3 
+      StrCpy $2 3   ;; FILE_SHARE_READ | FILE_SHARE_WRITE 
+      Goto +3 
+   StrCmp "rwd" $2 0 +3 
+      StrCpy $2 7   ;; FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE 
 
-	${If} $Dialog == error
-		Abort
-	${EndIf}
+   StrCmp "" $3 0 +3 
+      StrCpy $3 3   ;; OPEN_EXISTING 
+      Goto +6 
+   StrCmp "c" $3 0 +3 
+      StrCpy $3 4   ;; OPEN_ALWAYS 
+      Goto +3 
+   StrCmp "o" $3 0 +3 
+      StrCpy $3 2   ;; CREATE_ALWAYS 
+
+   System::Call 'Kernel32::CreateFile(t, i, i, i, i, i, i) i (r0, r1, r2, 0, r3, 0x80, 0) .r2'  ;; Open/Create file 
+
+   Pop $3 
+   Pop $0 
+   Pop $1 
+   Exch $2 
+FunctionEnd  
+
+Var LogFile_
+
+; counts number of lines in a file, comes from http://nsis.sourceforge.net/Get_number_of_lines_in_text_file
+Function LineCount
+	Exch $R0
+	Push $R1
+	Push $R2
+	;MessageBox MB_OK "File $R0"
+	StrCpy $CountLines "0"
+	;DetailPrint "Opening $R0 now..."
+	${FileOpenEx} $LogFile_ $R0 "r" "rwd" ""
+	IfErrors done
+	;DetailPrint "open successful"
+	loop:
+		ClearErrors
+		FileRead $LogFile_ $R1
+		IfErrors +3
+		IntOp $CountLines $CountLines + 1
+	Goto loop
 	
-	; show some basic perl info
-	${NSD_CreateLabel} 0 0 100% 12u "Installing modules for $PerlFlavour Perl"
-	Pop $Label
-	; Let the user see the basic log from installation of Perl modules
-	nsDialogs::CreateControl EDIT \
-		"${__NSD_Text_STYLE}|${WS_VSCROLL}|${ES_MULTILINE}|${ES_WANTRETURN}" \
-		"${__NSD_Text_EXSTYLE}" \
-		0 20 100% 70% \
-		"Installing TrEd dependencies...$\r$\n"
-		Pop $hwnd
-	
-	; Extract local cpan files to temporary installation directory
-	SetOutPath "$TEMP\local_cpan"
-	File /r "resources\cpan_script\*.*"
-	
-	StrCpy $R0 0
-	Call enableNext
-	StrCpy $R0 1
-	GetFunctionAddress $R2 enableNext
-	; When user chooses other perl, PATH is modified, so we are safe running perl without specifying path
-	; We have to convert install_base to short (8.3) file name, because if it contains spaces, the install would fail badly, 
-	; MakeMaker can not handle such names properly
-	; For the short path name to work, we actually need the directory to exist...
-	CreateDirectory $INSTDIR
-	GetFullPathName /SHORT $INSTDIR_SHORT $INSTDIR
-	
- 	ExecDos::exec /NOUNLOAD /ASYNC /TOWINDOW /ENDFUNC=$R2 "cmd.exe /c perl $\"$TEMP\local_cpan\dpan\install_deps.pl$\" --install-base $INSTDIR_SHORT\dependencies --log $INSTDIR_SHORT\dependencies-install-log.txt 2>&1" "" $hwnd
-	Pop $R9
-	
-	nsDialogs::Show
-	
-	ExecDos::wait $R9
-	Pop  $R4
-	
-	; clean up
-	RMDir /r "$TEMP\local_cpan"
+	done:
+	FileClose $LogFile_
+	StrCpy $R0 $CountLines
+	Pop $R2
+	Pop $R1
+	Exch $R0
 FunctionEnd
 
 
@@ -196,9 +240,61 @@ FunctionEnd
 ;--------------------------------
 ;Installer Sections
 
+; the progress of perl modules installation
+Var Percent_finished
 
 Section "TrEd" SecTrEd
+	
+	; clean up
+	RMDir /r "$TEMP\local_cpan"
+	DetailPrint "Zmazany temp!"
 
+	; Extract local cpan files to temporary installation directory
+	SetOutPath "$TEMP\local_cpan"
+	File /r "resources\cpan_script\*.*"
+	
+	CreateDirectory $INSTDIR
+	GetFullPathName /SHORT $INSTDIR_SHORT $INSTDIR
+	StrCpy $ModulesLogFile "$INSTDIR_SHORT\dependencies-install-log.txt"
+
+	;DetailPrint "Starting Perl Modules installation..."
+	ExecDos::exec /NOUNLOAD /ASYNC /DETAILED /ENDFUNC=$R2 "cmd.exe /c perl $\"$TEMP\local_cpan\dpan\install_deps.pl$\" --install-base $INSTDIR_SHORT\dependencies 1> $ModulesLogFile 2>&1"
+	Pop $R9
+		
+	ExecDos::isdone /NOUNLOAD $R9
+	Pop $ThreadRunning
+	
+
+	${While} $ThreadRunning = 0
+		; count number of lines
+		Push $ModulesLogFile ;text file
+		Call LineCount
+		Pop $LogFileLineCount
+		
+		; 5500 is number of lines in sample log file installation, 1% ... 55 lines, 
+		; +3 is a little reserve
+		IntOp $Percent_finished $LogFileLineCount / 58
+		DetailPrint "Installing Perl modules, please wait: $Percent_finished % complete...";
+		
+		; update progress bar?
+		
+		; check if thread is running
+		ExecDos::isdone /NOUNLOAD $R9
+		Pop $ThreadRunning
+		
+		; sleep 10 seconds
+		Sleep 10000
+	${EndWhile}
+	
+	StrCpy $Percent_finished "100"
+	DetailPrint "Installing Perl modules, please wait: $Percent_finished % complete...";
+	
+	; clean up
+	RMDir /r "$TEMP\local_cpan"
+	DetailPrint "Temp deleted"
+	
+	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	SetOutPath "$INSTDIR"
 	File /r "tred\*"
 	
@@ -273,7 +369,7 @@ SectionEnd
 	VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "(c) Petr Pajas"
 	VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "Tree Editor"
 	VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "1.4.5.1.3"
-
+;TODO: set product version during release?
 	VIProductVersion "1.4.5.1.3"
 
 ;--------------------------------
