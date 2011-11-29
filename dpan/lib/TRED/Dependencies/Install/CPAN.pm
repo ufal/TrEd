@@ -175,7 +175,9 @@ sub _install_modules {
 	# Configure cpan properly
 	$self->_common_cpan_conf();
 	
+	my $module_count = 0;
 	foreach my $module_name (@{$module_list_ref}){
+		$module_count++;
 		my $special_msg = $self->{'install_config'}->special_module_msg($module_name);
 		print(STDOUT "*** Compiling & installing module $module_count of ". scalar(@{$module_list_ref}) .": $module_name $special_msg\n");
 		
