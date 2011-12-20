@@ -337,7 +337,7 @@ if ($FETCH_FROM_CPAN) {
   }
   if (@missing) {
     die "The following tools are missing on your system. The installation cannot continue.\n"
-      .join('',(map "\t$_\n",@missing))
+      .join('', (map "\t'$_'\n", @missing) )
       ."Please install the missing tools and try again!";
   }
 }
