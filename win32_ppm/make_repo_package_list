@@ -1,9 +1,0 @@
-#!/usr/bin/env xsh
-
-quiet;
-create REPOSITORYSUMMARY;
-cd *;
-my $arch = { shift || "MSWin32-x86-multi-thread-5.8" };
-set @ARCHITECTURE $arch;
-for my $f in { <*.ppd> } cp document($f)/* into .;
-save --file "package.xml";

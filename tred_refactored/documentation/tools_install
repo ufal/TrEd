@@ -1,8 +1,0 @@
-1. copy tools\ directory on c:\ drive as c:\tools
-
-2. setup system environment variable GS_LIB to c:\tools\gv\gs7.00\lib
-
-3. add the following line to TrEd configuration:
-
-   ImageMagickConvert = c:\\tools\\IM\\convert.exe
-
