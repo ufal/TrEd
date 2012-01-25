@@ -4692,11 +4692,13 @@ sub open_url_in_browser {
     my $url = shift;
     if ( $htmlBrowser eq 'DO_NOT_RUN' ) {
     }
-    elsif ( $^O eq 'MSWin32'
-        and eval { require ActiveState::Browser; 1 } )
+    elsif ( $^O eq 'MSWin32' )
     {
-        print STDERR "ActiveState::Browser::open '$url'\n" if $tredDebug;
-        ActiveState::Browser::open("$url");
+        $url =~ s{^file:[/]*([^/])}{file:///$1};
+        $url =~ s{[ ]}{%20}g;
+        my $cmd = "start /B $url";
+        print STDERR "$cmd\n" if $tredDebug;
+        return system($cmd);
     }
     elsif ( $htmlBrowser ne EMPTY ) {
         $htmlBrowser .= " %u" unless ( $htmlBrowser =~ /\%[uf1]/ );
@@ -4704,35 +4706,10 @@ sub open_url_in_browser {
         $cmd =~ s/\%1/$url/g;
         $cmd =~ s/\%[fu]\b/"$url"/g;
         print STDERR "$cmd\n" if $tredDebug;
-        if ( $^O eq 'MSWin32' ) {
-            $cmd = 'start ' . $cmd unless $cmd =~ /^\s*start\s/;
-            if ( $cmd =~ /iexplore.exe/i ) {
-                $cmd =~ s/ -nohome//g;
-                $cmd = 'start /B ' . $cmd;
-            }
-            return system($cmd);
-        }
-        else {
-            return system $cmd. ' &';
-        }
+        return system $cmd. ' &';
     }
     else {
-        if ( $^O eq 'MSWin32' ) {
-            my $browser_key = fetch_from_win32_reg( 'HKEY_LOCAL_MACHINE',
-                q(SOFTWARE\Classes\.html) );
-            if ( $browser_key ne EMPTY ) {
-                $htmlBrowser = fetch_from_win32_reg( 'HKEY_LOCAL_MACHINE',
-                          q(SOFTWARE\Classes\\)
-                        . $browser_key
-                        . q(\shell\open\command) );
-            }
-            unless ( $htmlBrowser ne EMPTY ) {
-                warn "Could not determine default browser.\n"
-                    . "Contextual help may not jump to the correct paragraph.";
-                $htmlBrowser = 'start /B "%1"';
-            }
-        }
-        elsif ( $^O eq 'darwin' ) {
+        if ( $^O eq 'darwin' ) {
             $htmlBrowser = 'open %u';
         }
         elsif ( $ENV{DESKTOP_LAUNCH} ne EMPTY ) {
@@ -4761,7 +4738,7 @@ sub open_url_in_browser {
             $htmlBrowser = $ENV{BROWSER};
         }
         elsif ( $htmlBrowser = TrEd::MinMax::first { which($_) ne EMPTY }
-                                qw(firefox mozilla netscape opera htmlview) )
+                                qw(firefox mozilla netscape opera htmlview chromium chromium-browser) )
         {
 
             # already assigned
