@@ -1,0 +1,1 @@
+c:\perl\site\bin\pp -o setup.exe --clean --compile --gui --icon tred\tredlib\tred.ico tred\devel\winsetup\setup.pl
