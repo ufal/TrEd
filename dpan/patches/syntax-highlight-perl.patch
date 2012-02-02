@@ -1,0 +1,19 @@
+*** MANIFEST	2001-04-06 00:32:16.000000000 +0200
+--- MANIFEST.patched	2011-02-11 05:32:34.852601998 +0100
+***************
+*** 3,9 ****
+  MANIFEST
+  Makefile.PL
+  README
+! Syntax::Highlight::Perl.html
+  lib
+  lib/Syntax
+  lib/Syntax/Highlight
+--- 3,9 ----
+  MANIFEST
+  Makefile.PL
+  README
+! Syntax__Highlight__Perl.POD.html
+  lib
+  lib/Syntax
+  lib/Syntax/Highlight

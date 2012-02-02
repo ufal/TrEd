@@ -1,0 +1,13 @@
+Issues of NSIS installer:
+
+	* If you have both Active Perl and Strawberry Perl installed, Active Perl finds the wrong mingw version (the one installed with Strawberry Perl distribution) and does not install mingw package.
+		Wrong building toolchain is used, which results in a failure to build some packages... (Tk, among others)
+	* Strawberry Perl 5.12 x64 has prbolems with relocation after installation (and the installation crashes on Win7), it always reports as if it was installed in C:\strawberry, 
+		this is a know bug (regression) in latest Strawberry Perl distribution (see https://rt.cpan.org/Public/Bug/Display.html?id=65439)
+	* There is no easy way how to install mingw for 64bit distributions of Active Perl yet (no ppm install mingw). Therefore, these builds require manual installation of modules or using ppm.
+	* 	This can be fixed by installing Microsoft's Windows® Server 2003 SP1 Platform SDK Version:3790.1830, see http://www.activestate.com/blog/2010/10/how-install-cpan-modules-activeperl
+	* If the user has Active Perl x86 and has not used CPAN yet, the mingw and dmake packages has to be installed from the internet, so the internet connection is needed.
+	* ActivePerl mingw installation does not include ranlib, dllwrap, strip and dlltool executables, so it can not build Tk, man this is a nightmare..
+	* Using Strawberry Perl with another instance of MinGW installed can lead to problems during compilation of CPAN modules, since some include paths of the MinGW are before Strawberry
+		Perl's include paths (which is probably a compile-time decision by the team building gcc for Strawberry Perl), so linker complains about symbols, etc... 
+		Fixed in the installer -- using LIBRARY_PATH env variable for now..

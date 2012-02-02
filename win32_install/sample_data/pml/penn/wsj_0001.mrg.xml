@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<trees xmlns:p="http://ufal.mff.cuni.cz/pdt/pml/">
+  <S>
+    <S>
+      <NP>
+        <NP>
+          <NNP lex="Pierre"/>
+          <NNP lex="Vinken"/>
+        </NP>
+        <ADJP>
+          <NP>
+            <CD lex="61"/>
+            <NNS lex="years"/>
+          </NP>
+          <JJ lex="old"/>
+        </ADJP>
+      </NP>
+      <VP>
+        <MD lex="will"/>
+        <VP>
+          <VB lex="join"/>
+          <NP>
+            <DT lex="the"/>
+            <NN lex="board"/>
+          </NP>
+          <PP>
+            <IN lex="as"/>
+            <NP>
+              <DT lex="a"/>
+              <JJ lex="nonexecutive"/>
+              <NN lex="director"/>
+            </NP>
+          </PP>
+          <NP>
+            <NNP lex="Nov."/>
+            <CD lex="29"/>
+          </NP>
+        </VP>
+      </VP>
+    </S>
+  </S>
+  <S>
+    <S>
+      <NP>
+        <NNP lex="Mr."/>
+        <NNP lex="Vinken"/>
+      </NP>
+      <VP>
+        <VBZ lex="is"/>
+        <NP>
+          <NP>
+            <NN lex="chairman"/>
+          </NP>
+          <PP>
+            <IN lex="of"/>
+            <NP>
+              <NP>
+                <NNP lex="Elsevier"/>
+                <NNP lex="N.V."/>
+              </NP>
+              <NP>
+                <DT lex="the"/>
+                <NNP lex="Dutch"/>
+                <VBG lex="publishing"/>
+                <NN lex="group"/>
+              </NP>
+            </NP>
+          </PP>
+        </NP>
+      </VP>
+    </S>
+  </S>
+</trees>

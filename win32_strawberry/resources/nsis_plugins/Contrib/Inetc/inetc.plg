@@ -1,0 +1,36 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: inetc - Win32 Release--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating command line "rc.exe /l 0x409 /fo"debug/inetc.res" /d "NDEBUG" "C:\Documents and Settings\Gringoloco\Desktop\Inetc\Contrib\Inetc\inetc.rc"" 
+Creating temporary file "C:\DOCUME~1\GRINGO~1\LOCALS~1\Temp\RSP295.tmp" with contents
+[
+/nologo /MT /W3 /GX /O1 /I "..\ExDll" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "inetc_EXPORTS" /Fp"debug/inetc.pch" /YX /Fo"debug/" /Fd"debug/" /FD /c 
+"C:\Documents and Settings\Gringoloco\Desktop\Inetc\Contrib\Inetc\inetc.cpp"
+]
+Creating command line "cl.exe @C:\DOCUME~1\GRINGO~1\LOCALS~1\Temp\RSP295.tmp" 
+Creating temporary file "C:\DOCUME~1\GRINGO~1\LOCALS~1\Temp\RSP296.tmp" with contents
+[
+msvcrt.lib kernel32.lib user32.lib gdi32.lib wininet.lib comctl32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /incremental:no /pdb:"debug/inetc.pdb" /machine:I386 /nodefaultlib /out:"..\..\plugins\inetc.dll" /implib:"debug/inetc.lib" /opt:nowin98 
+".\debug\inetc.obj"
+".\debug\inetc.res"
+]
+Creating command line "link.exe @C:\DOCUME~1\GRINGO~1\LOCALS~1\Temp\RSP296.tmp"
+<h3>Output Window</h3>
+Compiling resources...
+Compiling...
+inetc.cpp
+Linking...
+   Creating library debug/inetc.lib and object debug/inetc.exp
+
+
+
+<h3>Results</h3>
+inetc.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

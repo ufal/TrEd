@@ -1,41 +1,77 @@
-Tree Editor TrEd
-================
-Copyright (c) 2000-20010 by Petr Pajas
-This is a free software distributed under GPL - The General Public Licence
-Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html.
+TrEd - Tree Editor - central release/distribution directory
 
-About
------
+Directory structure:
 
-TrEd is a fully customizable and programmable graphical editor and
-viewer for tree-like structures. Among other projects, it was used as
-the main annotation tool for syntactical and tectogrammatical
-annotations in the Prague Dependency Treebank, and for decision-tree
-based morphological annotation of The Prague Arabic Dependency
-Treebank.
+    admin/         - auxiliary scripts used by Makefile
+    dist/          - distribution tree w/ compiled documentation (used to create distribution packages)
+		     This is tree should be considered READ-ONLY, you cannot commit changes from here!
+    extensions/    - TrEd extensions (svn checkout from https://svn.ms.mff.cuni.cz/svn/TrEd/extensions)
+		     You can make changes here and commit, but note that this is also the tree
+		     from which extensions are packaged.
+    tred/          - TrEd working copy (svn checkout from https://svn.ms.mff.cuni.cz/svn/TrEd/trunk)
+		     You can make changes here and commit.
 
-TrEd runs on the following platforms:
+    Treex-PML/     - Treex-PML distribution
 
-    * Microsoft Windows
-    * GNU Linux
-    * Mac OS X
-    * BSD, UNIX, Solaris and other POSIX/UNIX-like systems
+    unix_install/  - packages and installation script for TrEd dependencies
+    win32_install/ - content of the windows setup (except for TrEd itself)
+    win32_ppm/     - Perl module packages for ActivePerl and tools to fetch them
+    Makefile       - makefile for releasing TrEd
+    README         - describes the process of releasing TrEd
 
-Installation
-------------
+The Makefile can:
 
-See http://ufal.mff.cuni.cz/~pajas/tred/index.html
+(A) update the distribution tree from SVN and compile the documentation from POD and DocBook
+(B) build Win32 and UNIX installation packages
+(C) build UNIX dependency package
+(D) create extensions packages in the WWW source tree for the default extension repository
+(E) install TrEd on UFAL's local network (/f/common/{exec,share/tred,lib/tred,doc/tred})
+(F) pre-install extensions pdt20 and pdt_vallex on UFAL's network (/f/common/share/tred-extensions)
 
-Configuration
--------------
+(H) fetch latest versions of dependency packages from CPAN and elsewhere
+(I) test build of dependency packages
+(J) fetch latest versions of dependency packages for Windows version of Active Perl
 
-When the first change to the configuration is made, TrEd tries to save
-it to its default configuration path, usually tred/tredlib/tredrc. If
-this file is not writable, ~/.tredrc is created and used henceforth.
-This file may also by created manually by copying the default
-configuration file (tredlib/tredrc).  Other locally installed files,
-such as extensions and their configuration, is stored in a directory
-~/.tred.d 
+(K) build and package latest Treex::PML
 
-Note for Windows users: ~ is the "Application Data" folder under your
-user profile.
+(U) update TrEd web page in a local copy (WWW source tree)
+(W) rsync WWW source tree to the webserver
+
+The UFAL installation has two common extensions pre-installed: pdt20
+and pdt_vallex. This means that users don't have to install them
+separately.
+
+Legend for 'make' targets:
+--------------------------
+help:            get help
+
+release-tred:    (A)-(F), (K), (U)-(W)
+install-tred:    (A), (D) for extensions pdt20 and pdt_vallex, (F)
+tred-release-no-install: (A)-(D), (U)-(W)
+tred-pack-extensions: (D)  ## uz neexistuje, zrejme nahradene pack-extensions
+
+update-dist-dir: (A)
+install-tred-extensions: (D) for extensions pdt20 and pdt_vallex, (F)
+
+new-treex-pml: (K)
+
+update-dep-packages: (H) (J) 	<--
+update-unix-dep-packages: (H)
+update-win32-dep-packages: (J)
+test-dep-packages:   (I) 	<--
+build-dep-package: (D)
+release-dep-package: (D) + (G)	<--
+
+sync-www:        (G)
+
+Targets that need to run on the SGE cluster are implemented as 
+SGE jobs which usually just call
+  make 'job-TARGET'
+on the allocated cluster node. (where TARGET is the original name of the target).
+
+Required tools (all available in UFAL's PERLREPO)
+-------------------------------------------------
+XSH - http://xsh.sourceforge.net (available in UFAL's PERLREPO)
+Pod::Xhtml - CPAN
+Pod::Hyperlink::BounceURL - CPAN
+
