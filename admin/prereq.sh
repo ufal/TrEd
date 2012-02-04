@@ -137,10 +137,10 @@ else
 fi
 
 NSIS_VERSION=`makensis -VERSION`
-if [ $NSIS_VERSION \> "v2.46" ]; then 
-	echo "NSIS version ok."; 
+if [ $NSIS_VERSION \< "v2.46" ]; then
+	echo "Please, install Nullsoft Scriptable Install System >= 2.46.";
 else 
-	echo "Please, install Nullsoft Scriptable Install System >= 2.46."; 
+	echo "NSIS version ok.";
 fi;
 
 XSLTPROC=`which xsltproc`
