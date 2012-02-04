@@ -930,15 +930,6 @@ Tk: 804.028
     <para>
       The following paragraphs describe menu commands.
     </para>
-    <!--
-    <para>
-      Each submenu in
-      <application>TrEd</application> has as its first item a tear-off
-      line (<guimenuitem>-----</guimenuitem>)
-      which can be used to tear the menu off and place it as a
-      separate window anywhere on your desktop.
-    </para>
-    -->
     <section id="file">
       <title><guimenu>File</guimenu></title>
       
