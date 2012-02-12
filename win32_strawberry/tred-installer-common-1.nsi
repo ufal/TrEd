@@ -164,6 +164,13 @@ Function .onInit
 	StrCpy $CustomPerlFolder ""
 	; does the user need to configure that?
 	StrCpy $tredDataDir "$LOCALAPPDATA\tred_data"
+
+	; tell MakeMaker that we are running non interactively
+	StrCpy $R0 "1"
+        System::Call 'Kernel32::SetEnvironmentVariableA(t, t) i("PERL_MM_USE_DEFAULT", R0).r0'
+        StrCmp $0 0  "" +2
+                MessageBox MB_OK "Can't set environment variable, please install XML::SAX module manually."
+
 FunctionEnd
 
 ; Checks whether Perl exists and its version 

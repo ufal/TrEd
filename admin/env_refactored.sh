@@ -4,18 +4,18 @@
 # binaries go to $INSTALL_BASE/exec, 
 # libraries go to $INSTALL_BASE/lib,
 # extensions to $INSTALL_BASE/share
-INSTALL_BASE=~/ufal_work/ms.mff.cuni.cz/f_common
+INSTALL_BASE=/home/fabian/new_tred_release/local_install
 
 # Local (source) web tree
-WWW=~/ufal_work/ms.mff.cuni.cz/pajas_WWW
+WWW=/home/fabian/new_tred_release/local_www
 # Remote web tree
-REMOTE_WWW="ufal.mff.cuni.cz:/home/www/html/tred" # ufal.mff.cuni.cz:/home/pajas/WWW
+REMOTE_WWW="ufal.mff.cuni.cz:/home/www/html/tred"
 
 # TrEd project direcotry (from which Makefile is executed)
-PROJECT_DIR=~/ufal_work/ms.mff.cuni.cz/net_work_projects_tred
+PROJECT_DIR=/home/fabian/new_tred_release/trunk
 
 # Log for svn checkouts and exports during make
-LOG=~/ufal_work/ms.mff.cuni.cz/net_work_projects_tred/make_log
+LOG=/home/fabian/new_tred_release/trunk/make_log
 
 # should later be changed to http://ufal.mff.cuni.cz/tred/
 TRED_HOME_URL="http://ufal.mff.cuni.cz/tred/"
@@ -45,7 +45,7 @@ INSTALL_DOC=${INSTALL_BASE}/doc
 RSS=${WWW}/tred/changelog.rss
 
 # Basic paths
-TRED_SVN=https://svn.ms.mff.cuni.cz/svn/TrEd_refactored/
+TRED_SVN=https://svn.ms.mff.cuni.cz/svn/TrEd/trunk/
 TRED_SVN_REPO=${TRED_SVN}/tred_refactored/
 TRED_PORTABLE_REPO=${TRED_SVN}/tred_portable/
 TRED_SVN_EXT=https://svn.ms.mff.cuni.cz/svn/TrEd/extensions/

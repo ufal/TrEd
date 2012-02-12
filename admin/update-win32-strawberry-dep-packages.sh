@@ -19,7 +19,7 @@ done && \
 
 echo "Generating new index (takes a couple of minutes)" && \
 cd $TRED_DPAN_DIR/dpan && \
-dpan -f config && \
+dpan -f config -l log4perl_log > indexing_log 2>&1 && \
 
 
 echo "Updating win32 dependency packages done."
