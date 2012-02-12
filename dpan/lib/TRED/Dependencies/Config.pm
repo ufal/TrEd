@@ -242,6 +242,7 @@ sub new {
 		!XML::JHXML
 		XML::NamespaceSupport
 		XML::SAX
+		XML::SAX::Base
 		XML::LibXML::Iterator
 	};
 	

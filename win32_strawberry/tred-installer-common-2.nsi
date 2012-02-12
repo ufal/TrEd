@@ -274,6 +274,9 @@ Section "TrEd" SecTrEd
 		; 5500 is number of lines in sample log file installation, 1% ... 55 lines, 
 		; +3 is a little reserve
 		IntOp $Percent_finished $LogFileLineCount / 58
+		${If} $Percent_finished > 100
+			IntOp $Percent_finished 100 + 0
+		${EndIf}
 		DetailPrint "Installing Perl modules, please wait: $Percent_finished % complete...";
 		
 		; update progress bar?
