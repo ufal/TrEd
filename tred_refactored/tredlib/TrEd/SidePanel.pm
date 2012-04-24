@@ -167,7 +167,7 @@ sub init_node_attributes {
         "<Alt-d>",
         [   sub {
                 my ( $w, $grp ) = @_;
-                if ( defined( evalMacro( $w, $grp, 'ALT+' ) ) ) {
+                if ( defined( main::evalMacro( $w, $grp, 'ALT+' ) ) ) {
                     Tk->break;
                 }
                 else {
