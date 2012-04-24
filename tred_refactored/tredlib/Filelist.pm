@@ -207,11 +207,19 @@ sub save {
 # See also      : load()
 sub _lazy_load {
     my ($self) = @_;
-    return if not defined $self->{load};
-    open my $fh, "<", $self->{load}
-        or croak("Cannot open $self->{load}: $!\n");
-
+    my $load = $self->{load};
     undef $self->{load};
+    return if not defined $load;
+    my $fh;
+
+    # - means list coming from standard input
+    if ($load eq '-') {
+        $fh = *STDIN;
+    }
+    else {
+        open $fh, "<", $load
+            or croak("Cannot open $load: $!\n");
+    }
 
     my $fl_name = decode( 'UTF-8', scalar(<$fh>) );
     $self->{name} ||= $fl_name;
