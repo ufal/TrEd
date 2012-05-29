@@ -524,10 +524,10 @@ sub read_macros {
     open $macro_filehandle, '<', $file
 
         # or to open it from different location
-        || ( !$keep
-        && ( $file = "$libDir/$file" )
-        && open( $macro_filehandle, '<', $file ) )
-        || croak("ERROR: Cannot open macros: $file ($!)!\n");
+        or ( ! $keep
+             && ( $file = "$libDir/$file" )
+             && open( $macro_filehandle, '<', $file ) )
+        or croak("ERROR: Cannot open macros: $file ($!)!\n");
     set_encoding( $macro_filehandle, $encoding );
     preprocess( $macro_filehandle, $file, \@macros, \@contexts, $libDir );
     close $macro_filehandle
@@ -736,7 +736,7 @@ sub preprocess {
                     }
                     Encode::_utf8_off($f);
                     my $found;
-                    for my $path ( $libDir, @macro_include_paths ) {
+                    for my $path ( grep defined, $libDir, @macro_include_paths ) {
                         my $mf = "$path/$f";
                         if ( -f $mf ) {
                             read_macros( $mf, $libDir, 1, $enc,
