@@ -2641,7 +2641,7 @@ sub get_extension_list {
 # Purpose       : Add stylesheets, lib, macro and resources paths to TrEd paths
 #                 for each extension from extensions directory
 # Returns       : nothing
-# Parameters    : array_ref $list $ext_list -- reference to list of extension names
+# Parameters    : array_ref $ext_list -- reference to list of extension names
 #                 scalar $extension_dir     -- name of the directory where extensions are stored
 # Throws        : carps if the first argument is a reference, but not array reference
 # Comments      : If $ext_list is not supplied, get_extension_list() function is used to get the list
@@ -4742,7 +4742,7 @@ for each extension from extensions directory
 
 =item Parameters
 
-  C<$ext_list> -- array_ref $list $ext_list -- reference to list of extension names
+  C<$ext_list> -- array_ref $ext_list -- reference to list of extension names
   C<$extension_dir> -- scalar $extension_dir     -- name of the directory where extensions are stored
 
 =item Comments
