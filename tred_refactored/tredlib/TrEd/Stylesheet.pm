@@ -342,7 +342,7 @@ sub _read_stylesheets_old {
             tr/\013/\n/;
             push @{ $gui_ref->{stylesheets}->{$stylesheet}->{patterns} }, $_;
         }
-        foreach my $stylesheet_item qw(hint context) {
+        foreach my $stylesheet_item (qw(hint context)) {
             if (exists $gui_ref->{"stylesheets"}{$stylesheet}
                 {$stylesheet_item} )
             {
