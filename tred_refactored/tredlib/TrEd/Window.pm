@@ -383,9 +383,10 @@ sub get_hint {
 }
 
 # was main::getWindowContextRE
+# HoSt: Never used!
 sub get_contex_RE {
     my ($win)      = @_;
-    my $grp        = cast_to_grp($win);
+    my $grp        = main::cast_to_grp($win);
     my $stylesheet = $win->{stylesheet};
     if ( exists( $grp->{stylesheets}->{$stylesheet} ) ) {
         return $grp->{stylesheets}->{$stylesheet}->{context};
