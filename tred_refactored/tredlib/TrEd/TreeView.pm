@@ -1869,7 +1869,7 @@ sub convert_dash {
     my ( $self, $dash, $width ) = @_;
 
     if ( $dash =~ /\d\s*,/ ) {
-        return [ split ',', $dash ];
+        return [ split /,/, $dash ];
     }
     elsif ( $dash !~ /\d/ ) {
         my $w = $width || $self->get_lineWidth || 1;
@@ -1898,6 +1898,17 @@ sub convert_dash {
     else {
         return '';
     }
+}
+
+sub _tk_can_dash {
+    my $tk_version = $Tk::VERSION;
+    $tk_version =~ s/^v//;
+    my ($major, $minor) = split /[^0-9]/, $tk_version;
+    $minor //= 0;
+    $minor =~ s/^(0.)$/$1\Q0/;
+    print "VER\t$tk_version\t[$major.$minor]\n";
+    return ($major > 800
+            or $major == 800 && $minor >= 22);
 }
 
 sub redraw {
@@ -2043,8 +2054,8 @@ sub redraw {
     my $lineHeight = $self->getFontHeight() * $lineSpacing;
     my $edge_label_yskip
         = ( scalar(@{$node_patterns}) ? $self->get_edgeLabelSkipAbove : 0 );
-    my $can_dash = ( $Tk::VERSION =~ /\.([0-9]+)$/ and $1 >= 22 );
 
+    my $can_dash = _tk_can_dash();
 
     my $skipHiddenLevels = $Opts{skipHiddenLevels}
         || $self->get_skipHiddenLevels;
