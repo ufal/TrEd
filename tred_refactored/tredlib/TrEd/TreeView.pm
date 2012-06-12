@@ -1906,7 +1906,6 @@ sub _tk_can_dash {
     my ($major, $minor) = split /[^0-9]/, $tk_version;
     $minor //= 0;
     $minor =~ s/^(0.)$/$1\Q0/;
-    print "VER\t$tk_version\t[$major.$minor]\n";
     return ($major > 800
             or $major == 800 && $minor >= 22);
 }
