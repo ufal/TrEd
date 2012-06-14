@@ -4945,14 +4945,7 @@ sub findTemplated {
     update_title_and_buttons($grp);
     updatePostponed($grp);
 
-    # Hack: Forged stylesheets should not get lost
-    my $old_stylesheet = TredMacro::GetCurrentStylesheet();
     $grp->{StylesheetMenu}->update($grp);
-    my $new_stylesheet = TredMacro::GetCurrentStylesheet();
-    if ($old_stylesheet ne $new_stylesheet
-        and $new_stylesheet eq STYLESHEET_FROM_FILE()) {
-        autoSelectContext($grp);
-    }
 
     TrEd::List::Macros::update_view($grp);
     saveFileStateUpdate($win);
