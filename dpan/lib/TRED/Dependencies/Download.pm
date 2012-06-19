@@ -38,7 +38,7 @@ sub new {
 	
 	CPAN::HandleConfig->load;
 	CPAN::HandleConfig->require_myconfig_or_config();
-	my $wget = $CPAN::Config->{wget};
+	my $wget = $CPAN::Config->{wget} || 'wget';
 	
 	my $pkgs_to_patch_ref = $tred_dpan_config->patched_pkgs();
 	my $universal_pkgs_ref = $tred_dpan_config->universal_pkgs();
