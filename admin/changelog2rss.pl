@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 # $Id: changelog2rss.pl,v 1.6 2004/10/29 08:31:03 misc Exp $
 #
 # TODO
