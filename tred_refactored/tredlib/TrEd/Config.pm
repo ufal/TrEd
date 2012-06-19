@@ -211,8 +211,9 @@ $printOptions = {};
 #TODO: from tred
 @open_types = (
     [   "Supported",
-        [qw/.fs .pls .pml .t .a .fs.gz .pls.gz .pml.gz .t.gz .a.gz/]
+        [qw/.treex .treex.gz .streex .fs .pls .pml .t .a .fs.gz .pls.gz .pml.gz .t.gz .a.gz/]
     ],
+    [ "Treex files",         [qw/.treex .treex.gz .streex/]],
     [ "FS files",            [qw/.fs .FS .Fs .fs.gz .FS.gz/] ],
     [ "CSTS files",          [qw/.cst .csts .cst.gz .csts.gz/] ],
     [ "Perl Storable files", [qw/.pls .pls.gz/] ],
@@ -257,7 +258,7 @@ $printOptions = {};
     all => [
         [ "All files", ['*'] ],
         [   "Recognized",
-            [   qw/.fs .csts .pls .t .a .pls.gz .fs.gz .t.gz .a.gz .csts.gz .pml .pml.gz .xml .xml.gz .tmt .tmt.gz/
+            [   qw/.fs .csts .pls .t .a .pls.gz .fs.gz .t.gz .a.gz .csts.gz .pml .pml.gz .xml .xml.gz .tmt .tmt.gz .treex .treex.gz .streex/
             ]
         ],
     ]
