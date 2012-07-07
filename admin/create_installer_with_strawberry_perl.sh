@@ -12,7 +12,7 @@ function get_strawberry() {
 	rm -f web
 	wget ${PERL_URL} -O web >> $LOG
 	
-	PERL_LINK_REGEXP="http://.*strawberry-perl-${DESIRED_PERL_VERSION}.[0-9.]\+.msi"
+	PERL_LINK_REGEXP="http://.*strawberry-perl-${DESIRED_PERL_VERSION}.*.msi"
 	
 	DESIRED_PERL_INSTALLER=`grep -o $PERL_LINK_REGEXP web | head -n 1`
 	echo "Downloading Strawberry Perl $DESIRED_PERL_VERSION"
@@ -38,7 +38,7 @@ makensis tred-installer-perl-included.nsi && \
 cp "tred-installer-perl-included.exe" "${WWW}/tred-installer-perl-included.exe" && \
 # keep history of released versions in subdir releases
 mkdir -p "${WWW}/releases/windows" 2>/dev/null && \
-cp "tred-installer-perl-included.exe" "${WWW}/releases/windows/tred-installer-perl-included-${VER}.exe" && \
+cp "tred-installer-perl-included.exe" "${WWW}/releases/windows/tred-installer-perl-included-${VER}.exe"  && \
 
 rm -f perl/$PERL_INSTALLER_DL
 
