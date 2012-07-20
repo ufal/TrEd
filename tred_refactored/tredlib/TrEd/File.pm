@@ -1481,7 +1481,7 @@ sub save_file_as {
         -d $initdir ? ( -initialdir => $initdir ) : (),
         $^O eq 'MSWin32'
         ? ()
-        : ( -initialfile => TrEd::Convert::filename($file) )
+        : ( -initialfile => filename($file) )
     );
     return do_save_file_as(
         $win,
