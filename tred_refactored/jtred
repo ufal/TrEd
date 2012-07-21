@@ -1,7 +1,7 @@
 #!/bin/bash
 # Author: Jan Stepanek
 
-version='1.2.1'
+version='1.2.2'
 
 if [ -z "$SGE_ROOT" ] || [ ! -d "$SGE_ROOT" ] ; then
     echo "SGE_ROOT is not set, this machine does not seem to be a SGE cluster queue manager!" >&2
@@ -10,7 +10,7 @@ fi
 
 btred='/net/data/ufalhome/common/exec/runbtred'
 pack_size=15
-job_name=$USER-$$
+job_name=$LOGNAME-$$
 tmp=/tmp
 work="$HOME"/.jtred$$
 sleep=0.05
