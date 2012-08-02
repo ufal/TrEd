@@ -27,7 +27,7 @@
 	tectogrammatical annotations in <a href="http://ufal.mff.cuni.cz/pdt/">The Prague Dependency
 	  Treebank</a>, as well as for decision-tree based morphological
 	annotation of <a href="http://ufal.mff.cuni.cz/padt/">The Prague Arabic Dependency Treebank</a>.</p>
-	<p><b>TrEd 2.0</b> is a refactored version of <a href="http://ufal.mff.cuni.cz/~pajas/tred/">original TrEd</a>. 
+	<p><b>TrEd 2.0</b> is a refactored version of <a href="http://ufal.mff.cuni.cz/tred/pajas-old/">original TrEd</a>. 
 	A new installation procedure which takes advantage of popular 
 	<a href="http://nsis.sourceforge.net/Main_Page">Nullsoft Scriptable Install System</a> 
 	for Windows has been created. <br />
@@ -79,6 +79,8 @@
       <h2>Download</h2>
       <p class="version"><b>Current version:</b> </p>
       <dl>
+
+
       <dt id="download_windows">Windows</dt>
       <dd>
       <dl>
@@ -121,7 +123,29 @@
 	</dd>
       </dl>
       </dd>
-      <dt id="download_unix">Unix, Linux, Mac OS X</dt>
+
+
+		<dt id="download_osx">Mac OS X (10.7 Lion and 10.8 Mountain Lion)</dt>
+		<dd><dl>
+			<dt><tt>
+				<a href="TRED_HOME_URL/tred.dmg">tred.dmg</a> (SIZE_OF:tred.dmg) - TrEd Application Bundle
+			</tt></dt>
+			<dd>
+				<p><small>
+					This is a Mac OS X application bundle (installed by drag-and-drop to Application folder).
+					The bundle is designed for OS X 10.7 (Lion) and 10.8 (Mountain Lion). If you have older
+					version of OS X, please use the generic <a href="#download_unix">unix installation script</a>.
+				</small></p>
+				<p><small>
+					Please note that the OS X 10.8 (Mountain Lion) does not include X11 server (which is essential
+					for TrEd) in standard installation. Please use <a href="http://support.apple.com/kb/HT5293">this</a>
+					keynote to install <a href="http://xquartz.macosforge.org/">XQuartz</a> version of X11 server.
+				</small></p>
+			</dd> 
+		</dl></dd>
+
+
+      <dt id="download_unix">Unix, Linux, Mac OS X (for experienced users)</dt>
       <dd>
 	  <p  class="framed">
 	  <small>
@@ -138,7 +162,7 @@
         <dt>
           <tt>
             <a href="TRED_HOME_URL/install_tred.bash">install_tred.bash</a>
-	    (6KB)
+	    (SIZE_OF:install_tred.bash)
           </tt>
         </dt>
         <dd><p><small>This installation script automatically fetches and builds
