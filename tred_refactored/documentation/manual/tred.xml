@@ -168,6 +168,28 @@
       </warning>
       </section>
     </section>
+
+    <section id="install-windows">
+      <title>Mac OS X Application Bundle</title>
+      <para>Fro OS X 10.7 Lion and 10.8 Mountain Lion</para>
+      <section>
+         <title>Step 1: X11 Server</title>
+         <para>Make sure the X11 Server is installed. The OS X 10.7 Lion contains X11 server in standard installation.
+		 	The OS X 10.8 Mountain Lion does not include the server, however, it can be easily installed using
+			the <ulink url="http://xquartz.macosforge.org/">XQuartz</ulink> project. 
+         </para>
+      </section>
+      <section>
+	     <title>Step 2: installation of <application>TrEd</application></title>
+	     <para>Download the TrEd DMG image from <ulink url="TRED_HOME_URL">the project's homepage</ulink>.
+		   Mount the DMG file and open it. Then drag the TrEd icon over the Application folder and drop it.
+		   The application bundle will be copied to your Application folder and you can start using TrEd.
+		   Please note that, based on your security settings, you might be required to explicitly allow the first
+		   execution of the TrEd since it will be percieved by the OS as an unknown application downloaded from the web. 
+		 </para>
+      </section>
+    </section>
+
     <section id="install-unix">
       <title>Linux, MacOS X, and other UNIX-like systems</title>
       <para>
