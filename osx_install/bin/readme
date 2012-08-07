@@ -5,5 +5,6 @@ is the TrEd itself. It can be added by make-release.sh script.
 Quick-start:
 - Run unpack.sh which unpacks the packed template into release-template.dmg
 - Copy/move release-template.dmg to ../scripts
-- Now you can start releasing the TrEd (run ../scripts/make-release.sh)
+- Now you can start releasing the TrEd (run ../scripts/make-release.sh);
+  see (doc/howto for more details about releasing)
 

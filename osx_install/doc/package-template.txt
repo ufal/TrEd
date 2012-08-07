@@ -1,0 +1,64 @@
+Release Template Preparation Details
+====================================
+This document describes the details of the release package and gives guidelines
+how to prepare the release template disk image.
+
+1) Creating The Image
+  The most convenient way to create the dmg image is to use Disk Utility. The
+  disk MUST be read/write, without encryption, and with single partition formated
+  to Mac OS Journaled filesystem. Recommended size is 200 MB at least. The label
+  of the disk should be set appropriately (e.g., "Tred Install"). When the image
+  is created, mount it (It will mount to /Volumes/<disk-name>). You can mount it
+  from the Disk Utility or by
+  
+  $> hdiutil attach <path-to-dmg-image>
+
+
+2) Bundled Application
+  The application bundle is saved in the TrEd.app folder in the dmg image. The
+  bundle is already prepared in the ./template subdirectory. Of course, the .svn
+  dirs must be removed after the template is copied from the SVN repository.
+  Do not remove or modify any files, unless you are familiar with Mac OS X
+  application bundles.
+
+
+3) Symlink to /Applications
+  Create a symlink to /Applications folder in the root of the dmg image. Run
+  $> ln -s /Applications ./Applications
+  from the mounted image root. 
+
+
+4) Background Image
+  Copy ./template/.background folder to the image. Again, do not forget to
+  skip or remove the .svn dir.
+
+4) Design
+  Open the image root. You should see standard folder with two items (TrEd
+  application and Applications symlink). Note that you should not see the
+  .background dir since it is starting with dot, thus it is hidden.
+  Right click to the folder (not on the icons) and select "Show View Options".
+  Now you can configure the background, icon size, and the font size. Place
+  icons on proper places relative to the background.
+  
+  Hint: Use Cmd-Shift-G and type path to the .background dir to open it and
+  get to the background image. 
+
+
+5) Finalization, Image Compression
+  Close the root folder, detach the image.
+
+  $> hdiutil detach /dev/disk<number-of-the-disk>
+  
+  The /dev/disk path is shown when the image is being attached. If you wish to
+  compress the image, use:
+  
+  $> hdiutil convert <dmg-image> -format UDZO -o <output-image> -ov
+  - to compress read/write image into small read-only image (-ov means overwrite
+    existing files)
+
+  $> hdiutil convert <dmg-image> -format UDRW -o <output-image> -ov
+  - to unpack small read-only image into read/write image
+
+  Please note that the make-release.sh script requires read-write
+  (non-compressed) image.
+
