@@ -1,0 +1,67 @@
+How to Release a TrEd Application Bundle for Mac OS X
+=====================================================
+
+Prerequisites, Restrictions
+----------------------------
+- This process has been tested on OS X Lion. It SHOULD work on newer OS X
+  versions, but it was not tested.
+- The install_tred.bash script must work on the host Mac, since it is used for
+  creating the bundle. Therefore Xcode tools (especially make and gcc) are
+  required on the host.
+
+
+Step-by-step guide
+------------------
+This is quick step-by-step guide that should suffice if you need quickly create
+the release.
+1) Create a release template in a virtual disk image and save it as
+  release-template.dmg into ./scripts subdirectory. You can either do this
+  manually (follow package-template.txt documentation) or you can used pre-built
+  binary file packed in ./bin directory (see ./bin/readme).
+2) Copy or move your release-template.dmg into ./scripts. If you choose another
+  location, fix paths in configuration (see step 3). 
+3) Check ./scripts/.config file whether all paths and URLs are correct.
+4) Make sure all virtual disks are not mounted.
+5) Make sure the TrEd version you wish to bundle is pre-released at tred/testbed
+  web (the script will download tred_install.bash script from there).
+6) Execute the make-release.sh script. More detailed description of its
+  internals is in the following section. The script should create tred.dmg file
+  in ./scripts dir (if default configuration is used).
+7) Use upload.sh to upload the tred.dmg to the testbed. Or you can copy it
+  elsewhere (e.g., by scp).
+
+
+How the releasing process works
+-------------------------------
+The process itself is quite simple. The idea is to create dmg disk image that
+contains complete TrEd application in one folder, symlink to /Applications
+folder, specific background, and config file for disk image root folder. When
+the disk image is opened, its root folder is shown in OS X file browser. The
+config file ensures, that our image (with arrow and explanations) is used as
+background and both icons (TrEd, Application symlink) are at proper places, so
+the user just drags the TrEd icon over the Application folder and drops it.
+
+The TrEd application bundle (TrEd.app folder) has standard structure as every
+application. In the Contents dir are OS X configuration file which tell the
+system that this folder is an application folder and how to execute the
+application. MacOS folder contains the main executable script start-tred.sh and
+tred subfolder where the tred itself is installed. The Resources folder contains
+the application icon.
+
+Everything except the TrEd itself (i.e., the TrEd.app/Contents/MacOS/tred
+subfolder) is prepared in the release template. The make-release.sh script
+takes the template adds tred into it and converts the dmg into compressed,
+read-only version of DMG image.
+
+The script performs these steps:
+1) Mount release-template image.
+2) Clear files and directories that may linger from previous builds and TrEd
+  application (if installed).
+3) Download install_tred.bash from testbed.
+4) Copy application template (TrEd.app) from the template image to /Applications.
+5) Install TrEd into /Applications/TrEd.app/Contents/MacOS/tred.
+6) Copy /Applications/TrEd.app/Contents/MacOS/tred into the template image.
+7) Unmount the image and create its compressed version (as a new file).
+
+Note: the hdiutil command line tool is used to manipulate with DMG images.
+
