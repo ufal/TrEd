@@ -1,0 +1,6 @@
+#!/bin/sh
+
+LOGDIR=~/.tred.d
+LOGFILE="$LOGDIR/TrEd-last_run.log"
+mkdir -p "$LOGDIR"
+`dirname $0`/tred/bin/start_tred > "$LOGFILE" 2>&1

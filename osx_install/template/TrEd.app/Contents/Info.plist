@@ -2,21 +2,33 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleDisplayName</key>
+	<string>TrEd</string>
 	<key>CFBundleExecutable</key>
-	<string>start-tred.sh</string>
+	<string>TrEd</string>
 	<key>CFBundleIconFile</key>
-	<string>TrEd.icns</string>
+	<string>appIcon.icns</string>
+	<key>CFBundleIdentifier</key>
+	<string>cz.cuni.mff.ufal.tred</string>
 	<key>CFBundleInfoDictionaryVersion</key>
-	<string>1.0</string>
+	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>TrEd</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
-	<key>CFBundleSignature</key>
-	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>1.0</string>
+	<string>2.0</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>10.7.0</string>
+	<key>LSUIElement</key>
+	<false/>
+	<key>NSHumanReadableCopyright</key>
+	<string>© 2012 Petr Pajas</string>
+	<key>NSMainNibFile</key>
+	<string>MainMenu</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
 </dict>
 </plist>
