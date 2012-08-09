@@ -20,6 +20,12 @@ how to prepare the release template disk image.
   dirs must be removed after the template is copied from the SVN repository.
   Do not remove or modify any files, unless you are familiar with Mac OS X
   application bundles.
+  
+  The Application was created by Platypus (http://sveinbjorn.org/platypus/)
+  script wrapper. It was configured to execute trivial bash script
+  (in Resources/script), which redirects TrEd stdout and stderr to log file
+  in ~/tred.d and executes start_tred script. The platypus was provided with
+  basic application info, application icon, and set not to display output. 
 
 
 3) Symlink to /Applications
