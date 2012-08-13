@@ -758,7 +758,7 @@ sub do_install_c_module {
   $package_dir.='/'.$PACKAGE_DIR if $PACKAGE_DIR;
 
   my $dir=$file;
-  $dir=~s/[^0-9]*[.]tar[.]gz$//g;
+  $dir=~s/(-rc[0-9]*)?[.]tar[.]gz$//g;
 #hack:
   print "$ENV{PATH}\n$ENV{LD_LIBRARY_PATH}";
   system "(mkdir -p '$BUILD_TMP' && cd '$BUILD_TMP' && ".
