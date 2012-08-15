@@ -1,0 +1,5 @@
+Contents:
+- build-tred-dmg.sh - A shell script for the host system on which the
+  development VM is running (starts VM, executes the building process, and
+  shuts down the VM again).
+  
