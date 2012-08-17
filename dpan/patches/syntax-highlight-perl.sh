@@ -6,6 +6,7 @@
 # forbidden on Windows, so we need to rename the file 
 
 EXTDIR=`dirname $(readlink -fen $0)`
+SVN_DIR=$(dirname $(dirname $(dirname $(dirname $(readlink -fen $0)))))
 . "$EXTDIR/../../admin/env.sh"
 
 echo "Patching Syntax::Highlight::Perl" && \
