@@ -1,24 +1,36 @@
 #!/bin/bash
 
+# Root dir of the SVN checkout. All dirs are derived from this one
+if [ -z "$SVN_DIR" ]; then
+    SVN_DIR=$(dirname $(dirname $(dirname $(readlink -fen $0))))
+fi
+
+
 # Installation prefix -- documentation goes to $INSTALL_BASE/doc, 
 # binaries go to $INSTALL_BASE/exec, 
 # libraries go to $INSTALL_BASE/lib,
 # extensions to $INSTALL_BASE/share
-INSTALL_BASE=/home/fabian/new_tred_release/local_install
+INSTALL_BASE=${SVN_DIR}/local_install
 
 # Local (source) web tree
-WWW=/home/fabian/new_tred_release/local_www
-# Remote web tree
-REMOTE_WWW="ufal.mff.cuni.cz:/home/www/html/tred"
+WWW=${SVN_DIR}/local_www
+
+# Remote web tree (of the testbed)
+#REMOTE_WWW="ufal.mff.cuni.cz:/home/www/html/tred/testbed"
+REMOTE_WWW=virtualbox.ufal.hide.ms.mff.cuni.cz:/var/www/tred/testbed
+
+# Login name used to upload released TrEd to REMOTE_WWW.
+# The selected user should log there without password (by certificate)
+LOGIN_NAME=tred
+
 
 # TrEd project direcotry (from which Makefile is executed)
-PROJECT_DIR=/home/fabian/new_tred_release/trunk
+PROJECT_DIR=${SVN_DIR}/trunk
 
 # Log for svn checkouts and exports during make
-LOG=/home/fabian/new_tred_release/trunk/make_log
+LOG=$SVN_DIR/trunk/make_log
 
-# should later be changed to http://ufal.mff.cuni.cz/tred/
-TRED_HOME_URL="http://ufal.mff.cuni.cz/tred/"
+TRED_HOME_URL="http://ufallab.ms.mff.cuni.cz:24080/tred/testbed"
 TRED_EXTENSIONS_URL=""
 
 #########################################################
@@ -30,7 +42,7 @@ TMP=/tmp
 
 # if the desired perl version changes, it should also be changed 
 # in win32_strawberry/tred-installer.nsi (search for $DesiredPerlVersion variable)
-DESIRED_PERL_VERSION='5.12'
+DESIRED_PERL_VERSION='5.14'
 
 # UFAL installation paths
 ## INSTALL_BASE=/f/common
@@ -45,10 +57,10 @@ INSTALL_DOC=${INSTALL_BASE}/doc
 RSS=${WWW}/tred/changelog.rss
 
 # Basic paths
-TRED_SVN=https://svn.ms.mff.cuni.cz/svn/TrEd/trunk/
-TRED_SVN_REPO=${TRED_SVN}/tred_refactored/
-TRED_PORTABLE_REPO=${TRED_SVN}/tred_portable/
-TRED_SVN_EXT=https://svn.ms.mff.cuni.cz/svn/TrEd/extensions/
+TRED_SVN=https://svn.ms.mff.cuni.cz/svn/TrEd
+TRED_SVN_REPO=${TRED_SVN}/trunk/tred_refactored
+TRED_PORTABLE_REPO=${TRED_SVN}/trunk/tred_portable
+TRED_SVN_EXT=${TRED_SVN}/extensions
 TREEX_PML_REPO=https://svn.ms.mff.cuni.cz/svn/perl_libs/distribution/Treex-PML
 WIN32_DIST_REPO=https://svn.ms.mff.cuni.cz/svn/perl_libs/distribution/win32_build_script
 

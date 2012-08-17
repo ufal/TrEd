@@ -3,27 +3,14 @@
 SHELL=/bin/bash
 
 ##TODO netreba nejak tak, aby sa make mohlo spustit aj z ineho adresara...?
-include admin/env.sh
+#$(shell cd admin && ./env.sh && cd ..)
+#include admin/env.sh
 
 
 all: help
 
 help:
-	@echo "Please, set proper paths in admin/env.sh before running make."
-	@echo 
-	@echo "You can:"
-	@echo 
-	@echo "  make install-tred        - install TrEd and extensions into $(INSTALL_BASE)"
-	@echo "  make release-tred        - install-tred + build distribution packages and upload to remote server ($(REMOTE_WWW))"
-	@echo 
-	@echo "  make release-tred-qcmd   - like release-tred but uses non-interactive SGE jobs rather than qrsh"
-	@echo "  make update-dist-dir     - only update TrEd distribution tree in $(DIST_DIR)"
-	@echo "  make update-dep-packages - fetch latest versions of required modules and libraries"
-	@echo "  make release-dep-package - only release tred dependency package to remote server ($(REMOTE_WWW))"
-	@echo "  make new-treex-pml       - create and install new Treex::PML packages"
-	@echo 
-	@echo "  make sync-www            - rsync WWW source tree to remote server ($(REMOTE_WWW))"
-	
+	cd admin && ./print-make-usage.sh
 
 prereq:
 	cd admin && ./prereq.sh
@@ -32,16 +19,15 @@ sync-www:
 	cd admin && ./sync-www.sh
 
 # make a fresh release of TrEd
-# NOTE: this also includes 'install-tred'
-release-tred:
+# NOTE: this also includes 'install'
+release:
 	cd admin && ./release-tred.sh
-# 	cd admin && ./test-release-tred.sh #not yet implemenTrEd
 
-# Same as release-tred, but uses qcmd+qtop instead of interactive qrsh
+# Same as release, but uses qcmd+qtop instead of interactive qrsh
 release-tred-qcmd:
 	cd admin && ./release-tred-qcmd.sh
 
-# Same as 'release-tred' but without 'install-tred'
+# Same as 'release' but without 'install'
 release-tred-no-install:
 	cd admin && ./release-tred-no-install.sh
 
@@ -60,7 +46,7 @@ make-changelog:
 # - TrEd version number (based on SVN revision)
 # - compile the documentation from DocBook and POD (tred/devel/make_manual)
 # - updated extensions dir (SVN working copy)
-update-dist-dir: $(TRED_SRC_DIR) $(TRED_SRC_DIR)/tred make-changelog
+update-dist-dir: make-changelog
 	cd admin && ./update-dist-dir.sh
 
 # UFAL installation: update pre-installed extensions pdt20 and pdt_vallex
@@ -72,7 +58,7 @@ install-tred-extensions:
 # - implemented as 'almost atomic' operation:
 #   (new versions created as %.new, then old versions moved to %.old
 #   and %.new renamed to %)
-install-tred: prereq update-dist-dir install-tred-extensions
+install: prereq update-dist-dir install-tred-extensions
 	cd admin && ./install-tred.sh
 
 # Copy updated dependency package and installation script to the WWW tree
@@ -122,7 +108,7 @@ test-dep-packages:
 #   make 'job-TARGET'
 # on the allocated cluster node. (where TARGET is the original name of the target).
 #
-job-tred-release: install-tred new-treex-pml build-dep-package pack-extensions prepare-tred-web-release
+job-tred-release: install new-treex-pml build-dep-package pack-extensions prepare-tred-web-release
 
 #hm, this is kindof weird (look also at next target)
 job-tred-pkg-release:
@@ -148,3 +134,12 @@ build-treex-pml-ppm:
 
 install-treex-pml:
 	cd admin && ./install-treex-pml.sh
+
+
+# Testing and publishing operations
+test:
+	echo "NOT IMPLEMENTED YET!"
+
+publish:
+	echo "NOT IMPLEMENTED YET!"
+
