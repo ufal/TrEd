@@ -10,8 +10,7 @@ EXTDIR=`dirname $(readlink -fen $0)`
 echo "Installing TrEd extensions to $INSTALL_SHARE"
 
 # Create directories for TrEd
-mkdir $WWW/tred 2> /dev/null
-mkdir $WWW/tred/extensions 2> /dev/null
+mkdir -p $WWW/tred/extensions 2> /dev/null
 
 # create symlink in TrEd install directory
 # (we have to test the existance of symlink first, otherwise we would create link the other way (and also never-ending recursion))
@@ -24,8 +23,7 @@ cd ${TRED_EXT_DIR}; ./make pdt20; ./make pdt_vallex && \
 # remove old extensions dir
 (test ! -d ${INSTALL_SHARE}/tred-extensions.new/ || rm -rf ${INSTALL_SHARE}/tred-extensions.new) && \
 # two basic extensions installed under $INSTALL_SHARE
-mkdir ${INSTALL_SHARE} 2> /dev/null || true && \
-mkdir ${INSTALL_SHARE}/tred-extensions.new/ && \
+mkdir -p ${INSTALL_SHARE}/tred-extensions.new/ && \
 svn export ${TRED_SVN_EXT}/pdt20 ${INSTALL_SHARE}/tred-extensions.new/pdt20 >> $LOG && \
 svn export ${TRED_SVN_EXT}/pdt_vallex ${INSTALL_SHARE}/tred-extensions.new/pdt_vallex >> $LOG && \
 chmod -R g+rwX ${INSTALL_SHARE}/tred-extensions.new/ && \
