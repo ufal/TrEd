@@ -38,7 +38,7 @@ rm $PACKAGE_NAME && \
 if [ -z $PACKAGE_NAME ]; then 
 	echo "Not removing, don't have proper file name";
 else 
-	rm -r "$DIR_NAME/";
+	rm -rf "$DIR_NAME/";
 fi && \
 
 touch "$TRED_DPAN_DIR/dpan/authors/id/D/DP/DPAN/$PACKAGE_NAME.patched" && \
