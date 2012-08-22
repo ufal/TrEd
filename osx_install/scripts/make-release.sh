@@ -45,7 +45,7 @@ $INSTALL_SCRIPT --tred-dir "/Applications/$TRED_DIR" || exit 4
 
 # The code needs to be signed so it runs on Mountain Lion without obstacles
 echo "Sign the code with UFAL certificate ..."
-codesign -f -s ED5BE1DA5B1D55517703E7B7CDC4BF2935599B10 -r='designated => anchor apple generic and identifier "cz.cuni.mff.ufal.tred"' -v "/Applications/$TRED_APP" || exit 5
+codesign -f -s "$SIGN_CERT_SHA1" -r='designated => anchor apple generic and identifier "cz.cuni.mff.ufal.tred"' -v "/Applications/$TRED_APP" || exit 5
 
 
 # Copy installed TrEd and its signature to the release image
