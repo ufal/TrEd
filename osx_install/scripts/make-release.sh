@@ -30,31 +30,37 @@ rm -rf "$MOUNT_POINT/$TRED_DIR"
 
 # Prepare fresh template
 echo "Copying template contents to the /Applications/$TRED_APP ..."
-cp -R "$MOUNT_POINT/$TRED_APP" "/Applications/$TRED_APP"
+cp -R "$MOUNT_POINT/$TRED_APP" "/Applications/$TRED_APP" || exit 2
 
 
 # Get TrEd install script
 echo "Downloading fresh $INSTALL_SCRIPT script ..."
-wget -O "$INSTALL_SCRIPT" "$INSTALL_SCRIPT_URL"
-chmod a+x "$INSTALL_SCRIPT"
+wget -O "$INSTALL_SCRIPT" "$INSTALL_SCRIPT_URL" || exit 3
+chmod a+x "$INSTALL_SCRIPT" || exit 3
 
 
 # Install TrEd to /Applications from bash script
 echo "Installing TrEd to /Applications/$TRED_DIR ..."
-$INSTALL_SCRIPT --tred-dir "/Applications/$TRED_DIR"
+$INSTALL_SCRIPT --tred-dir "/Applications/$TRED_DIR" || exit 4
+
+# The code needs to be signed so it runs on Mountain Lion without obstacles
+echo "Sign the code with UFAL certificate ..."
+codesign -f -s ED5BE1DA5B1D55517703E7B7CDC4BF2935599B10 -r='designated => anchor apple generic and identifier "cz.cuni.mff.ufal.tred"' -v "/Applications/$TRED_APP" || exit 5
 
 
-# Copy installed TrEd to the release image
+# Copy installed TrEd and its signature to the release image
 echo "Copying /Applications/$TRED_DIR to $MOUNT_POINT/$TRED_DIR ..."
-cp -R "/Applications/$TRED_DIR" "$MOUNT_POINT/$TRED_DIR" || exit 1
+cp -R "/Applications/$TRED_DIR" "$MOUNT_POINT/$TRED_DIR" || exit 6
+cp -R "/Applications/$TRED_APP/Contents/_CodeSignature" "$MOUNT_POINT/$TRED_APP/Contents/_CodeSignature" || exit 6
+cp "/Applications/$TRED_APP/Contents/MacOS/TrEd" "$MOUNT_POINT/$TRED_APP/Contents/MacOS/TrEd" || exit 6
 
 
 # Finalize the release dmg file
 echo "Detaching $TEMPLATE ..."
-hdiutil detach /dev/disk1
+hdiutil detach /dev/disk1 || exit 7
 
 echo "Compressing $TEMPLATE into $RELEASE_FILE ..."
-hdiutil convert "$TEMPLATE" -format UDZO -o "$RELEASE_FILE" -ov
+hdiutil convert "$TEMPLATE" -format UDZO -o "$RELEASE_FILE" -ov || exit 8
 
 
 # Cleanup
