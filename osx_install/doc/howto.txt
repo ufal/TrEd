@@ -8,6 +8,13 @@ Prerequisites, Restrictions
 - The install_tred.bash script must work on the host Mac, since it is used for
   creating the bundle. Therefore Xcode tools (especially make and gcc) are
   required on the host.
+- UFAL Developer ID certificate must be installed in the keychain of the machine
+  which builds the TrEd application bundle. The SHA1 fingerprint (which is used
+  to identify the certificate) must be correctly set in the 'scripts/.config'
+  (variable SIGN_CERT_SHA1).
+  Please note that the private key of the certificate must be set so that all
+  applications have access to it (Keychain -> right click on the private key
+  -> Get Info -> Access Control Tab -> "Allow all applications to access ...") 
 
 
 Step-by-step guide
