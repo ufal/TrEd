@@ -26,6 +26,7 @@ echo "Removing old files ..."
 rm -rf "$INSTALL_SCRIPT"
 rm -rf "/Applications/$TRED_APP"
 rm -rf "$MOUNT_POINT/$TRED_DIR"
+rm -rf "$MOUNT_POINT/$TRED_APP/Contents/_CodeSignature"
 
 
 # Prepare fresh template
@@ -45,6 +46,7 @@ $INSTALL_SCRIPT --tred-dir "/Applications/$TRED_DIR" || exit 4
 
 # The code needs to be signed so it runs on Mountain Lion without obstacles
 echo "Sign the code with UFAL certificate ..."
+security unlock-keychain -p tred
 codesign -f -s "$SIGN_CERT_SHA1" -r='designated => anchor apple generic and identifier "cz.cuni.mff.ufal.tred"' -v "/Applications/$TRED_APP" || exit 5
 
 
