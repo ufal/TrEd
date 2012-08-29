@@ -1,38 +1,89 @@
-## TrEd Makefile
-
-SHELL=/bin/bash
-
-##TODO netreba nejak tak, aby sa make mohlo spustit aj z ineho adresara...?
-#$(shell cd admin && ./env.sh && cd ..)
-#include admin/env.sh
+## TrEd Makefile -- interface to installation, releasing, and testing scripts
 
 
+# Public Targets -- documented, well known, usable by anyone
 all: help
 
 help:
-	cd admin && ./print-make-usage.sh
+	@cd admin && ./print-make-usage.sh
 
+
+# UFAL installation: install TrEd and pre-installed extensions
+# - updates and uses the source distribution tree
+# - implemented as 'almost atomic' operation:
+#   (new versions created as %.new, then old versions moved to %.old
+#   and %.new renamed to %)
+install: prereq update-dist-dir install-tred-extensions
+	cd admin && ./install-tred.sh
+
+
+# make a fresh release of TrEd and upload it to testbed web site
+# NOTE: this also includes 'install'
+release: check-net release-core release-mac
+
+
+# Connect to testing platform and execute tests.
+# Note: this task can be performed only from UFAL VLAN,
+# SSH certificate for pasword-less login of user tred is recommended.
+test: check-net
+	ssh tred@virtualbox.ufal.hide.ms.mff.cuni.cz ~/test-tred.sh
+
+
+# Check the status of the TrEd testbed.
+testbed-status: check-net
+	ssh tred@virtualbox.ufal.hide.ms.mff.cuni.cz ~/test-tred.sh
+
+
+# Clear testbed, remove old (previous) testing results from VMs
+testbed-clear: check-net
+	ssh tred@virtualbox.ufal.hide.ms.mff.cuni.cz ~/test-tred.sh
+
+
+# Copy release from testbed (on virtualbox server) to TrEd oficial site on UFAL web server
+# Note: this task can be performed only from UFAL VLAN,
+# SSH certificate for pasword-less login of user tred is recommended.
+publish: check-net
+	ssh tred@virtualbox.ufal.hide.ms.mff.cuni.cz ~/publish-tred.sh
+
+
+
+
+
+#
+# Public targets, but only for experienced users (not described in help)
+#
+
+# Check prerequisites (libraries, tools, CPAN modules ...)
 prereq:
 	cd admin && ./prereq.sh
 
-sync-www:
-	cd admin && ./sync-www.sh
 
-# make a fresh release of TrEd
-# NOTE: this also includes 'install'
-release:
-	cd admin && ./release-tred.sh
+# Check we are in the UFAL VLAN, so we can access TrEd testing infrastructure
+# and Mac OS X development infrastructure
+check-net:
+	echo "Check that the current computer is in UFAL VLAN ..."
+	ping -c 1 virtualbox.ufal.hide.ms.mff.cuni.cz
 
-# Same as release, but uses qcmd+qtop instead of interactive qrsh
-release-tred-qcmd:
-	cd admin && ./release-tred-qcmd.sh
 
-# Same as 'release' but without 'install'
-release-tred-no-install:
-	cd admin && ./release-tred-no-install.sh
+# Make a fres release of TrEd (except for the Mac OS package)
+# the release is uploaded to testbed web site
+release-core: prereq update-dist-dir build-dep-package pack-extensions prepare-tred-web-release sync-testbed-www
 
-# Auxiliary: Build extensions, TrEd distributions and rsync the updated WWW tree to the web server
-tred-web-release: pack-extensions prepare-tred-web-release sync-www
+
+# Connect to TrEd releasing and testing platform and
+# build Mac OS package for TrEd and upload it to testbed web site.
+# Note that core release must be performed before mac package release.
+release-mac: check-net
+	ssh tred@virtualbox.ufal.hide.ms.mff.cuni.cz ~/build-tred-dmg.sh
+
+
+
+
+#
+# Private Targets -- not to be called from outside, except for debugging
+#
+sync-testbed-www:
+	cd admin && ./sync-testbed-www.sh
 
 # Update changelog in the working copy
 make-changelog:
@@ -49,30 +100,16 @@ make-changelog:
 update-dist-dir: make-changelog
 	cd admin && ./update-dist-dir.sh
 
+
 # UFAL installation: update pre-installed extensions pdt20 and pdt_vallex
 install-tred-extensions:
 	cd admin && ./install-tred-extensions.sh
-
-# UFAL installation: install TrEd and pre-installed extensions
-# - updates and uses the source distribution tree
-# - implemented as 'almost atomic' operation:
-#   (new versions created as %.new, then old versions moved to %.old
-#   and %.new renamed to %)
-install: prereq update-dist-dir install-tred-extensions
-	cd admin && ./install-tred.sh
-
-# Copy updated dependency package and installation script to the WWW tree
-build-dep-package: update-dep-packages
-	cd admin && ./build-dep-package.sh
-
-# as above, plus rsync to the web server
-release-dep-package: build-dep-package 
-	make sync-www
 
 # Build latest versions of TrEd extension packages from the (working copy!)
 # of the extension repository and copy them to the source WWW tree.
 pack-extensions:
 	cd admin && ./pack-extensions.sh
+
 
 # Auxiliary:
 # Create TrEd distribution packages, update the documentation and Changelog 
@@ -82,9 +119,13 @@ pack-extensions:
 prepare-tred-web-release:
 	cd admin && ./prepare-tred-web-release.sh
 
-update-dep-packages: prereq update-unix-dep-packages update-win32-strawberry-dep-packages
-# no longer need to do this, only for active perl...
-# update-win32-dep-packages
+
+# Update dependency packages, pack them, and move them to the release dir.
+build-dep-package: update-dep-packages
+	cd admin && ./build-dep-package.sh
+
+# Update dependency packages with CPAN modules and external libraries.
+update-dep-packages: update-unix-dep-packages update-win32-dep-packages
 
 # Fetch fresh dependency packages from CPAN and other sources
 # (in the unix_install/packages_unix directory)
@@ -94,33 +135,8 @@ update-unix-dep-packages:
 update-win32-dep-packages:
 	cd admin && ./update-win32-dep-packages.sh
 
-update-win32-strawberry-dep-packages:
-	cd admin && ./update-win32-strawberry-dep-packages.sh
 
 
-# Try to compile the dependencies (testing)
-test-dep-packages:
-	cd admin && ./test-dep-packages.sh
-
-#
-# Targets that need to run on the SGE cluster are implemented as 
-# SGE jobs which usually just call
-#   make 'job-TARGET'
-# on the allocated cluster node. (where TARGET is the original name of the target).
-#
-job-tred-release: install new-treex-pml build-dep-package pack-extensions prepare-tred-web-release
-
-#hm, this is kindof weird (look also at next target)
-job-tred-pkg-release:
-	
-# Don't forget prepare-tred-web-release prerequisities...
-job-tred-pkg-no-release: update-dist-dir build-dep-package prepare-tred-web-release
-
-# netreba tu pridat dalsie ciele, aby to ozaj bolo len bez instalacie...?
-job-tred-release-no-install: update-dist-dir build-dep-package prepare-tred-web-release
-
-job-test-packages:
-	cd admin && ./job-test-packages.sh
 
 #### Treex::PML section
 # not creatig ppm any more... build-treex-pml-ppm removed from chain
@@ -134,12 +150,4 @@ build-treex-pml-ppm:
 
 install-treex-pml:
 	cd admin && ./install-treex-pml.sh
-
-
-# Testing and publishing operations
-test:
-	echo "NOT IMPLEMENTED YET!"
-
-publish:
-	echo "NOT IMPLEMENTED YET!"
 

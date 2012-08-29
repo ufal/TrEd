@@ -16,8 +16,8 @@ INSTALL_BASE=${SVN_DIR}/local_install
 WWW=${SVN_DIR}/local_www
 
 # Remote web tree (of the testbed)
-#REMOTE_WWW="ufal.mff.cuni.cz:/home/www/html/tred/testbed"
-REMOTE_WWW=virtualbox.ufal.hide.ms.mff.cuni.cz:/var/www/tred/testbed
+TESTING_SERVER=virtualbox.ufal.hide.ms.mff.cuni.cz
+REMOTE_WWW=${TESTING_SERVER}:/var/www/tred/testbed
 
 # Login name used to upload released TrEd to REMOTE_WWW.
 # The selected user should log there without password (by certificate)
