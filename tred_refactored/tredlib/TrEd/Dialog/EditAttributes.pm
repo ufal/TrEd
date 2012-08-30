@@ -30,7 +30,7 @@ sub dialog_schema {
         croak("Unknown attribute $attr_path") unless $node_type;
         $enabled = 0
             if main::doEvalHook( $win, 'enable_attr_hook', $attr_path,
-                    "normal", $node ) eq 'stop';
+                    "normal", $node ) // q() eq 'stop';
     }
     else {
         $enabled = 0
