@@ -67,8 +67,18 @@ The script performs these steps:
 3) Download install_tred.bash from testbed.
 4) Copy application template (TrEd.app) from the template image to /Applications.
 5) Install TrEd into /Applications/TrEd.app/Contents/MacOS/tred.
-6) Copy /Applications/TrEd.app/Contents/MacOS/tred into the template image.
-7) Unmount the image and create its compressed version (as a new file).
+6) Sign the TrEd application bundle with the Apple Developer ID certificate of
+  the UFAL (using codesign tool).
+7) Copy /Applications/TrEd.app/Contents/MacOS/tred into the template image.
+8) Unmount the image and create its compressed version (as a new file).
 
 Note: the hdiutil command line tool is used to manipulate with DMG images.
 
+The code signing process is a bit tricky. The UFAL Developer ID certificate
+(including its private key) must be imported to the keychain of the machine
+where the TrEd is being released. The certificate itself is managed by UFAL's
+'Agent' at the Apple Developer center (currently Pavel Stranak). Before the
+certificate can be used in a script (executed remotely via SSH), the keychain
+must be unlocked. Furthermore, the code must be signed with some specific
+requirements. See the make-release.sh script (look for 'codesign') for more
+details.  
