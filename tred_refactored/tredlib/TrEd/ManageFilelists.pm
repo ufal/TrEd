@@ -556,6 +556,7 @@ sub create_filelists {
                 map {
                     my ( $filename, $suffix )
                         = TrEd::Utils::parse_file_suffix($_);
+                    $suffix //= q();
                     Treex::PML::IO::make_abs_URI($filename)->as_string . $suffix
                     } @ARGV
             );
