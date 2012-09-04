@@ -77,14 +77,17 @@ release-mac: check-net
 	ssh tred@virtualbox.ufal.hide.ms.mff.cuni.cz ~/build-tred-dmg.sh
 
 
+# Upload local release (made by release-core) to the testbed website.
+# This target is automatically invoked by the release-core target. It should
+# be re-invoked only if failed, but the release in the local directory is fresh.
+sync-testbed-www:
+	cd admin && ./sync-testbed-www.sh
+
 
 
 #
 # Private Targets -- not to be called from outside, except for debugging
 #
-sync-testbed-www:
-	cd admin && ./sync-testbed-www.sh
-
 # Update changelog in the working copy
 make-changelog:
 	cd admin && ./make-changelog.sh

@@ -81,8 +81,15 @@ Otherwise see above.
 
 * How do I release TrEd
 
-Run 'make release-tred' and cross fingers. Don't forget to confirm
-rsync of the WWW source tree to the web-server (ufal.mff.cuni.cz).
+The easiest way to release TrEd is to connect to TrEd-testbed-master virtual
+machine, which is running in VirtualBox on virtualbox.ufal.hide.ms.mff.cuni.cz.
+User tred has a checkout of the SVN with all necessary tools and Perl modules
+installed. So you can just go to the ~/tred_svn/, udate the svn (by 'svn up')
+and execute 'make release test publish'. The final 'publish' target will ask you
+for a login and password to ufal.mff.cuni.cz. The account must have proper
+access rights to TrEd web page storage.
+
+For more details about releasing TrEd please see README file.
 
 * How do I add a new dependency
 
