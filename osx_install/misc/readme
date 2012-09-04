@@ -1,5 +1,7 @@
 Contents:
-- build-tred-dmg.sh - A shell script for the host system on which the
+- mac-mini/build-tred-dmg.sh - A shell script for the host system on which the
   development VM is running (starts VM, executes the building process, and
   shuts down the VM again).
-  
+- virtualbox/build-tred-dmg.sh - A frontend script that just calls a script of
+  the same name inside the Mac Mini. Therefore, user needs only to access the
+  virtualbox server and not the Mac.
