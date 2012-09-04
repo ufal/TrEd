@@ -1,77 +1,183 @@
 TrEd - Tree Editor - central release/distribution directory
 
 Directory structure:
+====================
 
-    admin/         - auxiliary scripts used by Makefile
-    dist/          - distribution tree w/ compiled documentation (used to create distribution packages)
-		     This is tree should be considered READ-ONLY, you cannot commit changes from here!
-    extensions/    - TrEd extensions (svn checkout from https://svn.ms.mff.cuni.cz/svn/TrEd/extensions)
-		     You can make changes here and commit, but note that this is also the tree
-		     from which extensions are packaged.
-    tred/          - TrEd working copy (svn checkout from https://svn.ms.mff.cuni.cz/svn/TrEd/trunk)
-		     You can make changes here and commit.
+    admin/             - auxiliary scripts used by Makefile
+    dist/              - distribution tree w/ compiled documentation (used to create distribution packages)
+                         This is tree should be considered READ-ONLY, you cannot commit changes from here!
+    dpan/
+    extensions/        - TrEd extensions (svn checkout from https://svn.ms.mff.cuni.cz/svn/TrEd/extensions)
+                         You can make changes here and commit, but note that this is also the tree
+                         from which extensions are packaged.
+    osx_install/       - Stuff related to releasing Mac OS X TrEd application packages.
+	                     (see osx_install/doc for more information) 
+    tred/              - Symlink pointing to new tred_refactored/.
+	tred_portable/
+    tred_refactored/   - TrEd working copy (svn checkout from https://svn.ms.mff.cuni.cz/svn/TrEd/trunk)
+                         You can make changes here and commit.
+    tredlib/
+    unix_install/      - packages and installation script for TrEd dependencies
+    win32_install/     - content of the windows setup (except for TrEd itself)
+    win32_ppm/         - Perl module packages for ActivePerl and tools to fetch them
+    win32_strawberry/  -
+    HOWTO              -
+    Makefile           - makefile for releasing TrEd
+    README             - describes the process of releasing TrEd
 
-    Treex-PML/     - Treex-PML distribution
 
-    unix_install/  - packages and installation script for TrEd dependencies
-    win32_install/ - content of the windows setup (except for TrEd itself)
-    win32_ppm/     - Perl module packages for ActivePerl and tools to fetch them
-    Makefile       - makefile for releasing TrEd
-    README         - describes the process of releasing TrEd
 
-The Makefile can:
+Installing and Releasing TrEd
+=============================
+All actions are available directly from Makefile. The make utility plays the
+role of universal interface for all basic operations. The scripts that perform
+these operations are implemented in admin/ scripts. All scripts (thus makefile
+actions as well) are configured in admin/env.sh file.
 
-(A) update the distribution tree from SVN and compile the documentation from POD and DocBook
-(B) build Win32 and UNIX installation packages
-(C) build UNIX dependency package
-(D) create extensions packages in the WWW source tree for the default extension repository
-(E) install TrEd on UFAL's local network (/f/common/{exec,share/tred,lib/tred,doc/tred})
-(F) pre-install extensions pdt20 and pdt_vallex on UFAL's network (/f/common/share/tred-extensions)
+Please note that all operations (except install) require the user to be present
+in UFAL VLAN as all operations require some level of cooperation with our
+virtualbox.ufal.hide.ms.mff.cuni.cz server (which is being used as testing
+and releasing platform). It is also strongly recommended to have SSH certificate
+for password-free login to virtualbox server (user 'tred'), otherwise the
+releasing (testing, ...) process will not be completely unattended. 
 
-(H) fetch latest versions of dependency packages from CPAN and elsewhere
-(I) test build of dependency packages
-(J) fetch latest versions of dependency packages for Windows version of Active Perl
 
-(K) build and package latest Treex::PML
+Makefile Operations
+-------------------
 
-(U) update TrEd web page in a local copy (WWW source tree)
-(W) rsync WWW source tree to the webserver
+Top level operations: (these operations are ment to be invoked by anyone)
 
-The UFAL installation has two common extensions pre-installed: pdt20
-and pdt_vallex. This means that users don't have to install them
-separately.
+    install         - Install fresh TrEd to local directory <svn>/local_install.
+                      The <svn> denotes directory, where the TrEd SVN checkout
+					  is. This is the only target that does not require the UFAL
+					  VLAN access.  
+    release         - Prepares complete release (TrEd installers for all
+	                  platforms, documentation, web, extensions, ...) and upload
+	                  it to testbed website (see releasing process for details).
+	                  In fact, the release target just calls release-core and
+					  release-mac targets (described below).
+    test            - Connects remotely to virtualbox server and executes TrEd
+                      testing on various platforms. Please note that the testing
+                      process takes serious amount of time (hours). Testing
+                      downloads installers and other necessary files from
+					  testbed website.
+    publish         - Copy TrEd release which is currently present in testbed to
+                      the TrEd's public web. It also fixes absolute URLs where
+                      necessary.
+    testbed-status  - Checks and prints the status of the testbed. The testbed
+                      master is booted if necessary and status of all testing
+					  VMs is printed. If some of them are not OK, the testing
+					  cannot be executed. It is strongly recommended to check
+					  the testbed status before starting any tests.
+    testbed-clear   - Remove old testing results (snapshots) from testing VMs.
+                      It is strongly recommended to clear the testbed after any
+                      testing if the VMs are not to be examined manually.
 
-Legend for 'make' targets:
---------------------------
-help:            get help
 
-release-tred:    (A)-(F), (K), (U)-(W)
-install-tred:    (A), (D) for extensions pdt20 and pdt_vallex, (F)
-tred-release-no-install: (A)-(D), (U)-(W)
-tred-pack-extensions: (D)  ## uz neexistuje, zrejme nahradene pack-extensions
+Other operations: (these operations are ment to be invoked by experienced users
+and they are usually a part of top-level operations)
+    
+    prereq          - Check prerequisites for making a TrEd release. Several
+	                  PERL modules, development libraries and tools are required.
+					  This check can be also executed manualy if one wants to
+					  prepeare its system for releasing. 
+    check-net       - Check whether the current PC can access the virtualbox
+                      server (which is in UFAL VLAN).
+    release-core    - Create TrEd release except for the Mac package. Windows
+                      and universal unix installers are created as well as the
+                      documentation, the web, and the extensions. The releasing
+                      process uploads newly created release to the testbed
+					  website. The core release does not require access to the
+					  virtualbox server, except for the last part, when the
+					  release is being uploaded to the testbed website. If the
+					  upload fails, the release is in <svn>/local_www/tred
+					  directory and the upload can be re-attempted by invoking
+					  sync-testbed-www target.
+    release-mac     - Takes unix installer of the TrEd (from testbed website),
+                      builds an application bundle for Mac, and uploads the dmg
+                      package to the testbed.
+    sync-testbed-www - see release-core
 
-update-dist-dir: (A)
-install-tred-extensions: (D) for extensions pdt20 and pdt_vallex, (F)
 
-new-treex-pml: (K)
 
-update-dep-packages: (H) (J) 	<--
-update-unix-dep-packages: (H)
-update-win32-dep-packages: (J)
-test-dep-packages:   (I) 	<--
-build-dep-package: (D)
-release-dep-package: (D) + (G)	<--
+Releasing Process
+-----------------
+The releasing process is slightly complicated. Normally, the complete release is
+invoked by 'make release test publish'. The release target creates complete TrEd
+release and uploads everything to the testbed website. The test target invokes
+complete release testing on the testbed infrastructure. Finally, the publish
+target copies the release from testbed website to the public TrEd web on UFAL.
 
-sync-www:        (G)
+The testbed website is located on virtualbox.ufal.hide.ms.mff.cuni.cz server at
+/var/www/tred/testbed. A lighttp server is running on virtualbox and a tunel is
+set from ufallab.ms.mff.cuni.cz:24080 to virtualbox:80, so the testbed is also
+accessible from outside.
 
-Targets that need to run on the SGE cluster are implemented as 
-SGE jobs which usually just call
-  make 'job-TARGET'
-on the allocated cluster node. (where TARGET is the original name of the target).
+Releasing
 
-Required tools (all available in UFAL's PERLREPO)
--------------------------------------------------
-XSH - http://xsh.sourceforge.net (available in UFAL's PERLREPO)
-Pod::Xhtml - CPAN
-Pod::Hyperlink::BounceURL - CPAN
+The releasing process has following steps
+1) Prerequisites are checked (make prereq). This step verifies that everything
+   is installed on the target machine (Perl, CPAN modules, development libraries,
+   and some specific tools like NSIS or 7zip).
+2) The dist/ dir is updated (make update-dist-dir). The update makes fresh SVN
+   export and updates changelog and version number in it. Then the documentation
+   is compiled from DocBook and POD). It also updates extensions directory in
+   the SVN checkout.
+   The dist/ update is almost atomic. The new dist is built in a new directory
+   and it is swaped with the old one by two mv operations. 
+3) Update and prepare the dependency packages -- CPAN modules and libraries
+   (make build-dep-package) for the unix install script and the windows
+   installer.
+4) Prepare and pack TrEd extensions (make pack-extensions)
+5) Assemble everything (installers, documentation, extensions, ...) together
+   into local_web directorty (make prepare-tred-web-release).
+6) Upload the contents of local_www to the testbed website. It is strongly
+   recommended that the user has SSH certificate uploaded to virtualbox, so it
+   will not require password. The checkout in master-VM has its certificate set. 
+7) The release-mac target is invoked. It connects to virtualbox via SSH as tred
+   user and invokes ~/build-tred-dmg.sh script. This script connects to Mac Mini
+   (again via SSH as tred user) and invokes /Users/tred/build-tred-dmg.sh script
+   there. This two-way dispatching is necessary, as the user may not need to
+   know how to reach our Mac Mini.
+   The building script checks the status of tred-devel-osx10.7_64 VM, which is
+   designated for creating TrEd application bundle for Mac OS 10.7 (Lion) and
+   10.8 (Mountain Lion). If the VM is ok, it is started and two scripts
+   (make-release.sh and upload.sh) are invoked. These scripts are present in 
+   osx_install/scripts directory. Details about mac releasing process are
+   also described in separate documentation in osx_install dir. The upload
+   script uploads the dmg package also to the testbed website.
 
+
+Testing
+
+The make test target connects to virtualbox via SSH and invokes the test-tred.sh
+script in /home/tred as 'tred' user. The script makes sure the testbed-master
+VM is up and running, connects there by SSH (using certificate verification) and
+executes the /home/tred/testbed/test-tred.sh script. This script uses SSH to
+manage (start/stop, etc.) testing VMs both on virtualbox server (in Virtual Box)
+and on Mac Mini (in VMware Fusion).
+
+These VMs are started one by one, and the puppeteer tool is used to access them.
+The puppeteer uploads testing scenario and invokes inspector tool, that executes
+the scenario. Scenarios are tailored for each platform. In general, the scenario
+downloads necessary installation files from testbed website, installs TrEd, and
+briefly tests it (whether the TrEd starts and loads a sample file). When the
+testing of TrEd concludes, the VM is turned off and the testing script continues
+with next VM. The results (installed TrEd, install log etc.) are kept in the
+master VM and summary log is displayed at the end of the testing.
+
+The testing takes some time as the server does not have enough hardware
+resources and only one another VM (except for the master) can be up at a time.
+One installation and testing cycle takes approx. 30 minutes (depending on the
+OS). However, the testing should not be skipped before the TrEd is published.
+
+
+Publishing
+
+The make publish target connects to virtualbox via SSH and invokes the
+/home/tred/publis-tred.sh script as 'tred' user. The publish script check that
+a release is present on testbed website (which is also on virtualbox server) and
+uses rsync to copy the release to ufal.mff.cuni.cz server at /home/www/html/tred.
+It also fixes absolute URLs in install_tred.bash and the documentation. User
+is supposed to have an account at ufal.mff.cuni.cz, which has sufficient rights
+to write in the tred directory. The script will prompt for login and password. 
