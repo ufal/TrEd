@@ -31,12 +31,12 @@ test: check-net
 
 # Check the status of the TrEd testbed.
 testbed-status: check-net
-	ssh tred@virtualbox.ufal.hide.ms.mff.cuni.cz ~/test-tred.sh
+	ssh tred@virtualbox.ufal.hide.ms.mff.cuni.cz ~/check-testbed.sh
 
 
 # Clear testbed, remove old (previous) testing results from VMs
 testbed-clear: check-net
-	ssh tred@virtualbox.ufal.hide.ms.mff.cuni.cz ~/test-tred.sh
+	ssh tred@virtualbox.ufal.hide.ms.mff.cuni.cz ~/clear-testbed.sh
 
 
 # Copy release from testbed (on virtualbox server) to TrEd oficial site on UFAL web server
