@@ -693,7 +693,7 @@ sub test__set_print_options {
 }
 
 sub test__set_extensions {
-  my $default_repos = "http://ufal.mff.cuni.cz/~pajas/tred/extensions";
+  my $default_repos = "http://ufal.mff.cuni.cz/tred/extensions/core";
   
   # 1 -- $confs_ref->{extensionsdir}'s length = 0
   my %confs = (
