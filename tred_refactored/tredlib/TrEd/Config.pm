@@ -283,7 +283,7 @@ $printOptions = {};
 );
 our $MAX_RECENTFILES = 9;
 
-$documentation_dir = 'http://ufal.mff.cuni.cz/~pajas/tred';
+$documentation_dir = 'http://ufal.mff.cuni.cz/tred/documentation';
 
 ######################################################################################
 # Usage         : set_default_config_file_search_list()
@@ -892,7 +892,7 @@ sub _set_extensions {
         Cwd::cwd() );
 
     $extensionRepos = val_or_def( $confs_ref, 'extensionrepos',
-        'http://ufal.mff.cuni.cz/~pajas/tred/extensions' );
+        "http://ufal.mff.cuni.cz/tred/extensions/core/\nhttp://ufal.mff.cuni.cz/tred/extensions/external/" );
 
     $preinstalledExtensionsDir
         =  defined $confs_ref->{preinstalledextensionsdir}

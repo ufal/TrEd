@@ -316,7 +316,7 @@ Tk: 804.028
       <orderedlist continuation="restarts" inheritnum="ignore">
 	<listitem>
 	  <para>
-	    Fetch the  <ulink url="http://ufal.mff.cuni.cz/~pajas/tred/tred-dep-unix.tar.gz">tred-dep-unix.tar.gz</ulink>
+	    Fetch the  <ulink url="http://ufal.mff.cuni.cz/tred/tred-dep-unix.tar.gz">tred-dep-unix.tar.gz</ulink>
 	    package</para>
 	</listitem>
 	<listitem>
@@ -368,7 +368,7 @@ Password:
 	    The last few steps describe the installation of
 	    <application>TrEd</application> itself.
 	    Start by fetching the latest <application>TrEd</application>
-	    distribution package <ulink url="http://ufal.mff.cuni.cz/~pajas/tred/tred-current.tar.gz">tred-current.tar.gz</ulink>,
+	    distribution package <ulink url="http://ufal.mff.cuni.cz/tred/tred-current.tar.gz">tred-current.tar.gz</ulink>,
 	    unpack the package it using
 	    <programlisting format="linespecific">$ <userinput>tar xzvf tred-current.tar.gz</userinput></programlisting>
 	    and copy the resulting <filename>tred</filename> directory
@@ -9863,8 +9863,8 @@ sub switch_context_hook {
   <copyright year="]]><replaceable>2008</replaceable><![CDATA[">]]><replaceable>Petr Pajas</replaceable><![CDATA[</copyright>
   <description>]]><replaceable>This is extension provides an example of how a TrEd extension might look like.</replaceable><![CDATA[</description>
   <require>]]><replaceable><![CDATA[
-    <extension name="pdt20" min_version="1.0" href="http://ufal.mff.cuni.cz/~pajas/tred/extensions/pdt20"/>
-    <extension name="padt" min_version="1.0" href="http://ufal.mff.cuni.cz/~pajas/tred/extensions/padt"/>]]></replaceable><![CDATA[
+    <extension name="pdt20" min_version="1.0" href="http://ufal.mff.cuni.cz/tred/extensions/core/pdt20"/>
+    <extension name="padt" min_version="1.0" href="http://ufal.mff.cuni.cz/tred/extensions/core/padt"/>]]></replaceable><![CDATA[
   </require>
 </tred_extension>
 ]]>
