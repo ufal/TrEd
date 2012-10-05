@@ -43,7 +43,7 @@ testbed-clear: check-net
 # Note: this task can be performed only from UFAL VLAN,
 # SSH certificate for pasword-less login of user tred is recommended.
 publish: check-net
-	ssh tred@virtualbox.ufal.hide.ms.mff.cuni.cz ~/publish-tred.sh
+	ssh -t tred@virtualbox.ufal.hide.ms.mff.cuni.cz ~/publish-tred.sh
 
 
 
