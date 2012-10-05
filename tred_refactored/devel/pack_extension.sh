@@ -141,14 +141,14 @@ if [ -f "$target_dir/${name}/package.xml" ]; then
 	
     fi
 
-    script='print $1 if m{<version>([0-9.]+)</version>}'
-    prev_ver=`perl -ne "$script" "$target_dir/$name/package.xml" /dev/null`
-    pkg_ver=`perl -ne "$script" "$meta"`
-
-    if [[ -n "$prev_ver" && -n "$pkg_ver" && "$prev_ver" != "$pk_ver" ]]; then
-	echo UPGRADING PACKAGE VERSION IN "$meta"
-	perl -pi~ -e 's{(<version>(?:\d+\.)*)(\d+)(</version>)}{$1.($2+1).$3}e' "$meta"
-    fi
+# Disable upgrading package version. Versions are managed by maintainers only!
+#    script='print $1 if m{<version>([0-9.]+)</version>}'
+#    prev_ver=`perl -ne "$script" "$target_dir/$name/package.xml" /dev/null`
+#    pkg_ver=`perl -ne "$script" "$meta"`
+#    if [[ -n "$prev_ver" && -n "$pkg_ver" && "$prev_ver" != "$pk_ver" ]]; then
+#	echo UPGRADING PACKAGE VERSION IN "$meta"
+#	perl -pi~ -e 's{(<version>(?:\d+\.)*)(\d+)(</version>)}{$1.($2+1).$3}e' "$meta"
+ #   fi
 
 fi
 
