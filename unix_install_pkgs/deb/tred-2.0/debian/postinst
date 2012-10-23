@@ -1,0 +1,18 @@
+#!/bin/bash
+
+function suply_answers() {
+	echo 'yes'
+	echo 'sudo'
+	echo 'yes'
+	echo 'yes'
+	echo 'yes'
+	echo 'yes'
+	echo 'yes'
+	echo 'yes'
+	echo 'yes'
+	echo 'yes'
+}
+
+
+# Install remaining CPAN packages
+suply_answers | perl -MCPAN -e 'install "UNIVERSAL::DOES", "XML::CompactTree", "XML::CompactTree::XS", "Treex::PML"'

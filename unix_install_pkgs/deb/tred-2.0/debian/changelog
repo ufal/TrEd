@@ -1,0 +1,5 @@
+tred (2.%SVN_VERSION%) unstable; urgency=low
+
+  * Initial Release.
+
+ -- TrEd Developers Team <tred@ksi.mff.cuni.cz>  %DATE%

@@ -1,0 +1,16 @@
+Source: tred
+Section: unknown
+Priority: optional
+Maintainer: TrEd Developers Team <tred@ksi.mff.cuni.cz>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.2
+Homepage: <insert the upstream URL, if relevant>
+#Vcs-Git: git://git.debian.org/collab-maint/tred.git
+#Vcs-Browser: http://git.debian.org/?p=collab-maint/tred.git;a=summary
+
+Package: tred
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, bash, perl-tk, perl-modules, libtest-simple-perl, libperl-ostype-perl, libversion-perl, libversion-requirements-perl, libmodule-metadata-perl, libmodule-build-perl, libjson-pp-perl, libparse-cpan-meta-perl, libcpan-meta-yaml-perl, libcpan-meta-perl, libfile-which-perl, libtext-iconv-perl, libtext-micromason-perl, libtie-ixhash-perl, libsyntax-highlight-engine-simple-perl, libcompress-raw-zlib-perl, libcompress-raw-bzip2-perl, libio-compress-perl, libxml-namespacesupport-perl, libxml-sax-base-perl, libxml-sax-perl, libxml-libxml-perl, libxml-libxslt-perl, libxml-nodefilter-perl, libxml-libxml-iterator-perl, libxml-filter-buffertext-perl, libxml-sax-writer-perl, libxml-writer-perl, libparse-recdescent-perl, libgraph-perl, libperlio-gzip-perl, libarchive-zip-perl, libio-string-perl, libclass-inspector-perl, libfile-sharedir-perl, libreadonly-perl, libfont-ttf-perl, libpdf-api2-perl, libxml2-dev
+Description: TrEd tree editor - academic tool for computational liguistics
+ TrEd is an application created and maintained at Departement of Computational
+ Linguistic (Mathematical and Pysical Faculty of Charles University in Prague).
