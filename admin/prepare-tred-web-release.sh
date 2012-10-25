@@ -24,7 +24,7 @@ xsh2 -P ${WWW}/tred/index.html 'nobackups; rm //*[@class="offline"]; map :i { s{
 
 # Fix SVN version in links and text...
 SVN_VERSION=`svn info . | grep 'Revision:' | sed -E 's/[^0-9]+//g'`
-sed -i "s/\(SVN:VERSION)/$SVN_VERSION/g" ${WWW}/tred/index.html
+sed -i "s/(SVN:VERSION)/$SVN_VERSION/g" ${WWW}/tred/index.html
 
 ##ATT if we want ActivePerl ppm packages
 # we need to run win32_ppm/get_packages_tred_58 a get_packages_tred_510.sh before this is run
