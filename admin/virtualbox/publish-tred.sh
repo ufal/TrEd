@@ -68,10 +68,17 @@ for PATCH_FILE in $PATCH_FILES; do
 done
 
 
-# Patch Mac Package size info in HTML
-echo "Patching tred.dmg size in index.html ..."
+# Patch index.html
+echo "Patching data in index.html ..."
 DMG_SIZE=`du -sh "$LOCAL_COPY/tred.dmg" | sed -E 's/^(\S+)\s.*/\1/'`
 if ! sed -i "s/<!--MAC_SIZE_OF_tred.dmg-->/$DMG_SIZE/" "$LOCAL_COPY/index.html"; then
+	echo "Patching failed!"
+	cd "$SAVE_DIR"
+	exit 4
+fi
+
+DEB_SIZE=`du -shD "$LOCAL_COPY/tred.deb" | sed -E 's/^(\S+)\s.*/\1/'`
+if ! sed -i "s/<!--LINUX_SIZE_OF_tred.deb-->/$DEB_SIZE/" "$LOCAL_COPY/index.html"; then
 	echo "Patching failed!"
 	cd "$SAVE_DIR"
 	exit 4
