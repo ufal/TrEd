@@ -19,7 +19,7 @@ install: prereq update-dist-dir install-tred-extensions
 
 # make a fresh release of TrEd and upload it to testbed web site
 # NOTE: this also includes 'install'
-release: check-net release-core release-mac
+release: check-net release-core release-mac release-deb
 
 
 # Connect to testing platform and execute tests.
@@ -75,6 +75,11 @@ release-core: prereq update-dist-dir build-dep-package pack-extensions prepare-t
 # Note that core release must be performed before mac package release.
 release-mac: check-net
 	ssh tred@virtualbox.ufal.hide.ms.mff.cuni.cz ~/build-tred-dmg.sh
+
+
+# Use the generic unix install script and prepare a deb package for Debian-like linux distributions.
+release-deb:
+	cd admin && ./release-deb.sh
 
 
 # Upload local release (made by release-core) to the testbed website.
