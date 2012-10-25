@@ -126,6 +126,37 @@
       </dd>
 
 
+		<dt id="download_linux">Linux</dt>
+		<dd><dl>
+			<dt><tt>
+				<a href="TRED_HOME_URL/tred_2.(SVN:VERSION)_all.deb">tred_2.(SVN:VERSION)_all.deb</a> (<!--LINUX_SIZE_OF_tred.deb-->) - TrEd .deb package
+			</tt></dt>
+			<dd>
+				<p><small>
+					The deb package was tested on current versions of Testing Debian (Wheezy) and Ubuntu.
+					Current Stable Debian (Squeezy) does not contain following dependencies
+					(<code>libperl-ostype-perl libmodule-metadata-perl libjson-pp-perl
+					libcpan-meta-yaml-perl libxml-sax-base-perl libperlio-gzip-perl</code>).
+				</small></p>
+				<p><small>
+					To install the package use<br />
+					<code>$> sudo gdebi ./tred_2.(SVN:VERSION)_all.deb</code><br /><br />
+					or<br /><br />
+					<code>$> sudo dpkg -i ./tred_2.(SVN:VERSION)_all.deb</code><br />
+					which will most likely fail so it must be followed by<br />
+					<code>$> sudo apt-get -f install</code><br />
+					to fix dependencies and install the package.
+				</small></p>
+			</dd> 
+			<dt><tt>
+				RPM package is comming soon ...
+			</tt></dt>
+			<dd>
+				<p></p>
+			</dd>
+		</dl></dd>
+
+
 		<dt id="download_osx">Mac OS X (10.7 Lion and 10.8 Mountain Lion)</dt>
 		<dd><dl>
 			<dt><tt>
