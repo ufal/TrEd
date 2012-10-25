@@ -151,6 +151,16 @@ else
 	     exit 1;
 fi
 
+# The debuild tool required for deb package creation
+DEBUILD=`which debuild`
+if [ -x "$DEBUILD" ]; then
+	echo "debuild found, OK."
+else
+	echo "debuild is missing!"
+	echo "please run 'apt-get install dpkg-dev debhelper devscripts fakeroot linda' ..."
+	exit 1
+fi
+
 ## create or update Treex-PML directory
 if [ -d "$TREEX_PML_DIR" ];then 
 	cd $TREEX_PML_DIR 
@@ -176,3 +186,4 @@ else
 	svn co $TRED_SVN_REPO/devel/unix_install $TRED_UNIXINST_DIR >> $LOG
 	echo "Done"
 fi
+
