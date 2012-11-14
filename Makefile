@@ -19,7 +19,7 @@ install: prereq update-dist-dir install-tred-extensions
 
 # make a fresh release of TrEd and upload it to testbed web site
 # NOTE: this also includes 'install'
-release: check-net release-core release-mac release-deb
+release: check-net release-core release-mac release-deb release-rpm
 
 
 # Connect to testing platform and execute tests.
@@ -80,6 +80,11 @@ release-mac: check-net
 # Use the generic unix install script and prepare a deb package for Debian-like linux distributions.
 release-deb:
 	cd admin && ./release-deb.sh
+
+
+# Use the generic unix install script and prepare a rpm package for Fedora and RHEL distributions.
+release-rpm:
+	cd admin && ./release-rpm.sh
 
 
 # Upload local release (made by release-core) to the testbed website.

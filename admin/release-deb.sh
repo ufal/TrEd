@@ -12,13 +12,17 @@ SVN_VERSION=`svn info . | grep 'Revision:' | sed -E 's/[^0-9]+//g'`
 cd "$PROJECT_DIR/unix_install_pkgs/deb" || exit 1
 ./prepare_deb_pkg.sh || exit 2
 
+# Delete previous versions of deb packages ...
+echo "Delete previous versions of deb packages ..."
+ssh ${LOGIN_NAME}@${TESTING_SERVER} "rm -f /var/www/tred/testbed/*.deb"
+
 # Upload the package to the testbed website
 echo "Uploading the package to testbed web ..."
 DEB_FILE="tred_2.${SVN_VERSION}_all.deb"
 scp "./${DEB_FILE}" "${LOGIN_NAME}@${REMOTE_WWW}/${DEB_FILE}"
 
 # Make sure tred.deb link points to the newest deb package
-echo "Creating symling tred.deb ..."
+echo "Creating symlink tred.deb ..."
 ssh ${LOGIN_NAME}@${TESTING_SERVER} "cd /var/www/tred/testbed && ln -sf ./${DEB_FILE} ./tred.deb"
 
 cd "$EXTDIR"

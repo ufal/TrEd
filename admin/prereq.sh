@@ -161,6 +161,17 @@ else
 	exit 1
 fi
 
+# The debuild tool required for deb package creation
+RPMBUILD=`which rpmbuild`
+if [ -x "$RPMBUILD" ]; then
+	echo "rpmbuild found, OK."
+else
+	echo "rpmbuild is missing!"
+	echo "please run 'apt-get install rpm' ..."
+	exit 1
+fi
+
+
 ## create or update Treex-PML directory
 if [ -d "$TREEX_PML_DIR" ];then 
 	cd $TREEX_PML_DIR 
