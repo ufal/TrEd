@@ -2695,7 +2695,7 @@ sub init_extensions {
         }
         $dir = File::Spec->catdir( $extension_dir, $name, 'libs' );
         if ( -d $dir && !exists( $includes{$dir} ) ) {
-            push( @INC, $dir );
+            unshift( @INC, $dir );
             $includes{$dir} = 1;
         }
         $dir = File::Spec->catdir( $extension_dir, $name, 'stylesheets' );
