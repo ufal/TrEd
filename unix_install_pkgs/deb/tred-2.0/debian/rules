@@ -14,13 +14,21 @@
 override_dh_auto_install:
 	wget -O "$(CURDIR)/install_tred.bash" http://ufallab.ms.mff.cuni.cz:24080/tred/testbed/install_tred.bash
 	chmod a+x "$(CURDIR)/install_tred.bash"
-	mkdir -p "$(CURDIR)/debian/tred/usr/share/tred"
-	"$(CURDIR)/install_tred.bash" --tred-dir "$(CURDIR)/debian/tred/usr/share/tred" --no-libs
-	rm -rf "$(CURDIR)/debian/tred/usr/share/tred/bin"
+	mkdir -p "$(CURDIR)/debian/tred/opt/tred"
+	"$(CURDIR)/install_tred.bash" --tred-dir "$(CURDIR)/debian/tred/opt/tred" --no-libs
 	mkdir -p "$(CURDIR)/debian/tred/usr/bin"
-	ln -s /usr/share/tred/tred "$(CURDIR)/debian/tred/usr/bin/start_tred"
-	ln -s /usr/share/tred/btred "$(CURDIR)/debian/tred/usr/bin/start_btred"
-	ln -s /usr/share/tred/ntred "$(CURDIR)/debian/tred/usr/bin/start_ntred"
+	echo '#!/bin/sh' > "$(CURDIR)/debian/tred/opt/tred/bin/start_tred"
+	echo 'export TRED_DIR=/opt/tred' >> "$(CURDIR)/debian/tred/opt/tred/bin/start_tred"
+	echo 'perl "$$TRED_DIR/tred" $$@' >> "$(CURDIR)/debian/tred/opt/tred/bin/start_tred"
+	ln -s /opt/tred/bin/start_tred "$(CURDIR)/debian/tred/usr/bin/start_tred"
+	echo '#!/bin/sh' > "$(CURDIR)/debian/tred/opt/tred/bin/start_btred"
+	echo 'export TRED_DIR=/opt/tred' >> "$(CURDIR)/debian/tred/opt/tred/bin/start_btred"
+	echo 'perl "$$TRED_DIR/btred" $$@' >> "$(CURDIR)/debian/tred/opt/tred/bin/start_btred"
+	ln -s /opt/tred/bin/start_btred "$(CURDIR)/debian/tred/usr/bin/start_btred"
+	echo '#!/bin/sh' > "$(CURDIR)/debian/tred/opt/tred/bin/start_ntred"
+	echo 'export TRED_DIR=/opt/tred' >> "$(CURDIR)/debian/tred/opt/tred/bin/start_ntred"
+	echo 'perl "$$TRED_DIR/ntred" $$@' >> "$(CURDIR)/debian/tred/opt/tred/bin/start_ntred"
+	ln -s /opt/tred/bin/start_ntred "$(CURDIR)/debian/tred/usr/bin/start_ntred"
 
 %:
 	dh $@ 

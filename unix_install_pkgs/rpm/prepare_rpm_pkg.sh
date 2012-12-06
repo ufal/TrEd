@@ -38,6 +38,8 @@ cd `dirname "$0"` || exit 1
 # Initialization
 SVN_VERSION=`svn info . | grep 'Revision:' | sed -E 's/[^0-9]+//g'`
 
+rm ./*.rpm
+
 TRED_RPM_DIR=`pwd`/tmp
 [ ! -z "$TRED_RPM_DIR" ] || exit 2
 if [ -d "$TRED_RPM_DIR" ]; then
