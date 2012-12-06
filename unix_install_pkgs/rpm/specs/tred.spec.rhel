@@ -24,23 +24,29 @@ chmod a+x "%{_sourcedir}/install_tred.bash"
 %build
 rm -rf "%{_builddir}/tred"
 "%{_sourcedir}/install_tred.bash" --tred-dir "%{_builddir}/tred" --no-libs
-rm -rf "%{_builddir}/tred/bin"
+#rm -rf "%{_builddir}/tred/bin"
 rm -f "%{_sourcedir}/install_tred.bash"
+for CMD in tred btred ntred ; do
+	echo '#!/bin/sh' > "%{_builddir}/tred/bin/start_$CMD"
+	echo 'export TRED_DIR=/opt/tred' >> "%{_builddir}/tred/bin/start_$CMD"
+	echo "perl \"\$TRED_DIR/$CMD\" \$@" >> "%{_builddir}/tred/bin/start_$CMD"
+done
+
 
 
 # Assemble the binary package in buildroot dir.
 %install
 #rm -rf "%{_buildrootdir}/tred"
-mkdir -p "%{buildroot}/usr/share"
-mv "%{_builddir}/tred" "%{buildroot}/usr/share/tred"
+mkdir -p "%{buildroot}/opt"
+mv "%{_builddir}/tred" "%{buildroot}/opt/tred"
 mkdir -p "%{buildroot}%{_bindir}"
-ln -s /usr/share/tred/tred "%{buildroot}%{_bindir}/tred"
-ln -s /usr/share/tred/btred "%{buildroot}%{_bindir}/btred"
-ln -s /usr/share/tred/ntred "%{buildroot}%{_bindir}/ntred"
+for CMD in tred btred ntred ; do
+	ln -s "/opt/tred/bin/start_$CMD" "%{buildroot}%{_bindir}/start_$CMD"
+done
 
 
 %files
-/usr/share/tred
+/opt/tred
 %{_bindir}/*
 
 %defattr(-,root,root,-)
@@ -53,3 +59,4 @@ ln -s /usr/lib64/libgdbm.so.2 /usr/lib64/libgdbm.so
 { echo yes; echo sudo; for ((i=0; i<1000; i++)); do echo yes; done; } | perl -MCPAN -e 'install "File::ShareDir", "Archive::Zip", "Class::Inspector", "CPAN::Meta", "CPAN::Meta::Requirements", "CPAN::Meta::YAML", "File::Which", "Font::TTF", "Graph::ChuLiuEdmonds", "Graph::Kruskal", "JSON::PP", "Module::Metadata", "PDF::API2", "Readonly", "Syntax::Highlight::Perl", "Tie::IxHash", "Tk::CodeText", "Tk::MatchEntry", "UNIVERSAL::DOES", "Version::Requirements", "XML::CompactTree", "XML::CompactTree::XS", "XML::LibXML::Iterator", "XML::LibXSLT", "XML::NodeFilter", "XML::SAX::Base";'
 { for ((i=0; i<1000; i++)); do echo yes; done; } | perl -MCPAN -e 'install "Treex::PML";'
 { for ((i=0; i<1000; i++)); do echo yes; done; } | perl -MCPAN -e 'install "Treex::PML";'
+

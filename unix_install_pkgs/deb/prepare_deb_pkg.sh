@@ -3,6 +3,8 @@
 SAVE_DIR=`pwd`
 cd `dirname "$0"` || exit 1
 
+rm -f ./*.deb
+
 SVN_VERSION=`svn info . | grep 'Revision:' | sed -E 's/[^0-9]+//g'`
 
 

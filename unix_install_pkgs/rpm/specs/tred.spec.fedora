@@ -5,7 +5,7 @@ Summary:	TrEd tree editor - academic tool for computational liguistics
 URL:		http://ufal.mff.cuni.cz/tred/
 License:	GPLv2+
 BuildArch:	noarch
-Requires:	libxml2-devel, perl, perl-CPAN, perl-Tk, perl-Perl-OSType, perl-ExtUtils-MakeMaker, perl-ExtUtils-CBuilder, perl-ExtUtils-ParseXS, perl-Test-Simple, perl-version, perl-Module-Metadata, perl-Version-Requirements, perl-CPAN-Meta-YAML, perl-JSON-PP, perl-Parse-CPAN-Meta, perl-CPAN-Meta-Requirements, perl-CPAN-Meta, perl-Module-Build, perl-File-Which, perl-Text-Iconv, perl-Tie-IxHash, perl-Compress-Raw-Zlib, perl-Compress-Raw-Bzip2, perl-IO-Compress, perl-XML-NamespaceSupport, perl-XML-SAX-Base, perl-XML-SAX, perl-XML-LibXML, perl-XML-LibXSLT, perl-XML-Filter-BufferText, perl-XML-SAX-Writer, perl-XML-Writer, perl-Parse-RecDescent, perl-Graph, perl-PerlIO-gzip, perl-Archive-Zip, perl-IO-String, perl-Class-Inspector, perl-File-ShareDir, perl-IO-Zlib, perl-Readonly, perl-Font-TTF, perl-PDF-API2
+Requires:	gcc, libxml2-devel, perl, perl-CPAN, perl-Tk, perl-libwww-perl, perl-Perl-OSType, perl-ExtUtils-MakeMaker, perl-ExtUtils-CBuilder, perl-ExtUtils-ParseXS, perl-Test-Simple, perl-version, perl-Module-Metadata, perl-Version-Requirements, perl-CPAN-Meta-YAML, perl-JSON-PP, perl-Parse-CPAN-Meta, perl-CPAN-Meta-Requirements, perl-CPAN-Meta, perl-Module-Build, perl-File-Which, perl-Text-Iconv, perl-Tie-IxHash, perl-Compress-Raw-Zlib, perl-Compress-Raw-Bzip2, perl-IO-Compress, perl-XML-NamespaceSupport, perl-XML-SAX-Base, perl-XML-SAX, perl-XML-LibXML, perl-XML-LibXSLT, perl-XML-Filter-BufferText, perl-XML-SAX-Writer, perl-XML-Writer, perl-Parse-RecDescent, perl-Graph, perl-PerlIO-gzip, perl-Archive-Zip, perl-IO-String, perl-Class-Inspector, perl-File-ShareDir, perl-IO-Zlib, perl-Readonly, perl-Font-TTF, perl-PDF-API2
 Requires(post):	perl, perl-CPAN
 AutoReqProv:	no
 
@@ -24,23 +24,25 @@ chmod a+x "%{_sourcedir}/install_tred.bash"
 %build
 rm -rf "%{_builddir}/tred"
 "%{_sourcedir}/install_tred.bash" --tred-dir "%{_builddir}/tred" --no-libs
-rm -rf "%{_builddir}/tred/bin"
+#rm -rf "%{_builddir}/tred/bin"
 rm -f "%{_sourcedir}/install_tred.bash"
-
+for CMD in tred btred ntred ; do
+	echo '#!/bin/sh' > "%{_builddir}/tred/bin/start_$CMD"
+	echo 'export TRED_DIR=/opt/tred' >> "%{_builddir}/tred/bin/start_$CMD"
+	echo "perl \"\$TRED_DIR/$CMD\" \$@" >> "%{_builddir}/tred/bin/start_$CMD"
+done
 
 # Assemble the binary package in buildroot dir.
 %install
-#rm -rf "%{_buildrootdir}/tred"
-mkdir -p "%{buildroot}/usr/share"
-mv "%{_builddir}/tred" "%{buildroot}/usr/share/tred"
+mkdir -p "%{buildroot}/opt"
+mv "%{_builddir}/tred" "%{buildroot}/opt/tred"
 mkdir -p "%{buildroot}%{_bindir}"
-ln -s /usr/share/tred/tred "%{buildroot}%{_bindir}/tred"
-ln -s /usr/share/tred/btred "%{buildroot}%{_bindir}/btred"
-ln -s /usr/share/tred/ntred "%{buildroot}%{_bindir}/ntred"
-
+for CMD in tred btred ntred ; do
+	ln -s "/opt/tred/bin/start_$CMD" "%{buildroot}%{_bindir}/start_$CMD"
+done
 
 %files
-/usr/share/tred
+/opt/tred
 %{_bindir}/*
 
 %defattr(-,root,root,-)
@@ -50,3 +52,4 @@ ln -s /usr/share/tred/ntred "%{buildroot}%{_bindir}/ntred"
 # Note: The { echo ... } part suplies the CPAN interactive config script with right answers (in case the CPAN has not been configured yet).
 %post
 { echo yes; echo sudo; echo yes; echo yes; echo yes; echo yes; } | perl -MCPAN -e 'install "Treex::PML", "Tk::CodeText", "Tk::MatchEntry", "UNIVERSAL::DOES", "Syntax::Highlight::Perl", "XML::CompactTree", "XML::CompactTree::XS", "XML::NodeFilter", "XML::LibXML::Iterator", "Graph::ChuLiuEdmonds", "Graph::Kruskal";'
+
