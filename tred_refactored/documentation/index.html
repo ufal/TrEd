@@ -129,7 +129,7 @@
 		<dt id="download_linux">Linux</dt>
 		<dd><dl>
 			<dt><tt>
-				<a href="TRED_HOME_URL/tred_2.(SVN:VERSION)_all.deb">tred_2.(SVN:VERSION)_all.deb</a> (<!--LINUX_SIZE_OF_tred.deb-->) - TrEd .deb package
+				<a href="TRED_HOME_URL/tred_2.(SVN:VERSION)_all.deb">tred_2.(SVN:VERSION)_all.deb</a> (<!--PUBLISH_SIZE_OF_tred.deb-->) - TrEd .deb package
 			</tt></dt>
 			<dd>
 				<p><small>
@@ -149,10 +149,24 @@
 				</small></p>
 			</dd> 
 			<dt><tt>
-				RPM package is comming soon ...
+				<a href="TRED_HOME_URL/tred-2-(SVN:VERSION)-fedora.noarch.rpm">tred-2-(SVN:VERSION)-fedora.noarch.rpm</a> (<!--PUBLISH_SIZE_OF_tred-fedora.rpm-->) - TrEd .rpm package for Fedora (FC17)<br />
+				<a href="TRED_HOME_URL/tred-2-(SVN:VERSION)-rhel.noarch.rpm">tred-2-(SVN:VERSION)-rhel.noarch.rpm</a> (<!--PUBLISH_SIZE_OF_tred-rhel.rpm-->) - TrEd .rpm package for Red Hat Enterprise Linux (6.3, Santiago)
 			</tt></dt>
 			<dd>
-				<p></p>
+				<p><small>
+					The packages are designed for listed Linux distributions only.
+					You may try to use these packages on other rpm-based distributions.
+					The package cannot damage anything in incompatible distribution,
+					but there may be some problems with package dependencies.
+					If your distribution is not supported, we recommend to use the generic installation script for unices (presented below).
+				</small></p>
+				<p><small>
+					To install the package use<br />
+					<code>$> sudo yum localinstall ./tred-2-(SVN:VERSION).noarch.rpm</code><br /><br />
+					The RHEL package have some dependencies in the Extra Packages for Enterprise Linux (EPEL) repository.
+					You can register the repository (install the epel package) using following command:<br />
+					<code>$> sudo rpm -Uvh http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-7.noarch.rpm</code>
+				</small></p>
 			</dd>
 		</dl></dd>
 
@@ -160,7 +174,7 @@
 		<dt id="download_osx">Mac OS X (10.7 Lion and 10.8 Mountain Lion)</dt>
 		<dd><dl>
 			<dt><tt>
-				<a href="TRED_HOME_URL/tred.dmg">tred.dmg</a> (<!--MAC_SIZE_OF_tred.dmg-->) - TrEd Application
+				<a href="TRED_HOME_URL/tred.dmg">tred.dmg</a> (<!--PUBLISH_SIZE_OF_tred.dmg-->) - TrEd Application
 			</tt></dt>
 			<dd>
 				<p><small>
