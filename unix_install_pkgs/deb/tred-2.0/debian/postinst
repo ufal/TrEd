@@ -15,4 +15,5 @@ function suply_answers() {
 
 
 # Install remaining CPAN packages
-suply_answers | perl -MCPAN -e 'install "UNIVERSAL::DOES", "XML::CompactTree", "XML::CompactTree::XS", "Treex::PML"'
+#suply_answers | perl -MCPAN -e 'install "UNIVERSAL::DOES", "XML::CompactTree", "XML::CompactTree::XS", "Treex::PML"'
+cpanm --sudo --no-interactive UNIVERSAL::DOES XML::CompactTree XML::CompactTree::XS Treex::PML
