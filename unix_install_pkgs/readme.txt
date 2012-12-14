@@ -6,8 +6,9 @@ is to:
 - Install all possible dependencies (perl, CPAN modules, ...) via packaging
   systems
 - Install remaining dependencies (CPAN modules, which are not provided as
-  packages) using post-install bash script, that invokes
-  $> perl -MCPAN -e 'install ...'
+  packages) using cpanminus script. The cpanm was choosed over the alternatives
+  as it requires no configuration and it has '--no-interactive' switch. The
+  cpanminus package existence is ensured by package dependencies.
 
 
 DEB Packages
@@ -73,9 +74,11 @@ the CPAN modules.
 RHEL installation required two specific workarounds in the %post scriptlet:
 - A symlink /usr/lib64/libgdbm.so.2 that points to /usr/lib64/libgdbm.so has
   to be created (problems with naming conventions).
-- The Treex::PML CPAN module has to be installed as last and twice. The first
-  attempt to install fails, the second succeeds. Bug in the Treex::PML release
-  is suspected.
+- The cpanminus module is missing on RHEL, so we use online installation script.
+  It works as follows: 'wget -O - http://cpanmin.us | perl - --no-interactive
+  <module-names> ...'.
+  The wget downloads cpanminus script from it webpage a pass it on to perl.
+  Perl then executes the script to install the modules.
 Furthermore, RHEL rpm package has some dependencies in the Extra Package for
 Enterprise Linux repository (http://fedoraproject.org/wiki/EPEL).
 
