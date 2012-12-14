@@ -6,7 +6,7 @@ URL:		http://ufal.mff.cuni.cz/tred/
 License:	GPLv2+
 BuildArch:	noarch
 Requires:	gcc, libxml2-devel, perl, perl-CPAN, perl-Tk, perl-libwww-perl, perl-Perl-OSType, perl-ExtUtils-MakeMaker, perl-ExtUtils-CBuilder, perl-ExtUtils-ParseXS, perl-Test-Simple, perl-version, perl-Module-Metadata, perl-Version-Requirements, perl-CPAN-Meta-YAML, perl-JSON-PP, perl-Parse-CPAN-Meta, perl-CPAN-Meta-Requirements, perl-CPAN-Meta, perl-Module-Build, perl-File-Which, perl-Text-Iconv, perl-Tie-IxHash, perl-Compress-Raw-Zlib, perl-Compress-Raw-Bzip2, perl-IO-Compress, perl-XML-NamespaceSupport, perl-XML-SAX-Base, perl-XML-SAX, perl-XML-LibXML, perl-XML-LibXSLT, perl-XML-Filter-BufferText, perl-XML-SAX-Writer, perl-XML-Writer, perl-Parse-RecDescent, perl-Graph, perl-PerlIO-gzip, perl-Archive-Zip, perl-IO-String, perl-Class-Inspector, perl-File-ShareDir, perl-IO-Zlib, perl-Readonly, perl-Font-TTF, perl-PDF-API2
-Requires(post):	perl, perl-CPAN
+Requires(post):	perl, perl-CPAN, cpanminus
 AutoReqProv:	no
 
 %description
@@ -49,7 +49,5 @@ done
 
 
 # Post-install scriplet (install non-RPM CPAN modules).
-# Note: The { echo ... } part suplies the CPAN interactive config script with right answers (in case the CPAN has not been configured yet).
 %post
-{ echo yes; echo sudo; echo yes; echo yes; echo yes; echo yes; } | perl -MCPAN -e 'install "Treex::PML", "Tk::CodeText", "Tk::MatchEntry", "UNIVERSAL::DOES", "Syntax::Highlight::Perl", "XML::CompactTree", "XML::CompactTree::XS", "XML::NodeFilter", "XML::LibXML::Iterator", "Graph::ChuLiuEdmonds", "Graph::Kruskal";'
-
+cpanm --no-interactive Tk::CodeText Tk::MatchEntry UNIVERSAL::DOES Syntax::Highlight::Perl XML::CompactTree XML::CompactTree::XS XML::NodeFilter XML::LibXML::Iterator Graph::ChuLiuEdmonds Graph::Kruskal Treex::PML

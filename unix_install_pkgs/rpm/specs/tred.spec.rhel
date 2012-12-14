@@ -6,7 +6,7 @@ URL:		http://ufal.mff.cuni.cz/tred/
 License:	GPLv2+
 BuildArch:	noarch
 Requires:	perl, perl-core, gcc, libX11-devel, libXft-devel, libxml2-devel, libxslt-devel, perl-Compress-Raw-Bzip2, perl-Compress-Raw-Zlib, perl-CPAN, perl-ExtUtils-CBuilder, perl-ExtUtils-MakeMaker, perl-ExtUtils-ParseXS, perl-IO-String, perl-IO-Zlib, perl-Module-Build, perl-Parse-CPAN-Meta, perl-Test-Simple, perl-Text-Iconv, perl-version, perl-XML-Filter-BufferText, perl-XML-LibXML, perl-XML-NamespaceSupport, perl-XML-SAX, perl-XML-SAX-Writer, perl-XML-Writer, perl-Graph, perl-Parse-RecDescent, perl-Perl-OSType, perl-PerlIO-gzip, perl-IO-Compress-Base, perl-Tk
-Requires(post):	perl, perl-CPAN
+Requires(post):	perl, perl-CPAN, curl
 AutoReqProv:	no
 
 %description
@@ -56,7 +56,8 @@ done
 # Note: The { echo ... } part suplies the CPAN interactive config script with right answers (in case the CPAN has not been configured yet).
 %post
 ln -s /usr/lib64/libgdbm.so.2 /usr/lib64/libgdbm.so
-{ echo yes; echo sudo; for ((i=0; i<1000; i++)); do echo yes; done; } | perl -MCPAN -e 'install "File::ShareDir", "Archive::Zip", "Class::Inspector", "CPAN::Meta", "CPAN::Meta::Requirements", "CPAN::Meta::YAML", "File::Which", "Font::TTF", "Graph::ChuLiuEdmonds", "Graph::Kruskal", "JSON::PP", "Module::Metadata", "PDF::API2", "Readonly", "Syntax::Highlight::Perl", "Tie::IxHash", "Tk::CodeText", "Tk::MatchEntry", "UNIVERSAL::DOES", "Version::Requirements", "XML::CompactTree", "XML::CompactTree::XS", "XML::LibXML::Iterator", "XML::LibXSLT", "XML::NodeFilter", "XML::SAX::Base";'
-{ for ((i=0; i<1000; i++)); do echo yes; done; } | perl -MCPAN -e 'install "Treex::PML";'
-{ for ((i=0; i<1000; i++)); do echo yes; done; } | perl -MCPAN -e 'install "Treex::PML";'
-
+#{ echo yes; echo sudo; for ((i=0; i<1000; i++)); do echo yes; done; } | perl -MCPAN -e 'install "File::ShareDir", "Archive::Zip", "Class::Inspector", "CPAN::Meta", "CPAN::Meta::Requirements", "CPAN::Meta::YAML", "File::Which", "Font::TTF", "Graph::ChuLiuEdmonds", "Graph::Kruskal", "JSON::PP", "Module::Metadata", "PDF::API2", "Readonly", "Syntax::Highlight::Perl", "Tie::IxHash", "Tk::CodeText", "Tk::MatchEntry", "UNIVERSAL::DOES", "Version::Requirements", "XML::CompactTree", "XML::CompactTree::XS", "XML::LibXML::Iterator", "XML::LibXSLT", "XML::NodeFilter", "XML::SAX::Base";'
+#{ for ((i=0; i<1000; i++)); do echo yes; done; } | perl -MCPAN -e 'install "Treex::PML";'
+#{ for ((i=0; i<1000; i++)); do echo yes; done; } | perl -MCPAN -e 'install "Treex::PML";'
+wget -O - http://cpanmin.us | perl - --no-interactive File::ShareDir Archive::Zip Class::Inspector CPAN::Meta CPAN::Meta::Requirements CPAN::Meta::YAML File::Which Font::TTF Graph::ChuLiuEdmonds Graph::Kruskal JSON::PP Module::Metadata PDF::API2 Readonly Syntax::Highlight::Perl Tie::IxHash Tk::CodeText Tk::MatchEntry UNIVERSAL::DOES Version::Requirements XML::CompactTree XML::CompactTree::XS XML::LibXML::Iterator XML::LibXSLT XML::NodeFilter XML::SAX::Base Treex::PML
+#cpanm --no-interactive File::ShareDir Archive::Zip Class::Inspector CPAN::Meta CPAN::Meta::Requirements CPAN::Meta::YAML File::Which Font::TTF Graph::ChuLiuEdmonds Graph::Kruskal JSON::PP Module::Metadata PDF::API2 Readonly Syntax::Highlight::Perl Tie::IxHash Tk::CodeText Tk::MatchEntry UNIVERSAL::DOES Version::Requirements XML::CompactTree XML::CompactTree::XS XML::LibXML::Iterator XML::LibXSLT XML::NodeFilter XML::SAX::Base Treex::PML
