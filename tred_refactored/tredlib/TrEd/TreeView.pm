@@ -2292,7 +2292,7 @@ sub redraw {
                                     {
                                         no integer;
                                         my $i = 0;
-                                        $canvas->create(
+                                        my @canvas_obj = (
                                             $shape,
                                             (   (           $rotate
                                                         and @obj_coords >= 4
@@ -2345,15 +2345,16 @@ sub redraw {
                                                 )
                                             ),
                                             -tags => $tag,
-                                            -dash => exists $obj_spec{dash}
-                                            ? $self->convert_dash(
-                                                delete $obj_spec{dash},
-                                                $obj_spec{width}
-                                                )
-                                            : undef,
+                                            exists $obj_spec{dash}
+                                                ? ( -dash => $self->convert_dash(
+                                                    delete $obj_spec{dash},
+                                                    $obj_spec{width} ))
+                                                : (),
                                             map(( '-' . $_ => $obj_spec{$_} ),
                                                 keys %obj_spec )
                                         );
+                                        print STDERR Dumper(\@canvas_obj);
+                                        $canvas->create(@canvas_obj);
                                     }
                                     last unless $repeat;
                                     $d += $step;
