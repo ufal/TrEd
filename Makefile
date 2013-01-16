@@ -74,7 +74,7 @@ release-core: prereq update-dist-dir build-dep-package pack-extensions prepare-t
 # build Mac OS package for TrEd and upload it to testbed web site.
 # Note that core release must be performed before mac package release.
 release-mac: check-net
-	ssh tred@virtualbox.ufal.hide.ms.mff.cuni.cz ~/build-tred-dmg.sh
+	ssh tred@virtualbox.ufal.hide.ms.mff.cuni.cz '~/build-tred-dmg.sh'
 
 
 # Use the generic unix install script and prepare a deb package for Debian-like linux distributions.

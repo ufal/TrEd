@@ -6,4 +6,4 @@ EXTDIR=`dirname $(readlink -fen $0)`
 
 LOGIN_NAME=tred
 echo "Uploading TrEd to ${LOGIN_NAME}@${REMOTE_WWW}..."
-rsync -aHlzv --rsh=ssh --chmod=Dug+rwx,o+r,Fug+rwX,o+rX  "${WWW}/tred/" "${LOGIN_NAME}@${REMOTE_WWW}/"
+rsync -aHlzv --rsh=ssh --exclude '*~' --chmod=Dug+rwx,o+r,Fug+rwX,o+rX  "${WWW}/tred/" "${LOGIN_NAME}@${REMOTE_WWW}/"
