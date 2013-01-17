@@ -86,7 +86,7 @@ done
 echo "Uploading release to $PUBLIC_WEB ..."
 echo -n "Login name: "; read LOGIN_NAME
 if [ "$LOGIN_NAME" != '' ]; then
-	rsync -rlHzv --rsh=ssh --chmod=Dug+rwx,o+r,Fug+rwX,o+rX "$LOCAL_COPY/" "${LOGIN_NAME}@${PUBLIC_WEB}/"
+	rsync -rlHzv --exclude '*~' --exclude .svn --rsh=ssh --chmod=Dug+rwx,o+r,Fug+rwX,o+rX "$LOCAL_COPY/" "${LOGIN_NAME}@${PUBLIC_WEB}/"
 fi
 
 
