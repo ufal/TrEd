@@ -157,7 +157,7 @@ if [ -x "$DEBUILD" ]; then
 	echo "debuild found, OK."
 else
 	echo "debuild is missing!"
-	echo "please run 'apt-get install dpkg-dev debhelper devscripts fakeroot linda' ..."
+	echo "please run 'apt-get install dpkg-dev debhelper devscripts fakeroot' ..."
 	exit 1
 fi
 
