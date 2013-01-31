@@ -2353,7 +2353,6 @@ sub redraw {
                                             map(( '-' . $_ => $obj_spec{$_} ),
                                                 keys %obj_spec )
                                         );
-                                        print STDERR Dumper(\@canvas_obj);
                                         $canvas->create(@canvas_obj);
                                     }
                                     last unless $repeat;
