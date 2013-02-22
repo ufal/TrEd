@@ -160,7 +160,7 @@ Function .onInit
 	; try to find perl executable and version
 	Call testPerl
 	; this is the default version that will be downloaded if the user does not have any perl installed
-	StrCpy $DesiredPerlVersion "5.14"
+	StrCpy $DesiredPerlVersion "5.12"
 	StrCpy $CustomPerlFolder ""
 	; does the user need to configure that?
 	StrCpy $tredDataDir "$LOCALAPPDATA\tred_data"
