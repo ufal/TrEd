@@ -3,20 +3,20 @@
 EXTDIR=`dirname $(readlink -fen $0)`
 . "$EXTDIR"/env.sh
 
-PERL_URL="http://strawberryperl.com/"
-PERL_INSTALLER_DL="strawberry-perl.msi"
+PERL_URL=http://strawberryperl.com/
+PERL_INSTALLER_DL=strawberry-perl.msi
 
 WWW="$1"
 
 function get_strawberry() {
 	rm -f web
-	wget ${PERL_URL} -O web >> $LOG
+	wget "$PERL_URL"releases.html -O web >> $LOG
 	
-	PERL_LINK_REGEXP="http://.*strawberry-perl-${DESIRED_PERL_VERSION}.*.msi"
+	PERL_LINK_REGEXP=download/"$DESIRED_PERL_VERSION"'\..*[0-9]\.msi'
 	
 	DESIRED_PERL_INSTALLER=`grep -o $PERL_LINK_REGEXP web | head -n 1`
 	echo "Downloading Strawberry Perl $DESIRED_PERL_VERSION"
-	wget ${DESIRED_PERL_INSTALLER} -O $PERL_INSTALLER_DL >> $LOG
+	wget "$PERL_URL$DESIRED_PERL_INSTALLER" -O $PERL_INSTALLER_DL >> $LOG
 	
 	rm -f web
 	

@@ -40,9 +40,10 @@ TRED_EXTENSIONS_URL=""
 # SHELL=/bin/bash
 TMP=/tmp
 
-# if the desired perl version changes, it should also be changed 
-# in win32_strawberry/tred-installer.nsi (search for $DesiredPerlVersion variable)
-DESIRED_PERL_VERSION='5.14'
+# if the desired perl version changes, it should also be changed in
+# win32_strawberry/tred-installer-common-1.nsi (search for
+# $DesiredPerlVersion variable)
+DESIRED_PERL_VERSION='5.12'
 
 # UFAL installation paths
 ## INSTALL_BASE=/f/common
