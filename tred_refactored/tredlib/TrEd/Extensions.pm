@@ -2673,7 +2673,7 @@ sub init_extensions {
     @resources{ Treex::PML::ResourcePaths() } = ();
 
     # macro include paths
-    if ( defined(@TrEd::Macros::macro_include_paths) ) {
+    if (@TrEd::Macros::macro_include_paths) {
         @macro_includes{ grep { defined($_) } @TrEd::Macros::macro_include_paths } = ();
     }
 
