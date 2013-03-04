@@ -200,7 +200,7 @@ Function testPerl
 			
 	${EndIf}
 	
-	nsExec::ExecToStack 'perl -e "if($] =~ /5\.014/) {print \$\"5.14\$\"}; if($] =~ /5\.012/) {print \$\"5.12\$\"}; if($] =~ /5\.010/) {print \$\"5.10\$\"}; if($] =~ /5\.008/) {print \$\"5.8\$\"};"'
+	nsExec::ExecToStack 'perl -e "$_=$];s/...$//;s/\.0+/./;print"'
 	Pop $RetVal
 	Pop $PerlVersion
 	${If} $RetVal == "0"
