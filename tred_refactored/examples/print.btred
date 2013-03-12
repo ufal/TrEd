@@ -117,11 +117,11 @@ my $output_dirname = delete $opts{'-out-dir'};
 	       $treeview->get_showHidden());
     return $l;
   }
-  sub declareMinorMode {
+  sub DeclareMinorMode {
   }
-  sub enableMinorMode {
+  sub EnableMinorMode {
   }
-  sub disableMinorMode {
+  sub DisableMinorMode {
   }
 }
 
