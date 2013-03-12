@@ -73,6 +73,7 @@ sub error_message {
         if ($top) {
 
 # report the error from the highest displayed toplevel window in stacking order
+            warn $msg;
             my ($highest) = reverse $top->stackorder();
             $top = $top->Widget($highest);
             _message_box( $top, 'Error', $msg, $nobug );
