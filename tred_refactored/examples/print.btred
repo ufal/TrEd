@@ -45,8 +45,8 @@ my $output_dirname = delete $opts{'-out-dir'};
   package main;
   import TrEd::Utils ':all';
 
-  initStylesheetPaths([split($Treex::PML::resourcePathSplit,$opts{'stylesheet-paths'},-1)]);
-  loadStyleSheets($gui);
+  TrEd::Stylesheet::init_stylesheet_paths([split($Treex::PML::resourcePathSplit,$opts{'stylesheet-paths'},-1)]);
+  TrEd::Stylesheet::load_stylesheets($gui);
 
   sub __run_hook {
     my $treeview = shift;
@@ -117,9 +117,6 @@ my $output_dirname = delete $opts{'-out-dir'};
 	       $treeview->get_showHidden());
     return $l;
   }
-  sub isFocused {
-    return 1;
-  }
   sub declareMinorMode {
   }
   sub enableMinorMode {
@@ -189,6 +186,7 @@ sub print_trees {
 
 package BTrEd::Print::Window;
 
+sub is_focused { return 1 }
 sub treeView { return $_[0]->{treeView} }
 sub FSFile { return $_[0]->{FSFile} }
 sub treeNo { return $_[0]->{treeNo} }
