@@ -6,8 +6,8 @@ if [ -z "$SVN_DIR" ]; then
 fi
 
 
-# Installation prefix -- documentation goes to $INSTALL_BASE/doc, 
-# binaries go to $INSTALL_BASE/exec, 
+# Installation prefix -- documentation goes to $INSTALL_BASE/doc,
+# binaries go to $INSTALL_BASE/exec,
 # libraries go to $INSTALL_BASE/lib,
 # extensions to $INSTALL_BASE/share
 INSTALL_BASE=${SVN_DIR}/local_install
@@ -43,7 +43,8 @@ TMP=/tmp
 # if the desired perl version changes, it should also be changed in
 # win32_strawberry/tred-installer-common-1.nsi (search for
 # $DesiredPerlVersion variable)
-DESIRED_PERL_VERSION='5.12'
+DESIRED_PERL_VERSION='5.16'
+DESIRED_PERL_URL="http://strawberry-perl.googlecode.com/files/strawberry-perl-5.16.3.1-32bit.msi"
 
 # UFAL installation paths
 ## INSTALL_BASE=/f/common
@@ -86,7 +87,7 @@ TREEX_PML_EXPORT=${PROJECT_DIR}/generated/Treex-PML
 # mutli-script to run jobs on the SGE cluster
 LRC_CMD=${ADMIN_DIR}/run_on_lrc
 
-# SVN to ChangeLog conversion 
+# SVN to ChangeLog conversion
 SVN_TO_CHANGELOG=${ADMIN_DIR}/svn2cl/svn2cl.sh
 # ChangeLog to RSS conversion
 CHANGELOG_TO_RSS=${ADMIN_DIR}/changelog2rss.pl
@@ -95,4 +96,3 @@ CHANGELOG_TO_RSS=${ADMIN_DIR}/changelog2rss.pl
 
 ## PATH_BEFORE=$PATH
 ## PATH="${ADMIN_DIR}:${PATH_BEFORE}"
-
