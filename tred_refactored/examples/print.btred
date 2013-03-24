@@ -133,6 +133,7 @@ my $output_dirname = delete $opts{'-out-dir'};
   sub unhide_current_node { }
   sub filePartOfADisplayedFile { 0 }
   sub fsfileDisplayingWindows { 0 }
+  sub findToplevelFileFor { return $_[1]; }
   sub __debug { }
 }
 
