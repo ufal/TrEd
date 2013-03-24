@@ -35,9 +35,11 @@ my $output_dirname = delete $opts{'-out-dir'};
   my $gui = {
     top => MainWindow->new,
     focusedWindow => $grp,
-    StylesheetMenu => {}
+    StylesheetMenu => {},
+    valueLine => {}
   };
   bless $gui->{StylesheetMenu}, 'BTrEd::Fake::StylesheetMenu'; # fixing some calls
+  bless $gui->{valueLine}, 'BTrEd::Fake::ValueLine';
   $grp->{framegroup} = $gui;
   $grp->{treeView} = { };
   bless $grp->{treeView}, 'BTrEd::Fake::TreeView'; # fake TreeView
@@ -243,6 +245,10 @@ package BTrEd::Fake::TreeView;
 
 sub clear_pinfo { }
 sub rightToLeft { }
+
+package BTrEd::Fake::ValueLine;
+
+sub set_value { }
 
 __END__
 
