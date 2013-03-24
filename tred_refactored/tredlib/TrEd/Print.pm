@@ -647,7 +647,7 @@ sub print_trees {
                 };
                 my $width  = $c->fpixels( $treeView->get_canvasWidth ) + 10;
                 my $height = $c->fpixels( $treeView->get_canvasHeight ) + 10;
-                my $rotate 
+                my $rotate
                     = !$toEPS
                     && !$noRotate
                     && $Media ne 'BBox'
@@ -750,7 +750,7 @@ sub print_trees {
                     }
                     if ($fileinfo) {
                         push @opts,
-                            ( -title => filename( $fsfile->filename ) . ' ('
+                            ( -title => TrEd::File::filename( $fsfile->filename ) . ' ('
                                 . $printList[$t] . '/'
                                 . ( $fsfile->lastTreeNo + 1 )
                                 . ')' );
@@ -889,7 +889,7 @@ sub print_trees {
                     }
                 };
 
-                my $rotate 
+                my $rotate
                     = !$toEPS
                     && !$noRotate
                     && $treeView->get_canvasHeight
@@ -1009,19 +1009,19 @@ END_OF_ENC
                         # this hack is to partially fix Tk804.025 bug
                         print $O '%%BeginProlog', "\n";
 
-                        #	    print $O '%%BeginFont tredfont',"\n";
+                        #           print $O '%%BeginFont tredfont',"\n";
                         print $O (<$FNT>);
 
-                        #	    print $O '%%EndFont',"\n\n";
+                        #           print $O '%%EndFont',"\n\n";
                     }
                     else {
                         print $O $ps[ $i++ ], "\n";
 
-                        #	    print $O '%%BeginFont ',"$psFontName\n";
+                        #           print $O '%%BeginFont ',"$psFontName\n";
                         print $O (<$FNT>);
 
-                    #	    print $O '%%EndFont',"\n\n";
-                    #	      $i++ while ($i<=$#ps and $ps[$i]!~/% StrokeClip/);
+                    #       print $O '%%EndFont',"\n\n";
+                    #         $i++ while ($i<=$#ps and $ps[$i]!~/% StrokeClip/);
                     }
                     print $O $ps[ $i++ ], "\n"
                         while ( $i <= $#ps
