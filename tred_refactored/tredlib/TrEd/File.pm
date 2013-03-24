@@ -370,7 +370,7 @@ sub _is_among_primary_files {
 
 #######################################################################################
 # Usage         : _check_for_recovery_and_open($file_name, $grp, $win, $fsfile, $lockinfo, $opts_ref)
-# Purpose       : Checks for recovery file for $file_name and opens the recovery or 
+# Purpose       : Checks for recovery file for $file_name and opens the recovery or
 #                 original file
 # Returns       : List that contains two elements: Treex::PML::Document reference and status hash reference
 # Parameters    : scalar $file_name-- name of the file to be opened
@@ -518,11 +518,11 @@ sub _check_for_recovery_and_open {
 #######################################################################################
 # Usage         : _should_save_to_recent_files($fsfile, $opts_ref)
 # Purpose       : Test whether file $fsfile should be added to recent files
-# Returns       : Boolean indication of whether file should be saved 
+# Returns       : Boolean indication of whether file should be saved
 # Parameters    : Treex::PML::Document $fsfile -- considered file
 #                 hash_ref $opts_ref -- reference to hash of options
 # Throws        : No exception
-# Comments      : 
+# Comments      :
 # See Also      : open_file()
 sub _should_save_to_recent_files {
     my ($fsfile, $opts_ref) = @_;
@@ -536,14 +536,14 @@ sub _should_save_to_recent_files {
 # Usage         : update_main($grp, $win, $suffix, $opts_ref, $fsfile, $file_name)
 # Purpose       : Update main GUI elements and run hooks
 # Returns       : Undef/empty list
-# Parameters    : hash_ref $grp -- reference to hash containing TrEd options 
+# Parameters    : hash_ref $grp -- reference to hash containing TrEd options
 #                 TrEd::Window  -- reference to focused window
 #                 string $suffix -- file's suffix (returned by TrEd::Utils::parse_file_suffix())
 #                 hash_ref $opts_ref -- reference to hash of options
 #                 Treex::PML::Document $fsfile -- ref to opened file
-#                 string $file_name -- name of the opened file 
+#                 string $file_name -- name of the opened file
 # Throws        : No exception
-# Comments      : Runs 
+# Comments      : Runs
 # See Also      : close_file()
 sub update_main {
     my ($grp, $win, $suffix, $opts_ref, $fsfile, $file_name) = @_;
@@ -587,7 +587,7 @@ sub update_main {
 #                 Hooks run: open_file_hook, possibly also guess_context_hook, file_opened_hook
 #                 (only in this function, other functions called from this function can trigger
 #                  other hooks)
-#                 This function supports suffixes after the $file_name, which means that 
+#                 This function supports suffixes after the $file_name, which means that
 #                 it can activate certain node in specified tree according to file's suffix
 # See Also      : close_file()
 sub open_file {
@@ -1081,7 +1081,7 @@ sub load_file {
 #                 hash_ref $status -- status to be merged with other user statustucs.
 # Throws        : No exception
 # Comments      : This function also inits information about the secondary file-primary file
-#                 
+#
 # See Also      : open_file()
 sub open_secondary_files {
     my ( $win, $fsfile, $status ) = @_;
@@ -1182,14 +1182,14 @@ sub close_all_files {
 
 #######################################################################################
 # Usage         : save_file($win, $f)
-# Purpose       : Saves the file, asking for user choice about referenced files, 
+# Purpose       : Saves the file, asking for user choice about referenced files,
 #                 file name, etc
 # Returns       : -1 if the operation has been stopped or cancelled by the user
 #                 Return value of save_file_as is returned
 # Parameters    : TrEd::Window $win -- reference to window whose file is being closed
 #                 $file_name -- name of the file to save
 # Throws        : No exception
-# Comments      : 
+# Comments      :
 # See Also      : save_file_as()
 sub save_file {
     my ( $win, $f ) = @_;
@@ -1502,7 +1502,7 @@ sub save_file_as {
 # Returns       : -1 if the operation was cancelled or not successful,
 #                 1 if save_file returned 1
 #                 0 otherwise
-# Parameters    : TrEd::Window $win -- ref to currently focused window 
+# Parameters    : TrEd::Window $win -- ref to currently focused window
 #                 Treex::PML::Document ref $fsfile -- ref to file which should be saved
 #                 scalar $filename -- new name of the file $fsfile
 #                 scalar $backend -- name of the backend we want to switch to (optional)
@@ -1708,7 +1708,7 @@ EOF
 # Parameters    : scalar $initdir -- directory under which the file is searched for
 #                 Tk::Listbox ref $query_list -- Listbox widget holding file names
 # Throws        : No exception
-# Comments      : 
+# Comments      :
 # See Also      : ask_save_references()
 sub _change_filename {
     my ($initdir, $query_list) = @_;
@@ -2258,34 +2258,34 @@ TrEd::File version 0.1.
 
 =head1 DESCRIPTION
 
-This package provides basic file opening operations for TrEd. 
-A file is opened by using open_file or open_standalone_file functions. Both these functions are based on load_file function, 
-which performs the actual opening of the file. This function also creates a Treex::PML::Document object, which is then stored 
-within TrEd::Window as the currently opened file. The Treex::PML::Document objects represent a document containing 
-a set of trees, which can be accessed via this object. The transformation of file into the tree-like structure is carried 
+This package provides basic file opening operations for TrEd.
+A file is opened by using open_file or open_standalone_file functions. Both these functions are based on load_file function,
+which performs the actual opening of the file. This function also creates a Treex::PML::Document object, which is then stored
+within TrEd::Window as the currently opened file. The Treex::PML::Document objects represent a document containing
+a set of trees, which can be accessed via this object. The transformation of file into the tree-like structure is carried
 out by Treex::PML library, which uses multiple backends (subclasses of Treex::PML::Backend) to support manipulation
 with various file types. The Treex::PML::Documents can be accompanied by meta data of two types -- persistent which are saved
-when the file is closed and temporary non-persistent data for application purposes. 
+when the file is closed and temporary non-persistent data for application purposes.
 
 For the purposes of this module, persistent data which contain information about related files are of great importance.
-Files loaded by Treex::PML library needs an XML schema to be opened appropriately. The schema could contain information 
+Files loaded by Treex::PML library needs an XML schema to be opened appropriately. The schema could contain information
 about files related to specific Treex::PML::Document. These files are loaded by the open_file function in this module
 by default. The relationship between opened files is stored as their non-persistent meta information.
-Files loaded automatically are secondary to file which caused them to be loaded. The file, which initiated the loading of 
-related files, on the other hand, is a primary file to all the related files. These relationships can be found out by 
+Files loaded automatically are secondary to file which caused them to be loaded. The file, which initiated the loading of
+related files, on the other hand, is a primary file to all the related files. These relationships can be found out by
 appropriate functions in this module (get_secondary_files, get_primary_files and their recursive variants).
 
 The non-persistent information in Treex::PML::Document is also used to store undo information about the file. For more information
 about undo functionality, see the documentation of TrEd::Undo module.
 
-When the file is opened, a status is returned. This status is a hash reference, which contain information about whether the 
+When the file is opened, a status is returned. This status is a hash reference, which contain information about whether the
 opening went without any errors and possibly the error messages or warnings emited during opening of the file.
 
 TrEd also uses the autosave mechanism, it saves all the opened files every 5 minute (by default, can be changed in configuration).
 During opening a file, the open_file function checks whether there exist any autosave file and if it does, it asks the user
-whether he wants to recover the file from autosaved copy. 
+whether he wants to recover the file from autosaved copy.
 
-Another mechanism used by TrEd is file locking. Every time a file is opened, a file lock is created. The locking of files is 
+Another mechanism used by TrEd is file locking. Every time a file is opened, a file lock is created. The locking of files is
 an important feature which prevents the same file from inconsistencies, e.g. it should protect users from overwriting each
 other's changes made during editing the same file concurrently. Locking mechanism is decsribed in documentation of TrEd::LockFile
 module.
@@ -2633,7 +2633,7 @@ First $fsfile's primary file whose name equals to $file_name or undef otherwise
 
 =item Purpose
 
-Checks for recovery file for $file_name and opens the recovery or 
+Checks for recovery file for $file_name and opens the recovery or
 original file
 
 =item Parameters
@@ -2680,7 +2680,7 @@ L<open_file>,
 
 =item Returns
 
-Boolean indication of whether file should be saved 
+Boolean indication of whether file should be saved
 
 =back
 
@@ -2695,16 +2695,16 @@ Update main GUI elements and run hooks
 
 =item Parameters
 
-  C<$grp> -- hash_ref $grp -- reference to hash containing TrEd options 
+  C<$grp> -- hash_ref $grp -- reference to hash containing TrEd options
   C<$win> -- TrEd::Window  -- reference to focused window
   C<$suffix> -- string $suffix -- file's suffix (returned by TrEd::Utils::parse_file_suffix())
   C<$opts_ref> -- hash_ref $opts_ref -- reference to hash of options
   C<$fsfile> -- Treex::PML::Document $fsfile -- ref to opened file
-  C<$file_name> -- string $file_name -- name of the opened file 
+  C<$file_name> -- string $file_name -- name of the opened file
 
 =item Comments
 
-Runs 
+Runs
 
 =item See Also
 
@@ -2940,7 +2940,7 @@ Undef/empty list
 
 =item Purpose
 
-Saves the file, asking for user choice about referenced files, 
+Saves the file, asking for user choice about referenced files,
 file name, etc
 
 =item Parameters
@@ -3026,7 +3026,7 @@ Save file $fsfile under name $filename using backend $backend
 
 =item Parameters
 
-  C<$win> -- TrEd::Window $win -- ref to currently focused window 
+  C<$win> -- TrEd::Window $win -- ref to currently focused window
   C<$fsfile> -- Treex::PML::Document ref $fsfile -- ref to file which should be saved
   C<$filename> -- scalar $filename -- new name of the file $fsfile
   C<$backend> -- scalar $backend -- name of the backend we want to switch to (optional)
@@ -3489,22 +3489,22 @@ options for saving files. Additional backends can also be loaded by specifying a
 =head1 DEPENDENCIES
 
 TrEd modules:
-TrEd::Query::List, 
-TrEd::Query::User, 
-TrEd::ManageFilelists, 
-TrEd::Config, 
-TrEd::MinMax, 
-TrEd::Utils, 
-TrEd::Error::Message, 
-TrEd::FileLock, 
-TrEd::RecentFiles, 
-TrEd::Stylesheet, 
+TrEd::Query::List,
+TrEd::Query::User,
+TrEd::ManageFilelists,
+TrEd::Config,
+TrEd::MinMax,
+TrEd::Utils,
+TrEd::Error::Message,
+TrEd::FileLock,
+TrEd::RecentFiles,
+TrEd::Stylesheet,
 Filelist
 
 Core Perl modules:
-Carp, 
-Exporter, 
-Cwd, 
+Carp,
+Exporter,
+Cwd,
 
 CPAN modules:
 Readonly,
@@ -3538,4 +3538,3 @@ Full text of the GPL can be found in the LICENSE file distributed with
 this program and also on-line at http://www.gnu.org/copyleft/gpl.html .
 
 =cut
-
