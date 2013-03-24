@@ -13,11 +13,10 @@ sub Redraw_FSFile_Tree {}
 sub Redraw_All {}
 sub RedrawStatusLine {}
 
-#include <tred.mac>
-
 package TredMacro;
 use Tk;
 use File::Spec;
+use Data::Dumper;
 require TrEd::Utils;
 require TrEd::TreeView;
 require TrEd::Print;
@@ -36,8 +35,12 @@ my $output_dirname = delete $opts{'-out-dir'};
   my $gui = {
     top => MainWindow->new,
     focusedWindow => $grp,
+    StylesheetMenu => {}
   };
+  bless $gui->{StylesheetMenu}, 'BTrEd::Fake::StylesheetMenu'; # fixing some calls
   $grp->{framegroup} = $gui;
+  $TrEd::Config::noCheckLocks = 1; # prevents from asking whether to lock
+  $main::insideEval = 1; # won't call stuff that isn't initialized
   if (ref($grp) eq 'HASH') {
     bless $grp, 'BTrEd::Print::Window';
   }
@@ -82,6 +85,10 @@ my $output_dirname = delete $opts{'-out-dir'};
     }
     return ($gui,$win);
   }
+  sub cast_to_grp {
+      my ($gw) = @_;
+      return ( $gw->{framegroup} ) ? $gw->{framegroup} : $gw;
+  }
   sub switchStylesheet {
     my ($grp_win,$stylesheet)=@_;
     my ($gui,$win)=grp_win($grp_win);
@@ -89,7 +96,7 @@ my $output_dirname = delete $opts{'-out-dir'};
     my $prevstylesheet=$win->{stylesheet};
     return if $prevstylesheet eq $stylesheet;
     return 0 if __run_hook(undef,$win,"pre_switch_stylesheet_hook",
-			   $prevstylesheet,$stylesheet) eq 'stop';
+                           $prevstylesheet,$stylesheet) eq 'stop';
     $win->{stylesheet}=$stylesheet;
     __run_hook(undef,$win,"switch_stylesheet_hook",$prevstylesheet,$stylesheet);
     return 1;
@@ -100,8 +107,8 @@ my $output_dirname = delete $opts{'-out-dir'};
     $win->{treeNo}=$tree_no;
     $win->{root}=$fsfile->treeList->[$tree_no];
     return (($win->{Nodes},$win->{currentNode}) = $treeview->nodes($fsfile,
-								   $tree_no,
-								   $current));
+                                                                   $tree_no,
+                                                                   $current));
   }
   sub redraw_stylesheet {
     return;
@@ -109,20 +116,22 @@ my $output_dirname = delete $opts{'-out-dir'};
   sub onGetNodes {
     my ($treeview,$fsfile,$tree_no,$current,$win)=@_;
     my $l = __run_hook($treeview,
-	       $win,
-	       "get_nodelist_hook",
-	       $fsfile,
-	       $tree_no,
-	       $current,
-	       $treeview->get_showHidden());
+               $win,
+               "get_nodelist_hook",
+               $fsfile,
+               $tree_no,
+               $current,
+               $treeview->get_showHidden());
     return $l;
   }
-  sub DeclareMinorMode {
-  }
-  sub EnableMinorMode {
-  }
-  sub DisableMinorMode {
-  }
+  sub DeclareMinorMode { }
+  sub EnableMinorMode { }
+  sub DisableMinorMode { }
+  sub autosave_filename { }
+  sub updatePostponed { }
+  sub update_title_and_buttons { }
+  sub unhide_current_node { }
+  sub __debug { }
 }
 
 sub print_trees_cmdline {
@@ -146,8 +155,8 @@ sub print_trees {
   print STDERR "Context: ",CurrentContext(),"\n" unless $opts->{-quiet};
   print STDERR "Stylesheet: ", GetCurrentStylesheet(),"\n" unless $opts->{-quiet};
  if ($opts->{-sentenceInfo} and
-	(UNIVERSAL::can(CurrentContext(),'get_value_line_hook') or
-	 UNIVERSAL::can('TredMacro','get_value_line_hook'))) {
+        (UNIVERSAL::can(CurrentContext(),'get_value_line_hook') or
+         UNIVERSAL::can('TredMacro','get_value_line_hook'))) {
    $opts->{-sentenceInfo} = sub {
      main::__run_hook(undef,$grp,"get_value_line_hook",@_);
    }
@@ -191,8 +200,28 @@ sub treeView { return $_[0]->{treeView} }
 sub FSFile { return $_[0]->{FSFile} }
 sub treeNo { return $_[0]->{treeNo} }
 sub currentNode { return $_[0]->{currentNode} }
+sub keepfiles { return $_[0]->{keepfiles} }
+sub set_current_file {
+    my ( $self, $fsfile ) = @_;
+    $self->{FSFile} = $fsfile;
+    if ( defined $fsfile ) {
+        $self->{treeNo} = $fsfile->currentTreeNo() || 0;
+        $self->{currentNode} = $fsfile->currentNode();
+    }
+    else {
+        $self->{treeNo}      = undef;
+        $self->{currentNode} = undef;
+    }
+    return;
+}
+sub get_nodes {
+}
+
+
 sub toplevel {
   my ($self)=@_;
+  Carp::confess "No canvas" unless $self->canvas();
+
   return $self->canvas()->toplevel();
 }
 sub canvas {
@@ -200,6 +229,11 @@ sub canvas {
   return undef unless (ref($self) and ref($self->{treeView}));
   return $self->{treeView}->canvas();
 }
+
+package BTrEd::Fake::StylesheetMenu;
+
+sub update { }
+
 
 __END__
 
