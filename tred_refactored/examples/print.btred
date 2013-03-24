@@ -39,6 +39,8 @@ my $output_dirname = delete $opts{'-out-dir'};
   };
   bless $gui->{StylesheetMenu}, 'BTrEd::Fake::StylesheetMenu'; # fixing some calls
   $grp->{framegroup} = $gui;
+  $grp->{treeView} = { };
+  bless $grp->{treeView}, 'BTrEd::Fake::TreeView'; # fake TreeView
   $TrEd::Config::noCheckLocks = 1; # prevents from asking whether to lock
   $main::insideEval = 1; # won't call stuff that isn't initialized
   if (ref($grp) eq 'HASH') {
@@ -237,6 +239,10 @@ package BTrEd::Fake::StylesheetMenu;
 
 sub update { }
 
+package BTrEd::Fake::TreeView;
+
+sub clear_pinfo { }
+sub rightToLeft { }
 
 __END__
 
