@@ -131,6 +131,8 @@ my $output_dirname = delete $opts{'-out-dir'};
   sub updatePostponed { }
   sub update_title_and_buttons { }
   sub unhide_current_node { }
+  sub filePartOfADisplayedFile { 0 }
+  sub fsfileDisplayingWindows { 0 }
   sub __debug { }
 }
 
