@@ -228,12 +228,12 @@ sub save_stylesheets {
                 }
                 print $f map {
                                my $pattern = $_;
-                               $pattern =~ tr/\n/\013/; 
-                               $pattern . "\n" 
+                               $pattern =~ tr/\n/\013/;
+                               $pattern . "\n"
                              }
-                         map { /^#/ ? 'node:' . $_ : $_ } 
+                         map { /^#/ ? 'node:' . $_ : $_ }
                          @{ $_->{patterns} };
-                print $f map { 'hint:' . $_ . "\n" } 
+                print $f map { 'hint:' . $_ . "\n" }
                          split /\n/, $_->{"hint"};
             }
             print $f "\n\n";
@@ -390,7 +390,7 @@ sub get_stylesheet_patterns {
     return wantarray
         ? ( $hint, $context, $patterns )
         : (
-              "context: " 
+              "context: "
             . $context . "\n"
             .
 
@@ -525,8 +525,6 @@ sub split_patterns {
 # See Also      : read_stylesheets(), save_stylesheets()
 sub init_stylesheet_paths {
     my ($user_paths) = @_;
-
-    @stylesheet_paths = ();
 
     $default_stylesheet_path = $ENV{HOME} . "/.tred-stylesheets";
     my $stylesheet_dir
