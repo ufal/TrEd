@@ -436,7 +436,7 @@ This variable contains a path to TrEd library directory.
 
 =head2 Navigation
 
-Methods of L<Treex::PML::Node|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm> 
+Methods of L<Treex::PML::Node|http://search.cpan.org/dist/Treex-PML/lib/Treex/PML/Node.pm>
 objects should be used for basic navigation within
 trees. Here are described means to navigate from one tree to another
 and a few extra macros for specific navigation in trees.
@@ -3789,7 +3789,7 @@ sub CloseFile {
     croak("Not a Treex::PML::Document object!\n")
         if defined($file)
             and !UNIVERSAL::DOES::does( $file, 'Treex::PML::Document' );
-    TrEd::File::close_file( $grp, $file );
+    TrEd::File::close_file( $grp, -fsfile => $file );
     $Redraw = 'all';
 }
 
@@ -4978,7 +4978,7 @@ sub import {
      #print "TredMacro imported from " . caller() ."\n";
     _import( $pkg, scalar(caller),
         ( $#_ >= 0 ? @_ : grep { $_ ne 'BEGIN' } keys %{"${pkg}::"} ),
-        @FORCE_EXPORT, 
+        @FORCE_EXPORT,
         @EXPORT );
 }
 
