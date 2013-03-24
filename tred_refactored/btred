@@ -37,7 +37,7 @@ BEGIN {
     use 5.008;
     use vars
         qw($quiet $Quiet $debug $carp $csts_xargs $strip_prefix $add_prefix
-        $strip_suffix $append_suffix $output_format $config_file
+        $strip_suffix $append_suffix $output_format $param_config_file
         $initial_code $macro $code $start_context $all_trees
         $all_nodes $no_all_trees $no_all_nodes $glob
         $all_nonhidden_nodes $file_encoding $allow_no_trees
@@ -54,7 +54,7 @@ BEGIN {
         @resource_paths @define_symbols $dump_macros
         $strict $warnings $no_backups
         $list_extensions
-        $host_port_file
+        $host_port_file $insideEval $enable_extensions $disable_extensions
     );
 
     # $enable_extensions $disable_extensions -> TrEd::Extensions
@@ -81,7 +81,7 @@ BEGIN {
         "strip-suffix|s=s"         => \$strip_suffix,
         "add-suffix|a=s"           => \$append_suffix,
         "output-format|f=s"        => \$output_format,
-        "config-file|c=s"          => \$config_file,
+        "config-file|c=s"          => \$param_config_file,
         'option|O=s@'              => \$TrEd::Config::override_options,
         "initial-code|i=s"         => \$initial_code,
         "macro-file|m=s"           => \$macro,
@@ -110,8 +110,8 @@ BEGIN {
         "server-host=s"            => \$host,
         "server-port|L=s"          => \$start_server,
         "print-host-port=s"        => \$host_port_file,
-        "enable-extensions|j=s"    => \$TrEd::Extensions::enable_extensions,
-        "disable-extensions|J=s"   => \$TrEd::Extensions::disable_extensions,
+        "enable-extensions|j=s"    => \$enable_extensions,
+        "disable-extensions|J=s"   => \$disable_extensions,
         "list-extensions"          => \$list_extensions,
         "help|h"                   => \$help,
         "list-options"             => \$list_options,
@@ -242,8 +242,8 @@ BEGIN {
 
     $TrEd::Config::quiet = $quiet;
 
-    if ( defined $config_file ) {
-        @TrEd::Config::config_file_search_list = ($config_file);
+    if ( defined $param_config_file ) {
+        @TrEd::Config::config_file_search_list = ($param_config_file);
 
         # override any other possible config files
     }
@@ -320,6 +320,8 @@ EOL
 
     require TrEd::Extensions;
     import TrEd::Extensions qw(:all);
+    $TrEd::Extensions::enable_extensions = $enable_extensions;
+    $TrEd::Extensions::disable_extensions = $disable_extensions;
 
     # basic tree operations
     require TrEd::Window::TreeBasics;
@@ -1077,7 +1079,7 @@ sub start_server {
                 %TrEd::Macros::defines = ( BTRED => 1 );   # reset defines
                 eval { loadMacros(); };
 
-                #	  _msg(@TrEd::Macros::macros);
+                #         _msg(@TrEd::Macros::macros);
                 if ($@) {
                     $hub->print("$@\n");
                 }
@@ -1159,29 +1161,29 @@ sub start_server {
                 $hub->print("$control SERVER_RESPONSE_STDOUT\n");
                 _msg "Dump request for $request{STATE_default}\n";
 
-     # 	  if ($request{STATE_format} =~ /^Data::Dumper\s*/) {
-     # 	    use Data::Dumper;
-     # 	    my @dump;
-     # 	    foreach my $f (grep /\S/,split /\n/,$request{STATE_default}) {
-     # 	      next unless ($f);
-     # 	      $f=~s{^ntred://}{};
-     # 	      $f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
-     # 	      next unless openFile($grp,$f,-justpreloaded => 1,
-     # 				   -secondary => !$no_secondary);
-     # 	      _msg "Dumping the tree $f at client's request\n";
-     # 	      my $fsfile = $grp->{FSFile};
-     # 	      push @dump, [$fsfile->FS,
-     # 			   $f=_has_suffix($f) ? [$grp->{root}] : $fsfile->treeList,
-     # 			   [$fsfile->tail],
-     # 			   $fsfile->[13],
-     # 			   [$fsfile->patterns],
-     # 			   $fsfile->hint];
-     # 	    }
-     # 	    $hub->print(Data::Dumper->new([\@dump],
-     # 					  ['dump']
-     # 					 )->Indent(0)->Purity(1)->Dump);
-     # 	    $hub->print("\n");
-     # 	  } elsif ($request{STATE_format} =~ /^Storable-Base64\s*/) {
+     #    if ($request{STATE_format} =~ /^Data::Dumper\s*/) {
+     #      use Data::Dumper;
+     #      my @dump;
+     #      foreach my $f (grep /\S/,split /\n/,$request{STATE_default}) {
+     #        next unless ($f);
+     #        $f=~s{^ntred://}{};
+     #        $f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
+     #        next unless openFile($grp,$f,-justpreloaded => 1,
+     #                             -secondary => !$no_secondary);
+     #        _msg "Dumping the tree $f at client's request\n";
+     #        my $fsfile = $grp->{FSFile};
+     #        push @dump, [$fsfile->FS,
+     #                     $f=_has_suffix($f) ? [$grp->{root}] : $fsfile->treeList,
+     #                     [$fsfile->tail],
+     #                     $fsfile->[13],
+     #                     [$fsfile->patterns],
+     #                     $fsfile->hint];
+     #      }
+     #      $hub->print(Data::Dumper->new([\@dump],
+     #                                    ['dump']
+     #                                   )->Indent(0)->Purity(1)->Dump);
+     #      $hub->print("\n");
+     #    } elsif ($request{STATE_format} =~ /^Storable-Base64\s*/) {
                 use Storable;
                 use MIME::Base64;
                 my @dump;
@@ -2653,8 +2655,8 @@ sub init_safe_mode {
 
     # OPCODES ALLOWED IN SAFE MODE
 
-    #			       :base_io :base_orig :filesys_read :filesys_open
-    #			       :filesys_write
+    #                          :base_io :base_orig :filesys_read :filesys_open
+    #                          :filesys_write
     $compartment->permit_only(
         qw(:base_core :base_mem :base_loop :base_math :base_orig
             entereval caller dofile
@@ -2732,6 +2734,7 @@ sub prepareExtensions {
         my ( %e, %d );
         @e{ split /,/, $TrEd::Extensions::enable_extensions }  = ();
         @d{ split /,/, $TrEd::Extensions::disable_extensions } = ();
+
         if ($macro) {
             _msg("Using -m implies all extensions disabled...\n")
                 unless $quiet;
@@ -2800,6 +2803,7 @@ sub loadMacros {
     init_extensions($extensions);
     init_extensions( $pre_installed, $preinst_dir );
     _msg("Reading extension macros...\n") unless $quiet;
+
     for my $ext_contrib ( get_extension_macro_paths($extensions),
         get_extension_macro_paths( $pre_installed, $preinst_dir ) )
     {
