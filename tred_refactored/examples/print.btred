@@ -12,11 +12,6 @@ sub Redraw_FSFile {}
 sub Redraw_FSFile_Tree {}
 sub Redraw_All {}
 sub RedrawStatusLine {}
-sub SetCurrentStylesheet {
-    my ($stylesheet_name) = @_;
-    return main::switchStylesheet( $grp, $stylesheet_name );
-}
-
 
 package TredMacro;
 use Tk;
