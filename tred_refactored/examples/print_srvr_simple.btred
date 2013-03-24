@@ -19,6 +19,7 @@ our $cache_dir = $opts{'--cache-dir'};
 
 !$cache_dir or (-d $cache_dir) or die "Cache directory $cache_dir must exist!\n";
 
+main::cast_to_grp($grp)->{noOpenFileError} = 1; # Report no errors
 
 our $permitted_paths_re = '^(?:'.join('|',@permitted_paths).')/';
 
@@ -61,38 +62,38 @@ sub make_pmltq {
     foreach my $f (map $_->[0], @$positions) {
       next if exists $fsfiles{$f};
       my ($open) = grep { Treex::PML::IO::is_same_filename($_->filename, $f) }
-	@open_files;
+        @open_files;
       if ($open) {
-	# $keep_cur=1 if !$keep_cur and exists($cur_fsfiles{$open});
-	$fsfiles{$f}=$open;
+        # $keep_cur=1 if !$keep_cur and exists($cur_fsfiles{$open});
+        $fsfiles{$f}=$open;
       } else {
-	my $fsfile = Treex::PML::Factory->createDocumentFromFile(
-	  $f,
-	  {
-	    encoding => $TrEd::Convert::inputenc,
-	    backends => [Backends()]
-	   });
-	$fsfile->changeFilename($f);
-	eval { OpenSecondaryFiles($fsfile); };
-	print STDERR "$@\n" if $@;
-	unless ($fsfile and $fsfile->lastTreeNo and $Treex::PML::FSError==0) {
-	  my $err = $@ || $! || 'unknown error';
-	  warn("Failed to open $f: $err\n");
-	  return;
-	}
-	my @new = ($fsfile, GetSecondaryFiles($fsfile));
-	push @new_fsfiles, @new;
-	push @open_files, @new;
-	$fsfiles{$_->filename}=$_ for @new; # including $fsfile
-	$fsfiles{$f}=$fsfile; # $f may be different from $fsfile->filename
+        my $fsfile = Treex::PML::Factory->createDocumentFromFile(
+          $f,
+          {
+            encoding => $TrEd::Convert::inputenc,
+            backends => [Backends()]
+           });
+        $fsfile->changeFilename($f);
+        eval { OpenSecondaryFiles($fsfile); };
+        print STDERR "$@\n" if $@;
+        unless ($fsfile and $fsfile->lastTreeNo and $Treex::PML::FSError==0) {
+          my $err = $@ || $! || 'unknown error';
+          warn("Failed to open $f: $err\n");
+          return;
+        }
+        my @new = ($fsfile, GetSecondaryFiles($fsfile));
+        push @new_fsfiles, @new;
+        push @open_files, @new;
+        $fsfiles{$_->filename}=$_ for @new; # including $fsfile
+        $fsfiles{$f}=$fsfile; # $f may be different from $fsfile->filename
       }
     }
     my @nodes;
     for my $pos (@$positions) {
       my $win = { FSFile => $fsfiles{$pos->[0]} };
       unless (TrEd::Utils::applyFileSuffix($win,$pos->[1]) and $win->{currentNode}) {
-	warn "Didn't find node [@$pos, @{[%$win]}]\n";
-	return;
+        warn "Didn't find node [@$pos, @{[%$win]}]\n";
+        return;
       }
       push @nodes, [ $win->{currentNode}, $win->{FSFile} ];
     }
@@ -116,7 +117,7 @@ sub make_svg {
   }
   if (!$open or $open!=$cur) {
     SetCurrentStylesheet(STYLESHEET_FROM_FILE());
-    Open($f) || return;
+    Open($f, { '-keep' => 1, '-noredraw' => 1 }) || return;
   }
   undef $open;
   undef $cur;
@@ -194,8 +195,8 @@ sub serveSVG {
       $cached = 1;
     } else {
       unless (sysopen($fh, $svg_name, (O_RDWR|O_CREAT), 0600)) {
-	print STDERR "Failed to create $svg_name: $!";
-	return serverError($cgi);
+        print STDERR "Failed to create $svg_name: $!";
+        return serverError($cgi);
       }
     }
   } else {
@@ -206,22 +207,22 @@ sub serveSVG {
   }
   if (!$cached) {
     unless (TredMacro::make_svg($path,
-				-filename => $svg_name,
-				-range => $tree_no,
-				-sentenceInfo => $sentence,
-				-fileInfo => $fileinfo,
-				-extraOptions => {
-				  use_svg_desc_and_title => $use_svg_desc_and_title,
-				}
-			       )) {
+                                -filename => $svg_name,
+                                -range => $tree_no,
+                                -sentenceInfo => $sentence,
+                                -fileInfo => $fileinfo,
+                                -extraOptions => {
+                                  use_svg_desc_and_title => $use_svg_desc_and_title,
+                                }
+                               )) {
       unlink $fh;
     }
   }
   binmode(select());
   print "HTTP/1.0 200 OK\r\n";
   print $cgi->header(-type => 'image/svg+xml',
-		     # -Content_length => ((stat($fh))[7]),
-		    );
+                     # -Content_length => ((stat($fh))[7]),
+                    );
   {
     local $/;
     print while <$fh>;
@@ -265,9 +266,9 @@ sub servePMLTQ {
     Encode::_utf8_off($pmltq);
     print "HTTP/1.0 200 OK\r\n";
     print $cgi->header(-type => 'text/plain',
-		       -charset => 'UTF-8',
-		       # -Content_length => ((stat($fh))[7]),
-		      );
+                       -charset => 'UTF-8',
+                       # -Content_length => ((stat($fh))[7]),
+                      );
     print $pmltq;
   }
 }
