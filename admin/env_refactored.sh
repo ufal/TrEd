@@ -63,8 +63,8 @@ TRED_SVN=https://svn.ms.mff.cuni.cz/svn/TrEd
 TRED_SVN_REPO=${TRED_SVN}/trunk/tred_refactored
 TRED_PORTABLE_REPO=${TRED_SVN}/trunk/tred_portable
 TRED_SVN_EXT=${TRED_SVN}/extensions
-TREEX_PML_REPO=https://svn.ms.mff.cuni.cz/svn/perl_libs/distribution/Treex-PML
-WIN32_DIST_REPO=https://svn.ms.mff.cuni.cz/svn/perl_libs/distribution/win32_build_script
+TREEX_PML_REPO=https://svn.ms.mff.cuni.cz/svn/perl_libs/trunk/distribution/Treex-PML
+WIN32_DIST_REPO=https://svn.ms.mff.cuni.cz/svn/perl_libs/trunk/distribution/win32_build_script
 
 # PROJECT_DIR=/net/work/projects/tred
 ADMIN_DIR=${PROJECT_DIR}/admin
