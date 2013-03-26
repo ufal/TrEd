@@ -209,7 +209,7 @@ FunctionEnd
 
 Function createBat
 	; find perl's architecture name
-	nsExec::ExecToStack 'perl -MConfig -e "print \$\"$Config{archname}\$\""'
+	nsExec::ExecToStack "perl -MConfig -e $\"print $$Config{archname}$\""
 	Pop $0
 	Pop $PerlConfigArchname
 	

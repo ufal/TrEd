@@ -201,7 +201,7 @@ Function testPerl
 
         ${EndIf}
 
-        nsExec::ExecToStack 'perl -e "$_=$];s/...$//;s/\.0+/./;print"'
+        nsExec::ExecToStack "perl -e $\"$$_=$$];s/...$$//;s/\.0+/./;print$\""
         Pop $RetVal
         Pop $PerlVersion
         ${If} $RetVal == "0"
@@ -212,7 +212,7 @@ Function testPerl
         ${EndIf}
 
         ; find perl executable
-        nsExec::ExecToStack 'perl -MConfig -e "print \$\"$Config{perlpath}\$\""'
+        nsExec::ExecToStack "perl -MConfig -e $\"print $$Config{perlpath}$\""
         Pop $0
         Pop $PerlPath
 
