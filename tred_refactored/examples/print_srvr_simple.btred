@@ -20,6 +20,10 @@ our $cache_dir = $opts{'--cache-dir'};
 !$cache_dir or (-d $cache_dir) or die "Cache directory $cache_dir must exist!\n";
 
 main::cast_to_grp($grp)->{noOpenFileError} = 1; # Report no errors
+$TrEd::Error::Message::on_error = sub { # add error hook here
+    my ( $win_ref, $msg, $nobug ) = @_;
+    print STDERR "$msg\n";
+};
 
 our $permitted_paths_re = '^(?:'.join('|',@permitted_paths).')/';
 
