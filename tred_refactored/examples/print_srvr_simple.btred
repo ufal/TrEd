@@ -246,7 +246,7 @@ sub servePMLTQ {
   }
   my @positions;
   foreach my $p (@paths) {
-    my ($path, $goto)=TrEd::Utils::parseFileSuffix($p);
+    my ($path, $goto)=TrEd::Utils::parse_file_suffix($p);
     $path = URI->new($path)->canonical->as_string;
     if ($path=~m{/\.\./} or $path !~ $permitted_paths_re) {
       print STDERR '['.localtime()."] Path $path not permitted\n";
