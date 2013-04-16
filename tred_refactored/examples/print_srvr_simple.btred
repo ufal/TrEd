@@ -14,6 +14,7 @@ my %opts = @ARGV;
 my @permitted_paths = split(/:/, $opts{'--allow-paths'} || '');
 my $port = ($opts{'--port'} || 8070);
 my $host = ($opts{'--host'} || 'localhost');
+my $prefork = ($opts{'--prefork'} || 0);
 
 our $cache_dir = $opts{'--cache-dir'};
 
@@ -34,6 +35,7 @@ sub start_srvr {
   print STDERR "Starting tree print service on $host:$port\n";
   my $server = TrEd::Print::Server->new($port);
   $server->host($host);
+  $server->prefork($prefork);
   $server->run();
 }
 
@@ -142,6 +144,15 @@ use URI::file;
 use Digest::MD5 qw(md5_hex);
 use Fcntl;
 
+sub run {
+    my $self = shift;
+    if ($self->prefork) {
+        $self->SUPER::run(@_, host => $self->host, ipv => 4, max_servers => $self->prefork);
+    } else {
+        $self->SUPER::run(@_);
+    }
+}
+
 sub handle_request {
   my ($self, $cgi) = @_;
   eval {
@@ -157,6 +168,15 @@ sub handle_request {
 
   serverError($cgi) if ($@);
 }
+
+# Maximum number of servers to prefork
+sub prefork {
+    my $self = shift;
+    $self->{prefork_child} = $_[0] if scalar @_ > 0;
+    return $self->{prefork_child};
+}
+
+sub net_server { return $_[0]->prefork ? 'Net::Server::PreForkSimple' : undef; }
 
 sub notFound {
   my ($cgi)=@_;
