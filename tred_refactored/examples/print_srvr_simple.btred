@@ -11,7 +11,7 @@ use strict;
 use Encode ();
 
 my %opts = @ARGV;
-my @permitted_paths = split(/:/, $opts{'--allow-paths'});
+my @permitted_paths = split(/:/, $opts{'--allow-paths'} || '');
 my $port = ($opts{'--port'} || 8070);
 my $host = ($opts{'--host'} || 'localhost');
 
@@ -144,14 +144,18 @@ use Fcntl;
 
 sub handle_request {
   my ($self, $cgi) = @_;
-  my $path = $cgi->path_info();
-  if ($path eq '/svg') {
-    serveSVG($self,$cgi);
-  } elsif ($path eq '/pmltq') {
-    servePMLTQ($self,$cgi);
-  } else {
-    notFound($cgi);
-  }
+  eval {
+      my $path = $cgi->path_info();
+      if ($path eq '/svg') {
+          serveSVG($self,$cgi);
+      } elsif ($path eq '/pmltq') {
+          servePMLTQ($self,$cgi);
+      } else {
+          notFound($cgi);
+      }
+  };
+
+  serverError($cgi) if ($@);
 }
 
 sub notFound {

@@ -57,7 +57,7 @@ my $output_dirname = delete $opts{'-out-dir'};
   sub __run_hook {
     my $treeview = shift;
     my $win = shift;
-    TredMacro::GotoTree(1 + $win->{treeNo});
+    TredMacro::GotoTree(1 + $win->{treeNo}) if $win->{FSFile};
     local $win->{treeView} = $treeview;
     my $context = $win->{macroContext} || 'TredMacro';
     my $ret = TrEd::Macros::do_eval_hook($win,$context,@_);
