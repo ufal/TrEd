@@ -2490,7 +2490,7 @@ sub focusCanvas {
         return if $grp->{focusedWindow}->contains($c);
         clearCanvasFocus($grp);
     }
-    if ($c) {
+    if ($c and eval { $c->isa('Tk::Canvas') } ) {
         $c->configure(@focused_win_opts);
         $c->itemconfigure( 'stipple', -state => 'hidden' );
     }
