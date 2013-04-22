@@ -3,6 +3,7 @@ package TrEd::Dialog::EditAttributes;
 use strict;
 use warnings;
 
+use Carp;
 use TrEd::Utils qw{$EMPTY_STR};
 use TrEd::Config
     qw{$sortAttrs $sortAttrValues $sidePanelWrap $font $maxDisplayedAttributes};
