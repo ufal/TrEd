@@ -2025,7 +2025,7 @@ sub AddToList {
     if ( IsList($val) ) {
         push @$val, @_;
     }
-    elsif ( $val eq "" ) {
+    elsif ( ! defined $val or $val eq "" ) {
         $val = Treex::PML::Factory->createList( [@_], 1 );
         $node->set_attr( $attr, $val, 1 );
     }
