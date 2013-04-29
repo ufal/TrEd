@@ -3309,8 +3309,8 @@ Set stylesheet for the active window.
 
 sub SetCurrentStylesheet {
     my ($stylesheet_name) = @_;
-    if ( StylesheetExists($stylesheet_name)
-        or $stylesheet_name eq STYLESHEET_FROM_FILE() )
+    if ( blessed $grp && (StylesheetExists($stylesheet_name)
+        or $stylesheet_name eq STYLESHEET_FROM_FILE()) )
     {
         if ( $grp->{framegroup} && $grp->is_focused() ) {
             $grp->{framegroup}{selectedStylesheet} = $stylesheet_name;
