@@ -4449,7 +4449,7 @@ Print the arguments to standard output appending a new-line if missing.
 
 =cut
 
-sub writeln { $::stdout->print( @_, $_[$#_] =~ /\n$/ ? () : "\n" ) }
+sub writeln { $::stdout->print( @_, ($_[$#_] // q()) =~ /\n$/ ? () : "\n" ) }
 
 =item C<stdout(string?,...)>
 
