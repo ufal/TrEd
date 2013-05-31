@@ -62,8 +62,7 @@ sub new {
 sub name {
     my ($self) = @_;
     return if not ref $self;
-    eval { $self->_load_name() };
-
+    eval { $self->_load_name() } unless defined $self->{name};
     return $self->{name};
 }
 
@@ -221,12 +220,14 @@ sub _lazy_load {
             or croak("Cannot open $load: $!\n");
     }
 
-    my $fl_name = decode( 'UTF-8', scalar(<$fh>) );
-    $self->{name} ||= $fl_name;
-
     @{ $self->list_ref() } = <$fh>;
     close $fh
         or croak("Cannot open $self->{load}: $!\n");
+
+    if ($load =~ /\.fl$/) {
+        my $fl_name = decode('UTF-8', shift @{ $self->list_ref });
+        $self->{name} ||= $fl_name;
+    }
 
     # remove newlines from filelist name
     $self->{name} =~ s/[\r\n]+$//;
@@ -277,7 +278,6 @@ sub _load_name {
 # Throws        : no exceptions
 # Comments      : Implementaion is actually lazy, so the filelist is loaded when it is
 #                 needed (when list(), files() or similar methods are invoked)
-#TODO: support stdin?
 sub load {
     my ($self) = @_;
     return if not ref $self;
