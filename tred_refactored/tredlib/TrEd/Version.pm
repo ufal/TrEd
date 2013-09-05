@@ -24,7 +24,7 @@ our @EXPORT    = qw( TRED_VERSION );
 
 # next line is modified automatically during the release
 our $VERSION = "SVN_VERSION";    # DO NOT MODIFY THIS LINE !!
-$VERSION = 2 if $VERSION eq 'SVN_VERSION';
+$VERSION = 9999 if $VERSION eq 'SVN_VERSION';
 
 # Preloaded methods go here.
 
