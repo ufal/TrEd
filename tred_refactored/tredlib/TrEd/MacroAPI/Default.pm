@@ -1426,7 +1426,7 @@ use $tree->destroy method on the returned tree to prevent a memory leak.
 =cut
 
 sub RemoveTree {
-    shift if @_ == 1 and $_[0] !~ /^\D/;    # class name
+    shift if @_ == 1 and $_[0] =~ /^\D/;    # class name
     my ( $no, $fsfile ) = @_;
     croak("RemoveTree: must specify tree number!")
         if defined($fsfile)
