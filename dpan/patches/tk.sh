@@ -36,8 +36,8 @@ cd $DIR_NAME && \
 # these are already patched in Tk 804.030
 # patch -p1 -i ../tk-804.029-64bit-strawberry-win32.patch && \
 # patch -p1 -i ../tk-804.029-libpng-macos.patch && \
-# this is a new patch for 804.030
-patch -p1 -i ../Tk-804.030-full-gcc-path-win32.patch && \
+# this is a new patch for 804.030, fixed in 804.031
+# patch -p1 -i ../Tk-804.030-full-gcc-path-win32.patch && \
 ## end of patching
 
 cd $EXTDIR
