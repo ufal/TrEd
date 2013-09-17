@@ -1951,7 +1951,7 @@ all its values. Otherwise return value.
 =cut
 
 sub AltV {
-    UNIVERSAL::DOES::does( $_[0], 'Treex::PML::Alt' ) ? @{ $_[0]->values } : $_[0];
+    UNIVERSAL::DOES::does( $_[0], 'Treex::PML::Alt' ) ? $_[0]->values : $_[0];
 }
 
 =item C<ListV(value)>
@@ -1962,7 +1962,7 @@ all its values. Otherwise return empty (Perl) list.
 =cut
 
 sub ListV {
-    UNIVERSAL::DOES::does( $_[0], 'Treex::PML::List' ) ? @{ $_[0]->values } : ();
+    UNIVERSAL::DOES::does( $_[0], 'Treex::PML::List' ) ? $_[0]->values : ();
 }
 
 =item C<SeqV(value)>
