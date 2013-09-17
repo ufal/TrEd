@@ -3397,8 +3397,8 @@ sub _present_attribute {
     } elsif (UNIVERSAL::DOES::does($val, 'Treex::PML::Seq')) {
       if ($step =~ /^\[([-+]?\d+)\](.*)/) {
 	$val =
-	  $1>0 ? $val->elements_list->[$1-1] :
-	  $1<0 ? $val->elements_list->[$1] : undef; # element
+	  $1>0 ? ($val->elements_list->values)[$1-1] :
+	  $1<0 ? ($val->elements_list->values)[$1]   : undef; # element
 	if (defined $2 and length $2) { # optional name test
 	  return if $val->[0] ne $2; # ERROR
 	}
@@ -3407,11 +3407,11 @@ sub _present_attribute {
 	my $i = $2;
 	$val = $val->values($1);
 	if (length $i) {
-	  $val = $i>0 ? $val->[$i-1] :
-	         $i<0 ? $val->[$i] : undef;
+	  $val = $i>0 ? ($val->values)[$i-1] :
+	         $i<0 ? ($val->values)[$i]   : undef;
 	} else {
-	  $append="*" if @$val > 1;
-	  $val = $val->[0];
+	  $append = '*' if $val->count > 1;
+	  $val = ($val->values)[0];
 	}
       } else {
 	return; # ERROR
@@ -3460,8 +3460,8 @@ sub _present_attribute__2 {
         }
         elsif ( UNIVERSAL::DOES::does( $val, 'Treex::PML::Seq' ) ) {
             if ( $step =~ /^\[([-+]?\d+)\](.*)/ ) {
-                $val = $1 > 0 ? $val->elements_list->[ $1 - 1 ]
-                     : $1 < 0 ? $val->elements_list->[$1]
+                $val = $1 > 0 ? ($val->elements_list->values)[ $1 - 1 ]
+                     : $1 < 0 ? ($val->elements_list->values)[$1]
                      :          undef;               # element
                 if ( defined $2 and length $2 ) {    # optional name test
                     return if $val->[0] ne $2;       # ERROR
@@ -3473,13 +3473,13 @@ sub _present_attribute__2 {
                 $val = $val->values($1);
                 if ( length $i ) {
                     $val
-                        = $i > 0 ? $val->[ $i - 1 ]
-                        : $i < 0 ? $val->[$i]
+                        = $i > 0 ? ($val->values)[ $i - 1 ]
+                        : $i < 0 ? ($val->values)[$i]
                         :          undef;
                 }
                 else {
-                    $append = "*" if @$val > 1;
-                    $val = $val->[0];
+                    $append = '*' if $val->count > 1;
+                    $val = ($val->values)[0];
                 }
             }
             else {
