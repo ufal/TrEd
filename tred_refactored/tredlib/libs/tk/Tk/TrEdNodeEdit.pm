@@ -1453,7 +1453,7 @@ sub add_member {
 
 
       if ($attr_val) {
-	foreach my $val (@{$attr_val}) {
+	foreach my $val ($attr_val->values) {
 	  $list_no++;
 	  $hlist->add_list_member({
 	    path => $path,
@@ -1750,7 +1750,7 @@ sub adjust_size {
 sub _store_data {
   my ($ref,$name,$value,$preserve_empty)=@_;
   if (UNIVERSAL::DOES::does($ref,'Treex::PML::List') or UNIVERSAL::DOES::does($ref,'Treex::PML::Alt')) {
-    push @$ref, $value if $preserve_empty or defined $value;
+    $ref->push($value) if $preserve_empty or defined $value;
   } elsif (UNIVERSAL::DOES::does($ref,'Treex::PML::Seq')) {
     $ref->push_element($name, $value);
   } else {
@@ -1843,7 +1843,7 @@ sub dump_child {
     my @children = $hlist->info(children => $path);
     if (UNIVERSAL::DOES::does($ref, 'Treex::PML::List') or UNIVERSAL::DOES::does($ref, 'Treex::PML::Alt')) {
       if (@children) {
-	push @$ref, $new_ref;
+	$ref->push($new_ref);
       }
     } elsif (UNIVERSAL::DOES::does($ref,'Treex::PML::Seq')) {
       if (@children or ($dump == PML_CONTAINER_DECL and !defined($mtype->get_content_decl))) {

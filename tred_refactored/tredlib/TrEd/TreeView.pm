@@ -3388,10 +3388,10 @@ sub _present_attribute {
   for my $step (split /\//, $path) {
     if (UNIVERSAL::DOES::does($val, 'Treex::PML::List') or UNIVERSAL::DOES::does($val, 'Treex::PML::Alt')) {
       if ($step =~ /^\[(\d+)\]/) {
-	$val = $val->[$1-1];
+	$val = ($val->values)[$1-1];
       } else {
-	$append="*" if @$val > 1;
-	$val = $val->[0];
+	$append="*" if $val->count > 1;
+	$val = ($val->values)[0];
 	redo;
       }
     } elsif (UNIVERSAL::DOES::does($val, 'Treex::PML::Seq')) {
@@ -3426,8 +3426,8 @@ sub _present_attribute {
     }
   }
   if (UNIVERSAL::DOES::does($val, 'Treex::PML::List') or UNIVERSAL::DOES::does($val, 'Treex::PML::Alt')) {
-    $append="*" if @$val > 1;
-    $val = $val->[0];
+    $append="*" if $val->count > 1;
+    $val = ($val->values)[0];
   }
   return defined $val ? $val.$append : $append;
 }
@@ -3448,13 +3448,13 @@ sub _present_attribute__2 {
                or UNIVERSAL::DOES::does( $val, 'Treex::PML::Alt' ) )
         {
             if ( $step =~ /^\[(\d+)\]/ ) {
-                $val = $val->[ $1 - 1 ];
+                $val = ($val->values)[ $1 - 1 ];
             }
             else {
-                if (@{$val} > 1) {
+                if ($val->values > 1) {
                     $append = "*";
                 }
-                $val = $val->[0];
+                $val = ($val->values)[0];
                 redo;
             }
         }
@@ -3494,8 +3494,8 @@ sub _present_attribute__2 {
     if (   UNIVERSAL::DOES::does( $val, 'Treex::PML::List' )
         or UNIVERSAL::DOES::does( $val, 'Treex::PML::Alt' ) )
     {
-        $append = "*" if @$val > 1;
-        $val = $val->[0];
+        $append = "*" if $val->count > 1;
+        $val = ($val->values)[0];
     }
     return $val . $append;
 }
