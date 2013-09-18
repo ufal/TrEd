@@ -1,7 +1,7 @@
 Source: tred
 Section: unknown
 Priority: optional
-Maintainer: TrEd Developers Team <tred@ksi.mff.cuni.cz>
+Maintainer: TrEd Developers Team <tred@ufal.mff.cuni.cz>
 Build-Depends: debhelper (>= 8.0.0)
 Standards-Version: 3.9.2
 Homepage: <insert the upstream URL, if relevant>
