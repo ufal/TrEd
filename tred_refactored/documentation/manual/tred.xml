@@ -112,6 +112,15 @@
 									     </para>
     </listitem>
     </orderedlist>
+    <section> 
+      <title>References</title>
+      <para>Pajas Petr, Stepanek Jan: Recent Advances in a
+      Feature-Rich Framework for Treebank Annotation. In:
+      <emphasis>The 22nd International Conference on Computational
+      Linguistics - Proceedings of the Conference</emphasis>, The
+      Coling 2008 Organizing Committee, Manchester, UK, ISBN
+      978-1-905593-45-3, pp. 673-680, 2008.</para>
+    </section>
   </section>
   <section id="installation">
     <title>Installation and start up instructions</title>    
