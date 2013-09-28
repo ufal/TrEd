@@ -507,7 +507,7 @@ sub show_dialog {
         -balloon    => $grp->{Balloon},
         -balloonmsg => "Save current file-list to a file.",
         @pad,
-        -underline => 0,
+        -underline => 3,
         -command   => [ \&_save_fl_to_file, $grp, $d ]
     )->pack(@b_pack);
 
