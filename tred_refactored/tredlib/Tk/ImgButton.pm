@@ -36,6 +36,10 @@ sub InitObject
 	  ) if exists $opts{-text};
  $c->Space(-width => $opts{-padright}) if exists $opts{-padright};
  $cw->configure(-image => $c);
+
+ # Propagate upwards to be retrieveable (in BindButtons).
+ $cw->configure($_ => $opts{$_}) for qw/-text -underline/;
+
  $opts{-balloon}->attach($cw,-balloonmsg=>
 			 $opts{-balloonmsg})  if (ref $opts{-balloon});
 }
