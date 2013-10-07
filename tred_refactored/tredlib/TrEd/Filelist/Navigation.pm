@@ -8,6 +8,7 @@ use Carp;
 use TrEd::Utils;
 use Treex::PML;
 
+use TrEd::Basics;
 use TrEd::File;
 use TrEd::ManageFilelists;
 
@@ -75,7 +76,7 @@ sub _filelist_full_filename {
 # was main::gotoFile
 sub go_to_file {
     my ( $grp_or_win, $file_no, $no_recent, $no_redraw ) = @_;
-    my ( $grp, $win ) = main::grp_win($grp_or_win);
+    my ( $grp, $win ) = TrEd::Basics::grp_win($grp_or_win);
     return if not $win->{currentFilelist};
     my $goto_file_hook_res = main::doEvalHook( $win, 'goto_file_hook', $file_no );
     return 0 if defined $goto_file_hook_res && $goto_file_hook_res eq 'stop';
@@ -110,7 +111,7 @@ sub go_to_file {
 # was main::nextOrPrevFile
 sub next_or_prev_file {
     my ( $grp_or_win, $delta, $no_recent, $real ) = @_;
-    my ( $grp, $win ) = main::grp_win($grp_or_win);
+    my ( $grp, $win ) = TrEd::Basics::grp_win($grp_or_win);
     return 0 if ( $delta == 0 );
     my $op = $grp->{noOpenFileError};
     $grp->{noOpenFileError} = 1;
@@ -248,7 +249,7 @@ sub prev_file {
 # See Also      : tie_prev_file(), next_file(), next_real_file(), next_or_prev_file()
 # was main::tieNextFile
 sub tie_next_file {
-    my ( $grp, $win ) = main::grp_win(shift);
+    my ( $grp, $win ) = TrEd::Basics::grp_win(shift);
     if ( $grp->{tieWindows} ) {
         foreach my $w ( @{ $grp->{treeWindows} } ) {
             if ( $w->{FSFile} ) {
@@ -273,7 +274,7 @@ sub tie_next_file {
 # See Also      : tie_next_file(), prev_file(), prev_real_file(), next_or_prev_file()
 # was main::tiePrevFile
 sub tie_prev_file {
-    my ( $grp, $win ) = main::grp_win(shift);
+    my ( $grp, $win ) = TrEd::Basics::grp_win(shift);
     if ( $grp->{tieWindows} ) {
         foreach my $w ( @{ $grp->{treeWindows} } ) {
             if ( $w->{FSFile} ) {
@@ -302,7 +303,7 @@ sub tie_prev_file {
 # See Also      : go_to_file()
 # was main::tieGotoFile
 sub tie_go_to_file {
-    my ( $grp, $win ) = main::grp_win(shift);
+    my ( $grp, $win ) = TrEd::Basics::grp_win(shift);
     if ( $grp->{tieWindows} ) {
         foreach my $w ( @{ $grp->{treeWindows} } ) {
             if ( $w->{FSFile} ) {
