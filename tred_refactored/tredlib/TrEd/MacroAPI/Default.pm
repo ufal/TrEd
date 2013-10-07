@@ -322,13 +322,14 @@ BEGIN {
     import Treex::PML
         qw(&Index &CloneValue &FindInResources &FindDirInResources &ResolvePath);
 
-    #  import main;
-
+    #import main;
+    require TrEd::Filelist::Navigation;
+	
     # these includes are only for tred with GUI
     if ( exists &Tk::MainLoop ) {
         require TrEd::Binding::Default;
         require TrEd::ManageFilelists;
-        require TrEd::Filelist::Navigation;
+        
         require TrEd::Toolbar::User::Manager;
 
     }
@@ -4220,7 +4221,9 @@ sub GotoFileNo {
     if ( $FileNotSaved ne '?' and $FileNotSaved ) {
         SetFileSaveStatus(1);
     }
-    $result = TrEd::Filelist::Navigation::go_to_file( $grp, $_[0] );
+    $result = TrEd::Macros::is_defined('TRED') 
+            ? TrEd::Filelist::Navigation::go_to_file( $grp, $_[0] )
+            : main::gotoFile( $grp, $_[0] );
     $root   = $grp->{root};
     $this   = $grp->{currentNode};
     return $result;
@@ -4235,8 +4238,11 @@ Return the index of the last file in the current filelist.
 sub LastFileNo {
     shift if @_ and !ref( $_[0] );
     my $win = ref( $_[0] ) ? $_[0] : $grp;
-    if ($win) {
+    if ($win and TrEd::Macros::is_defined('TRED')) {
         return $win->last_file_no();
+    }
+    else {
+    	return main::lastFileNo($win);
     }
     return;
 }
@@ -4250,8 +4256,11 @@ Return the index of the current file in the current filelist.
 sub CurrentFileNo {
     shift if @_ and !ref( $_[0] );
     my $win = ref( $_[0] ) ? $_[0] : $grp;
-    if ($win) {
+    if ($win and TrEd::Macros::is_defined('TRED')) {
         return $win->current_file_no();
+    }
+    else {
+    	return main::currentFileNo($win);
     }
     return;
 }
@@ -4280,7 +4289,10 @@ sub NextFile {
     if ( $FileNotSaved ne '?' and $FileNotSaved ) {
         SetFileSaveStatus(1);
     }
-    if ( $result = TrEd::Filelist::Navigation::next_file($grp) ) {
+    $result = TrEd::Macros::is_defined('TRED') 
+            ? TrEd::Filelist::Navigation::next_file($grp)
+            : main::nextFile($grp);
+    if ( $result ) {
         $root         = $grp->{root};
         $this         = $grp->{currentNode} || $root;
         $FileNotSaved = GetFileSaveStatus();
@@ -4316,7 +4328,10 @@ sub PrevFile {
     if ( $FileNotSaved ne '?' and $FileNotSaved ) {
         SetFileSaveStatus(1);
     }
-    if ( $result = TrEd::Filelist::Navigation::prev_file($grp) ) {
+    $result = TrEd::Macros::is_defined('TRED') 
+            ? TrEd::Filelist::Navigation::prev_file($grp)
+            : main::prevFile($grp);
+    if ( $result ) {
         $root         = $grp->{root};
         $this         = $grp->{currentNode} || $root;
         $FileNotSaved = GetFileSaveStatus();
