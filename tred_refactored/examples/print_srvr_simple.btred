@@ -8,6 +8,7 @@ package TredMacro;
 
 use warnings;
 use strict;
+use Carp::Always;
 use Encode ();
 
 my %opts = @ARGV;
