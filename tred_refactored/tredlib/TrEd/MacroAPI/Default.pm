@@ -353,6 +353,7 @@ require TrEd::Stylesheet;
 require TrEd::Macros;
 require TrEd::MacroAPI::Extended;         # instead of tred.mac
 require TrEd::NtredMak;    # instead of contrib/ntred/contrib.mac and ntred.mak,
+require TrEd::NodeGroups; # instead of node_groups.mak
 
 # The following is a workaround for a nasty bug of Class::Std in case somebody wants to use it
 sub isa {
