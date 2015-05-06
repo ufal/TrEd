@@ -115,8 +115,10 @@ sub make_svg {
   my ($f,%opts)=@_;
   # TODO: implement complete caching
   my $cur = CurrentFile();
-  my ($open) = grep { Treex::PML::IO::is_same_filename($_->filename, $f) }
-    ($cur ? ($cur, GetSecondaryFiles($cur)) : ());
+  # Michal: Secondary files don't change stylesheet (at least it looks like that)
+  my $open = ($cur && Treex::PML::IO::is_same_filename($cur->filename, $f)) ? $cur : undef;
+  # my ($open) = grep { Treex::PML::IO::is_same_filename($_->filename, $f) }
+  #   ($cur ? ($cur, GetSecondaryFiles($cur)) : ());
   # primitive caching of the last file
 
   if ($cur and !$open) {
