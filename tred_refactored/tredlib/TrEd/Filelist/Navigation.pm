@@ -179,7 +179,7 @@ sub next_or_prev_file {
         $result = go_to_file( $win, $pos, $no_recent );
     }
     $grp->{noOpenFileError} = $op;
-    return ref $result and $result->{ok};
+    return ref $result && $result->{ok};
 }
 
 #######################################################################################
