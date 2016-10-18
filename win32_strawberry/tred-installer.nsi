@@ -20,7 +20,8 @@
         OutFile "tred-installer.exe"
 
         ;Default installation folder
-        InstallDir "$PROGRAMFILES\tred"
+        ;;InstallDir "$PROGRAMFILES\tred"
+        InstallDir "C:\tred"
 
         ;Get installation folder from registry if available
         InstallDirRegKey HKCU "Software\TrEd\" "Dir"
