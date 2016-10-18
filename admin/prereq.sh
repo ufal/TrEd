@@ -56,7 +56,7 @@ function get_7zExtra {
 	SEVENZIP_FILE="7z_extra.7z"
 	wget -nv ${SEVENZIP_URL} -O web >> $LOG
 
-	NEWEST_SEVENZIP=`grep -o "/.*_extra.7z" web | head -n 1`
+	NEWEST_SEVENZIP=`grep -o "/.*-extra.7z" web | head -n 1`
 	SEVENZIP_URL="http://sourceforge.net/projects/sevenzip/files${NEWEST_SEVENZIP}/download"
 	wget -nv $SEVENZIP_URL -O $SEVENZIP_FILE >> $LOG
 
