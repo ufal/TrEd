@@ -160,8 +160,10 @@ Function .onInit
         ; try to find perl executable and version
         Call testPerl
         ; this is the default version that will be downloaded if the user does not have any perl installed
-        StrCpy $DesiredPerlVersion "5.16"
-        StrCpy $DownLink "http://strawberry-perl.googlecode.com/files/strawberry-perl-5.16.3.1-32bit.msi"
+        ;;StrCpy $DesiredPerlVersion "5.16"
+        ;;StrCpy $DownLink "http://strawberry-perl.googlecode.com/files/strawberry-perl-5.16.3.1-32bit.msi"
+        StrCpy $DesiredPerlVersion "5.24"
+        StrCpy $DownLink "http://strawberryperl.com/download/5.24.0.1/strawberry-perl-5.24.0.1-32bit.msi"
         StrCpy $CustomPerlFolder ""
         ; does the user need to configure that?
         StrCpy $tredDataDir "$LOCALAPPDATA\tred_data"
@@ -249,8 +251,11 @@ Function testPerl
         ${ElseIf} $PerlVersion == "5.16"
                 StrCpy $PerlMsg "$PerlFlavour Perl $PerlVersion found in $PerlPath, OK."
                 StrCpy $PerlVersionOk "1"
+        ${ElseIf} $PerlVersion == "5.24"
+                StrCpy $PerlMsg "$PerlFlavour Perl $PerlVersion found in $PerlPath, OK."
+                StrCpy $PerlVersionOk "1"
         ${Else}
-                StrCpy $PerlMsg "Perl version not supported. Please install Strawberry Perl 5.16, or choose a directory containing Perl executable."
+                StrCpy $PerlMsg "Perl version not supported. Please install Strawberry Perl 5.24, or choose a directory containing Perl executable."
         ${EndIf}
         done:
 FunctionEnd
