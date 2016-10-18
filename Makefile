@@ -21,6 +21,7 @@ install: prereq update-dist-dir install-tred-extensions
 # NOTE: this also includes 'install'
 release: check-net release-core release-mac release-deb release-rpm
 
+release-nomac-nonet: release-core release-mac release-deb release-rpm
 
 # Connect to testing platform and execute tests.
 # Note: this task can be performed only from UFAL VLAN,
