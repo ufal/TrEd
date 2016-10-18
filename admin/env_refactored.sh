@@ -43,8 +43,10 @@ TMP=/tmp
 # if the desired perl version changes, it should also be changed in
 # win32_strawberry/tred-installer-common-1.nsi (search for
 # $DesiredPerlVersion variable)
-DESIRED_PERL_VERSION='5.16'
-DESIRED_PERL_URL="http://strawberry-perl.googlecode.com/files/strawberry-perl-5.16.3.1-32bit.msi"
+## DESIRED_PERL_VERSION='5.16'
+## DESIRED_PERL_URL="http://strawberryperl.com/download/5.16.3.1/strawberry-perl-5.16.3.1-32bit.msi"
+DESIRED_PERL_VERSION='5.24'
+DESIRED_PERL_URL="http://strawberryperl.com/download/5.24.0.1/strawberry-perl-5.24.0.1-32bit.msi"
 
 # UFAL installation paths
 ## INSTALL_BASE=/f/common
