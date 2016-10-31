@@ -10,13 +10,9 @@ use vars qw($VERSION $logger);
 # it's a problem with who's cleanup() get called
 use base qw(MyCPAN::App::BackPAN::Indexer MyCPAN::Indexer);
 
-use Cwd qw(cwd);
-use File::Basename qw(dirname);
-use File::Path qw(mkpath);
-use File::Temp qw(tempdir);
-use File::Spec::Functions qw(catfile rel2abs);
+$VERSION = '1.28_12';
 
-$VERSION = '1.28';
+=encoding utf8
 
 =head1 NAME
 
@@ -38,7 +34,6 @@ It runs through the indexing and prints a report at the end of the run.
 
 =cut
 
-use Carp qw(croak);
 use Cwd  qw(cwd);
 
 use Log::Log4perl;
@@ -80,7 +75,7 @@ sub examine_dist_steps
 	);
 	}
 
-=item find_modules_techniques
+=item find_module_techniques
 
 Returns the list of techniques that C<find_modules> should use
 to look for Perl module files. See the documentation in
@@ -97,29 +92,30 @@ sub find_module_techniques
 Save this feature for another time
 
 	my $config = $self->get_coordinator->get_config;
-	
+
 	if( my @techniques = $config->get( 'find_module_techniques' ) )
 		{
 		$logger->debug( "Using techniques [@techniques] to find modules" );
-		
+
 		@techniques = map {
 			my $can =  $self->can( $_ );
 			$logger->warn( "The technique [$_] is unknown" )
 				unless $can;
 			$can ? [ $_, 'Technique $_ specified by config' ] : ();
 			} @techniques;
-			
+
 		return \@techniques;
 		}
 
 =cut
 
-	
+
 	(
-	[ 'look_for_pm',               "Guessed from looking in cwd"       ],
+	[ 'look_in_cwd_and_lib',       "Guessed from looking in lib/"      ],
 	[ 'look_in_lib',               "Guessed from looking in lib/"      ],
 	[ 'look_in_cwd',               "Guessed from looking in cwd"       ],
 	[ 'look_in_meta_yml_provides', "Guessed from looking in META.yml"  ],
+	[ 'look_for_pm',               "Guessed from looking in cwd"       ],
 	);
 	}
 
@@ -199,7 +195,7 @@ brian d foy, C<< <bdfoy@cpan.org> >>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2008-2009, brian d foy, All Rights Reserved.
+Copyright © 2008-2015, brian d foy <bdfoy@cpan.org>. All rights reserved.
 
 You may redistribute this under the same terms as Perl itself.
 
