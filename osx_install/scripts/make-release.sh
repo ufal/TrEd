@@ -23,8 +23,10 @@ fi
 
 # Cleanups ...
 echo "Removing old files ..."
-rm -rf "$INSTALL_SCRIPT"
-rm -rf "/Applications/$TRED_APP"
+if [ -z  $INSTALL_SCRIPT_URL ]; then
+	rm -rf "$INSTALL_SCRIPT"
+fi
+rm -rf "/Applications/$TRED_INSTALL_APP"
 rm -rf "$MOUNT_POINT/$TRED_DIR"
 rm -rf "$MOUNT_POINT/$TRED_APP/Contents/_CodeSignature"
 
