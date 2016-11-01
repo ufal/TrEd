@@ -50,7 +50,7 @@ fi
 # Install TrEd to $APPLICATIONS from bash script
 echo "Installing TrEd to $APPLICATIONS/$TRED_DIR ..."
 
-elif [ ! -z $INSTALL_SCRIPT_DIR  ]; then
+if [ -z $INSTALL_SCRIPT_DIR  ]; then
 	$INSTALL_SCRIPT --tred-dir "$APPLICATIONS/$TRED_DIR" || exit 4
 else
 	$INSTALL_SCRIPT -L $INSTALL_SCRIPT_DIR --tred-dir "$APPLICATIONS/$TRED_DIR" || exit 4
