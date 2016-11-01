@@ -311,7 +311,7 @@ elif [ "x$USE_SVN" = x1 ]; then
 	svn co "$tred_svn" . || fail
     fi
     popd
-elif [ -z "$LOCAL_DIR" ]; then
+elif [ ! -z "$LOCAL_DIR" ]; then
     cd "$LOCAL_DIR"
     tred_tar_gz="$PWD/tred-current.tar.gz"
     action  "Unpacking TrEd to $TRED_DIR"
