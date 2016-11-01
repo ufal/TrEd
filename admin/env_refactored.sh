@@ -98,3 +98,10 @@ CHANGELOG_TO_RSS=${ADMIN_DIR}/changelog2rss.pl
 
 ## PATH_BEFORE=$PATH
 ## PATH="${ADMIN_DIR}:${PATH_BEFORE}"
+
+
+## MAC OS settings
+MAC_RELEASER=kopp@manfred.ms.mff.cuni.cz
+MAC_TRED_INSTALLATION='~/tred_installation'
+MAC_TRED_INSTALLATION_OLD='~/tred_installation_old'
+MAC_SVN_DIR='~/TrEd'

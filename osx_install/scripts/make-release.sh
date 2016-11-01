@@ -8,12 +8,12 @@ cd `dirname $0` || exit 1
 
 
 # Attach the template file
-if [ -e "$MOUNT_DISK" ]; then
-    hdiutil detach "$MOUNT_DISK"
-fi
+# if [ -e "$MOUNT_DISK" ]; then
+#     hdiutil detach "$MOUNT_DISK"
+# fi
 
 echo "Attaching $TEMPLATE ..."
-hdiutil attach "$TEMPLATE"
+MOUNT_DISK=`hdiutil attach "$TEMPLATE"|grep "$MOUNT_POINT"|cut -f1`
 
 if [ ! -d "$MOUNT_POINT" ]; then
     echo "Unable to mount ${TEMPLATE}!"
@@ -35,14 +35,24 @@ cp -R "$MOUNT_POINT/$TRED_APP" "/Applications/$TRED_APP" || exit 2
 
 
 # Get TrEd install script
-echo "Downloading fresh $INSTALL_SCRIPT script ..."
-wget -O "$INSTALL_SCRIPT" "$INSTALL_SCRIPT_URL" || exit 3
-chmod a+x "$INSTALL_SCRIPT" || exit 3
-
+if [ -z  $INSTALL_SCRIPT_URL ]; then
+	echo "Downloading fresh $INSTALL_SCRIPT script ..."
+	wget -O "$INSTALL_SCRIPT" "$INSTALL_SCRIPT_URL" || exit 3
+	chmod a+x "$INSTALL_SCRIPT" || exit 3
+elif [ -z $INSTALL_SCRIPT_DIR  ]; then
+	cd $INSTALL_SCRIPT_DIR
+else
+	exit 3
+fi
 
 # Install TrEd to /Applications from bash script
 echo "Installing TrEd to /Applications/$TRED_DIR ..."
-$INSTALL_SCRIPT --tred-dir "/Applications/$TRED_DIR" || exit 4
+
+elif [ ! -z $INSTALL_SCRIPT_DIR  ]; then
+	$INSTALL_SCRIPT --tred-dir "/Applications/$TRED_DIR" || exit 4
+else
+	$INSTALL_SCRIPT -L $INSTALL_SCRIPT_DIR --tred-dir "/Applications/$TRED_DIR" || exit 4
+fi
 
 # The code needs to be signed so it runs on Mountain Lion without obstacles
 echo "Sign the code with UFAL certificate ..."
@@ -66,5 +76,7 @@ hdiutil convert "$TEMPLATE" -format UDZO -o "$RELEASE_FILE" -ov || exit 8
 
 
 # Cleanup
-rm "$INSTALL_SCRIPT"
+if [ -z  $INSTALL_SCRIPT_URL ]; then
+    rm "$INSTALL_SCRIPT"
+fi
 cd "$SAVE_DIR"
