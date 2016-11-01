@@ -63,8 +63,8 @@ codesign -f -s "$SIGN_CERT_SHA1" -r='designated => anchor apple generic and iden
 # Copy installed TrEd and its signature to the release image
 echo "Copying /Applications/$TRED_DIR to $MOUNT_POINT/$TRED_DIR ..."
 cp -R "/Applications/$TRED_DIR" "$MOUNT_POINT/$TRED_DIR" || exit 6
-cp -R "/Applications/$TRED_APP/Contents/_CodeSignature" "$MOUNT_POINT/$TRED_APP/Contents/_CodeSignature" || exit 6
-cp "/Applications/$TRED_APP/Contents/MacOS/TrEd" "$MOUNT_POINT/$TRED_APP/Contents/MacOS/TrEd" || exit 6
+cp -R "/Applications/$TRED_INSTALL_APP/Contents/_CodeSignature" "$MOUNT_POINT/$TRED_APP/Contents/_CodeSignature" || exit 6
+cp "/Applications/$TRED_INSTALL_APP/Contents/MacOS/TrEd" "$MOUNT_POINT/$TRED_APP/Contents/MacOS/TrEd" || exit 6
 
 
 # Finalize the release dmg file
