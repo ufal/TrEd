@@ -12,6 +12,8 @@ SVN_VERSION=`svn info . | grep 'Revision:' | sed -E 's/[^0-9]+//g'`
 cd "$PROJECT_DIR/unix_install_pkgs/rpm" || exit 1
 ./prepare_rpm_pkg.sh || exit 2
 
+test $net -eq 1 || cd "$EXTDIR" && exit 0
+
 # Delete previous versions ...
 echo "Remove previous rpm packages ..."
 ssh ${LOGIN_NAME}@${TESTING_SERVER} "rm -f /var/www/tred/testbed/*.rpm"
