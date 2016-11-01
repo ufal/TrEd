@@ -37,11 +37,11 @@ cp -R "$MOUNT_POINT/$TRED_APP" "$APPLICATIONS/$TRED_INSTALL_APP" || exit 2
 
 
 # Get TrEd install script
-if [ -z  $INSTALL_SCRIPT_URL ]; then
+if [ ! -z  $INSTALL_SCRIPT_URL ]; then
 	echo "Downloading fresh $INSTALL_SCRIPT script ..."
 	wget -O "$INSTALL_SCRIPT" "$INSTALL_SCRIPT_URL" || exit 3
 	chmod a+x "$INSTALL_SCRIPT" || exit 3
-elif [ -z $INSTALL_SCRIPT_DIR  ]; then
+elif [ ! -z $INSTALL_SCRIPT_DIR  ]; then
 	cd $INSTALL_SCRIPT_DIR
 else
 	exit 3
