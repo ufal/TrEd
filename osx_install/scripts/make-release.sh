@@ -32,8 +32,8 @@ rm -rf "$MOUNT_POINT/$TRED_APP/Contents/_CodeSignature"
 
 
 # Prepare fresh template
-echo "Copying template contents to the /Applications/$TRED_APP ..."
-cp -R "$MOUNT_POINT/$TRED_APP" "/Applications/$TRED_APP" || exit 2
+echo "Copying template contents to the /Applications/$TRED_INSTALL_APP ..."
+cp -R "$MOUNT_POINT/$TRED_APP" "/Applications/$TRED_INSTALL_APP" || exit 2
 
 
 # Get TrEd install script
@@ -58,8 +58,9 @@ fi
 
 # The code needs to be signed so it runs on Mountain Lion without obstacles
 echo "Sign the code with UFAL certificate ..."
-security unlock-keychain -p tred
-codesign -f -s "$SIGN_CERT_SHA1" -r='designated => anchor apple generic and identifier "cz.cuni.mff.ufal.tred"' -v "/Applications/$TRED_APP" || exit 5
+echo "\t> SKIPPING"
+# security unlock-keychain -p tred
+# codesign -f -s "$SIGN_CERT_SHA1" -r='designated => anchor apple generic and identifier "cz.cuni.mff.ufal.tred"' -v "/Applications/$TRED_APP" || exit 5
 
 
 # Copy installed TrEd and its signature to the release image
