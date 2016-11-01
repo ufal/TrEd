@@ -57,7 +57,8 @@ while [ $# -gt 0 ]; do
     case "$1" in
 	-l|--libs-only) LIBS_ONLY=1; shift; ;;
 	-n|--no-libs) NO_LIBS=1; shift; ;;
-	-S|--svn) USE_SVN=1; shift; ;;
+  -S|--svn) USE_SVN=1; shift; ;;
+  -L|--local-dir) LOCAL_DIR=$(readlink_nf "$2"); shift 2; ;;
 	-s|--system) SYSTEM=1; shift; ;;
 	-P|--perl) perl=$(readlink_nf "$2"); shift 2; ;;
 	-p|--prefix) PREFIX=$(readlink_nf "$2"); shift 2; ;;
@@ -154,6 +155,10 @@ help () {
 
       -S|--svn
           install TrEd from SVN rather than from a released package.
+
+
+      -L|--local-dir <dir>
+          install TrEd from local directory.
 
       -h|--help    - print this help and exit
       -u|--usage   - print a short usage and exit
@@ -306,6 +311,20 @@ elif [ "x$USE_SVN" = x1 ]; then
 	svn co "$tred_svn" . || fail
     fi
     popd
+elif [ -z "$LOCAL_DIR"]; then
+    cd "$LOCAL_DIR"
+    tred_tar_gz="$PWD/tred-current.tar.gz"
+    action  "Unpacking TrEd to $TRED_DIR"
+    [ -d "$TRED_DIR" ] || mkdir -p "$TRED_DIR" || fail
+    pushd "$TRED_DIR"
+    mkdir _tmp ||fail
+    pushd _tmp ||fail
+    tar xzf "$tred_tar_gz" || fail
+    popd
+    mv _tmp/tred/* . || fail
+    rm -rf _tmp || fail
+    popd
+    rm "$tred_tar_gz"  
 else
     action "Downloading TrEd"
     fetch_url "$tred_url" tred-current.tar.gz|| fail
