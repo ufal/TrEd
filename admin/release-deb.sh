@@ -12,6 +12,8 @@ SVN_VERSION=`svn info . | grep 'Revision:' | sed -E 's/[^0-9]+//g'`
 cd "$PROJECT_DIR/unix_install_pkgs/deb" || exit 1
 ./prepare_deb_pkg.sh || exit 2
 
+test $net -eq 1 || cd "$EXTDIR" && exit 0
+
 # Delete previous versions of deb packages ...
 echo "Delete previous versions of deb packages ..."
 ssh ${LOGIN_NAME}@${TESTING_SERVER} "rm -f /var/www/tred/testbed/*.deb"
