@@ -19,9 +19,12 @@ install: prereq update-dist-dir install-tred-extensions
 
 # make a fresh release of TrEd and upload it to testbed web site
 # NOTE: this also includes 'install'
+release: net=0
+	export net
 release: check-net release-core release-mac release-deb release-rpm
 
 release-nomac-nonet: net=0
+	export net
 release-nomac-nonet: release
 
 # Connect to testing platform and execute tests.
@@ -74,8 +77,19 @@ release-core: prereq update-dist-dir build-dep-package pack-extensions prepare-t
 # Connect to TrEd releasing and testing platform and
 # build Mac OS package for TrEd and upload it to testbed web site.
 # Note that core release must be performed before mac package release.
-release-mac: check-net
-	test ${net} -eq 1 && echo "Check that the current computer is in UFAL VLAN ..." && ssh tred@virtualbox.ufal.hide.ms.mff.cuni.cz '~/build-tred-dmg.sh' || test ${net} -eq 0
+#release-mac: check-net
+#	test ${net} -eq 1 && echo "Check that the current computer is in UFAL VLAN ..." && ssh tred@virtualbox.ufal.hide.ms.mff.cuni.cz '~/build-tred-dmg.sh' || test ${net} -eq 0
+release-mac:
+	# backup previouse release
+	cd admin  && ./mac_backup_previous.sh
+	# copy core to manfred
+	cd admin  && ./mac_prepare.sh
+	# run releaser
+	cd admin  && ./mac_release.sh
+	# download release from mac
+	cd admin  && ./mac_download_release.sh
+	
+	
 
 
 
