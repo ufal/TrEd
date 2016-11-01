@@ -346,9 +346,10 @@ action "Creating directory for start scripts: $RUN_TRED_DIR"
 mkdir -p "$RUN_TRED_DIR" || fail
 
 if [ "x$NO_LIBS" != x1 ]; then
-
-    action  "Downloading TrEd dependencies"
-    fetch_url "$tred_dep" tred-dep-unix.tar.gz || fail
+    if [ -z "$LOCAL_DIR" ]; then
+        action  "Downloading TrEd dependencies"
+        fetch_url "$tred_dep" tred-dep-unix.tar.gz || fail
+    fi
     
     action  "Unpacking TrEd dependencies"
     tar xzf tred-dep-unix.tar.gz || fail
