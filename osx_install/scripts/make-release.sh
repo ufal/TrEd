@@ -66,7 +66,7 @@ echo "\t> SKIPPING"
 # Copy installed TrEd and its signature to the release image
 echo "Copying $APPLICATIONS/$TRED_INSTALL_DIR to $MOUNT_POINT/$TRED_DIR ..."
 cp -R "$APPLICATIONS/$TRED_INSTALL_DIR" "$MOUNT_POINT/$TRED_DIR" || exit 6
-cp -R "$APPLICATIONS/$TRED_INSTALL_APP/Contents/_CodeSignature" "$MOUNT_POINT/$TRED_APP/Contents/_CodeSignature" || exit 6
+# cp -R "$APPLICATIONS/$TRED_INSTALL_APP/Contents/_CodeSignature" "$MOUNT_POINT/$TRED_APP/Contents/_CodeSignature" || exit 6
 cp "$APPLICATIONS/$TRED_INSTALL_APP/Contents/MacOS/TrEd" "$MOUNT_POINT/$TRED_APP/Contents/MacOS/TrEd" || exit 6
 
 
@@ -74,8 +74,9 @@ cp "$APPLICATIONS/$TRED_INSTALL_APP/Contents/MacOS/TrEd" "$MOUNT_POINT/$TRED_APP
 echo "Detaching $TEMPLATE from $MOUNT_DISK"
 hdiutil detach $MOUNT_DISK || exit 7
 
+cd `dirname $0`
 echo "Compressing $TEMPLATE into $RELEASE_FILE ..."
-hdiutil convert "$TEMPLATE" -format UDZO -o "$RELEASE_FILE" -ov || exit 8
+hdiutil convert "$TEMPLATE" -format UDZO -o "$INSTALL_SCRIPT_DIR/$RELEASE_FILE" -ov || exit 8
 
 
 # Cleanup
