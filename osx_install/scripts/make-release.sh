@@ -53,7 +53,7 @@ echo "Installing TrEd to $APPLICATIONS/$TRED_DIR ..."
 if [ -z $INSTALL_SCRIPT_DIR  ]; then
 	$INSTALL_SCRIPT --tred-dir "$APPLICATIONS/$TRED_DIR" || exit 4
 else
-	$INSTALL_SCRIPT -L $INSTALL_SCRIPT_DIR --tred-dir "$APPLICATIONS/$TRED_DIR" || exit 4
+	$INSTALL_SCRIPT -L $INSTALL_SCRIPT_DIR --tred-dir "$APPLICATIONS/$TRED_INSTALL_DIR" || exit 4
 fi
 
 # The code needs to be signed so it runs on Mountain Lion without obstacles
@@ -71,8 +71,8 @@ cp "$APPLICATIONS/$TRED_INSTALL_APP/Contents/MacOS/TrEd" "$MOUNT_POINT/$TRED_APP
 
 
 # Finalize the release dmg file
-echo "Detaching $TEMPLATE ..."
-hdiutil detach /dev/disk1 || exit 7
+echo "Detaching $TEMPLATE from $MOUNT_DISK"
+hdiutil detach $MOUNT_DISK || exit 7
 
 echo "Compressing $TEMPLATE into $RELEASE_FILE ..."
 hdiutil convert "$TEMPLATE" -format UDZO -o "$RELEASE_FILE" -ov || exit 8
