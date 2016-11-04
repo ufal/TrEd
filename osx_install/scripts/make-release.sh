@@ -3,7 +3,7 @@
 # Jump to releasing directory ...
 SAVE_DIR=`pwd`
 cd `dirname $0` || exit 1
-
+SCRIPT_DIR=`pwd`
 . .config
 
 
@@ -74,9 +74,9 @@ cp "$APPLICATIONS/$TRED_INSTALL_APP/Contents/MacOS/TrEd" "$MOUNT_POINT/$TRED_APP
 echo "Detaching $TEMPLATE from $MOUNT_DISK"
 hdiutil detach $MOUNT_DISK || exit 7
 
-cd `dirname $0`
-echo "Compressing $TEMPLATE into $RELEASE_FILE ..."
-hdiutil convert "$TEMPLATE" -format UDZO -o "$INSTALL_SCRIPT_DIR/$RELEASE_FILE" -ov || exit 8
+
+echo "Compressing $SCRIPT_DIR/$TEMPLATE into $INSTALL_SCRIPT_DIR/$RELEASE_FILE ..."
+hdiutil convert "$SCRIPT_DIR/$TEMPLATE" -format UDZO -o "$INSTALL_SCRIPT_DIR/$RELEASE_FILE" -ov || exit 8
 
 
 # Cleanup
