@@ -2775,8 +2775,6 @@ sub ToggleHiding {
 
 =cut
 
-=cut
-
 =head2 Create/modify keyboard shortcuts
 
 =over 4
