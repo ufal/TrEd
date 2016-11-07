@@ -14,6 +14,7 @@ INSTALL_BASE=${SVN_DIR}/local_install
 
 # Local (source) web tree
 WWW=${SVN_DIR}/local_www
+export TREDWWW=$WWW
 
 # Remote web tree (of the testbed)
 TESTING_SERVER=virtualbox.ufal.hide.ms.mff.cuni.cz

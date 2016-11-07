@@ -22,7 +22,7 @@ sed -i "s/%DATE%/${DATE}/g" "$TRED_DEB_DIR/debian/changelog" || exit 3
 # Build the package
 echo "Build the deb package ..."
 cd "$TRED_DEB_DIR" || exit 4
-debuild -us -uc || exit 4
+debuild --set-envvar=TREDNET=$TREDNET --set-envvar=TREDWWW=$TREDWWW -us -uc  || exit 4
 cd .. || exit 4
 
 # Cleanup

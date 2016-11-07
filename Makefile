@@ -1,5 +1,5 @@
 ## TrEd Makefile -- interface to installation, releasing, and testing scripts
-net=1
+TREDNET=0
 
 # Public Targets -- documented, well known, usable by anyone
 all: help
@@ -19,12 +19,12 @@ install: prereq update-dist-dir install-tred-extensions
 
 # make a fresh release of TrEd and upload it to testbed web site
 # NOTE: this also includes 'install'
-release: net=0
-	export net
+release: TREDNET=0
+	export TREDNET
 release: check-net release-core release-mac release-deb release-rpm
 
-release-nomac-nonet: net=0
-	export net
+release-nomac-nonet: TREDNET=0
+	export TREDNET
 release-nomac-nonet: release
 
 # Connect to testing platform and execute tests.
@@ -66,7 +66,7 @@ prereq:
 # Check we are in the UFAL VLAN, so we can access TrEd testing infrastructure
 # and Mac OS X development infrastructure
 check-net:
-	test ${net} -eq 1 && echo "Check that the current computer is in UFAL VLAN ..." && ping -c 1 virtualbox.ufal.hide.ms.mff.cuni.cz || test ${net} -eq 0
+	test ${TREDNET} -eq 1 && echo "Check that the current computer is in UFAL VLAN ..." && ping -c 1 virtualbox.ufal.hide.ms.mff.cuni.cz || test ${TREDNET} -eq 0
 
 
 # Make a fres release of TrEd (except for the Mac OS package)
@@ -78,7 +78,7 @@ release-core: prereq update-dist-dir build-dep-package pack-extensions prepare-t
 # build Mac OS package for TrEd and upload it to testbed web site.
 # Note that core release must be performed before mac package release.
 #release-mac: check-net
-#	test ${net} -eq 1 && echo "Check that the current computer is in UFAL VLAN ..." && ssh tred@virtualbox.ufal.hide.ms.mff.cuni.cz '~/build-tred-dmg.sh' || test ${net} -eq 0
+#	test ${TREDNET} -eq 1 && echo "Check that the current computer is in UFAL VLAN ..." && ssh tred@virtualbox.ufal.hide.ms.mff.cuni.cz '~/build-tred-dmg.sh' || test ${net} -eq 0
 release-mac:
 	# backup previouse release
 	cd admin  && ./mac_backup_previous.sh
@@ -107,7 +107,7 @@ release-rpm:
 # This target is automatically invoked by the release-core target. It should
 # be re-invoked only if failed, but the release in the local directory is fresh.
 sync-testbed-www:
-	test ${net} -eq 1 && cd admin && ./sync-testbed-www.sh || test ${net} -eq 0
+	test ${TREDNET} -eq 1 && cd admin && ./sync-testbed-www.sh || test ${TREDNET} -eq 0
 
 
 
