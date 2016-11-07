@@ -7,28 +7,33 @@
 # This special exception was added by Craig Small in version 0.37 of dh-make.
 
 # Uncomment this to turn on verbose mode.
-#export DH_VERBOSE=1
+export DH_VERBOSE=1
 
 
 # Cleaning process of the released files.
 override_dh_auto_install:
-	wget -O "$(CURDIR)/install_tred.bash" http://ufallab.ms.mff.cuni.cz:24080/tred/testbed/install_tred.bash
+	echo net: $(TREDNET)
+	echo www: $(TREDWWW)
+	test $(TREDNET) -eq 0 || wget -O "$(CURDIR)/install_tred.bash" http://ufallab.ms.mff.cuni.cz:24080/tred/testbed/install_tred.bash
+	test $(TREDNET) -eq 1 || cp "$(TREDWWW)/tred/install_tred.bash" "$(CURDIR)/install_tred.bash"
+	test $(TREDNET) -eq 1 || cp "$(TREDWWW)/tred/tred-current.tar.gz" "$(CURDIR)/tred-current.tar.gz"
 	chmod a+x "$(CURDIR)/install_tred.bash"
 	mkdir -p "$(CURDIR)/debian/tred/opt/tred"
-	"$(CURDIR)/install_tred.bash" --tred-dir "$(CURDIR)/debian/tred/opt/tred" --no-libs
+	test $(TREDNET) -eq 0 || "$(CURDIR)/install_tred.bash" --tred-dir "$(CURDIR)/debian/tred/opt/tred" --no-libs
+	test $(TREDNET) -eq 1 || "$(CURDIR)/install_tred.bash" --tred-dir "$(CURDIR)/debian/tred/opt/tred" --no-libs -L "$(CURDIR)"
 	mkdir -p "$(CURDIR)/debian/tred/usr/bin"
 	echo '#!/bin/sh' > "$(CURDIR)/debian/tred/opt/tred/bin/start_tred"
 	echo 'export TRED_DIR=/opt/tred' >> "$(CURDIR)/debian/tred/opt/tred/bin/start_tred"
 	echo 'perl "$$TRED_DIR/tred" $$@' >> "$(CURDIR)/debian/tred/opt/tred/bin/start_tred"
-	ln -s /opt/tred/bin/start_tred "$(CURDIR)/debian/tred/usr/bin/start_tred"
+	# ln -s /opt/tred/bin/start_tred "$(CURDIR)/debian/tred/usr/bin/start_tred"
 	echo '#!/bin/sh' > "$(CURDIR)/debian/tred/opt/tred/bin/start_btred"
 	echo 'export TRED_DIR=/opt/tred' >> "$(CURDIR)/debian/tred/opt/tred/bin/start_btred"
 	echo 'perl "$$TRED_DIR/btred" $$@' >> "$(CURDIR)/debian/tred/opt/tred/bin/start_btred"
-	ln -s /opt/tred/bin/start_btred "$(CURDIR)/debian/tred/usr/bin/start_btred"
+	# ln -s /opt/tred/bin/start_btred "$(CURDIR)/debian/tred/usr/bin/start_btred"
 	echo '#!/bin/sh' > "$(CURDIR)/debian/tred/opt/tred/bin/start_ntred"
 	echo 'export TRED_DIR=/opt/tred' >> "$(CURDIR)/debian/tred/opt/tred/bin/start_ntred"
 	echo 'perl "$$TRED_DIR/ntred" $$@' >> "$(CURDIR)/debian/tred/opt/tred/bin/start_ntred"
-	ln -s /opt/tred/bin/start_ntred "$(CURDIR)/debian/tred/usr/bin/start_ntred"
+	# ln -s /opt/tred/bin/start_ntred "$(CURDIR)/debian/tred/usr/bin/start_ntred"
 
 %:
 	dh $@ 

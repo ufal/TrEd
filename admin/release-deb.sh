@@ -12,7 +12,12 @@ SVN_VERSION=`svn info . | grep 'Revision:' | sed -E 's/[^0-9]+//g'`
 cd "$PROJECT_DIR/unix_install_pkgs/deb" || exit 1
 ./prepare_deb_pkg.sh || exit 2
 
-test $net -eq 1  || exit 0
+# Copying the package to the local www
+echo "Copying the package to local www ..."
+DEB_FILE="tred_2.${SVN_VERSION}_all.deb"
+cp "./${DEB_FILE}" "${TREDWWW}/tred/${DEB_FILE}"
+
+test $TREDNET -eq 1  || exit 0
 cd "$EXTDIR" || exit 3
 
 # Delete previous versions of deb packages ...
