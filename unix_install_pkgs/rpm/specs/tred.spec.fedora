@@ -15,15 +15,19 @@ TrEd is an application created and maintained at Departement of Computational Li
 
 # Prepare for building (download install bash script)
 %prep
+echo "====================FEDORA==========================="
 rm -rf "%{_sourcedir}/*"
-wget -O "%{_sourcedir}/install_tred.bash" http://ufallab.ms.mff.cuni.cz:24080/tred/testbed/install_tred.bash
+test %{TREDNET} -eq 0 || wget -O "%{_sourcedir}/install_tred.bash" http://ufallab.ms.mff.cuni.cz:24080/tred/testbed/install_tred.bash
+test %{TREDNET} -eq 1 || cp "%{TREDWWW}/tred/install_tred.bash" "%{_sourcedir}/install_tred.bash"
+test %{TREDNET} -eq 1 || cp "%{TREDWWW}/tred/tred-current.tar.gz" "%{_sourcedir}/tred-current.tar.gz"
 chmod a+x "%{_sourcedir}/install_tred.bash"
 
 
 # Build TrEd (use install bash script to download and unzip all TrEd parts)
 %build
 rm -rf "%{_builddir}/tred"
-"%{_sourcedir}/install_tred.bash" --tred-dir "%{_builddir}/tred" --no-libs
+test %{TREDNET} -eq 0 || "%{_sourcedir}/install_tred.bash" --tred-dir "%{_builddir}/tred" --no-libs
+test %{TREDNET} -eq 1 || "%{_sourcedir}/install_tred.bash" --tred-dir "%{_builddir}/tred" --no-libs -L "%{_sourcedir}"
 #rm -rf "%{_builddir}/tred/bin"
 rm -f "%{_sourcedir}/install_tred.bash"
 for CMD in tred btred ntred ; do

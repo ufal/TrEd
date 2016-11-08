@@ -27,7 +27,7 @@ function build_rpm() {
 	echo "Building rpm package ..."
 	TRED_SPEC_FILE="$1/SPECS/tred.spec"
 	sed -i "s/%SVNVERSION%/$3/g" "$TRED_SPEC_FILE" || exit 1
-	rpmbuild -bb --define "_topdir $1" "$TRED_SPEC_FILE" || exit 2
+	rpmbuild -bb --define "_topdir $1" --define "TREDNET $TREDNET" --define "TREDWWW $TREDWWW" "$TRED_SPEC_FILE" || exit 2
 	mv "$1/RPMS/noarch/tred-2-$3.noarch.rpm" "./tred-2-$3-$2.noarch.rpm" || exit 3
 }
 
