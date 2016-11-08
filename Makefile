@@ -47,9 +47,11 @@ testbed-clear: check-net
 # Copy release from testbed (on virtualbox server) to TrEd oficial site on UFAL web server
 # Note: this task can be performed only from UFAL VLAN,
 # SSH certificate for pasword-less login of user tred is recommended.
-publish: check-net
-	ssh -t tred@virtualbox.ufal.hide.ms.mff.cuni.cz '~/publish-tred.sh'
+#publish: check-net
+#	ssh -t tred@virtualbox.ufal.hide.ms.mff.cuni.cz '~/publish-tred.sh'
 
+publish:
+	cd admin && ./publish-tred.sh
 
 
 
