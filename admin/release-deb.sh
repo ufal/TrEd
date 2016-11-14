@@ -16,8 +16,10 @@ cd "$PROJECT_DIR/unix_install_pkgs/deb" || exit 1
 echo "Copying the package to local www ..."
 DEB_FILE="tred_2.${SVN_VERSION}_all.deb"
 cp "./${DEB_FILE}" "${TREDWWW}/tred/${DEB_FILE}"
-ln -sf "${TREDWWW}/tred/${DEB_FILE}" "${TREDWWW}/tred/tred.deb"
-
+d=`pwd`
+cd "${TREDWWW}/tred/"
+ln -sfr "${DEB_FILE}" "tred.deb"
+cd $d
 test $TREDNET -eq 1  || exit 0
 cd "$EXTDIR" || exit 3
 
