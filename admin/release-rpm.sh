@@ -22,7 +22,10 @@ echo "Creating symlinks for rpm packages ..."
 DISTROS=`ls -1 ./tred*.rpm | sed -E 's/^.*tred-[0-9]+-[0-9]+-//' | sed 's/[.]noarch[.]rpm$//' | tr "\\n" " "`
 for DISTRO in $DISTROS; do
 	echo "... for $DISTRO ..."
-	ln -sf "${TREDWWW}/tred/tred-2-${SVN_VERSION}-${DISTRO}.noarch.rpm" "${TREDWWW}/tred/tred-${DISTRO}.rpm"
+	d=`pwd`
+	cd "${TREDWWW}/tred/"
+	ln -sfr "tred-2-${SVN_VERSION}-${DISTRO}.noarch.rpm" "tred-${DISTRO}.rpm"
+	cd $d
 done
 
 test $TREDNET -eq 1  || exit 0
