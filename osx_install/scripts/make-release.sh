@@ -59,14 +59,14 @@ fi
 # The code needs to be signed so it runs on Mountain Lion without obstacles
 echo "Sign the code with UFAL certificate ..."
 echo "\t> SKIPPING"
-# security unlock-keychain -p tred
-# codesign -f -s "$SIGN_CERT_SHA1" -r='designated => anchor apple generic and identifier "cz.cuni.mff.ufal.tred"' -v "$APPLICATIONS/$TRED_APP" || exit 5
+security unlock-keychain -p tred
+codesign -f -s "$SIGN_CERT_SHA1" -r='designated => anchor apple generic and identifier "cz.cuni.mff.ufal.tred"' -v "$APPLICATIONS/$TRED_APP" || exit 5
 
 
 # Copy installed TrEd and its signature to the release image
 echo "Copying $APPLICATIONS/$TRED_INSTALL_DIR to $MOUNT_POINT/$TRED_DIR ..."
 cp -R "$APPLICATIONS/$TRED_INSTALL_DIR" "$MOUNT_POINT/$TRED_DIR" || exit 6
-# cp -R "$APPLICATIONS/$TRED_INSTALL_APP/Contents/_CodeSignature" "$MOUNT_POINT/$TRED_APP/Contents/_CodeSignature" || exit 6
+cp -R "$APPLICATIONS/$TRED_INSTALL_APP/Contents/_CodeSignature" "$MOUNT_POINT/$TRED_APP/Contents/_CodeSignature" || exit 6
 cp "$APPLICATIONS/$TRED_INSTALL_APP/Contents/MacOS/TrEd" "$MOUNT_POINT/$TRED_APP/Contents/MacOS/TrEd" || exit 6
 
 
