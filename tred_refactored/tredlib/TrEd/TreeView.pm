@@ -1717,7 +1717,7 @@ sub parse_coords_spec {
       } else {
 	my $cached = $COORD_CODE_CACHE{$key};
 	unless (defined $cached) {
-	  $code =~s[\$\{([-_A-Za-z0-9/]+)\}][ \$node->attr('$1') ]g;
+	  $code =~s[\$[{]([-_A-Za-z0-9/]+)}][ \$node->attr('$1') ]g;
 	  $cached = $COORD_CODE_CACHE{$key}=
 	    eval "package TredMacro; sub{ my \$node=\$_[0]; eval { $code } }";
 	}
@@ -1749,7 +1749,7 @@ sub parse_coords_spec {
     my $that;
     my $cached = $COORD_CODE_CACHE{$key};
     unless (defined $cached) {
-        $code =~s[\$\{([-_A-Za-z0-9/]+)\}][ \$node->attr('$1') ]g;
+        $code =~s[\$[{]([-_A-Za-z0-9/]+)}][ \$node->attr('$1') ]g;
 	  $cached = $COORD_CODE_CACHE{$key}=
 	    eval "package TredMacro; sub{ my \$node=\$_[0]; eval { $code } }";
 	}
@@ -2727,11 +2727,11 @@ sub redraw {
                     my $coords;
                     $i++;
                     $msg = $self->interpolate_text_field( $node, $pat, $grp );
-                    if ( $msg =~ s/\#{-coords:([^}]*)}//g ) {
+                    if ( $msg =~ s/\#[{]-coords:([^}]*)}//g ) {
                         $coords = $1;
                     }
                     $clear = 1;
-                    if ( $msg =~ s/\#{-clear:([01])}//g ) {
+                    if ( $msg =~ s/\#[{]-clear:([01])}//g ) {
                         $clear = $1;
                     }
                     $coords = 'n,n'
@@ -2891,7 +2891,7 @@ sub redraw {
                                     $hint, $grp );
                                 if ( defined $msg ) {
                                     $msg
-                                        =~ s/\${([^}]+)}/_present_attribute($node,$1)/eg;
+                                        =~ s/\$[{]([^}]+)}/_present_attribute($node,$1)/eg;
                                     ( $_ => encode($msg) );
                                 }
                                 else {
@@ -3337,7 +3337,7 @@ my $code_match_in = qr/^\<\?((?:[^?]|\?[^>])+)\?\>$/;
 sub _compile_code {
     my ($text) = @_;
     $text
-        =~ s/\$\${([^}]+)}/ TrEd::TreeView::_present_attribute(\$this,'$1')/g; #subst $${var}
+        =~ s/\$\$[{]([^}]+)}/ TrEd::TreeView::_present_attribute(\$this,'$1')/g; #subst $${var}
     return eval "package TredMacro; sub{ eval { $text } }";
 }
 # we got node object, text (e.g. pattern from stylesheet) and $grp (here we have window), we interpolate text field, ie run the code in <? ?> or just use the text directly
@@ -3503,7 +3503,7 @@ sub _present_attribute__2 {
 sub interpolate_refs {
     my ( $self, $node, $text ) = @_;
     $text
-        =~ s/\$\${([^}]+)}/"'"._quote_quote(_present_attribute($node,$1))."'"/eg;
+        =~ s/\$\$[{]([^}]+)}/"'"._quote_quote(_present_attribute($node,$1))."'"/eg;
     return $text;
 }
 
