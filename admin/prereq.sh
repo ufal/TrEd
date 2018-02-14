@@ -21,7 +21,7 @@ function perl_module_presence_test {
 # unpacks it, if the MD5 sum is correct
 function get_svn2cl {
 	### svn2cl
-	SVN2CL_URL="http://arthurdejong.org/svn2cl/"
+	SVN2CL_URL="https://arthurdejong.org/svn2cl/"
 	SVN2CL_FILE_DL="svn2cl.tar.gz"
 	wget ${SVN2CL_URL}downloads.html -O web >> $LOG
 
