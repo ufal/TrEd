@@ -9,7 +9,7 @@ WWW="$1"
 
 function get_strawberry() {
         echo "Downloading Strawberry Perl $DESIRED_PERL_VERSION"
-        wget "$DESIRED_PERL_URL" -O $PERL_INSTALLER_DL >> $LOG
+        wget --user-agent="Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0" "$DESIRED_PERL_URL" -O $PERL_INSTALLER_DL >> $LOG
 }
 
 if [ -z "$VER" ]; then
