@@ -324,7 +324,6 @@ elif [ ! -z "$LOCAL_DIR" ]; then
     mv _tmp/tred/* . || fail
     rm -rf _tmp || fail
     popd
-    rm "$tred_tar_gz"  
 else
     action "Downloading TrEd"
     fetch_url "$tred_url" tred-current.tar.gz|| fail
@@ -353,7 +352,9 @@ if [ "x$NO_LIBS" != x1 ]; then
     
     action  "Unpacking TrEd dependencies"
     tar xzf tred-dep-unix.tar.gz || fail
-    rm tred-dep-unix.tar.gz
+    if [ -z "$LOCAL_DIR" ]; then
+        rm tred-dep-unix.tar.gz
+    fi
     pushd packages_unix
 
     if [ -n "$PREFIX" ] && [ ! -d "$PREFIX" ]; then
