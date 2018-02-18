@@ -1,5 +1,7 @@
 #!/bin/bash
 
+SIGNATURE=$1
+
 # Jump to releasing directory ...
 SAVE_DIR=`pwd`
 cd `dirname $0` || exit 1
@@ -56,11 +58,14 @@ else
 	$INSTALL_SCRIPT -L $INSTALL_SCRIPT_DIR --tred-dir "$APPLICATIONS/$TRED_INSTALL_DIR" || exit 4
 fi
 
+if [ $SIGNATURE -eq 1 ];then
 # The code needs to be signed so it runs on Mountain Lion without obstacles
-echo "Sign the code with UFAL certificate ..."
-security unlock-keychain -p tred
-codesign -f -s "$SIGN_CERT_SHA1" -r='designated => anchor apple generic and identifier "cz.cuni.mff.ufal.tred"' -v "$APPLICATIONS/$TRED_INSTALL_APP" || exit 5
-
+  echo "Sign the code with UFAL certificate ..."
+  security unlock-keychain -p tred
+  codesign -f -s "$SIGN_CERT_SHA1" -r='designated => anchor apple generic and identifier "cz.cuni.mff.ufal.tred"' -v "$APPLICATIONS/$TRED_INSTALL_APP" || exit 5
+else
+  echo "Skipping signature..."
+fi
 
 # Copy installed TrEd and its signature to the release image
 echo "Copying $APPLICATIONS/$TRED_INSTALL_DIR to $MOUNT_POINT/$TRED_DIR ..."

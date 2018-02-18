@@ -1,5 +1,6 @@
 ## TrEd Makefile -- interface to installation, releasing, and testing scripts
 TREDNET=0
+SIGNATURE=0
 
 # Public Targets -- documented, well known, usable by anyone
 all: help
@@ -19,6 +20,10 @@ install: prereq update-dist-dir install-tred-extensions
 
 # make a fresh release of TrEd and upload it to testbed web site
 # NOTE: this also includes 'install'
+release-skip-signature: SIGNATURE=0
+	export SIGNATURE
+release-skip-signature: release
+
 release: TREDNET=0
 	export TREDNET
 release: check-net release-core release-mac release-deb release-rpm
@@ -87,7 +92,7 @@ release-mac:
 	# copy core to manfred
 	cd admin  && ./mac_prepare.sh
 	# run releaser
-	cd admin  && ./mac_release.sh
+	cd admin  && ./mac_release.sh ${SIGNATURE}
 	# download release from mac
 	cd admin  && ./mac_download_release.sh
 	
