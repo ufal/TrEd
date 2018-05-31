@@ -767,6 +767,7 @@ sub print_trees {
                         $vMargin + ( $pageheight - $height * $scale ) / 2
                     ],
                     -balloon => $treeView->get_CanvasBalloon,
+                    -compress => $extra_opts->{compress} || 0
                 );
                 if ($rotate) {
                     $final_opts{-rotate}    = -90;

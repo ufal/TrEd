@@ -497,7 +497,7 @@ sub draw_canvas {
   }
   my $balloon = $opts{-balloon};
   my $hint;
-  if ($balloon) {
+  if ($balloon && ! $opts{-compress}) {
     $hint = $balloon->GetOption('-balloonmsg',$canvas);
     if ($hint) {
       $writer->startTag('script', type=>"text/ecmascript");
@@ -1074,7 +1074,7 @@ body {
 	      svg.currentScale = svg.currentScale * rescale;
 	      svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
 	  }
-      }	
+      }
       function next_tree ( delta ) {
         var next = current_tree+delta;
         if (next >= 0 && files.length > next) {
