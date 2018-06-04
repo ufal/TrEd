@@ -246,12 +246,12 @@ sub finish {
     $P->{current_page}->end;
   }
   if ($opts{-file}) {
-    if(@{$P->{pages}}==1) {
+    if(@{$P->{pages}}==1 && ! $opts{-alwayscreatedir}) {
       # print STDERR "Print to $opts{-file}\n";
       open(my $fh, '>:utf8', $opts{-file}) or die "Cannot open file '$opts{-file}' for writing: $!";
       print $fh ${$P->{pages}->[0]};
       close $fh;
-    } elsif (@{$P->{pages}}>1) {
+    } elsif (@{$P->{pages}}>1 || (@{$P->{pages}}>0 && $opts{-alwayscreatedir})) {
       require File::Spec;
       my $dir = $opts{-file};
       unless (-d $dir) {

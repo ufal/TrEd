@@ -569,6 +569,7 @@ sub print_trees {
             }
         );
     }
+    my $create_dir_for_one_tree = $printRange =~ m/[-,]/;
     my @printList = parse_print_list( $fsfile, $printRange );
     return unless @printList;
 
@@ -792,7 +793,7 @@ sub print_trees {
             }
             elsif ( $toFile and $fil ) {
                 $return = $fil;
-                $P->finish( -file => $fil );
+                $P->finish( -file => $fil, -alwayscreatedir => $create_dir_for_one_tree );
             }
             elsif ($cmd) {
                 $return = 1;
