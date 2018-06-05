@@ -497,9 +497,9 @@ sub draw_canvas {
   }
   my $balloon = $opts{-balloon};
   my $hint;
-  if ($balloon && ! $opts{-compress}) {
+  if ($balloon) {
     $hint = $balloon->GetOption('-balloonmsg',$canvas);
-    if ($hint) {
+    if ($hint && ! $opts{-compress}) {
       $writer->startTag('script', type=>"text/ecmascript");
       $writer->setDataMode(0);
       $writer->characters(<<'SCRIPT'); # cdata not supported by older XML::Writer versions
