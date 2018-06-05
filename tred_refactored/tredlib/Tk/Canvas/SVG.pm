@@ -23,15 +23,15 @@ BEGIN {
   eval "use Encode";
 
   %join = (
-	   bevel => 'bevel',
-	   miter => 'miter',
-	   round => 'round',
-	  );
+           bevel => 'bevel',
+           miter => 'miter',
+           round => 'round',
+          );
   %capstyle = (
-	   butt => 'butt',
-	   round => 'round',
-	   projecting => 'square',
-	  );
+           butt => 'butt',
+           round => 'round',
+           projecting => 'square',
+          );
   %stipple_def = (
     dash1 => [1, 5, 120],
     dash2 => [1, 5, 60],
@@ -47,63 +47,63 @@ BEGIN {
     dense6 => [1, 2, 0],
   );
   %media = (
-	  Letter => [612, 792],
-	  LetterSmall => [612, 792],
-	  Legal => [612, 1008],
-	  Statement => [396, 612],
-	  Tabloid => [792, 1224],
-	  Ledger => [1224, 792],
-	  Folio => [612, 936],
-	  Quarto => [610, 780],
-	  '7x9' => [504, 648],
-	  '9x11' => [648, 792],
-	  '9x12' => [648, 864],
-	  '10x13' => [720, 936],
-	  '10x14' => [720, 1008],
-	  Executive => [540, 720],
-	  A0 => [2384, 3370],
-	  A1 => [1684, 2384],
-	  A2 => [1191, 1684],
-	  A3 => [842, 1191],
-	  A4 => [595, 842],
-	  A4Small => [595, 842],
-	  A5 => [420, 595],
-	  A6 => [297, 420],
-	  A7 => [210, 297],
-	  A8 => [148, 210],
-	  A9 => [105, 148],
-	  A10 => [73, 105],
-	  B0 => [2920, 4127],
-	  B1 => [2064, 2920],
-	  B2 => [1460, 2064],
-	  B3 => [1032, 1460],
-	  B4 => [729, 1032],
-	  B5 => [516, 729],
-	  B6 => [363, 516],
-	  B7 => [258, 363],
-	  B8 => [181, 258],
-	  B9 => [127, 181],
-	  B10 => [91, 127],
-	  ISOB0 => [2835, 4008],
-	  ISOB1 => [2004, 2835],
-	  ISOB2 => [1417, 2004],
-	  ISOB3 => [1001, 1417],
-	  ISOB4 => [709, 1001],
-	  ISOB5 => [499, 709],
-	  ISOB6 => [354, 499],
-	  ISOB7 => [249, 354],
-	  ISOB8 => [176, 249],
-	  ISOB9 => [125, 176],
-	  ISOB10 => [88, 125],
-	  C0 => [2599, 3676],
-	  C1 => [1837, 2599],
-	  C2 => [1298, 1837],
-	  C3 => [918, 1296],
-	  C4 => [649, 918],
-	  C5 => [459, 649],
-	  C6 => [323, 459],
-	  C7 => [230, 323]
-	 );
+          Letter => [612, 792],
+          LetterSmall => [612, 792],
+          Legal => [612, 1008],
+          Statement => [396, 612],
+          Tabloid => [792, 1224],
+          Ledger => [1224, 792],
+          Folio => [612, 936],
+          Quarto => [610, 780],
+          '7x9' => [504, 648],
+          '9x11' => [648, 792],
+          '9x12' => [648, 864],
+          '10x13' => [720, 936],
+          '10x14' => [720, 1008],
+          Executive => [540, 720],
+          A0 => [2384, 3370],
+          A1 => [1684, 2384],
+          A2 => [1191, 1684],
+          A3 => [842, 1191],
+          A4 => [595, 842],
+          A4Small => [595, 842],
+          A5 => [420, 595],
+          A6 => [297, 420],
+          A7 => [210, 297],
+          A8 => [148, 210],
+          A9 => [105, 148],
+          A10 => [73, 105],
+          B0 => [2920, 4127],
+          B1 => [2064, 2920],
+          B2 => [1460, 2064],
+          B3 => [1032, 1460],
+          B4 => [729, 1032],
+          B5 => [516, 729],
+          B6 => [363, 516],
+          B7 => [258, 363],
+          B8 => [181, 258],
+          B9 => [127, 181],
+          B10 => [91, 127],
+          ISOB0 => [2835, 4008],
+          ISOB1 => [2004, 2835],
+          ISOB2 => [1417, 2004],
+          ISOB3 => [1001, 1417],
+          ISOB4 => [709, 1001],
+          ISOB5 => [499, 709],
+          ISOB6 => [354, 499],
+          ISOB7 => [249, 354],
+          ISOB8 => [176, 249],
+          ISOB9 => [125, 176],
+          ISOB10 => [88, 125],
+          C0 => [2599, 3676],
+          C1 => [1837, 2599],
+          C2 => [1298, 1837],
+          C3 => [918, 1296],
+          C4 => [649, 918],
+          C5 => [459, 649],
+          C6 => [323, 459],
+          C7 => [230, 323]
+         );
 }
 
 =item $canvas->svg(options)
@@ -204,11 +204,11 @@ sub new {
   __debug("Media: @media\n");
 
   return bless {
-	  Debug => $opts{-debug},
-	  Pages => [],
-	  FontMap => $opts{-fontmap},
-	  Media => \@media,
-	 },$class;
+          Debug => $opts{-debug},
+          Pages => [],
+          FontMap => $opts{-fontmap},
+          Media => \@media,
+         },$class;
 }
 
 
@@ -234,9 +234,9 @@ sub new_page {
     $fh = IO::String->new($svg_page);
   }
   $P->{current_page} = XML::Writer->new(OUTPUT=>$fh,
-					DATA_INDENT=>1,
-					DATA_MODE=>1,
-					ENCODING=>'utf-8');
+                                        DATA_INDENT=>1,
+                                        DATA_MODE=>1,
+                                        ENCODING=>'utf-8');
   push @{$P->{pages}}, \$svg_page;
 }
 
@@ -255,7 +255,7 @@ sub finish {
       require File::Spec;
       my $dir = $opts{-file};
       unless (-d $dir) {
-	mkdir($dir) or die "Cannot create directory '$dir' for multi-page SVG: $!";
+        mkdir($dir) or die "Cannot create directory '$dir' for multi-page SVG: $!";
       }
       my $fn = File::Spec->catfile($dir,'index.html');
       open(my $fh, '>:utf8', $fn) or die "Cannot open file '$fn' for writing: $!";
@@ -263,10 +263,10 @@ sub finish {
       print_html_template($fh,$opts{-file},scalar(@{$P->{pages}}),$format);
       close $fh;
       for my $i (0..$#{$P->{pages}}) {
-	$fn = File::Spec->catfile($dir,sprintf($format,$i));
-	open(my $fh, '>:utf8', $fn) or die "Cannot open file '$fn' for writing: $!";
-	print $fh ${$P->{pages}->[$i]};
-	close $fh;
+        $fn = File::Spec->catfile($dir,sprintf($format,$i));
+        open(my $fh, '>:utf8', $fn) or die "Cannot open file '$fn' for writing: $!";
+        print $fh ${$P->{pages}->[$i]};
+        close $fh;
       }
     }
   } elsif ($opts{-object}) {
@@ -449,16 +449,16 @@ sub draw_canvas {
 
   $writer->xmlDecl("UTF-8");
   $writer->startTag('svg',
-		    xmlns=>"http://www.w3.org/2000/svg",
-		    version=>"1.1",
-		    onload=>'init(evt)',
-		    onmousemove=>"mouse_move(evt)",
-		    onmouseout=>"mouse_out(evt)",
-		    height=>"$height",
-		    width=>"$width",
-		    # preserveAspectRatio=>'xMinYMin meet',
-		    # viewBox=>"@media",
-		   );
+                    xmlns=>"http://www.w3.org/2000/svg",
+                    version=>"1.1",
+                    onload=>'init(evt)',
+                    onmousemove=>"mouse_move(evt)",
+                    onmouseout=>"mouse_out(evt)",
+                    height=>"$height",
+                    width=>"$width",
+                    # preserveAspectRatio=>'xMinYMin meet',
+                    # viewBox=>"@media",
+                   );
   if ($opts{-title}) {
     $writer->startTag('title');
     if (ref($opts{-title}) eq 'CODE') {
@@ -475,18 +475,18 @@ sub draw_canvas {
     if (ref($value) eq 'ARRAY') {
       $writer->startTag('span', "xmlns"=>"http://www.w3.org/1999/xhtml/");
       for my $v (@$value) {
-	my ($text,@tags)=@$v;
-	if (@tags) {
-	  $writer->startTag('span', class=>join(' ',grep !ref($_), @tags));
-	}
-	for my $t (split(/(\n)/,$text)) {
-	  if ($t eq "\n") {
-	    $writer->emptyTag("br");
-	  } else {
-	    $writer->characters($t);
-	  }
-	}
-	$writer->endTag('span') if @tags;
+        my ($text,@tags)=@$v;
+        if (@tags) {
+          $writer->startTag('span', class=>join(' ',grep !ref($_), @tags));
+        }
+        for my $t (split(/(\n)/,$text)) {
+          if ($t eq "\n") {
+            $writer->emptyTag("br");
+          } else {
+            $writer->characters($t);
+          }
+        }
+        $writer->endTag('span') if @tags;
       }
       $writer->endTag('span');
     } else {
@@ -515,7 +515,7 @@ sub draw_canvas {
          root = doc.documentElement;
          if (root.styleSheets != null && root.styleSheets[0] != null) css = root.styleSheets[0]
          else if (doc.styleSheets != null && doc.styleSheets[0] != null) css = doc.styleSheets[0];
-	 top.zoomSVG = zoom;
+         top.zoomSVG = zoom;
          if (top.svg_loaded) top.svg_loaded(doc);
          if (top.setSVGTitle) top.setSVGTitle(get_title());
          if (top.setSVGDesc) top.setSVGDesc(get_desc());
@@ -551,41 +551,41 @@ sub draw_canvas {
         var new_scale = old_scale + amount;
         var rescale = new_scale/old_scale;
         root.currentScale = new_scale;
-	root.setAttribute('width',Number(root.getAttribute('width'))*rescale);
-	root.setAttribute('height',Number(root.getAttribute('height'))*rescale);
+        root.setAttribute('width',Number(root.getAttribute('width'))*rescale);
+        root.setAttribute('height',Number(root.getAttribute('height'))*rescale);
       }
       function hide_tooltip(event) {
-	 if (event.target == last_target && top.changeToolTip) {
-	    top.changeToolTip("");
-	 }
+         if (event.target == last_target && top.changeToolTip) {
+            top.changeToolTip("");
+         }
       }
       function show_tooltip(event) {
-         var target = event.target;
-	 if (!top.placeTip) return;
-	 var x = event.clientX;
-	 var y = event.clientY;
-  	 top.placeTip(x,y,root,event);
-         if ( last_target != target ) {
-	    last_target = target;
-            if (top.onSVGMouseOver) top.onSVGMouseOver(target);
-            if (target==root) return;
-            var desc;
-            for (var i=0; i<target.childNodes.length; i++) {
-              var n = target.childNodes[i];
-              if (n.nodeName == 'desc') {
-                desc = n;
-                break;
-              }
+        var target = event.target;
+        if (!top.placeTip) return;
+        var x = event.clientX;
+        var y = event.clientY;
+        top.placeTip(x,y,root,event);
+        if ( last_target != target ) {
+          last_target = target;
+          if (top.onSVGMouseOver) top.onSVGMouseOver(target);
+          if (target==root) return;
+          var desc;
+          for (var i=0; i<target.childNodes.length; i++) {
+            var n = target.childNodes[i];
+            if (n.nodeName == 'desc') {
+              desc = n;
+              break;
             }
-            if ( desc ) {
-               tooltip_text = desc.firstChild.nodeValue;
-	       if (tooltip_text == null) {
-	         top.changeToolTip('');
-	       } else {
-	         top.changeToolTip(tooltip_text.split(/\n/).join("<br />"));
-               }
+          }
+          if ( desc ) {
+            tooltip_text = desc.firstChild.nodeValue;
+            if (tooltip_text == null) {
+              top.changeToolTip('');
+            } else {
+              top.changeToolTip(tooltip_text.split(/\n/).join("<br />"));
             }
-         }
+          }
+        }
       }
 
 SCRIPT
@@ -595,7 +595,7 @@ SCRIPT
       # style element is used also for dynamic styling
       $writer->startTag('style', type=>'text/css');
       if ($opts{-inline_css}) {
-	$writer->characters($opts{-inline_css});
+        $writer->characters($opts{-inline_css});
       }
       $writer->endTag('style');
       $writer->endTag('defs');
@@ -603,7 +603,7 @@ SCRIPT
   }
   $hint ||= {};
   $writer->startTag('g',
-		    transform=>"translate(".(-$media[0]+5).' '.(-$media[1]+5).")");
+                    transform=>"translate(".(-$media[0]+5).' '.(-$media[1]+5).")");
 
 #  my $x = 0;
 #  my $y = 0;
@@ -674,44 +674,44 @@ SCRIPT
       $posy-=$descent;
 
       $writer->startTag(((@lines>1) ?
-			   ('g') :
-			   ('text',
-			    x=>$posx,
-			    y=>$posy)
-			),
-			'id' => 'i'.$item,
-			"text-anchor" => $text_anchor,
-			"font-family" => $canvasfont{-family},
-			"font-weight" => $canvasfont{-weight},
-			"font-size" => ($canvasfont{-size}<0 ? abs($canvasfont{-size})#.'px'
-					  : $canvasfont{-size}.'pt'),
-			"font-slant" => $canvasfont{-slant},
-			"fill" => $color,
-			width => $textwidth,
+                           ('g') :
+                           ('text',
+                            x=>$posx,
+                            y=>$posy)
+                        ),
+                        'id' => 'i'.$item,
+                        "text-anchor" => $text_anchor,
+                        "font-family" => $canvasfont{-family},
+                        "font-weight" => $canvasfont{-weight},
+                        "font-size" => ($canvasfont{-size}<0 ? abs($canvasfont{-size})#.'px'
+                                          : $canvasfont{-size}.'pt'),
+                        "font-slant" => $canvasfont{-slant},
+                        "fill" => $color,
+                        width => $textwidth,
 
-			((@lines>1) ? (  ) : ()),
+                        ((@lines>1) ? (  ) : ()),
 
-			%item_opts,
-		       );
+                        %item_opts,
+                       );
       $self->item_desc($writer,$hint->{$item});
       if (@lines>1) {
-	for my $line (@lines) {
-	  $writer->startTag('text',
-			    x=>$posx,
-			    y=>$posy,
-			   );
-	  $writer->setDataMode(0);
-	  $writer->characters($line);
-	  $writer->setDataMode(1);
-	  $writer->endTag('text');
-	  $posy+=$height;
-	}
-	$writer->endTag('g');
+        for my $line (@lines) {
+          $writer->startTag('text',
+                            x=>$posx,
+                            y=>$posy,
+                           );
+          $writer->setDataMode(0);
+          $writer->characters($line);
+          $writer->setDataMode(1);
+          $writer->endTag('text');
+          $posy+=$height;
+        }
+        $writer->endTag('g');
       } else {
-	$writer->setDataMode(0);
-	$writer->characters($text);
-	$writer->setDataMode(1);
-	$writer->endTag('text');
+        $writer->setDataMode(0);
+        $writer->characters($text);
+        $writer->setDataMode(1);
+        $writer->endTag('text');
       }
     } elsif ($type eq 'line') {
       my $color=$canvas->itemcget($item,"-${state}fill");
@@ -729,84 +729,84 @@ SCRIPT
 
       # TODO: dashoffset
       my %attrs = (
-	'stroke-width' => $width,
-	'stroke-dasharray' => (join(',',@dash)||'none'),
-	'stroke-linejoin' => $join{$join},
-	'stroke-linecap' => $capstyle{$capstyle},
-	'stroke'=>$color,
+        'stroke-width' => $width,
+        'stroke-dasharray' => (join(',',@dash)||'none'),
+        'stroke-linejoin' => $join{$join},
+        'stroke-linecap' => $capstyle{$capstyle},
+        'stroke'=>$color,
        );
 
       __debug "Line: @coords";
       my @c=@coords;
       # shorten line for arrows
       for (qw(first last)) {
-	if ($arrow eq $_ or $arrow eq 'both') {
-	  # we should adjust the enpoints to make space for the arrows
-	  my ($x1,$y1,$x2,$y2) = $_ eq 'first' ? (0..3) : (-2,-1,-4,-3);
-	  my $len = sqrt(($c[$x2]-$c[$x1])**2 + ($c[$y2]-$c[$y1])**2);
-	  $c[$x1]+=($c[$x2]-$c[$x1])*0.9*$ars->[0]/$len;
-	  $c[$y1]+=($c[$y2]-$c[$y1])*0.9*$ars->[0]/$len;
-	}
+        if ($arrow eq $_ or $arrow eq 'both') {
+          # we should adjust the enpoints to make space for the arrows
+          my ($x1,$y1,$x2,$y2) = $_ eq 'first' ? (0..3) : (-2,-1,-4,-3);
+          my $len = sqrt(($c[$x2]-$c[$x1])**2 + ($c[$y2]-$c[$y1])**2);
+          $c[$x1]+=($c[$x2]-$c[$x1])*0.9*$ars->[0]/$len;
+          $c[$y1]+=($c[$y2]-$c[$y1])*0.9*$ars->[0]/$len;
+        }
       }
       # draw line
       my $path='';
       if ($smooth and @c>5) {
-	no integer;
-	$path = qq{M$c[0],$c[1]};
-	my @p;
-	if ($c[0]==$c[-2] and $c[1]==$c[-1]) {
-	  @p=(($c[-4]+$c[0])/2,($c[-3]+$c[1])/2);
-	  unshift @c, @p;
-	  @c[-2,-1]=@p;
-	} else {
-	  @p = @c[0,1];
-	}
-	my @m = @c[2,3];
-	shift @c for 0..3;
-	do {{
-	  my @d = @c>=4 ? (($m[0]+$c[0])/2,($m[1]+$c[1])/2)  : @c[0,1];
-	  $path .= qq{ C$p[0],$p[1],$m[0],$m[1],$d[0],$d[1]};
-	  @m=@c[0,1];
-	  @p=@d;
-	  shift @c for 0,1;
-	}} while (@c>=2);
+        no integer;
+        $path = qq{M$c[0],$c[1]};
+        my @p;
+        if ($c[0]==$c[-2] and $c[1]==$c[-1]) {
+          @p=(($c[-4]+$c[0])/2,($c[-3]+$c[1])/2);
+          unshift @c, @p;
+          @c[-2,-1]=@p;
+        } else {
+          @p = @c[0,1];
+        }
+        my @m = @c[2,3];
+        shift @c for 0..3;
+        do {{
+          my @d = @c>=4 ? (($m[0]+$c[0])/2,($m[1]+$c[1])/2)  : @c[0,1];
+          $path .= qq{ C$p[0],$p[1],$m[0],$m[1],$d[0],$d[1]};
+          @m=@c[0,1];
+          @p=@d;
+          shift @c for 0,1;
+        }} while (@c>=2);
       } else {
-	my @p = @c;
-	$path='M'.shift(@p).','.shift(@p);
-	while (@p) {
-	  $path.=' L'.shift(@p).','.shift(@p);
-	}
+        my @p = @c;
+        $path='M'.shift(@p).','.shift(@p);
+        while (@p) {
+          $path.=' L'.shift(@p).','.shift(@p);
+        }
       }
       $writer->startTag('path',
-			'id' => 'i'.$item,
-			'd' => $path,
-			'fill' =>'none',
-			%attrs,
-			%item_opts,
-		       );
+                        'id' => 'i'.$item,
+                        'd' => $path,
+                        'fill' =>'none',
+                        %attrs,
+                        %item_opts,
+                       );
       $self->item_desc($writer,$hint->{$item});
       $writer->endTag('path');
       # draw arrows
       for (qw(first last)) {
-	if ($arrow eq $_ or $arrow eq 'both') {
-	  @c=$_ eq 'first' ? @coords[0..3] : @coords[-2,-1,-4,-3];
-	  my $angle = 180*atan2($c[2]-$c[0],$c[1]-$c[3])/3.14159265-90;
-	  $angle+=360 if ($angle<0);
-	  $writer->startTag('g',transform=>'translate('.join(',',@c[0,1]).')');
-	  $writer->startTag('g',transform=>'rotate('.(($angle+180) % 360).')');
-	  $writer->startTag('polygon',
-			    'id' => 'i'.$item,
-			    'stroke-width' => 0,
-			    'fill'=>$color,
-			    'points' => (join ' ',map "$_->[0],$_->[1]",
-					 ([0,0],[-$ars->[1],-$ars->[2]-$width],[-$ars->[0],0],[-$ars->[1],+$ars->[2]+$width])),
-			    %item_opts,
-			   );
-	  $self->item_desc($writer,$hint->{$item});
-	  $writer->endTag('polygon');
-	  $writer->endTag('g');
-	  $writer->endTag('g');
-	}
+        if ($arrow eq $_ or $arrow eq 'both') {
+          @c=$_ eq 'first' ? @coords[0..3] : @coords[-2,-1,-4,-3];
+          my $angle = 180*atan2($c[2]-$c[0],$c[1]-$c[3])/3.14159265-90;
+          $angle+=360 if ($angle<0);
+          $writer->startTag('g',transform=>'translate('.join(',',@c[0,1]).')');
+          $writer->startTag('g',transform=>'rotate('.(($angle+180) % 360).')');
+          $writer->startTag('polygon',
+                            'id' => 'i'.$item,
+                            'stroke-width' => 0,
+                            'fill'=>$color,
+                            'points' => (join ' ',map "$_->[0],$_->[1]",
+                                         ([0,0],[-$ars->[1],-$ars->[2]-$width],[-$ars->[0],0],[-$ars->[1],+$ars->[2]+$width])),
+                            %item_opts,
+                           );
+          $self->item_desc($writer,$hint->{$item});
+          $writer->endTag('polygon');
+          $writer->endTag('g');
+          $writer->endTag('g');
+        }
       }
     } elsif ($type eq 'oval') {
       my $width=$canvas->itemcget($item,'-width');
@@ -820,17 +820,17 @@ SCRIPT
 
       # TODO: dashoffset
       $writer->startTag('ellipse',
-			'id' => 'i'.$item,
-			cx=>($coords[2]+$coords[0])/2,
-			cy=>($coords[3]+$coords[1])/2,
-			rx=>abs($coords[2]-$coords[0])/2,
-			ry=>abs($coords[3]-$coords[1])/2,
-			'stroke-width'=>$width,
-			'stroke-dasharray' => (join(',',@dash)||'none'),
-			stroke => defined($outlinecolor) ? $outlinecolor : 'none',
-			fill => defined($color) ? $color : 'none',
-			%item_opts,
-		       );
+                        'id' => 'i'.$item,
+                        cx=>($coords[2]+$coords[0])/2,
+                        cy=>($coords[3]+$coords[1])/2,
+                        rx=>abs($coords[2]-$coords[0])/2,
+                        ry=>abs($coords[3]-$coords[1])/2,
+                        'stroke-width'=>$width,
+                        'stroke-dasharray' => (join(',',@dash)||'none'),
+                        stroke => defined($outlinecolor) ? $outlinecolor : 'none',
+                        fill => defined($color) ? $color : 'none',
+                        %item_opts,
+                       );
       $self->item_desc($writer,$hint->{$item});
       $writer->endTag('ellipse');
     } elsif ($type eq 'polygon') {
@@ -843,52 +843,52 @@ SCRIPT
       $outlinecolor=$color if !defined($outlinecolor);
 
       $color = color2svg($color, $opts{-grayscale})
-	if defined $color;
+        if defined $color;
       $outlinecolor = color2svg($outlinecolor, $opts{-grayscale})
-	if defined $outlinecolor;
+        if defined $outlinecolor;
 
       my $smooth = $canvas->itemcget($item,"-smooth");
       # TODO: dashoffset
 
       my %attrs = (
-	'stroke-width' => $width,
-	'stroke-dasharray' => (join(',',@dash)||'none'),
-	'stroke-linejoin' => $join{$join},
-	'stroke' => defined($outlinecolor) ? $outlinecolor : 'none',
-	'fill' => defined($color) ? $color : 'none',
+        'stroke-width' => $width,
+        'stroke-dasharray' => (join(',',@dash)||'none'),
+        'stroke-linejoin' => $join{$join},
+        'stroke' => defined($outlinecolor) ? $outlinecolor : 'none',
+        'fill' => defined($color) ? $color : 'none',
       );
       __debug "Polygon: @coords\n";
 
       if ($smooth) {
-	no integer;
-	my @c=(@coords,@coords[0..3]);
-	my $first=1;
-	my $path='';
- 	while (@c>5) {
-	  my @d = (($c[2]+$c[0])/2,($c[3]+$c[1])/2,
-		   $c[2],$c[3],($c[4]+$c[2])/2,($c[5]+$c[3])/2);
-	  $path.=qq{M$d[0],$d[1]} if $first;
-	  $path.=qq{ C$d[2],$d[3] $d[2],$d[3] $d[4],$d[5]};
- 	  splice @c,0,2;
-	  $first = 0;
- 	}
-	$writer->startTag('path',
-			  'id' => 'i'.$item,
-			  d=>$path.' z',
-			  %attrs,
-			  %item_opts,
-			 );
-	$self->item_desc($writer,$hint->{$item});
-	$writer->endTag('path');
+        no integer;
+        my @c=(@coords,@coords[0..3]);
+        my $first=1;
+        my $path='';
+        while (@c>5) {
+          my @d = (($c[2]+$c[0])/2,($c[3]+$c[1])/2,
+                   $c[2],$c[3],($c[4]+$c[2])/2,($c[5]+$c[3])/2);
+          $path.=qq{M$d[0],$d[1]} if $first;
+          $path.=qq{ C$d[2],$d[3] $d[2],$d[3] $d[4],$d[5]};
+          splice @c,0,2;
+          $first = 0;
+        }
+        $writer->startTag('path',
+                          'id' => 'i'.$item,
+                          d=>$path.' z',
+                          %attrs,
+                          %item_opts,
+                         );
+        $self->item_desc($writer,$hint->{$item});
+        $writer->endTag('path');
       } else {
-	$writer->startTag('polygon',
-			  'id' => 'i'.$item,
-			  'points'=> join(' ',map { $coords[2*$_].','.$coords[2*$_+1] } 0..(int(@coords/2)-1)),
-			  %attrs,
-			  %item_opts,
-			 );
-	$self->item_desc($writer,$hint->{$item});
-	$writer->endTag('polygon');
+        $writer->startTag('polygon',
+                          'id' => 'i'.$item,
+                          'points'=> join(' ',map { $coords[2*$_].','.$coords[2*$_+1] } 0..(int(@coords/2)-1)),
+                          %attrs,
+                          %item_opts,
+                         );
+        $self->item_desc($writer,$hint->{$item});
+        $writer->endTag('polygon');
       }
     } elsif ($type eq 'rectangle') {
       my $width=$canvas->itemcget($item,'-width');
@@ -899,26 +899,26 @@ SCRIPT
       $outlinecolor=$color if !defined($outlinecolor);
 
       $color = color2svg($color, $opts{-grayscale})
-	if defined $color;
+        if defined $color;
       $outlinecolor = color2svg($outlinecolor, $opts{-grayscale})
-	if defined $outlinecolor;
+        if defined $outlinecolor;
       my $is_text_bg = grep { $_ eq 'textbg' } @$tags;
       $writer->startTag('rect',
-			'id' => 'i'.$item,
-			'x' => $coords[0],
-			'y' => $coords[1],
-			'width' => $coords[2]-$coords[0],
-			'height' => $coords[3]-$coords[1],
-			'stroke-width' => $width,
-			'stroke-dasharray' => (join(',',@dash)||'none'),
-			'stroke' => defined($outlinecolor) ? $outlinecolor : 'none',
-			'fill' => defined($color) ? $color : 'none',
-			($is_text_bg ? ('fill-opacity' => '0.9') : ()),
-			($is_text_bg ? ('stroke-opacity' => '0.9') : ()),
-			%item_opts,
-		       );
-	$self->item_desc($writer,$hint->{$item});
-	$writer->endTag('rect');
+                        'id' => 'i'.$item,
+                        'x' => $coords[0],
+                        'y' => $coords[1],
+                        'width' => $coords[2]-$coords[0],
+                        'height' => $coords[3]-$coords[1],
+                        'stroke-width' => $width,
+                        'stroke-dasharray' => (join(',',@dash)||'none'),
+                        'stroke' => defined($outlinecolor) ? $outlinecolor : 'none',
+                        'fill' => defined($color) ? $color : 'none',
+                        ($is_text_bg ? ('fill-opacity' => '0.9') : ()),
+                        ($is_text_bg ? ('stroke-opacity' => '0.9') : ()),
+                        %item_opts,
+                       );
+        $self->item_desc($writer,$hint->{$item});
+        $writer->endTag('rect');
     }
     # TODO image, ...
   }
@@ -1029,51 +1029,51 @@ body {
       var tooltip = null;
 
       function f_filterResults(n_win, n_docel, n_body) {
-	var n_result = n_win ? n_win : 0;
-	if (n_docel && (!n_result || (n_result > n_docel)))
-		n_result = n_docel;
-	return n_body && (!n_result || (n_result > n_body)) ? n_body : n_result;
+        var n_result = n_win ? n_win : 0;
+        if (n_docel && (!n_result || (n_result > n_docel)))
+                n_result = n_docel;
+        return n_body && (!n_result || (n_result > n_body)) ? n_body : n_result;
       }
       function f_windowHeight() {
-          var h = window.innerHeight;
-	  if (h) return h;
-	  if (document.documentElement) h = document.documentElement.clientHeight;
-	  if (h) return h;
-	  if (document.body) h=document.body.clientHeight;
-	  return h ? h : 0;
+        var h = window.innerHeight;
+        if (h) return h;
+        if (document.documentElement) h = document.documentElement.clientHeight;
+        if (h) return h;
+        if (document.body) h=document.body.clientHeight;
+        return h ? h : 0;
       }
       function fit_window() {
-          var height = f_windowHeight();
-	  var tree_obj = document.getElementById("svg-tree");
-	  if (height && tree_obj) {
-	    var y = findPosY(tree_obj);
-	    var tree = document.getElementById('tree');
-	    tree.style.height = "" + (height - y - 20) + "px";
-	  }
+        var height = f_windowHeight();
+        var tree_obj = document.getElementById("svg-tree");
+        if (height && tree_obj) {
+          var y = findPosY(tree_obj);
+          var tree = document.getElementById('tree');
+          tree.style.height = "" + (height - y - 20) + "px";
+        }
       }
       function getSVG (container) {
-	  var svg_document =
-	      container.contentDocument
-	      ? container.contentDocument
-	      : container.contentWindow
-	      ? container.contentWindow.document
-	      : null;
-	  return svg_document ? svg_document.documentElement : null;
+        var svg_document =
+            container.contentDocument
+            ? container.contentDocument
+            : container.contentWindow
+            ? container.contentWindow.document
+            : null;
+        return svg_document ? svg_document.documentElement : null;
       }
       function zoom_inc (amount) {
-	  var container = document.getElementById('svg-tree');
-	  var svg = getSVG(container);
-	  var w = parseFloat(container.getAttribute('width'));
-	  var h = parseFloat(container.getAttribute('height'));
-	  var rescale = amount>=0 ? (1+amount) : 1/(1-amount);
-	  w=w*rescale;
-	  h=h*rescale;
-	  container.setAttribute('width', w);
-	  container.setAttribute('height', h);
-	  if (svg) {
-	      svg.currentScale = svg.currentScale * rescale;
-	      svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
-	  }
+        var container = document.getElementById('svg-tree');
+        var svg = getSVG(container);
+        var w = parseFloat(container.getAttribute('width'));
+        var h = parseFloat(container.getAttribute('height'));
+        var rescale = amount>=0 ? (1+amount) : 1/(1-amount);
+        w=w*rescale;
+        h=h*rescale;
+        container.setAttribute('width', w);
+        container.setAttribute('height', h);
+        if (svg) {
+          svg.currentScale = svg.currentScale * rescale;
+          svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+        }
       }
       function next_tree ( delta ) {
         var next = current_tree+delta;
@@ -1089,31 +1089,31 @@ body {
         }
       }
       function update_object_data (oobject) {
-	 if (oobject == null) return;
-	 var nobject = oobject.ownerDocument.createElement(oobject.nodeName);
-	 var a = ['class','style','type','width','height'];
-	 for (var i=0; i<a.length; i++) {
-	     var v = oobject.getAttribute(a[i]);
-	     if (v!=null && v!='') nobject.setAttribute(a[i],v);
-	 }
-	 var id = oobject.getAttribute("id");
-	 nobject.setAttribute("data", files[current_tree]);
-	 oobject.parentNode.replaceChild(nobject,oobject);
-	 nobject.setAttribute("id", id);
+        if (oobject == null) return;
+        var nobject = oobject.ownerDocument.createElement(oobject.nodeName);
+        var a = ['class','style','type','width','height'];
+        for (var i=0; i<a.length; i++) {
+          var v = oobject.getAttribute(a[i]);
+          if (v!=null && v!='') nobject.setAttribute(a[i],v);
+        }
+        var id = oobject.getAttribute("id");
+        nobject.setAttribute("data", files[current_tree]);
+        oobject.parentNode.replaceChild(nobject,oobject);
+        nobject.setAttribute("id", id);
       }
       function update_title () {
-         document.getElementById("cur_tree").firstChild.nodeValue = current_tree + 1;
-         document.getElementById("tree_count").firstChild.nodeValue = files.length;
+        document.getElementById("cur_tree").firstChild.nodeValue = current_tree + 1;
+        document.getElementById("tree_count").firstChild.nodeValue = files.length;
       }
       function init () {
-	tooltip = document.getElementById('tooltip');
+        tooltip = document.getElementById('tooltip');
         tree_obj = document.getElementById("tree");
-	document.changeToolTip = changeToolTip;
-	document.placeTip = placeTip;
+        document.changeToolTip = changeToolTip;
+        document.placeTip = placeTip;
         window.setSVGTitle = set_title;
         window.setSVGDesc = set_desc;
         window.svg_loaded = svg_tree_loaded;
-	fit_window();
+        fit_window();
         next_tree(0);
       }
       function set_title (title) {
@@ -1140,24 +1140,24 @@ body {
       }
       function set_desc (desc) {
         var el = document.getElementById("desc");
-	var text;
+        var text;
         try { if(desc.innerText) { text=desc.innerText } else { text = desc.textContent } } catch(e) {}
         var dir = textDirection(text);
         el.style.direction = dir;
         var childNodes =  desc.childNodes;
         if (typeof(childNodes)=="undefined") return;
         try {
-	   var s = new XMLSerializer();
-	   var str='';
-	   for (var i=0; i<childNodes.length;i++) {
-	      str += s.serializeToString(childNodes[i]);
-	   }
-	   el.innerHTML = str;
+          var s = new XMLSerializer();
+          var str='';
+          for (var i=0; i<childNodes.length;i++) {
+            str += s.serializeToString(childNodes[i]);
+          }
+          el.innerHTML = str;
         } catch (e) {
-	  el.innerHTML = '';
-	  for (var i=0; i<childNodes.length;i++) {
-	    el.appendChild(document.importNode(childNodes[i],true));
-	  }
+          el.innerHTML = '';
+          for (var i=0; i<childNodes.length;i++) {
+            el.appendChild(document.importNode(childNodes[i],true));
+          }
         }
         if ( dir!='ltr' && ! bidi_support_in_svg) {
           el.innerHTML += '<div style="color: gray; direction: ltr; font-size: 6pt;">WARNING: Firefox may obscure right-to-left text in SVG on some platforms!</div>';
@@ -1168,16 +1168,16 @@ body {
       // findPosX and findPosY by Peter-Paul Koch & Alex Tingle.
       function findPosX(obj) {
         var curleft = 0;
-	if(obj.offsetParent)
+        if(obj.offsetParent)
         while(1) {
-	  curleft += obj.offsetLeft;
-	  if(!obj.offsetParent)
-	    break;
-	    obj = obj.offsetParent;
-	  }
-	else if(obj.x)
+          curleft += obj.offsetLeft;
+          if(!obj.offsetParent)
+            break;
+            obj = obj.offsetParent;
+          }
+        else if(obj.x)
           curleft += obj.x;
-	return curleft;
+        return curleft;
       }
       function findPosY(obj) {
         var curtop = 0;
@@ -1200,9 +1200,9 @@ body {
       function changeToolTip (html) {
         if ('' != html) {
           tooltip.innerHTML = html;
-	  tooltip.style.visibility = 'visible';
+          tooltip.style.visibility = 'visible';
         } else {
-	  tooltip.style.visibility = 'hidden';
+          tooltip.style.visibility = 'hidden';
         }
       }
 -->
