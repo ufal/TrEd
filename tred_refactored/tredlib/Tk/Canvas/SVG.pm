@@ -17,7 +17,7 @@ BEGIN {
   use Tk::rgb;
   use Math::Trig;
   use base qw(Tk::Canvas Exporter);
-  use vars qw(%media %join %capstyle %stipple_def @EXPORT_OK);
+  use vars qw(%media %join %capstyle %stipple_def @EXPORT_OK $round_format);
   @EXPORT_OK=(qw(%media));
 
   eval "use Encode";
@@ -104,6 +104,7 @@ BEGIN {
           C6 => [323, 459],
           C7 => [230, 323]
          );
+  $round_format = "%.6g"; # no rounding: "%s"
 }
 
 =item $canvas->svg(options)
@@ -821,11 +822,11 @@ SCRIPT
       # TODO: dashoffset
       $writer->startTag('ellipse',
                         'id' => 'i'.$item,
-                        cx=>($coords[2]+$coords[0])/2,
-                        cy=>($coords[3]+$coords[1])/2,
-                        rx=>abs($coords[2]-$coords[0])/2,
-                        ry=>abs($coords[3]-$coords[1])/2,
-                        'stroke-width'=>$width,
+                        cx=>sprintf($round_format,($coords[2]+$coords[0])/2),
+                        cy=>sprintf($round_format,($coords[3]+$coords[1])/2),
+                        rx=>sprintf($round_format,abs($coords[2]-$coords[0])/2),
+                        ry=>sprintf($round_format,abs($coords[3]-$coords[1])/2),
+                        'stroke-width'=>sprintf($round_format,$width),
                         'stroke-dasharray' => (join(',',@dash)||'none'),
                         stroke => defined($outlinecolor) ? $outlinecolor : 'none',
                         fill => defined($color) ? $color : 'none',
@@ -905,10 +906,10 @@ SCRIPT
       my $is_text_bg = grep { $_ eq 'textbg' } @$tags;
       $writer->startTag('rect',
                         'id' => 'i'.$item,
-                        'x' => $coords[0],
-                        'y' => $coords[1],
-                        'width' => $coords[2]-$coords[0],
-                        'height' => $coords[3]-$coords[1],
+                        'x' => sprintf($round_format,$coords[0]),
+                        'y' => sprintf($round_format,$coords[1]),
+                        'width' => sprintf($round_format,$coords[2]-$coords[0]),
+                        'height' => sprintf($round_format,$coords[3]-$coords[1]),
                         'stroke-width' => $width,
                         'stroke-dasharray' => (join(',',@dash)||'none'),
                         'stroke' => defined($outlinecolor) ? $outlinecolor : 'none',
