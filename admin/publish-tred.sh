@@ -5,7 +5,7 @@ EXTDIR=`dirname $(readlink -fen $0)`
 
 # Paths
 TESTBED_WEB="$WWW/tred"
-PUBLIC_WEB=ufal.mff.cuni.cz:/home/www/html/project/tred
+PUBLIC_WEB=ufal.mff.cuni.cz:/var/www/legacy_projects_via_url_rewrites/tred
 LOCAL_COPY="${SVN_DIR}/.release"
 
 # Patching
