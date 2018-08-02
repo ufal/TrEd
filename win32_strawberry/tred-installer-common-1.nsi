@@ -230,7 +230,7 @@ Function testPerl
         ${EndIf}
 
         ${If} $PerlFlavour == "Active"
-                StrCpy $PerlMsg "Active Perl is no longer supported. Please install Strawberry Perl 5.16, or choose a directory which contains Strawberry Perl executable."
+                StrCpy $PerlMsg "Active Perl is no longer supported. Please install Strawberry Perl 5.24, or choose a directory which contains Strawberry Perl executable."
                 Goto done
         ${EndIf}
 
