@@ -285,7 +285,7 @@ if ($PRINT_ENV) {
   exit;
 } else {
   print defined($PERL_PREFIX) ?
-    "Using prefix $PERL_PREFIX for Perl modules\n" : 
+    "Using prefix $PERL_PREFIX for Perl modules\n" :
       "Using default Perl intall path ($Config{installsitelib}) for Perl modules\n";
   print "Using prefix $C_PREFIX for C libraries\n";
 }
@@ -557,9 +557,15 @@ sub fetch_from_CPAN {
       }
       print "=====================================\n";
       print "Looking up $s\n";
-      my $cpan = CPAN::Shell->expandany($s);
+      my ($file, $cpan);
+      if($s =~ m@$.*/.*tar.gz$@) {
+        $file = $s;
+        $file =~ s@^(.)(.)@$1/$1$2/$1$2@;
+      } else {
+        $cpan = CPAN::Shell->expandany($s);
+        $file = $cpan->cpan_file if ($cpan);
+      }
       my $wget = $CPAN::Config->{wget};
-      my $file = $cpan->cpan_file if ($cpan);
       if (defined($file) and length($file)) {
 	my $base = $file; $base=~s{.*/}{};
 	if (-f $base) {
@@ -570,8 +576,8 @@ sub fetch_from_CPAN {
 	foreach (@mirror_list) {
 	  my $url = $_."authors/id/".$file;
 	  print "Fetching URL '$url'\n";
-	  system($wget." '$url'")==0 
-	  && print "URL fetched OK\n" 
+	  system($wget." '$url'")==0
+	  && print "URL fetched OK\n"
 	  && last;
 	  print "failed: exit status $?\n";
 	}
