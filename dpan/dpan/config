@@ -5,7 +5,11 @@ indexer_id	Peter Fabian <peter.fabian1000@gmail.com>
 organize_dists	1
 skip_perl	1
 
-indexer_class MyIndexer::DPAN
+
+skip_dists_regexes PDF-API2
+extra_reports_dir indexer_reports/my_reports
+
+#indexer_class MyIndexer::DPAN
 
 # queue_class MyCPAN::Indexer::Queue
 
