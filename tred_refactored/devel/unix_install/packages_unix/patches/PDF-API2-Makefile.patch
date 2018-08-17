@@ -1,0 +1,33 @@
+--- Makefile.PL.orig
++++ Makefile.PL
+@@ -37,9 +37,7 @@ require 5.008;
+ use ExtUtils::MakeMaker;
+ use File::Basename;
+
+-my $versionfile = "lib/PDF/API2/Version.pm";
+-
+-require "$versionfile";
++my $version = "0.73";
+
+ my %makehash=(
+     NAME            => "PDF::API2",
+@@ -53,8 +51,8 @@ my %makehash=(
+     MAN1PODS        => {},
+     MAN3PODS        => {},
+     PREREQ_PM       => { 'Compress::Zlib' => 1.0, },
+-    VERSION_FROM    => $versionfile,
+-    BINARY_LOCATION => q|PDF-API2-|.$PDF::API2::Version::CVersion{vPerl}.q|.ppm.tar.gz|,
++    VERSION         => $version,
++    BINARY_LOCATION => q|PDF-API2-|.$version.q|.ppm.tar.gz|,
+ );
+
+ if(-f dirname($0).'/tarhelper.pm')
+@@ -65,8 +63,6 @@ $makehash{dist}->{TARFLAGS} = "-e mytar";
+
+ WriteMakefile( %makehash );
+
+-print STDERR $PDF::API2::Version::CVersion{vWeb}."\n";
+-
+ exit;
+
+
