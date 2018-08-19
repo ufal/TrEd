@@ -7,7 +7,7 @@ EXTDIR=`dirname $(readlink -fen $0)`
 # Tests whether a perl module is installed on the system and prints preport
 function perl_module_presence_test {
     perl -M$1 -e 1 2> /dev/null;
-    if [ "$?" -ne "0" ]; 
+    if [ "$?" -ne "0" ];
     then
         echo "*** Please install package '$1' from CPAN (e.g. perl -MCPAN -e 'install $1' or use your distro-specific way)";
     else
@@ -15,9 +15,20 @@ function perl_module_presence_test {
     fi
 }
 
+# Tests whether a specific version of perl module is installed on the system and prints preport
+function perl_module_presence_and_version_test {
+    INSTALLED=`perl -M$1 -e "print \". Currently instaled version is \\${$1::VERSION}\";"  2> /dev/null`;
+    perl -M$1 -e "die unless \$$1::VERSION eq '$2';"  2> /dev/null;
+    if [ "$?" -ne "0" ];
+    then
+        echo "*** Please install package '$1' version '$2' from CPAN $3$INSTALLED";
+    else
+        echo "$1 v$2 found, OK.";
+    fi
+}
 
-# This funcition downloads current version of svn2cl script from web, 
-# compares its MD5 sum to the MD5 sum found on the web and 
+# This funcition downloads current version of svn2cl script from web,
+# compares its MD5 sum to the MD5 sum found on the web and
 # unpacks it, if the MD5 sum is correct
 function get_svn2cl {
 	### svn2cl
@@ -77,7 +88,9 @@ function get_7zExtra {
 }
 
 
-NEEDED_MODULES="Archive::Extract DateTime::Locale parent Class::Load DateTime::TimeZone Class::Singleton Test::Exception DateTime Pod::XML XML::XSH2 XML::RSS File::ShareDir File::Which UNIVERSAL::DOES XML::CompactTree XML::LibXML XML::Writer XML::CompactTree::XS XML::LibXSLT MyCPAN::App::DPAN version Pod::Xhtml";
+NEEDED_MODULES="Archive::Extract DateTime::Locale parent Class::Load DateTime::TimeZone Class::Singleton Test::Exception DateTime Pod::XML XML::XSH2 XML::RSS File::ShareDir File::Which UNIVERSAL::DOES XML::CompactTree XML::LibXML XML::Writer XML::CompactTree::XS XML::LibXSLT version Pod::Xhtml CGI";
+NEEDED_SPECIFIC_MODULES="MyCPAN::Indexer|1.28_10|or~http://backpan.perl.org/authors/id/B/BD/BDFOY/MyCPAN-Indexer-1.28_10.tar.gz MyCPAN::App::DPAN|1.281";
+MODULES_PERL_SCRIPT="exit;";
 MODULES_PERL_STR="";
 
 # Check for all needed PERL modules
@@ -87,15 +100,26 @@ do
 	MODULES_PERL_STR="-M${MODULE} $MODULES_PERL_STR";
 done
 
+for MODULEVERSION in $NEEDED_SPECIFIC_MODULES
+do
+	MODULE=`echo $MODULEVERSION|cut -f1 -d'|'`;
+	VERSION=`echo $MODULEVERSION|cut -f2 -d'|'`;
+	NOTE=`echo $MODULEVERSION|cut -f3 -d'|'|tr '~' ' '`;
+	perl_module_presence_and_version_test $MODULE $VERSION "$NOTE";
+	MODULES_PERL_STR="-M${MODULE} $MODULES_PERL_STR";
+	MODULES_PERL_SCRIPT="die unless \$$MODULE::VERSION eq '$VERSION'; $MODULES_PERL_SCRIPT";
+done
+
+
 # If any of the modules is missing, exit.
-perl $MODULES_PERL_STR -e 1 2> /dev/null;
-if [ "$?" -ne "0" ]; 
+perl $MODULES_PERL_STR -e NEEDED_SPECIFIC_MODULES 2> /dev/null;
+if [ "$?" -ne "0" ];
 then
 	echo "Please install required packages from CPAN.";
 	echo "Note: You might need to configure your CPAN first, install new version of Module::Build and several libraries, namely:"
 	echo "libxml2-dev, libxslt1-dev and zlib1g-dev, libgdbm-dev"
 	exit 1;
-else 
+else
 	echo "All CPAN modules found, OK."
 fi
 
@@ -109,7 +133,7 @@ fi
 BIN_7Z=`which 7z`
 if [ -x "$BIN_7Z" ]; then
 	echo "7z found, OK."
-else 
+else
 	echo "Please, install 7z."
 	     exit 1;
 fi
@@ -123,7 +147,7 @@ fi
 XSH2=`which xsh2`
 if [ -x "$XSH2" ]; then
 	echo "xsh2 found, OK."
-else 
+else
 	echo "Please, fix your xsh2 link (UFAL: link a startup script, others: make a symlink xsh2 which will point to xsh)."
 	     exit 1;
 fi
@@ -131,7 +155,7 @@ fi
 NSIS=`which makensis`
 if [ -x "$NSIS" ]; then
 	echo "makensis found, OK."
-else 
+else
 	echo "Please, install Nullsoft Scriptable Install System >= 2.46."
 	     exit 1;
 fi
@@ -139,14 +163,14 @@ fi
 NSIS_VERSION=`makensis -VERSION`
 if [ $NSIS_VERSION \< "v2.46" ]; then
 	echo "Please, install Nullsoft Scriptable Install System >= 2.46.";
-else 
+else
 	echo "NSIS version ok.";
 fi;
 
 XSLTPROC=`which xsltproc`
 if [ -x "$XSLTPROC" ]; then
 	echo "xsltproc found, OK."
-else 
+else
 	echo "Please, install xsltproc."
 	     exit 1;
 fi
@@ -173,12 +197,12 @@ fi
 
 
 ## create or update Treex-PML directory
-if [ -d "$TREEX_PML_DIR" ];then 
-	cd $TREEX_PML_DIR 
+if [ -d "$TREEX_PML_DIR" ];then
+	cd $TREEX_PML_DIR
 	echo "Updating Treex::PML checkout directory"
 	svn up >> $LOG
 	echo "Done"
-else 
+else
 	echo "No directory for Treex::PML found, creating a new one and making a fresh checkout"
 	mkdir $TREEX_PML_DIR 2>/dev/null
 	svn co $TREEX_PML_REPO $TREEX_PML_DIR >> $LOG
