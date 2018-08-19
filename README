@@ -11,7 +11,7 @@ Directory structure:
                          You can make changes here and commit, but note that this is also the tree
                          from which extensions are packaged.
     osx_install/       - Stuff related to releasing Mac OS X TrEd application packages.
-	                     (see osx_install/doc for more information) 
+	                     (see osx_install/doc for more information)
     tred/              - Symlink pointing to new tred_refactored/.
 	tred_portable/
     tred_refactored/   - TrEd working copy (svn checkout from https://svn.ms.mff.cuni.cz/svn/TrEd/trunk)
@@ -34,12 +34,16 @@ role of universal interface for all basic operations. The scripts that perform
 these operations are implemented in admin/ scripts. All scripts (thus makefile
 actions as well) are configured in admin/env.sh file.
 
-Please note that all operations (except install) require the user to be present
+[OLD: Please note that all operations (except install) require the user to be present
 in UFAL VLAN as all operations require some level of cooperation with our
 virtualbox.ufal.hide.ms.mff.cuni.cz server (which is being used as testing
 and releasing platform). It is also strongly recommended to have SSH certificate
 for password-free login to virtualbox server (user 'tred'), otherwise the
-releasing (testing, ...) process will not be completely unattended. 
+releasing (testing, ...) process will not be completely unattended. ]
+
+Currently to be present in UFAL VLAN is not required. You only have to have access
+to kopp@manfred.ms.mff.cuni.cz (TODO: Change this restriction) to be able release
+mac version of TrEd.
 
 
 Makefile Operations
@@ -50,20 +54,25 @@ Top level operations: (these operations are ment to be invoked by anyone)
     install         - Install fresh TrEd to local directory <svn>/local_install.
                       The <svn> denotes directory, where the TrEd SVN checkout
 					  is. This is the only target that does not require the UFAL
-					  VLAN access.  
+					  VLAN access.
     release         - Prepares complete release (TrEd installers for all
-	                  platforms, documentation, web, extensions, ...) and upload
-	                  it to testbed website (see releasing process for details).
+	                  platforms, documentation, web, extensions, ...) and
+                    [OLD: upload it to testbed website (see releasing process for details).]
+                    copy it to <svn>/local_www
 	                  In fact, the release target just calls release-core and
 					  release-mac targets (described below).
+[OLD:
     test            - Connects remotely to virtualbox server and executes TrEd
                       testing on various platforms. Please note that the testing
                       process takes serious amount of time (hours). Testing
                       downloads installers and other necessary files from
 					  testbed website.
-    publish         - Copy TrEd release which is currently present in testbed to
+]
+    publish         - Copy TrEd release which is currently present in
+                      [OLD: testbed] <svn>/local_www to
                       the TrEd's public web. It also fixes absolute URLs where
                       necessary.
+[OLD:
     testbed-status  - Checks and prints the status of the testbed. The testbed
                       master is booted if necessary and status of all testing
 					  VMs is printed. If some of them are not OK, the testing
@@ -72,32 +81,45 @@ Top level operations: (these operations are ment to be invoked by anyone)
     testbed-clear   - Remove old testing results (snapshots) from testing VMs.
                       It is strongly recommended to clear the testbed after any
                       testing if the VMs are not to be examined manually.
+]
 
 
 Other operations: (these operations are ment to be invoked by experienced users
 and they are usually a part of top-level operations)
-    
+
     prereq          - Check prerequisites for making a TrEd release. Several
 	                  PERL modules, development libraries and tools are required.
 					  This check can be also executed manualy if one wants to
-					  prepeare its system for releasing. 
+					  prepeare its system for releasing.
+[OLD:
     check-net       - Check whether the current PC can access the virtualbox
                       server (which is in UFAL VLAN).
+]
     release-core    - Create TrEd release except for the Mac package. Windows
                       and universal unix installers are created as well as the
-                      documentation, the web, and the extensions. The releasing
+                      documentation, the web, and the extensions. [OLD: The releasing
                       process uploads newly created release to the testbed
 					  website. The core release does not require access to the
 					  virtualbox server, except for the last part, when the
 					  release is being uploaded to the testbed website. If the
 					  upload fails, the release is in <svn>/local_www/tred
 					  directory and the upload can be re-attempted by invoking
-					  sync-testbed-www target.
-    release-mac     - Takes unix installer of the TrEd (from testbed website),
+					  sync-testbed-www target.] The release is in <svn>/local_www/tred
+            after this step.
+    release-mac     - Removes previous backup manfred.ms.mff.cuni.cz:~/tred_installation_old.
+                      Backups current release manfred.ms.mff.cuni.cz:~/tred_installation
+                      to manfred.ms.mff.cuni.cz:~/tred_installation_old, upload
+                      files (install_tred.bash, tred-current.tar.gz, tred-dep-unix.tar.gz)
+                      from <svn>/local_www/tred to manfred.ms.mff.cuni.cz:~/tred_installation
+                      then tries to svn update and then creates release and downloads
+                      manfred.ms.mff.cuni.cz:~/tred_installation/tred.dmg
+                      to <svn>/local_www/tred
+              [OLD: - Takes unix installer of the TrEd (from testbed website),
                       builds an application bundle for Mac, and uploads the dmg
-                      package to the testbed.
+                      package to the testbed.]
+[OLD:
     sync-testbed-www - see release-core
-
+]
 
 
 Releasing Process
@@ -124,25 +146,37 @@ The releasing process has following steps
    is compiled from DocBook and POD). It also updates extensions directory in
    the SVN checkout.
    The dist/ update is almost atomic. The new dist is built in a new directory
-   and it is swaped with the old one by two mv operations. 
+   and it is swaped with the old one by two mv operations.
 3) Update and prepare the dependency packages -- CPAN modules and libraries
    (make build-dep-package) for the unix install script and the windows
    installer.
 4) Prepare and pack TrEd extensions (make pack-extensions)
 5) Assemble everything (installers, documentation, extensions, ...) together
    into local_web directorty (make prepare-tred-web-release).
+[OLD:
 6) Upload the contents of local_www to the testbed website. It is strongly
    recommended that the user has SSH certificate uploaded to virtualbox, so it
-   will not require password. The checkout in master-VM has its certificate set. 
-7) The release-mac target is invoked. It connects to virtualbox via SSH as tred
+   will not require password. The checkout in master-VM has its certificate set.
+]
+7) The release-mac target is invoked. It connects to manfred.ms.mff.cuni.cz via SSH
+   as kopp user (TODO fix). Removes previous backup manfred.ms.mff.cuni.cz:~/tred_installation_old.
+  Backups current release manfred.ms.mff.cuni.cz:~/tred_installation
+  to manfred.ms.mff.cuni.cz:~/tred_installation_old, upload files (install_tred.bash,
+  tred-current.tar.gz, tred-dep-unix.tar.gz) from <svn>/local_www/tred
+  to manfred.ms.mff.cuni.cz:~/tred_installation then tries to svn update and then
+  creates release and downloads manfred.ms.mff.cuni.cz:~/tred_installation/tred.dmg
+  to <svn>/local_www/tred
+   [OLD:
+   The release-mac target is invoked. It connects to virtualbox via SSH as tred
    user and invokes ~/build-tred-dmg.sh script. This script connects to Mac Mini
    (again via SSH as tred user) and invokes /Users/tred/build-tred-dmg.sh script
    there. This two-way dispatching is necessary, as the user may not need to
    know how to reach our Mac Mini.
+   ]
    The building script checks the status of tred-devel-osx10.7_64 VM, which is
    designated for creating TrEd application bundle for Mac OS 10.7 (Lion) and
    10.8 (Mountain Lion). If the VM is ok, it is started and two scripts
-   (make-release.sh and upload.sh) are invoked. These scripts are present in 
+   (make-release.sh and upload.sh) are invoked. These scripts are present in
    osx_install/scripts directory. Details about mac releasing process are
    also described in separate documentation in osx_install dir. The upload
    script uploads the dmg package also to the testbed website.
@@ -150,6 +184,10 @@ The releasing process has following steps
 
 Testing
 
+Currently testing does not work as mac mini and testbend is not running and they
+are not about to run.
+
+[OLD:
 The make test target connects to virtualbox via SSH and invokes the test-tred.sh
 script in /home/tred as 'tred' user. The script makes sure the testbed-master
 VM is up and running, connects there by SSH (using certificate verification) and
@@ -170,14 +208,18 @@ The testing takes some time as the server does not have enough hardware
 resources and only one another VM (except for the master) can be up at a time.
 One installation and testing cycle takes approx. 30 minutes (depending on the
 OS). However, the testing should not be skipped before the TrEd is published.
-
+]
 
 Publishing
 
+Release is taken from <svn>/local_www/tred and in is tesed whether all parts
+of release are present there and
+[OLD:
 The make publish target connects to virtualbox via SSH and invokes the
 /home/tred/publis-tred.sh script as 'tred' user. The publish script check that
 a release is present on testbed website (which is also on virtualbox server) and
+]
 uses rsync to copy the release to ufal.mff.cuni.cz server at /home/www/html/tred.
 It also fixes absolute URLs in install_tred.bash and the documentation. User
 is supposed to have an account at ufal.mff.cuni.cz, which has sufficient rights
-to write in the tred directory. The script will prompt for login and password. 
+to write in the tred directory. The script will prompt for login and password.
