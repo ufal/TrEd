@@ -51,7 +51,7 @@ up-to-date version of your extension is fetched from your SVN.
 
 If you can't do even that, you are on your own. Either setup a
 repository and ask your users to add it in TrEd's Extension Manager
-(see TrEd User's Manual for details) or pack and install the extension 
+(see TrEd User's Manual for details) or pack and install the extension
 to the default repository by hand:
 
 
@@ -59,7 +59,7 @@ to the default repository by hand:
 	REPO_SOURCE=/home/pajas/WWW/tred/extensions
 	cd PATH_TO_YOUR_WORK_DIR/
 	ls YOUR_EXTENSION # you must be on the same level
-	
+
 	$TRED_DEVEL_DIR/tred/devel/pack_extension.sh YOUR_EXTENSION $REPO_SOURCE
 
 	$EDITOR $REPO_SOURCE/packages.lst
@@ -68,6 +68,11 @@ to the default repository by hand:
 
 	cd $TRED_DEVEL_DIR
 	make sync-www
+
+* How do I manage extension versioned on git?
+
+Create empty extension directory in the extensions/ and then use extensions/.make.d/pmltq
+as an template for git syncing script
 
 * How do I release a new version of an extension
 
@@ -111,7 +116,7 @@ For Windows:
           5.10)
 	- use e.g. http://kobesearch.cpan.org/ (or Google) to find a
           repository where PPD packages for Active Perl 5.8 and 5.10
-	  are available for the newly added module 
+	  are available for the newly added module
 	- commit the changes to SVN
 	- make sure the repository is listed in
 		get_packages_tred_58.sh
@@ -185,7 +190,7 @@ Then add a line like
 
    $yourNewOptionVariable=val_or_def($confs,"youroption",'DEFAULT VALUE');
 
-where $yourNewOptionVariable is the variable you added, 
+where $yourNewOptionVariable is the variable you added,
 'youroption' is the name of the new option (all lowercase here!,
 user's may use e.g. YourOption in their ~/.tredrc) and 'DEFAULT VALUE'
 is the default value.
