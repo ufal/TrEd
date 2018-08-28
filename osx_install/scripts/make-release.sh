@@ -14,6 +14,13 @@ SCRIPT_DIR=`pwd`
 #     hdiutil detach "$MOUNT_DISK"
 # fi
 
+# detaching disk (if it is not detached it generates empty TrEd application envelope)
+MOUNTED=`df | grep "$MOUNT_POINT" | cut -d" " -f1`
+if [ -d "$MOUNT_POINT" ]; then
+  echo "Warning: Detaching '$MOUNT_POINT' mount point. (it wasn't probably detached within prevoius release)"
+  hdiutil detach $MOUNTED || exit 9
+fi
+
 echo "Attaching $TEMPLATE ..."
 MOUNT_DISK=`hdiutil attach "$TEMPLATE"|grep "$MOUNT_POINT"|cut -f1`
 
