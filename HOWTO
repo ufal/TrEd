@@ -23,7 +23,7 @@ Don't forget to commit the changes and create a new release.
 See TrEd's manual and use other extensions available in extensions/ as
 an example. Extensions like conll2009 or hydt are quite good templates.
 
-* Where do I put my new TrEd extensions
+* Where do I put my new TrEd extensions essential to TrEd
 
 Assume your new extension is named YOUR_EXTENSION. The easiest way is
 to use TrEd's SVN to store the extension. In that case, just:
@@ -68,6 +68,12 @@ to the default repository by hand:
 
 	cd $TRED_DEVEL_DIR
 	make sync-www
+
+* Where do I put my new TrEd extension not essential to TrEd
+
+Put it anywhere you like, but when releasing it, use
+extensions/release_extension with remote set to
+ufal.mff.cuni.cz:/usr/share/drupal7/legacy/tred/extensions/external/.
 
 * How do I manage extension versioned on git?
 
