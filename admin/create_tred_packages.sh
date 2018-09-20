@@ -55,45 +55,45 @@ chmod 664 "${WWW}/${PKG}"
 # keep history of released versions in subdir releases
 mkdir -p "${WWW}/releases/unix" 2>/dev/null && \
 cp "${WWW}/${PKG}" "${WWW}/releases/unix/tred-${VER}.tar.gz" && \
- 
+
 
 ###########################
 #### Windows packages #####
 ###########################
-opts_7zip="-m0=BCJ2 -m1=LZMA:d25:fb255 -m2=LZMA:d19 -m3=LZMA:d19 -mb0:1 -mb0s1:2 -mb0s2:3 -mx"
+# opts_7zip="-m0=BCJ2 -m1=LZMA:d25:fb255 -m2=LZMA:d19 -m3=LZMA:d19 -mb0:1 -mb0s1:2 -mb0s2:3 -mx"
 
 # cleanup
 rm -f "${WWW}/tred-installer.exe";
 rm -f "${WWW}/tred-installer-perl-included.exe";
-rm -f "${WWW}/tred-portable.7z";
+# rm -f "${WWW}/tred-portable.7z";
 
 
-function append_package() {
-    eval "extra_opts=($1)"; shift
-    package="$1"; shift
-    7za a -l '-xr!.svn' "${extra_opts[@]}" $opts_7zip \
-	-t7z "${package}.7z" "$@"
-    cat "$SFX" "$DIST_DIR"/tred/devel/winsetup/sfx.cfg "${package}.7z" > "${package}.exe"    
-    chmod 664 "${package}.7z" "${package}.exe"
-}
+# function append_package() {
+#     eval "extra_opts=($1)"; shift
+#     package="$1"; shift
+#     7za a -l '-xr!.svn' "${extra_opts[@]}" $opts_7zip \
+# 	-t7z "${package}.7z" "$@"
+#     cat "$SFX" "$DIST_DIR"/tred/devel/winsetup/sfx.cfg "${package}.7z" > "${package}.exe"
+#     chmod 664 "${package}.7z" "${package}.exe"
+# }
 
-# create Win32 packages
-cd "${WININST}"
+# # create Win32 packages
+# cd "${WININST}"
 
 
 #generate portable package
 #Attention: this package is only chceked out from svn, it is not updated automatically!
 # it needs to be built on win32 machine, since we're compiling Tk and other stuff...
-echo "Generate Portable Package for Windows" && \
-cd $TRED_STRAWBERRYPERL_DIR && \
-rm -rf "tred-portable.7z" && \
-rm -f tred-portable && \
-ln -s ../tred_portable tred-portable && \
-7za a -l '-xr!.svn' tred-portable.7z  tred-portable/ && \
-cp "tred-portable.7z" "${WWW}/tred-portable.7z" && \
-rm -f tred-portable && \
+# echo "Generate Portable Package for Windows" && \
+# cd $TRED_STRAWBERRYPERL_DIR && \
+# rm -rf "tred-portable.7z" && \
+# rm -f tred-portable && \
+# ln -s ../tred_portable tred-portable && \
+# 7za a -l '-xr!.svn' tred-portable.7z  tred-portable/ && \
+# cp "tred-portable.7z" "${WWW}/tred-portable.7z" && \
+# rm -f tred-portable && \
 
-# create NSIS installer for Windows, without Strawberry Perl 
+# create NSIS installer for Windows, without Strawberry Perl
 echo "Generate Nullsoft Installer for Windows" && \
 cd $TRED_STRAWBERRYPERL_DIR && \
 makensis tred-installer.nsi && \
