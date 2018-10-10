@@ -62,8 +62,7 @@ echo "Installing TrEd to $APPLICATIONS/$TRED_DIR ..."
 if [ -z $INSTALL_SCRIPT_DIR  ]; then
 	$INSTALL_SCRIPT --tred-dir "$APPLICATIONS/$TRED_DIR" || exit 4
 else
-  mkdir "$TRED_INSTALL_CLIB"
-	$INSTALL_SCRIPT -L $INSTALL_SCRIPT_DIR --tred-dir "$APPLICATIONS/$TRED_INSTALL_DIR" --c-prefix "$TRED_INSTALL_CLIB"|| exit 4
+	$INSTALL_SCRIPT -L $INSTALL_SCRIPT_DIR --tred-dir "$APPLICATIONS/$TRED_INSTALL_DIR" || exit 4
 fi
 
 if [ $SIGNATURE -eq 1 ];then
