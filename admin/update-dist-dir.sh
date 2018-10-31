@@ -6,7 +6,7 @@ EXTDIR=`dirname $(readlink -fen $0)`
 
 echo "Updating distribution directory of TrEd" && \
 
-if [ -e ${TRED_DIST_DIR}.new ]; then 
+if [ -e ${TRED_DIST_DIR}.new ]; then
 	# directory does exist, which is not ok...
 	echo "${TRED_DIST_DIR}.new already exists! Delete it..."
 	exit 1;
@@ -18,13 +18,8 @@ svn export ${TRED_SVN_REPO} ${TRED_DIST_DIR}.new >> $LOG && \
 ${TRED_DIST_DIR}.new/devel/update_version.pl ${TRED_SVN_REPO} && \
 
 echo "Updating extensions" && \
-# perform pre-updates, update svn, then some post-updates for extension (currently only for tmt) according to extension/.make.d directory 
+# perform pre-updates, update svn, then some post-updates for extension (currently only for tmt) according to extension/.make.d directory
 ${TRED_EXT_DIR}/update && \
-
-echo "Updating portable tred" && \
-# perform update of portable tred's checkout directory
-cd ${PROJECT_DIR}/tred_portable && \
-svn up && \
 
 cp ${TRED_SRC_DIR}/ChangeLog ${TRED_DIST_DIR}.new/ && \
 

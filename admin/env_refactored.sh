@@ -64,7 +64,6 @@ RSS=${WWW}/tred/changelog.rss
 # Basic paths
 TRED_SVN=https://svn.ms.mff.cuni.cz/svn/TrEd
 TRED_SVN_REPO=${TRED_SVN}/trunk/tred_refactored
-TRED_PORTABLE_REPO=${TRED_SVN}/trunk/tred_portable
 TRED_SVN_EXT=${TRED_SVN}/extensions
 TREEX_PML_REPO=https://svn.ms.mff.cuni.cz/svn/perl_libs/trunk/distribution/Treex-PML
 WIN32_DIST_REPO=https://svn.ms.mff.cuni.cz/svn/perl_libs/trunk/distribution/win32_build_script
@@ -79,8 +78,8 @@ TRED_DIST_DIR=${DIST_DIR}/tred
 TREEX_PML_DIR=${PROJECT_DIR}/Treex-PML
 
 TRED_UNIXINST_DIR=${PROJECT_DIR}/unix_install
-TRED_WININST_DIR=${PROJECT_DIR}/win32_install
-TRED_PPM_DIR=${PROJECT_DIR}/win32_ppm
+TRED_WININST_DIR=${PROJECT_DIR}/REMOVE-win32_install
+TRED_PPM_DIR=${PROJECT_DIR}/REMOVE-win32_ppm
 
 TRED_STRAWBERRYPERL_DIR=${PROJECT_DIR}/win32_strawberry
 TRED_DPAN_DIR=${PROJECT_DIR}/dpan

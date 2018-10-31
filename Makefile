@@ -95,8 +95,8 @@ release-mac:
 	cd admin  && ./mac_release.sh ${SIGNATURE}
 	# download release from mac
 	cd admin  && ./mac_download_release.sh
-	
-	
+
+
 
 
 
@@ -148,8 +148,8 @@ pack-extensions:
 
 
 # Auxiliary:
-# Create TrEd distribution packages, update the documentation and Changelog 
-# in the source WWW tree from the source distribution tree 
+# Create TrEd distribution packages, update the documentation and Changelog
+# in the source WWW tree from the source distribution tree
 # The package sizes on the main page are computed by the admin/create_tred_packages.sh script
 # update-dist-dir and build-dep-package should be run before prepare-tred-web-release
 prepare-tred-web-release:
@@ -180,9 +180,6 @@ new-treex-pml: prereq compile-treex-pml-dist install-treex-pml
 
 compile-treex-pml-dist:
 	cd admin && ./compile-treex-pml-dist.sh
-
-build-treex-pml-ppm:
-	cd admin && ./build-treex-pml-ppm.sh
 
 install-treex-pml:
 	cd admin && ./install-treex-pml.sh
