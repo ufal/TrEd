@@ -15,7 +15,7 @@ PATCH_FILES='install_tred.bash documentation/ar01s02.html'
 
 # Checklists
 CHECK_DIRS='documentation extensions releases'
-CHECK_FILES='changelog.rss index.html index.html~ install_tred.bash tred-current.tar.gz tred-dep-unix.tar.gz tred.dmg tred-installer.exe tred-installer-perl-included.exe tred-portable.7z documentation/ar01s02.html'
+CHECK_FILES='changelog.rss index.html index.html~ install_tred.bash tred-current.tar.gz tred-dep-unix.tar.gz tred.dmg tred-installer.exe tred-installer-perl-included.exe documentation/ar01s02.html'
 
 
 # Check wheter given file or dir exists in testbed web dir.

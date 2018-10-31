@@ -1,9 +1,0 @@
-# simple macro file
-# just to see if it was loaded into memory
-# (Other macros are exercising the macro preprocessor)
-
-# first, bind macro to menu entry
-# then, associate it with a keyboard shortcut
-
-#insert my_first_macro as menu My First Macro
-#bind my_first_macro to key Ctrl+Alt+Del
