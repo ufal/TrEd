@@ -9,6 +9,7 @@ use Carp;
 use File::Spec;
 use File::Glob qw(:glob);
 use Scalar::Util qw(blessed);
+use File::pushd;
 
 use URI;
 use URI::file;
@@ -2391,9 +2392,9 @@ sub _install_extension_from_zip {
         _report_install_error( $opts_ref, $err, $@ );
         return 0;
     }
-
+    pushd($dir);
     # Extract zip archive, i.e. the extension
-    if ( $zip->extractTree( q{}, $dir . q{/} ) == Archive::Zip::AZ_OK() ) {
+    if ( $zip->extractTree( ) == Archive::Zip::AZ_OK() ) {
 
         # try to restore executable bit
         if ( $^O ne 'MSWin32' ) {
