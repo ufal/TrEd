@@ -613,7 +613,7 @@ sub get_pkg_file {
     s/"/\\"/g;
     s/\$/\\\$/g;
   }
-  $s=`cd $dir >/dev/null; ls "$s"[0-9]*.tar.gz |tail -1`;
+  $s=`cd $dir >/dev/null; ls "$s"[0-9]*.tar.gz "${s}v"[0-9]*.tar.gz 2>/dev/null |tail -1`;
   chomp $s;
   return $s;
 }
