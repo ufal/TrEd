@@ -25,7 +25,7 @@ readlink_nf () {
     perl -MCwd -e 'print Cwd::abs_path(shift)' "$1"
 }
 
-wget --help >/dev/null 2>&1 
+wget --help >/dev/null 2>&1
 if [ $? == 0 ]; then
     HAVE_WGET=1
 else
@@ -79,7 +79,7 @@ done
 eval set -- "${args[@]}"
 
 usage () {
-    echo "$0 version $VERSION" 
+    echo "$0 version $VERSION"
     cat <<USAGE
 $0 [-h|--help]|[-u|--usage]|[-v|--version]
 or
@@ -88,7 +88,7 @@ USAGE
 }
 
 help () {
-    echo "install_tred.sh version $VERSION" 
+    echo "install_tred.sh version $VERSION"
     usage
     cat <<HELP
   DESCRIPTION:
@@ -183,6 +183,10 @@ fi
 if [ "$PRINT_VERSION" = 1 ]; then echo Version: $VERSION; exit; fi
 if [ "$PRINT_HELP" = 1 ]; then help; exit; fi
 if [ "$PRINT_USAGE" = 1 ]; then usage; exit; fi
+if [ x`uname -s` == xDarwin ]; then
+    echo Adding //Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Perl/5.18/darwin-thread-multi-2level/CORE to CPATH
+    export CPATH=$CPATH://Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Perl/5.18/darwin-thread-multi-2level/CORE
+fi
 
 fetch_url () {
     if [ "$HAVE_WGET" == 1 ]; then
@@ -223,7 +227,7 @@ EOF
 fi
 
 if [ x`uname -s` == xDarwin ] && ( [ "x$PREFIX" == x/usr ] || [ "x$SYSTEM" = x1 ] ); then
-    echo The installation script is going to rewrite system libraries.  >&2 
+    echo The installation script is going to rewrite system libraries.  >&2
     echo -n 'Are you sure to proceed? (y/n) ' >&2
     until [ x$answer == xy ] || [ x$answer = xn ] ; do
         read answer
@@ -349,7 +353,7 @@ if [ "x$NO_LIBS" != x1 ]; then
         action  "Downloading TrEd dependencies"
         fetch_url "$tred_dep" tred-dep-unix.tar.gz || fail
     fi
-    
+
     action  "Unpacking TrEd dependencies"
     tar xzf tred-dep-unix.tar.gz || fail
     if [ -z "$LOCAL_DIR" ]; then
@@ -362,10 +366,10 @@ if [ "x$NO_LIBS" != x1 ]; then
 	mkdir -p "$PREFIX" || fail
     fi
 
-    action  "Installing TrEd dependencies"    
+    action  "Installing TrEd dependencies"
     mkdir -p "$TRED_BUILD_DIR/tmp"
     inst_opts=(--tmp "$TRED_BUILD_DIR/tmp")
-    if [ -n "$PREFIX" ]; then 
+    if [ -n "$PREFIX" ]; then
 	inst_opts+=(--prefix "$PREFIX")
     fi
     if [ "x$SYSTEM" != x1 ]; then
@@ -373,7 +377,7 @@ if [ "x$NO_LIBS" != x1 ]; then
     fi
 
     "$perl" install --check-utils "${inst_opts[@]}" || fail
-    
+
     set -o pipefail
     "$perl" install --quiet "${inst_opts[@]}" 2>&1 | tee "${TRED_DIR}/install.log" || fail
 
