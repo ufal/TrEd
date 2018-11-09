@@ -1,0 +1,17 @@
+--- myConfig.orig  2016-02-25 12:59:56.000000000 +0200
++++ myConfig  2018-11-09 14:52:44.704992380 +0200
+@@ -1,8 +1,11 @@
+ # -*- cperl -*-
+ require 5.00404;
+-my $path = "$Config{'archlibexp'}/CORE/perl.h";
+-die "Cannot find '$path' have you installed $^X?\n" unless (-r $path);
+-print "$^X is installed in $Config{'archlibexp'} okay\n";
++unless($^O eq 'darwin')
++{
++  my $path = "$Config{'archlibexp'}/CORE/perl.h";
++  die "Cannot find '$path' have you installed $^X?\n" unless (-r $path);
++  print "$^X is installed in $Config{'archlibexp'} okay\n";
++}
+ use Config;
+ use Cwd;
+ use Tk::MMtry;
