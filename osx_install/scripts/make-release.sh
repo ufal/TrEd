@@ -65,6 +65,9 @@ else
 	$INSTALL_SCRIPT -L $INSTALL_SCRIPT_DIR --tred-dir "$APPLICATIONS/$TRED_INSTALL_DIR" || exit 4
 fi
 
+# Fix absolute paths
+grep -r $APPLICATIONS  $APPLICATIONS/$TRED_INSTALL_DIR| cut -d: -f1|uniq|grep -v "^Binary file "| sed -i "s@$APPLICATIONS@$APPLICATIONS_target@g"
+
 if [ $SIGNATURE -eq 1 ];then
 # The code needs to be signed so it runs on Mountain Lion without obstacles
   echo "Sign the code with UFAL certificate ..."
