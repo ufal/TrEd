@@ -65,8 +65,8 @@ else
 	$INSTALL_SCRIPT -L $INSTALL_SCRIPT_DIR --tred-dir "$APPLICATIONS/$TRED_INSTALL_DIR" || exit 4
 fi
 
-# Fix absolute paths
-grep -r $APPLICATIONS  $APPLICATIONS/$TRED_INSTALL_DIR| cut -d: -f1|uniq|grep -v "^Binary file "| sed -i "s@$APPLICATIONS@$APPLICATIONS_target@g"
+echo Fix absolute paths in $APPLICATIONS/$TRED_INSTALL_DIR: from $APPLICATIONS to $APPLICATIONS_TARGET
+grep -r $APPLICATIONS  $APPLICATIONS/$TRED_INSTALL_DIR| cut -d: -f1|uniq|grep -v "^Binary file "| xargs sed -i '' "s@$APPLICATIONS@$APPLICATIONS_TARGET@g"
 
 if [ $SIGNATURE -eq 1 ];then
 # The code needs to be signed so it runs on Mountain Lion without obstacles
