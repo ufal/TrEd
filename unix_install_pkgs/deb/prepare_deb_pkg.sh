@@ -15,7 +15,7 @@ svn export ./tred-2.0 "$TRED_DEB_DIR" || exit 2
 
 # Fix changelog
 echo "Fix version and release date in the configuration ..."
-DATE=`date '+%a, %d %b %Y %T %z'`
+DATE=`LC_TIME=en_US.UTF-8 date '+%a, %d %b %Y %T %z'`
 sed -i "s/%SVN_VERSION%/${SVN_VERSION}/g" "$TRED_DEB_DIR/debian/changelog" || exit 3
 sed -i "s/%DATE%/${DATE}/g" "$TRED_DEB_DIR/debian/changelog" || exit 3
 
