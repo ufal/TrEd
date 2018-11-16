@@ -75,6 +75,8 @@ if [ $SIGNATURE -eq 1 ];then
   codesign -f -s "$SIGN_CERT_SHA1" -r='designated => anchor apple generic and identifier "cz.cuni.mff.ufal.tred"' -v "$APPLICATIONS/$TRED_INSTALL_APP" || exit 5
 else
   echo "Skipping signature..."
+  echo "Remove signature if exists..."
+  codesign --remove-signature "$APPLICATIONS/$TRED_INSTALL_APP"
 fi
 
 # Copy installed TrEd and its signature to the release image
