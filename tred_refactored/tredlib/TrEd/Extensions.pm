@@ -2392,7 +2392,7 @@ sub _install_extension_from_zip {
         _report_install_error( $opts_ref, $err, $@ );
         return 0;
     }
-    pushd($dir);
+    my $d = pushd($dir);
     # Extract zip archive, i.e. the extension
     if ( $zip->extractTree( ) == Archive::Zip::AZ_OK() ) {
 
