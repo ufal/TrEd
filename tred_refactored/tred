@@ -232,6 +232,7 @@ BEGIN {
         TrEd::Config::set_default_config_file_search_list();
     }
 
+    print "TrEd version: $VERSION\n" unless $opt_q;
     my $configFile = TrEd::Config::read_config(); # could change libdir
 
     unless ( -d $libDir ) {
@@ -1951,8 +1952,8 @@ sub switchStylesheet {
         if ( !defined($stylesheet) ) {
             $stylesheet = $prevstylesheet;
         }
-        elsif ( grep { /^\Q$stylesheet\E$/i } 
-                keys %{ $grp->{stylesheets} } ) 
+        elsif ( grep { /^\Q$stylesheet\E$/i }
+                keys %{ $grp->{stylesheets} } )
         {
             TrEd::Error::Message::error_message( $win,
                 "Stylesheet named '$stylesheet' already exists!\n", 1 );
@@ -2083,7 +2084,7 @@ sub onRedrawDone {
 sub onGetNodes {
     my ( $treeview, $fsfile, $tree_no, $current, $win ) = @_;
     $win->{got_nodes}++;
-    return doEvalHook( $win, "get_nodelist_hook", $fsfile, $tree_no, 
+    return doEvalHook( $win, "get_nodelist_hook", $fsfile, $tree_no,
         $current, $treeview->get_showHidden() );
 }
 
@@ -3777,7 +3778,7 @@ sub create_minor_modes_menu {
 sub create_canvas_scale {
     my ($tred_ref, $bottom_frame) = @_;
     $tred_ref->{canvasScale} = 0;
-    $tred_ref->{canvasScaleLabel} 
+    $tred_ref->{canvasScaleLabel}
         = $bottom_frame->Label( -text => 'Scale: 100%' )
         ->pack( -side => 'left', -expand => 'no' );
     my $slider = $tred_ref->{canvasScaleWidget} = $bottom_frame->Scale(
@@ -4037,7 +4038,7 @@ sub startMain {
     updatePostponed( \%tred );
     updateHelpMenu( \%tred, { preparedExtensions => $preparedExtensions } );
 
-    my $hook_result = doEvalHook( $tred{focusedWindow}, "init_hook" ); 
+    my $hook_result = doEvalHook( $tred{focusedWindow}, "init_hook" );
     if ( defined $hook_result && $hook_result eq 'stop' ) {
         $top->Unbusy;
         print STDERR "Stopped by init_hook\n";
@@ -5216,7 +5217,7 @@ sub node_click_modif {
     my $win  = findCanvasWindow( $grp, $w );
     my $tv   = $win->treeView;
     my $node = $tv->get_obj_pinfo( $tv->find_item( 'withtag', 'current' ) );
-    return doEvalHookWithUndo( $win, "node_click_hook", $node, $mod, 
+    return doEvalHookWithUndo( $win, "node_click_hook", $node, $mod,
         $w->XEvent );
 }
 
@@ -5225,7 +5226,7 @@ sub node_motion_modif {
     my $win  = findCanvasWindow( $grp, $w );
     my $tv   = $win->treeView;
     my $node = $tv->get_obj_pinfo( $tv->find_item( 'withtag', 'current' ) );
-    return doEvalHookWithUndo( $win, "node_motion_hook", $node, $mod, 
+    return doEvalHookWithUndo( $win, "node_motion_hook", $node, $mod,
         $w->XEvent );
 }
 
@@ -5241,7 +5242,7 @@ sub text_doubleclick_modif {
     TrEd::Window::TreeBasics::set_current( $win, $node );
     $attr = $tv->get_gen_pinfo("attr") || {};
 
-    return doEvalHookWithUndo( $win, "text_doubleclick_hook", $node, 
+    return doEvalHookWithUndo( $win, "text_doubleclick_hook", $node,
         $attr->{$t}, $mod, $w->XEvent );
 }
 
@@ -5258,7 +5259,7 @@ sub text_click_modif {
     $win->ensure_current_is_displayed();
     $attr = $tv->get_gen_pinfo("attr") || {};
 
-    return doEvalHookWithUndo( $win, "text_click_hook", $node, $attr->{$t}, 
+    return doEvalHookWithUndo( $win, "text_click_hook", $node, $attr->{$t},
         $mod, $w->XEvent );
 }
 
@@ -5274,7 +5275,7 @@ sub line_click {
     $win->ensure_current_is_displayed();
     my $tag = $tv->get_gen_pinfo("tag") || {};
 
-    return doEvalHookWithUndo( $win, "line_click_hook", $node, $tag->{$t}, 
+    return doEvalHookWithUndo( $win, "line_click_hook", $node, $tag->{$t},
         $button, $double, $modif, $w->XEvent );
 }
 
@@ -5854,7 +5855,7 @@ sub _evalHook {
             if ( $file_changed ne '?' and $file_changed ) {
                 if ($with_undo) {
                     my $undo;
-                    if ( $with_undo && $win && $win->{FSFile} ) { 
+                    if ( $with_undo && $win && $win->{FSFile} ) {
                         $undo = TrEd::Undo::prepare_undo(
                             $win,
                             "Hook $context" . "->" . $hook,
@@ -6419,8 +6420,8 @@ sub node_release {
         # print lower;
         $w->lower( $sel, 'point' );
     }
-    else { 
-        $win->redraw(); 
+    else {
+        $win->redraw();
     }
     return;
 }
@@ -6450,7 +6451,7 @@ sub node_release_modif {
                 $mod, $e );
         }
         else {
-            doEvalHookWithUndo( $win, 'node_release_hook', $node, undef, 
+            doEvalHookWithUndo( $win, 'node_release_hook', $node, undef,
                 $mod, $e );
         }
 
@@ -6463,8 +6464,8 @@ sub node_release_modif {
                 $tv->node_coords( $node, $win->{currentNode} ) );
         }
     }
-    else { 
-        redraw_fsfile_tree( $grp, $win->{FSFile}, $win->{treeNo} ); 
+    else {
+        redraw_fsfile_tree( $grp, $win->{FSFile}, $win->{treeNo} );
     }
     return;
 }
@@ -6627,7 +6628,7 @@ sub loadMacros {
 
     TredMacro::init_tredmacro_bindings();
 
-    # set minor modes and this stuff, can't do it at compile time, 
+    # set minor modes and this stuff, can't do it at compile time,
     # since there is no grp yet
     TrEd::Macros::set_macro_variable( 'grp', $grp->{focusedWindow} );
 
@@ -6733,7 +6734,7 @@ sub reloadMacros {
     get_nodes_all($grp);
     redraw_all($grp);
 
-    # maybe we should update filelists here, 
+    # maybe we should update filelists here,
     # because some filelists may disappear/appear
     # during installation/removing of extensions
     return;
