@@ -2377,6 +2377,7 @@ sub _install_extension_from_zip {
 
     # Fetch extension from repository
     mkdir $dir;
+    print "Downloading extension from ${url}.zip\n";
     my ( $zip_file, $unlink )
         = eval { Treex::PML::IO::fetch_file( $url . '.zip' ) };
     if ($@) {
@@ -2385,6 +2386,7 @@ sub _install_extension_from_zip {
         return 0;
     }
 
+    print "Extracting ${url}.zip to $dir\n";
     # Read the downloaded zip file which contains extension
     my $zip = Archive::Zip->new();
     if ( $zip->read($zip_file) != Archive::Zip::AZ_OK() ) {
