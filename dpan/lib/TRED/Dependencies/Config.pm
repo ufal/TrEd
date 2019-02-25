@@ -244,6 +244,8 @@ sub new {
 		XML::SAX
 		XML::SAX::Base
 		XML::LibXML::Iterator
+                !needed for extensions
+                File::pushd
 	};
 	
 	my @ppm_deps = qw{
