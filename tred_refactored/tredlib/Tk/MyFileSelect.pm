@@ -8,7 +8,7 @@ use Tk;
 use Tk qw(Ev catch);
 
 use File::Spec;
-use File::Glob qw(:glob);
+use File::Glob qw(:bsd_glob);
 use List::Util qw(max);
 use Scalar::Util qw(blessed);
 

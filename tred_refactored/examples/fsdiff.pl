@@ -13,7 +13,6 @@ setlocale(LANG,"czech");
 
 use Getopt::Std;
 getopts('andflmesSqQRDKA:M:owh');
-use IO;
 
 $usenames=0;
 $hide=1;

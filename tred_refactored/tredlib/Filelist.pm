@@ -20,7 +20,7 @@ our @EXPORT_OK = qw();
 
 use Carp;
 use vars qw( $VERSION @EXPORT @EXPORT_OK );
-use File::Glob qw(:glob);
+use File::Glob qw(:bsd_glob);
 use Cwd;
 use Encode qw(encode decode);
 use TrEd::MinMax qw(max2);

@@ -7,7 +7,7 @@ use strict;
 use warnings;
 use Carp;
 use File::Spec;
-use File::Glob qw(:glob);
+use File::Glob qw(:bsd_glob);
 use Scalar::Util qw(blessed);
 use File::pushd;
 
