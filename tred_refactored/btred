@@ -22,7 +22,7 @@ use Pod::Usage;
 
 #use IO;
 use IO::File;
-use File::Glob qw(:glob);
+use File::Glob qw(:bsd_glob);
 use Cwd;
 use strict;
 

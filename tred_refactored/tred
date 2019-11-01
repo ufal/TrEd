@@ -152,11 +152,12 @@ BEGIN {
 
     use Carp;
 
-#TODO: ktore IO moduly sa vlastne pouzivaju? zistit a importovat iba tie, samotne IO je uz deprecated
-    use IO;
+    use IO::File;
+    use IO::Pipe;
+    use IO::Socket;
     use Cwd;
     use File::Spec;
-    use File::Glob qw(:glob);
+    use File::Glob qw(:bsd_glob);
     use URI::file;
     use URI::Escape;
     use Fcntl;

@@ -11,7 +11,7 @@ BEGIN {
     use Cwd;
     use Treex::PML;
     use File::Spec;
-    use File::Glob qw(:glob);
+    use File::Glob qw(:bsd_glob);
     use TrEd::Config
         qw($default_macro_file $default_macro_encoding $macroDebug $hookDebug);
     use TrEd::Utils qw{uniq $EMPTY_STR};

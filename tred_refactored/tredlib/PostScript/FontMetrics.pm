@@ -15,7 +15,7 @@ use Carp;
 
 BEGIN { require 5.005; }
 
-use IO;
+use IO::File;
 use File::Spec;
 
 use vars qw($VERSION);
