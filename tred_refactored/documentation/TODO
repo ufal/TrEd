@@ -1,5 +1,15 @@
 -*- org -*-
 
+* BUGS [0/1]
+
+** TODO Print to PDF in MSWin32
+
+With more recent Perl interpreters, "defined @cp" in
+PDF::API2::Basic::TTF::Name fails. The module was extracted to Font::TTF
+outside of PDF::API2, so changes in the code and dependencies for MSWin are
+needed (or we can just remove "defined @cp" from the module source in a patch).
+There's no easy way to build a new Tred installer, though.
+
 * TO DO
 
 ** TrEdNodeEdit should somehow support direct editing of non-structure objects, e.g. of pml_prolog/epilog
