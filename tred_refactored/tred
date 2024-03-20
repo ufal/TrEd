@@ -5786,6 +5786,17 @@ sub _evalHook {
     # Save current position (as last action position)
     my $bookmark
         = $with_undo ? TrEd::Bookmarks::actual_position($grp) : undef;
+    my $undo;
+    if ($with_undo) {
+        if ( $with_undo && $win && $win->{FSFile} ) {
+            my $context = $win->{macroContext} || 'TredMacro';
+            $undo = TrEd::Undo::prepare_undo(
+                $win,
+                "Hook $context" . "->" . $hook,
+                TrEd::Undo::undo_type_id('UNDO_DISPLAYED_TREES')
+            );
+        }
+    }
 
     local $insideEval = 1;
     my $old_ctxt = TrEd::Macros::save_ctxt();
@@ -5854,15 +5865,7 @@ sub _evalHook {
     if ($win) {
         if ( $win->{FSFile} ) {
             if ( $file_changed ne '?' and $file_changed ) {
-                if ($with_undo) {
-                    my $undo;
-                    if ( $with_undo && $win && $win->{FSFile} ) {
-                        $undo = TrEd::Undo::prepare_undo(
-                            $win,
-                            "Hook $context" . "->" . $hook,
-                            TrEd::Undo::undo_type_id('UNDO_DISPLAYED_TREES')
-                        );
-                    }
+                if ($undo) {
                     TrEd::Undo::save_undo( $win, $undo );
                     TrEd::Bookmarks::last_action_bookmark( $win->{framegroup},
                         $bookmark );
