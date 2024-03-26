@@ -1270,7 +1270,7 @@ sub findMacroDescription {
         my $b = $menuBindings{$1};
         my ($desc)
             = grep { ref( $b->{$_} ) and $b->{$_}[0] eq $macro } keys %$b;
-        return "$desc ($macro)" if $desc ne $EMPTY_STR;
+        return "$desc ($macro)" if length $desc;
         return "macro $macro";
     }
     else {
