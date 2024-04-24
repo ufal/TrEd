@@ -1226,8 +1226,8 @@ return sub {
                             = TrEd::Query::String::new_query( $_[0],
                             'Go To Tree Number',
                             'Tree Number' );
-                        if ( defined $to ) {
-                            tieGotoTree( $_[0], $to );
+                        if ( defined $to && $to > 0) {
+                            tieGotoTree( $_[0], $to - 1 );
                         }
                     },
                     $grp
