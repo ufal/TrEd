@@ -2369,7 +2369,6 @@ sub secondaryDocumentsTo ($$) {
 sub closeFile {
     my ($grp) = @_;
     doEvalHook( $grp, "file_close_hook" ) if $grp->{FSFile};
-    no strict qw(refs);
     set_macro_variable( 'TredMacro::NodeClipboard' => undef );
 
     # close required files too, unless file remains pre-loaded
@@ -2447,7 +2446,6 @@ sub closeAllPreloaded {
 sub doEvalHook {
     my ( $group, $hook ) = ( shift, shift );
     return if $NO_HOOKS;
-    no strict qw(refs);
     return unless $hook;    # and $group->{'currentNode'};
 
     my $old_ctxt = TrEd::Macros::save_ctxt();
@@ -2484,7 +2482,6 @@ sub doEvalHook {
 sub doEvalMacro {
     my ( $group, $macro ) = ( shift, shift );
     return unless $macro;
-    no strict qw(refs);
     set_macro_variable(
         this           => $group->{currentNode},
         root           => $group->{root},
@@ -2695,7 +2692,6 @@ sub switchContext {
 
 sub updateTredMacroGlobals {
     my ($grp) = @_;
-    no strict qw(refs);
     set_macro_variable(
         root => $grp->{root},
         this => $grp->{currentNode}
