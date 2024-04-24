@@ -330,9 +330,6 @@ EOL
     require TrEd::File;
     import TrEd::File;
 
-    #load back-ends
-    @backends = @{ TrEd::File::init_backends($extra_backends) };
-
     # these are for macros
     $stdout = \*STDOUT;
     $stderr = \*STDERR;
@@ -1788,7 +1785,11 @@ sub _new_status {
 sub loadFile {
     my ( $file, $backends ) = @_;
     my @warnings;
+
+    push @backends, TredMacro::Backends();
+    _make_uniq(\@backends);
     my $bck = ref($backends) ? $backends : \@backends;
+
     my $status = _new_status(
         ok       => 0,
         filename => $file,
@@ -2798,6 +2799,7 @@ sub loadMacros {
     my ( $extensions, $pre_installed, $preinst_dir ) = prepareExtensions();
     init_extensions($extensions);
     init_extensions( $pre_installed, $preinst_dir );
+    @backends = @{ TrEd::File::init_backends($extra_backends) };
     _msg("Reading extension macros...\n") unless $quiet;
 
     for my $ext_contrib ( get_extension_macro_paths($extensions),
