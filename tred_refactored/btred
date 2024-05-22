@@ -2781,7 +2781,12 @@ sub loadMacros {
 
     require TrEd::MacroAPI::Default;#this loads TredMacro API
                                     # not sure why, we don't need it here...
-                                    #TredMacro->import;
+
+
+    # BUG: This prevents tred.def to be prepended to @macros, so ntred
+    # can't reload macros properly.
+
+    #TredMacro->import;
     #TredMacro::init_tredmacro_bindings();
 
 # set minor modes and this stuff, can't do it at compile time, since there is no grp...
