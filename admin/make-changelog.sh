@@ -3,10 +3,11 @@
 
 EXTDIR=`dirname $(readlink -fen $0)`
 . "$EXTDIR"/env.sh
+. ${PYTHON_ENV}/bin/activate
 
 echo "Generating changelog" && \
-echo "Updating svn..." && \
-svn update ${TRED_SRC_DIR} >> $LOG && \
+echo "Updating git..." && \
+git pull >> $LOG && \
 echo "done" && \
 
 # find the current revision number of svn
@@ -24,8 +25,8 @@ echo "done" && \
 ## echo "LAST_COMMIT_IN_CHANGELOG = $LAST_COMMIT_IN_CHANGELOG"
 
 # if [ "$LAST_COMMIT_IN_CHANGELOG" == 0 ]; then
-	echo "Transforming svn log --> ChangeLog (this takes a while)..." && \
-	cd ${TRED_SRC_DIR} && ${SVN_TO_CHANGELOG} --include-rev -o ChangeLog && \
+	echo "Transforming git log --> ChangeLog (this takes a while)..." && \
+	cd ${TRED_SRC_DIR} && ${GIT_TO_CHANGELOG} > ChangeLog && \
 # else
 # 	echo "ChangeLog is already up to date."
 # fi && \
