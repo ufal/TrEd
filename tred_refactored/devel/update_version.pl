@@ -36,6 +36,7 @@ my $version_file = File::Spec->rel2abs('../tredlib/TrEd/Version.pm',$rb);
 die "Did not find $version_file!" if !-f $version_file;
 
 my $git_date = `git log -1 --date=format:"\%Y\%m\%d" --format="%ad"`;
+chomp $git_date;
 my $VER = '3.' . $git_date;
 
 print $VER,"\n" unless $opts{'quiet'};
