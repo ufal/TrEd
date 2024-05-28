@@ -6,7 +6,7 @@
 EXTDIR=`dirname $(readlink -fen $0)`
 . $EXTDIR/env.sh
 
-SVN_VERSION=`svn info . | grep 'Revision:' | sed -E 's/[^0-9]+//g'`
+GIT_DATE=`git log -1 --date=format:"%Y%m%d" --format="%ad"|tr -d "\n"`
 
 # Prepare the deb package
 cd "$PROJECT_DIR/unix_install_pkgs/deb" || exit 1
@@ -14,7 +14,7 @@ cd "$PROJECT_DIR/unix_install_pkgs/deb" || exit 1
 
 # Copying the package to the local www
 echo "Copying the package to local www ..."
-DEB_FILE="tred_2.${SVN_VERSION}_all.deb"
+DEB_FILE="tred_3.${GIT_DATE}_all.deb"
 cp "./${DEB_FILE}" "${TREDWWW}/tred/${DEB_FILE}"
 d=`pwd`
 cd "${TREDWWW}/tred/"
@@ -29,7 +29,7 @@ ssh ${LOGIN_NAME}@${TESTING_SERVER} "rm -f /var/www/tred/testbed/*.deb"
 
 # Upload the package to the testbed website
 echo "Uploading the package to testbed web ..."
-DEB_FILE="tred_2.${SVN_VERSION}_all.deb"
+DEB_FILE="tred_3.${GIT_DATE}_all.deb"
 scp "./${DEB_FILE}" "${LOGIN_NAME}@${REMOTE_WWW}/${DEB_FILE}"
 
 # Make sure tred.deb link points to the newest deb package
