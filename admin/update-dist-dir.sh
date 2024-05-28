@@ -16,7 +16,8 @@ echo "Exporting git" && \
 ##svn export ${TRED_SVN_REPO} ${TRED_DIST_DIR}.new >> $LOG && \
 git -C ${TRED_SRC_DIR} archive --output ${TRED_DIST_DIR}.new.zip  HEAD >> $LOG && \
 unzip ${TRED_DIST_DIR}.new.zip -d  ${TRED_DIST_DIR}.new  >> $LOG && \
-# updates TrEd version in dist/tred.new/tredlib/TrEd/Version.pm according to svn version to 1.#svn_version#
+rm ${TRED_DIST_DIR}.new.zip && \
+# updates TrEd version in dist/tred.new/tredlib/TrEd/Version.pm according to svn version to 3.#git_date#
 ${TRED_DIST_DIR}.new/devel/update_version.pl ${TRED_SVN_REPO} && \
 
 echo "WARN: Skipping updating extensions" && \
