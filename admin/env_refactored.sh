@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Root dir of the SVN checkout. All dirs are derived from this one
+# Root dir of the GIT checkout. All dirs are derived from this one
 if [ -z "$GIT_DIR" ]; then
     GIT_DIR=$(dirname $(dirname $(readlink -fen $0)))
 fi
@@ -29,7 +29,7 @@ PYTHON_ENV=${GIT_DIR}/virtualenv
 # TrEd project direcotry (from which Makefile is executed)
 PROJECT_DIR=${GIT_DIR}
 
-# Log for svn checkouts and exports during make
+# Log for git checkouts and exports during make
 LOG=$GIT_DIR/make_log
 
 TRED_HOME_URL="http://ufallab.ms.mff.cuni.cz:24080/tred/testbed"
@@ -94,8 +94,6 @@ TREEX_PML_EXPORT=${PROJECT_DIR}/generated/Treex-PML
 # mutli-script to run jobs on the SGE cluster
 LRC_CMD=${ADMIN_DIR}/run_on_lrc
 
-# SVN to ChangeLog conversion
-SVN_TO_CHANGELOG=${ADMIN_DIR}/svn2cl/svn2cl.sh
 # GIT to ChangeLog conversion
 GIT_TO_CHANGELOG=${PYTHON_ENV}/bin/git-changelog
 # ChangeLog to RSS conversion
