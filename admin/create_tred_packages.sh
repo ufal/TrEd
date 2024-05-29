@@ -22,7 +22,7 @@ WWW="$3"
 SFX=$(dirname $0)/7zExtra/7zS.sfx
 
 if [ -z "$VER" ]; then
-    VER=`$DIST_DIR/tred/devel/update_version.pl -n ${TRED_SVN_REPO}`
+    VER=`$DIST_DIR/tred/devel/update_version.pl -n`
 fi
 
 cd "$DIST_DIR"
