@@ -184,16 +184,10 @@ else
 	echo "Done"
 fi
 
-## create or update unix_install directory
-if [ -d "$TRED_UNIXINST_DIR" ]; then
-	cd $TRED_UNIXINST_DIR
-	echo "Updating unix_install checkout directory"
-	svn up >> $LOG
-	echo "Done"
-else
-	echo "No directory unix_install found, creating a new one and making a fresh checkout"
-	mkdir $TRED_UNIXINST_DIR 2>/dev/null
-	svn co $TRED_SVN_REPO/devel/unix_install $TRED_UNIXINST_DIR >> $LOG
-	echo "Done"
-fi
-
+## create unix_install directory
+echo "remove and create unix_install checkout directory"
+rm -rf "$TRED_UNIXINST_DIR"
+git -C ${TRED_SRC_DIR}/devel/unix_install archive --output $TRED_UNIXINST_DIR.zip  HEAD >> $LOG
+unzip ${TRED_UNIXINST_DIR}.zip -d  ${TRED_UNIXINST_DIR}  >> $LOG && \
+rm ${TRED_UNIXINST_DIR}.zip && \
+echo "Done"
