@@ -33,7 +33,7 @@ PKG="tred-current.tar.gz"
 DATE="$(LANG=C date)"
 
 # update revision numbers in tred source tree
-perl -pi -e 's/our \$VERSION = "SVN_VERSION"/our \$VERSION = "'$VER'"/g' tred/tredlib/TrEd/Version.pm
+perl -pi -e 's/our \$VERSION = "DEV_VERSION"/our \$VERSION = "'$VER'"/g' tred/tredlib/TrEd/Version.pm
 # update revision numbers in index.html
 perl -pi~ -e "s/tred-(?:current|[0-9.]+?)\\.tar\\.gz/${PKG}/g; s/Current version:.*</Current version: ${VER} (release date ${DATE})</g" ${WWW}/index.html
 

@@ -23,8 +23,8 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT    = qw( TRED_VERSION );
 
 # next line is modified automatically during the release
-our $VERSION = "SVN_VERSION";    # DO NOT MODIFY THIS LINE !!
-$VERSION = 9999 if $VERSION eq 'SVN_VERSION';
+our $VERSION = "DEV_VERSION";    # DO NOT MODIFY THIS LINE !!
+$VERSION = 99999999 if $VERSION eq 'DEV_VERSION';
 
 # Preloaded methods go here.
 
@@ -45,11 +45,11 @@ sub TRED_VERSION {
 # Returns       : 0 if the versions are equal, -1 if TRED_VERSION is less than $other_version and 1 otherwise.
 # Parameters    : string $other_version
 # Throws        : no exceptions
-# Comments      : Version format: 1.svn_commit_number, e.g. 1.4552
+# Comments      : Version format: 3.git_commit_date, e.g. 3.20240529
 # See Also      : TRED_VERSION()
 sub CMP_TRED_VERSION_AND {
     my ($version) = @_;
-    return 1 if $VERSION eq 'SVN_VERSION';
+    return 1 if $VERSION eq 'DEV_VERSION';
     return ( $VERSION <=> $version );
 }
 
