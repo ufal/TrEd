@@ -63,12 +63,14 @@ INSTALL_DOC=${INSTALL_BASE}/doc
 RSS=${WWW}/tred/changelog.rss
 
 # Basic paths
-TRED_SVN=https://svn.ms.mff.cuni.cz/svn/TrEd
+TRED_SVN=SVN:ERROR--https://svn.ms.mff.cuni.cz/svn/TrEd
 TRED_SVN_REPO=${TRED_SVN}/trunk/tred_refactored
 TRED_SVN_EXT=${TRED_SVN}/extensions
 TREEX_PML_REPO=https://svn.ms.mff.cuni.cz/svn/perl_libs/trunk/distribution/Treex-PML
 WIN32_DIST_REPO=https://svn.ms.mff.cuni.cz/svn/perl_libs/trunk/distribution/win32_build_script
 
+TRED_FOLDER=tred_refactored
+TRED_GIT_REPO=${GIT_DIR}/${TRED_FOLDER}
 TRED_GIT_EXT=git@github.com:ufal/TrEd-extensions.git
 # https://github.com/ufal/TrEd-extensions.git
 
@@ -106,7 +108,7 @@ CHANGELOG_TO_RSS=${ADMIN_DIR}/changelog2rss.pl
 
 
 ## MAC OS settings
-MAC_RELEASER=kopp@manfred.ms.mff.cuni.cz
+MAC_RELEASER=mMcBair.local
 MAC_TRED_INSTALLATION='~/tred_installation'
 MAC_TRED_INSTALLATION_OLD='~/tred_installation_old'
-MAC_GIT_DIR='~/TrEd'
+MAC_GIT_DIR='~/work/TrEd'

@@ -9,6 +9,6 @@ scp ${WWW}/tred/tred-current.tar.gz $MAC_RELEASER:$MAC_TRED_INSTALLATION
 scp ${WWW}/tred/tred-dep-unix.tar.gz $MAC_RELEASER:$MAC_TRED_INSTALLATION
 ssh $MAC_RELEASER <<EOF
     chmod +x $MAC_TRED_INSTALLATION/install_tred.bash
-	cd TrEd && svn update || echo "Unable to update repository. Do it manually if needed!!!\nContinues without repository updated.\n"
-	cd ~/TrEd/trunk/osx_install/bin && ./unpack.sh && mv release-template.dmg ../scripts
+	cd ${MAC_GIT_DIR} && git pull  || echo "Unable to update repository. Do it manually if needed!!!\nContinues without repository updated.\n"
+	cd ${MAC_GIT_DIR}/osx_install/bin && ./unpack.sh && mv release-template.dmg ../scripts
 EOF

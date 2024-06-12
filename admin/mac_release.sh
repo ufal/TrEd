@@ -9,5 +9,5 @@ ssh $MAC_RELEASER <<EOF
   #  echo "======== perl version"
   #  perlbrew info
   #  echo "========"
-	cd $MAC_SVN_DIR/trunk/osx_install/scripts && ./make-release.sh $SIGNATURE
+	cd ${MAC_GIT_DIR}/osx_install/scripts && ./make-release.sh $SIGNATURE
 EOF
