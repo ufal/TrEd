@@ -929,7 +929,8 @@ sub initialize_macros {
         my $utf = ($useEncoding) ? "use utf8;\n" : q{};
         my $macros = q{};
         $macros .= 'use strict;' if $strict;
-        $macros .= "use warnings; no warnings 'redefine';" if $warnings;
+        $macros .= 'use warnings;' if $warnings;
+        $macros .= 'no warnings "redefine";';
         $macros
             .= "{\n" 
             . $utf
