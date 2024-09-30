@@ -10,3 +10,8 @@ extensions
 /virtualenv
 win32_strawberry/perl/*
 !win32_strawberry/perl/.gitkeep
+/win32_strawberry/*.exe
+/unix_install_pkgs/deb/tred_3*
+/unix_install_pkgs/rpm/tred-3*
+/dpan/dpan/indexing_log
+/admin/7zExtra
