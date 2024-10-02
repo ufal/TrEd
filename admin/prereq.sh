@@ -27,37 +27,6 @@ function perl_module_presence_and_version_test {
     fi
 }
 
-# This funcition downloads current version of svn2cl script from web,
-# compares its MD5 sum to the MD5 sum found on the web and
-# unpacks it, if the MD5 sum is correct
-function get_svn2cl {
-	### svn2cl
-	SVN2CL_URL="https://arthurdejong.org/svn2cl/"
-	SVN2CL_FILE_DL="svn2cl.tar.gz"
-	wget ${SVN2CL_URL}downloads.html -O web >> $LOG
-
-	NEWEST_SVN2CL=`grep -o "svn2cl-[0-9.]\+tar.gz" web | head -n 1`
-	wget -nv ${SVN2CL_URL}${NEWEST_SVN2CL} -O $SVN2CL_FILE_DL >> $LOG
-	wget -nv ${SVN2CL_URL}${NEWEST_SVN2CL}.md5 -O ${SVN2CL_FILE_DL}.md5 >> $LOG
-
-	SVN2CL_MD5_WEB=`cut -d ' ' -f 1 $SVN2CL_FILE_DL.md5`
-	SVN2CL_MD5_LOCAL=`md5sum $SVN2CL_FILE_DL | cut -d ' ' -f 1`
-
-	if [ "$SVN2CL_MD5_WEB" == "$SVN2CL_MD5_LOCAL" ]; then
-		echo "MD5 sum ok, extracting svn2cl.."
-		tar xvzf $SVN2CL_FILE_DL -C $ADMIN_DIR
-		# remove the version of the svn2cl from dir name
-		mv ${ADMIN_DIR}/svn2cl*/ ${ADMIN_DIR}/svn2cl
-		echo "done"
-	else
-		echo "MD5 sum error, please download and unpack svn2cl to dir $ADMIN_DIR/svn2cl manually..."
-		exit 1;
-	fi
-	rm $SVN2CL_FILE_DL
-	rm -f web
-	rm -f ${SVN2CL_FILE_DL}.md5
-}
-
 # This function downloads 7zip and unpacks it, if the MD5 sum of the downloaded
 # package is correct
 function get_7zExtra {
@@ -124,10 +93,16 @@ else
 fi
 
 
-if [ -x "$SVN_TO_CHANGELOG" ]; then
-	echo "svn2cl found, OK."
+if [ ! -x "$PYTHON_ENV/bin/activate" ]; then
+	python -m venv ${PYTHON_ENV}
+fi
+. ${PYTHON_ENV}/bin/activate
+
+
+if [ -x "$GIT_TO_CHANGELOG" ]; then
+	echo "git-changelog found, OK."
 else
-	get_svn2cl
+	pip install git-changelog
 fi
 
 BIN_7Z=`which 7z`
@@ -209,16 +184,10 @@ else
 	echo "Done"
 fi
 
-## create or update unix_install directory
-if [ -d "$TRED_UNIXINST_DIR" ]; then
-	cd $TRED_UNIXINST_DIR
-	echo "Updating unix_install checkout directory"
-	svn up >> $LOG
-	echo "Done"
-else
-	echo "No directory unix_install found, creating a new one and making a fresh checkout"
-	mkdir $TRED_UNIXINST_DIR 2>/dev/null
-	svn co $TRED_SVN_REPO/devel/unix_install $TRED_UNIXINST_DIR >> $LOG
-	echo "Done"
-fi
-
+## create unix_install directory
+echo "remove and create unix_install checkout directory"
+rm -rf "$TRED_UNIXINST_DIR"
+git -C ${TRED_SRC_DIR}/devel/unix_install archive --output $TRED_UNIXINST_DIR.zip  HEAD >> $LOG
+unzip ${TRED_UNIXINST_DIR}.zip -d  ${TRED_UNIXINST_DIR}  >> $LOG && \
+rm ${TRED_UNIXINST_DIR}.zip && \
+echo "Done"
