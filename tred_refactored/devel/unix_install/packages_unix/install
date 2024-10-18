@@ -714,8 +714,8 @@ sub do_install_perl_module {
   }
   my $buildpl_flags= '--'.lc($BASE_DIR_FLAG).' '.shell_quote($PERL_PREFIX).' '.$MODULE_BUILD_FLAGS{$module};
   my $makepl_flags= $BASE_DIR_FLAG.'='.shell_quote($PERL_PREFIX).' '.$MODULE_BUILD_FLAGS{$module};
-  my $build_test = ($DO_MAKE_TEST && $IGNORE_TEST_FAILS{$module}!=2) ? (($FORCE || $IGNORE_TEST_FAILS{$module}) ? "(./Build test || true) && " : "./Build test && ") : "";
-  my $make_test = ($DO_MAKE_TEST && $IGNORE_TEST_FAILS{$module}!=2) ? (($FORCE || $IGNORE_TEST_FAILS{$module}) ? "($Config{make} test || true) && " : "make test && ") : "";
+  my $build_test = ($DO_MAKE_TEST && $IGNORE_TEST_FAILS{$module}!=2) ? (($FORCE || $IGNORE_TEST_FAILS{$module}) ? "(./Build test || true) && " : "./Build test && ") : "echo 'INFO: skipping tests' &&";
+  my $make_test = ($DO_MAKE_TEST && $IGNORE_TEST_FAILS{$module}!=2) ? (($FORCE || $IGNORE_TEST_FAILS{$module}) ? "($Config{make} test || true) && " : "make test && ") : "echo 'INFO: skipping tests' &&";
 
   my $input = $MODULE_BUILD_INPUT{$module};
   $input = ((defined($input) and length($input))
@@ -729,11 +729,13 @@ sub do_install_perl_module {
     cd '$dir' && \\
     $run_patches \\
     ${input}(if [ -f Build.PL ]; then \\
+       echo "INFO: using Build.PL for building and installing" && \\
        $^X Build.PL $buildpl_flags && \\
        ./Build &&
        $build_test
        ./Build install
      else
+       echo "INFO: using Makefile.PL for building and installing"
        echo LD_LIBRARY_PATH is "\$LD_LIBRARY_PATH"
        echo PERL5LIB is "\$PERL5LIB"
        $^X Makefile.PL $makepl_flags && \\
