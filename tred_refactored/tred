@@ -30,7 +30,7 @@ BEGIN {
     # from TrEd::Macros
     #%menuBindings %keyBindings
 
-    use vars qw($svn_version $version $opt_u $opt_h $opt_c $opt_y
+    use vars qw($dev_version $version $opt_u $opt_h $opt_c $opt_y
         $init_macro_context $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_split_window
         $opt_n $opt_D $opt_v $opt_H $opt_I $opt_Z $opt_e
         $libDir $documentation_dir $list_options $opt_auto_save

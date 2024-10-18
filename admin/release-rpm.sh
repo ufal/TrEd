@@ -6,7 +6,7 @@
 EXTDIR=`dirname $(readlink -fen $0)`
 . $EXTDIR/env.sh
 
-SVN_VERSION=`svn info . | grep 'Revision:' | sed -E 's/[^0-9]+//g'`
+GIT_DATE=`git log -1 --date=format:"%Y%m%d" --format="%ad"|tr -d "\n"`
 
 # Prepare the deb package
 cd "$PROJECT_DIR/unix_install_pkgs/rpm" || exit 1
@@ -24,7 +24,7 @@ for DISTRO in $DISTROS; do
 	echo "... for $DISTRO ..."
 	d=`pwd`
 	cd "${TREDWWW}/tred/"
-	ln -sfr "tred-2-${SVN_VERSION}-${DISTRO}.noarch.rpm" "tred-${DISTRO}.rpm"
+	ln -sfr "tred-3-${GIT_DATE}-${DISTRO}.noarch.rpm" "tred-${DISTRO}.rpm"
 	cd $d
 done
 
@@ -46,7 +46,7 @@ echo "Creating symlinks for rpm packages ..."
 DISTROS=`ls -1 ./tred*.rpm | sed -E 's/^.*tred-[0-9]+-[0-9]+-//' | sed 's/[.]noarch[.]rpm$//' | tr "\\n" " "`
 for DISTRO in $DISTROS; do
 	echo "... for $DISTRO ..."
-	ssh ${LOGIN_NAME}@${TESTING_SERVER} "cd /var/www/tred/testbed && ln -sf ./tred-2-${SVN_VERSION}-${DISTRO}.noarch.rpm ./tred-${DISTRO}.rpm"
+	ssh ${LOGIN_NAME}@${TESTING_SERVER} "cd /var/www/tred/testbed && ln -sf ./tred-3-${GIT_DATE}-${DISTRO}.noarch.rpm ./tred-${DISTRO}.rpm"
 done
 
 cd "$EXTDIR"
