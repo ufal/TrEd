@@ -184,8 +184,13 @@ if [ "$PRINT_VERSION" = 1 ]; then echo Version: $VERSION; exit; fi
 if [ "$PRINT_HELP" = 1 ]; then help; exit; fi
 if [ "$PRINT_USAGE" = 1 ]; then usage; exit; fi
 if [ x`uname -s` == xDarwin ]; then
-    echo Adding //Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Perl/5.18/darwin-thread-multi-2level/CORE to CPATH
-    export CPATH=$CPATH://Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Perl/5.18/darwin-thread-multi-2level/CORE
+    darwinCPATH=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Perl/5.*/darwin-*/CORE
+    if [ -d $darwinCPATH ];then
+        echo Adding $darwinCPATH to CPATH
+        export CPATH=$CPATH:$darwinCPATH
+    else
+        echo "WARNING: header path ($darwinCPATH) does not exist"
+    fi
 fi
 
 fetch_url () {
