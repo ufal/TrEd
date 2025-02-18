@@ -197,7 +197,7 @@ sub tk_callback {
     my ($tred_ref, $ret_value) = @_;
     
     my $context = $tred_ref->{focusedWindow}->{macroContext};
-    print "tk_callback called in context $context\n";
+    print STDERR "tk_callback called in context $context\n";
     if (defined $context) {
         $tred_ref->{callback_called}->{$context}++;
     }
@@ -450,6 +450,7 @@ sub test_run_context_binding {
     #_print_status($tred_ref);
     
     # imitate pressing Tab key
+    $tred_ref->{top}->focusForce;  # Needed in Xvfb/Xvnc (headless testing)
     $tred_ref->{top}->eventGenerate('<KeyPress>', -keysym => 'Tab');
     $tred_ref->{top}->idletasks();
     $tred_ref->{top}->update();
