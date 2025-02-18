@@ -219,7 +219,7 @@ instruction in L<http://ufal.ms.mff.cuni.cz/tred/ar01s10.html>).
             $dx ||= 0;
             $dy ||= 0;
 
-            if ( $node == $target ) {
+            if ( $node == ($target // -1) ) {
 
                 # same node
                 push @{ $props{-coords} }, <<"COORDS";

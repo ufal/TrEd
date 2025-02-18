@@ -664,7 +664,8 @@ SCRIPT
       $posy+=$height/2;
       $anchor = '' if $anchor eq 'center';
       my $text_anchor = 'middle';
-
+      # Leading spaces are not displayed in SVG, but we want them.
+      $text =~ s/^( +)/"\N{NO-BREAK SPACE}" x length $1/e;
       my @lines = split /\n/,$text;
       if ($anchor =~ /s/) { $posy-=$height/2 }
       elsif ($anchor =~ /n/) { $posy+=$height/2 }

@@ -377,7 +377,7 @@ sub get_stylesheet_patterns {
             $hint    = $s->{hint};
             $context = $s->{context};
             $context = '.*' unless ( wantarray or $context =~ /\S/ );
-            chomp $context;
+            chomp $context if length $context;
             @$patterns = defined( $s->{patterns} ) ? @{ $s->{patterns} } : ();
         }
         else {
