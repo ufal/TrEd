@@ -1,5 +1,5 @@
-tred (2.%SVN_VERSION%) unstable; urgency=low
+tred (3.%GIT_DATE%) unstable; urgency=low
 
   * Initial Release.
 
- -- TrEd Developers Team <tred@ksi.mff.cuni.cz>  %DATE%
+ -- TrEd Developers Team <tred@ufal.mff.cuni.cz>  %DATE%

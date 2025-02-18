@@ -13,7 +13,7 @@ function get_strawberry() {
 }
 
 if [ -z "$VER" ]; then
-    VER=`$DIST_DIR/tred/devel/update_version.pl -n ${TRED_SVN_REPO}`
+    VER=`$DIST_DIR/tred/devel/update_version.pl -n`
 fi
 
 
