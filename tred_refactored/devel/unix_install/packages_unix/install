@@ -19,7 +19,9 @@ sub cfg_help {};
 sub force_build {};
 sub module_build_input {};
 sub require_in_path {};
-sub ignore_module_build_fail {};
+sub ignore_module_build_fail {
+    'UNIVERSAL::DOES' => 1,
+};
 sub version_from {};
 sub on_fetch_from_CPAN {};
 

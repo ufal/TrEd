@@ -1,0 +1,44 @@
+name: CI
+
+on:
+    push:
+        branches: '*'
+    pull_request:
+        branches: '*'
+
+jobs:
+  matrix-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        perl-version:
+            - "5.26.0"
+            - "5.34.0"
+            - "5.40.1"
+    name: Perl ${{ matrix.perl-version }}
+    steps:
+      - uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl-version }}
+      - uses: actions/checkout@v4
+
+      - name: Install prereqs
+        run: |
+          sudo apt-get install libx11-dev libxft-dev libfontconfig1-dev \
+               libpng-dev libnsl-dev
+
+      - name: Install deps
+        run: |
+          mkdir $HOME/tred-deps
+          printf '%s\n' 'o conf prerequisites_policy follow' \
+                        'o conf commit' \
+                        'o conf makepl_arg INSTALL_BASE='$HOME/tred-deps \
+                        'o conf mbuildpl_arg --install_base='$HOME/tred-deps \
+                        | cpan
+          cpan Archive-Zip CPAN-Meta CPAN-Meta-Requirements CPAN-Meta-YAML Capture-Tiny Class-Inspector Compress-Raw-Bzip2 Compress-Raw-Zlib Encode-Locale ExtUtils-CBuilder ExtUtils-Config ExtUtils-Helpers ExtUtils-InstallPaths ExtUtils-MakeMaker ExtUtils-ParseXS File-ShareDir File-ShareDir-Install File-Temp File-Which File-pushd Font-TTF Graph Graph-ChuLiuEdmonds Graph-Kruskal HTTP-Date HTTP-Message IO-Compress IO-HTML IO-String IO-Zlib JSON-PP LWP-MediaTypes Module-Build Module-Build-Tiny Module-Metadata PDF-API2 Parse-CPAN-Meta Parse-RecDescent Perl-OSType PerlIO-gzip Readonly SUPER Sub-Identify Syntax-Highlight-Perl Test-Harness Test-MockModule Test-Simple Test-Warnings Text-Balanced Text-Iconv Tie-IxHash Tk Tk-CodeText Tk-MatchEntry Treex-PML Try-Tiny UNIVERSAL-DOES URI Version-Requirements XML-CompactTree XML-CompactTree-XS XML-Filter-BufferText XML-LibXML XML-LibXML-Iterator XML-LibXSLT XML-NamespaceSupport XML-NodeFilter XML-SAX XML-SAX-Base XML-SAX-Writer XML-Writer libwww-perl version
+
+      - name: Tests
+        run: |
+          cd tred_refactored
+          prove -I$HOME/tred-deps -vl t
