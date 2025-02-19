@@ -119,7 +119,7 @@ is(read_lock($file_name), $lock_info,
 }
 
 {
-  local $ENV{HOSTNAME} = defined $ENV{HOSTNAME} ? $ENV{HOSTNAME} : q{} . '_the_other';
+  local $ENV{HOSTNAME} = (defined $ENV{HOSTNAME} ? $ENV{HOSTNAME} : q{}) . '_the_other';
   is(TrEd::FileLock::check_lock($fsfile, $file_name), 'locked ' . $lock_info, 
     'check_lock(): locked by some other host');
 }

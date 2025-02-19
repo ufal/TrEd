@@ -1,0 +1,6 @@
+---
+comment: "t/02_compat.t fails with perl 5.39.x [GitHub #4]"
+match:
+  distribution: 'GFUJI/UNIVERSAL-DOES-0\.005'
+patches:
+  - "UNIVERSAL-DOES.t02.patch"

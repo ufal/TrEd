@@ -427,7 +427,7 @@ sub _test_file_contents {
     local $/; # read whole file into the string (should be used for small files only)
     my $file = <$fh>;
     foreach my $pattern (@{$contents_ref}){
-      if($file =~ /$pattern/ms){
+      if($file =~ /\Q$pattern/){
         #ok
       } else {
         $file_contents_ok = 0;

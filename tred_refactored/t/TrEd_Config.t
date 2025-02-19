@@ -576,8 +576,7 @@ sub test__set_print_options {
     eval {
       _compare_print_options(\%confs, \%expected_printOptions, "psfontfile pointing to existing file");
     };
-    unlink($fake_AFM);
-    unlink($fake_font);
+    is unlink($AFM_font, $fake_font_name), 2, 'temp fonts deleted';
   }
   
   ### c) existing, but must add $libDir before -> psFontFile = $libDir/fonts/n019003l.pfa
@@ -693,8 +692,9 @@ sub test__set_print_options {
 }
 
 sub test__set_extensions {
-  my $default_repos = "http://ufal.mff.cuni.cz/tred/extensions/core";
-  
+  my $default_repos = join "\n",
+                      'http://ufal.mff.cuni.cz/tred/extensions/core/',
+                      'http://ufal.mff.cuni.cz/tred/extensions/external/';
   # 1 -- $confs_ref->{extensionsdir}'s length = 0
   my %confs = (
     'extensionsdir' => "",

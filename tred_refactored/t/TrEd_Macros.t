@@ -5,7 +5,7 @@ use strict;
 use FindBin;
 use lib "$FindBin::Bin/../tredlib";
 use Test::More;
-use Test::Exception;
+use Test::Trap;
 use Data::Dumper;
 use List::Util qw( first );
 use File::Spec;
@@ -16,6 +16,18 @@ use TrEd::Config;
 use TrEd::Utils;
 # to make summarization work in safe compartment
 #use Devel::Cover;
+
+sub lives_ok {
+    my ($code, $name) = @_;
+    trap sub { $code->() };
+    $trap->leaveby('return'), $name;
+}
+
+sub dies_ok {
+    my ($code, $name) = @_;
+    trap sub { $code->() };
+    $trap->leaveby('die'), $name;
+}
 
 BEGIN {
   my $module_name = 'TrEd::Macros';

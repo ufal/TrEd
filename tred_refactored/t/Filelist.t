@@ -645,6 +645,7 @@ my $files_in_list_2 = [
   ['../test_files/sample0.a.gz', 0],
   ['../test_files/sample0.m.gz', 0],
   ['../test_files/sample0.t.gz', 0],
+  ['../test_files/sample0.w.gz', 0],
   ['../test_files/sample0.x.gz', 0],
 ];
 
