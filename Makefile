@@ -133,7 +133,7 @@ make-changelog:
 # - TrEd version number (based on SVN revision)
 # - compile the documentation from DocBook and POD (tred/devel/make_manual)
 # - updated extensions dir (SVN working copy)
-update-dist-dir: make-changelog
+update-dist-dir: make-changelog extensions
 	cd admin && ./update-dist-dir.sh
 
 
@@ -184,3 +184,10 @@ compile-treex-pml-dist:
 install-treex-pml:
 	cd admin && ./install-treex-pml.sh
 
+
+
+#### Extensions repository
+extensions:
+	GIT_DIR=`pwd` && \
+	. admin/env.sh && \
+	git clone $${TRED_GIT_EXT} $${TRED_EXT_DIR}

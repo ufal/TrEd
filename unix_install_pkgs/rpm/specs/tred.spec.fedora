@@ -1,6 +1,6 @@
 Name:		tred
-Version:	2
-Release:	%SVNVERSION%
+Version:	3
+Release:	%GIT_DATE%
 Summary:	TrEd tree editor - academic tool for computational liguistics
 URL:		http://ufal.mff.cuni.cz/tred/
 License:	GPLv2+
