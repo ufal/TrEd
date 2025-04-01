@@ -932,7 +932,7 @@ sub initialize_macros {
         $macros .= 'use warnings;' if $warnings;
         $macros .= 'no warnings "redefine";';
         $macros
-            .= "{\n" 
+            .= "{\n"
             . $utf
             . join( q{}, map { Encode::_utf8_off($_); $_ } @macros )
             . "\n}; 1;\n";
