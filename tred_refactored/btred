@@ -1181,8 +1181,8 @@ sub start_server {
      #                                   )->Indent(0)->Purity(1)->Dump);
      #      $hub->print("\n");
      #    } elsif ($request{STATE_format} =~ /^Storable-Base64\s*/) {
-                use Storable;
-                use MIME::Base64;
+                require Storable;
+                require MIME::Base64; 'MIME::Base64'->import;
                 my @dump;
                 my @save_req;
                 foreach my $f ( grep /\S/, split /\n/,
