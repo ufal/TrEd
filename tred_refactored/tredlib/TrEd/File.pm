@@ -1304,7 +1304,7 @@ sub save_file {
         TrEd::Error::Message::error_message(
             $win,
             "Error while saving file to '$f'!\nI'll try to recover the original from backup.\n"
-                . _last_err(
+                . main::_last_err(
                 $err . "\n"
                     . (
                     @warnings ? join( "\n", 'WARNINGS:', @warnings ) : '' )
