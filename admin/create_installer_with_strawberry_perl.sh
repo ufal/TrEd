@@ -30,4 +30,5 @@ cp "tred-installer-perl-included.exe" "${WWW}/tred-installer-perl-included.exe" 
 mkdir -p "${WWW}/releases/windows" 2>/dev/null && \
 cp "tred-installer-perl-included.exe" "${WWW}/releases/windows/tred-installer-perl-included-${VER}.exe"  && \
 
-rm -f perl/$PERL_INSTALLER_DL
+#rm -f perl/$PERL_INSTALLER_DL
+mv perl/$PERL_INSTALLER_DL perl/$PERL_INSTALLER_DL.backup
