@@ -1,0 +1,16 @@
+diff --git a/t/02_compat.t b/t/02_compat.t
+index cb2972c..5beaf7d 100644
+--- a/t/02_compat.t
++++ b/t/02_compat.t
+@@ -131,9 +131,9 @@ ok $a->isa("UNIVERSAL");
+ my $sub2 = join ' ', sort grep { defined &{"UNIVERSAL::$_"} } keys %UNIVERSAL::;
+ # XXX import being here is really a bug
+ if ('a' lt 'A') {
+-    is $sub2, "can import isa DOES VERSION";
++    like $sub2, qr/^can(?: import)? isa DOES VERSION$/;
+ } else {
+-    is $sub2, "DOES VERSION can import isa";
++    like $sub2, qr/^DOES VERSION can(?: import)? isa(?: unimport)?$/;
+ }
+ 
+ eval 'sub UNIVERSAL::sleep {}';

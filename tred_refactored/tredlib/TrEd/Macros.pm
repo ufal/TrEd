@@ -921,14 +921,18 @@ sub initialize_macros {
                            # which should in this way be made visible
                            # to macros
     my $result    = 2;     #hm? strange init, return value never actually used
-    no warnings;
+
+    # Needed to load default macros after cleanup.
+    require TrEd::MacroAPI::Default;
+
     if ( not $macrosEvaluated ) {
         my $utf = ($useEncoding) ? "use utf8;\n" : q{};
         my $macros = q{};
         $macros .= 'use strict;' if $strict;
-        $macros .= "use warnings; no warnings 'redefine';" if $warnings;
+        $macros .= 'use warnings;' if $warnings;
+        $macros .= 'no warnings "redefine";';
         $macros
-            .= "{\n" 
+            .= "{\n"
             . $utf
             . join( q{}, map { Encode::_utf8_off($_); $_ } @macros )
             . "\n}; 1;\n";

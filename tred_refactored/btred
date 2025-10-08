@@ -330,9 +330,6 @@ EOL
     require TrEd::File;
     import TrEd::File;
 
-    #load back-ends
-    @backends = @{ TrEd::File::init_backends($extra_backends) };
-
     # these are for macros
     $stdout = \*STDOUT;
     $stderr = \*STDERR;
@@ -1184,8 +1181,8 @@ sub start_server {
      #                                   )->Indent(0)->Purity(1)->Dump);
      #      $hub->print("\n");
      #    } elsif ($request{STATE_format} =~ /^Storable-Base64\s*/) {
-                use Storable;
-                use MIME::Base64;
+                require Storable;
+                require MIME::Base64; 'MIME::Base64'->import;
                 my @dump;
                 my @save_req;
                 foreach my $f ( grep /\S/, split /\n/,
@@ -1788,7 +1785,11 @@ sub _new_status {
 sub loadFile {
     my ( $file, $backends ) = @_;
     my @warnings;
+
+    push @backends, TredMacro::Backends();
+    _make_uniq(\@backends);
     my $bck = ref($backends) ? $backends : \@backends;
+
     my $status = _new_status(
         ok       => 0,
         filename => $file,
@@ -2620,6 +2621,7 @@ EOF
             _msg($@) if $@;
         }
     }
+    delete @INC{qw{ TrEd/MacroAPI/Default.pm TrEd/MacroAPI/Extended.pm }};
     $TrEd::Macros::safeCompartment = undef;
 }
 
@@ -2780,7 +2782,8 @@ sub loadMacros {
 
     require TrEd::MacroAPI::Default;#this loads TredMacro API
                                     # not sure why, we don't need it here...
-                                    #TredMacro->import;
+
+    #TredMacro->import;
     #TredMacro::init_tredmacro_bindings();
 
 # set minor modes and this stuff, can't do it at compile time, since there is no grp...
@@ -2798,6 +2801,7 @@ sub loadMacros {
     my ( $extensions, $pre_installed, $preinst_dir ) = prepareExtensions();
     init_extensions($extensions);
     init_extensions( $pre_installed, $preinst_dir );
+    @backends = @{ TrEd::File::init_backends($extra_backends) };
     _msg("Reading extension macros...\n") unless $quiet;
 
     for my $ext_contrib ( get_extension_macro_paths($extensions),

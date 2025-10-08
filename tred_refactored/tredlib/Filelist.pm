@@ -221,8 +221,10 @@ sub _lazy_load {
     }
 
     @{ $self->list_ref() } = <$fh>;
-    close $fh
-        or croak("Cannot open $self->{load}: $!\n");
+    if ($load ne '-') {
+        close $fh
+            or croak("Cannot close $self->{load}: $!\n");
+    }
 
     if ($load =~ /\.fl$/) {
         my $fl_name = decode('UTF-8', shift @{ $self->list_ref });

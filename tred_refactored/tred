@@ -3051,7 +3051,7 @@ sub create_split_windows {
     my @fl = $opt_filelist =~ /,/g;
     my $fl = @fl + 1;
     if ( $fl > 1 ) {
-        $fl = TrEd::MinMax::min( $opt_split_window, $fl );
+        $fl = TrEd::MinMax::min( abs $opt_split_window, $fl );
         my $i;
         for ( my $i = 0; $i < $fl; $i++ ) {
             focusCanvas( $tred_ref->{treeWindows}->[$i]->canvas, $tred_ref );
@@ -3063,7 +3063,7 @@ sub create_split_windows {
         }
     }
     else {
-        for ( my $i = 1; $i < $opt_split_window; $i++ ) {
+        for ( my $i = 1; $i < abs $opt_split_window; $i++ ) {
             focusCanvas( $tred_ref->{treeWindows}->[$i]->canvas, $tred_ref );
             $tred_ref->{treeWindows}->[$i]->{currentFilelist}
                 = $tred_ref->{treeWindows}->[0]->{currentFilelist};

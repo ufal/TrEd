@@ -1,0 +1,49 @@
+name: CI
+
+on:
+    push:
+        branches: '*'
+    pull_request:
+        branches: '*'
+
+jobs:
+  matrix-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        perl-version:
+            - "5.26.0"
+            - "5.34.0"
+            - "5.40.1"
+    name: Perl ${{ matrix.perl-version }}
+    steps:
+      - uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl-version }}
+      - uses: actions/checkout@v4
+
+      - name: Install prereqs
+        run: |
+          sudo apt-get install libx11-dev libxft-dev libfontconfig1-dev \
+               libxslt1-dev libxml2-dev libpng-dev libnsl-dev xvfb patch
+
+      - name: Install deps
+        run: |
+          mkdir $HOME/tred-deps
+          export PERL5LIB=$HOME/tred-deps/lib/perl5:$HOME/tred-deps/lib/perl5/x86_64-linux
+          export PERL_MB_OPT=--install_base\ $HOME/tred-deps
+          export PERL_MM_OPT=INSTALL_BASE=$HOME/tred-deps
+
+          mkdir -p $HOME/.cpan/CPAN
+          echo "\$CPAN::Config={prerequisites_policy=>'follow',prefs_dir=>'$PWD/dpan/patches',patches_dir=>'$PWD/dpan/patches',patch=>'/usr/bin/patch',auto_commit=>1,build_cache=>0,build_dir=>'$HOME/.cpan/build',cache_metadata=>1,cpan_home=>'$HOME/.cpan',ftp_proxy=>'',http_proxy=>'',index_expire=>1,keep_source_where=>'$HOME/.cpan/sources',make_arg=>'',make_install_arg=>'',makepl_arg=>'',mbuild_arg=>'',mbuild_install_arg=>'',mbuild_install_build_command=>'./Build',mbuildpl_arg=>'',no_proxy=>'',pushy_https=>1,scan_cache=>'atstart',urllist=>['https://www.cpan.org','http://www.cpan.org']}" > $HOME/.cpan/CPAN/MyConfig.pm
+          for mod in Archive::Zip CPAN::Meta CPAN::Meta::Requirements CPAN::Meta::YAML Capture::Tiny Class::Inspector Compress::Raw::Bzip2 Compress::Raw::Zlib Encode::Locale ExtUtils::CBuilder ExtUtils::Config ExtUtils::Helpers ExtUtils::InstallPaths ExtUtils::MakeMaker ExtUtils::ParseXS File::ShareDir File::ShareDir::Install File::Temp File::Which File::pushd Font::TTF Graph Graph::ChuLiuEdmonds Graph::Kruskal HTTP::Date HTTP::Message IO::Compress IO::HTML IO::String IO::Zlib JSON::PP LWP::MediaTypes Module::Build Module::Build::Tiny Module::Metadata PDF::API2 Parse::CPAN::Meta Parse::RecDescent Perl::OSType PerlIO::gzip Readonly SUPER Sub::Identify Syntax::Highlight::Perl Test::Harness Test::MockModule Test::Simple Test::Warnings Text::Balanced Text::Iconv Tie::IxHash Tk Tk::CodeText Tk::MatchEntry Treex::PML Try::Tiny UNIVERSAL::DOES URI XML::CompactTree XML::CompactTree::XS XML::Filter::BufferText XML::LibXML XML::LibXML::Iterator XML::LibXSLT XML::NamespaceSupport XML::NodeFilter XML::SAX XML::SAX::Base XML::SAX::Writer XML::Writer LWP::UserAgent version Treex::PML Test::Exception Test2::V0 Test::Trap ; do cpan "$mod" || exit 1 ; done
+
+      - name: Tests
+        run: |
+          export PERL5LIB=$HOME/tred-deps/lib/perl5:$HOME/tred-deps/lib/perl5/x86_64-linux
+          cd tred_refactored
+          Xvfb :14 &
+          xvfb_pid=$!
+          DISPLAY=:14 prove -Itredlib -v t
+          kill $xvfb_pid
