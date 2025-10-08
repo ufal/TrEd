@@ -1138,7 +1138,7 @@ sub test_dependencies_tred_version {
     $extension_data{'file://' . $ext_repository . '/example_ext-2'}{'require'}[0][0][1]{min_version} = $min_version;
 
     # make it work on DEV_VERSION
-    if ($TrEd::Version::VERSION eq 'DEV_VERSION') {
+    if ($TrEd::Version::VERSION eq 99999999) {
         $TrEd::Version::VERSION = '1.4600';
     }
 
