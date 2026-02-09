@@ -26,9 +26,8 @@ xsh2 -P ${WWW}/tred/index.html 'nobackups; rm //*[@class="offline"]; map :i { s{
 GIT_DATE=`git log -1 --date=format:"%Y%m%d" --format="%ad"|tr -d "\n"`
 sed -i "s/(GIT:DATE)/$GIT_DATE/g" ${WWW}/tred/index.html
 
-##ATT if we want ActivePerl ppm packages
-# we need to run win32_ppm/get_packages_tred_58 a get_packages_tred_510.sh before this is run
-${ADMIN_DIR}/create_tred_packages.sh ${DIST_DIR} ${TRED_WININST_DIR} ${WWW}/tred && \
+##Note: ActivePerl has been removed
+${ADMIN_DIR}/create_tred_packages.sh ${DIST_DIR} ${WWW}/tred && \
 echo ${HOSTNAME} && \
 # create RSS from ChangeLog
 ${CHANGELOG_TO_RSS} ${TRED_DIST_DIR}/ChangeLog > ${RSS} && \

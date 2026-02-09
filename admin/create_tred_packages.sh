@@ -16,8 +16,7 @@ ulimit -s 8192 # for 7zip
 # warning: WWW is overwritten here by the third script argument!
 
 DIST_DIR="$1"
-WININST="$2"
-WWW="$3"
+WWW="$2"
 
 SFX=$(dirname $0)/7zExtra/7zS.sfx
 
