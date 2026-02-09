@@ -20,10 +20,9 @@ rm ${TRED_DIST_DIR}.new.zip && \
 # updates TrEd version in dist/tred.new/tredlib/TrEd/Version.pm according to svn version to 3.#git_date#
 ${TRED_DIST_DIR}.new/devel/update_version.pl && \
 
-echo "WARN: Skipping updating extensions" && \
-#echo "Updating extensions" && \
+echo "Updating extensions" && \
 # perform pre-updates, update svn, then some post-updates for extension (currently only for tmt) according to extension/.make.d directory
-#${TRED_EXT_DIR}/update && \
+${TRED_EXT_DIR}/update && \
 
 cp ${TRED_SRC_DIR}/ChangeLog ${TRED_DIST_DIR}.new/ && \
 
