@@ -6,7 +6,7 @@
 # should do the trick
 
 EXTDIR=`dirname $(readlink -fen $0)`
-SVN_DIR=$(dirname $(dirname $(dirname $(dirname $(readlink -fen $0)))))
+GIT_DIR=$(dirname $(dirname $(dirname $(readlink -fen $0))))
 . "$EXTDIR/../../admin/env.sh"
 
 echo "Patching Graph::Kruskal" && \

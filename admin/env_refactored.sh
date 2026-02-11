@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Root dir of the SVN checkout. All dirs are derived from this one
-if [ -z "$SVN_DIR" ]; then
-    SVN_DIR=$(dirname $(dirname $(dirname $(readlink -fen $0))))
+# Root dir of the GIT checkout. All dirs are derived from this one
+if [ -z "$GIT_DIR" ]; then
+    GIT_DIR=$(dirname $(dirname $(readlink -fen $0)))
 fi
 
 
@@ -10,10 +10,10 @@ fi
 # binaries go to $INSTALL_BASE/exec,
 # libraries go to $INSTALL_BASE/lib,
 # extensions to $INSTALL_BASE/share
-INSTALL_BASE=${SVN_DIR}/local_install
+INSTALL_BASE=${GIT_DIR}/local_install
 
 # Local (source) web tree
-WWW=${SVN_DIR}/local_www
+WWW=${GIT_DIR}/local_www
 export TREDWWW=$WWW
 
 # Remote web tree (of the testbed)
@@ -24,12 +24,13 @@ REMOTE_WWW=${TESTING_SERVER}:/var/www/tred/testbed
 # The selected user should log there without password (by certificate)
 LOGIN_NAME=tred
 
+PYTHON_ENV=${GIT_DIR}/virtualenv
 
 # TrEd project direcotry (from which Makefile is executed)
-PROJECT_DIR=${SVN_DIR}/trunk
+PROJECT_DIR=${GIT_DIR}
 
-# Log for svn checkouts and exports during make
-LOG=$SVN_DIR/trunk/make_log
+# Log for git checkouts and exports during make
+LOG=$GIT_DIR/make_log
 
 TRED_HOME_URL="http://ufallab.ms.mff.cuni.cz:24080/tred/testbed"
 TRED_EXTENSIONS_URL=""
@@ -62,11 +63,17 @@ INSTALL_DOC=${INSTALL_BASE}/doc
 RSS=${WWW}/tred/changelog.rss
 
 # Basic paths
-TRED_SVN=https://svn.ms.mff.cuni.cz/svn/TrEd
+TRED_SVN=SVN:ERROR--https://svn.ms.mff.cuni.cz/svn/TrEd
 TRED_SVN_REPO=${TRED_SVN}/trunk/tred_refactored
-TRED_SVN_EXT=${TRED_SVN}/extensions
+TRED_SVN_EXT=https://svn.ms.mff.cuni.cz/svn/TrEd/extensions
 TREEX_PML_REPO=https://svn.ms.mff.cuni.cz/svn/perl_libs/trunk/distribution/Treex-PML
 WIN32_DIST_REPO=https://svn.ms.mff.cuni.cz/svn/perl_libs/trunk/distribution/win32_build_script
+
+TRED_FOLDER=tred_refactored
+TRED_GIT_REPO=${GIT_DIR}/${TRED_FOLDER}
+TRED_GIT_EXT=git@github.com:ufal/TrEd-extensions.git
+# https://github.com/ufal/TrEd-extensions.git
+
 
 # PROJECT_DIR=/net/work/projects/tred
 ADMIN_DIR=${PROJECT_DIR}/admin
@@ -89,8 +96,8 @@ TREEX_PML_EXPORT=${PROJECT_DIR}/generated/Treex-PML
 # mutli-script to run jobs on the SGE cluster
 LRC_CMD=${ADMIN_DIR}/run_on_lrc
 
-# SVN to ChangeLog conversion
-SVN_TO_CHANGELOG=${ADMIN_DIR}/svn2cl/svn2cl.sh
+# GIT to ChangeLog conversion
+GIT_TO_CHANGELOG=${PYTHON_ENV}/bin/git-changelog
 # ChangeLog to RSS conversion
 CHANGELOG_TO_RSS=${ADMIN_DIR}/changelog2rss.pl
 
@@ -101,7 +108,7 @@ CHANGELOG_TO_RSS=${ADMIN_DIR}/changelog2rss.pl
 
 
 ## MAC OS settings
-MAC_RELEASER=kopp@manfred.ms.mff.cuni.cz
+MAC_RELEASER=mMcBair.local
 MAC_TRED_INSTALLATION='~/tred_installation'
 MAC_TRED_INSTALLATION_OLD='~/tred_installation_old'
-MAC_SVN_DIR='~/TrEd'
+MAC_GIT_DIR='~/work/TrEd'

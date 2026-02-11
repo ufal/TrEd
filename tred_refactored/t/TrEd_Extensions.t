@@ -1137,8 +1137,8 @@ sub test_dependencies_tred_version {
     my $min_version = '100.0'; #460kB should be enough for everyone!
     $extension_data{'file://' . $ext_repository . '/example_ext-2'}{'require'}[0][0][1]{min_version} = $min_version;
 
-    # make it work on SVN_VERSION
-    if ($TrEd::Version::VERSION eq '9999') {
+    # make it work on DEV_VERSION
+    if ($TrEd::Version::VERSION eq 99999999) {
         $TrEd::Version::VERSION = '1.4600';
     }
 

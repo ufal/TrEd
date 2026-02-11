@@ -14,9 +14,9 @@ mkdir -p $WWW/tred/extensions 2> /dev/null
 
 # create symlink in TrEd install directory
 # (we have to test the existance of symlink first, otherwise we would create link the other way (and also never-ending recursion))
-if [ ! -h $TRED_WININST_DIR/extensions ]; then
-	ln -s $WWW/tred/extensions/ $TRED_WININST_DIR/extensions
-fi
+#if [ ! -h $TRED_WININST_DIR/extensions ]; then
+#	ln -s $WWW/tred/extensions/ $TRED_WININST_DIR/extensions
+#fi
 
 ##ATT naco sa robi nasl riadok??
 cd ${TRED_EXT_DIR}; ./make pdt20; ./make pdt_vallex && \

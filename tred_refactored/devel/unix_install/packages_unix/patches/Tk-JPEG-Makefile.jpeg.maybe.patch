@@ -1,0 +1,15 @@
+--- JPEG/Makefile.jpeg.maybe.orig	2020-03-19 21:41:00.000000000 +0100
++++ JPEG/Makefile.jpeg.maybe	2024-06-14 14:35:38.313024340 +0200
+@@ -31,9 +31,10 @@
+  }
+ else
+  {
++  my $ccstdflags = ($^O eq 'darwin') ? '-std=c89' : '';
+   $ENV{CC} = $Config{cc};
+-  local $ENV{CFLAGS} = "$Config{ccflags} $Config{cccdlflags}";
+-  local $ENV{LDFLAGS} = "$Config{ccflags} $Config{ldflags}";
++  local $ENV{CFLAGS} = "$ccstdflags $Config{ccflags} $Config{cccdlflags}";
++  local $ENV{LDFLAGS} = "$ccstdflags $Config{ccflags} $Config{ldflags}";
+   system(sh => "./configure");
+  }
+ 

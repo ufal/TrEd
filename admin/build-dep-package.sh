@@ -9,7 +9,7 @@ mkdir -p "${WWW}/tred" && \
 # create package with tred unix dependencies
 tar czhf "${WWW}/tred/tred-dep-unix.tar.gz" --exclude=.svn --exclude='*~' -C ${TRED_UNIXINST_DIR} packages_unix && \
 # create linux installation script in $WWW/tred directory
-svn cat ${TRED_SVN_REPO}/devel/unix_install/install_tred.bash > ${WWW}/tred/install_tred.bash && \
+git show HEAD:../${TRED_FOLDER}/devel/unix_install/install_tred.bash > ${WWW}/tred/install_tred.bash && \
 # replace TRED_HOME_URL by URL of TrEd webpage 
 perl -pi -e "s|TRED_HOME_URL|$TRED_HOME_URL|g" ${WWW}/tred/install_tred.bash && \
 

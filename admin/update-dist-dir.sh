@@ -12,10 +12,13 @@ if [ -e ${TRED_DIST_DIR}.new ]; then
 	exit 1;
 fi && \
 
-echo "Exporting svn" && \
-svn export ${TRED_SVN_REPO} ${TRED_DIST_DIR}.new >> $LOG && \
-# updates TrEd version in dist/tred.new/tredlib/TrEd/Version.pm according to svn version to 1.#svn_version#
-${TRED_DIST_DIR}.new/devel/update_version.pl ${TRED_SVN_REPO} && \
+echo "Exporting git" && \
+##svn export ${TRED_SVN_REPO} ${TRED_DIST_DIR}.new >> $LOG && \
+git -C ${TRED_SRC_DIR} archive --output ${TRED_DIST_DIR}.new.zip  HEAD >> $LOG && \
+unzip ${TRED_DIST_DIR}.new.zip -d  ${TRED_DIST_DIR}.new  >> $LOG && \
+rm ${TRED_DIST_DIR}.new.zip && \
+# updates TrEd version in dist/tred.new/tredlib/TrEd/Version.pm according to svn version to 3.#git_date#
+${TRED_DIST_DIR}.new/devel/update_version.pl && \
 
 echo "Updating extensions" && \
 # perform pre-updates, update svn, then some post-updates for extension (currently only for tmt) according to extension/.make.d directory

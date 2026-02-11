@@ -34,14 +34,10 @@ $rb=~s{/$}{};
 my $version_file = File::Spec->rel2abs('../tredlib/TrEd/Version.pm',$rb);
 
 die "Did not find $version_file!" if !-f $version_file;
-# You'd better pass an arg to set this or this may fail in the future
-my $REPO = shift || 'https://svn.ms.mff.cuni.cz/svn/TrEd_refactored/tred_refactored/';
 
-my $svn_version = `svn info "$REPO" |grep "^Revision:" |cut -f2 -d:`;
-my $updated_version = sprintf("%04d", $svn_version);
-my $VER = '2.' . $updated_version;
-chomp $VER;
-$VER=~s/\s+//g;
+my $git_date = `git log -1 --date=format:"%Y%m%d" --format="%ad"`;
+chomp $git_date;
+my $VER = '3.' . $git_date;
 
 print $VER,"\n" unless $opts{'quiet'};
 print STDERR "TrEd::Version: $version_file\n" if $opts{debug};
@@ -70,7 +66,7 @@ update_version.pl - update TrEd version number in TrEd::Version
 
 =head1 SYNOPSIS
 
-update_version.pl [--debug|-D] [--quiet|-q] [--no-update|-n] [REPOSITORY_URL]
+update_version.pl [--debug|-D] [--quiet|-q] [--no-update|-n]
 or
   update_version.pl -u          for usage
   update_version.pl -h          for help
@@ -79,7 +75,7 @@ or
 =head1 DESCRIPTION
 
 This script updates the version number in the module TrEd::Version based on
-the current SVN revision number of TrEd.
+the current GIT revision date of TrEd.
 
 =over 5
 

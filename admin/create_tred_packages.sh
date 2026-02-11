@@ -16,13 +16,12 @@ ulimit -s 8192 # for 7zip
 # warning: WWW is overwritten here by the third script argument!
 
 DIST_DIR="$1"
-WININST="$2"
-WWW="$3"
+WWW="$2"
 
 SFX=$(dirname $0)/7zExtra/7zS.sfx
 
 if [ -z "$VER" ]; then
-    VER=`$DIST_DIR/tred/devel/update_version.pl -n ${TRED_SVN_REPO}`
+    VER=`$DIST_DIR/tred/devel/update_version.pl -n`
 fi
 
 cd "$DIST_DIR"
@@ -33,7 +32,7 @@ PKG="tred-current.tar.gz"
 DATE="$(LANG=C date)"
 
 # update revision numbers in tred source tree
-perl -pi -e 's/our \$VERSION = "SVN_VERSION"/our \$VERSION = "'$VER'"/g' tred/tredlib/TrEd/Version.pm
+perl -pi -e 's/our \$VERSION = "DEV_VERSION"/our \$VERSION = "'$VER'"/g' tred/tredlib/TrEd/Version.pm
 # update revision numbers in index.html
 perl -pi~ -e "s/tred-(?:current|[0-9.]+?)\\.tar\\.gz/${PKG}/g; s/Current version:.*</Current version: ${VER} (release date ${DATE})</g" ${WWW}/index.html
 

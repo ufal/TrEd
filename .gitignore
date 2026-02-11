@@ -1,0 +1,17 @@
+/dist
+dpan/dpan/authors/id/D/DP/DPAN/*.tar.gz
+dpan/dpan/authors/id/D/DP/DPAN/*.tar.gz.patched
+!dpan/dpan/authors/id/D/DP/DPAN/.gitkeep
+extensions
+/local_install
+/local_www
+/Treex-PML
+/unix_install
+/virtualenv
+win32_strawberry/perl/*
+!win32_strawberry/perl/.gitkeep
+/win32_strawberry/*.exe
+/unix_install_pkgs/deb/tred_3*
+/unix_install_pkgs/rpm/tred-3*
+/dpan/dpan/indexing_log
+/admin/7zExtra
