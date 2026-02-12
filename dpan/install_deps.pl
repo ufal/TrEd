@@ -10,6 +10,8 @@ use English;
 use Getopt::Long;
 use FindBin;
 
+$| = 1; # aotoflush STDOUT, so the user can see the progress of installation in real time
+
 # We have to set proper PERL5LIB before running the actual installation, so this is a small wrapper script
 my $perl = $^X; 
 
@@ -37,6 +39,8 @@ if ($install_base eq ""){
 			print("Cancelling.\n");
 			exit(0);
 		}
+	} else {
+		print("Installing perl modules to $install_base...\n");
 	}
 }
 
