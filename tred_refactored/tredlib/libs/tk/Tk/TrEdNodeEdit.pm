@@ -1841,10 +1841,10 @@ sub dump_child {
 
     # fixme: probably we want to clear the Struct/Container ???
     my @children = $hlist->info(children => $path);
-    if (UNIVERSAL::DOES::does($ref, 'Treex::PML::List') or UNIVERSAL::DOES::does($ref, 'Treex::PML::Alt')) {
-      if (@children) {
-	$ref->push($new_ref);
-      }
+    if (UNIVERSAL::DOES::does($ref, 'Treex::PML::List')) {
+      $ref->push($new_ref) if @children;
+    } elsif (UNIVERSAL::DOES::does($ref, 'Treex::PML::Alt')) {
+      $ref->add($new_ref) if @children;
     } elsif (UNIVERSAL::DOES::does($ref,'Treex::PML::Seq')) {
       if (@children or ($dump == PML_CONTAINER_DECL and !defined($mtype->get_content_decl))) {
 	$ref->push_element($data->{name}, $new_ref);
