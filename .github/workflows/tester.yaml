@@ -25,6 +25,7 @@ jobs:
 
       - name: Install prereqs
         run: |
+          sudo apt update
           sudo apt-get install libx11-dev libxft-dev libfontconfig1-dev \
                libxslt1-dev libxml2-dev libpng-dev libnsl-dev xvfb patch
 
