@@ -5,7 +5,7 @@ use warnings;
 
 use TrEd::Macros;
 use TrEd::Utils qw{$EMPTY_STR};
-use TrEd::Binding::Default qw{normalize_key};
+use TrEd::Binding::Default;
 
 sub examineEvent {
     my $w        = shift;

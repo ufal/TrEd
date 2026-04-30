@@ -89,7 +89,7 @@ sub get_menu_list {
                    else {       # TrEd::Stylesheet::get_stylesheet_context($_)?
                        $match = $grp->{stylesheets}{$_}{context} || $EMPTY_STR;
                        chomp $match;
-                       if (!$match =~ /\S/) {
+                       if ($match !~ /\S/) {
                         $match = '.*';
                        }
                        $context =~ /^${match}$/x ? 1 : 0;

@@ -8,7 +8,7 @@ use TrEd::Config qw{$tredDebug};
 use TrEd::ManageFilelists;
 use TrEd::Filelist::View;
 use TrEd::Error::Message;
-use TrEd::Bookmarks qw{$FILELIST_NAME};
+use TrEd::Bookmarks;
 
 use Treex::PML;
 
