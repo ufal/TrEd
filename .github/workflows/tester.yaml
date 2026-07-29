@@ -13,9 +13,9 @@ jobs:
       fail-fast: false
       matrix:
         perl-version:
-            - "5.26.0"
             - "5.34.0"
             - "5.40.1"
+            - "5.42.0"
     name: Perl ${{ matrix.perl-version }}
     steps:
       - uses: shogo82148/actions-setup-perl@v1
