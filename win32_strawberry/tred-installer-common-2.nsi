@@ -258,7 +258,7 @@ Section "TrEd" SecTrEd
 	StrCpy $ModulesLogFile "$INSTDIR_SHORT\dependencies-install-log.txt"
 
 	;DetailPrint "Starting Perl Modules installation..."
-	ExecDos::exec /NOUNLOAD /ASYNC /DETAILED /ENDFUNC=$R2 "cmd.exe /c perl $\"$TEMP\local_cpan\dpan\install_deps.pl$\" --install-base $INSTDIR_SHORT\dependencies 1> $ModulesLogFile 2>&1"
+	ExecDos::exec /NOUNLOAD /ASYNC /DETAILED /ENDFUNC=$R2 "cmd.exe /c set PERL_MM_USE_DEFAULT=1 && perl $\"$TEMP\local_cpan\dpan\install_deps.pl$\" --install-base $INSTDIR_SHORT\dependencies 1> $ModulesLogFile 2>&1"
 	Pop $R9
 		
 	ExecDos::isdone /NOUNLOAD $R9
@@ -271,9 +271,9 @@ Section "TrEd" SecTrEd
 		Call LineCount
 		Pop $LogFileLineCount
 		
-		; 5500 is number of lines in sample log file installation, 1% ... 55 lines, 
+		; 8723 is number of lines in sample log file installation, 1% ... 55 lines, 
 		; +3 is a little reserve
-		IntOp $Percent_finished $LogFileLineCount / 58
+		IntOp $Percent_finished $LogFileLineCount / 90
 		${If} $Percent_finished > 100
 			IntOp $Percent_finished 100 + 0
 		${EndIf}

@@ -155,7 +155,7 @@ Function .onInit
         ReadEnvStr $OriginalPath "PATH"
 
         ; default path where strawberry perl is usually installed
-        StrCpy $StrawberryDefaultPath "C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin"
+        StrCpy $StrawberryDefaultPath "C:\Strawberry\c\bin;C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin"
 
         ; try to find perl executable and version
         Call testPerl
@@ -255,7 +255,7 @@ Function testPerl
                 StrCpy $PerlMsg "$PerlFlavour Perl $PerlVersion found in $PerlPath, OK."
                 StrCpy $PerlVersionOk "1"
         ${Else}
-                StrCpy $PerlMsg "Perl version not supported. Please install Strawberry Perl 5.24, or choose a directory containing Perl executable."
+                StrCpy $PerlMsg "Perl version ($PerlVersion) not supported. Please install Strawberry Perl 5.24, or choose a directory containing Perl executable."
         ${EndIf}
         done:
 FunctionEnd
