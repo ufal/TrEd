@@ -46,5 +46,6 @@ jobs:
           cd tred_refactored
           Xvfb :14 &
           xvfb_pid=$!
+          echo Xvfb PID = $xvfb_pid
           DISPLAY=:14 prove -Itredlib -v t
           kill $xvfb_pid
