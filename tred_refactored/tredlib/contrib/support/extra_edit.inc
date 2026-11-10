@@ -269,7 +269,7 @@ sub cut_to_sibling {
 }
 
 sub trim_subtree {
-    return if ( !$this || !$root || !$this != $root );
+    return if ( !$this || !$root || $this == $root );
     my $node = $this;
     CutNode($node);
     $grp->{FSFile}->set_tree( $node, $grp->{treeNo} );
