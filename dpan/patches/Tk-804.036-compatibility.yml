@@ -1,0 +1,6 @@
+---
+comment: "Various compatibility issues with new gcc"
+match:
+  distribution: 'SREZIC/Tk-804\.036'
+patches:
+  - "Tk-804.036-compatibility.patch"

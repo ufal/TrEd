@@ -1,0 +1,230 @@
+diff --git a/Event/Event.xs b/Event/Event.xs
+index 82bbb24..f2c9523 100644
+--- a/Event/Event.xs
++++ b/Event/Event.xs
+@@ -1532,7 +1532,7 @@ PROTOTYPES: DISABLE
+ BOOT:
+  {
+ #ifdef pWARN_NONE
+-  SV *old_warn = PL_curcop->cop_warnings;
++  void *old_warn = PL_curcop->cop_warnings;
+   PL_curcop->cop_warnings = pWARN_NONE;
+ #endif
+   newXS("Tk::Event::INIT", XS_Tk__Event_INIT, file);
+diff --git a/JPEG/jpeg/configure b/JPEG/jpeg/configure
+index 35c9db5..eff4fdd 100755
+--- a/JPEG/jpeg/configure
++++ b/JPEG/jpeg/configure
+@@ -623,7 +623,7 @@ cross_compiling=$ac_cv_prog_cc_cross
+ cat > conftest.$ac_ext <<EOF
+ #line 625 "configure"
+ #include "confdefs.h"
+-main(){return(0);}
++int main(){return(0);}
+ EOF
+ if { (eval echo configure:629: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
+   ac_cv_prog_cc_works=yes
+@@ -1280,7 +1280,8 @@ else
+   cat > conftest.$ac_ext <<EOF
+ #line 1282 "configure"
+ #include "confdefs.h"
+-
++#include <stdio.h>
++#include <stdlib.h>
+ #ifdef HAVE_PROTOTYPES
+ int is_char_signed (int arg)
+ #else
+@@ -1298,7 +1299,7 @@ int is_char_signed (arg)
+   return 1;			/* assume char is signed otherwise */
+ }
+ char signed_char_check = (char) (-67);
+-main() {
++int main() {
+   exit(is_char_signed((int) signed_char_check));
+ }
+ EOF
+@@ -1326,7 +1327,8 @@ else
+   cat > conftest.$ac_ext <<EOF
+ #line 1328 "configure"
+ #include "confdefs.h"
+-
++#include <stdio.h>
++#include <stdlib.h>
+ #ifdef HAVE_PROTOTYPES
+ int is_shifting_signed (long arg)
+ #else
+@@ -1350,7 +1352,7 @@ int is_shifting_signed (arg)
+   printf("I fear the JPEG software will not work at all.\n\n");
+   return 0;			/* try it with unsigned anyway */
+ }
+-main() {
++int main() {
+   exit(is_shifting_signed(-0x7F7E80B1L));
+ }
+ EOF
+@@ -1378,9 +1380,9 @@ else
+   cat > conftest.$ac_ext <<EOF
+ #line 1380 "configure"
+ #include "confdefs.h"
+-
++#include <stdlib.h>
+ #include <stdio.h>
+-main() {
++int main() {
+   if (fopen("conftestdata", "wb") != NULL)
+     exit(0);
+   exit(1);
+diff --git a/objGlue.c b/objGlue.c
+index d4927ea..b4c8e7e 100644
+--- a/objGlue.c
++++ b/objGlue.c
+@@ -627,7 +627,10 @@ Tcl_GetByteArrayFromObj(Tcl_Obj * objPtr, int * lengthPtr)
+  sv_utf8_downgrade(objPtr, 0);
+  if (lengthPtr)
+   {
+-   return (unsigned char *) SvPV(objPtr, *lengthPtr);
++    STRLEN len;
++    char *str = SvPV(objPtr, len);
++    *lengthPtr = len;
++    return (unsigned char *)str;
+   }
+  else
+   {
+diff --git a/pTk/Xlib.t b/pTk/Xlib.t
+index a193fc5..c90964c 100644
+--- a/pTk/Xlib.t
++++ b/pTk/Xlib.t
+@@ -331,7 +331,7 @@ VFUNC(int,XIntersectRegion,V_XIntersectRegion,_ANSI_ARGS_((Region, Region, Regio
+ #endif /* !DO_X_EXCLUDE */
+ 
+ #ifndef XKeycodeToKeysym
+-VFUNC(KeySym,XKeycodeToKeysym,V_XKeycodeToKeysym,_ANSI_ARGS_((Display *, unsigned int, int)))
++VFUNC(KeySym,XKeycodeToKeysym,V_XKeycodeToKeysym,_ANSI_ARGS_((Display *, KeyCode, int)))
+ #endif /* #ifndef XKeycodeToKeysym */
+ 
+ #ifndef XKeysymToString
+diff --git a/pTk/mTk/additions/ClientWin.c b/pTk/mTk/additions/ClientWin.c
+index 89b33f0..8064645 100644
+--- a/pTk/mTk/additions/ClientWin.c
++++ b/pTk/mTk/additions/ClientWin.c
+@@ -30,7 +30,7 @@ in this Software without prior written authorization from the X Consortium.
+ #include <X11/Xlib.h>
+ #include <X11/Xatom.h>
+ 
+-static Window TryChildren();
++static Window TryChildren(Display *dpy, Window win, Atom WM_STATE);
+ 
+ /* Find a window with WM_STATE, else return win itself, as per ICCCM */
+ 
+diff --git a/pTk/mTk/generic/tkCanvText.c b/pTk/mTk/generic/tkCanvText.c
+index 1a950a5..de03da2 100644
+--- a/pTk/mTk/generic/tkCanvText.c
++++ b/pTk/mTk/generic/tkCanvText.c
+@@ -1234,7 +1234,7 @@ GetTextIndex(interp, canvas, itemPtr, obj, indexPtr)
+ 				 * index. */
+ {
+     TextItem *textPtr = (TextItem *) itemPtr;
+-    size_t length;
++    int length;
+     int c;
+     TkCanvas *canvasPtr = (TkCanvas *) canvas;
+     Tk_CanvasTextInfo *textInfoPtr = textPtr->textInfoPtr;
+diff --git a/pTk/mTk/generic/tkEvent.c b/pTk/mTk/generic/tkEvent.c
+index 3fc5821..bdcb712 100644
+--- a/pTk/mTk/generic/tkEvent.c
++++ b/pTk/mTk/generic/tkEvent.c
+@@ -1153,6 +1153,7 @@ TkEventDeadWindow(winPtr)
+ Time
+ TkCurrentTime(dispPtr, fallbackCurrent)
+     TkDisplay *dispPtr;		/* Display for which the time is desired. */
++    int fallbackCurrent;
+ {
+     register XEvent *eventPtr;
+     ThreadSpecificData *tsdPtr = (ThreadSpecificData *)
+diff --git a/pTk/mTk/generic/tkImage.c b/pTk/mTk/generic/tkImage.c
+index 7bfc340..45b3957 100644
+--- a/pTk/mTk/generic/tkImage.c
++++ b/pTk/mTk/generic/tkImage.c
+@@ -1083,6 +1083,8 @@ int x;
+ int y;
+ int width;
+ int height;
++int imgWidth;
++int imgHeight;
+ {
+     Tk_Tile tile = (Tk_Tile) clientData;
+     Tk_TileChange *handler;
+diff --git a/pTk/mTk/unix/tkUnixEvent.c b/pTk/mTk/unix/tkUnixEvent.c
+index ed62e29..feb8c8c 100644
+--- a/pTk/mTk/unix/tkUnixEvent.c
++++ b/pTk/mTk/unix/tkUnixEvent.c
+@@ -416,9 +416,9 @@ DisplayFileProc(clientData, flags)
+ 	 * message.
+ 	 */
+ 
+-	void (*oldHandler)();
++	void (*oldHandler)(int);
+ 
+-	oldHandler = (void (*)()) signal(SIGPIPE, SIG_IGN);
++	oldHandler = (void (*)(int)) signal(SIGPIPE, SIG_IGN);
+ 	XNoOp(display);
+ 	XFlush(display);
+ 	(void) signal(SIGPIPE, oldHandler);
+diff --git a/pTk/mTk/unix/tkUnixSelect.c b/pTk/mTk/unix/tkUnixSelect.c
+index bd50f06..fb26a36 100644
+--- a/pTk/mTk/unix/tkUnixSelect.c
++++ b/pTk/mTk/unix/tkUnixSelect.c
+@@ -367,7 +367,7 @@ TkSelPropProc(eventPtr)
+ 	    ((char *) buffer)[numItems] = 0;
+ 
+ 	    errorHandler = Tk_CreateErrorHandler(eventPtr->xproperty.display,
+-		    -1, -1, -1, (int (*)()) NULL, (ClientData) NULL);
++		    -1, -1, -1, (int (*)(void *, XErrorEvent *)) NULL, (ClientData) NULL);
+ 	    /*
+ 	     * Encode the data using the proper format for each type.
+ 	     */
+@@ -872,7 +872,7 @@ ConvertSelection(winPtr, eventPtr)
+ 	    Tcl_GetThreadData(&dataKey, sizeof(ThreadSpecificData));
+ 
+     errorHandler = Tk_CreateErrorHandler(eventPtr->display, -1, -1,-1,
+-	    (int (*)()) NULL, (ClientData) NULL);
++	    (int (*)(void *, XErrorEvent *)) NULL, (ClientData) NULL);
+ 
+     /*
+      * Initialize the reply event.
+@@ -1149,7 +1149,7 @@ ConvertSelection(winPtr, eventPtr)
+ 	Tcl_DeleteTimerHandler(incr.timeout);
+ 	/* winPtr may have been destroyed now */
+ 	errorHandler = Tk_CreateErrorHandler(reply.display,
+-		-1, -1,-1, (int (*)()) NULL, (ClientData) NULL);
++		-1, -1,-1, (int (*)(void *, XErrorEvent *)) NULL, (ClientData) NULL);
+ 	XSelectInput(reply.display, reply.requestor, 0L);
+ 	Tk_DeleteErrorHandler(errorHandler);
+ 	if (tsdPtr->pendingIncrs == &incr) {
+diff --git a/tkGlue.c b/tkGlue.c
+index 68a7e0f..c609b4b 100644
+--- a/tkGlue.c
++++ b/tkGlue.c
+@@ -5249,6 +5249,7 @@ do_comp(pTHX_ CV *cv)
+  dMARK;
+  dAX;
+  struct WrappedRegExp *p = (struct WrappedRegExp *) CvXSUBANY(cv).any_ptr;
++#define USE_PREGCOMP_31027 1
+ #if USE_PREGCOMP_31027
+  p->pat = pregcomp(p->source,p->flags);
+ #else /* USE_PREGCOMP_31027 */
+@@ -5543,13 +5544,8 @@ _((pTHX))
+  char *XEventMethods = "abcdfhkmopstvwxyABDEKNRSTWXY#";
+  char buf[128];
+  CV *cv;
+-#if PERL_REVISION > 5 || (PERL_REVISION == 5 && PERL_VERSION >= 9)
+-#define COP_WARNINGS_TYPE STRLEN*
+-#else
+-#define COP_WARNINGS_TYPE SV*
+-#endif
+ #ifdef pWARN_NONE
+- COP_WARNINGS_TYPE old_warn = PL_curcop->cop_warnings;
++ void *old_warn = PL_curcop->cop_warnings;
+  PL_curcop->cop_warnings = pWARN_NONE;
+ #endif
+ 
